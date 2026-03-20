@@ -1,0 +1,11 @@
+{
+  "ignore": [
+    "vector_stores/*",
+    "media/*",
+    "*.json",
+    "backend.log",
+    "tmp_*.js"
+  ],
+  "ext": "js,json,html,css",
+  "delay": "2500"
+}

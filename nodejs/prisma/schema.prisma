@@ -1,0 +1,201 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id           Int      @id @default(autoincrement())
+  uid          String   @unique
+  name         String
+  email        String   @unique
+  profile_pic  String?
+  xp           Int      @default(0)
+  level        Int      @default(1)
+  streak_count Int      @default(0)
+  joined_at    DateTime @default(now())
+
+  playlists    Playlist[]
+  videos       Video[]
+  quizzes      Quiz[]
+  certificates Certificate[]
+  activities   UserActivityLog[]
+  notes        VideoNote[]
+  comments     VideoComment[]
+  subjects     Subject[]
+}
+
+model Playlist {
+  id          Int      @id @default(autoincrement())
+  user        UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  pid         String
+  name        String
+  url         String
+  thumbnail   String?
+  imported_at  DateTime @default(now())
+  duration_goal Int?
+
+  videos       Video[]
+  quizzes      Quiz[]
+  certificates Certificate[]
+
+  @@unique([userId, pid])
+}
+
+model Video {
+  id             Int      @id @default(autoincrement())
+  user           UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int
+  vid            String
+  name           String
+  url            String
+  description    String?  @db.LongText
+  playlist       Playlist? @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  playlistId     Int?
+  imported_at    DateTime
+  watch_progress Float    @default(0.0)
+  is_completed   Boolean  @default(false)
+  position       Int      @default(0)
+  duration_seconds Int    @default(0)
+
+  quizzes      Quiz[]
+  certificates Certificate[]
+
+  @@unique([userId, vid])
+}
+
+model Quiz {
+  id           Int      @id @default(autoincrement())
+  user         UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  video        Video?   @relation(fields: [videoId], references: [id], onDelete: SetNull)
+  videoId      Int?
+  playlist     Playlist? @relation(fields: [playlistId], references: [id], onDelete: SetNull)
+  playlistId   Int?
+  questions    String   @db.LongText
+  user_answers String?  @db.LongText
+  score        Float?
+  passed       Boolean?
+  is_combined  Boolean  @default(false)
+  time_limit   Int      @default(15) // In minutes
+  attempted_at DateTime @default(now())
+}
+
+model Certificate {
+  id             Int      @id @default(autoincrement())
+  user           UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int
+  video          Video?   @relation(fields: [videoId], references: [id], onDelete: SetNull)
+  videoId        Int?
+  playlist       Playlist? @relation(fields: [playlistId], references: [id], onDelete: SetNull)
+  playlistId     Int?
+  certificate_id String   @unique @default(uuid())
+  issued_at      DateTime @default(now())
+  download_url   String?
+}
+
+model UserActivityLog {
+  id            Int      @id @default(autoincrement())
+  user          UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  activity_type String
+  timestamp     DateTime @default(now())
+}
+
+model VideoNote {
+  id         Int      @id @default(autoincrement())
+  user       UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  vid        String
+  content    String   @db.LongText
+  updated_at DateTime @updatedAt
+
+  files      VideoNoteFile[]
+
+  @@unique([userId, vid])
+}
+
+model VideoNoteFile {
+  id          Int      @id @default(autoincrement())
+  note        VideoNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  noteId      Int
+  file        String   // Path to file
+  uploaded_at DateTime @default(now())
+}
+
+model VideoComment {
+  id         Int      @id @default(autoincrement())
+  user       UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  vid        String
+  content    String   @db.LongText
+  parent     VideoComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId   Int?
+  replies    VideoComment[] @relation("CommentReplies")
+  created_at DateTime @default(now())
+}
+
+
+
+
+model VideoIntuition {
+  id           Int      @id @default(autoincrement())
+  vid          String   @unique
+  content      String   @db.LongText
+  model_name   String?  // The name of the AI model that generated this
+  generated_at DateTime @default(now())
+}
+
+model VideoQuizData {
+  id           Int      @id @default(autoincrement())
+  vid          String   @unique
+  questions    String   @db.LongText // Stored as JSON string
+  generated_at DateTime @default(now())
+}
+
+// --- Ask My Notes Feature ---
+
+model Subject {
+  id           Int           @id @default(autoincrement())
+  user         UserProfile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  name         String
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+
+  notes        SubjectNote[]
+  chats        AskMyNoteChat[]
+
+  @@unique([userId, name])
+}
+
+model SubjectNote {
+  id            Int      @id @default(autoincrement())
+  subject       Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId     Int
+  file_path     String   // Absolute path to the file
+  original_name String   // Original filename
+  uploaded_at   DateTime @default(now())
+}
+
+model AskMyNoteChat {
+  id           Int      @id @default(autoincrement())
+  subject      Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId    Int
+  session_id   String   // Group messages by session
+  query        String   @db.LongText
+  response     String   @db.LongText
+  citations    String?  @db.LongText // JSON string of citations
+  confidence   Int?     // AI confidence score 0-100
+  timestamp    DateTime @default(now())
+}
+
+

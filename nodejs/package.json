@@ -1,0 +1,37 @@
+{
+    "name": "learnproof-backend-express",
+    "version": "1.0.0",
+    "description": "Express.js backend for LearnProof",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js",
+        "build": "prisma generate",
+        "postinstall": "prisma generate",
+        "prisma:generate": "prisma generate",
+        "prisma:migrate": "prisma migrate dev"
+    },
+    "dependencies": {
+        "@google/generative-ai": "^0.24.1",
+        "@prisma/client": "^6.0.0",
+        "axios": "^1.13.6",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "express": "^4.21.1",
+        "express-rate-limit": "^8.3.1",
+        "firebase-admin": "^12.7.0",
+        "fs-extra": "^11.3.4",
+        "google-auth-library": "^9.14.2",
+        "googleapis": "^144.0.0",
+        "lodash": "^4.17.23",
+        "morgan": "^1.10.0",
+        "multer": "^1.4.5-lts.1",
+        "openai": "^6.27.0",
+        "pdf-parse": "^1.1.1",
+        "pdfkit": "^0.17.2"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.7",
+        "prisma": "^6.0.0"
+    }
+}
