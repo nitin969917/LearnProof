@@ -149,7 +149,7 @@ const YouTubeExplorer = () => {
 
                 <form onSubmit={handleSearch} className="relative w-full max-w-2xl group">
                     <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-[2rem] blur-2xl group-focus-within:blur-3xl transition-all duration-500 opacity-50"></div>
-                    <div className="relative flex items-center bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-[2rem] p-2 shadow-2xl shadow-gray-200/50 dark:shadow-none transition-all duration-500 focus-within:ring-4 focus-within:ring-red-500/10 focus-within:border-red-500/30">
+                    <div className="relative flex items-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-[2rem] p-2 shadow-2xl shadow-gray-200/50 dark:shadow-none transition-all duration-500 focus-within:ring-4 focus-within:ring-red-500/10 focus-within:border-red-500/30">
                         <div className="pl-4 text-gray-400 group-focus-within:text-red-500 transition-colors">
                             <Search size={22} />
                         </div>
@@ -173,7 +173,7 @@ const YouTubeExplorer = () => {
 
             {/* AI Magic Recommendation Section */}
             <div className="relative group shadow-2xl rounded-[2rem]">
-                <div className="relative bg-white dark:bg-slate-900 rounded-[2rem] p-6 md:p-8 border border-gray-100 dark:border-slate-800">
+                <div className="relative bg-white dark:bg-gray-800 rounded-[2rem] p-6 md:p-8 border border-gray-100 dark:border-gray-700">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                         <div className="space-y-1 text-center md:text-left">
                             <div className="flex items-center justify-center md:justify-start gap-2 text-orange-600 dark:text-orange-400">
@@ -191,14 +191,14 @@ const YouTubeExplorer = () => {
                                     placeholder="I want to learn..."
                                     value={recommendSubject}
                                     onChange={(e) => setRecommendSubject(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-slate-800/50 border-none py-3.5 px-5 rounded-[1.25rem] text-sm font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                    className="w-full bg-gray-50 dark:bg-gray-700/50 border-none py-3.5 px-5 rounded-[1.25rem] text-sm font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all"
                                 />
                             </div>
                             <div className="w-full md:w-48 relative">
                                 <select
                                     value={recommendLanguage}
                                     onChange={(e) => setRecommendLanguage(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-slate-800/50 border-none py-3.5 px-5 pr-10 rounded-[1.25rem] text-sm font-black uppercase tracking-wider text-gray-700 dark:text-slate-300 focus:ring-2 focus:ring-orange-500 outline-none transition-all appearance-none cursor-pointer"
+                                    className="w-full bg-gray-50 dark:bg-gray-700/50 border-none py-3.5 px-5 pr-10 rounded-[1.25rem] text-sm font-black uppercase tracking-wider text-gray-700 dark:text-slate-300 focus:ring-2 focus:ring-orange-500 outline-none transition-all appearance-none cursor-pointer"
                                 >
                                     <option value="">Language</option>
                                     <option value="English">English</option>
@@ -253,7 +253,7 @@ const YouTubeExplorer = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: idx * 0.1 }}
                                 key={`rec-${item.id}`}
-                                className="group relative bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden"
+                                className="group relative bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden"
                             >
                                 <div className="relative aspect-video overflow-hidden cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
                                     <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -280,7 +280,7 @@ const YouTubeExplorer = () => {
                                     </div>
                                     <button
                                         onClick={() => handleImportClick(item.url)}
-                                        className="w-full py-4 bg-gray-900 dark:bg-slate-800 hover:bg-orange-600 dark:hover:bg-orange-600 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 shadow-lg shadow-gray-200 dark:shadow-none flex items-center justify-center gap-2"
+                                        className="w-full py-4 bg-gray-900 dark:bg-gray-700 hover:bg-orange-600 dark:hover:bg-orange-600 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 shadow-lg shadow-gray-200 dark:shadow-none flex items-center justify-center gap-2"
                                     >
                                         <Plus size={14} strokeWidth={3} /> Import Course
                                     </button>
@@ -310,7 +310,7 @@ const YouTubeExplorer = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: idx * 0.05 }}
                             key={item.id}
-                            className="group relative bg-white dark:bg-slate-900 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden"
+                            className="group relative bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden"
                         >
                             <div className="relative aspect-video overflow-hidden cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
                                 <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -332,7 +332,7 @@ const YouTubeExplorer = () => {
                                 </div>
                                 <button
                                     onClick={() => handleImportClick(item.url)}
-                                    className="w-full py-4 bg-gray-50 dark:bg-slate-800 hover:bg-red-500 dark:hover:bg-red-600 text-gray-900 dark:text-white hover:text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 border border-gray-100 dark:border-slate-700 hover:border-transparent"
+                                    className="w-full py-4 bg-gray-50 dark:bg-gray-700 hover:bg-red-500 dark:hover:bg-red-600 text-gray-900 dark:text-white hover:text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 border border-gray-100 dark:border-gray-600 hover:border-transparent"
                                 >
                                     <Plus size={14} strokeWidth={3} /> Add to Platform
                                 </button>
@@ -341,11 +341,11 @@ const YouTubeExplorer = () => {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-20 bg-gray-50/50 dark:bg-slate-800/20 rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-slate-800 max-w-4xl mx-auto w-full">
+                <div className="text-center py-20 bg-gray-50/50 dark:bg-gray-700/20 rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-700 max-w-4xl mx-auto w-full">
                     <div className="flex flex-col items-center justify-center p-8 text-center space-y-6">
                         <div className="relative group">
                             <div className="absolute inset-0 bg-red-500/20 rounded-full blur-2xl group-hover:blur-3xl transition-all duration-500"></div>
-                            <div className="relative w-24 h-24 bg-white dark:bg-slate-900 rounded-full flex items-center justify-center shadow-2xl border border-gray-100 dark:border-slate-800">
+                            <div className="relative w-24 h-24 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-2xl border border-gray-100 dark:border-gray-700">
                                 <Youtube size={48} className="text-red-500" />
                             </div>
                         </div>
@@ -361,7 +361,7 @@ const YouTubeExplorer = () => {
                                 <button 
                                     key={tag}
                                     onClick={() => { setQuery(tag); handleSearch(); }}
-                                    className="px-4 py-2 bg-white dark:bg-slate-900 rounded-full border border-gray-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                                    className="px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
                                 >
                                     {tag}
                                 </button>
@@ -384,7 +384,7 @@ const YouTubeExplorer = () => {
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl max-w-lg w-full overflow-hidden border border-gray-100 dark:border-slate-800"
+                            className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl max-w-lg w-full overflow-hidden border border-gray-100 dark:border-gray-700"
                         >
                             <div className="p-8 space-y-8">
                                 <div className="space-y-2 text-center">
@@ -397,12 +397,12 @@ const YouTubeExplorer = () => {
                                     <p className="text-xs text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest">Review your selection before saving</p>
                                 </div>
 
-                                <div className="space-y-6 bg-gray-50/50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800">
+                                <div className="space-y-6 bg-gray-50/50 dark:bg-gray-700/50 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700">
                                     <div className="space-y-1">
                                         <span className="text-[10px] font-black text-gray-400 dark:text-slate-600 uppercase tracking-widest block">Course Title</span>
                                         <p className="text-gray-900 dark:text-white font-bold leading-snug">{importData.title}</p>
                                     </div>
-                                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-slate-800">
+                                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
                                         <div className="space-y-1">
                                             <span className="text-[10px] font-black text-gray-400 dark:text-slate-600 uppercase tracking-widest block">Type</span>
                                             <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
