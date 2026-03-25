@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const cacheService = require('../services/cache.service');
 
 /**
  * Classroom Controller
@@ -11,6 +12,14 @@ const getClassroomVideo = async (req, res) => {
 
     try {
         const user = req.user;
+        const cacheKey = `video:detail:${user.id}:${videoId}`;
+        
+        const cached = await cacheService.get(cacheKey);
+        if (cached) {
+            console.log(`Cache hit for video: ${videoId}`);
+            return res.status(200).json(cached);
+        }
+
         const video = await prisma.video.findUnique({
             where: { userId_vid: { userId: user.id, vid: videoId } },
             include: { playlist: true }
@@ -34,10 +43,14 @@ const getClassroomVideo = async (req, res) => {
             data: { userId: user.id, activity_type: `Watched: ${video.name}` }
         });
 
-        res.status(200).json({
+        const result = {
             video: video,
             playlist: playlistData
-        });
+        };
+
+        await cacheService.set(cacheKey, result, 3600);
+
+        res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -50,7 +63,8 @@ const markVideoCompleted = async (req, res) => {
     try {
         const user = req.user;
         const video = await prisma.video.findUnique({
-            where: { userId_vid: { userId: user.id, vid: videoId } }
+            where: { userId_vid: { userId: user.id, vid: videoId } },
+            include: { playlist: true }
         });
 
         if (!video) return res.status(404).json({ error: 'Video not found' });
@@ -72,6 +86,15 @@ const markVideoCompleted = async (req, res) => {
             data: { userId: user.id, activity_type: `Completed: ${video.name}` }
         });
 
+        // Invalidate caches
+        await cacheService.del(`user:profile:${uid}`);
+        await cacheService.del(`user:continue:${user.id}`);
+        await cacheService.del(`user:completed:${user.id}`);
+        await cacheService.del(`video:detail:${user.id}:${videoId}`);
+        if (video.playlist?.pid) {
+            await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
+        }
+
         res.status(200).json({ message: 'Video marked as completed' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -85,7 +108,8 @@ const unmarkVideoCompleted = async (req, res) => {
     try {
         const user = req.user;
         const video = await prisma.video.findUnique({
-            where: { userId_vid: { userId: user.id, vid: videoId } }
+            where: { userId_vid: { userId: user.id, vid: videoId } },
+            include: { playlist: true }
         });
 
         if (!video) return res.status(404).json({ error: 'Video not found' });
@@ -108,6 +132,15 @@ const unmarkVideoCompleted = async (req, res) => {
             await prisma.userActivityLog.create({
                 data: { userId: user.id, activity_type: `Unmarked: ${video.name}` }
             });
+
+            // Invalidate caches
+            await cacheService.del(`user:profile:${uid}`);
+            await cacheService.del(`user:continue:${user.id}`);
+            await cacheService.del(`user:completed:${user.id}`);
+            await cacheService.del(`video:detail:${user.id}:${videoId}`);
+            if (video.playlist?.pid) {
+                await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
+            }
         }
 
         res.status(200).json({ message: 'Video unmarked successfully' });
@@ -135,6 +168,10 @@ const updateProgress = async (req, res) => {
                 where: { id: video.id },
                 data: { watch_progress: parseFloat(progress) }
             });
+            
+            // Invalidate continue watching cache
+            await cacheService.del(`user:continue:${user.id}`);
+            await cacheService.del(`video:detail:${user.id}:${videoId}`);
         }
 
         res.status(200).json({ message: 'Progress updated' });
@@ -148,6 +185,11 @@ const getContinueWatching = async (req, res) => {
 
     try {
         const user = req.user;
+        const cacheKey = `user:continue:${user.id}`;
+        
+        const cached = await cacheService.get(cacheKey);
+        if (cached) return res.status(200).json({ videos: cached });
+
         const videos = await prisma.video.findMany({
             where: {
                 userId: user.id,
@@ -160,6 +202,9 @@ const getContinueWatching = async (req, res) => {
             orderBy: { imported_at: 'desc' },
             take: 3
         });
+        
+        await cacheService.set(cacheKey, videos, 600); // Cache for 10 mins
+
         res.status(200).json({ videos });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -171,6 +216,10 @@ const getCompletedLearnings = async (req, res) => {
 
     try {
         const user = req.user;
+        const cacheKey = `user:completed:${user.id}`;
+        
+        const cached = await cacheService.get(cacheKey);
+        if (cached) return res.status(200).json(cached);
 
         const completedVideos = await prisma.video.findMany({
             where: { userId: user.id, is_completed: true },
@@ -186,13 +235,26 @@ const getCompletedLearnings = async (req, res) => {
             pl.videos.length > 0 && pl.videos.every(v => v.is_completed)
         );
 
-        res.status(200).json({
+        const result = {
             videos: completedVideos,
             playlists: completedPlaylists
-        });
+        };
+
+        await cacheService.set(cacheKey, result, 600); // Cache for 10 mins
+
+        res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+};
+
+module.exports = {
+    getClassroomVideo,
+    markVideoCompleted,
+    unmarkVideoCompleted,
+    updateProgress,
+    getContinueWatching,
+    getCompletedLearnings,
 };
 
 module.exports = {

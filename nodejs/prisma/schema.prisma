@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -58,7 +58,7 @@ model Video {
   vid            String
   name           String
   url            String
-  description    String?  @db.LongText
+  description    String?  @db.Text
   playlist       Playlist? @relation(fields: [playlistId], references: [id], onDelete: Cascade)
   playlistId     Int?
   imported_at    DateTime
@@ -81,8 +81,8 @@ model Quiz {
   videoId      Int?
   playlist     Playlist? @relation(fields: [playlistId], references: [id], onDelete: SetNull)
   playlistId   Int?
-  questions    String   @db.LongText
-  user_answers String?  @db.LongText
+  questions    String   @db.Text
+  user_answers String?  @db.Text
   score        Float?
   passed       Boolean?
   is_combined  Boolean  @default(false)
@@ -116,7 +116,7 @@ model VideoNote {
   user       UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     Int
   vid        String
-  content    String   @db.LongText
+  content    String   @db.Text
   updated_at DateTime @updatedAt
 
   files      VideoNoteFile[]
@@ -137,7 +137,7 @@ model VideoComment {
   user       UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     Int
   vid        String
-  content    String   @db.LongText
+  content    String   @db.Text
   parent     VideoComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   parentId   Int?
   replies    VideoComment[] @relation("CommentReplies")
@@ -150,7 +150,7 @@ model VideoComment {
 model VideoIntuition {
   id           Int      @id @default(autoincrement())
   vid          String   @unique
-  content      String   @db.LongText
+  content      String   @db.Text
   model_name   String?  // The name of the AI model that generated this
   generated_at DateTime @default(now())
 }
@@ -158,7 +158,7 @@ model VideoIntuition {
 model VideoQuizData {
   id           Int      @id @default(autoincrement())
   vid          String   @unique
-  questions    String   @db.LongText // Stored as JSON string
+  questions    String   @db.Text // Stored as JSON string
   generated_at DateTime @default(now())
 }
 
@@ -192,9 +192,9 @@ model AskMyNoteChat {
   subject      Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   subjectId    Int
   session_id   String   // Group messages by session
-  query        String   @db.LongText
-  response     String   @db.LongText
-  citations    String?  @db.LongText // JSON string of citations
+  query        String   @db.Text
+  response     String   @db.Text
+  citations    String?  @db.Text // JSON string of citations
   confidence   Int?     // AI confidence score 0-100
   timestamp    DateTime @default(now())
 }

@@ -26,6 +26,7 @@ const verifyFirebaseToken = async (idToken) => {
 };
 
 const prisma = require('../lib/prisma');
+const cacheService = require('../services/cache.service');
 
 /**
  * Express Middleware for Auth
@@ -43,21 +44,31 @@ const authMiddleware = async (req, res, next) => {
         const { uid, email, name, picture } = decodedToken;
         console.log('Token verified for UID:', uid);
 
-        // Auto-create or get user from DB
-        console.log('Finding user in DB...');
-        let user = await prisma.userProfile.findUnique({ where: { uid } });
+        // Auto-create or get user from DB (with caching)
+        const cacheKey = `user:profile:${uid}`;
+        let user = await cacheService.get(cacheKey);
 
         if (!user) {
-            console.log('User not found, creating...');
-            user = await prisma.userProfile.create({
-                data: {
-                    uid,
-                    email: email || '',
-                    name: name || 'User',
-                    profile_pic: picture || ''
-                }
-            });
-            console.log('User created:', user.id);
+            console.log('Cache miss. Finding user in DB...');
+            user = await prisma.userProfile.findUnique({ where: { uid } });
+
+            if (!user) {
+                console.log('User not found, creating...');
+                user = await prisma.userProfile.create({
+                    data: {
+                        uid,
+                        email: email || '',
+                        name: name || 'User',
+                        profile_pic: picture || ''
+                    }
+                });
+                console.log('User created:', user.id);
+            }
+            
+            // Sync to cache
+            await cacheService.set(cacheKey, user, 3600);
+        } else {
+            console.log('Cache hit for UID:', uid);
         }
 
         // Attach both decoded token and DB user to request

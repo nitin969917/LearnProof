@@ -1,0 +1,38 @@
+services:
+  app:
+    build:
+      context: ./nodejs
+      dockerfile: Dockerfile
+    container_name: learnproof-app
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/learnproof_db
+      - REDIS_URL=redis://cache:6379
+    depends_on:
+      - db
+      - cache
+
+  db:
+    image: postgres:14-alpine
+    container_name: learnproof-db
+    restart: always
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=learnproof_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  cache:
+    image: redis:7-alpine
+    container_name: learnproof-cache
+    restart: always
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:

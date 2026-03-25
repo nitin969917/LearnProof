@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
 const youtube = require('../lib/youtube');
+const cacheService = require('../services/cache.service');
 
 /**
  * Learning Management Controller
@@ -173,9 +174,20 @@ const deleteVideo = async (req, res) => {
 
     try {
         const user = req.user;
+        const video = await prisma.video.findUnique({
+            where: { userId_vid: { userId: user.id, vid: videoId } },
+            select: { playlistId: true, playlist: { select: { pid: true } } }
+        });
+
         await prisma.video.delete({
             where: { userId_vid: { userId: user.id, vid: videoId } }
         });
+
+        // Invalidate playlist cache if it belongs dummy to one
+        if (video?.playlist?.pid) {
+            await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
+        }
+
         res.status(200).json({ message: 'Video deleted successfully' });
     } catch (error) {
         res.status(404).json({ error: 'Video not found' });
@@ -195,6 +207,10 @@ const deletePlaylist = async (req, res) => {
         if (!playlist) throw new Error();
 
         await prisma.playlist.delete({ where: { id: playlist.id } });
+        
+        // Invalidate cache
+        await cacheService.del(`playlist:detail:${user.id}:${playlistId}`);
+
         res.status(200).json({ message: 'Playlist and Videos associated with it deleted successfully' });
     } catch (error) {
         res.status(404).json({ error: 'Playlist not found' });
@@ -207,6 +223,14 @@ const getPlaylistDetail = async (req, res) => {
 
     try {
         const user = req.user;
+        const cacheKey = `playlist:detail:${user.id}:${pid}`;
+        
+        let cachedData = await cacheService.get(cacheKey);
+        if (cachedData) {
+            console.log(`Cache hit for Playlist: ${pid}`);
+            return res.status(200).json(cachedData);
+        }
+
         const playlist = await prisma.playlist.findUnique({
             where: { userId_pid: { userId: user.id, pid: pid } },
             include: { 
@@ -229,10 +253,15 @@ const getPlaylistDetail = async (req, res) => {
             passed_quiz: v.quizzes.length > 0
         }));
 
-        res.status(200).json({
+        const result = {
             playlist: { ...playlist, videos: undefined, duration_goal: playlist.duration_goal },
             videos: formattedVideos
-        });
+        };
+
+        // Cache for 30 minutes
+        await cacheService.set(cacheKey, result, 1800);
+
+        res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
