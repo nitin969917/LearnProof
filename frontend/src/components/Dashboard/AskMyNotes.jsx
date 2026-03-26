@@ -20,15 +20,15 @@ const AskMyNotes = () => {
                 <p className="text-gray-500 dark:text-gray-400 text-lg font-medium leading-relaxed">
                     We're putting the finishing touches on our advanced AI research engine. Soon you'll be able to chat with your PDFs, notes, and textbook snippets.
                 </p>
-                <div className="pt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <div className="pt-8 flex flex-row items-center justify-center gap-3">
                     <button 
                       onClick={() => navigate('/dashboard')}
-                      className="w-full sm:w-auto px-8 py-4 bg-gray-900 dark:bg-white dark:text-gray-900 text-white rounded-2xl font-bold hover:scale-105 active:scale-95 transition-all shadow-xl flex items-center justify-center gap-2"
+                      className="px-4 py-2.5 bg-gray-900 dark:bg-white dark:text-gray-900 text-white rounded-xl font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2"
                     >
-                        <Home size={20} />
+                        <Home size={14} />
                         Back to Dashboard
                     </button>
-                    <div className="px-6 py-3 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 rounded-2xl font-semibold text-sm border border-orange-100 dark:border-orange-900/30">
+                    <div className="px-4 py-2.5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-orange-100 dark:border-orange-900/30 whitespace-nowrap">
                         Status: Finalizing Discovery Engine
                     </div>
                 </div>
