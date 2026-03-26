@@ -38,13 +38,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_BACKEND_URL=http://80-225-218-46.sslip.io
+        - VITE_BACKEND_URL=https://80-225-218-46.sslip.io
         - VITE_GOOGLE_CLIENT_ID=557947080645-2iqd1t1h79b273ktjqthcg6q23k9pem1.apps.googleusercontent.com
     container_name: learnproof-frontend
     restart: always
     ports:
       - "80:80"
       - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - app
 
