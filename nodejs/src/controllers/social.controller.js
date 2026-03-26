@@ -57,7 +57,11 @@ const saveNote = async (req, res) => {
         // Handle new files
         for (const file of newFiles) {
             await prisma.videoNoteFile.create({
-                data: { noteId: note.id, file: file.path }
+                data: { 
+                    noteId: note.id, 
+                    file: file.path,
+                    original_name: file.originalname
+                }
             });
         }
 

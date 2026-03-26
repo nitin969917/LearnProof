@@ -124,11 +124,12 @@ model VideoNote {
 }
 
 model VideoNoteFile {
-  id          Int      @id @default(autoincrement())
-  note        VideoNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
-  noteId      Int
-  file        String   // Path to file
-  uploaded_at DateTime @default(now())
+  id            Int       @id @default(autoincrement())
+  note          VideoNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  noteId        Int
+  file          String    // Path to file
+  original_name String?   // Original filename from user
+  uploaded_at   DateTime  @default(now())
 }
 
 model VideoComment {

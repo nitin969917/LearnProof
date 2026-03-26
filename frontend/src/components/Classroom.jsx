@@ -99,7 +99,7 @@ const Classroom = () => {
         setNoteFiles(noteRes.data.files.map(f => ({
           id: f.id,
           url: f.file.startsWith('http') ? f.file : `${import.meta.env.VITE_BACKEND_URL}/${f.file}`,
-          name: f.file.split('/').pop()
+          name: f.original_name || f.file.split('/').pop()
         })));
       } else {
         setNoteFiles([]);
@@ -185,7 +185,7 @@ const Classroom = () => {
         setNoteFiles(res.data.files.map(f => ({
           id: f.id,
           url: f.file.startsWith('http') ? f.file : `${import.meta.env.VITE_BACKEND_URL}/${f.file}`,
-          name: f.file.split('/').pop()
+          name: f.original_name || f.file.split('/').pop()
         })));
       } else {
         setNoteFiles([]);
