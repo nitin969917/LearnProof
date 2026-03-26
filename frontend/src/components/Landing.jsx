@@ -146,6 +146,16 @@ const LandingPage = () => {
             icon: <TrendingUp className="w-8 h-8" />,
             title: "Progress Analytics",
             description: "Visualize your learning journey, track completion rates, and analyze your activity heatmap."
+        },
+        {
+            icon: <Target className="w-8 h-8" />,
+            title: "AI-Powered Roadmaps",
+            description: "Generate structured, step-by-step learning paths tailored to your specific goals and timelines."
+        },
+        {
+            icon: <BookOpen className="w-8 h-8" />,
+            title: "Personalized Skill Paths",
+            description: "Follow curated sequences of videos and quizzes designed to master specific technical domains."
         }
     ];
 
@@ -385,8 +395,8 @@ const LandingPage = () => {
                 viewport={{ once: true }}
                 className="py-16 px-4 sm:px-8 lg:px-16 bg-white/50"
             >
-                <div className="max-w-6xl mx-auto">
-                    <div className="grid md:grid-cols-3 gap-8">
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                         {benefits.map((benefit, index) => (
                             <motion.div
                                 key={index}
