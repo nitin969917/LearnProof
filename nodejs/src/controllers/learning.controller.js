@@ -278,6 +278,9 @@ const setPlaylistGoal = async (req, res) => {
             data: { duration_goal: parseInt(duration_goal) }
         });
 
+        // Invalidate cache
+        await cacheService.del(`playlist:detail:${user.id}:${pid}`);
+
         res.status(200).json({ message: 'Roadmap goal updated successfully', duration_goal: playlist.duration_goal });
     } catch (error) {
         res.status(404).json({ error: 'Playlist not found or update failed' });
