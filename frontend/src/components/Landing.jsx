@@ -187,7 +187,16 @@ const LandingPage = () => {
             title: "Verified Learning",
             description: "Prove your skills with certificates that employers trust."
         },
-
+        {
+            icon: <Zap className="w-6 h-6" />,
+            title: "AI-Powered Insights",
+            description: "Get deep video intuitions and summaries instantly with our advanced AI."
+        },
+        {
+            icon: <TrendingUp className="w-6 h-6" />,
+            title: "Track Your Progress",
+            description: "Stay motivated with detailed analytics and completion tracking features."
+        }
     ];
 
     return (
