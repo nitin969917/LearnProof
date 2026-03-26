@@ -156,6 +156,11 @@ const LandingPage = () => {
             icon: <BookOpen className="w-8 h-8" />,
             title: "Personalized Skill Paths",
             description: "Follow curated sequences of videos and quizzes designed to master specific technical domains."
+        },
+        {
+            icon: <Zap className="w-8 h-8" />,
+            title: "Smart AI Flashcards",
+            description: "Automatically generate interactive flashcards from your video notes to boost long-term retention."
         }
     ];
 
