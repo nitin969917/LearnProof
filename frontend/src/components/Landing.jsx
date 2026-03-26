@@ -216,8 +216,7 @@ const LandingPage = () => {
                         <span>The Ultimate Learning Platform</span>
                     </motion.div>
 
-                    <h1 className="text-5xl sm:text-6xl lg:text-[5.5rem] font-extrabold text-gray-900 tracking-tight leading-[1.1] mb-6 flex items-center gap-4">
-                        <img src="/logo.png" alt="LearnProof" className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 object-contain" />
+                    <h1 className="text-5xl sm:text-6xl lg:text-[5.5rem] font-extrabold text-gray-900 tracking-tight leading-[1.1] mb-6">
                         <span className="bg-gradient-to-br from-orange-600 via-red-500 to-amber-500 bg-clip-text text-transparent drop-shadow-sm">LearnProof</span>
                     </h1>
 
@@ -547,8 +546,7 @@ const LandingPage = () => {
                 <div className="max-w-6xl mx-auto">
                     <div className="flex flex-col md:flex-row justify-between items-center">
                         <div className="mb-6 md:mb-0">
-                            <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent flex items-center gap-2">
-                                <img src="/logo.png" alt="LearnProof" className="w-8 h-8 object-contain" />
+                            <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">
                                 LearnProof
                             </h3>
                             <p className="text-gray-600 mt-2">Transform YouTube learning into verifiable achievements</p>
