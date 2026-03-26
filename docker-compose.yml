@@ -38,7 +38,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_BACKEND_URL=http://80.225.218.46
+        - VITE_BACKEND_URL=http://80-225-218-46.sslip.io
     container_name: learnproof-frontend
     restart: always
     ports:
