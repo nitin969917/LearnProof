@@ -10,8 +10,6 @@ const classroomController = require('../controllers/classroom.controller');
 const socialController = require('../controllers/social.controller');
 const quizController = require('../controllers/quiz.controller');
 const adminController = require('../controllers/admin.controller');
-const aiController = require('../controllers/ai.controller');
-const askMyNotesRoutes = require('./askMyNotes.routes');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -59,7 +57,6 @@ router.get('/video-comment/', authMiddleware, socialController.getComments);
 router.post('/video-comment/', authMiddleware, socialController.postComment);
 router.delete('/video-comment/', authMiddleware, socialController.deleteComment);
 router.get('/video-intuition/', authMiddleware, socialController.getIntuition);
-router.post('/ai/benchmark/', authMiddleware, aiController.runBenchmark);
 
 // Quiz & Engagement
 router.post('/quiz-list/', authMiddleware, quizController.getQuizList);
@@ -78,7 +75,6 @@ router.delete('/admin/users/:id', authMiddleware, isAdminMiddleware, adminContro
 router.get('/admin/content', authMiddleware, isAdminMiddleware, adminController.getContent);
 router.delete('/admin/content/:id', authMiddleware, isAdminMiddleware, adminController.deleteContent);
 
-// Ask My Notes
-router.use('/ask-my-notes', askMyNotesRoutes);
+// Quiz & Engagement
 
 module.exports = router;

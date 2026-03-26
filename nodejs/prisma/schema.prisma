@@ -30,7 +30,6 @@ model UserProfile {
   activities   UserActivityLog[]
   notes        VideoNote[]
   comments     VideoComment[]
-  subjects     Subject[]
 }
 
 model Playlist {
@@ -161,42 +160,4 @@ model VideoQuizData {
   questions    String   @db.Text // Stored as JSON string
   generated_at DateTime @default(now())
 }
-
-// --- Ask My Notes Feature ---
-
-model Subject {
-  id           Int           @id @default(autoincrement())
-  user         UserProfile   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId       Int
-  name         String
-  created_at   DateTime      @default(now())
-  updated_at   DateTime      @updatedAt
-
-  notes        SubjectNote[]
-  chats        AskMyNoteChat[]
-
-  @@unique([userId, name])
-}
-
-model SubjectNote {
-  id            Int      @id @default(autoincrement())
-  subject       Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  subjectId     Int
-  file_path     String   // Absolute path to the file
-  original_name String   // Original filename
-  uploaded_at   DateTime @default(now())
-}
-
-model AskMyNoteChat {
-  id           Int      @id @default(autoincrement())
-  subject      Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  subjectId    Int
-  session_id   String   // Group messages by session
-  query        String   @db.Text
-  response     String   @db.Text
-  citations    String?  @db.Text // JSON string of citations
-  confidence   Int?     // AI confidence score 0-100
-  timestamp    DateTime @default(now())
-}
-
 
