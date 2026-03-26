@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm install --production
+RUN npm install --production --legacy-peer-deps
 
 # Copy prisma schema
 COPY prisma ./prisma
