@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.learnproof.learn_proof_twa",
+      "sha256_cert_fingerprints": [
+        "C2:8D:03:86:74:98:72:E4:CA:56:43:6F:5C:28:96:C2:DD:D1:85:1B:DF:6E:13:1D:E0:36:D8:5B:49:26:86:42"
+      ]
+    }
+  }
+]
