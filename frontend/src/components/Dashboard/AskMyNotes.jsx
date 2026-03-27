@@ -20,15 +20,15 @@ const AskMyNotes = () => {
                 <p className="text-gray-500 dark:text-gray-400 text-lg font-medium leading-relaxed">
                     We're putting the finishing touches on our advanced AI research engine. Soon you'll be able to chat with your PDFs, notes, and textbook snippets.
                 </p>
-                <div className="pt-8 flex flex-row items-center justify-center gap-3">
+                <div className="pt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-3 w-full px-4 sm:px-0">
                     <button 
                       onClick={() => navigate('/dashboard')}
-                      className="px-4 py-2.5 bg-gray-900 dark:bg-white dark:text-gray-900 text-white rounded-xl font-bold text-xs hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-6 py-3 sm:px-4 sm:py-2.5 bg-gray-900 dark:bg-white dark:text-gray-900 text-white rounded-xl font-bold text-sm sm:text-xs hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2"
                     >
-                        <Home size={14} />
+                        <Home size={16} className="sm:size-[14px]" />
                         Back to Dashboard
                     </button>
-                    <div className="px-4 py-2.5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 rounded-xl font-bold text-[10px] uppercase tracking-wider border border-orange-100 dark:border-orange-900/30 whitespace-nowrap">
+                    <div className="w-full sm:w-auto px-4 py-3 sm:py-2.5 flex items-center justify-center bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 rounded-xl font-bold text-xs sm:text-[10px] uppercase tracking-wider border border-orange-100 dark:border-orange-900/30 text-center">
                         Status: Finalizing Discovery Engine
                     </div>
                 </div>
