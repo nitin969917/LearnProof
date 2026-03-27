@@ -87,11 +87,11 @@ const YouTubeExplorer = () => {
                 setImportData(response.data.data);
                 toast.success("Ready to import", { id: toastId });
             } else {
-                toast.error("⚠️ Something went wrong!", { id: toastId });
+                toast.error("Something went wrong!", { id: toastId });
             }
         } catch (err) {
             console.error(err);
-            toast.error("❌ Failed to fetch details.", { id: toastId });
+            toast.error("Failed to fetch details.", { id: toastId });
         } finally {
             setImportLoading(false);
         }

@@ -42,7 +42,7 @@ const CompletedSection = () => {
                 }
                 toast.success("Completed content loaded!", { id: CS });
             } catch (err) {
-                toast.error("❌ Failed to load completed content.", { id: loadingToast });
+                toast.error("Failed to load completed content.", { id: loadingToast });
                 console.log('Failed to load completed content.');
             } finally {
                 setLoading(false);

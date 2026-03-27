@@ -431,7 +431,7 @@ const Classroom = () => {
         idToken: token,
         videoId: video.vid,
       });
-      toast.success("✅ Marked as completed", { id: loader });
+      toast.success("Marked as completed", { id: loader });
       setVideo({ ...video, watch_progress: 100, is_completed: true });
       setLiveProgress(100);
     } catch (err) {

@@ -29,11 +29,11 @@ const TopBar = ({ onMenuClick }) => {
                 toast.success("Imported successfully");
                 // You can trigger state update or navigate if needed
             } else {
-                toast.error("⚠️ Something went wrong!");
+                toast.error("Something went wrong!");
             }
         } catch (err) {
             console.error(err);
-            toast.error("❌ Failed to import. Check URL or token.");
+            toast.error("Failed to import. Check URL or token.");
         } finally {
             setLoading(false);
         }
