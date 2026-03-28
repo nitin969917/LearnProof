@@ -160,22 +160,22 @@ const LandingPage = () => {
         {
             icon: <BookOpen className="w-8 h-8" />,
             title: "Smart Notes Q&A (AskMyNotes)",
-            description: "Upload your own study materials (PDFs, notes, books) and ask questions directly from them. The system retrieves precise answers based strictly on your content, ensuring focused and relevant learning."
+            description: "Upload personal PDFs or notes and ask questions to get precise, content-based answers instantly."
         },
         {
             icon: <Target className="w-8 h-8" />,
             title: "Subject-Scoped Intelligence",
-            description: "Ask questions within a selected subject, and get answers limited only to that domain. This prevents confusion and ensures accurate, topic-specific understanding without mixing unrelated information."
+            description: "Ask questions within a specific subject domain to guarantee highly focused, accurate AI responses."
         },
         {
             icon: <Search className="w-8 h-8" />,
             title: "Evidence-Based Answers",
-            description: "Every answer includes supporting citations and snippets from your uploaded notes, allowing you to verify information instantly and build trust in the system's responses."
+            description: "Verify information instantly with exact citations and text snippets straight from your uploaded notes."
         },
         {
             icon: <AlertTriangle className="w-8 h-8" />,
             title: "Strict \"Not Found\" Guarantee",
-            description: "If a question cannot be answered from your uploaded material, the system clearly responds with: \"Not found in your notes for [Subject]\" — eliminating guesswork and ensuring complete reliability."
+            description: "Eliminate AI guesswork. The system clearly states if a requested answer is not found in your notes."
         }
     ];
 
