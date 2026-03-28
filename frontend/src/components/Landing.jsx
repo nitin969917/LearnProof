@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare } from 'lucide-react';
+import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle } from 'lucide-react';
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -158,9 +158,24 @@ const LandingPage = () => {
             description: "Follow curated sequences of videos and quizzes designed to master specific technical domains."
         },
         {
-            icon: <Zap className="w-8 h-8" />,
-            title: "Smart AI Flashcards",
-            description: "Automatically generate interactive flashcards from your video notes to boost long-term retention."
+            icon: <BookOpen className="w-8 h-8" />,
+            title: "Smart Notes Q&A (AskMyNotes)",
+            description: "Upload your own study materials (PDFs, notes, books) and ask questions directly from them. The system retrieves precise answers based strictly on your content, ensuring focused and relevant learning."
+        },
+        {
+            icon: <Target className="w-8 h-8" />,
+            title: "Subject-Scoped Intelligence",
+            description: "Ask questions within a selected subject, and get answers limited only to that domain. This prevents confusion and ensures accurate, topic-specific understanding without mixing unrelated information."
+        },
+        {
+            icon: <Search className="w-8 h-8" />,
+            title: "Evidence-Based Answers",
+            description: "Every answer includes supporting citations and snippets from your uploaded notes, allowing you to verify information instantly and build trust in the system's responses."
+        },
+        {
+            icon: <AlertTriangle className="w-8 h-8" />,
+            title: "Strict \"Not Found\" Guarantee",
+            description: "If a question cannot be answered from your uploaded material, the system clearly responds with: \"Not found in your notes for [Subject]\" — eliminating guesswork and ensuring complete reliability."
         }
     ];
 
