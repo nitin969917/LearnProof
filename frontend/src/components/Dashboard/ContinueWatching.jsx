@@ -65,7 +65,7 @@ const ContinueWatching = () => {
     }
 
     if (videos.length === 0) {
-        return <div className="text-sm text-gray-600">You're all caught up! 🎉</div>;
+        return null;
     }
 
     return (
