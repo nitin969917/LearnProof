@@ -701,10 +701,10 @@ const Classroom = () => {
                   href={`https://www.youtube.com/watch?v=${video.vid}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="shrink-0 flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-600 dark:text-slate-400 hover:text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-gray-200 dark:border-slate-700"
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-gray-50/80 dark:bg-slate-800/80 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white text-gray-500 dark:text-slate-400 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all border border-gray-100 dark:border-slate-700/50 backdrop-blur-sm shadow-sm"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                  Watch on YouTube
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  <span>YouTube</span>
                 </a>
               </div>
 
