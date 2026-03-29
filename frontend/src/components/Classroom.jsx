@@ -32,7 +32,13 @@ import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { motion } from "framer-motion";
 
+const INDIAN_LANGS = [
+  'English', 'Hindi', 'Marathi', 'Bengali', 'Telugu', 
+  'Tamil', 'Gujarati', 'Urdu', 'Kannada', 'Odia', 'Malayalam'
+];
+
 const Classroom = () => {
+
   const { user, token, loading: authLoading } = useAuth();
   const { confirm } = useModal();
   const { videoId } = useParams();
@@ -76,6 +82,8 @@ const Classroom = () => {
   const [modelName, setModelName] = useState("");
   const [loadingIntuition, setLoadingIntuition] = useState(false);
   const [intuitionCountdown, setIntuitionCountdown] = useState(15);
+  const [selectedLanguage, setSelectedLanguage] = useState("English");
+
 
   // Quiz State
   const [quizData, setQuizData] = useState(null);
@@ -112,11 +120,17 @@ const Classroom = () => {
     }
   };
 
-  const fetchIntuition = async () => {
-    if (intuitionContent) return; // Already fetched
+  const fetchIntuition = async (lang = null) => {
+    // If a specific language is requested, we ALWAYS fetch (or rely on backend cache-key)
+    // If no lang and content exists, we skip.
+    if (!lang && intuitionContent) return; 
+
     setLoadingIntuition(true);
+    if (lang) setSelectedLanguage(lang); // Track the user's choice
+
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/video-intuition/?idToken=${token}&videoId=${videoId}`);
+      const url = `${import.meta.env.VITE_BACKEND_URL}/api/video-intuition/?idToken=${token}&videoId=${videoId}${lang ? `&targetLanguage=${lang}` : ''}`;
+      const res = await axios.get(url);
       setIntuitionContent(res.data.content);
       setModelName(res.data.model_name || "");
     } catch (err) {
@@ -505,8 +519,17 @@ const Classroom = () => {
       }, 3000); // Check every 3 seconds
     }
 
+    // POLICY COMPLIANCE: Pause video if tab is hidden (No background playback)
+    const handleVisibilityChange = () => {
+      if (document.hidden && player && player.pauseVideo) {
+        player.pauseVideo();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       // Final save on unmount/video change if progress changed
       if (latestProgressRef?.current > lastSavedProgress) {
         axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/update-progress/`, {
@@ -555,10 +578,16 @@ const Classroom = () => {
           <h2 className="text-2xl font-bold text-red-600 mb-2">Video Not Found</h2>
           <p className="text-gray-600">The requested video could not be loaded.</p>
           <button
-            onClick={() => navigate("/dashboard")}
-            className="mt-4 px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+            onClick={() => {
+              if (playlist?.pid) {
+                navigate(`/dashboard/playlist/${playlist.pid}`);
+              } else {
+                navigate(-1);
+              }
+            }}
+            className="mt-4 px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2 mx-auto uppercase text-[10px] font-black tracking-widest"
           >
-            Back to Dashboard
+            <ArrowLeft size={16} /> Back to Course
           </button>
         </div>
       </div>
@@ -573,11 +602,17 @@ const Classroom = () => {
         <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 shadow-sm transition-colors duration-200 sticky top-0 z-30">
           <div className="flex items-center justify-between px-4 sm:px-6 py-3.5">
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => {
+                if (playlist?.pid) {
+                  navigate(`/dashboard/playlist/${playlist.pid}`);
+                } else {
+                  navigate(-1);
+                }
+              }}
               className="group flex items-center gap-2 text-gray-500 dark:text-slate-400 hover:text-orange-500 text-sm font-black uppercase tracking-widest transition-all"
             >
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-              <span className="hidden sm:inline">Dashboard</span>
+              <span className="hidden sm:inline">Back</span>
             </button>
 
             <div className="flex items-center gap-3">
@@ -624,7 +659,8 @@ const Classroom = () => {
                 playerVars: {
                   autoplay: 1,
                   playsinline: 1,
-                  rel: 0
+                  rel: 0,
+                  modestbranding: 0, // YouTube policy: Don't hide the logo if attributing
                 }
               }}
               className="absolute top-0 left-0 w-full h-full"
@@ -658,8 +694,19 @@ const Classroom = () => {
 
           {/* Video Details */}
           <div className="bg-white dark:bg-gray-900 flex-1 min-w-0 transition-colors duration-200">
-            <div className="max-w-5xl mx-auto p-4 sm:p-6 pb-20 lg:pb-6">
-              <h1 className="text-lg md:text-2xl font-black text-gray-900 dark:text-white mb-3 leading-tight">{video.name}</h1>
+            <div className="max-w-5xl mx-auto p-4 sm:p-6 pb-20 lg:pb-6 text-gray-900 dark:text-white">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+                <h1 className="text-xl md:text-2xl font-black leading-tight flex-1">{video.name}</h1>
+                <a 
+                  href={`https://www.youtube.com/watch?v=${video.vid}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-600 dark:text-slate-400 hover:text-red-500 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-gray-200 dark:border-slate-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  Watch on YouTube
+                </a>
+              </div>
 
               {/* Progress Bar */}
               <div className="flex items-center gap-4 mb-8">
@@ -779,25 +826,54 @@ const Classroom = () => {
                   })()}
                   {/* Overview Tab */}
                   {activeTab === 'overview' && (
-                    <div className="prose max-w-none break-words overflow-hidden">
-                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm md:text-base whitespace-pre-line break-words">
-                        {video.description || "No description available for this video."}
-                      </p>
+                    <div className="prose dark:prose-invert max-w-none break-words overflow-hidden bg-gray-50/50 dark:bg-slate-800/30 p-6 rounded-2xl border border-gray-100 dark:border-slate-800">
+                      <div className="text-gray-700 dark:text-slate-300 leading-relaxed text-sm md:text-base whitespace-pre-line break-words">
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline font-bold" />
+                          }}
+                        >
+                          {video.description || "No description available for this video."}
+                        </ReactMarkdown>
+                      </div>
                     </div>
                   )}
 
                   {/* Intuition Tab */}
                   {activeTab === 'intuition' && (
                     <div className="prose max-w-none bg-indigo-50/50 dark:bg-indigo-900/20 p-4 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
-                      <div className="flex items-center gap-3 mb-6 pb-4 border-b border-indigo-200 dark:border-indigo-800">
-                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg">
-                          <Sparkles className="text-indigo-600 dark:text-indigo-400" size={24} />
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-indigo-200 dark:border-indigo-800">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg">
+                            <Sparkles className="text-indigo-600 dark:text-indigo-400" size={24} />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-100 m-0">AI Intuition</h3>
+                            <p className="text-sm text-indigo-600/80 dark:text-indigo-400/80 m-0 mt-1">
+                              {modelName ? `Powered by ${modelName}` : "Powered by AI"} · Concepts explained simply
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-100 m-0">AI Intuition</h3>
-                          <p className="text-sm text-indigo-600/80 dark:text-indigo-400/80 m-0 mt-1">
-                            {modelName ? `Powered by ${modelName}` : "Powered by AI"} · Core concepts explained simply
-                          </p>
+
+                        {/* Language Picker Dropdown */}
+                        <div className="relative">
+                          <select
+                            disabled={loadingIntuition}
+                            onChange={(e) => fetchIntuition(e.target.value)}
+                            value={selectedLanguage}
+                            className="appearance-none px-4 py-2 pr-10 rounded-xl text-[11px] font-black uppercase tracking-widest bg-white dark:bg-slate-800 border-2 border-indigo-100 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer shadow-sm transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
+                          >
+                            <option value="" disabled>Select Language</option>
+                            {INDIAN_LANGS.map((lang) => (
+                              <option key={lang} value={lang} className="text-gray-700 dark:text-slate-200">
+                                {lang}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
+                            <ChevronRight size={14} className="rotate-90" />
+                          </div>
                         </div>
                       </div>
 

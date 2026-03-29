@@ -148,11 +148,12 @@ model VideoComment {
 
 
 model VideoIntuition {
-  id           Int      @id @default(autoincrement())
-  vid          String   @unique
-  content      String   @db.Text
-  model_name   String?  // The name of the AI model that generated this
-  generated_at DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  vid             String   @unique
+  content         String   @db.Text
+  model_name      String?  // The name of the AI model that generated this
+  transcript_used Boolean  @default(false) // True if generated from actual video transcript
+  generated_at    DateTime @default(now())
 }
 
 model VideoQuizData {

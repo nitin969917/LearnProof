@@ -1,5 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
+const { fetchTranscript } = require('./transcript.service');
+const { translate } = require('google-translate-api-x');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -241,54 +243,85 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
 };
 
 /**
- * Generate intuition/summary using Gemini.
+ * Generate intuition/summary using the actual video transcript as the primary source.
+ * Falls back to title+description if transcript is unavailable.
  */
-const generateIntuition = async (title, description, url = null) => {
+const generateIntuition = async (title, description, url = null, targetLanguage = null) => {
+    // --- STEP 1: Fetch the real transcript ---
+    const transcriptResult = await fetchTranscript(url);
+    const hasTranscript = !!(!transcriptResult.isFallback && transcriptResult.transcript);
+    const detectedLanguage = transcriptResult.language || 'English';
+    const finalLanguage = targetLanguage || detectedLanguage;
+
+
+    if (hasTranscript) {
+        console.log(`[Intuition] Real transcript fetched (${transcriptResult.transcript.length} chars, language: ${detectedLanguage})`);
+    } else {
+        console.warn(`[Intuition] Transcript unavailable (${transcriptResult.reason}). Falling back to title+description.`);
+    }
+
+    // --- STEP 2: Build the prompt with transcript as primary source ---
+    const transcriptSection = hasTranscript
+        ? `
+=== ACTUAL VIDEO TRANSCRIPT (PRIMARY SOURCE — use this as the ground truth for all content) ===
+${transcriptResult.transcript}
+=== END OF TRASNRIPT ===
+
+IMPORTANT LANGUAGE INSTRUCTION: You MUST write your entire response in ${finalLanguage}.
+Even though the transcript is in ${detectedLanguage}, the user wants the final explanation in ${finalLanguage}.
+Do NOT translate names of core concepts if they are standardized, but explain everything else in ${finalLanguage}.
+`
+        : `
+(No transcript available. Generate intuition based on the video title and description below in ${finalLanguage}. 
+IMPORTANT: Use ONLY information that can be inferred from the title and description.)
+`;
+
     const intuitionPrompt = `
         Act as an expert, highly engaging educational tutor.
-        Provide an EXTREMELY COMPREHENSIVE and exhaustive intuition and breakdown of the core concepts for the entire video.
+        Provide an EXTREMELY COMPREHENSIVE and exhaustive intuition and breakdown of the core concepts covered in this video.
         
         Video Title: '${title}'
         Video URL: '${url || 'Not provided'}'
         Video Description: '${description}'
-        
-        (Instruction: If the URL is provided, use your internal knowledge systems to research the specific content of this video to ensure maximum accuracy).
-        
-        Format your response in beautiful, highly readable markdown. It is CRITICAL that you are maximally verbose and exhaustive. 
-        Aim for AT LEAST 2200-2500 tokens of high-quality educational content. Do not stop until you have covered every possible technical detail, historical context, and theoretical implication.
+        ${transcriptSection}
+        Format your response in beautiful, highly readable markdown. It is CRITICAL that you are detailed and educational.
         
         Go in-depth and break it down exactly into these clean headings:
         ### 🎯 Core Concept
-        (Instruction: Provide an extremely detailed overview - Minimum 400 words)
+        (Instruction: Provide an extremely detailed, exhaustive overview of what this video actually teaches - Minimum 500 words)
         
         ### 💡 Key Takeaways
-        (Instruction: Provide an exhaustive list of concepts - Minimum 10 points with detailed explanations)
+        (Instruction: Provide an exhaustive list of concepts ACTUALLY covered - Minimum 10 points with deep explanations of each)
         
         ### 🧠 Why This Matters
-        (Instruction: Provide deep intuition and real-world application - Minimum 300 words)
+        (Instruction: Provide deep intuition, philosophy, and real-world application - Minimum 400 words)
         
         ### 📚 Deep Dive
-        (Instruction: Provide an exhaustive mechanical, theoretical, and step-by-step explanation - Minimum 600 words)
+        (Instruction: Walk through the content progressively as explained in the video - Minimum 800 words)
         
         ### 🛠️ Practical Examples
-        (Instruction: Provide concrete, real-world examples, code snippets, or step-by-step scenarios demonstrating the topic - Minimum 300 words)
+        (Instruction: Provide concrete examples, scenarios, or code snippets from the video - Minimum 400 words)
         
         Make sure the explanation is illuminating and leaves absolutely no stone unturned. Quantity AND Quality are paramount. 
-        IMPORTANT: Your response MUST be complete. It is better to be thorough and finish the explanation than to be extremely long and cut off mid-sentence.
+        IMPORTANT: Your entire response MUST be in ${finalLanguage}.
       `;
 
-    // Priority Strategy for Speed (<15s): Cerebras -> Groq (70B) -> Groq (8B) -> Gemini 2.5 -> Gemini 3 -> Groq (Qwen 32B) -> OpenRouter
-    const chain = [
-        { type: 'cerebras' },
-        { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-        { type: 'groq', model: MODELS.GROQ_LLAMA_8B },
-        { type: 'gemini', model: MODELS.GEMINI_2_5 },
-        { type: 'gemini', model: MODELS.GEMINI_3 },
-        { type: 'groq', model: MODELS.GROQ_QWEN_32B },
-        { type: 'groq', model: MODELS.GROQ_LLAMA_4_MAVERICK },
-        { type: 'openrouter' },
-        { type: 'gemini', model: MODELS.GEMINI_2_5_LITE }
-    ];
+    // Master English generation uses Cerebras first for maximum speed.
+    // This master is then translated cheaply via Google Translate.
+    const chain = hasTranscript
+        ? [
+            { type: 'cerebras' },
+            { type: 'gemini', model: MODELS.GEMINI_2_5 },
+            { type: 'gemini', model: MODELS.GEMINI_3 },
+            { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
+            { type: 'openrouter' }
+          ]
+        : [
+            { type: 'cerebras' },
+            { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
+            { type: 'gemini', model: MODELS.GEMINI_2_5 },
+            { type: 'openrouter' }
+          ];
 
     for (const provider of chain) {
         try {
@@ -315,6 +348,7 @@ const generateIntuition = async (title, description, url = null) => {
                 content: text,
                 isFallback: provider.model !== MODELS.GEMINI_2_5,
                 isSystemFallback: false,
+                transcript_used: hasTranscript,
                 model_name: provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : (provider.type === 'groq' ? provider.model : (provider.type === 'openrouter' ? MODELS.OPENROUTER_MODEL : provider.model))
             };
         } catch (error) {
@@ -343,6 +377,60 @@ Learning this concept helps build a strong foundation for advanced topics.
     }
 };
 
+
+/**
+ * Translate a block of text into a target language using FREE Google Translate.
+ * This saves AI API quota for more complex generation tasks.
+ */
+const translateText = async (text, targetLanguage) => {
+    if (!targetLanguage || targetLanguage === 'English' || targetLanguage === 'auto') {
+        return { content: text, model_name: 'Original' };
+    }
+
+    // Map common names to ISO codes for Google Translate
+    const langMap = {
+        'Hindi': 'hi',
+        'Marathi': 'mr',
+        'Bengali': 'bn',
+        'Telugu': 'te',
+        'Tamil': 'ta',
+        'Gujarati': 'gu',
+        'Urdu': 'ur',
+        'Kannada': 'kn',
+        'Odia': 'or',
+        'Malayalam': 'ml',
+        'Punjabi': 'pa',
+        'English': 'en'
+    };
+
+    const targetCode = langMap[targetLanguage] || targetLanguage.slice(0, 2).toLowerCase();
+
+    try {
+        console.log(`[Translate] Using FREE Google Translate to ${targetLanguage} (${targetCode})...`);
+        const res = await translate(text, { to: targetCode });
+        return { content: res.text, model_name: 'Free Google Translate' };
+    } catch (err) {
+        console.warn(`[Translate] Free Google Translate failed, falling back to Cerebras/Groq:`, err.message);
+        
+        // --- FALLBACK: Use LLM as backup if free service is blocked/down ---
+        const translationPrompt = `
+            You are a professional translator. Translate this exactly into ${targetLanguage}.
+            Maintain all markdown formatting.
+            
+            TEXT:
+            ${text}
+        `;
+
+        try {
+            const translated = await callCerebras(translationPrompt);
+            return { content: translated, model_name: `${MODELS.CEREBRAS_MODEL} (LLM Fallback)` };
+        } catch (llmErr) {
+            const translated = await callGroq(translationPrompt, false, MODELS.GROQ_LLAMA_70B);
+            return { content: translated, model_name: `${MODELS.GROQ_LLAMA_70B} (LLM Fallback)` };
+        }
+    }
+};
+
 /**
  * Benchmark all available models for a given title and description.
  */
@@ -357,31 +445,17 @@ const benchmarkAllModels = async (title, description, url = null) => {
         
         Format your response in markdown with these headings. You MUST be extremely detailed and verbose (aim for a high-quality depth of ~1500-2000 words total):
         ### 🎯 Core Concept
-        (Instruction: Minimum 400 words)
-
         ### 💡 Key Takeaways
-        (Instruction: Minimum 10 detailed points)
-
         ### 🧠 Why This Matters
-        (Instruction: Minimum 400 words)
-
         ### 📚 Deep Dive
-        (Instruction: Minimum 600 words)
-
         ### 🛠️ Practical Examples
-        (Instruction: Provide concrete real-world examples or code snippets - Minimum 300 words)
     `;
 
     const providers = [
         { name: 'Gemini 2.5 Flash', type: 'gemini', model: MODELS.GEMINI_2_5 },
         { name: 'Gemini 3 Flash', type: 'gemini', model: MODELS.GEMINI_3 },
         { name: 'Groq (Llama 3.3 70B)', type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-        { name: 'Groq (Llama 3.1 8B)', type: 'groq', model: MODELS.GROQ_LLAMA_8B },
-        { name: 'Groq (Qwen 32B)', type: 'groq', model: MODELS.GROQ_QWEN_32B },
-        { name: 'Groq (Llama 4 Maverick)', type: 'groq', model: MODELS.GROQ_LLAMA_4_MAVERICK },
         { name: 'Cerebras (Fast Inference)', type: 'cerebras' },
-        { name: 'OpenRouter (Free Router)', type: 'openrouter' },
-        { name: 'Gemini 2.5 Lite', type: 'gemini', model: MODELS.GEMINI_2_5_LITE }
     ];
 
     const results = {};
@@ -389,18 +463,13 @@ const benchmarkAllModels = async (title, description, url = null) => {
         try {
             let text;
             if (p.type === 'gemini') {
-                const model = genAI.getGenerativeModel({
-                    model: p.model,
-                    generationConfig: { maxOutputTokens: 8192 }
-                });
+                const model = genAI.getGenerativeModel({ model: p.model, generationConfig: { maxOutputTokens: 8192 } });
                 const result = await model.generateContent(intuitionPrompt);
                 text = (await result.response).text();
             } else if (p.type === 'groq') {
                 text = await callGroq(intuitionPrompt, false, p.model);
             } else if (p.type === 'cerebras') {
                 text = await callCerebras(intuitionPrompt);
-            } else if (p.type === 'openrouter') {
-                text = await callOpenRouter(intuitionPrompt);
             }
             results[p.name] = { content: text, status: 'success' };
         } catch (error) {
@@ -415,5 +484,6 @@ const benchmarkAllModels = async (title, description, url = null) => {
 module.exports = {
     generateQuiz,
     generateIntuition,
+    translateText,
     benchmarkAllModels
 };

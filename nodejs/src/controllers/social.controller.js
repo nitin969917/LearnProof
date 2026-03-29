@@ -1,5 +1,5 @@
 const prisma = require('../lib/prisma');
-const { generateIntuition } = require('../services/ai.service');
+const { generateIntuition, translateText } = require('../services/ai.service');
 const cacheService = require('../services/cache.service');
 
 /**
@@ -181,40 +181,64 @@ const deleteComment = async (req, res) => {
 };
 
 const getIntuition = async (req, res) => {
-    const { videoId } = req.query;
+    const { videoId, targetLanguage } = req.query;
+    const requestedLang = targetLanguage && targetLanguage !== 'auto' ? targetLanguage : 'English';
 
     try {
-        const cacheKey = `video:intuition:${videoId}`;
+        // --- STEP 1: Check Cache for this specific language ---
+        const cacheKey = `video:intuition:${videoId}:${requestedLang}`;
         const cached = await cacheService.get(cacheKey);
-        if (cached) return res.status(200).json(cached);
+        if (cached && !req.query.refresh) return res.status(200).json(cached);
 
-        let intuition = await prisma.videoIntuition.findUnique({ where: { vid: videoId } });
+        // --- STEP 2: Get or Generate the English "Master" version from DB ---
+        let englishIntuition = await prisma.videoIntuition.findUnique({ where: { vid: videoId } });
+        
+        // Force master regeneration only if missing OR generated without transcript
+        const isStale = englishIntuition && !englishIntuition.transcript_used;
 
-        if (!intuition) {
+        if (!englishIntuition || isStale) {
             const video = await prisma.video.findFirst({ where: { vid: videoId } });
             const title = video ? video.name : 'Unknown Title';
             const description = video ? video.description : 'No description available.';
             const url = video ? video.url : null;
 
-            const { content, isSystemFallback, model_name } = await generateIntuition(title, description, url);
-
-            // Only cache if it's a real generation, not a hardcoded system fallback
+            console.log(`[Intuition] 🔥 Zero-to-Master English generation (from transcript) for ${videoId}...`);
+            const { content, isSystemFallback, model_name, transcript_used } = await generateIntuition(title, description, url, 'English');
+            const isTranscriptUsed = !!transcript_used;
+            
             if (!isSystemFallback) {
-                intuition = await prisma.videoIntuition.upsert({
+                englishIntuition = await prisma.videoIntuition.upsert({
                     where: { vid: videoId },
-                    update: { content, model_name },
-                    create: { vid: videoId, content, model_name }
+                    update: { content, model_name, transcript_used: isTranscriptUsed },
+                    create: { vid: videoId, content, model_name, transcript_used: isTranscriptUsed }
                 });
             } else {
-                // If system fallback, return without saving (allows retry next time)
-                return res.status(200).json({ vid: videoId, content, model_name });
+                // Return fallback early if AI failed completely
+                return res.status(200).json({ vid: videoId, content, model_name, transcript_used: false });
             }
         }
 
-        await cacheService.set(cacheKey, intuition, 86400); // 24 hours for intuition
+        // --- STEP 3: Handle Translation if a specific language is requested ---
+        if (requestedLang !== 'English') {
+            console.log(`[Intuition] 🌏 Rapid FREE translation to ${requestedLang} for ${videoId}...`);
+            const { content: translatedContent, model_name: translatorModel } = await translateText(englishIntuition.content, requestedLang);
+            
+            const result = {
+                ...englishIntuition,
+                content: translatedContent,
+                model_name: `${englishIntuition.model_name} + ${translatorModel} Translation`,
+                language: requestedLang
+            };
 
-        res.status(200).json(intuition);
+            await cacheService.set(cacheKey, result, 86400); 
+            return res.status(200).json(result);
+        }
+
+        // --- STEP 4: Return English master ---
+        await cacheService.set(cacheKey, englishIntuition, 86400); 
+        res.status(200).json(englishIntuition);
     } catch (error) {
+        console.error("[Intuition Error]", error);
         res.status(500).json({ error: error.message });
     }
 };
