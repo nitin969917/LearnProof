@@ -256,7 +256,7 @@ const LandingPage = () => {
                     </motion.div>
 
                     <h1 className="text-5xl sm:text-6xl lg:text-[5.5rem] font-extrabold text-gray-900 tracking-tight leading-[1.1] mb-6">
-                        <span className="bg-gradient-to-br from-orange-600 via-red-500 to-amber-500 bg-clip-text text-transparent drop-shadow-sm">LearnProof</span>
+                        <span className="bg-gradient-to-br from-orange-600 via-red-500 to-amber-500 bg-clip-text text-transparent drop-shadow-sm">LearnProof AI</span>
                     </h1>
 
                     <p className="text-xl sm:text-2xl text-gray-600 font-medium mb-10 max-w-xl leading-relaxed">
@@ -578,7 +578,20 @@ const LandingPage = () => {
                         </motion.p>
                     </motion.div>
                 </div>
-            </motion.section >
+            {/* SEO Keyword Cloud Section (Subtle) */}
+            <section className="py-10 px-4 sm:px-8 lg:px-16 bg-white/30 border-t border-orange-100">
+                <div className="max-w-6xl mx-auto">
+                    <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6 text-center">Popular Learning Searches</h2>
+                    <div className="flex flex-wrap justify-center gap-x-6 gap-y-3">
+                        {["Learn Proof", "Proof Learn", "LearnAI", "ProofAI", "LearnProof AI", "AI Study Assistant", "Personalized Learning AI", "Smart Learning Proof", "Educational AI", "YouTube Course Tracker"].map((kw) => (
+                            <span key={kw} className="text-xs text-gray-400 hover:text-orange-500 transition-colors cursor-default">
+                                {kw}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        </motion.section >
 
             {/* Footer */}
             < footer className="border-t border-orange-200 py-8 px-4 sm:px-8 lg:px-16 bg-orange-50" >
