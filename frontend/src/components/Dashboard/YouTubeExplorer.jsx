@@ -176,6 +176,57 @@ const YouTubeExplorer = () => {
                 </form>
             </div>
 
+            {/* Search Results / Loading / Empty State */}
+            {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3, 4, 5, 6].map(i => (
+                        <div key={i} className="animate-pulse flex flex-col gap-3">
+                            <div className="w-full aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                        </div>
+                    ))}
+                </div>
+            ) : results.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12">
+                    {results.map((item, idx) => (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            key={item.id}
+                            className="group relative bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden"
+                        >
+                            <div className="relative aspect-video overflow-hidden cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
+                                <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
+                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500">
+                                        <Play size={24} className="fill-white ml-1" />
+                                    </div>
+                                </div>
+                                <div className={`absolute top-4 right-4 px-3 py-1 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg z-10 ${
+                                    item.type === 'playlist' ? 'bg-red-500' : 'bg-blue-500'
+                                }`}>
+                                    {item.type}
+                                </div>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="space-y-2">
+                                    <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-500 transition-colors" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
+                                    <span className="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest block">{item.channel}</span>
+                                </div>
+                                <button
+                                    onClick={() => handleImportClick(item.url)}
+                                    className="w-full py-4 bg-gray-50 dark:bg-gray-700 hover:bg-red-500 dark:hover:bg-red-600 text-gray-900 dark:text-white hover:text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 border border-gray-100 dark:border-gray-600 hover:border-transparent"
+                                >
+                                    <Plus size={14} strokeWidth={3} /> Add to Platform
+                                </button>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            ) : null}
+
             {/* AI Magic Recommendation Section */}
             <div className="relative group shadow-2xl rounded-3xl sm:rounded-[2rem]">
                 <div className="relative bg-white dark:bg-gray-800 rounded-3xl sm:rounded-[2rem] p-5 md:p-6 lg:p-7 border border-gray-100 dark:border-gray-700">
@@ -297,55 +348,7 @@ const YouTubeExplorer = () => {
                 </div>
             )}
 
-            {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="animate-pulse flex flex-col gap-3">
-                            <div className="w-full aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                        </div>
-                    ))}
-                </div>
-            ) : results.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12">
-                    {results.map((item, idx) => (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            key={item.id}
-                            className="group relative bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden"
-                        >
-                            <div className="relative aspect-video overflow-hidden cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
-                                <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500">
-                                        <Play size={24} className="fill-white ml-1" />
-                                    </div>
-                                </div>
-                                <div className={`absolute top-4 right-4 px-3 py-1 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg z-10 ${
-                                    item.type === 'playlist' ? 'bg-red-500' : 'bg-blue-500'
-                                }`}>
-                                    {item.type}
-                                </div>
-                            </div>
-                            <div className="p-6 space-y-4">
-                                <div className="space-y-2">
-                                    <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-500 transition-colors" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
-                                    <span className="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest block">{item.channel}</span>
-                                </div>
-                                <button
-                                    onClick={() => handleImportClick(item.url)}
-                                    className="w-full py-4 bg-gray-50 dark:bg-gray-700 hover:bg-red-500 dark:hover:bg-red-600 text-gray-900 dark:text-white hover:text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 border border-gray-100 dark:border-gray-600 hover:border-transparent"
-                                >
-                                    <Plus size={14} strokeWidth={3} /> Add to Platform
-                                </button>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-            ) : (
+            {results.length === 0 && !loading && (
                 <div className="text-center py-12 sm:py-20 bg-gray-50/50 dark:bg-gray-700/20 rounded-3xl sm:rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-700 max-w-4xl mx-auto w-full">
                     <div className="flex flex-col items-center justify-center p-8 text-center space-y-6">
                         <div className="relative group">
