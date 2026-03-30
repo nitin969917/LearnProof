@@ -40,7 +40,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_BACKEND_URL=https://learn.ngithub.in
+        - VITE_BACKEND_URL=https://learnproofai.com
         - VITE_GOOGLE_CLIENT_ID=557947080645-2iqd1t1h79b273ktjqthcg6q23k9pem1.apps.googleusercontent.com
     container_name: learnproof-frontend
     restart: always
