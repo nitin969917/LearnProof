@@ -191,15 +191,15 @@ const YouTubeExplorer = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12">
                     {results.map((item, idx) => (
                         <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.05 }}
                             key={item.id}
-                            className="group relative bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className="group relative bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden p-4 flex flex-col"
                         >
-                            <div className="relative aspect-video overflow-hidden cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
-                                <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
+                            <div className="relative aspect-video rounded-xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover:scale-[1.02] cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
+                                <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/40 xl:bg-gradient-to-t xl:from-black/60 xl:via-transparent xl:to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
                                     <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500">
                                         <Play size={24} className="fill-white ml-1" />
                                     </div>
@@ -210,7 +210,7 @@ const YouTubeExplorer = () => {
                                     {item.type}
                                 </div>
                             </div>
-                            <div className="p-6 space-y-4">
+                            <div className="pt-4 space-y-4 flex flex-col flex-1">
                                 <div className="space-y-2">
                                     <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-500 transition-colors" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
                                     <span className="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest block">{item.channel}</span>
@@ -309,11 +309,11 @@ const YouTubeExplorer = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: idx * 0.1 }}
                                 key={`rec-${item.id}`}
-                                className="group relative bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden"
+                                className="group relative bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden p-4 flex flex-col"
                             >
-                                <div className="relative aspect-video overflow-hidden cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
-                                    <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
+                                <div className="relative aspect-video rounded-xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover:scale-[1.02] cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
+                                    <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
+                                    <div className="absolute inset-0 bg-black/40 xl:bg-gradient-to-t xl:from-black/60 xl:via-transparent xl:to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
                                         <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500">
                                             <Play size={24} className="fill-white ml-1" />
                                         </div>
@@ -322,7 +322,7 @@ const YouTubeExplorer = () => {
                                         Top Pick
                                     </div>
                                 </div>
-                                <div className="p-6 space-y-4">
+                                <div className="pt-4 space-y-4 flex flex-col flex-1">
                                     <div className="space-y-2">
                                         <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-orange-500 transition-colors" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
                                         <div className="flex items-center justify-between">

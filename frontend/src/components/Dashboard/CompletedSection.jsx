@@ -97,9 +97,9 @@ const CompletedSection = () => {
                                     className="group/card flex-shrink-0 w-[280px] sm:w-[320px] bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:shadow-green-100 dark:hover:shadow-green-900/20 hover:border-green-400 dark:hover:border-green-500 hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer snap-start"
                                     onClick={() => navigate(`/classroom/${video.vid}`)}
                                 >
-                                    <div className="aspect-video bg-gray-100 dark:bg-slate-800 cursor-pointer relative flex items-center justify-center overflow-hidden">
-                                        <img src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`} alt={video.name} className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105" />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                    <div className="aspect-video relative flex items-center justify-center overflow-hidden rounded-xl shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
+                                        <img src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`} alt={video.name} className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 flex items-center justify-center">
                                             <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -110,6 +110,9 @@ const CompletedSection = () => {
                                                     <path d="M8 5v14l11-7z" />
                                                 </svg>
                                             </div>
+                                        </div>
+                                        <div className="absolute bottom-2 right-2 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg shadow-lg border border-white/10">
+                                            Achieved
                                         </div>
                                     </div>
                                     <div className="p-4">
@@ -166,17 +169,17 @@ const CompletedSection = () => {
                                         className="group/card flex-shrink-0 w-[280px] sm:w-[320px] bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:shadow-green-100 dark:hover:shadow-green-900/20 hover:border-green-400 dark:hover:border-green-500 hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer snap-start"
                                         onClick={() => navigate(`/dashboard/playlist/${playlist.pid}`)}
                                     >
-                                        <div className="aspect-video bg-gray-100 dark:bg-slate-800 relative flex items-center justify-center overflow-hidden">
+                                        <div className="aspect-video relative flex items-center justify-center overflow-hidden rounded-xl shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
                                             {thumbnail ? (
                                                 <img
                                                     src={thumbnail}
                                                     alt={playlist.name}
-                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
+                                                    className="w-full h-full object-cover"
                                                 />
                                             ) : (
                                                 <Play size={48} className="text-green-300" />
                                             )}
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 flex items-center justify-center">
                                                 <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
                                                     <svg
                                                         xmlns="http://www.w3.org/2000/svg"
@@ -187,6 +190,9 @@ const CompletedSection = () => {
                                                         <path d="M8 5v14l11-7z" />
                                                     </svg>
                                                 </div>
+                                            </div>
+                                            <div className="absolute bottom-2 right-2 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg shadow-lg border border-white/10">
+                                                Mastered
                                             </div>
                                         </div>
                                         <div className="p-4">

@@ -107,12 +107,12 @@ const PlaylistSection = () => {
                                     navigate(`/dashboard/playlist/${pl.pid}`);
                                 }}
                             >
-                                <div className="aspect-video bg-gray-100 cursor-pointer relative flex items-center justify-center overflow-hidden">
+                                <div className="aspect-video relative flex items-center justify-center overflow-hidden rounded-xl shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
                                     {thumbnail ? (
                                         <img
                                             src={thumbnail}
                                             alt={pl.name}
-                                            className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
+                                            className="w-full h-full object-cover"
                                         />
                                     ) : (
                                         <Play size={48} className="text-orange-300" />
@@ -129,7 +129,7 @@ const PlaylistSection = () => {
                                             </svg>
                                         </div>
                                     </div>
-                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-md font-medium">
+                                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border border-white/10">
                                         {totalVideos} Videos
                                     </div>
                                 </div>
