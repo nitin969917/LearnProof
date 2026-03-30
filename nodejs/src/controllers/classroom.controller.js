@@ -12,7 +12,7 @@ const getClassroomVideo = async (req, res) => {
 
     try {
         const user = req.user;
-        const cacheKey = `video:detail:${user.id}:${videoId}`;
+        const cacheKey = `classroom:v1:${user.id}:${videoId}`;
         
         const cached = await cacheService.get(cacheKey);
         if (cached) {
@@ -34,6 +34,7 @@ const getClassroomVideo = async (req, res) => {
                 orderBy: { position: 'asc' }
             });
             playlistData = {
+                pid: video.playlist.pid,
                 name: video.playlist.name,
                 videos: playlistVideos
             };
@@ -90,7 +91,7 @@ const markVideoCompleted = async (req, res) => {
         await cacheService.del(`user:profile:${uid}`);
         await cacheService.del(`user:continue:${user.id}`);
         await cacheService.del(`user:completed:${user.id}`);
-        await cacheService.del(`video:detail:${user.id}:${videoId}`);
+        await cacheService.del(`classroom:v1:${user.id}:${videoId}`);
         if (video.playlist?.pid) {
             await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
         }
@@ -137,7 +138,7 @@ const unmarkVideoCompleted = async (req, res) => {
             await cacheService.del(`user:profile:${uid}`);
             await cacheService.del(`user:continue:${user.id}`);
             await cacheService.del(`user:completed:${user.id}`);
-            await cacheService.del(`video:detail:${user.id}:${videoId}`);
+            await cacheService.del(`classroom:v1:${user.id}:${videoId}`);
             if (video.playlist?.pid) {
                 await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
             }
@@ -171,7 +172,7 @@ const updateProgress = async (req, res) => {
             
             // Invalidate continue watching cache
             await cacheService.del(`user:continue:${user.id}`);
-            await cacheService.del(`video:detail:${user.id}:${videoId}`);
+            await cacheService.del(`classroom:v1:${user.id}:${videoId}`);
         }
 
         res.status(200).json({ message: 'Progress updated' });
