@@ -4,7 +4,11 @@ const prisma = require('../lib/prisma');
  * Authentication & Profile Controller
  */
 const loginOrRegister = async (req, res) => {
-    res.status(200).json(req.user);
+    // If a new session token was generated (first time Google login/refresh), return it
+    res.status(200).json({
+        ...req.user,
+        token: req.newSessionToken || null
+    });
 };
 
 const getProfile = async (req, res) => {
