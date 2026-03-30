@@ -536,7 +536,7 @@ const MyLearnings = () => {
                                                     <div className="min-w-0 flex-1">
                                                         <div className="flex items-center gap-1.5 mb-1">
                                                             <div className="px-1.5 py-0.5 bg-orange-500/10 text-orange-500 rounded text-[7px] font-black uppercase tracking-widest border border-orange-500/20">
-                                                                Mastery Plan
+                                                                Study Plan
                                                             </div>
                                                             <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest truncate">{totalVideos} Lessons</span>
                                                         </div>

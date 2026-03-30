@@ -112,7 +112,7 @@ const CompletedSection = () => {
                                             </div>
                                         </div>
                                         <div className="absolute bottom-2 right-2 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg shadow-lg border border-white/10">
-                                            Achieved
+                                            Completed
                                         </div>
                                     </div>
                                     <div className="p-4">
@@ -120,7 +120,7 @@ const CompletedSection = () => {
                                         <p className="text-xs text-gray-500 dark:text-slate-400 font-medium truncate mb-4">{video.description || 'No description available.'}</p>
                                         <div className="flex items-center gap-2 text-green-600 dark:text-green-500 text-[11px] font-black uppercase tracking-wider">
                                             <CheckCircle size={14} fill="currentColor" className="text-green-100 dark:text-green-900" />
-                                            <span>Achieved</span>
+                                            <span>Completed</span>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -192,7 +192,7 @@ const CompletedSection = () => {
                                                 </div>
                                             </div>
                                             <div className="absolute bottom-2 right-2 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg shadow-lg border border-white/10">
-                                                Mastered
+                                                Completed
                                             </div>
                                         </div>
                                         <div className="p-4">
@@ -201,7 +201,7 @@ const CompletedSection = () => {
                                             </h3>
                                             <div className="flex items-center gap-2 text-green-600 dark:text-green-500 text-[11px] font-black uppercase tracking-wider">
                                                 <CheckCircle size={14} fill="currentColor" className="text-green-100 dark:text-green-900" />
-                                                <span>Mastered</span>
+                                                <span>Completed</span>
                                             </div>
                                             <div className="mt-4 pt-4 border-t border-gray-50 dark:border-gray-700 flex justify-between items-center group-hover/card:border-green-100 dark:group-hover/card:border-green-900/30 transition-colors">
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-400 group-hover/card:text-green-600 transition-colors">Full Course</span>

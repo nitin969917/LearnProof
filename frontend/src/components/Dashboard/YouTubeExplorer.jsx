@@ -437,7 +437,7 @@ const YouTubeExplorer = () => {
                                         onClick={handleSave}
                                         className="flex-[2] py-4 bg-gray-900 dark:bg-red-600 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl hover:bg-gray-800 dark:hover:bg-red-700 transition-all shadow-xl shadow-gray-200 dark:shadow-none"
                                     >
-                                        Establish Course
+                                        Add Course
                                     </button>
                                 </div>
                             </div>
