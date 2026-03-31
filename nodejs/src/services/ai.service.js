@@ -76,7 +76,7 @@ const cleanAIJSON = (text) => {
 /**
  * Helper to call OpenRouter API (OpenAI compatible)
  */
-async function callOpenRouter(prompt, jsonMode = false) {
+async function callOpenRouter(prompt, jsonMode = false, temperature = 0.1) {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey || apiKey === "PASTE_YOUR_OPENROUTER_API_KEY_HERE") {
         throw new Error("OPENROUTER_API_KEY is not configured");
@@ -94,7 +94,7 @@ async function callOpenRouter(prompt, jsonMode = false) {
             model: MODELS.OPENROUTER_MODEL,
             messages: [{ role: 'user', content: prompt }],
             response_format: jsonMode ? { type: "json_object" } : undefined,
-            temperature: 0.1,
+            temperature: temperature,
             max_tokens: 8000 // Ensure deep, exhaustive responses (2200+ tokens) without truncation
         })
     });
@@ -111,7 +111,7 @@ async function callOpenRouter(prompt, jsonMode = false) {
 /**
  * Helper to call Groq API (OpenAI compatible)
  */
-async function callGroq(prompt, jsonMode = false, model = MODELS.GROQ_LLAMA_70B) {
+async function callGroq(prompt, jsonMode = false, model = MODELS.GROQ_LLAMA_70B, temperature = 0.1) {
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey || apiKey === "PASTE_YOUR_GROQ_API_KEY_HERE") {
         throw new Error("GROQ_API_KEY is not configured");
@@ -127,7 +127,7 @@ async function callGroq(prompt, jsonMode = false, model = MODELS.GROQ_LLAMA_70B)
             model: model,
             messages: [{ role: 'user', content: prompt }],
             response_format: jsonMode ? { type: "json_object" } : undefined,
-            temperature: 0.1,
+            temperature: temperature,
             max_tokens: 8000 // Allow for exhaustive 2200+ token content without truncation
         })
     });
@@ -144,7 +144,7 @@ async function callGroq(prompt, jsonMode = false, model = MODELS.GROQ_LLAMA_70B)
 /**
  * Helper to call Cerebras API (OpenAI compatible)
  */
-async function callCerebras(prompt, jsonMode = false) {
+async function callCerebras(prompt, jsonMode = false, temperature = 0.1) {
     const apiKey = process.env.CEREBRAS_API_KEY;
     if (!apiKey || apiKey === "PASTE_YOUR_CEREBRAS_API_KEY_HERE") {
         throw new Error("CEREBRAS_API_KEY is not configured");
@@ -160,7 +160,7 @@ async function callCerebras(prompt, jsonMode = false) {
             model: MODELS.CEREBRAS_MODEL,
             messages: [{ role: 'user', content: prompt }],
             response_format: jsonMode ? { type: "json_object" } : undefined,
-            temperature: 0.1,
+            temperature: temperature,
             max_tokens: 8000 // Support massive verbosity (2200+ tokens) without truncation
         })
     });
@@ -179,9 +179,18 @@ async function callCerebras(prompt, jsonMode = false) {
  */
 const generateQuiz = async (title, description, url = null, intuitionText = null, numQuestions = 15) => {
     const quizPrompt = `
-      Act as an expert educator. Based ONLY on the following video/playlist info and specifically the provided "AI Intuition Summary", generate a highly comprehensive quiz with BETWEEN 15 and 20 multiple-choice questions (STRICTLY AT MOST 20). 
+      Act as an expert educator. Based ONLY on the following video/playlist info and specifically the provided "AI Intuition Summary", generate a highly comprehensive and DIVERSE quiz with BETWEEN 15 and 20 multiple-choice questions (STRICTLY AT MOST 20). 
       
-      It is absolutely critical that every single question is directly derived from the concepts explained in the "AI Intuition Summary" below. Do not use external knowledge that contradicts or is not mentioned in the summary.
+      STRICT CONSTRAINTS:
+      - EVERY question must be unique. Do NOT repeat the same concept or wording across questions.
+      - Each question must cover a different sub-topic, technical detail, or specific insight from the summary.
+      - Vary the question types: 
+        1. 25% Conceptual (High-level theory)
+        2. 25% Fact-based (Specific details/definitions)
+        3. 25% Scenario-based (Applying the knowledge)
+        4. 25% Analysis-based (Comparison or troubleshooting)
+      
+      It is absolutely critical that every single question is directly derived from the concepts explained in the "AI Intuition Summary" below.
       
       Title: ${title}
       URL: ${url || 'Not provided'}
@@ -195,6 +204,21 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
       
       Respond ONLY with the JSON array. No preamble, no markdown blocks.
     `;
+
+    // ... inside the loop ...
+    // Update temperatures to 0.3 below
+
+    // Helper to deduplicate locally after AI response
+    const deduplicateQuestions = (qs) => {
+        if (!Array.isArray(qs)) return qs;
+        const seen = new Set();
+        return qs.filter(q => {
+            const normalized = q.question.trim().toLowerCase();
+            if (seen.has(normalized)) return false;
+            seen.add(normalized);
+            return true;
+        });
+    };
 
     // Priority Strategy for Speed (<15s): Cerebras -> Groq (70B) -> Groq (8B) -> Gemini 2.5 -> Gemini 3 -> OpenRouter
     const chain = [
@@ -217,21 +241,25 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
                     model: provider.model,
                     generationConfig: {
                         responseMimeType: "application/json",
-                        maxOutputTokens: 2000
+                        maxOutputTokens: 2000,
+                        temperature: 0.3
                     }
                 });
                 const result = await model.generateContent(quizPrompt);
                 text = (await result.response).text();
             } else if (provider.type === 'groq') {
-                text = await callGroq(quizPrompt, true, provider.model);
+                text = await callGroq(quizPrompt, true, provider.model, 0.3);
             } else if (provider.type === 'cerebras') {
-                text = await callCerebras(quizPrompt, true);
+                text = await callCerebras(quizPrompt, true, 0.3);
             } else if (provider.type === 'openrouter') {
-                text = await callOpenRouter(quizPrompt, true);
+                text = await callOpenRouter(quizPrompt, true, 0.3);
             }
 
+            const rawQs = cleanAIJSON(text);
+            const cleanQs = deduplicateQuestions(rawQs);
+
             return {
-                questions: cleanAIJSON(text),
+                questions: cleanQs,
                 isFallback: provider.model !== MODELS.GEMINI_2_5,
                 isSystemFallback: false
             };
@@ -325,8 +353,9 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
     let chain = [];
     if (hasTranscript) {
         if (isLongTranscript) {
-            console.log(`[Intuition] Long transcript detected (${transcriptResult.transcript.length} chars). Prioritizing Large Context Models (Gemini/Groq70B).`);
+            console.log(`[Intuition] Long transcript detected (${transcriptResult.transcript.length} chars). Prioritizing Cerebras (truncated) then Large Context Models.`);
             chain = [
+                { type: 'cerebras' },
                 { type: 'gemini', model: MODELS.GEMINI_2_5 },
                 { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
                 { type: 'gemini', model: MODELS.GEMINI_3 },
