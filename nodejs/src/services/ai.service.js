@@ -277,32 +277,41 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
 `;
 
     const intuitionPrompt = `
-        Act as an expert, highly engaging educational tutor.
-        Provide an EXTREMELY COMPREHENSIVE and exhaustive intuition and breakdown of the core concepts covered in this video.
+        Act as an Expert Academic Professor and Exam Specialist.
+        Your goal is to provide a STERN, HIGHLY TECHNICAL, and EXTREMELY COMPREHENSIVE academic breakdown of the subject matter.
+        
+        CRITICAL INSTRUCTION: Do NOT just describe what happens in the video (e.g., avoid "The speaker says..."). 
+        Instead, use the video as your secondary source of data to EXPLAIN THE CORE SUBJECT ITSELF with academic authority. 
+        Structure the content such that a student can directly use it to answer 20-mark descriptive university exam questions.
+        If the video is a tutorial, provide the underlying theory as well.
         
         Video Title: '${title}'
         Video URL: '${url || 'Not provided'}'
         Video Description: '${description}'
         ${transcriptSection}
-        Format your response in beautiful, highly readable markdown. It is CRITICAL that you are detailed and educational.
         
-        Go in-depth and break it down exactly into these clean headings:
-        ### 🎯 Core Concept
-        (Instruction: Provide an extremely detailed, exhaustive overview of what this video actually teaches - Minimum 500 words)
+        Format your response in beautiful, highly readable markdown. Quantity, technical precision, and academic depth are paramount.
         
-        ### 💡 Key Takeaways
-        (Instruction: Provide an exhaustive list of concepts ACTUALLY covered - Minimum 10 points with deep explanations of each)
+        Go in-depth and break it down exactly into these academic headings:
+        ### 🎯 Core Technical Definition
+        (Instruction: Provide a formal, academic definition of the subject. Use standard industry/academic terminology. Minimum 400 words of foundational theory.)
         
-        ### 🧠 Why This Matters
-        (Instruction: Provide deep intuition, philosophy, and real-world application - Minimum 400 words)
+        ### 💡 Key Learning Objectives & Takeaways
+        (Instruction: Provide an exhaustive list of concepts covered. Each point must be a paragraph explaining the 'Mechanism', 'Process', or 'Rule'. Minimum 12 points.)
         
-        ### 📚 Deep Dive
-        (Instruction: Walk through the content progressively as explained in the video - Minimum 800 words)
+        ### 🧠 Theoretical Framework & Why It Matters
+        (Instruction: Provide deep intuition, the underlying philosophy, and the scientific/industrial logic behind the concept. Minimum 500 words.)
         
-        ### 🛠️ Practical Examples
-        (Instruction: Provide concrete examples, scenarios, or code snippets from the video - Minimum 400 words)
+        ### 📚 Progressive Deep Dive (The Exam Core)
+        (Instruction: Walk through the content progressively. Explain 'How it works' step-by-step with technical rigor. Include any 'Types', 'Classifications', or 'Stages'. Minimum 1000 words.)
         
-        Make sure the explanation is illuminating and leaves absolutely no stone unturned. Quantity AND Quality are paramount. 
+        ### 🛠️ Practical Scenarios & Comparative Analysis
+        (Instruction: Provide concrete examples, use-cases, or code. Include a 'Pros vs Cons' or 'Comparison Table' in markdown if applicable. Minimum 500 words.)
+        
+        ### 📝 Potential Exam Questions & High-Score Tips
+        (Instruction: List 5 likely descriptive exam questions based on this video and provide short 'Bullet-Point' outlines of how the user should answer them to get full marks.)
+
+        Make sure the explanation is illuminating and leaves absolutely no stone unturned. 
         IMPORTANT: Your entire response MUST be in ${finalLanguage}.
       `;
 

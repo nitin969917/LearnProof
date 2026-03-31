@@ -147,8 +147,8 @@ const fetchTranscript = async (url, videoId = null) => {
         const fullText = segments.map((s) => s.text).join(' ').trim();
         const language = detectLanguage(fullText) || langCode;
 
-        // Trim to ~5000 chars (~1200-1500 tokens) — deep context for exhaustive Master generation
-        const transcript = fullText.slice(0, 5000);
+        // Increase to ~20,000 chars (~5000 tokens) for deep academic context across longer videos
+        const transcript = fullText.slice(0, 20000);
 
         console.log(`[Transcript] ✅ Fetched ${transcript.length} chars | lang: ${language} | tracks available: ${tracks.length}`);
 
