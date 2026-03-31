@@ -41,6 +41,7 @@ const Sidebar = ({ onProfileClick, onClose }) => {
         { name: 'Certificates', icon: <Award size={20} />, path: '/dashboard/certificates' },
         { name: 'Ask My Notes', icon: <MessageSquare size={20} />, path: '/dashboard/ask-my-notes' },
         { name: 'Quiz', icon: <Quote size={20} />, path: '/dashboard/quiz' },
+        { name: 'Help & Support', icon: <Inbox size={20} />, path: 'mailto:hello@learnproofai.com', isExternal: true },
     ];
 
     const handleLogout = async () => {
@@ -77,21 +78,32 @@ const Sidebar = ({ onProfileClick, onClose }) => {
                 {/* Navigation */}
                 <nav className="flex flex-col space-y-3">
                     {navItems.map((item) => (
-                        <NavLink
-                            key={item.name}
-                            to={item.path}
-                            end
-                            onClick={() => onClose && onClose()}
-                            className={({ isActive }) =>
-                                `flex items-center gap-3 px-4 py-2 rounded-lg transition-all ${isActive
-                                    ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold'
-                                    : 'text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700'
-                                }`
-                            }
-                        >
-                            {item.icon}
-                            <span>{item.name}</span>
-                        </NavLink>
+                        item.isExternal ? (
+                            <a
+                                key={item.name}
+                                href={item.path}
+                                className="flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700"
+                            >
+                                {item.icon}
+                                <span>{item.name}</span>
+                            </a>
+                        ) : (
+                            <NavLink
+                                key={item.name}
+                                to={item.path}
+                                end
+                                onClick={() => onClose && onClose()}
+                                className={({ isActive }) =>
+                                    `flex items-center gap-3 px-4 py-2 rounded-lg transition-all ${isActive
+                                        ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold'
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700'
+                                    }`
+                                }
+                            >
+                                {item.icon}
+                                <span>{item.name}</span>
+                            </NavLink>
+                        )
                     ))}
                 </nav>
             </div>

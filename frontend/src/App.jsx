@@ -25,6 +25,8 @@ import AdminUserDetails from './components/Admin/pages/AdminUserDetails';
 
 import { ModalProvider } from './context/ModalContext';
 
+import VerifyCertificate from './components/Common/VerifyCertificate';
+
 const App = () => {
     return (
         <AuthProvider>
@@ -32,6 +34,7 @@ const App = () => {
                 <Router>
                     <Routes>
                         <Route path='/' element={<LandingPage />} />
+                        <Route path='/verify/:certId' element={<VerifyCertificate />} />
 
                         <Route
                             path='/dashboard/*'

@@ -493,6 +493,45 @@ const getQuizHistory = async (req, res) => {
     }
 };
 
+const verifyCertificate = async (req, res) => {
+    const { certId } = req.params;
+
+    try {
+        const certificate = await prisma.certificate.findUnique({
+            where: { certificate_id: certId },
+            include: {
+                user: { select: { name: true, joined_at: true, profile_pic: true, xp: true, level: true } },
+                video: { select: { name: true, description: true, duration_seconds: true } },
+                playlist: { 
+                    select: { 
+                        name: true, 
+                        pid: true, 
+                        videos: { select: { id: true } } 
+                    } 
+                }
+            }
+        });
+
+        if (!certificate) {
+            return res.status(404).json({ error: 'Certificate not found' });
+        }
+
+        // Add formatted title and summary
+        const result = {
+            ...certificate,
+            title: certificate.video?.name || certificate.playlist?.name || "Certificate",
+            type: certificate.playlistId ? 'Specialization' : 'Course',
+            issued_to: certificate.user.name,
+            total_videos: certificate.playlist?.videos?.length || 1
+        };
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error("Verify Certificate Error:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
 module.exports = {
     getQuizList,
     startQuiz,
@@ -500,4 +539,5 @@ module.exports = {
     getCertificates,
     getActivityGraph,
     getQuizHistory,
+    verifyCertificate,
 };

@@ -578,20 +578,120 @@ const LandingPage = () => {
                         </motion.p>
                     </motion.div>
                 </div>
-            {/* SEO Keyword Cloud Section (Subtle) */}
-            <section className="py-10 px-4 sm:px-8 lg:px-16 bg-white/30 border-t border-orange-100">
-                <div className="max-w-6xl mx-auto">
-                    <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6 text-center">Popular Learning Searches</h2>
-                    <div className="flex flex-wrap justify-center gap-x-6 gap-y-3">
-                        {["Learn Proof", "Proof Learn", "LearnAI", "ProofAI", "LearnProof AI", "AI Study Assistant", "Personalized Learning AI", "Smart Learning Proof", "Educational AI", "YouTube Course Tracker"].map((kw) => (
-                            <span key={kw} className="text-xs text-gray-400 hover:text-orange-500 transition-colors cursor-default">
-                                {kw}
-                            </span>
+            </motion.section >
+
+            {/* FAQ Section with Schema */}
+            <section className="py-24 px-4 sm:px-8 lg:px-16 bg-white border-t border-orange-100">
+                <div className="max-w-4xl mx-auto">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="text-center mb-16"
+                    >
+                        <h2 className="text-3xl lg:text-5xl font-black text-gray-900 mb-6 uppercase tracking-tighter">Common Questions</h2>
+                        <p className="text-gray-500 text-lg font-medium">Everything you need to know about the LearnProof AI ecosystem.</p>
+                    </motion.div>
+
+                    <div className="space-y-4">
+                        {[
+                            { 
+                                q: "What is LearnProof AI?", 
+                                a: "LearnProof AI is an advanced educational platform that uses artificial intelligence to transform YouTube videos into comprehensive learning experiences, complete with automated notes, interactive quizzes, and verifiable certificates." 
+                            },
+                            { 
+                                q: "How does the YouTube Course Tracker work?", 
+                                a: "By simply importing a YouTube video or playlist, LearnProof AI tracks your progress, parses the content for intuition, and ensures you're mastering the material through AI-grounded assessments." 
+                            },
+                            { 
+                                q: "Are the certificates truly verifiable?", 
+                                a: "Yes. Every certificate issued by LearnProof AI comes with a unique Verification ID and a public link that can be shared on LinkedIn, resumes, or portfolios for employers to authenticate." 
+                            },
+                            { 
+                                q: "Is LearnProof AI free to use?", 
+                                a: "We offer a generous free tier that allows anyone to start learning immediately without a credit card. Advanced features and higher limits are available for power learners." 
+                            },
+                            { 
+                                q: "How does the AI generate quizzes and notes?", 
+                                a: "Our proprietary AI engine analyzes the video content and descriptions to extract key insights, creating contextually accurate summaries and challenging quizzes tailored to the specific material." 
+                            }
+                        ].map((item, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.1 }}
+                                className="group bg-orange-50/50 rounded-2xl p-6 border border-transparent hover:border-orange-200 transition-all"
+                            >
+                                <h3 className="text-lg font-black text-gray-900 mb-3 group-hover:text-orange-600 transition-colors uppercase tracking-tight">{item.q}</h3>
+                                <p className="text-gray-600 leading-relaxed font-medium">{item.a}</p>
+                            </motion.div>
                         ))}
                     </div>
                 </div>
+
+                {/* FAQ Schema for Google */}
+                <script type="application/ld+json">
+                    {JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "FAQPage",
+                        "mainEntity": [
+                            {
+                                "@type": "Question",
+                                "name": "What is LearnProof AI?",
+                                "acceptedAnswer": {
+                                    "@type": "Answer",
+                                    "text": "LearnProof AI is an advanced educational platform that uses artificial intelligence to transform YouTube videos into comprehensive learning experiences, complete with automated notes, interactive quizzes, and verifiable certificates."
+                                }
+                            },
+                            {
+                                "@type": "Question",
+                                "name": "How does the YouTube Course Tracker work?",
+                                "acceptedAnswer": {
+                                    "@type": "Answer",
+                                    "text": "By simply importing a YouTube video or playlist, LearnProof AI tracks your progress, parses the content for intuition, and ensures you're mastering the material through AI-grounded assessments."
+                                }
+                            },
+                            {
+                                "@type": "Question",
+                                "name": "Are the certificates truly verifiable?",
+                                "acceptedAnswer": {
+                                    "@type": "Answer",
+                                    "text": "Yes. Every certificate issued by LearnProof AI comes with a unique Verification ID and a public link that can be shared on LinkedIn, resumes, or portfolios for employers to authenticate."
+                                }
+                            }
+                        ]
+                    })}
+                </script>
             </section>
-        </motion.section >
+
+            {/* SEO Keyword Cloud Section (Hidden for SEO) */}
+            <section className="sr-only">
+                <h2>POPULAR LEARNING SEARCHES</h2>
+                <ul>
+                    {[
+                        "Learn Proof AI", "LearnProof AI", "Learn Proof", "Proof Learn", "LearnAI", "ProofAI", 
+                        "AI Study Assistant", "Personalized Learning AI", "Smart Learning Proof", "Educational AI", 
+                        "YouTube Course Tracker", "AI Video Insights", "YouTube Study Planner", "AI Note Taker", 
+                        "Verifiable Learning Certificates", "Proof of Learning AI", "AI-Powered Education", 
+                        "YouTube Learning Platform", "Smart Study Assistant", "AI Transcript Summaries", 
+                        "YouTube Progress Tracker", "Learn Faster with AI", "AI-Generated Quizzes", 
+                        "Evidence-Based Learning", "Digital Certificates for YouTube", "AI Academic Assistant", 
+                        "EdTech AI Solution", "YouTube Knowledge Verification", "AI Continuous Learning", 
+                        "Skill Verification AI", "Micro-credentialing from YouTube", "AI-Driven Personal Growth", 
+                        "Video Learning Analytics", "Automated Study Notes", "AI Video Summarization", 
+                        "Verify YouTube Skills", "LearnProof Certificates", "Proof of Competency AI", 
+                        "YouTube Certification Platform", "AI Career Development", "Personalized Skill Paths AI", 
+                        "AI Roadmap Generator", "YouTube Learning Evidence", "AI-Powered Knowledge Base", 
+                        "Smart Video Learning", "LearnProof Productivity AI", "AI Education Tracker", 
+                        "YouTube Mastery AI", "Verified Achievements AI", "YouTube Education Tool"
+                    ].map((kw) => (
+                        <li key={kw}>{kw}</li>
+                    ))}
+                </ul>
+            </section>
+
 
             {/* Footer */}
             < footer className="border-t border-orange-200 py-8 px-4 sm:px-8 lg:px-16 bg-orange-50" >
@@ -606,11 +706,12 @@ const LandingPage = () => {
                         <div className="flex space-x-8 text-gray-600">
                             <a href="#" className="hover:text-orange-600 transition-colors">Privacy</a>
                             <a href="#" className="hover:text-orange-600 transition-colors">Terms</a>
-                            <a href="#" className="hover:text-orange-600 transition-colors">Support</a>
+                            <a href="mailto:hello@learnproofai.com" className="hover:text-orange-600 transition-colors">Support</a>
                         </div>
                     </div>
-                    <div className="border-t border-orange-200 mt-6 pt-6 text-center text-gray-500">
+                    <div className="border-t border-orange-200 mt-6 pt-6 flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
                         <p>&copy; 2025 LearnProof. All rights reserved.</p>
+                        <p className="mt-2 md:mt-0 font-medium">Contact: <a href="mailto:hello@learnproofai.com" className="hover:text-orange-600 transition-colors">hello@learnproofai.com</a></p>
                     </div>
                 </div>
             </footer >
