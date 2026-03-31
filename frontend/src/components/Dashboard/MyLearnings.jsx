@@ -242,8 +242,8 @@ const MyLearnings = () => {
         <div className="max-w-[1600px] mx-auto p-4 sm:p-8 lg:p-12 space-y-12">
             {/* Header Section */}
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 sm:gap-8">
-                <div>
-                    <h1 className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3 sm:gap-4">
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+                    <h1 className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
                         <div className="p-2 sm:p-3 bg-orange-500 rounded-xl sm:rounded-2xl shadow-lg shadow-orange-500/20 text-white">
                             <BookOpen className="w-6 h-6 sm:w-8 sm:h-8" />
                         </div>

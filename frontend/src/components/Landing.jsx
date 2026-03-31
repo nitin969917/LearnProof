@@ -14,7 +14,7 @@ const LandingPage = () => {
     const [scrollY, setScrollY] = useState(0);
 
     useEffect(() => {
-        const timer = setTimeout(() => setShowContent(true), 2000);
+        const timer = setTimeout(() => setShowContent(true), 50);
 
         // Handle Google Redirect Fragment
         const hash = window.location.hash;
