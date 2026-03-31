@@ -317,20 +317,38 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
 
     // Master English generation uses Cerebras first for maximum speed.
     // This master is then translated cheaply via Google Translate.
-    const chain = hasTranscript
-        ? [
+    // --- STEP 3: Smart Master Generation Routing ---
+    // If transcript is huge (>30k chars ~8k tokens), we MUST avoid Cerebras/Groq8B (too small context)
+    // and use Gemini or Groq 70B (massive 1M/128k context).
+    const isLongTranscript = transcriptResult.transcript?.length > 30000;
+    
+    let chain = [];
+    if (hasTranscript) {
+        if (isLongTranscript) {
+            console.log(`[Intuition] Long transcript detected (${transcriptResult.transcript.length} chars). Prioritizing Large Context Models (Gemini/Groq70B).`);
+            chain = [
+                { type: 'gemini', model: MODELS.GEMINI_2_5 },
+                { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
+                { type: 'gemini', model: MODELS.GEMINI_3 },
+                { type: 'openrouter' }
+            ];
+        } else {
+            chain = [
+                { type: 'cerebras' },
+                { type: 'gemini', model: MODELS.GEMINI_2_5 },
+                { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
+                { type: 'gemini', model: MODELS.GEMINI_3 },
+                { type: 'openrouter' }
+            ];
+        }
+    } else {
+        chain = [
             { type: 'cerebras' },
-            { type: 'gemini', model: MODELS.GEMINI_2_5 },
-            { type: 'gemini', model: MODELS.GEMINI_3 },
-            { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-            { type: 'openrouter' }
-          ]
-        : [
-            { type: 'cerebras' },
             { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
             { type: 'gemini', model: MODELS.GEMINI_2_5 },
             { type: 'openrouter' }
-          ];
+        ];
+    }
 
     for (const provider of chain) {
         try {
