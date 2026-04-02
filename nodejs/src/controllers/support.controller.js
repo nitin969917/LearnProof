@@ -175,20 +175,26 @@ const respondToTicket = async (req, res) => {
         const { id } = req.params;
         const { message, status } = req.body;
         const userId = req.user.id;
-        const isAdmin = (process.env.ADMIN_EMAIL && req.user.email === process.env.ADMIN_EMAIL) || 
-                        (process.env.ADMIN_EMAIL && req.user.email.endsWith('@learnproofai.com')) ||
-                        !process.env.ADMIN_EMAIL; // Allow dev bypass if no admin email set
-
-        if (!message) {
-            return res.status(400).json({ error: 'Message is required' });
-        }
-
         const ticket = await prisma.supportTicket.findUnique({
             where: { id: parseInt(id) }
         });
 
         if (!ticket) {
             return res.status(404).json({ error: 'Ticket not found' });
+        }
+
+        // Logic fix: Only treat as Admin if they ARE an admin AND NOT the owner.
+        // If no ADMIN_EMAIL is set, we assume anyone who isn't the owner is acting as an admin.
+        const isAdminEmail = process.env.ADMIN_EMAIL && req.user.email === process.env.ADMIN_EMAIL;
+        const isOfficialAdmin = isAdminEmail || (process.env.ADMIN_EMAIL && req.user.email.endsWith('@learnproofai.com'));
+        
+        let isAdmin = isOfficialAdmin;
+        if (!process.env.ADMIN_EMAIL) {
+            isAdmin = (userId !== ticket.userId); 
+        }
+
+        if (!message) {
+            return res.status(400).json({ error: 'Message is required' });
         }
 
         // Only admin or the user who created the ticket can respond
