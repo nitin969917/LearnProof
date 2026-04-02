@@ -251,16 +251,16 @@ const LandingPage = () => {
                         transition={{ delay: 0.3, duration: 0.5 }}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 backdrop-blur-md border border-orange-200 text-orange-600 text-sm font-bold tracking-wide mb-8 shadow-sm"
                     >
-                        <Sparkles size={16} />
-                        <span>The Ultimate Learning Platform</span>
+                        <Sparkles size={16} role="img" aria-label="AI Intelligence Feature" />
+                        <span>The Ultimate AI Learning Platform</span>
                     </motion.div>
 
                     <h1 className="text-5xl sm:text-6xl lg:text-[5.5rem] font-extrabold text-gray-900 tracking-tight leading-[1.1] mb-6">
-                        <span className="bg-gradient-to-br from-orange-600 via-red-500 to-amber-500 bg-clip-text text-transparent drop-shadow-sm">LearnProof AI</span>
+                        <span className="bg-gradient-to-br from-orange-600 via-red-500 to-amber-500 bg-clip-text text-transparent drop-shadow-sm">LearnProof AI: Verified YouTube Learning</span>
                     </h1>
 
                     <p className="text-xl sm:text-2xl text-gray-600 font-medium mb-10 max-w-xl leading-relaxed">
-                        Transform <span className="text-gray-900 font-bold border-b-2 border-orange-300">YouTube videos</span> into verifiable achievements with AI-powered tracking.
+                        Transform <span className="text-gray-900 font-bold border-b-2 border-orange-300">YouTube videos</span> into verifiable achievements with AI-powered course tracking, personalized notes, and quizzes.
                     </p>
 
                     <div className="flex flex-wrap gap-4 mb-12">
@@ -276,7 +276,7 @@ const LandingPage = () => {
                                 transition={{ delay: 0.4 + (i * 0.1), duration: 0.6 }}
                                 className="flex items-center gap-2.5 bg-white/70 backdrop-blur-md border border-gray-200/60 rounded-full px-5 py-2.5 shadow-sm text-gray-700 font-semibold"
                             >
-                                {item.icon}
+                                <div role="img" aria-label={item.text}>{item.icon}</div>
                                 <span>{item.text}</span>
                             </motion.div>
                         ))}
@@ -430,10 +430,20 @@ const LandingPage = () => {
                                     {benefit.icon}
                                 </div>
                                 <h3 className="text-lg font-semibold text-gray-800 mb-2">{benefit.title}</h3>
-                                <p className="text-gray-600">{benefit.description}</p>
+                                <p className="text-gray-600 leading-relaxed text-sm">{benefit.description}</p>
                             </motion.div>
                         ))}
                     </div>
+                </div>
+
+                <div className="max-w-4xl mx-auto mt-16 text-center text-gray-600 leading-loose border-t border-orange-100 pt-16">
+                    <h3 className="text-2xl font-bold text-gray-800 mb-6 uppercase tracking-wider">Your Personal AI Campus</h3>
+                    <p className="mb-6">
+                        LearnProof AI is not just another course tracker; it's a complete ecosystem designed for modern learners who leverage YouTube as their primary educational resource. We've combined state-of-the-art Large Language Models (LLMs) with intuitive progress tracking to create an environment where every video watched is a step toward a verified credential.
+                    </p>
+                    <p>
+                        Whether you're mastering computer science, delving into history, or learning a new language, our AI agents work in the background to summarize transcripts, generate relevant assessments, and provide immediate feedback on your performance. No more passive watching—with LearnProof, you engage, you learn, and you prove your competency to the world.
+                    </p>
                 </div>
             </motion.section >
 
@@ -696,23 +706,48 @@ const LandingPage = () => {
             {/* Footer */}
             < footer className="border-t border-orange-200 py-8 px-4 sm:px-8 lg:px-16 bg-orange-50" >
                 <div className="max-w-6xl mx-auto">
-                    <div className="flex flex-col md:flex-row justify-between items-center">
-                        <div className="mb-6 md:mb-0">
-                            <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">
-                                LearnProof
-                            </h3>
-                            <p className="text-gray-600 mt-2">Transform YouTube learning into verifiable achievements</p>
+                        <div className="flex flex-col md:flex-row justify-between items-center">
+                            <div className="mb-6 md:mb-0">
+                                <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">
+                                    LearnProof
+                                </h3>
+                                <p className="text-gray-600 mt-2">The ultimate AI classroom for YouTube learners.</p>
+                                <div className="flex space-x-6 mt-4">
+                                    <a href="https://x.com/LearnProofAI" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-orange-600 transition-colors">
+                                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.6823 10.6218L20.2391 3H18.6854L12.9921 9.61756L8.44486 3H3.2002L10.0765 13.0074L3.2002 21H4.75404L10.7663 14.0113L15.5685 21H20.8131L13.6819 10.6218H13.6823ZM11.5541 13.0956L10.8574 12.0991L5.31398 4.16971H7.70053L12.1742 10.5689L12.8709 11.5655L18.6861 19.8835H16.2995L11.5541 13.096V13.0956Z"></path></svg>
+                                    </a>
+                                    <a href="https://linkedin.com/company/learnproof" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-orange-600 transition-colors">
+                                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" clipRule="evenodd"></path></svg>
+                                    </a>
+                                    <a href="https://instagram.com/learnproofai" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-orange-600 transition-colors">
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                                    </a>
+                                    <a href="https://youtube.com/@learnproofai" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-orange-600 transition-colors">
+                                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"></path></svg>
+                                    </a>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-8 text-gray-600">
+                                <div className="flex flex-col space-y-3">
+                                    <h4 className="font-bold text-gray-900 mb-2">Platform</h4>
+                                    <a href="/dashboard" className="hover:text-orange-600 transition-colors">Courses</a>
+                                    <a href="/dashboard" className="hover:text-orange-600 transition-colors">Roadmaps</a>
+                                    <a href="/dashboard" className="hover:text-orange-600 transition-colors">Certificates</a>
+                                </div>
+                                <div className="flex flex-col space-y-3">
+                                    <h4 className="font-bold text-gray-900 mb-2">Company</h4>
+                                    <a href="/privacy" className="hover:text-orange-600 transition-colors">Privacy</a>
+                                    <a href="/terms" className="hover:text-orange-600 transition-colors">Terms</a>
+                                    <a href="mailto:hello@learnproofai.com" className="hover:text-orange-600 transition-colors">Support</a>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex space-x-8 text-gray-600">
-                            <a href="#" className="hover:text-orange-600 transition-colors">Privacy</a>
-                            <a href="#" className="hover:text-orange-600 transition-colors">Terms</a>
-                            <a href="mailto:hello@learnproofai.com" className="hover:text-orange-600 transition-colors">Support</a>
+                        <div className="border-t border-orange-200 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
+                            <p>&copy; 2025 LearnProof AI. All rights reserved.</p>
+                            <div className="flex space-x-6 mt-4 md:mt-0">
+                                <span>Built with ❤️ for lifelong learners</span>
+                            </div>
                         </div>
-                    </div>
-                    <div className="border-t border-orange-200 mt-6 pt-6 flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
-                        <p>&copy; 2025 LearnProof. All rights reserved.</p>
-                        <p className="mt-2 md:mt-0 font-medium">Contact: <a href="mailto:hello@learnproofai.com" className="hover:text-orange-600 transition-colors">hello@learnproofai.com</a></p>
-                    </div>
                 </div>
             </footer >
         </div >
