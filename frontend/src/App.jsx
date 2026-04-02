@@ -26,6 +26,8 @@ import AdminUserDetails from './components/Admin/pages/AdminUserDetails';
 import { ModalProvider } from './context/ModalContext';
 
 import VerifyCertificate from './components/Common/VerifyCertificate';
+import Support from './components/Common/SupportPage';
+import AdminSupportList from './components/Admin/pages/AdminSupportList';
 
 const App = () => {
     return (
@@ -54,6 +56,7 @@ const App = () => {
                             <Route path='quiz' element={<Quiz />} />
                             <Route path='ai-benchmark' element={<AIBenchmark />} />
                             <Route path='ask-my-notes' element={<AskMyNotes />} />
+                            <Route path='support' element={<Support />} />
                         </Route>
                         <Route
                             path='classroom/:videoId'
@@ -77,6 +80,7 @@ const App = () => {
                             <Route path='users' element={<AdminUsersList />} />
                             <Route path='users/:id' element={<AdminUserDetails />} />
                             <Route path='content' element={<AdminContentList />} />
+                            <Route path='support' element={<AdminSupportList />} />
                             <Route path='' element={<Navigate to="dashboard" replace />} />
                         </Route>
                     </Routes>

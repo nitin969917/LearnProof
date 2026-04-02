@@ -44,6 +44,7 @@ const AdminLayout = () => {
     const getPageTitle = () => {
         if (location.pathname.includes('/users')) return 'Manage Users';
         if (location.pathname.includes('/content')) return 'Content Audit';
+        if (location.pathname.includes('/support')) return 'Support Tickets';
         return 'Overview';
     };
 

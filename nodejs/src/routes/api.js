@@ -76,6 +76,8 @@ router.delete('/admin/users/:id', authMiddleware, isAdminMiddleware, adminContro
 router.get('/admin/content', authMiddleware, isAdminMiddleware, adminController.getContent);
 router.delete('/admin/content/:id', authMiddleware, isAdminMiddleware, adminController.deleteContent);
 
-// Quiz & Engagement
+// Support
+const supportRoutes = require('./support.routes');
+router.use('/support', supportRoutes);
 
 module.exports = router;

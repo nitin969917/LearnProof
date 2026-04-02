@@ -30,6 +30,9 @@ model UserProfile {
   activities   UserActivityLog[]
   notes        VideoNote[]
   comments     VideoComment[]
+  
+  supportTickets SupportTicket[]
+  adminResponses SupportResponse[] @relation("AdminResponses")
 }
 
 model Playlist {
@@ -161,5 +164,29 @@ model VideoQuizData {
   vid          String   @unique
   questions    String   @db.Text // Stored as JSON string
   generated_at DateTime @default(now())
+}
+
+model SupportTicket {
+  id          Int      @id @default(autoincrement())
+  user        UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  subject     String
+  message     String   @db.Text
+  status      String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED, CLOSED
+  priority    String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  responses   SupportResponse[]
+}
+
+model SupportResponse {
+  id          Int      @id @default(autoincrement())
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId    Int
+  admin       UserProfile? @relation("AdminResponses", fields: [adminId], references: [id], onDelete: SetNull)
+  adminId     Int?
+  message     String   @db.Text
+  created_at  DateTime @default(now())
 }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Inbox, Award, LogOut, Quote, Search, Moon, Sun, X, MessageSquare } from 'lucide-react';
+import { Home, BookOpen, Inbox, Award, LogOut, Quote, Search, Moon, Sun, X, MessageSquare, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useModal } from '../../context/ModalContext';
 
@@ -41,7 +41,7 @@ const Sidebar = ({ onProfileClick, onClose }) => {
         { name: 'Certificates', icon: <Award size={20} />, path: '/dashboard/certificates' },
         { name: 'Ask My Notes', icon: <MessageSquare size={20} />, path: '/dashboard/ask-my-notes' },
         { name: 'Quiz', icon: <Quote size={20} />, path: '/dashboard/quiz' },
-        { name: 'Help & Support', icon: <Inbox size={20} />, path: 'mailto:hello@learnproofai.com', isExternal: true },
+        { name: 'Help & Support', icon: <HelpCircle size={20} />, path: '/dashboard/support' },
     ];
 
     const handleLogout = async () => {
