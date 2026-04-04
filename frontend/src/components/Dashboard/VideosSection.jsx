@@ -6,10 +6,8 @@ import { motion } from 'framer-motion';
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
-const VideosSection = () => {
+const VideosSection = ({ data: videos = [], loading = true }) => {
     const { token } = useAuth();
-    const [loading, setLoading] = useState(true);
-    const [videos, setVideos] = useState([]);
     const scrollContainerRef = useRef(null);
     const navigate = useNavigate();
 
@@ -23,32 +21,6 @@ const VideosSection = () => {
             });
         }
     };
-
-    useEffect(() => {
-        const fetchVideos = async () => {
-            try {
-                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/my-learnings/`, {
-                    idToken: token,
-                    page: 1,
-                    searchQuery: ""
-                });
-
-                if (res.data?.videos?.results) {
-                    // Filter out videos that are already in "Continue Watching" if we wanted, 
-                    // but usually "Your Videos" section shows all standalone videos.
-                    setVideos(res.data.videos.results);
-                }
-            } catch (err) {
-                console.error('Error fetching videos: ', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (token) {
-            fetchVideos();
-        }
-    }, [token]);
 
     if (loading) {
         return (

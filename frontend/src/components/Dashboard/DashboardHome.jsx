@@ -18,9 +18,10 @@ const DashboardHome = () => {
     const navigate = useNavigate();
     const [isNewUser, setIsNewUser] = useState(false);
     const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
+    const [dashboardData, setDashboardData] = useState({ playlists: [], videos: [], loading: true });
 
     useEffect(() => {
-        const checkOnboardingStatus = async () => {
+        const fetchDashboardData = async () => {
             try {
                 // Check both playlists AND continue watching status
                 const [playlistRes, continueWatchRes] = await Promise.all([
@@ -34,23 +35,31 @@ const DashboardHome = () => {
                     })
                 ]);
 
-                const hasPlaylists = playlistRes.data?.playlists && playlistRes.data.playlists.length > 0;
-                const hasContinueVideos = continueWatchRes.data?.videos && continueWatchRes.data.videos.length > 0;
+                const playlists = playlistRes.data?.playlists || [];
+                const videos = playlistRes.data?.videos?.results || [];
+                const continueVideos = continueWatchRes.data?.videos || [];
 
-                if (!hasPlaylists && !hasContinueVideos) {
+                setDashboardData({
+                    playlists,
+                    videos,
+                    loading: false
+                });
+
+                if (playlists.length === 0 && continueVideos.length === 0 && videos.length === 0) {
                     setIsNewUser(true);
                 }
             } catch (err) {
-                console.error("Onboarding check failed", err);
+                console.error("Dashboard data fetch failed", err);
+                setDashboardData(prev => ({ ...prev, loading: false }));
             } finally {
                 setHasCheckedStatus(true);
             }
         };
 
-        if (token && !hasCheckedStatus) {
-            checkOnboardingStatus();
+        if (token) {
+            fetchDashboardData();
         }
-    }, [token, navigate, hasCheckedStatus]);
+    }, [token]);
 
     if (isNewUser) {
         return (
@@ -88,8 +97,8 @@ const DashboardHome = () => {
         <div className="p-4 sm:p-6 flex flex-col lg:flex-row gap-6 lg:items-start animate-in fade-in duration-500">
             {/* Left column (Flexible) */}
             <div className="flex-1 min-w-0 space-y-6">
-                <PlaylistSection />
-                <VideosSection />
+                <PlaylistSection data={dashboardData.playlists} loading={dashboardData.loading} />
+                <VideosSection data={dashboardData.videos} loading={dashboardData.loading} />
                 <ContinueWatching />
                 <CompletedSection />
             </div>

@@ -6,10 +6,8 @@ import { motion } from 'framer-motion';
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
-const PlaylistSection = () => {
+const PlaylistSection = ({ data: playlists = [], loading = true }) => {
     const { token } = useAuth();
-    const [loading, setLoading] = useState(true);
-    const [playlists, setPlaylists] = useState([]);
     const scrollContainerRef = useRef(null);
     const navigate = useNavigate();
 
@@ -23,33 +21,6 @@ const PlaylistSection = () => {
             });
         }
     };
-
-    useEffect(() => {
-        const fetchPlaylists = async () => {
-            const PL = toast.loading("Loading your playlists...");
-            try {
-                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/my-learnings/`, {
-                    idToken: token,
-                    page: 1,
-                    searchQuery: ""
-                });
-
-                if (res.data?.playlists) {
-                    setPlaylists(res.data.playlists);
-                }
-                toast.success('Playlists loaded!', { id: PL });
-            } catch (err) {
-                console.error('Error fetching playlists: ', err);
-                toast.error("Failed to fetch playlists.", { id: PL });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (token) {
-            fetchPlaylists();
-        }
-    }, [token]);
 
     if (loading) {
         return (

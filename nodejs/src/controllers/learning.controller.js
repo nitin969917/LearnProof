@@ -44,6 +44,8 @@ const saveLearning = async (req, res) => {
                 data: { userId: user.id, activity_type: `Learning Import: ${data.title}` }
             });
 
+            await cacheService.delByPattern(`user:learnings:${user.id}:*`);
+
             return res.status(200).json({ message: 'Congo!! You have showed your dedication towards learning' });
         } else if (contentType === 'playlist') {
             let playlist = await prisma.playlist.findFirst({
@@ -110,6 +112,8 @@ const saveLearning = async (req, res) => {
                 data: { userId: user.id, activity_type: `Learning Import: ${data.title}` }
             });
 
+            await cacheService.delByPattern(`user:learnings:${user.id}:*`);
+
             return res.status(201).json({ message: 'Playlist and videos saved' });
         }
 
@@ -126,6 +130,10 @@ const getMyLearnings = async (req, res) => {
 
     try {
         const user = req.user;
+        const cacheKey = `user:learnings:${user.id}:${page}:${searchQuery}`;
+        
+        const cached = await cacheService.get(cacheKey);
+        if (cached) return res.status(200).json(cached);
 
         const skip = (parseInt(page) - 1) * parseInt(page_size);
         const take = parseInt(page_size);
@@ -159,10 +167,14 @@ const getMyLearnings = async (req, res) => {
             results: videos
         };
 
-        res.status(200).json({
+        const result = {
             videos: paginatedVideos,
             playlists: playlists
-        });
+        };
+
+        await cacheService.set(cacheKey, result, 600); // 10 minutes cache
+
+        res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -183,10 +195,13 @@ const deleteVideo = async (req, res) => {
             where: { userId_vid: { userId: user.id, vid: videoId } }
         });
 
-        // Invalidate playlist cache if it belongs dummy to one
+        // Invalidate playlist cache
         if (video?.playlist?.pid) {
             await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
         }
+        
+        // Invalidate learnings cache by pattern
+        await cacheService.delByPattern(`user:learnings:${user.id}:*`);
 
         res.status(200).json({ message: 'Video deleted successfully' });
     } catch (error) {
@@ -210,6 +225,7 @@ const deletePlaylist = async (req, res) => {
         
         // Invalidate cache
         await cacheService.del(`playlist:detail:${user.id}:${playlistId}`);
+        await cacheService.delByPattern(`user:learnings:${user.id}:*`);
 
         res.status(200).json({ message: 'Playlist and Videos associated with it deleted successfully' });
     } catch (error) {
