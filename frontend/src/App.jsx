@@ -22,6 +22,7 @@ import AdminDashboardHome from './components/Admin/pages/AdminDashboardHome';
 import AdminUsersList from './components/Admin/pages/AdminUsersList';
 import AdminContentList from './components/Admin/pages/AdminContentList';
 import AdminUserDetails from './components/Admin/pages/AdminUserDetails';
+import AdminInbox from './components/Admin/pages/AdminInbox';
 
 import { ModalProvider } from './context/ModalContext';
 
@@ -81,6 +82,7 @@ const App = () => {
                             <Route path='users/:id' element={<AdminUserDetails />} />
                             <Route path='content' element={<AdminContentList />} />
                             <Route path='support' element={<AdminSupportList />} />
+                            <Route path='inbox' element={<AdminInbox />} />
                             <Route path='' element={<Navigate to="dashboard" replace />} />
                         </Route>
                     </Routes>

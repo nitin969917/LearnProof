@@ -33,6 +33,36 @@ model UserProfile {
   
   supportTickets SupportTicket[]
   adminResponses SupportResponse[] @relation("AdminResponses")
+
+  sentMessages     InboxMessage[] @relation("SentMessages")
+  receivedMessages InboxMessage[] @relation("ReceivedMessages")
+  readStatuses     MessageReadStatus[]
+}
+
+model InboxMessage {
+  id          Int          @id @default(autoincrement())
+  sender      UserProfile? @relation("SentMessages", fields: [senderId], references: [id], onDelete: SetNull)
+  senderId    Int?         // Admin who sent it
+  receiver    UserProfile? @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  receiverId  Int?         // Specific user ID or null for broadcast
+  isBroadcast Boolean      @default(false)
+  subject     String
+  message     String       @db.Text
+  isRead      Boolean      @default(false) // For direct messages
+  created_at  DateTime     @default(now())
+
+  readStatuses MessageReadStatus[]
+}
+
+model MessageReadStatus {
+  id        Int          @id @default(autoincrement())
+  user      UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  message   InboxMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId Int
+  read_at   DateTime     @default(now())
+
+  @@unique([userId, messageId])
 }
 
 model Playlist {

@@ -10,6 +10,7 @@ const classroomController = require('../controllers/classroom.controller');
 const socialController = require('../controllers/social.controller');
 const quizController = require('../controllers/quiz.controller');
 const adminController = require('../controllers/admin.controller');
+const messageController = require('../controllers/message.controller');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -75,6 +76,13 @@ router.get('/admin/users/:id', authMiddleware, isAdminMiddleware, adminControlle
 router.delete('/admin/users/:id', authMiddleware, isAdminMiddleware, adminController.deleteUser);
 router.get('/admin/content', authMiddleware, isAdminMiddleware, adminController.getContent);
 router.delete('/admin/content/:id', authMiddleware, isAdminMiddleware, adminController.deleteContent);
+
+// Messages & Inbox
+router.post('/messages/send/', authMiddleware, isAdminMiddleware, messageController.sendMessage);
+router.post('/messages/inbox/', authMiddleware, messageController.getMessages);
+router.post('/messages/mark-read/', authMiddleware, messageController.markRead);
+router.post('/messages/delete/', authMiddleware, isAdminMiddleware, messageController.deleteMessage);
+router.get('/messages/users/', authMiddleware, isAdminMiddleware, messageController.getAllUsers);
 
 // Support
 const supportRoutes = require('./support.routes');
