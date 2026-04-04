@@ -5,12 +5,12 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Copy prisma schema for postinstall generation (required for npm install postinstall script)
+COPY prisma ./prisma
+
 # Install dependencies and PM2 globally
 RUN npm install --production --legacy-peer-deps
 RUN npm install pm2 -g
-
-# Copy prisma schema for postinstall generation
-COPY prisma ./prisma
 
 # Generate Prisma Client
 RUN npx prisma generate
