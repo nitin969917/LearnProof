@@ -37,6 +37,11 @@ const App = () => {
                 <Router>
                     <Routes>
                         <Route path='/' element={<LandingPage />} />
+                        <Route path='/youtube-learning' element={<LandingPage />} />
+                        <Route path='/ai-video-notes' element={<LandingPage />} />
+                        <Route path='/youtube-certificates' element={<LandingPage />} />
+                        <Route path='/track-youtube-progress' element={<LandingPage />} />
+                        <Route path='/ai-study-planner' element={<LandingPage />} />
                         <Route path='/verify/:certId' element={<VerifyCertificate />} />
 
                         <Route

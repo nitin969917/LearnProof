@@ -16,6 +16,40 @@ const LandingPage = () => {
     useEffect(() => {
         const timer = setTimeout(() => setShowContent(true), 50);
 
+        // SEO Map
+        const seoMap = {
+            '/youtube-learning': {
+                title: 'Learn YouTube Smarter | AI Learning Assistant',
+                desc: 'Turn any YouTube video into an interactive course with LearnProof AI. Track progress and earn certificates.'
+            },
+            '/ai-video-notes': {
+                title: 'AI Video Notes & Summaries | LearnProof AI',
+                desc: 'Instantly generate rich, searchable notes from YouTube videos using our advanced AI Video Intuition engine.'
+            },
+            '/youtube-certificates': {
+                title: 'Earn Verifiable YouTube Certificates | LearnProof AI',
+                desc: 'Get cryptographic certificates for completing your YouTube learning journeys. Boost your portfolio today.'
+            },
+            '/track-youtube-progress': {
+                title: 'YouTube Progress Tracker | AI Course Management',
+                desc: 'Never lose track of where you left off. Manage your YouTube-based learning with professional progress analytics.'
+            },
+            '/ai-study-planner': {
+                title: 'AI Personalized Study Roadmaps | LearnProof AI',
+                desc: 'Generate complete, step-by-step learning paths for any topic using our AI roadmap generator.'
+            }
+        };
+
+        const seo = seoMap[location.pathname];
+        if (seo) {
+            document.title = seo.title;
+            const metaDesc = document.querySelector('meta[name="description"]');
+            if (metaDesc) metaDesc.setAttribute('content', seo.desc);
+        } else {
+            // Default SEO
+            document.title = 'LearnProof AI | Verified YouTube Learning Certificates';
+        }
+
         // Handle Google Redirect Fragment
         const hash = window.location.hash;
         if (hash) {
