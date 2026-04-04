@@ -151,82 +151,62 @@ const Inbox = () => {
                 <AnimatePresence mode="wait">
                     {selectedMessage && (
                         <motion.div 
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            className="lg:col-span-7 bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden flex flex-col h-fit sticky top-24"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="lg:col-span-7 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden flex flex-col h-fit sticky top-24"
                         >
-                            {/* Detail Header */}
-                            <div className="p-6 md:px-8 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800">
-                                <div className="flex items-center gap-4">
-                                    <button 
-                                        onClick={() => setSelectedMessage(null)}
-                                        className="lg:hidden p-2.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 rounded-xl transition-all"
-                                    >
-                                        <ArrowRight className="rotate-180" size={20} />
-                                    </button>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center text-orange-500">
-                                            <Bell size={20} strokeWidth={2.5} />
-                                        </div>
-                                        <div>
-                                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500/60 leading-none mb-1">Message Details</p>
-                                            <p className="text-xs font-bold text-gray-400 dark:text-gray-500">
-                                                {new Date(selectedMessage.created_at).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-900 rounded-full border border-gray-100 dark:border-gray-800">
-                                    <Calendar size={12} className="text-gray-400" />
-                                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Received</span>
+                            {/* Formal Detail Header */}
+                            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800">
+                                <button 
+                                    onClick={() => setSelectedMessage(null)}
+                                    className="p-2 text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-500/10 rounded-lg transition-all"
+                                >
+                                    <ArrowRight className="rotate-180" size={18} />
+                                </button>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                        {new Date(selectedMessage.created_at).toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="p-6 md:p-10 space-y-10">
-                                {/* Subject & Sender */}
-                                <div className="space-y-8">
-                                    <h2 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white leading-[1.1] tracking-tight">
+                            <div className="p-6 md:p-10 space-y-6">
+                                {/* Compact Formal Header */}
+                                <div className="pb-6 border-b border-gray-100 dark:border-gray-700">
+                                    <h2 className="text-2xl font-black text-gray-900 dark:text-white leading-tight mb-4">
                                         {selectedMessage.subject}
                                     </h2>
                                     
-                                    <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50">
-                                        <div className="relative">
-                                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-                                                <User size={24} strokeWidth={2.5} />
-                                            </div>
-                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-4 border-white dark:border-slate-900 rounded-full" />
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white">
+                                            <User size={16} strokeWidth={2.5} />
                                         </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <p className="font-black text-gray-900 dark:text-white">LearnProof Team</p>
-                                                <span className="px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 text-[10px] font-black uppercase tracking-tighter border border-orange-500/20">Official</span>
-                                            </div>
-                                            <p className="text-sm font-bold text-gray-400 dark:text-gray-500">@system_administrator</p>
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white">LearnProof Support</p>
+                                            <span className="hidden sm:block text-gray-300">•</span>
+                                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500">Official Communication</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Message Content */}
-                                <div className="text-gray-600 dark:text-gray-300 leading-[1.8] text-lg whitespace-pre-wrap font-medium">
+                                {/* Message Content - Formal Typography */}
+                                <div className="text-gray-700 dark:text-gray-300 leading-relaxed text-base whitespace-pre-wrap font-medium py-4">
                                     {selectedMessage.message}
                                 </div>
 
-                                {/* Footer Action */}
-                                <div className="pt-10 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                                {/* Formal Footer */}
+                                <div className="pt-8 flex items-center justify-between">
                                     <button 
                                         onClick={() => setSelectedMessage(null)}
-                                        className="group inline-flex items-center gap-3 text-gray-400 hover:text-orange-500 font-black text-sm uppercase tracking-widest transition-all"
+                                        className="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
                                     >
-                                        <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-900 group-hover:bg-orange-50 dark:group-hover:bg-orange-500/10 flex items-center justify-center transition-colors">
-                                            <ArrowRight className="rotate-180 transition-transform group-hover:-translate-x-1" size={20} />
-                                        </div>
-                                        Return to List
+                                        Close Message <ArrowRight size={14} />
                                     </button>
                                     
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full" />
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Verified Message</span>
+                                    <div className="flex items-center gap-1.5 opacity-50">
+                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">System Verified</span>
                                     </div>
                                 </div>
                             </div>

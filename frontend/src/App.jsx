@@ -58,6 +58,7 @@ const App = () => {
                             <Route path='ai-benchmark' element={<AIBenchmark />} />
                             <Route path='ask-my-notes' element={<AskMyNotes />} />
                             <Route path='support' element={<Support />} />
+                            <Route path='*' element={<Navigate to="/" replace />} />
                         </Route>
                         <Route
                             path='classroom/:videoId'
@@ -85,6 +86,7 @@ const App = () => {
                             <Route path='inbox' element={<AdminInbox />} />
                             <Route path='' element={<Navigate to="dashboard" replace />} />
                         </Route>
+                        <Route path='*' element={<Navigate to="/" replace />} />
                     </Routes>
                 </Router>
             </ModalProvider>
