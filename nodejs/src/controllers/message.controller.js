@@ -73,6 +73,9 @@ const getMessages = async (req, res) => {
                 sender: {
                     select: { name: true, profile_pic: true }
                 },
+                receiver: {
+                    select: { name: true, email: true }
+                },
                 readStatuses: {
                     where: { userId: user.id }
                 }
@@ -91,6 +94,32 @@ const getMessages = async (req, res) => {
         return res.status(200).json(formattedMessages);
     } catch (error) {
         console.error('Get messages error:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+/**
+ * Admin fetches all messages sent by them
+ */
+const getAdminSentMessages = async (req, res) => {
+    const user = req.user;
+
+    try {
+        const messages = await prisma.inboxMessage.findMany({
+            where: {
+                senderId: user.id
+            },
+            include: {
+                receiver: {
+                    select: { name: true, email: true, profile_pic: true }
+                }
+            },
+            orderBy: { created_at: 'desc' }
+        });
+
+        return res.status(200).json(messages);
+    } catch (error) {
+        console.error('Get sent messages error:', error);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 };
@@ -179,6 +208,7 @@ const getAllUsers = async (req, res) => {
 module.exports = {
     sendMessage,
     getMessages,
+    getAdminSentMessages,
     markRead,
     deleteMessage,
     getAllUsers

@@ -29,7 +29,7 @@ const AdminInbox = () => {
                 axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/messages/users/`, {
                     params: { idToken: token }
                 }),
-                axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/messages/inbox/`, { idToken: token })
+                axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/messages/sent/`, { idToken: token })
             ]);
             setUsers(usersRes.data);
             setMessages(messagesRes.data);
@@ -247,13 +247,25 @@ const AdminInbox = () => {
                                                 <h3 className="font-bold text-slate-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">
                                                     {msg.subject}
                                                 </h3>
-                                                <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 whitespace-pre-wrap">
-                                                    {msg.message}
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">To:</span>
+                                                    {msg.isBroadcast ? (
+                                                        <span className="text-xs font-bold text-slate-600 dark:text-slate-400">All Users</span>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                            <img src={msg.receiver?.profile_pic || `https://ui-avatars.com/api/?name=${msg.receiver?.name}`} className="w-4 h-4 rounded-full" alt="" />
+                                                            {msg.receiver?.name || "Unknown User"}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 whitespace-pre-wrap italic">
+                                                    "{msg.message}"
                                                 </p>
                                             </div>
                                             <button 
                                                 onClick={() => handleDelete(msg.id)}
-                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
+                                                title="Delete message"
                                             >
                                                 <Trash2 size={16} />
                                             </button>

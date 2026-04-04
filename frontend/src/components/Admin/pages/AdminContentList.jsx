@@ -127,7 +127,7 @@ const AdminContentList = () => {
             <div className="shrink-0 flex items-center justify-end w-full sm:w-auto">
                 <button
                     onClick={() => handleDeleteVideo(video.id, video.name)}
-                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-100 xl:opacity-0 xl:group-hover:opacity-100"
+                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Delete Video"
                 >
                     <Trash2 className="w-4 h-4" />

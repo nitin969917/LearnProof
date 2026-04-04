@@ -80,6 +80,7 @@ router.delete('/admin/content/:id', authMiddleware, isAdminMiddleware, adminCont
 // Messages & Inbox
 router.post('/messages/send/', authMiddleware, isAdminMiddleware, messageController.sendMessage);
 router.post('/messages/inbox/', authMiddleware, messageController.getMessages);
+router.post('/messages/sent/', authMiddleware, isAdminMiddleware, messageController.getAdminSentMessages);
 router.post('/messages/mark-read/', authMiddleware, messageController.markRead);
 router.post('/messages/delete/', authMiddleware, isAdminMiddleware, messageController.deleteMessage);
 router.get('/messages/users/', authMiddleware, isAdminMiddleware, messageController.getAllUsers);
