@@ -5,11 +5,12 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Install dependencies and PM2 globally
+RUN npm install --production --legacy-peer-deps
+RUN npm install pm2 -g
+
 # Copy prisma schema for postinstall generation
 COPY prisma ./prisma
-
-# Install dependencies
-RUN npm install --production --legacy-peer-deps
 
 # Generate Prisma Client
 RUN npx prisma generate
@@ -19,5 +20,5 @@ COPY . .
 
 EXPOSE 8000
 
-# Start command
-CMD ["npm", "start"]
+# Start command with PM2 Runtime for 24-core clustering
+CMD ["pm2-runtime", "start", "server.js", "-i", "max"]
