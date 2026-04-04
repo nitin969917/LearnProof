@@ -153,8 +153,8 @@ const Support = () => {
     return (
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Header Section - Mobile Responsive */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
+            <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:justify-between sm:text-left gap-6">
+                <div className="flex flex-col items-center sm:flex-row gap-4">
                     <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20 text-white">
                         <LifeBuoy size={24} className="sm:w-8 sm:h-8" />
                     </div>
