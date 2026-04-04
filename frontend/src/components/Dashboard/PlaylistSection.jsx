@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
-import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, ChevronLeft, ChevronRight, Library } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -72,7 +72,10 @@ const PlaylistSection = () => {
 
     return (
         <div className="space-y-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Your Playlists</h2>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                <Library size={20} className="text-orange-500" />
+                Your Playlists
+            </h2>
             <div className="relative group">
                 {/* Scroll Buttons */}
                 <button

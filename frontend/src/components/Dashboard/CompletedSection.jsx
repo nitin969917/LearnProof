@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { CheckCircle, Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle, Play, ChevronLeft, ChevronRight, Trophy, Award } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -71,7 +71,10 @@ const CompletedSection = () => {
         <div className="space-y-10">
             {/* Completed Videos */}
             <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Completed Videos</h2>
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <Trophy size={20} className="text-orange-500" />
+                    Completed Videos
+                </h2>
                 {videos.length === 0 ? (
                     <p className="text-sm text-gray-600 dark:text-gray-400">No completed videos yet.</p>
                 ) : (
@@ -140,7 +143,10 @@ const CompletedSection = () => {
 
             {/* Completed Playlists */}
             <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Completed Playlists</h2>
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                    <Award size={20} className="text-orange-500" />
+                    Completed Playlists
+                </h2>
                 {playlists.length === 0 ? (
                     <p className="text-sm text-gray-600 dark:text-gray-400">No completed playlists yet.</p>
                 ) : (

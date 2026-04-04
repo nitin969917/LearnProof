@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
-import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -71,7 +71,10 @@ const ContinueWatching = () => {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Continue Watching</h2>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                <Zap size={20} className="text-orange-500" />
+                Continue Watching
+            </h2>
             <div className="relative group">
                 <button
                     onClick={() => scroll('left')}
