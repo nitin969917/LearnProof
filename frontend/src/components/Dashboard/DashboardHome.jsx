@@ -8,6 +8,7 @@ import XPChart from "./XPChart";
 import CompletedSection from "./CompletedSection";
 import ContinueWatching from "./ContinueWatching";
 import PlaylistSection from "./PlaylistSection";
+import VideosSection from "./VideosSection";
 import DailyTasksCard from "./DailyTasksCard";
 import { Sparkles, Compass, PlayCircle } from "lucide-react";
 import { motion } from "framer-motion";
@@ -88,6 +89,7 @@ const DashboardHome = () => {
             {/* Left column (Flexible) */}
             <div className="flex-1 min-w-0 space-y-6">
                 <PlaylistSection />
+                <VideosSection />
                 <ContinueWatching />
                 <CompletedSection />
             </div>

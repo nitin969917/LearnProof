@@ -224,6 +224,7 @@ const getCompletedLearnings = async (req, res) => {
 
         const completedVideos = await prisma.video.findMany({
             where: { userId: user.id, is_completed: true },
+            orderBy: { updated_at: 'desc' },
             take: 3
         });
 

@@ -116,7 +116,7 @@ const PlaylistProgress = () => {
         <div className="max-w-[1200px] mx-auto p-4 sm:p-8 space-y-8">
             {/* Back Button */}
             <button
-                onClick={() => navigate(-1)}
+                onClick={() => navigate('/dashboard/library')}
                 className="group flex items-center gap-2 text-gray-400 dark:text-slate-500 hover:text-orange-500 transition-all font-black text-xs uppercase tracking-widest"
             >
                 <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
