@@ -27,7 +27,6 @@ const ContinueWatching = () => {
 
     useEffect(() => {
         const fetchVideos = async () => {
-            const CW = toast.loading("Loading your dedication...");
             try {
                 const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/continue-watch/`, {
                     idToken: token,
@@ -36,10 +35,9 @@ const ContinueWatching = () => {
                 if (res.data?.videos) {
                     setVideos(res.data.videos);
                 }
-                toast.success('Loaded your dedication...', { id: CW });
             } catch (err) {
                 console.error('Error fetching continue watching videos: ', err);
-                toast.error("Failed to fetch your history...", { id: CW });
+                toast.error("Failed to fetch your history...");
             } finally {
                 setLoading(false);
             }

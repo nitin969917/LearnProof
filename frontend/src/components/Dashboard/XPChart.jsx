@@ -12,16 +12,14 @@ const XPChart = () => {
     useEffect(() => {
         if (!token) return;
         const fetchXPData = async () => {
-            const loadingToast = toast.loading("loading...");
             try {
                 const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/activity/`, {
                     idToken: token,
                 });
                 setData(res.data.graph || []);
-                toast.success("Loaded!", { id: loadingToast });
             }
             catch (err) {
-                toast.error("Failed to load, check server logs", { id: loadingToast });
+                toast.error("Failed to load XP chart data.");
                 console.error("Failed to fetch XP chart data: ", err);
             }
             finally {

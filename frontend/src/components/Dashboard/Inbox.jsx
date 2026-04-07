@@ -63,14 +63,14 @@ const Inbox = () => {
         <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto min-h-[80vh] animate-in fade-in duration-500">
             {/* Header */}
             <div className="mb-8 flex flex-col items-center text-center sm:flex-row sm:items-center sm:justify-between sm:text-left gap-6">
-                <div>
-                    <h1 className="text-2xl font-black text-gray-900 dark:text-white flex flex-col items-center sm:flex-row gap-3">
-                        <div className="p-2 bg-orange-500 rounded-xl text-white shadow-lg shadow-orange-500/20">
-                            <Mail size={24} />
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+                    <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white flex flex-col sm:flex-row items-center gap-4">
+                        <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20">
+                            <Mail className="text-white" size={32} />
                         </div>
                         Your Inbox
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1 font-medium">Keep up with the latest updates and personalized insights.</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">Keep up with the latest updates and personalized insights.</p>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm">
                     <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />

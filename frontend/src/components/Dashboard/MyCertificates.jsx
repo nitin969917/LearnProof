@@ -89,13 +89,13 @@ const MyCertificates = () => {
     <div className="max-w-[1600px] mx-auto space-y-12 p-4 sm:p-8 lg:p-12">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight flex flex-col sm:flex-row items-center gap-4">
+          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white flex flex-col sm:flex-row items-center gap-4">
             <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20">
               <Award className="text-white" size={32} />
             </div>
             My Certificates
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-3 text-sm sm:text-lg max-w-lg">
+          <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">
             Displaying all your verified achievements. Proudly sharing your success!
           </p>
         </div>

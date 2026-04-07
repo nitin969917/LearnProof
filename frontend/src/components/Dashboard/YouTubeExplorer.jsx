@@ -4,9 +4,11 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const YouTubeExplorer = () => {
     const { token } = useAuth();
+    const navigate = useNavigate();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -109,7 +111,17 @@ const YouTubeExplorer = () => {
 
             toast.dismiss(toastId);
             toast.success("Learning Saved Successfully!");
+            
+            const targetId = importData.id;
+            const targetType = importData.type;
+            
             setImportData(null);
+
+            if (targetType === 'playlist') {
+                navigate(`/dashboard/playlist/${targetId}`);
+            } else {
+                navigate(`/classroom/${targetId}`);
+            }
         } catch (err) {
             toast.dismiss(toastId);
             toast.error("Failed to save learning.");

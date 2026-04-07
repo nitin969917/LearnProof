@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Youtube, Search, Menu } from 'lucide-react';
+import { Youtube, Search, Menu, Inbox } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+
 const TopBar = ({ onMenuClick }) => {
     const [url, setUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [importData, setImportData] = useState(null);
     const { token } = useAuth();
+    const navigate = useNavigate();
 
     const handleImport = async () => {
         if (!url.trim()) {
@@ -51,8 +54,18 @@ const TopBar = ({ onMenuClick }) => {
 
             toast.dismiss(toastId);
             toast.success("Learning Saved!");
+            
+            const targetId = importData.id;
+            const targetType = importData.type;
+            
             setImportData(null);
             setUrl('');
+
+            if (targetType === 'playlist') {
+                navigate(`/dashboard/playlist/${targetId}`);
+            } else {
+                navigate(`/classroom/${targetId}`);
+            }
         } catch (err) {
             toast.dismiss(toastId);
             toast.error("Failed to save learning.");
@@ -69,19 +82,19 @@ const TopBar = ({ onMenuClick }) => {
         <>
             <div className="flex items-center justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 p-3 sm:p-4 shadow-sm sticky top-0 z-10 transition-colors duration-200">
                 <div className="flex items-center gap-3 w-full">
-                    <button
-                        onClick={onMenuClick}
-                        className="lg:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                        aria-label="Toggle Menu"
+                    {/* Platform Logo */}
+                    <div 
+                        onClick={() => navigate('/dashboard')}
+                        className="font-bold bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent text-xl sm:text-2xl mr-1 sm:mr-4 cursor-pointer hover:opacity-90 transition-opacity"
                     >
-                        <Menu size={24} />
-                    </button>
+                        LearnProof
+                    </div>
 
                     <div className="flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2 sm:px-4 py-1.5 sm:py-2 gap-2 transition-all duration-200">
                         <Youtube className="text-orange-500 shrink-0 hidden sm:block" size={20} />
                         <input
                             type="text"
-                            placeholder="Import Youtube URL..."
+                            placeholder="Enter Youtube URL..."
                             className="w-full bg-transparent outline-none text-[11px] sm:text-base text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
@@ -95,6 +108,15 @@ const TopBar = ({ onMenuClick }) => {
                             {loading ? "..." : "Import"}
                         </button>
                     </div>
+                    
+                    {/* Inbox Quick Action */}
+                    <button 
+                        onClick={() => navigate('/dashboard/inbox')}
+                        className="p-2 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-xl transition-all shadow-sm shrink-0 ml-auto"
+                        title="Inbox"
+                    >
+                        <Inbox size={20} className="sm:w-[22px] sm:h-[22px]" />
+                    </button>
                 </div>
             </div>
 

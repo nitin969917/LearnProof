@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
+import BottomNav from "./BottomNav";
 import { Outlet, useLocation } from "react-router-dom";
 import ProfileModal from "./ProfileModal";
 
@@ -33,11 +34,32 @@ class ErrorBoundary extends React.Component {
 
 const DashboardLayout = () => {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+    const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
+        const savedState = localStorage.getItem('sidebarExpanded');
+        return savedState !== null ? savedState === 'true' : false;
+    });
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const location = useLocation();
 
     const isAskMyNotes = location.pathname === '/dashboard/ask-my-notes';
-    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+    const toggleSidebar = () => {
+        if (!isMobile) {
+            setIsSidebarExpanded(prev => {
+                const nextState = !prev;
+                localStorage.setItem('sidebarExpanded', String(nextState));
+                return nextState;
+            });
+        } else {
+            setIsMobileSidebarOpen(!isMobileSidebarOpen);
+        }
+    };
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Initialize dark mode from localStorage or system preference
     useEffect(() => {
@@ -51,29 +73,34 @@ const DashboardLayout = () => {
 
     return (
         <div className="flex h-screen bg-orange-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 relative transition-colors duration-200 overflow-hidden">
-            {/* Sidebar Overlay for Mobile */}
-            {isSidebarOpen && (
+            {/* Sidebar Overlay for Mobile (triggered from Bottom Nav) */}
+            {isMobileSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-all duration-300"
-                    onClick={() => setIsSidebarOpen(false)}
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[55] lg:hidden transition-all duration-300"
+                    onClick={() => setIsMobileSidebarOpen(false)}
                 />
             )}
 
-            {/* Sidebar */}
+            {/* Sidebar (Desktop expands/collapses, Mobile via drawer) */}
             {!isAskMyNotes && (
                 <aside
-                    className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-orange-200 dark:border-gray-700 transition-all duration-300 ease-in-out transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-                        }`}
+                    className={`fixed lg:static inset-y-0 left-0 z-[60] w-64 ${
+                        isSidebarExpanded ? 'lg:w-64' : 'lg:w-[90px]'
+                    } bg-white dark:bg-gray-800 border-r border-orange-200 dark:border-gray-700 transition-all duration-300 ease-in-out transform ${
+                        isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                    }`}
                 >
                     <Sidebar
+                        isExpanded={isMobile || isSidebarExpanded}
                         onProfileClick={() => setIsProfileModalOpen(true)}
-                        onClose={() => setIsSidebarOpen(false)}
+                        onClose={() => setIsMobileSidebarOpen(false)}
+                        onMenuClick={toggleSidebar}
                     />
                 </aside>
             )}
 
             {/* Main content area */}
-            <main className="flex-1 flex flex-col min-w-0">
+            <main className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0">
                 {/* Top Bar */}
                 {!isAskMyNotes && <TopBar onMenuClick={toggleSidebar} />}
 
@@ -84,6 +111,9 @@ const DashboardLayout = () => {
                     </ErrorBoundary>
                 </div>
             </main>
+
+            {/* Bottom Navigation for Mobile */}
+            <BottomNav onMenuClick={toggleSidebar} />
 
             <ProfileModal
                 isOpen={isProfileModalOpen}

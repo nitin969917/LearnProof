@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
     ArrowLeft, Clock, Play, CheckCircle, Sparkles, AlertCircle, 
-    Library, Trophy, BookOpen, BarChart2, ChevronRight 
+    Library, Trophy, BookOpen, BarChart2, ChevronRight, Loader2
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
@@ -83,6 +83,43 @@ const RoadmapDetail = () => {
         fetchDetails();
     }, [token, pid]);
 
+    const [isEditingGoal, setIsEditingGoal] = useState(false);
+    const [roadmapDaysInput, setRoadmapDaysInput] = useState("");
+    const [settingGoal, setSettingGoal] = useState(false);
+
+    const handleUpdateGoal = async (e) => {
+        if (e) e.preventDefault();
+        const days = roadmapDaysInput;
+        if (!days || isNaN(days) || parseInt(days) <= 0) {
+            toast.error("Please enter a valid number of days.");
+            return;
+        }
+
+        setSettingGoal(true);
+        try {
+            await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/set-playlist-goal/`, {
+                idToken: token,
+                pid: pid,
+                duration_goal: parseInt(days)
+            });
+            toast.success("Mastery roadmap recalculated!");
+            
+            // Re-fetch details to sync the whole UI
+            const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/playlist-detail/`, {
+                idToken: token,
+                pid: pid
+            });
+            const { playlist: plData, videos } = response.data;
+            setPlaylist({ ...plData, videos: videos || [] });
+            setIsEditingGoal(false);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to update roadmap");
+        } finally {
+            setSettingGoal(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="h-screen flex items-center justify-center bg-gray-50/50 dark:bg-[#0B1120]">
@@ -94,7 +131,7 @@ const RoadmapDetail = () => {
         );
     }
 
-    if (!playlist || !playlist.duration_goal) {
+    if (!playlist) {
         return (
             <div className="h-screen flex items-center justify-center p-6 bg-gray-50/50 dark:bg-[#0B1120]">
                 <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-[2rem] p-8 text-center space-y-6 shadow-xl border border-gray-100 dark:border-gray-700">
@@ -102,8 +139,8 @@ const RoadmapDetail = () => {
                         <AlertCircle size={40} />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Roadmap Not Found</h2>
-                        <p className="text-gray-500 dark:text-gray-400">It seems this playlist doesn't have an active roadmap or doesn't exist.</p>
+                        <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Playlist Not Found</h2>
+                        <p className="text-gray-500 dark:text-gray-400">It seems this playlist doesn't exist.</p>
                     </div>
                     <button 
                         onClick={() => navigate('/dashboard/library')}
@@ -112,6 +149,62 @@ const RoadmapDetail = () => {
                         Return to Library
                     </button>
                 </div>
+            </div>
+        );
+    }
+
+    if (!playlist.duration_goal) {
+        return (
+            <div className="h-[calc(100vh-100px)] flex items-center justify-center p-4">
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="max-w-xl w-full bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-gray-100 dark:border-gray-700 relative overflow-hidden text-center"
+                >
+                    <div className="absolute top-0 right-0 p-8 opacity-5">
+                        <Sparkles size={160} className="text-orange-500" />
+                    </div>
+
+                    <div className="relative space-y-8">
+                        <div className="w-24 h-24 bg-orange-50 dark:bg-orange-950/30 rounded-[2rem] flex items-center justify-center mx-auto text-orange-500 shadow-inner">
+                            <Sparkles size={48} />
+                        </div>
+
+                        <div>
+                            <h2 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">Mastery Roadmap</h2>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">To generate your customized study plan for <span className="text-orange-500 font-bold">"{playlist.name}"</span>, how many days do you want to master this in?</p>
+                        </div>
+
+                        <form onSubmit={handleUpdateGoal} className="max-w-sm mx-auto space-y-4">
+                            <div className="relative flex items-center">
+                                <input
+                                    type="number"
+                                    placeholder="e.g. 7"
+                                    value={roadmapDaysInput}
+                                    onChange={(e) => setRoadmapDaysInput(e.target.value)}
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-700 rounded-2xl px-6 py-5 text-xl font-black text-center text-gray-800 dark:text-white focus:outline-none focus:border-orange-500/50 transition-all placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                                />
+                                <div className="absolute right-6 text-gray-400 font-black uppercase text-xs tracking-widest pointer-events-none">Days</div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={settingGoal}
+                                className="w-full py-5 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-200 dark:disabled:bg-gray-700 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                            >
+                                {settingGoal ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles size={20} />}
+                                {settingGoal ? "Generating Plan..." : "Generate My Roadmap"}
+                            </button>
+                        </form>
+                        
+                        <button 
+                            onClick={() => navigate('/dashboard/library')}
+                            className="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-orange-500 transition-colors"
+                        >
+                            Nevermind, take me back
+                        </button>
+                    </div>
+                </motion.div>
             </div>
         );
     }
@@ -151,41 +244,41 @@ const RoadmapDetail = () => {
                 <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-black/10 rounded-full blur-3xl pointer-events-none" />
 
-                <div className="relative p-8 md:p-12 flex flex-col md:flex-row gap-8 items-center md:items-start">
+                <div className="relative p-5 pt-6 md:p-12 flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-start">
                     {/* Thumbnail */}
                     {playlist.thumbnail ? (
                         <div className="relative group">
                             <img
                                 src={playlist.thumbnail}
                                 alt={playlist.name}
-                                className="w-full max-w-[280px] md:max-w-[320px] aspect-video object-cover rounded-2xl shadow-2xl border-4 border-white/20 ring-1 ring-white/10 flex-shrink-0 transition-transform duration-500 group-hover:scale-105"
+                                className="w-full max-w-[200px] md:max-w-[320px] aspect-video object-cover rounded-2xl shadow-2xl border-2 md:border-4 border-white/20 ring-1 ring-white/10 flex-shrink-0 transition-transform duration-500 group-hover:scale-105"
                             />
                         </div>
                     ) : (
-                        <div className="w-full max-w-[280px] md:max-w-[320px] aspect-video bg-white/10 rounded-2xl shadow-2xl border-4 border-white/20 flex items-center justify-center flex-shrink-0">
-                            <Play size={56} className="text-white/60" />
+                        <div className="w-full max-w-[200px] md:max-w-[320px] aspect-video bg-white/10 rounded-2xl shadow-2xl border-2 md:border-4 border-white/20 flex items-center justify-center flex-shrink-0">
+                            <Play size={40} className="text-white/60 md:w-14 md:h-14" />
                         </div>
                     )}
 
                     {/* Info */}
-                    <div className="flex-1 text-white space-y-4 text-center md:text-left">
+                    <div className="flex-1 text-white space-y-3 md:space-y-4 text-center md:text-left">
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 border border-white/20 text-white text-[10px] font-black uppercase tracking-widest rounded-xl backdrop-blur-md">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[9px] md:px-3 md:py-1.5 bg-white/10 border border-white/20 text-white md:text-[10px] font-black uppercase tracking-widest rounded-xl backdrop-blur-md">
                                 <Sparkles size={12} /> Active Mastery Plan
                             </span>
                         </div>
-                        <h1 className="text-3xl md:text-4xl font-black leading-tight line-clamp-2">{playlist.name}</h1>
-                        <p className="text-white/70 text-sm font-medium italic">
+                        <h1 className="text-xl sm:text-2xl md:text-4xl font-black leading-tight line-clamp-2 mb-1">{playlist.name}</h1>
+                        <p className="text-white/80 text-[11px] md:text-sm font-medium italic">
                             "Based on your goal, we've structured this playlist into a comprehensive {playlist.duration_goal}-day plan. Stick to this schedule, and you'll master the subject effortlessly."
                         </p>
 
                         {/* Progress Bar */}
-                        <div className="max-w-md mx-auto md:mx-0">
-                            <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/60 mb-2">
+                        <div className="max-w-md mx-auto md:mx-0 pt-1 md:pt-0">
+                            <div className="flex justify-between text-[10px] md:text-xs font-black uppercase tracking-widest text-white/70 mb-1.5 md:mb-2">
                                 <span>Mastery Progress</span>
                                 <span className="text-white">{percentComplete}%</span>
                             </div>
-                            <div className="w-full bg-black/20 rounded-full h-3 backdrop-blur-sm overflow-hidden">
+                            <div className="w-full bg-black/20 rounded-full h-2.5 md:h-3 backdrop-blur-sm overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${percentComplete}%` }}
@@ -196,17 +289,61 @@ const RoadmapDetail = () => {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex flex-wrap gap-3 justify-center md:justify-start pt-2">
+                        <div className="flex flex-col sm:flex-row gap-2.5 md:gap-3 justify-center md:justify-start pt-2 md:pt-4">
                             {playlist.videos?.find(v => !v.is_completed) && (
                                 <button
                                     onClick={() => navigate(`/classroom/${playlist.videos.find(v => !v.is_completed).vid}`)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-2xl font-black text-sm hover:bg-orange-50 hover:shadow-xl transition-all active:scale-95"
+                                    className="flex items-center justify-center sm:justify-start gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-white text-orange-600 rounded-2xl font-black text-xs md:text-sm hover:bg-orange-50 hover:shadow-xl transition-all active:scale-95 w-full sm:w-auto"
                                 >
-                                    <Play size={18} className="fill-orange-600" />
+                                    <Play size={16} className="fill-orange-600 md:w-[18px] md:h-[18px]" />
                                     Continue Roadmap
                                 </button>
                             )}
+
+                            <button
+                                onClick={() => setIsEditingGoal(!isEditingGoal)}
+                                className={`flex items-center justify-center sm:justify-start gap-2 px-4 md:px-6 py-2.5 md:py-3 ${isEditingGoal ? 'bg-orange-500 text-white' : 'bg-white/10 backdrop-blur-md text-white border border-white/20'} rounded-2xl font-black text-xs md:text-sm hover:bg-white/20 hover:shadow-xl transition-all active:scale-95 w-full sm:w-auto`}
+                            >
+                                <Sparkles size={16} className={`${isEditingGoal ? 'text-white' : 'text-amber-300'} md:w-[18px] md:h-[18px]`} />
+                                {isEditingGoal ? "Cancel Edit" : "Recalculate Roadmap"}
+                            </button>
                         </div>
+
+                        {/* Inline Re-calculation Form */}
+                        <AnimatePresence>
+                            {isEditingGoal && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="pt-6 overflow-hidden"
+                                >
+                                    <form onSubmit={handleUpdateGoal} className="flex items-center gap-3 bg-white/10 backdrop-blur-md p-3 rounded-[1.5rem] border border-white/20 w-fit mx-auto md:mx-0">
+                                        <div className="flex flex-col px-4">
+                                            <span className="text-[8px] font-black uppercase text-white/60 tracking-widest">New Target</span>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    autoFocus
+                                                    className="w-16 bg-transparent border-none p-0 text-xl font-black text-white outline-none placeholder:text-white/20"
+                                                    placeholder="Days"
+                                                    value={roadmapDaysInput}
+                                                    onChange={(e) => setRoadmapDaysInput(e.target.value)}
+                                                />
+                                                <span className="text-xs font-black text-white/40 uppercase">Days</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            disabled={settingGoal}
+                                            className="px-6 py-3 bg-white text-orange-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition-all flex items-center gap-2"
+                                        >
+                                            {settingGoal ? <Sparkles size={14} className="animate-spin" /> : "Apply Changes"}
+                                        </button>
+                                    </form>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
             </motion.div>

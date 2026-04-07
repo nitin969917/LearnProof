@@ -300,6 +300,12 @@ const Classroom = () => {
         setLastSavedProgress(res.data.video.watch_progress || 0);
         setHasSeeked(false);
         setPlaylist(res.data.playlist);
+        if (res.data.playlist && window.innerWidth < 1024) {
+          setActiveTab('playlist');
+        } else if (!res.data.playlist && activeTab === 'playlist') {
+          setActiveTab('overview');
+        }
+        
         toast.success("Classroom loaded", { id: loader });
       } catch (err) {
         console.error(err);
@@ -317,11 +323,6 @@ const Classroom = () => {
       setPlayerError(false); // Reset player error on video change
       fetchClassroom();
       fetchDiscussionData();
-
-      // On mobile, default to playlist tab if available
-      if (window.innerWidth < 1024) {
-        setActiveTab('playlist');
-      }
     }
   }, [token, videoId]);
 
@@ -338,10 +339,15 @@ const Classroom = () => {
 
   // Auto-scroll to the active video in the playlist
   useEffect(() => {
+    // Only scroll if we are directly viewing the playlist tab, 
+    // or if the video id/playlist itself just loaded on desktop
     if (activeVideoRef.current) {
-      activeVideoRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (window.innerWidth >= 1024 || activeTab === 'playlist') {
+        // Prevent aggressive document scrolls by safely scrolling within the parent
+        activeVideoRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
-  }, [videoId, activeTab, playlist]);
+  }, [videoId, playlistPage, activeTab === 'playlist']);
 
   // Fetch intuition only when the tab is opened
   useEffect(() => {
@@ -695,16 +701,16 @@ const Classroom = () => {
           {/* Video Details */}
           <div className="bg-white dark:bg-gray-900 flex-1 min-w-0 transition-colors duration-200">
             <div className="max-w-5xl mx-auto p-4 sm:p-6 pb-20 lg:pb-6 text-gray-900 dark:text-white">
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+              <div className="flex flex-col gap-3 mb-4">
                 <h1 className="text-xl md:text-2xl font-black leading-tight flex-1">{video.name}</h1>
                 <a 
                   href={`https://www.youtube.com/watch?v=${video.vid}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-gray-50/80 dark:bg-slate-800/80 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white text-gray-500 dark:text-slate-400 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all border border-gray-100 dark:border-slate-700/50 backdrop-blur-sm shadow-sm"
+                  className="w-fit inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50/80 dark:bg-slate-800/80 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white text-gray-500 dark:text-slate-400 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all border border-gray-100 dark:border-slate-700/50 backdrop-blur-sm shadow-sm"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-                  <span>YouTube</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122-2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  <span>Watch on YouTube</span>
                 </a>
               </div>
 
@@ -725,7 +731,7 @@ const Classroom = () => {
 
               {/* Premium Tabs */}
               <div className="mt-4">
-                <div className="flex bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-1.5 gap-1 overflow-x-auto hide-scrollbar border border-gray-100 dark:border-slate-700/50">
+                <div className="flex bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-1 sm:p-1.5 gap-0.5 sm:gap-1 border border-gray-100 dark:border-slate-700/50">
                   {[
                     { id: 'playlist', label: 'Playlist', icon: PlayCircle, hideOnDesktop: true },
                     { id: 'overview', label: 'Overview', icon: BookOpen },
@@ -733,20 +739,23 @@ const Classroom = () => {
                     { id: 'quiz', label: 'Quiz', icon: CheckCircle },
                     { id: 'notes', label: 'Notes', icon: FileText },
                     { id: 'discussion', label: `Chat (${comments.length})`, icon: MessageSquare },
-                  ].filter(t => !t.hideOnDesktop || window.innerWidth < 1024).map(tab => {
+                  ].filter(t => {
+                    if (t.id === 'playlist' && !playlist) return false;
+                    return !t.hideOnDesktop || window.innerWidth < 1024;
+                  }).map(tab => {
                     const Icon = tab.icon;
                     return (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex-shrink-0 ${
+                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-0.5 sm:px-3 rounded-xl text-[8px] sm:text-[11px] font-black uppercase tracking-tight sm:tracking-widest transition-all flex-1 ${
                           activeTab === tab.id
                             ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
-                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
+                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800'
                         }`}
                       >
-                        <Icon size={13} />
-                        {tab.label}
+                        <Icon size={16} className="sm:w-[14px] sm:h-[14px] flex-shrink-0" />
+                        <span className="mt-0.5 sm:mt-0">{tab.label}</span>
                       </button>
                     );
                   })}
@@ -1174,7 +1183,23 @@ const Classroom = () => {
                               accept="image/*,.pdf"
                               onChange={(e) => {
                                 if (e.target.files && e.target.files.length > 0) {
-                                  setNewNoteFiles([...newNoteFiles, ...Array.from(e.target.files)]);
+                                  const filesArray = Array.from(e.target.files);
+                                  const validFiles = [];
+                                  
+                                  filesArray.forEach(file => {
+                                    if (file.size > 2 * 1024 * 1024) {
+                                      toast.error(`"${file.name}" exceeds the 2MB limit.`);
+                                    } else {
+                                      validFiles.push(file);
+                                    }
+                                  });
+
+                                  if (validFiles.length > 0) {
+                                    setNewNoteFiles([...newNoteFiles, ...validFiles]);
+                                  }
+                                  
+                                  // Reset input so the same file can be re-selected if necessary
+                                  e.target.value = null;
                                 }
                               }}
                             />

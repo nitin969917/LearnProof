@@ -141,39 +141,39 @@ const PlaylistProgress = () => {
                 <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none" />
                 <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-black/10 rounded-full blur-3xl pointer-events-none" />
 
-                <div className="relative p-8 md:p-12 flex flex-col md:flex-row gap-8 items-center md:items-start">
+                <div className="relative p-5 pt-6 md:p-12 flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-start">
                     {/* Thumbnail */}
                     {playlist.thumbnail ? (
                         <img
                             src={playlist.thumbnail}
                             alt={playlist.name}
-                            className="w-full max-w-[280px] md:max-w-[320px] aspect-video object-cover rounded-2xl shadow-2xl border-4 border-white/20 ring-1 ring-white/10 flex-shrink-0"
+                            className="w-full max-w-[200px] md:max-w-[320px] aspect-video object-cover rounded-2xl shadow-2xl border-2 md:border-4 border-white/20 ring-1 ring-white/10 flex-shrink-0"
                         />
                     ) : (
-                        <div className="w-full max-w-[280px] md:max-w-[320px] aspect-video bg-white/10 rounded-2xl shadow-2xl border-4 border-white/20 flex items-center justify-center flex-shrink-0">
-                            <Play size={56} className="text-white/60" />
+                        <div className="w-full max-w-[200px] md:max-w-[320px] aspect-video bg-white/10 rounded-2xl shadow-2xl border-2 md:border-4 border-white/20 flex items-center justify-center flex-shrink-0">
+                            <Play size={40} className="text-white/60 md:w-14 md:h-14" />
                         </div>
                     )}
 
                     {/* Info */}
-                    <div className="flex-1 text-white space-y-4 text-center md:text-left">
+                    <div className="flex-1 text-white space-y-3 md:space-y-4 text-center md:text-left">
                         {isEligibleForCert && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-400/20 border border-green-400/30 text-green-100 text-[10px] font-black uppercase tracking-widest rounded-xl">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[9px] md:px-3 md:py-1.5 bg-green-400/20 border border-green-400/30 text-green-100 md:text-[10px] font-black uppercase tracking-widest rounded-xl">
                                 <Sparkles size={12} /> Ready for Certification
                             </span>
                         )}
-                        <h1 className="text-3xl md:text-4xl font-black leading-tight">{playlist.name}</h1>
-                        <p className="text-white/70 text-sm font-medium">
+                        <h1 className="text-xl sm:text-2xl md:text-4xl font-black leading-tight mb-1">{playlist.name}</h1>
+                        <p className="text-white/80 text-[11px] md:text-sm font-medium">
                             {completedVideos} of {totalVideos} lessons watched · {quizzesPassed} quizzes passed
                         </p>
 
                         {/* Progress Bar */}
-                        <div>
-                            <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/60 mb-2">
+                        <div className="pt-1 md:pt-0">
+                            <div className="flex justify-between text-[10px] md:text-xs font-black uppercase tracking-widest text-white/70 mb-1.5 md:mb-2">
                                 <span>Total Progress</span>
                                 <span className="text-white">{overallProgress}%</span>
                             </div>
-                            <div className="w-full bg-black/20 rounded-full h-3 backdrop-blur-sm overflow-hidden">
+                            <div className="w-full bg-black/20 rounded-full h-2.5 md:h-3 backdrop-blur-sm overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${overallProgress}%` }}
@@ -184,16 +184,25 @@ const PlaylistProgress = () => {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex flex-wrap gap-3 justify-center md:justify-start pt-2">
+                        <div className="flex flex-col sm:flex-row gap-2.5 md:gap-3 justify-center md:justify-start pt-2 md:pt-4">
                             {firstUnwatched && (
                                 <button
                                     onClick={() => navigate(`/classroom/${firstUnwatched.vid}`)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-2xl font-black text-sm hover:bg-orange-50 hover:shadow-xl transition-all active:scale-95"
+                                    className="flex items-center justify-center sm:justify-start gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-white text-orange-600 rounded-2xl font-black text-xs md:text-sm hover:bg-orange-50 hover:shadow-xl transition-all active:scale-95 w-full sm:w-auto"
                                 >
-                                    <Play size={18} className="fill-orange-600" />
+                                    <Play size={16} className="fill-orange-600 md:w-[18px] md:h-[18px]" />
                                     {percentComplete === 0 ? "Start Learning" : percentComplete === 100 ? "Review Again" : "Continue Playing"}
                                 </button>
                             )}
+                            
+                            <button
+                                onClick={() => navigate(`/dashboard/roadmap/${playlistId}`)}
+                                className="flex items-center justify-center sm:justify-start gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-white/10 backdrop-blur-md text-white border border-white/20 rounded-2xl font-black text-xs md:text-sm hover:bg-white/20 hover:shadow-xl transition-all active:scale-95 w-full sm:w-auto"
+                            >
+                                <Sparkles size={18} className="text-amber-300" />
+                                {playlist.duration_goal ? "View Roadmap" : "Generate Roadmap"}
+                            </button>
+
                             {isEligibleForCert && (
                                 <button
                                     onClick={() => navigate('/dashboard/quiz')}

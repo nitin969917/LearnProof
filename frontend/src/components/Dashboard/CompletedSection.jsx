@@ -30,7 +30,6 @@ const CompletedSection = () => {
 
     useEffect(() => {
         const fetchCompleted = async () => {
-            const CS = toast.loading("Fetching your completions....");
             try {
                 const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/complete/`, {
                     idToken: token,
@@ -40,9 +39,8 @@ const CompletedSection = () => {
                     setVideos(res.data.videos || []);
                     setPlaylists(res.data.playlists || []);
                 }
-                toast.success("Completed content loaded!", { id: CS });
             } catch (err) {
-                toast.error("Failed to load completed content.", { id: loadingToast });
+                toast.error("Failed to load completed content.");
                 console.log('Failed to load completed content.');
             } finally {
                 setLoading(false);
@@ -67,17 +65,19 @@ const CompletedSection = () => {
         );
     }
 
+    if (videos.length === 0 && playlists.length === 0) {
+        return null;
+    }
+
     return (
         <div className="space-y-10">
             {/* Completed Videos */}
-            <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                    <Trophy size={20} className="text-orange-500" />
-                    Completed Videos
-                </h2>
-                {videos.length === 0 ? (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">No completed videos yet.</p>
-                ) : (
+            {videos.length > 0 && (
+                <div className="space-y-4">
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                        <Trophy size={20} className="text-orange-500" />
+                        Completed Videos
+                    </h2>
                     <div className="relative group">
                         <button
                             onClick={() => scroll(videoScrollRef, 'left')}
@@ -138,18 +138,16 @@ const CompletedSection = () => {
                             <ChevronRight size={24} />
                         </button>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* Completed Playlists */}
-            <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                    <Award size={20} className="text-orange-500" />
-                    Completed Playlists
-                </h2>
-                {playlists.length === 0 ? (
-                    <p className="text-sm text-gray-600 dark:text-gray-400">No completed playlists yet.</p>
-                ) : (
+            {playlists.length > 0 && (
+                <div className="space-y-4">
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                        <Award size={20} className="text-orange-500" />
+                        Completed Playlists
+                    </h2>
                     <div className="relative group">
                         <button
                             onClick={() => scroll(playlistScrollRef, 'left')}
@@ -227,8 +225,8 @@ const CompletedSection = () => {
                             <ChevronRight size={24} />
                         </button>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 };

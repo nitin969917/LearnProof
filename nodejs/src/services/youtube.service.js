@@ -143,6 +143,18 @@ const getYoutubeMetadata = async (url, maxPlaylistVideos = null) => {
 };
 
 /**
+ * Convert ISO 8601 duration (e.g., PT1M30S) to seconds
+ */
+const parseDurationToSeconds = (duration) => {
+    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!match) return 0;
+    const hours = parseInt(match[1]) || 0;
+    const minutes = parseInt(match[2]) || 0;
+    const seconds = parseInt(match[3]) || 0;
+    return hours * 3600 + minutes * 60 + seconds;
+};
+
+/**
  * Search YouTube for videos and playlists
  */
 const searchYoutube = async (query, maxResults = 15, searchType = 'video,playlist', order = 'relevance') => {
@@ -157,6 +169,7 @@ const searchYoutube = async (query, maxResults = 15, searchType = 'video,playlis
 
         const results = [];
         const playlistIds = [];
+        const videoIds = [];
 
         res.data.items.forEach(item => {
             const { snippet, id } = item;
@@ -174,6 +187,7 @@ const searchYoutube = async (query, maxResults = 15, searchType = 'video,playlis
                 result.type = 'video';
                 result.id = id.videoId;
                 result.url = `https://www.youtube.com/watch?v=${id.videoId}`;
+                videoIds.push(id.videoId);
             } else if (kind === 'youtube#playlist') {
                 result.type = 'playlist';
                 result.id = id.playlistId;
@@ -183,9 +197,33 @@ const searchYoutube = async (query, maxResults = 15, searchType = 'video,playlis
                 return;
             }
 
-            results.append ? results.push(result) : results.push(result);
+            results.push(result);
         });
 
+        // Fetch durations for videos to filter out shorts
+        let filteredResults = results;
+        if (videoIds.length) {
+            const vRes = await youtube.videos.list({
+                part: 'contentDetails',
+                id: videoIds.join(',')
+            });
+
+            const durationMap = {};
+            vRes.data.items.forEach(item => {
+                durationMap[item.id] = parseDurationToSeconds(item.contentDetails.duration);
+            });
+
+            // Filter out shorts (less than or equal to 60 seconds)
+            filteredResults = results.filter(r => {
+                if (r.type === 'video') {
+                    const duration = durationMap[r.id] || 0;
+                    return duration > 60; // Keep only videos longer than 1 minute
+                }
+                return true; // Keep playlists
+            });
+        }
+
+        // Fetch playlist video counts
         if (playlistIds.length) {
             const plRes = await youtube.playlists.list({
                 part: 'contentDetails',
@@ -197,14 +235,14 @@ const searchYoutube = async (query, maxResults = 15, searchType = 'video,playlis
                 plMap[p.id] = p.contentDetails.itemCount;
             });
 
-            results.forEach(r => {
+            filteredResults.forEach(r => {
                 if (r.type === 'playlist') {
                     r.video_count = plMap[r.id] || 0;
                 }
             });
         }
 
-        return { results };
+        return { results: filteredResults };
     } catch (error) {
         return { error: `Search API Error: ${error.message}` };
     }

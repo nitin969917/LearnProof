@@ -154,14 +154,14 @@ const Support = () => {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Header Section - Mobile Responsive */}
             <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:justify-between sm:text-left gap-6">
-                <div className="flex flex-col items-center sm:flex-row gap-4">
-                    <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20 text-white">
-                        <LifeBuoy size={24} className="sm:w-8 sm:h-8" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none uppercase">Help & Support</h1>
-                        <p className="text-gray-500 dark:text-slate-400 text-xs sm:text-sm font-bold uppercase tracking-widest mt-1">Student Assistance Center</p>
-                    </div>
+                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
+                    <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white flex flex-col sm:flex-row items-center gap-4">
+                        <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20">
+                            <LifeBuoy className="text-white" size={32} />
+                        </div>
+                        Help & Support
+                    </h1>
+                    <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">Student Assistance Center</p>
                 </div>
 
                 <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-full sm:w-auto">

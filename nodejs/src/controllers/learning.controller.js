@@ -296,6 +296,7 @@ const setPlaylistGoal = async (req, res) => {
 
         // Invalidate cache
         await cacheService.del(`playlist:detail:${user.id}:${pid}`);
+        await cacheService.delByPattern(`user:learnings:${user.id}:*`);
 
         res.status(200).json({ message: 'Roadmap goal updated successfully', duration_goal: playlist.duration_goal });
     } catch (error) {

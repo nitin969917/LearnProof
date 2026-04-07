@@ -243,13 +243,13 @@ const MyLearnings = () => {
             {/* Header Section */}
             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 sm:gap-8">
                 <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-                    <h1 className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-                        <div className="p-2 sm:p-3 bg-orange-500 rounded-xl sm:rounded-2xl shadow-lg shadow-orange-500/20 text-white">
-                            <BookOpen className="w-6 h-6 sm:w-8 sm:h-8" />
+                    <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white flex flex-col sm:flex-row items-center gap-4">
+                        <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20">
+                            <BookOpen className="text-white" size={32} />
                         </div>
                         My Learning
                     </h1>
-                    <p className="text-gray-500 dark:text-slate-400 mt-2 sm:mt-3 text-base sm:text-lg font-medium italic">Your curated digital library.</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">Your curated digital library.</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
@@ -494,7 +494,7 @@ const MyLearnings = () => {
                 )}
 
                 {activeTab === "roadmap" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 sm:gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {playlists.length === 0 ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-24 text-center space-y-4 opacity-50">
                                 <Sparkles className="w-16 h-16 text-gray-300" />
@@ -514,102 +514,76 @@ const MyLearnings = () => {
                                 return (
                                     <motion.div
                                         key={`roadmap-${pl.pid}`}
-                                        layout
-                                        initial={{ opacity: 0, scale: 0.98 }}
+                                        initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: index * 0.1 }}
-                                        className={`bg-white dark:bg-gray-800 rounded-[2rem] p-4 border transition-all duration-500 group overflow-hidden relative flex flex-col border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:border-orange-500/30 hover:-translate-y-1`}
+                                        transition={{ delay: index * 0.05 }}
+                                        className="group/card bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:shadow-orange-100/50 dark:hover:shadow-orange-900/20 hover:border-orange-400 dark:hover:border-orange-500 hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col relative p-4"
                                     >
-                                        <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
-                                            <Sparkles size={140} className="text-orange-500" />
+                                        <div className="absolute top-4 right-4 z-20 pointer-events-none opacity-10 group-hover/card:opacity-20 group-hover/card:scale-125 transition-all duration-700">
+                                            <Sparkles size={64} className="text-orange-500" />
                                         </div>
 
-                                        <div className="relative flex flex-col gap-4">
+                                        <div className="cursor-pointer flex flex-col h-full">
                                             {/* Thumbnail Section */}
-                                            <div className="relative aspect-video rounded-xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover:scale-[1.02]">
+                                            <div 
+                                                className="relative aspect-video rounded-xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]"
+                                                onClick={() => navigate(`/dashboard/roadmap/${pl.pid}`)}
+                                            >
                                                 <img src={thumbnail} alt={pl.name} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                                        <Sparkles size={24} className="text-white fill-white" />
+                                                    </div>
+                                                </div>
                                             </div>
 
-                                            {/* Info & Goals Section */}
-                                            <div className="flex-1 w-full space-y-3">
-                                                <div className="flex flex-row justify-between items-center gap-2">
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="flex items-center gap-1.5 mb-1">
-                                                            <div className="px-1.5 py-0.5 bg-orange-500/10 text-orange-500 rounded text-[7px] font-black uppercase tracking-widest border border-orange-500/20">
-                                                                Study Plan
-                                                            </div>
-                                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest truncate">{totalVideos} Lessons</span>
-                                                        </div>
-                                                        <h3 className="text-base font-extrabold text-gray-900 dark:text-white truncate group-hover:text-orange-500 transition-colors">
-                                                            {pl.name}
-                                                        </h3>
+                                            {/* Info Section */}
+                                            <div className="pt-4 flex flex-col flex-1 space-y-4">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
+                                                        <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Active Roadmap</span>
                                                     </div>
                                                     
-                                                    {currentGoal && (
-                                                        <button 
-                                                            onClick={() => navigate(`/dashboard/roadmap/${pl.pid}`)}
-                                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100/50 dark:bg-gray-700/50 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 text-gray-600 dark:text-gray-300 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 flex-shrink-0 border border-transparent hover:border-orange-400 group/btn"
-                                                        >
-                                                            <span>Open</span>
-                                                            <ChevronRight size={12} className="group-hover/btn:translate-x-0.5 transition-transform" />
-                                                        </button>
-                                                    )}
+                                                    <h3 
+                                                        className="font-bold text-gray-900 dark:text-white text-base mb-1 line-clamp-1 group-hover/card:text-orange-500 transition-colors"
+                                                        onClick={() => navigate(`/dashboard/roadmap/${pl.pid}`)}
+                                                    >
+                                                        {pl.name}
+                                                    </h3>
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{totalVideos} Lessons Total</span>
                                                 </div>
 
-                                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 bg-gray-50/50 dark:bg-gray-800/30 p-2.5 rounded-xl border border-gray-100/50 dark:border-gray-700/50">
-                                                    <div className="flex items-center justify-between gap-3">
-                                                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">Study Goal</span>
-                                                        <div className="flex items-center gap-2">
-                                                            <input
-                                                                type="number"
-                                                                value={tempGoal}
-                                                                onChange={(e) => setRoadmapDaysUpdate(prev => ({ ...prev, [pl.pid]: e.target.value }))}
-                                                                className="w-12 px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs font-bold text-center text-gray-900 dark:text-white outline-none"
-                                                            />
-                                                            <button
-                                                                onClick={() => handleUpdateRoadmap(pl.pid, tempGoal)}
-                                                                disabled={isSavingRoadmap[pl.pid] || tempGoal == currentGoal}
-                                                                className={`p-1.5 rounded-lg transition-all ${
-                                                                    tempGoal == currentGoal 
-                                                                    ? "hidden" 
-                                                                    : "bg-orange-500 text-white hover:bg-orange-600 shadow-sm"
-                                                                }`}
-                                                            >
-                                                                <ChevronRight size={14} className={isSavingRoadmap[pl.pid] ? "animate-spin" : ""} />
-                                                            </button>
-                                                            <span className="text-[9px] font-bold text-gray-400">Days</span>
+                                                {currentGoal ? (
+                                                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 bg-gray-50/50 dark:bg-gray-900/30 p-3 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-orange-500">Goal</span>
+                                                            <span className="text-xs text-gray-900 dark:text-white capitalize">{currentGoal} Days</span>
+                                                        </div>
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="text-orange-500">Pacing</span>
+                                                            <span className="text-xs text-gray-900 dark:text-white capitalize">{videosPerDay} Daily</span>
                                                         </div>
                                                     </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 bg-gray-50/50 dark:bg-gray-900/30 p-3 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                                                        <span>Study Goal Not Set</span>
+                                                    </div>
+                                                )}
 
-                                                    {currentGoal && (
-                                                        <div className="flex items-center justify-between gap-4 xl:justify-end xl:gap-4 border-t xl:border-t-0 xl:border-l border-gray-100 dark:border-gray-700 pt-2 xl:pt-0 xl:pl-4">
-                                                            <div className="flex flex-col items-start xl:items-end">
-                                                                <span className="text-[7px] font-black uppercase text-orange-500 leading-none">Daily Focus</span>
-                                                                <span className="text-[11px] font-black dark:text-gray-300">{videosPerDay} Lessons</span>
-                                                            </div>
-                                                            <div className="flex flex-col items-start xl:items-end">
-                                                                <span className="text-[7px] font-black uppercase text-blue-500 leading-none">Pacing</span>
-                                                                <span className="text-[11px] font-black dark:text-gray-300">{videosPerDay > 10 ? "Intense" : videosPerDay > 5 ? "Steady" : "Relaxed"}</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                <div className="mt-auto pt-2">
+                                                    <div className="flex items-center justify-between text-[11px] mb-2 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
+                                                        <span>Mastery</span>
+                                                        <span className="text-orange-600 dark:text-orange-400 font-bold">{percentComplete}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${percentComplete}%` }}
+                                                            className="h-full bg-gradient-to-r from-orange-500 to-amber-400 shadow-[0_0_8px_rgba(249,115,22,0.3)] transition-all duration-1000"
+                                                        />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-
-
-                                        {/* Progress Bar at bottom of card */}
-                                        <div className="mt-3 pt-3 border-t border-gray-50 dark:border-slate-800/50">
-                                            <div className="flex items-center justify-between mb-1 px-0.5">
-                                                <span className="text-[7px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Progress</span>
-                                                <span className="text-[9px] font-black text-orange-500">{percentComplete}%</span>
-                                            </div>
-                                            <div className="w-full h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                                <motion.div
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${percentComplete}%` }}
-                                                    className="h-full bg-gradient-to-r from-orange-500 to-amber-400 shadow-[0_0_8px_rgba(249,115,22,0.3)] transition-all duration-1000"
-                                                />
                                             </div>
                                         </div>
                                     </motion.div>

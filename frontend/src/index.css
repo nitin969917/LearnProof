@@ -57,3 +57,10 @@
 .hide-scrollbar::-webkit-scrollbar {
     display: none;
 }
+/* Safe area padding utilities */
+.pb-safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom) !important;
+}
+.mb-safe-area-inset-bottom {
+    margin-bottom: env(safe-area-inset-bottom) !important;
+}
