@@ -29,6 +29,7 @@ import { ModalProvider } from './context/ModalContext';
 import VerifyCertificate from './components/Common/VerifyCertificate';
 import Support from './components/Common/SupportPage';
 import AdminSupportList from './components/Admin/pages/AdminSupportList';
+import PrivacyPolicy from './components/Common/PrivacyPolicy';
 
 const App = () => {
     return (
@@ -43,6 +44,7 @@ const App = () => {
                         <Route path='/track-youtube-progress' element={<LandingPage />} />
                         <Route path='/ai-study-planner' element={<LandingPage />} />
                         <Route path='/verify/:certId' element={<VerifyCertificate />} />
+                        <Route path='/privacy-policy' element={<PrivacyPolicy />} />
 
                         <Route
                             path='/dashboard/*'
