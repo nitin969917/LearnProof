@@ -81,7 +81,7 @@ const TopBar = ({ onMenuClick }) => {
     return (
         <>
             <div className="flex items-center justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 pl-0 pr-3 sm:pr-4 py-0 shadow-sm sticky top-0 z-10 transition-colors duration-200">
-                <div className="flex items-center gap-3 w-full min-h-[52px] sm:min-h-[64px]">
+                <div className="flex items-center gap-3 w-full">
                     {/* Platform Logo - flush to edges, no margin */}
                     <div 
                         onClick={() => navigate('/dashboard')}
