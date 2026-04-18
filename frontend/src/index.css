@@ -64,3 +64,37 @@
 .mb-safe-area-inset-bottom {
     margin-bottom: env(safe-area-inset-bottom) !important;
 }
+
+/* Native App Visual Resets */
+html, body {
+    /* Prevent elastic scroll on the body but allow it on overflow containers */
+    overscroll-behavior-y: none;
+    /* Prevent double-tap to zoom for faster button response */
+    touch-action: manipulation;
+    /* Prevent the blue/gray highlight box on mobile taps */
+    -webkit-tap-highlight-color: transparent;
+    /* Ensure height 100% for full-screen feel */
+    height: 100%;
+}
+
+/* Prevent text selection on UI elements - very important for App Store feel */
+button, 
+header, 
+nav, 
+.sidebar,
+.no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Re-enable selection for actual content like notes and transcript */
+.selectable-content,
+article,
+p,
+span,
+h1, h2, h3, h4 {
+    -webkit-user-select: text;
+    user-select: text;
+}
