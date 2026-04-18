@@ -85,9 +85,13 @@ const TopBar = ({ onMenuClick }) => {
                     {/* Platform Logo */}
                     <div 
                         onClick={() => navigate('/dashboard')}
-                        className="font-bold bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent text-xl sm:text-2xl mr-1 sm:mr-4 cursor-pointer hover:opacity-90 transition-opacity"
+                        className="mr-1 sm:mr-4 cursor-pointer hover:opacity-90 transition-opacity shrink-0"
                     >
-                        LearnProof
+                        <img 
+                            src="/LP_logo.png" 
+                            alt="LearnProof" 
+                            className="h-8 sm:h-10 w-auto object-contain"
+                        />
                     </div>
 
                     <div className="flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2 sm:px-4 py-1.5 sm:py-2 gap-2 transition-all duration-200">
