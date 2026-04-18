@@ -101,7 +101,7 @@ const TopBar = ({ onMenuClick }) => {
                 </div>
 
                 {/* Right Side: Actions (Import & Inbox Group) */}
-                <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 pl-3 sm:pl-0 px-2 sm:px-4 min-w-0">
+                <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 pl-9 sm:pl-0 px-2 sm:px-4 min-w-0">
                     {/* Desktop Import Bar (sm and up) */}
                     <div className="hidden sm:flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-4 py-2 gap-2 transition-all duration-200 shadow-sm">
                         <Youtube className="text-orange-500 shrink-0" size={20} />
