@@ -80,17 +80,17 @@ const TopBar = ({ onMenuClick }) => {
 
     return (
         <>
-            <div className="flex items-center justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 p-3 sm:p-4 shadow-sm sticky top-0 z-10 transition-colors duration-200">
-                <div className="flex items-center gap-3 w-full">
-                    {/* Platform Logo */}
+            <div className="flex items-center justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 pl-0 pr-3 sm:pr-4 py-0 shadow-sm sticky top-0 z-10 transition-colors duration-200">
+                <div className="flex items-center gap-3 w-full min-h-[52px] sm:min-h-[64px]">
+                    {/* Platform Logo - flush to edges, no margin */}
                     <div 
                         onClick={() => navigate('/dashboard')}
-                        className="mr-2 sm:mr-4 cursor-pointer hover:opacity-90 transition-opacity shrink-0"
+                        className="self-stretch cursor-pointer hover:opacity-90 transition-opacity shrink-0 mr-3 sm:mr-4"
                     >
                         <img 
                             src="/LP_logo.png" 
                             alt="LearnProof" 
-                            className="h-10 sm:h-14 w-auto object-contain"
+                            className="h-full w-auto object-cover"
                         />
                     </div>
 
