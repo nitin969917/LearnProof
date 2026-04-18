@@ -221,12 +221,15 @@ const getIntuition = async (req, res) => {
         // --- STEP 3: Handle Translation if a specific language is requested ---
         if (requestedLang !== 'English') {
             console.log(`[Intuition] 🌏 Rapid FREE translation to ${requestedLang} for ${videoId}...`);
-            const { content: translatedContent, model_name: translatorModel } = await translateText(englishIntuition.content, requestedLang);
+            let { content: translatedContent, model_name: translatorModel } = await translateText(englishIntuition.content, requestedLang);
             
+            // If the free translator returned something suspicious (repetitive or broken), 
+            // the translateText utility now throws or handles it, but we can also check here if we want.
+
             const result = {
                 ...englishIntuition,
                 content: translatedContent,
-                model_name: `${englishIntuition.model_name} + ${translatorModel} Translation`,
+                model_name: `${englishIntuition.model_name} + ${translatorModel}`,
                 language: requestedLang
             };
 

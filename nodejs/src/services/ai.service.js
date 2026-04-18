@@ -95,7 +95,9 @@ async function callOpenRouter(prompt, jsonMode = false, temperature = 0.1) {
             messages: [{ role: 'user', content: prompt }],
             response_format: jsonMode ? { type: "json_object" } : undefined,
             temperature: temperature,
-            max_tokens: 8000 // Ensure deep, exhaustive responses (2200+ tokens) without truncation
+            frequency_penalty: 0.5, // Prevent looping/repetition
+            presence_penalty: 0.3,
+            max_tokens: 8000 
         })
     });
 
@@ -128,7 +130,9 @@ async function callGroq(prompt, jsonMode = false, model = MODELS.GROQ_LLAMA_70B,
             messages: [{ role: 'user', content: prompt }],
             response_format: jsonMode ? { type: "json_object" } : undefined,
             temperature: temperature,
-            max_tokens: 8000 // Allow for exhaustive 2200+ token content without truncation
+            frequency_penalty: 0.5, // Prevent looping/repetition
+            presence_penalty: 0.3,
+            max_tokens: 8000 
         })
     });
 
@@ -161,7 +165,9 @@ async function callCerebras(prompt, jsonMode = false, temperature = 0.1) {
             messages: [{ role: 'user', content: prompt }],
             response_format: jsonMode ? { type: "json_object" } : undefined,
             temperature: temperature,
-            max_tokens: 8000 // Support massive verbosity (2200+ tokens) without truncation
+            frequency_penalty: 0.5, // Prevent looping/repetition
+            presence_penalty: 0.3,
+            max_tokens: 8000 
         })
     });
 
@@ -464,25 +470,34 @@ const translateText = async (text, targetLanguage) => {
     try {
         console.log(`[Translate] Using FREE Google Translate to ${targetLanguage} (${targetCode})...`);
         const res = await translate(text, { to: targetCode });
+        
+        // Basic check for repetition/shortness in free translator output
+        if (res.text && res.text.length < text.length * 0.2 && text.length > 500) {
+            throw new Error("Translation looks truncated or corrupted");
+        }
+        
         return { content: res.text, model_name: 'Free Google Translate' };
     } catch (err) {
         console.warn(`[Translate] Free Google Translate failed, falling back to Cerebras/Groq:`, err.message);
         
         // --- FALLBACK: Use LLM as backup if free service is blocked/down ---
         const translationPrompt = `
-            You are a professional translator. Translate this exactly into ${targetLanguage}.
-            Maintain all markdown formatting.
+            Act as a professional polyglot translator. 
+            Translate the following academic content exactly into ${targetLanguage}.
+            IMPORTANT: Keep all Markdown formatting (headings, lists, bold text) intact.
+            Do NOT summarize. Provide a 1:1 translation.
             
-            TEXT:
+            TEXT TO TRANSLATE (in English):
             ${text}
         `;
 
         try {
-            const translated = await callCerebras(translationPrompt);
-            return { content: translated, model_name: `${MODELS.CEREBRAS_MODEL} (LLM Fallback)` };
+            // Using higher temperature and penalty for translation fallback to ensure flow
+            const translated = await callCerebras(translationPrompt, false, 0.5);
+            return { content: translated, model_name: `${MODELS.CEREBRAS_MODEL} (LLM Translation)` };
         } catch (llmErr) {
-            const translated = await callGroq(translationPrompt, false, MODELS.GROQ_LLAMA_70B);
-            return { content: translated, model_name: `${MODELS.GROQ_LLAMA_70B} (LLM Fallback)` };
+            const translated = await callGroq(translationPrompt, false, MODELS.GROQ_LLAMA_70B, 0.5);
+            return { content: translated, model_name: `${MODELS.GROQ_LLAMA_70B} (LLM Translation)` };
         }
     }
 };
