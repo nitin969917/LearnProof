@@ -81,20 +81,27 @@ const TopBar = ({ onMenuClick }) => {
     return (
         <>
             <div className="flex items-stretch justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm sticky top-0 z-10 transition-colors duration-200 h-16 sm:h-20">
-                <div className="flex items-center gap-3 w-full">
-                    {/* Platform Logo - flush to edges on all sides */}
+                <div className="flex items-center gap-2 sm:gap-3 w-full px-2 sm:px-0">
+                    {/* Platform Logo - Responsive switching */}
                     <div 
                         onClick={() => navigate('/dashboard')}
-                        className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 overflow-hidden flex items-stretch mr-3 sm:mr-4"
+                        className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 overflow-hidden flex items-stretch mr-2 sm:mr-4 border-r border-orange-50 dark:border-gray-700/50"
                     >
+                        {/* Mobile Logo */}
+                        <img 
+                            src="/LP_M_logo.png" 
+                            alt="LearnProof" 
+                            className="h-full w-auto object-cover object-left block sm:hidden"
+                        />
+                        {/* Desktop Logo */}
                         <img 
                             src="/LP_logo.png" 
                             alt="LearnProof" 
-                            className="h-full w-auto object-cover object-left"
+                            className="h-full w-auto object-cover object-left hidden sm:block"
                         />
                     </div>
 
-                    <div className="flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2 sm:px-4 py-1.5 sm:py-2 gap-2 transition-all duration-200 my-3 sm:my-4 ml-auto">
+                    <div className="flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-1.5 sm:px-4 py-1.5 sm:py-2 gap-1.5 sm:gap-2 transition-all duration-200 my-2 sm:my-4 ml-auto">
                         <Youtube className="text-orange-500 shrink-0 hidden sm:block" size={20} />
                         <input
                             type="text"
@@ -116,7 +123,7 @@ const TopBar = ({ onMenuClick }) => {
                     {/* Inbox Quick Action */}
                     <button 
                         onClick={() => navigate('/dashboard/inbox')}
-                        className="p-2 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-xl transition-all shadow-sm shrink-0 mr-3 sm:mr-4"
+                        className="p-1.5 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-lg sm:rounded-xl transition-all shadow-sm shrink-0 mr-1 sm:mr-4"
                         title="Inbox"
                     >
                         <Inbox size={20} className="sm:w-[22px] sm:h-[22px]" />
