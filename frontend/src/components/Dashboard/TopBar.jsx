@@ -85,12 +85,12 @@ const TopBar = ({ onMenuClick }) => {
                     {/* Platform Logo */}
                     <div 
                         onClick={() => navigate('/dashboard')}
-                        className="mr-1 sm:mr-4 cursor-pointer hover:opacity-90 transition-opacity shrink-0"
+                        className="mr-2 sm:mr-4 cursor-pointer hover:opacity-90 transition-opacity shrink-0"
                     >
                         <img 
                             src="/LP_logo.png" 
                             alt="LearnProof" 
-                            className="h-8 sm:h-10 w-auto object-contain"
+                            className="h-10 sm:h-14 w-auto object-contain"
                         />
                     </div>
 
