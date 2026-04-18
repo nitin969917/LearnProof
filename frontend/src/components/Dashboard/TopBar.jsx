@@ -84,7 +84,7 @@ const TopBar = ({ onMenuClick }) => {
                 {/* Left Side: Logo (Flush Left) */}
                 <div
                     onClick={() => navigate('/dashboard')}
-                    className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 flex items-stretch"
+                    className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 flex items-stretch ml-2 sm:ml-0"
                 >
                     {/* Mobile Logo */}
                     <img
