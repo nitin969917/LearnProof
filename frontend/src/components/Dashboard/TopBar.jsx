@@ -100,11 +100,11 @@ const TopBar = ({ onMenuClick }) => {
                     />
                 </div>
 
-                {/* Right Side: Actions (Import & Inbox) */}
-                <div className="flex flex-1 items-center justify-end gap-1.5 sm:gap-3 px-2 sm:px-4 min-w-0">
-                    {/* Desktop Import Bar (Visible on sm and up) */}
-                    <div className="hidden sm:flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2 sm:px-4 py-1.5 sm:py-2 gap-2 transition-all duration-200 min-w-0">
-                        <Youtube className="text-orange-500 shrink-0 hidden md:block" size={20} />
+                {/* Right Side: Actions (Import & Inbox Group) */}
+                <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 px-2 sm:px-4 min-w-0">
+                    {/* Desktop Import Bar (sm and up) */}
+                    <div className="hidden sm:flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-4 py-2 gap-2 transition-all duration-200 shadow-sm">
+                        <Youtube className="text-orange-500 shrink-0" size={20} />
                         <input
                             type="text"
                             placeholder="Enter Youtube URL..."
@@ -116,32 +116,38 @@ const TopBar = ({ onMenuClick }) => {
                         <button
                             onClick={handleImport}
                             disabled={loading}
-                            className="text-white bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 rounded-lg text-sm font-bold uppercase tracking-wider hover:opacity-90 transition shrink-0"
+                            className="text-white bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 rounded-lg text-sm font-bold uppercase tracking-wider hover:opacity-90 transition-all shrink-0"
                         >
                             {loading ? "..." : "Import"}
                         </button>
                     </div>
 
-                    {/* Mobile Import Bar (Visible only on mobile) */}
-                    <div className="flex sm:hidden flex-1 min-w-0 max-w-[180px] bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-lg px-2 py-1 items-center gap-1">
+                    {/* Mobile Import Bar (Refined Size & Same Text) */}
+                    <div className="flex sm:hidden flex-1 min-w-0 bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2.5 py-1.5 items-center gap-2 shadow-sm">
                        <input
                             type="text"
-                            placeholder="URL..."
-                            className="w-full bg-transparent outline-none text-[10px] text-gray-800 dark:text-gray-200"
+                            placeholder="Enter Youtube URL..."
+                            className="w-full bg-transparent outline-none text-[11px] text-gray-800 dark:text-gray-200 placeholder-gray-400"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleImport()}
                         />
-                        <button onClick={handleImport} className="text-orange-600 font-bold text-[10px] shrink-0 px-1">GO</button>
+                        <button 
+                            onClick={handleImport} 
+                            disabled={loading}
+                            className="bg-orange-600 text-white rounded-lg px-2.5 py-1.5 font-bold text-[10px] uppercase tracking-tight shrink-0 active:scale-90 transition-transform"
+                        >
+                            {loading ? "..." : "Import"}
+                        </button>
                     </div>
                     
-                    {/* Inbox Quick Action */}
+                    {/* Inbox Quick Action (Big on mobile, standard on desktop) */}
                     <button
                         onClick={() => navigate('/dashboard/inbox')}
-                        className="p-1.5 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-lg sm:rounded-xl transition-all shadow-sm shrink-0"
+                        className="p-2 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-lg sm:rounded-xl transition-all shadow-sm shrink-0 border border-orange-100 dark:border-gray-600 active:scale-95"
                         title="Inbox"
                     >
-                        <Inbox size={20} className="w-[18px] h-[18px] sm:w-[22px] sm:h-[22px]" />
+                        <Inbox size={24} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
                     </button>
                 </div>
             </div>
