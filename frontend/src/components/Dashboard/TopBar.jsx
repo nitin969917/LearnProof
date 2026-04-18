@@ -80,71 +80,69 @@ const TopBar = ({ onMenuClick }) => {
 
     return (
         <>
-            <div className="flex items-stretch justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm sticky top-0 z-10 transition-colors duration-200 h-16 sm:h-20">
-                <div className="flex items-center w-full px-2 sm:px-4 gap-2 sm:gap-4">
-                    {/* Left Side: Logo */}
-                    <div
-                        onClick={() => navigate('/dashboard')}
-                        className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 overflow-hidden flex items-stretch"
-                    >
-                        {/* Mobile Logo */}
-                        <img
-                            src="/LP_M_logo.png"
-                            alt="LearnProof"
-                            className="h-full w-auto object-cover object-left block sm:hidden"
-                        />
-                        {/* Desktop Logo */}
-                        <img
-                            src="/LP_logo.png"
-                            alt="LearnProof"
-                            className="h-full w-auto object-cover object-left hidden sm:block"
-                        />
-                    </div>
+            <div className="flex items-stretch justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm sticky top-0 z-10 transition-colors duration-200 h-16 sm:h-20 w-full overflow-hidden">
+                {/* Left Side: Logo (Flush Left) */}
+                <div
+                    onClick={() => navigate('/dashboard')}
+                    className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 flex items-stretch"
+                >
+                    {/* Mobile Logo */}
+                    <img
+                        src="/LP_M_logo.png"
+                        alt="LearnProof"
+                        className="h-full w-auto object-cover object-left block sm:hidden"
+                    />
+                    {/* Desktop Logo */}
+                    <img
+                        src="/LP_logo.png"
+                        alt="LearnProof"
+                        className="h-full w-auto object-cover object-left hidden sm:block"
+                    />
+                </div>
 
-                    {/* Right Side: Actions (Import & Inbox) */}
-                    <div className="flex items-center gap-2 sm:gap-3 ml-auto flex-1 justify-end min-w-0">
-                        {/* Import Bar */}
-                        <div className="flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2 sm:px-4 py-1.5 sm:py-2 gap-1.5 sm:gap-2 transition-all duration-200 min-w-0 invisible sm:visible md:flex hidden sm:flex">
-                            <Youtube className="text-orange-500 shrink-0 hidden md:block" size={20} />
-                            <input
-                                type="text"
-                                placeholder="Enter Youtube URL..."
-                                className="w-full bg-transparent outline-none text-[11px] sm:text-base text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
-                                value={url}
-                                onChange={(e) => setUrl(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleImport()}
-                            />
-                            <button
-                                onClick={handleImport}
-                                disabled={loading}
-                                className="text-white bg-gradient-to-r from-orange-500 to-red-500 px-2.5 sm:px-4 py-1.5 rounded-lg text-[10px] sm:text-sm font-bold uppercase tracking-wider hover:opacity-90 transition shrink-0"
-                            >
-                                {loading ? "..." : "Import"}
-                            </button>
-                        </div>
-
-                        {/* Mobile Search/Import Toggle (Simple version for space) */}
-                        <div className="flex sm:hidden flex-1 min-w-0 bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2 py-1.5 items-center gap-1.5">
-                           <input
-                                type="text"
-                                placeholder="URL..."
-                                className="w-full bg-transparent outline-none text-[11px] text-gray-800 dark:text-gray-200"
-                                value={url}
-                                onChange={(e) => setUrl(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleImport()}
-                            />
-                            <button onClick={handleImport} className="text-orange-600 font-bold text-[10px] shrink-0">GO</button>
-                        </div>
-                        
-                        {/* Inbox Quick Action */}
+                {/* Right Side: Actions (Import & Inbox) */}
+                <div className="flex flex-1 items-center justify-end gap-1.5 sm:gap-3 px-2 sm:px-4 min-w-0">
+                    {/* Desktop Import Bar (Visible on sm and up) */}
+                    <div className="hidden sm:flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2 sm:px-4 py-1.5 sm:py-2 gap-2 transition-all duration-200 min-w-0">
+                        <Youtube className="text-orange-500 shrink-0 hidden md:block" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Enter Youtube URL..."
+                            className="w-full bg-transparent outline-none text-sm text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
+                            value={url}
+                            onChange={(e) => setUrl(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleImport()}
+                        />
                         <button
-                            onClick={() => navigate('/dashboard/inbox')}
-                            className="p-1.5 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-lg sm:rounded-xl transition-all shadow-sm shrink-0"
-                            title="Inbox"
+                            onClick={handleImport}
+                            disabled={loading}
+                            className="text-white bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 rounded-lg text-sm font-bold uppercase tracking-wider hover:opacity-90 transition shrink-0"
                         >
-                            <Inbox size={20} className="w-[18px] h-[18px] sm:w-[22px] sm:h-[22px]" />
+                            {loading ? "..." : "Import"}
                         </button>
                     </div>
+
+                    {/* Mobile Import Bar (Visible only on mobile) */}
+                    <div className="flex sm:hidden flex-1 min-w-0 max-w-[180px] bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-lg px-2 py-1 items-center gap-1">
+                       <input
+                            type="text"
+                            placeholder="URL..."
+                            className="w-full bg-transparent outline-none text-[10px] text-gray-800 dark:text-gray-200"
+                            value={url}
+                            onChange={(e) => setUrl(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleImport()}
+                        />
+                        <button onClick={handleImport} className="text-orange-600 font-bold text-[10px] shrink-0 px-1">GO</button>
+                    </div>
+                    
+                    {/* Inbox Quick Action */}
+                    <button
+                        onClick={() => navigate('/dashboard/inbox')}
+                        className="p-1.5 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-lg sm:rounded-xl transition-all shadow-sm shrink-0"
+                        title="Inbox"
+                    >
+                        <Inbox size={20} className="w-[18px] h-[18px] sm:w-[22px] sm:h-[22px]" />
+                    </button>
                 </div>
             </div>
 
