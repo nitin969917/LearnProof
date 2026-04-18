@@ -80,21 +80,21 @@ const TopBar = ({ onMenuClick }) => {
 
     return (
         <>
-            <div className="flex items-center justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 p-3 sm:p-4 shadow-sm sticky top-0 z-10 transition-colors duration-200">
+            <div className="flex items-stretch justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm sticky top-0 z-10 transition-colors duration-200 h-16 sm:h-20">
                 <div className="flex items-center gap-3 w-full">
-                    {/* Platform Logo */}
+                    {/* Platform Logo - flush to edges on all sides */}
                     <div 
                         onClick={() => navigate('/dashboard')}
-                        className="mr-2 sm:mr-4 cursor-pointer hover:opacity-90 transition-opacity shrink-0"
+                        className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 overflow-hidden flex items-stretch mr-3 sm:mr-4"
                     >
                         <img 
                             src="/LP_logo.png" 
                             alt="LearnProof" 
-                            className="h-10 sm:h-14 w-auto object-contain"
+                            className="h-full w-auto object-cover object-left"
                         />
                     </div>
 
-                    <div className="flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2 sm:px-4 py-1.5 sm:py-2 gap-2 transition-all duration-200">
+                    <div className="flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2 sm:px-4 py-1.5 sm:py-2 gap-2 transition-all duration-200 my-3 sm:my-4 ml-auto">
                         <Youtube className="text-orange-500 shrink-0 hidden sm:block" size={20} />
                         <input
                             type="text"
@@ -116,7 +116,7 @@ const TopBar = ({ onMenuClick }) => {
                     {/* Inbox Quick Action */}
                     <button 
                         onClick={() => navigate('/dashboard/inbox')}
-                        className="p-2 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-xl transition-all shadow-sm shrink-0 ml-auto"
+                        className="p-2 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-xl transition-all shadow-sm shrink-0 mr-3 sm:mr-4"
                         title="Inbox"
                     >
                         <Inbox size={20} className="sm:w-[22px] sm:h-[22px]" />
