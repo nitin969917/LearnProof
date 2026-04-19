@@ -441,6 +441,92 @@ const LandingPage = () => {
                 </motion.div >
             </div >
 
+            {/* Videos Section */}
+            <motion.section
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                viewport={{ once: true }}
+                className="py-16 px-4 sm:px-8 lg:px-16"
+            >
+                <div className="max-w-7xl mx-auto">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                        viewport={{ once: true }}
+                        className="text-center mb-12"
+                    >
+                        <h2 className="text-3xl lg:text-5xl font-bold mb-6 text-gray-800">
+                            See LearnProof in <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">Action</span>
+                        </h2>
+                        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                            Watch our introduction and learn how to make the most of your AI learning journey.
+                        </p>
+                    </motion.div>
+                    
+                    <div className="grid md:grid-cols-2 gap-8">
+                        {/* Intro Video */}
+                        <motion.div 
+                            initial={{ opacity: 0, x: -30 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.6, delay: 0.2 }}
+                            viewport={{ once: true }}
+                            className="bg-white/80 backdrop-blur-xl border border-orange-200 rounded-3xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                        >
+                            <div className="flex items-center gap-3 mb-5 px-2">
+                                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+                                    <Sparkles className="w-5 h-5 text-orange-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-800">Introduction</h3>
+                                    <p className="text-sm text-gray-500 font-medium">Discover what LearnProof AI is all about</p>
+                                </div>
+                            </div>
+                            <div className="aspect-video w-full rounded-2xl overflow-hidden border-2 border-gray-100/50 bg-gray-50 shadow-inner relative group">
+                                <div className="absolute inset-0 bg-gray-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl z-10"></div>
+                                <iframe 
+                                    src="https://drive.google.com/file/d/1IKaW11_N2w1lZzh3tx9GGLiu2LMy6Ro3/preview" 
+                                    className="w-full h-full relative z-0"
+                                    allow="autoplay; encrypted-media" 
+                                    allowFullScreen
+                                    title="Introduction to LearnProof"
+                                ></iframe>
+                            </div>
+                        </motion.div>
+
+                        {/* How to Use Video */}
+                        <motion.div 
+                            initial={{ opacity: 0, x: 30 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.6, delay: 0.4 }}
+                            viewport={{ once: true }}
+                            className="bg-white/80 backdrop-blur-xl border border-orange-200 rounded-3xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
+                        >
+                            <div className="flex items-center gap-3 mb-5 px-2">
+                                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                                    <Lightbulb className="w-5 h-5 text-amber-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-800">How to Use</h3>
+                                    <p className="text-sm text-gray-500 font-medium">A quick tutorial to get you started</p>
+                                </div>
+                            </div>
+                            <div className="aspect-video w-full rounded-2xl overflow-hidden border-2 border-gray-100/50 bg-gray-50 shadow-inner relative group">
+                                <div className="absolute inset-0 bg-gray-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl z-10"></div>
+                                <iframe 
+                                    src="https://drive.google.com/file/d/1RjXIjOJudLngSfPLc17SFXoAtVZDuTq9/preview" 
+                                    className="w-full h-full relative z-0"
+                                    allow="autoplay; encrypted-media" 
+                                    allowFullScreen
+                                    title="How to Use LearnProof"
+                                ></iframe>
+                            </div>
+                        </motion.div>
+                    </div>
+                </div>
+            </motion.section >
+
             {/* Benefits Section */}
             < motion.section
                 initial={{ opacity: 0, y: 50 }}
