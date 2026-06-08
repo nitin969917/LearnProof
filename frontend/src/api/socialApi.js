@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const baseURL = isLocalhost 
+  ? `http://${window.location.hostname}:8000/api` 
+  : `${window.location.protocol}//${window.location.host}/api`;
+
 const socialApi = axios.create({
-  baseURL: `http://${window.location.hostname}:8000/api`,
+  baseURL,
 });
 
 socialApi.interceptors.request.use((config) => {
