@@ -46,16 +46,28 @@ export default function LanguageRoom() {
           </div>
         )}
         <JitsiMeeting
-            domain="meet.element.io"
+            domain="meet.jit.si"
             roomName={`LearnProof-LiveRoom-${roomName}`}
             configOverwrite={{
                 startWithAudioMuted: false,
                 disableModeratorIndicator: true,
-                startScreenSharing: true,
-                enableEmailInStats: false
+                startScreenSharing: false,
+                enableEmailInStats: false,
+                // Skip the pre-join lobby screen — join directly
+                prejoinPageEnabled: false,
+                // Skip the welcome page
+                welcomePageLoggedIn: false,
+                // Disable the mobile app promotion nag
+                disableDeepLinking: true,
+                // Use Jitsi's built-in P2P for mobile compat
+                p2p: { enabled: true },
             }}
             interfaceConfigOverwrite={{
-                DISABLE_JOIN_LEAVE_NOTIFICATIONS: true
+                DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+                // Hide the app download banner on mobile
+                MOBILE_APP_PROMO: false,
+                SHOW_JITSI_WATERMARK: false,
+                SHOW_WATERMARK_FOR_GUESTS: false,
             }}
             userInfo={{
                 displayName: user.name || user.email?.split('@')[0],
