@@ -12,13 +12,13 @@ COPY prisma ./prisma
 RUN npm install --production --legacy-peer-deps
 RUN npm install pm2 -g
 
-# Generate Prisma Client
-RUN npx prisma generate
+# Generate Prisma Clients
+RUN npx prisma generate --schema=prisma/schema.prisma && npx prisma generate --schema=prisma/dating.prisma
 
 # Copy source code
 COPY . .
 
 EXPOSE 8000
 
-# Start command with PM2 Runtime for 24-core clustering
-CMD ["pm2-runtime", "start", "server.js", "-i", "max"]
+# Auto-push schema changes to databases, then start command with PM2 Runtime for clustering
+CMD npx prisma db push --schema=prisma/schema.prisma && npx prisma db push --schema=prisma/dating.prisma && pm2-runtime start server.js -i max

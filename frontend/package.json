@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@jitsi/react-sdk": "^1.4.4",
     "@react-oauth/google": "^0.13.4",
     "@tailwindcss/vite": "^4.1.11",
     "axios": "^1.10.0",
@@ -29,7 +30,9 @@
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "tailwindcss": "^4.1.11"
+    "socket.io-client": "^4.8.3",
+    "tailwindcss": "^4.1.11",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",

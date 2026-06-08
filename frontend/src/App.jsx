@@ -16,6 +16,9 @@ import PlaylistProgress from './components/Dashboard/PlaylistProgress';
 import AIBenchmark from './components/Dashboard/AIBenchmark';
 import AskMyNotes from './components/Dashboard/AskMyNotes';
 import RoadmapDetail from './components/Dashboard/RoadmapDetail';
+import SocialDashboard from './components/Dashboard/Social/SocialDashboard';
+import LanguageLearning from './components/Dashboard/LanguagePractice/LanguageLearning';
+import LanguageRoom from './components/Dashboard/LanguagePractice/LanguageRoom';
 
 import AdminLayout from './components/Admin/AdminLayout';
 import AdminDashboardHome from './components/Admin/pages/AdminDashboardHome';
@@ -33,6 +36,26 @@ import PrivacyPolicy from './components/Common/PrivacyPolicy';
 import DeleteAccount from './components/Common/DeleteAccount';
 
 const App = () => {
+    React.useEffect(() => {
+        const trackScreenTime = () => {
+            if (document.visibilityState === 'visible') {
+                const d = new Date();
+                const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                try {
+                    const dataStr = localStorage.getItem('learnproof_screentime') || '{}';
+                    const data = JSON.parse(dataStr);
+                    data[todayStr] = (data[todayStr] || 0) + 1;
+                    localStorage.setItem('learnproof_screentime', JSON.stringify(data));
+                } catch (e) {
+                    console.error('Error tracking screen time:', e);
+                }
+            }
+        };
+
+        const interval = setInterval(trackScreenTime, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
     return (
         <AuthProvider>
             <ModalProvider>
@@ -67,6 +90,14 @@ const App = () => {
                             <Route path='ai-benchmark' element={<AIBenchmark />} />
                             <Route path='ask-my-notes' element={<AskMyNotes />} />
                             <Route path='support' element={<Support />} />
+                            
+                            {/* Social / Social Dating Features */}
+                            <Route path='social' element={<SocialDashboard />} />
+                            
+                            {/* Live Rooms Features */}
+                            <Route path='live-rooms' element={<LanguageLearning />} />
+                            <Route path='live-rooms/:roomName' element={<LanguageRoom />} />
+                            
                             <Route path='*' element={<Navigate to="/" replace />} />
                         </Route>
                         <Route

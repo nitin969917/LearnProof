@@ -6,6 +6,29 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Flame } from "luci
 
 const CalendarCard = () => {
     const { token } = useAuth();
+
+    const getScreenTimeForDate = (dateString) => {
+        try {
+            const dataStr = localStorage.getItem('learnproof_screentime') || '{}';
+            const data = JSON.parse(dataStr);
+            return data[dateString] || 0;
+        } catch (e) {
+            return 0;
+        }
+    };
+
+    const formatSeconds = (totalSeconds) => {
+        if (!totalSeconds) return "0 mins";
+        const hrs = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+
+        let parts = [];
+        if (hrs > 0) parts.push(`${hrs}h`);
+        if (mins > 0) parts.push(`${mins}m`);
+        if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+        return parts.join(" ");
+    };
     const [activityData, setActivityData] = useState({});
     const [streak, setStreak] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -162,24 +185,35 @@ const CalendarCard = () => {
                             >
                                 {day}
 
-                                {activityCount > 0 && (
+                                {isActive && (
                                     <div
-                                        className={`fixed left-4 right-4 top-1/2 -translate-y-1/2 sm:absolute sm:inset-auto sm:top-auto sm:bottom-full sm:left-1/2 sm:-translate-x-1/2 sm:mb-2 sm:w-72 bg-gray-900 text-white text-xs rounded-lg p-4 sm:p-3 shadow-2xl transition-all duration-200 z-[60] ${isActive ? 'opacity-100 visible translate-y-0' : 'opacity-0 invisible translate-y-2'}`}
+                                        className="fixed left-4 right-4 top-1/2 -translate-y-1/2 sm:absolute sm:inset-auto sm:top-auto sm:bottom-full sm:left-1/2 sm:-translate-x-1/2 sm:mb-2 sm:w-72 bg-gray-900 text-white text-xs rounded-lg p-4 sm:p-3 shadow-2xl transition-all duration-200 z-[60] opacity-100 visible translate-y-0"
                                         onClick={(e) => e.stopPropagation()} // Let user scroll/click inside without closing
                                     >
                                         {/* Mobile Backdrop - only visible when active on small screens */}
                                         <div className="fixed inset-0 bg-black/40 -z-10 sm:hidden" onClick={() => setActiveDate(null)} />
-                                        <div className="font-semibold mb-2 text-orange-400 border-b border-gray-700 pb-1">
-                                            {monthNames[currentMonth]} {day}, {currentYear}
+                                        <div className="font-semibold mb-2 text-orange-400 border-b border-gray-700 pb-1 flex justify-between items-center">
+                                            <span>{monthNames[currentMonth]} {day}, {currentYear}</span>
                                         </div>
-                                        <ul className="space-y-1.5 text-left max-h-48 overflow-y-auto custom-scrollbar">
-                                            {dayActivities.map((act, idx) => (
-                                                <li key={idx} className="flex items-start gap-1.5 leading-snug">
-                                                    <span className="text-orange-500 text-[10px] mt-[3px]">●</span>
-                                                    <span className="break-words">{act}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
+                                        <div className="flex items-center gap-1.5 text-xs text-gray-300 my-2 font-semibold">
+                                            <span>⏱️ Screen Time:</span>
+                                            <span className="text-orange-400 font-bold">{formatSeconds(getScreenTimeForDate(dateStr))}</span>
+                                        </div>
+                                        {dayActivities.length > 0 ? (
+                                            <div className="mt-2.5">
+                                                <div className="text-[10px] font-bold uppercase text-gray-400 mb-1.5 tracking-wider border-t border-gray-800 pt-2">Activities</div>
+                                                <ul className="space-y-1.5 text-left max-h-36 overflow-y-auto custom-scrollbar">
+                                                    {dayActivities.map((act, idx) => (
+                                                        <li key={idx} className="flex items-start gap-1.5 leading-snug">
+                                                            <span className="text-orange-500 text-[10px] mt-[3px]">●</span>
+                                                            <span className="break-words text-gray-200">{act}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ) : (
+                                            <div className="text-[10px] text-gray-500 italic mt-1 border-t border-gray-800 pt-2">No learning activity recorded.</div>
+                                        )}
                                         <div className="absolute left-1/2 -bottom-1 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                                     </div>
                                 )}

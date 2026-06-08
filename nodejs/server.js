@@ -1,12 +1,89 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const http = require('http');
+const { Server } = require('socket.io');
 require('dotenv').config();
 
 const apiRoutes = require('./src/routes/api');
+const datingRoutes = require('./src/routes/datingRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
+
+// Create HTTP server
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+});
+
+// Mount Socket.io handler
+const datingPrisma = require('./src/utils/datingPrisma');
+const onlineUsers = new Map(); // userId -> socketId
+
+io.on('connection', (socket) => {
+  console.log('Social Socket connected:', socket.id);
+
+  socket.on('join', (userId) => {
+    console.log(`Social Socket join: ${userId}`);
+    if (!userId) return;
+    
+    socket.join(userId.toString());
+    onlineUsers.set(userId.toString(), socket.id);
+    
+    // Broadcast status
+    io.emit('userStatus', { userId: userId.toString(), online: true });
+    
+    // Send back online list
+    socket.emit('getOnlineUsers', Array.from(onlineUsers.keys()));
+  });
+
+  socket.on('sendMessage', async (data) => {
+    const { receiverId, message } = data;
+    try {
+      const savedMessage = await datingPrisma.message.create({
+        data: {
+          senderId: message.senderId,
+          receiverId: parseInt(receiverId),
+          content: message.content,
+        }
+      });
+      io.to(receiverId.toString()).emit('receiveMessage', savedMessage);
+    } catch (error) {
+      console.error('Error saving socket message:', error);
+    }
+  });
+
+  socket.on('joinGroup', (groupId) => {
+    if (!groupId) return;
+    socket.join(`group-${groupId}`);
+    console.log(`Social Socket ${socket.id} joined group room: group-${groupId}`);
+  });
+
+  socket.on('sendGroupMessage', (message) => {
+    if (!message || !message.groupId) return;
+    io.to(`group-${message.groupId}`).emit('receiveGroupMessage', message);
+  });
+
+  socket.on('disconnect', () => {
+    let disconnectedUserId = null;
+    for (const [userId, socketId] of onlineUsers.entries()) {
+      if (socketId === socket.id) {
+        disconnectedUserId = userId;
+        break;
+      }
+    }
+    
+    if (disconnectedUserId) {
+      onlineUsers.delete(disconnectedUserId);
+      console.log(`Social User disconnected: ${disconnectedUserId}`);
+      io.emit('userStatus', { userId: disconnectedUserId, online: false });
+    }
+  });
+});
 
 // Middleware
 app.use(cors());
@@ -18,6 +95,7 @@ app.use('/api/media', express.static('media')); // Compatibility for Passenger r
 
 // Routes
 app.use('/api', apiRoutes);
+app.use('/api', datingRoutes);
 app.use('/', apiRoutes); // Fallback for Hostinger/Passenger stripped routes
 
 // Root endpoint
@@ -31,6 +109,7 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Something went wrong!' });
 });
 
-app.listen(PORT, () => {
+// Listen using the HTTP server
+server.listen(PORT, () => {
     console.log(`Express server running on http://localhost:${PORT}`);
 });
