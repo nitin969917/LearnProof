@@ -15,9 +15,11 @@ const PORT = process.env.PORT || 8000;
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: ['http://localhost:5173', 'https://learnproofai.com', 'https://www.learnproofai.com'],
     methods: ['GET', 'POST'],
+    credentials: true,
   },
+  transports: ['websocket', 'polling'],
 });
 
 // Mount Socket.io handler
@@ -51,9 +53,13 @@ io.on('connection', (socket) => {
           content: message.content,
         }
       });
+      // Emit to receiver
       io.to(receiverId.toString()).emit('receiveMessage', savedMessage);
+      // Emit confirmation back to sender so their message is DB-synced
+      socket.emit('messageSent', savedMessage);
     } catch (error) {
       console.error('Error saving socket message:', error);
+      socket.emit('messageError', { error: 'Failed to send message' });
     }
   });
 

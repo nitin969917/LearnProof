@@ -68,15 +68,39 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
     socketRef.current = getSocialSocket(currentUserId);
 
     const handleMsg = (message) => {
-      if (message.senderId === selectedUserRef.current?.id || message.receiverId === selectedUserRef.current?.id) {
+      // Only add if it's from the other party in the active chat (our sent messages come via messageSent)
+      if (message.senderId?.toString() === selectedUserRef.current?.id?.toString()) {
         setMessages((prev) => [...prev, message]);
       }
     };
 
+    const handleMsgSent = (savedMessage) => {
+      // Replace the last optimistic message with the DB-confirmed one
+      setMessages((prev) => {
+        const updated = [...prev];
+        // Find the last optimistic message (no id) and replace it
+        const lastOptimisticIdx = updated.map(m => m.id).lastIndexOf(undefined);
+        if (lastOptimisticIdx !== -1) {
+          updated[lastOptimisticIdx] = savedMessage;
+        }
+        return updated;
+      });
+    };
+
+    const handleMsgError = ({ error }) => {
+      console.error('Message send error:', error);
+      // Remove the last optimistic message since it failed
+      setMessages((prev) => prev.filter((m, i) => !(i === prev.length - 1 && !m.id)));
+    };
+
     socketRef.current.on('receiveMessage', handleMsg);
+    socketRef.current.on('messageSent', handleMsgSent);
+    socketRef.current.on('messageError', handleMsgError);
 
     return () => {
       socketRef.current?.off('receiveMessage', handleMsg);
+      socketRef.current?.off('messageSent', handleMsgSent);
+      socketRef.current?.off('messageError', handleMsgError);
       setActiveChatUser(null);
     };
   }, [currentUserId]);
