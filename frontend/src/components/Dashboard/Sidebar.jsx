@@ -3,12 +3,14 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Inbox, Award, LogOut, Quote, Search, Moon, Sun, X, MessageSquare, HelpCircle, Menu, Users, Globe } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useModal } from '../../context/ModalContext';
+import { useSocialMessageStore } from '../../store/socialMessageStore';
 
 const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) => {
     const { user, logout } = useAuth();
     const { confirm } = useModal();
     const navigate = useNavigate();
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
 
     // Initialize dark mode from localStorage or system preference
     useEffect(() => {
@@ -114,7 +116,14 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                     }`
                                 }
                             >
-                                <div className="flex-shrink-0">{item.icon}</div>
+                                <div className="flex-shrink-0 relative">
+                                    {item.icon}
+                                    {item.name === 'Social Hub' && totalUnreadCount > 0 && (
+                                        <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-white dark:border-gray-800">
+                                            {totalUnreadCount}
+                                        </span>
+                                    )}
+                                </div>
                                 <span className={`${isExpanded ? 'text-base text-left' : 'text-[10px] text-center whitespace-nowrap tracking-tighter'} transition-all`}>
                                     {item.name}
                                 </span>

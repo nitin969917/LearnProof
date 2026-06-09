@@ -23,22 +23,24 @@ export default function LanguageRoom() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] max-w-6xl mx-auto px-2 md:px-6">
+    <div className="flex flex-col h-screen w-full bg-black">
       {/* Top Header Controls */}
-      <div className="flex items-center gap-4 py-4">
+      <div className="flex items-center justify-between px-4 h-12 bg-gray-900 border-b border-gray-800 text-white z-20">
         <button 
           onClick={handleLeaveRoom}
-          className="flex items-center gap-2 text-sm font-bold text-gray-655 dark:text-gray-300 hover:text-orange-500 transition-colors"
+          className="flex items-center gap-2 text-xs md:text-sm font-bold text-gray-300 hover:text-orange-500 transition-colors"
         >
-          <ArrowLeft size={18} />
-          <span>Back to Rooms</span>
+          <ArrowLeft size={16} />
+          <span>Leave Room</span>
         </button>
-        <div className="w-[1px] h-4 bg-gray-200 dark:bg-gray-700"></div>
-        <h2 className="text-sm font-bold text-gray-900 dark:text-white">Active Room: <span className="text-orange-500">{roomName}</span></h2>
+        <h2 className="text-xs md:text-sm font-bold text-gray-300">
+          Practice Room: <span className="text-orange-500">{roomName}</span>
+        </h2>
+        <div className="w-16"></div> {/* spacer to center roomName */}
       </div>
       
       {/* Jitsi Meeting Panel */}
-      <div className="flex-1 bg-black rounded-2xl overflow-hidden relative border border-gray-150 dark:border-gray-750 shadow-inner min-h-[450px]">
+      <div className="flex-1 bg-black overflow-hidden relative">
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-black z-10 gap-2">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent mb-1"></div>

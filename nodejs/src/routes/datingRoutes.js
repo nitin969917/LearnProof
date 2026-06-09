@@ -28,14 +28,24 @@ const {
   getGroups,
   getGroupMessages,
   sendGroupMessage,
+  getComments,
+  createComment,
+  deleteComment,
+  getPost,
 } = require('../controllers/datingController');
 
 // Post routes
 router.post('/posts', datingAuth, createPost);
 router.get('/posts/feed', datingAuth, getFeed);
+router.get('/posts/:postId', datingAuth, getPost);
 router.post('/posts/:postId/like', datingAuth, likePost);
 router.put('/posts/:postId', datingAuth, updatePost);
 router.delete('/posts/:postId', datingAuth, deletePost);
+
+// Post comments routes
+router.get('/posts/:postId/comments', datingAuth, getComments);
+router.post('/posts/:postId/comments', datingAuth, createComment);
+router.delete('/posts/comments/:commentId', datingAuth, deleteComment);
 
 // User routes
 router.get('/users/me', datingAuth, (req, res) => res.json(req.user));

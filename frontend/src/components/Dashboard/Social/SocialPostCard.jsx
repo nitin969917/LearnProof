@@ -11,6 +11,12 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
   const [editedContent, setEditedContent] = useState(post.content);
   const [editedVisibility, setEditedVisibility] = useState(post.visibility);
 
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [isShared, setIsShared] = useState(false);
+
   const handleLike = async () => {
     try {
       await socialApi.post(`/posts/${post.id}/like`);
@@ -41,6 +47,62 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
     } catch (err) {
       console.error('Failed to update post', err);
     }
+  };
+
+  const fetchComments = async () => {
+    setCommentsLoading(true);
+    try {
+      const res = await socialApi.get(`/posts/${post.id}/comments`);
+      setComments(res.data);
+    } catch (err) {
+      console.error('Failed to fetch comments', err);
+    } finally {
+      setCommentsLoading(false);
+    }
+  };
+
+  const toggleComments = () => {
+    if (!showComments) {
+      fetchComments();
+    }
+    setShowComments(!showComments);
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    try {
+      const res = await socialApi.post(`/posts/${post.id}/comments`, {
+        content: newComment
+      });
+      setNewComment('');
+      setComments([...comments, res.data]);
+      onLike(); // Refresh comment count on post card
+    } catch (err) {
+      console.error('Failed to submit comment', err);
+    }
+  };
+
+  const handleCommentDelete = async (commentId) => {
+    if (!window.confirm("Are you sure you want to delete this comment?")) return;
+    try {
+      await socialApi.delete(`/posts/comments/${commentId}`);
+      setComments(comments.filter(c => c.id !== commentId));
+      onLike(); // Refresh comment count on post card
+    } catch (err) {
+      console.error('Failed to delete comment', err);
+    }
+  };
+
+  const handleShare = () => {
+    const shareUrl = `${window.location.origin}/dashboard/social?post=${post.id}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setIsShared(true);
+      setTimeout(() => setIsShared(false), 2000);
+    }).catch(err => {
+      console.error('Failed to copy share link', err);
+    });
   };
 
   return (
@@ -87,7 +149,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
               <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-650 rounded-xl shadow-xl z-20 min-w-[140px] p-1.5 flex flex-col gap-1">
                 <button 
                   onClick={() => { setIsEditing(true); setShowMenu(false); }}
-                  className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-600 hover:text-orange-600 dark:hover:text-orange-450 transition font-medium"
+                  className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-600 hover:text-orange-600 dark:hover:text-orange-400 transition font-medium"
                 >
                   <Edit3 size={16} /> Edit
                 </button>
@@ -123,18 +185,18 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
                   <option value="close_friends">⭐️ Close Friends</option>
                </select>
                <div className="flex gap-2">
-                 <button 
-                  onClick={() => { setIsEditing(false); setEditedContent(post.content); setEditedVisibility(post.visibility); }}
-                  className="px-3 py-1.5 text-xs font-semibold rounded-xl text-gray-650 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center gap-1.5 transition"
-                >
-                  <X size={14} /> Cancel
-                </button>
-                <button 
-                  onClick={handleUpdate}
-                  className="px-4 py-1.5 text-xs font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-1.5 transition shadow-sm hover:shadow"
-                >
-                  <Check size={14} /> Save
-                </button>
+                  <button 
+                    onClick={() => { setIsEditing(false); setEditedContent(post.content); setEditedVisibility(post.visibility); }}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center gap-1.5 transition"
+                  >
+                    <X size={14} /> Cancel
+                  </button>
+                  <button 
+                    onClick={handleUpdate}
+                    className="px-4 py-1.5 text-xs font-bold rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-1.5 transition shadow-sm hover:shadow"
+                  >
+                    <Check size={14} /> Save
+                  </button>
                </div>
             </div>
           </div>
@@ -166,14 +228,110 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
           <Heart size={18} fill={isLiked ? 'currentColor' : 'transparent'} />
           <span>{post._count?.likes || 0}</span>
         </button>
-        <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs md:text-sm font-semibold">
-          <MessageCircle size={18} />
+        <button 
+          onClick={toggleComments}
+          className={`flex items-center gap-1.5 font-semibold text-xs md:text-sm transition-colors ${
+            showComments 
+              ? 'text-orange-500' 
+              : 'text-gray-500 dark:text-gray-400 hover:text-orange-500'
+          }`}
+        >
+          <MessageCircle size={18} fill={showComments ? 'currentColor' : 'transparent'} />
           <span>{post._count?.comments || 0}</span>
-        </div>
-        <button className="text-gray-500 dark:text-gray-400 hover:text-orange-500 ml-auto transition-colors">
-          <Share2 size={18} />
+        </button>
+        <button 
+          onClick={handleShare}
+          className={`hover:text-orange-500 ml-auto transition-colors flex items-center gap-1.5 text-xs font-semibold ${
+            isShared ? 'text-green-500 hover:text-green-500' : 'text-gray-500 dark:text-gray-400'
+          }`}
+        >
+          {isShared ? (
+            <>
+              <Check size={18} />
+              <span className="text-[10px] md:text-xs">Copied!</span>
+            </>
+          ) : (
+            <Share2 size={18} />
+          )}
         </button>
       </div>
+
+      {/* Comments section */}
+      {showComments && (
+        <div className="mt-4 border-t border-gray-100 dark:border-gray-750 pt-4">
+          <form onSubmit={handleCommentSubmit} className="flex gap-2 mb-4">
+            <input 
+              type="text" 
+              placeholder="Write a comment..." 
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              className="flex-1 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+            <button 
+              type="submit"
+              disabled={!newComment.trim()}
+              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-orange-500 text-white text-xs md:text-sm font-bold rounded-xl transition"
+            >
+              Post
+            </button>
+          </form>
+
+          {commentsLoading ? (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-orange-500 border-t-transparent"></div>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+              {comments.map((comment) => {
+                const isCommentAuthor = currentUserId === comment.authorId;
+                const canDelete = isCommentAuthor || isAuthor; // comment author or post author
+                return (
+                  <div key={comment.id} className="flex gap-3 text-xs md:text-sm items-start bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded-xl border border-gray-100/50 dark:border-gray-750/30">
+                    <div 
+                      onClick={() => onViewProfile(comment.author.id)}
+                      className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 cursor-pointer"
+                    >
+                      {comment.author.profilePicture ? (
+                        <img src={comment.author.profilePicture} alt={comment.author.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold">
+                          {comment.author.name?.[0]?.toUpperCase() || '?'}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span 
+                          onClick={() => onViewProfile(comment.author.id)}
+                          className="font-bold text-gray-900 dark:text-white hover:text-orange-500 cursor-pointer transition-colors"
+                        >
+                          {comment.author.name}
+                        </span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                          {new Date(comment.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap">{comment.content}</p>
+                    </div>
+                    {canDelete && (
+                      <button 
+                        onClick={() => handleCommentDelete(comment.id)}
+                        className="text-gray-400 hover:text-red-500 p-0.5 rounded transition"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+
+              {comments.length === 0 && (
+                <p className="text-center py-4 text-xs text-gray-400 dark:text-gray-500 font-medium">No comments yet. Be the first to comment!</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

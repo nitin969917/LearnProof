@@ -917,6 +917,154 @@ const sendGroupMessage = async (req, res) => {
   }
 };
 
+const getComments = async (req, res) => {
+  const { postId } = req.params;
+  try {
+    const comments = await datingPrisma.comment.findMany({
+      where: { postId: parseInt(postId) },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    res.json(comments);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch comments' });
+  }
+};
+
+const createComment = async (req, res) => {
+  const { postId } = req.params;
+  const { content } = req.body;
+  const userId = req.user.id;
+
+  if (!content || !content.trim()) {
+    return res.status(400).json({ error: 'Comment content is required' });
+  }
+
+  try {
+    const comment = await datingPrisma.comment.create({
+      data: {
+        content: content.trim(),
+        postId: parseInt(postId),
+        authorId: userId,
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+      },
+    });
+    res.status(201).json(comment);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to create comment' });
+  }
+};
+
+const deleteComment = async (req, res) => {
+  const { commentId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const comment = await datingPrisma.comment.findUnique({
+      where: { id: parseInt(commentId) },
+    });
+
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    const post = await datingPrisma.post.findUnique({
+      where: { id: comment.postId },
+    });
+
+    if (comment.authorId !== userId && post?.authorId !== userId) {
+      return res.status(403).json({ error: 'Not authorized to delete this comment' });
+    }
+
+    await datingPrisma.comment.delete({
+      where: { id: parseInt(commentId) },
+    });
+
+    res.json({ message: 'Comment deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to delete comment' });
+  }
+};
+
+const getPost = async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const post = await datingPrisma.post.findUnique({
+      where: { id: parseInt(postId) },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+        likes: {
+          select: {
+            id: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    if (post.authorId !== userId && post.visibility !== 'public') {
+      const friendship = await datingPrisma.friendship.findFirst({
+        where: {
+          status: 'accepted',
+          OR: [
+            { senderId: userId, receiverId: post.authorId },
+            { senderId: post.authorId, receiverId: userId }
+          ]
+        }
+      });
+
+      if (!friendship) {
+        return res.status(403).json({ error: 'You are not authorized to view this post' });
+      }
+
+      if (post.visibility === 'close_friends' && !friendship.isCloseFriend) {
+        return res.status(403).json({ error: 'You are not authorized to view this post' });
+      }
+    }
+
+    res.json(post);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch post' });
+  }
+};
+
 module.exports = {
   createPost,
   getFeed,
@@ -944,4 +1092,8 @@ module.exports = {
   getGroups,
   getGroupMessages,
   sendGroupMessage,
+  getComments,
+  createComment,
+  deleteComment,
+  getPost,
 };

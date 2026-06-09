@@ -90,8 +90,8 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
               >
                 <img src={req.sender.profilePicture || '/default-avatar.png'} alt={req.sender.name} className="w-10 h-10 rounded-full object-cover bg-gray-100" />
                 <div className="min-w-0">
-                  <p className="font-bold text-sm text-gray-800 dark:text-gray-250 truncate">{req.sender.name}</p>
-                  <p className="text-[10px] text-gray-400">wants to connect</p>
+                  <p className="font-bold text-sm text-gray-800 dark:text-gray-100 truncate">{req.sender.name}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500">wants to connect</p>
                 </div>
               </div>
               
@@ -105,7 +105,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                 </button>
                 <button 
                   onClick={() => handleReject(req.sender.id)} 
-                  className="p-2 bg-gray-100 dark:bg-gray-750 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition"
+                  className="p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition"
                   title="Ignore Request"
                 >
                   <X size={16} />
@@ -161,7 +161,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                     className={`p-2 rounded-xl transition ${
                       friend.isCloseFriend 
                         ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100' 
-                        : 'text-gray-400 hover:text-amber-500 hover:bg-gray-150 dark:hover:bg-gray-700'
+                        : 'text-gray-400 hover:text-amber-500 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                     title={friend.isCloseFriend ? "Remove from Close Friends" : "Mark as Close Friend"}
                   >

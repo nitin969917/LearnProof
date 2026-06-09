@@ -24,7 +24,7 @@ const io = new Server(server, {
 
 // Mount Socket.io handler
 const datingPrisma = require('./src/utils/datingPrisma');
-const onlineUsers = new Map(); // userId -> socketId
+const userSockets = new Map(); // userId -> Set of socketIds
 
 io.on('connection', (socket) => {
   console.log('Social Socket connected:', socket.id);
@@ -33,14 +33,20 @@ io.on('connection', (socket) => {
     console.log(`Social Socket join: ${userId}`);
     if (!userId) return;
     
-    socket.join(userId.toString());
-    onlineUsers.set(userId.toString(), socket.id);
+    const userIdStr = userId.toString();
+    socket.userId = userIdStr;
+    socket.join(userIdStr);
+    
+    if (!userSockets.has(userIdStr)) {
+      userSockets.set(userIdStr, new Set());
+    }
+    userSockets.get(userIdStr).add(socket.id);
     
     // Broadcast status
-    io.emit('userStatus', { userId: userId.toString(), online: true });
+    io.emit('userStatus', { userId: userIdStr, online: true });
     
     // Send back online list
-    socket.emit('getOnlineUsers', Array.from(onlineUsers.keys()));
+    socket.emit('getOnlineUsers', Array.from(userSockets.keys()));
   });
 
   socket.on('sendMessage', async (data) => {
@@ -75,18 +81,15 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    let disconnectedUserId = null;
-    for (const [userId, socketId] of onlineUsers.entries()) {
-      if (socketId === socket.id) {
-        disconnectedUserId = userId;
-        break;
+    const userIdStr = socket.userId;
+    if (userIdStr && userSockets.has(userIdStr)) {
+      const sockets = userSockets.get(userIdStr);
+      sockets.delete(socket.id);
+      if (sockets.size === 0) {
+        userSockets.delete(userIdStr);
+        console.log(`Social User disconnected: ${userIdStr}`);
+        io.emit('userStatus', { userId: userIdStr, online: false });
       }
-    }
-    
-    if (disconnectedUserId) {
-      onlineUsers.delete(disconnectedUserId);
-      console.log(`Social User disconnected: ${disconnectedUserId}`);
-      io.emit('userStatus', { userId: disconnectedUserId, online: false });
     }
   });
 });

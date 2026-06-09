@@ -46,7 +46,7 @@ export default function DiscoverTab({ onViewProfile }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type a name, college, major, or location..."
-            className="w-full bg-gray-50 dark:bg-gray-900 text-gray-950 dark:text-white border border-gray-200 dark:border-gray-750 rounded-xl pl-12 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base transition-all"
+            className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-750 rounded-xl pl-12 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-base transition-all"
           />
         </div>
       </div>
@@ -68,7 +68,7 @@ export default function DiscoverTab({ onViewProfile }) {
                 onClick={() => onViewProfile(student.id)}
                 className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer flex gap-4 items-center group"
               >
-                <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-650 dark:text-orange-400 font-bold text-xl">
+                <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-xl">
                   {student.profilePicture ? (
                     <img src={student.profilePicture} alt={student.name} className="w-full h-full object-cover" />
                   ) : (
@@ -109,7 +109,7 @@ export default function DiscoverTab({ onViewProfile }) {
         )}
 
         {!query && (
-          <div className="bg-white/50 dark:bg-gray-800/50 border border-dashed border-gray-250 dark:border-gray-700 rounded-2xl p-12 text-center text-gray-450 dark:text-gray-500">
+          <div className="bg-white/50 dark:bg-gray-800/50 border border-dashed border-gray-250 dark:border-gray-700 rounded-2xl p-12 text-center text-gray-500 dark:text-gray-500">
              <Search size={32} className="mx-auto mb-2 opacity-50" />
              <p className="text-sm">Start searching above to locate people in the community.</p>
           </div>

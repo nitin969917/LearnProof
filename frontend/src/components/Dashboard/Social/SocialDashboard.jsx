@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle } from 'lucide-react';
+import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle, ArrowLeft, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
 import FeedTab from './FeedTab.jsx';
@@ -8,9 +9,8 @@ import FriendsTab from './FriendsTab.jsx';
 import MessagesTab from './MessagesTab.jsx';
 import ProfileTab from './ProfileTab.jsx';
 import GroupsTab from './GroupsTab.jsx';
-import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
+import SocialPostCard from './SocialPostCard.jsx';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
-import { getSocialSocket } from '../../../utils/socialSocket.js';
 
 export default function SocialDashboard() {
   const { user } = useAuth();
@@ -30,6 +30,30 @@ export default function SocialDashboard() {
       return null;
     }
   });
+
+  const [sharedPost, setSharedPost] = useState(null);
+  const [showSharedPostModal, setShowSharedPostModal] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('post');
+    if (postId) {
+      const fetchPost = async () => {
+        try {
+          const res = await socialApi.get(`/posts/${postId}`);
+          setSharedPost(res.data);
+          setShowSharedPostModal(true);
+        } catch (err) {
+          console.error('Failed to load shared post', err);
+          alert(err.response?.data?.error || "You do not have permission to view this post, or it has been deleted.");
+          const url = new URL(window.location);
+          url.searchParams.delete('post');
+          window.history.replaceState({}, '', url);
+        }
+      };
+      fetchPost();
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('social_active_tab', activeTab);
@@ -51,17 +75,7 @@ export default function SocialDashboard() {
     }
   }, [selectedChatContact]);
 
-  const initializeStatus = useSocialStatusStore((state) => state.initializeStatus);
-  const fetchUnreadCounts = useSocialMessageStore((state) => state.fetchUnreadCounts);
-  const incrementUnread = useSocialMessageStore((state) => state.incrementUnread);
   const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
-  const activeChatUserId = useSocialMessageStore((state) => state.activeChatUserId);
-  
-  const activeChatUserIdRef = useRef(activeChatUserId);
-
-  useEffect(() => {
-    activeChatUserIdRef.current = activeChatUserId;
-  }, [activeChatUserId]);
 
   useEffect(() => {
     const fetchSocialUser = async () => {
@@ -76,26 +90,6 @@ export default function SocialDashboard() {
       fetchSocialUser();
     }
   }, [user]);
-
-  useEffect(() => {
-    if (socialUser) {
-      initializeStatus(socialUser.id);
-      fetchUnreadCounts();
-
-      // Listen for message events globally to increment notification counters if chat not open
-      const socket = getSocialSocket(socialUser.id);
-      const handleGlobalMessage = (message) => {
-        if (message.senderId.toString() !== activeChatUserIdRef.current?.toString()) {
-          incrementUnread(message.senderId);
-        }
-      };
-
-      socket.on('receiveMessage', handleGlobalMessage);
-      return () => {
-        socket.off('receiveMessage', handleGlobalMessage);
-      };
-    }
-  }, [socialUser]);
 
   const viewUserProfile = (userId) => {
     setSelectedProfileId(userId);
@@ -138,34 +132,44 @@ export default function SocialDashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto px-2 md:px-6">
-      {/* Sub Navigation Bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-2 md:p-3 shadow-sm flex items-center justify-start gap-1 md:gap-2 overflow-x-auto">
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.id || (tab.id === 'profile' && activeTab === 'profile' && selectedProfileId === socialUser.id);
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id)}
-              className={`flex items-center gap-2 px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all relative ${
-                isActive 
-                  ? 'bg-orange-500 text-white shadow shadow-orange-500/20' 
-                  : 'text-gray-655 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-750'
-              }`}
-            >
-              {tab.icon}
-              <span className="hidden sm:inline">{tab.name}</span>
-              
-              {tab.badge && (
-                <span className={`absolute -top-1 -right-1 text-[9px] font-bold rounded-full w-4.5 h-4.5 flex items-center justify-center ${
-                  isActive ? 'bg-white text-orange-650' : 'bg-orange-500 text-white'
-                }`}>
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+    <div className="flex flex-col gap-4 max-w-7xl mx-auto px-2 md:px-6 pb-6">
+      {/* Sub Navigation Bar – sticky on mobile */}
+      <div className="sticky top-0 z-30 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-1.5 md:p-2 shadow-sm flex items-center justify-between gap-1 overflow-x-auto">
+        <div className="flex items-center gap-1 overflow-x-auto flex-1">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id || (tab.id === 'profile' && activeTab === 'profile' && selectedProfileId === socialUser.id);
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex items-center justify-center gap-1.5 px-2.5 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all relative flex-1 md:flex-none ${
+                  isActive
+                    ? 'bg-orange-500 text-white shadow shadow-orange-500/20'
+                    : 'text-gray-500 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700'
+                }`}
+              >
+                <span className="flex-shrink-0">{tab.icon}</span>
+                <span className="hidden sm:inline whitespace-nowrap">{tab.name}</span>
+
+                {tab.badge && (
+                  <span className={`absolute -top-1 -right-1 text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center ${
+                    isActive ? 'bg-white text-orange-600' : 'bg-orange-500 text-white'
+                  }`}>
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <Link
+          to="/dashboard"
+          className="flex items-center justify-center gap-1 px-3 py-2 md:px-4 md:py-2.5 rounded-xl text-xs md:text-sm font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-950/70 transition-all flex-shrink-0 border border-orange-100 dark:border-orange-900/50"
+        >
+          <ArrowLeft size={16} />
+          <span>Exit Hub</span>
+        </Link>
       </div>
 
       {/* Tab Panels */}
@@ -206,9 +210,43 @@ export default function SocialDashboard() {
             viewUserId={selectedProfileId}
             onBackToFeed={() => setActiveTab('feed')}
             onSelectChatUser={startDirectChat}
+            onViewProfile={viewUserProfile}
           />
         )}
       </div>
+
+      {/* Shared Post Modal */}
+      {showSharedPostModal && sharedPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl relative p-6">
+            <button 
+              onClick={() => {
+                setShowSharedPostModal(false);
+                const url = new URL(window.location);
+                url.searchParams.delete('post');
+                window.history.replaceState({}, '', url);
+              }}
+              className="absolute top-4 right-4 p-2 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition"
+            >
+              <X size={18} />
+            </button>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Shared Post</h3>
+            <SocialPostCard 
+              post={sharedPost}
+              onLike={async () => {
+                try {
+                  const res = await socialApi.get(`/posts/${sharedPost.id}`);
+                  setSharedPost(res.data);
+                } catch (err) {
+                  console.error(err);
+                }
+              }}
+              currentUserId={socialUser.id}
+              onViewProfile={viewUserProfile}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

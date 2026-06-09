@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
 import { Outlet, useLocation } from "react-router-dom";
 import ProfileModal from "./ProfileModal";
+import { useAuth } from "../../context/AuthContext.jsx";
+import socialApi from "../../api/socialApi.js";
+import { useSocialStatusStore } from "../../store/socialStatusStore.js";
+import { useSocialMessageStore } from "../../store/socialMessageStore.js";
+import { getSocialSocket } from "../../utils/socialSocket.js";
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -33,6 +38,53 @@ class ErrorBoundary extends React.Component {
 }
 
 const DashboardLayout = () => {
+    const { user } = useAuth();
+    const [socialUser, setSocialUser] = useState(null);
+
+    const initializeStatus = useSocialStatusStore((state) => state.initializeStatus);
+    const fetchUnreadCounts = useSocialMessageStore((state) => state.fetchUnreadCounts);
+    const incrementUnread = useSocialMessageStore((state) => state.incrementUnread);
+    const activeChatUserId = useSocialMessageStore((state) => state.activeChatUserId);
+    const activeChatUserIdRef = useRef(activeChatUserId);
+
+    useEffect(() => {
+        activeChatUserIdRef.current = activeChatUserId;
+    }, [activeChatUserId]);
+
+    useEffect(() => {
+        const fetchSocialUser = async () => {
+            try {
+                const response = await socialApi.get('/users/me');
+                setSocialUser(response.data);
+            } catch (err) {
+                console.error('Failed to sync social user', err);
+            }
+        };
+        if (user) {
+            fetchSocialUser();
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (socialUser) {
+            initializeStatus(socialUser.id);
+            fetchUnreadCounts();
+
+            // Listen for message events globally to increment notification counters if chat not open
+            const socket = getSocialSocket(socialUser.id);
+            const handleGlobalMessage = (message) => {
+                if (message.senderId.toString() !== activeChatUserIdRef.current?.toString()) {
+                    incrementUnread(message.senderId);
+                }
+            };
+
+            socket.on('receiveMessage', handleGlobalMessage);
+            return () => {
+                socket.off('receiveMessage', handleGlobalMessage);
+            };
+        }
+    }, [socialUser]);
+
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
@@ -43,6 +95,8 @@ const DashboardLayout = () => {
     const location = useLocation();
 
     const isAskMyNotes = location.pathname === '/dashboard/ask-my-notes';
+    const isSocialHub = location.pathname.startsWith('/dashboard/social');
+    const isLiveRoom = location.pathname.includes('/dashboard/live-rooms/') && location.pathname !== '/dashboard/live-rooms';
     const toggleSidebar = () => {
         if (!isMobile) {
             setIsSidebarExpanded(prev => {
@@ -82,7 +136,7 @@ const DashboardLayout = () => {
             )}
 
             {/* Sidebar (Desktop expands/collapses, Mobile via drawer) */}
-            {!isAskMyNotes && (
+            {!isAskMyNotes && !isLiveRoom && (
                 <aside
                     className={`fixed lg:static inset-y-0 left-0 z-[60] w-64 ${
                         isSidebarExpanded ? 'lg:w-64' : 'lg:w-[90px]'
@@ -100,12 +154,12 @@ const DashboardLayout = () => {
             )}
 
             {/* Main content area */}
-            <main className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0">
+            <main className={`flex-1 flex flex-col min-w-0 ${isSocialHub || isLiveRoom ? 'pb-0' : 'pb-16 lg:pb-0'}`}>
                 {/* Top Bar */}
-                {!isAskMyNotes && <TopBar onMenuClick={toggleSidebar} />}
+                {!isAskMyNotes && !isSocialHub && !isLiveRoom && <TopBar onMenuClick={toggleSidebar} />}
 
                 {/* Dashboard Content */}
-                <div className={`flex-1 overflow-y-auto ${isAskMyNotes ? 'p-0' : 'p-4 sm:p-6'}`}>
+                <div className={`flex-1 overflow-y-auto ${isAskMyNotes || isSocialHub || isLiveRoom ? 'p-0' : 'p-4 sm:p-6'}`}>
                     <ErrorBoundary>
                         <Outlet />
                     </ErrorBoundary>
@@ -113,7 +167,7 @@ const DashboardLayout = () => {
             </main>
 
             {/* Bottom Navigation for Mobile */}
-            <BottomNav onMenuClick={toggleSidebar} />
+            {!isSocialHub && !isLiveRoom && <BottomNav onMenuClick={toggleSidebar} />}
 
             <ProfileModal
                 isOpen={isProfileModalOpen}
