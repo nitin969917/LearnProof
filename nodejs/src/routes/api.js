@@ -11,6 +11,7 @@ const socialController = require('../controllers/social.controller');
 const quizController = require('../controllers/quiz.controller');
 const adminController = require('../controllers/admin.controller');
 const messageController = require('../controllers/message.controller');
+const fcmController = require('../controllers/fcm.controller');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -29,6 +30,7 @@ router.post('/signup/', authMiddleware, authController.loginOrRegister);
 router.post('/login/', authMiddleware, authController.loginOrRegister);
 router.post('/oauth-login/', authMiddleware, authController.loginOrRegister);
 router.post('/profile/', authMiddleware, authController.getProfile);
+router.post('/save-fcm-token', authMiddleware, fcmController.saveFcmToken);
 
 // YouTube
 router.post('/import/', authMiddleware, youtubeController.importMetadata);
@@ -77,6 +79,11 @@ router.get('/admin/users/:id', authMiddleware, isAdminMiddleware, adminControlle
 router.delete('/admin/users/:id', authMiddleware, isAdminMiddleware, adminController.deleteUser);
 router.get('/admin/content', authMiddleware, isAdminMiddleware, adminController.getContent);
 router.delete('/admin/content/:id', authMiddleware, isAdminMiddleware, adminController.deleteContent);
+router.post('/admin/send-push', authMiddleware, isAdminMiddleware, fcmController.sendExplicitPush);
+router.post('/admin/send-push/', authMiddleware, isAdminMiddleware, fcmController.sendExplicitPush);
+router.get('/admin/notification-templates', authMiddleware, isAdminMiddleware, fcmController.getNotificationTemplates);
+router.post('/admin/notification-templates', authMiddleware, isAdminMiddleware, fcmController.updateNotificationTemplate);
+router.post('/admin/notification-templates/', authMiddleware, isAdminMiddleware, fcmController.updateNotificationTemplate);
 
 // Messages & Inbox
 router.post('/messages/send/', authMiddleware, isAdminMiddleware, messageController.sendMessage);

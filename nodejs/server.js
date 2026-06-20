@@ -8,6 +8,9 @@ require('dotenv').config();
 const apiRoutes = require('./src/routes/api');
 const datingRoutes = require('./src/routes/datingRoutes');
 
+// Load background daily notification scheduler
+require('./src/services/notification.service');
+
 const app = express();
 const PORT = process.env.PORT || 8000;
 

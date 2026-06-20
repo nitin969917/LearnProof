@@ -4,6 +4,7 @@ import { Trophy, CheckCircle, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from 'react-hot-toast';
+import { requestNotificationPermissionAndGetToken } from '../../utils/fcm';
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -36,6 +37,12 @@ const LoginPage = () => {
             // Clean the hash from URL
             window.history.replaceState(null, '', window.location.pathname);
             toast.success("Welcome back to LearnProof AI!");
+            
+            // Request notification permission after login
+            requestNotificationPermissionAndGetToken().catch(err => {
+                console.error("Failed to setup notifications after login:", err);
+            });
+            
             navigate("/dashboard");
         } catch (err) {
             console.error("Authentication error:", err);

@@ -37,6 +37,8 @@ model UserProfile {
   sentMessages     InboxMessage[] @relation("SentMessages")
   receivedMessages InboxMessage[] @relation("ReceivedMessages")
   readStatuses     MessageReadStatus[]
+  fcmTokens        UserFcmToken[]
+  sentNotifications SentNotification[]
 }
 
 model InboxMessage {
@@ -219,5 +221,39 @@ model SupportResponse {
   adminId     Int?
   message     String   @db.Text
   created_at  DateTime @default(now())
+}
+
+model UserFcmToken {
+  id         Int         @id @default(autoincrement())
+  user       UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  token      String      @unique
+  deviceType String?     // 'web' or 'twa'
+  timezone   String      @default("UTC")
+  created_at DateTime    @default(now())
+  updated_at DateTime    @updatedAt
+
+  @@index([userId])
+}
+
+model SentNotification {
+  id     Int         @id @default(autoincrement())
+  user   UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+  type   String      // 'STREAK_KEEP_ALIVE' or 'STREAK_AT_RISK'
+  sentAt DateTime    @default(now())
+
+  @@index([userId, type, sentAt])
+}
+
+model NotificationTemplate {
+  id         Int      @id @default(autoincrement())
+  type       String   @unique // 'STREAK_KEEP_ALIVE' or 'STREAK_AT_RISK'
+  title      String
+  body       String
+  hour       Int      // 0-23
+  minute     Int      // 0-59
+  enabled    Boolean  @default(true)
+  updated_at DateTime @updatedAt
 }
 

@@ -1,17 +1,15 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getMessaging } from 'firebase/messaging';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_KEY,
-  authDomain: "learnproof.firebaseapp.com",
-  projectId: "learnproof",
-  storageBucket: "learnproof.firebasestorage.app",
-  messagingSenderId: "74980993962",
-  appId: "1:74980993962:web:6982678c8b00970b08d9d3"
+  authDomain: "learnproof-b24c7.firebaseapp.com",
+  projectId: "learnproof-b24c7",
+  storageBucket: "learnproof-b24c7.firebasestorage.app",
+  messagingSenderId: "549492309059",
+  appId: "1:549492309059:web:168f96fc2164fdaef668f6"
 };
 
 
@@ -19,11 +17,13 @@ const firebaseConfig = {
 let app;
 let auth;
 let provider;
+let messaging;
 
 try {
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   provider = new GoogleAuthProvider();
+  messaging = getMessaging(app);
 } catch (error) {
   console.error("Firebase initialization failed:", error);
   // Provide mock objects so the app doesn't crash elsewhere
@@ -32,6 +32,7 @@ try {
     signOut: async () => { },
   };
   provider = {};
+  messaging = null;
 }
 
-export { auth, provider, signInWithPopup };
+export { auth, provider, signInWithPopup, messaging };

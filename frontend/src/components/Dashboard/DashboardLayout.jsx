@@ -9,6 +9,7 @@ import socialApi from "../../api/socialApi.js";
 import { useSocialStatusStore } from "../../store/socialStatusStore.js";
 import { useSocialMessageStore } from "../../store/socialMessageStore.js";
 import { getSocialSocket } from "../../utils/socialSocket.js";
+import { requestNotificationPermissionAndGetToken } from "../../utils/fcm.js";
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -62,6 +63,15 @@ const DashboardLayout = () => {
         };
         if (user) {
             fetchSocialUser();
+        }
+    }, [user]);
+
+    // Request notification permission and save token on dashboard mount
+    useEffect(() => {
+        if (user) {
+            requestNotificationPermissionAndGetToken().catch(err => {
+                console.error("Failed to setup notifications in dashboard:", err);
+            });
         }
     }, [user]);
 
