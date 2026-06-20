@@ -312,11 +312,11 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
 
     const intuitionPrompt = `
         Act as an Expert Academic Professor and Exam Specialist.
-        Your goal is to provide a STERN, HIGHLY TECHNICAL, and EXTREMELY COMPREHENSIVE academic breakdown of the subject matter.
+        Your goal is to provide a STERN, HIGHLY TECHNICAL, and CONCISE academic breakdown of the subject matter.
         
         CRITICAL INSTRUCTION: Do NOT just describe what happens in the video (e.g., avoid "The speaker says..."). 
         Instead, use the video as your secondary source of data to EXPLAIN THE CORE SUBJECT ITSELF with academic authority. 
-        Structure the content such that a student can directly use it to answer 20-mark descriptive university exam questions.
+        Structure the content such that a student can directly use it to answer descriptive university exam questions.
         If the video is a tutorial, provide the underlying theory as well.
         
         Video Title: '${title}'
@@ -324,28 +324,28 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
         Video Description: '${description}'
         ${transcriptSection}
         
-        Format your response in beautiful, highly readable markdown. Quantity, technical precision, and academic depth are paramount.
+        Format your response in beautiful, highly readable markdown. Technical precision and academic depth are paramount, but keep explanations clear, complete, and concise (avoid unnecessary filler).
         
-        Go in-depth and break it down exactly into these academic headings:
+        Break it down exactly into these academic headings:
         ### 🎯 Core Technical Definition
-        (Instruction: Provide a formal, academic definition of the subject. Use standard industry/academic terminology. Minimum 400 words of foundational theory.)
+        (Instruction: Provide a formal, academic definition of the subject. Use standard industry/academic terminology. Around 150-200 words of foundational theory.)
         
         ### 💡 Key Learning Objectives & Takeaways
-        (Instruction: Provide an exhaustive list of concepts covered. Each point must be a paragraph explaining the 'Mechanism', 'Process', or 'Rule'. Minimum 12 points.)
+        (Instruction: Provide a list of key concepts covered. Each point must explain the 'Mechanism', 'Process', or 'Rule'. Exactly 5-6 key points.)
         
         ### 🧠 Theoretical Framework & Why It Matters
-        (Instruction: Provide deep intuition, the underlying philosophy, and the scientific/industrial logic behind the concept. Minimum 500 words.)
+        (Instruction: Provide deep intuition, the underlying philosophy, and the scientific/industrial logic behind the concept. Around 150-200 words.)
         
         ### 📚 Progressive Deep Dive (The Exam Core)
-        (Instruction: Walk through the content progressively. Explain 'How it works' step-by-step with technical rigor. Include any 'Types', 'Classifications', or 'Stages'. Minimum 1000 words.)
+        (Instruction: Walk through the content progressively. Explain 'How it works' step-by-step with technical rigor. Include any 'Types', 'Classifications', or 'Stages'. Around 300-400 words.)
         
         ### 🛠️ Practical Scenarios & Comparative Analysis
-        (Instruction: Provide concrete examples, use-cases, or code. Include a 'Pros vs Cons' or 'Comparison Table' in markdown if applicable. Minimum 500 words.)
+        (Instruction: Provide concrete examples, use-cases, or code. Include a 'Pros vs Cons' or 'Comparison Table' in markdown if applicable. Around 150-200 words.)
         
         ### 📝 Potential Exam Questions & High-Score Tips
-        (Instruction: List 5 likely descriptive exam questions based on this video and provide short 'Bullet-Point' outlines of how the user should answer them to get full marks.)
+        (Instruction: List 3 likely descriptive exam questions based on this video and provide short 'Bullet-Point' outlines of how the user should answer them to get full marks.)
 
-        Make sure the explanation is illuminating and leaves absolutely no stone unturned. 
+        Make sure the explanation is illuminating and complete, yet highly token-efficient.
         IMPORTANT: Your entire response MUST be in ${finalLanguage}.
       `;
 
@@ -508,13 +508,13 @@ const translateText = async (text, targetLanguage) => {
 const benchmarkAllModels = async (title, description, url = null) => {
     const intuitionPrompt = `
         Act as an expert, highly engaging educational tutor.
-        Provide a maximally comprehensive and exhaustive intuition and breakdown of the core concepts for the video.
+        Provide a concise yet complete intuition and breakdown of the core concepts for the video.
         
         Title: '${title}'
         URL: '${url || 'Not provided'}'
         Description: '${description}'.
         
-        Format your response in markdown with these headings. You MUST be extremely detailed and verbose (aim for a high-quality depth of ~1500-2000 words total):
+        Format your response in markdown with these headings. Aim for a high-quality depth of ~600-800 words total:
         ### 🎯 Core Concept
         ### 💡 Key Takeaways
         ### 🧠 Why This Matters
