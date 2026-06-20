@@ -138,11 +138,15 @@ const DashboardLayout = () => {
             {/* Sidebar (Desktop expands/collapses, Mobile via drawer) */}
             {!isAskMyNotes && !isLiveRoom && (
                 <aside
-                    className={`fixed lg:static inset-y-0 left-0 z-[60] w-64 ${
-                        isSidebarExpanded ? 'lg:w-64' : 'lg:w-[90px]'
-                    } bg-white dark:bg-gray-800 border-r border-orange-200 dark:border-gray-700 transition-all duration-300 ease-in-out transform ${
-                        isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-                    }`}
+                    className={`fixed lg:static inset-y-0 left-0 z-[60] ${
+                        isSidebarExpanded 
+                            ? 'w-64 lg:w-64 bg-white dark:bg-gray-800 border-r border-orange-200 dark:border-gray-700' 
+                            : 'w-64 lg:w-[90px] bg-transparent border-none'
+                    } ${
+                        isMobileSidebarOpen 
+                            ? 'translate-x-0 bg-white dark:bg-gray-800 border-r border-orange-200 dark:border-gray-700' 
+                            : '-translate-x-full lg:translate-x-0'
+                    } transition-all duration-300 ease-in-out transform`}
                 >
                     <Sidebar
                         isExpanded={isMobile || isSidebarExpanded}
@@ -159,7 +163,13 @@ const DashboardLayout = () => {
                 {!isAskMyNotes && !isSocialHub && !isLiveRoom && <TopBar onMenuClick={toggleSidebar} />}
 
                 {/* Dashboard Content */}
-                <div className={`flex-1 overflow-y-auto ${isAskMyNotes || isSocialHub || isLiveRoom ? 'p-0' : 'p-4 sm:p-6 pb-24 lg:pb-6'}`}>
+                <div className={`flex-1 ${
+                    isSocialHub 
+                        ? 'p-0 overflow-hidden' 
+                        : isAskMyNotes || isLiveRoom 
+                            ? 'p-0 overflow-y-auto' 
+                            : 'p-4 sm:p-6 pb-24 lg:pb-6 overflow-y-auto'
+                }`}>
                     <ErrorBoundary>
                         <Outlet />
                     </ErrorBoundary>

@@ -70,7 +70,7 @@ const CompletedSection = () => {
     }
 
     return (
-        <div className="space-y-10">
+        <div className="space-y-6 mb-2">
             {/* Completed Videos */}
             {videos.length > 0 && (
                 <div className="space-y-4">

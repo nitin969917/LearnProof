@@ -1,23 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
-import { Send, Image as ImageIcon, Sparkles, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Sparkles } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import SocialPostCard from './SocialPostCard.jsx';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 
-export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser }) {
+export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser, postCreatedTrigger }) {
   const [posts, setPosts] = useState([]);
-  const [content, setContent] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [visibility, setVisibility] = useState('public');
   const [friends, setFriends] = useState([]);
   const [closeFriends, setCloseFriends] = useState([]);
-  const [selectedImage, setSelectedImage] = useState(null);
   
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
   const onlineFriends = friends.filter(friend => 
     onlineUserIds.some(id => id.toString() === friend.id.toString())
   );
-  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (postCreatedTrigger > 0) {
+      fetchPosts();
+    }
+  }, [postCreatedTrigger]);
 
   useEffect(() => {
     fetchPosts();
@@ -47,40 +48,6 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
     }
   };
 
-  const handlePost = async (e) => {
-    e.preventDefault();
-    if (!content.trim() && !selectedImage) return;
-    setLoading(true);
-
-    try {
-      await socialApi.post('/posts', { content, image: selectedImage, visibility });
-      setContent('');
-      setSelectedImage(null);
-      setVisibility('public');
-      fetchPosts();
-    } catch (err) {
-      console.error('Failed to create post', err);
-      alert(err.response?.data?.error || "Failed to create post. The image might be too large.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 10 * 1024 * 1024) {
-      alert("Image size should be less than 10MB");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setSelectedImage(reader.result);
-    };
-    reader.readAsDataURL(file);
-  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -106,76 +73,7 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* Feed Column */}
       <div className="lg:col-span-8 flex flex-col gap-6">
-        {/* Create Post */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm">
-          <form onSubmit={handlePost}>
-            <textarea 
-              placeholder="What's happening in the community?" 
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={3}
-              className="w-full bg-transparent text-gray-900 dark:text-white text-base md:text-lg outline-none resize-none border-b border-gray-100 dark:border-gray-700 pb-4 mb-4 focus:border-orange-500 transition-colors"
-            />
-            
-            {selectedImage && (
-              <div className="relative mb-4 rounded-xl overflow-hidden max-h-[300px] border border-gray-100 dark:border-gray-750">
-                <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
-                <button 
-                  type="button" 
-                  onClick={() => setSelectedImage(null)}
-                  className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            )}
-            
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-3">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  accept="image/*" 
-                  className="hidden" 
-                />
-                <button 
-                  type="button" 
-                  onClick={() => fileInputRef.current.click()}
-                  className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-sm font-semibold transition ${
-                    selectedImage 
-                      ? 'text-orange-500 bg-orange-50 dark:bg-orange-950/40' 
-                      : 'text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-750'
-                  }`}
-                >
-                  <ImageIcon size={20} />
-                  <span>{selectedImage ? "Image Added" : "Add Image"}</span>
-                </button>
-                
-                <div className="w-[1px] h-5 bg-gray-200 dark:bg-gray-700"></div>
-                
-                <select 
-                  value={visibility}
-                  onChange={(e) => setVisibility(e.target.value)}
-                  className="bg-transparent border-none text-gray-500 dark:text-gray-400 font-semibold text-xs md:text-sm cursor-pointer outline-none focus:text-orange-500"
-                >
-                  <option value="public" className="bg-white dark:bg-gray-800">🌐 Public</option>
-                  <option value="friends" className="bg-white dark:bg-gray-800">👥 Friends</option>
-                  <option value="close_friends" className="bg-white dark:bg-gray-800">⭐️ Close Friends</option>
-                </select>
-              </div>
-              
-              <button 
-                type="submit" 
-                disabled={loading || (!content.trim() && !selectedImage)}
-                className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-orange-500 text-white font-bold flex items-center gap-2 transition shadow-md shadow-orange-500/20"
-              >
-                <Send size={16} />
-                <span>Post</span>
-              </button>
-            </div>
-          </form>
-        </div>
+        {/* Create Post has been moved to a modal triggered from the top navbar button */}
 
         {/* Posts Feed */}
         <div className="flex flex-col gap-6">

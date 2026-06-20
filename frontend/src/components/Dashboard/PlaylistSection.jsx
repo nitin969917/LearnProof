@@ -42,7 +42,7 @@ const PlaylistSection = ({ data: playlists = [], loading = true }) => {
     }
 
     return (
-        <div className="space-y-6 mb-8">
+        <div className="space-y-4 mb-2">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                 <Library size={20} className="text-orange-500" />
                 Your Playlists
