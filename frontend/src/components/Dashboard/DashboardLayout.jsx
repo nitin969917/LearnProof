@@ -154,12 +154,12 @@ const DashboardLayout = () => {
             )}
 
             {/* Main content area */}
-            <main className={`flex-1 flex flex-col min-w-0 ${isSocialHub || isLiveRoom ? 'pb-0' : 'pb-16 lg:pb-0'}`}>
+            <main className="flex-1 flex flex-col min-w-0">
                 {/* Top Bar */}
                 {!isAskMyNotes && !isSocialHub && !isLiveRoom && <TopBar onMenuClick={toggleSidebar} />}
 
                 {/* Dashboard Content */}
-                <div className={`flex-1 overflow-y-auto ${isAskMyNotes || isSocialHub || isLiveRoom ? 'p-0' : 'p-4 sm:p-6'}`}>
+                <div className={`flex-1 overflow-y-auto ${isAskMyNotes || isSocialHub || isLiveRoom ? 'p-0' : 'p-4 sm:p-6 pb-24 lg:pb-6'}`}>
                     <ErrorBoundary>
                         <Outlet />
                     </ErrorBoundary>

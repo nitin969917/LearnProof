@@ -94,13 +94,13 @@ export default function ScreenTimeCard() {
             {/* Header */}
             <div className="p-3 sm:p-4 border-b border-orange-50 dark:border-gray-700 bg-gradient-to-r from-orange-50/50 dark:from-gray-800 to-white dark:to-gray-800">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Clock className="text-orange-500 w-5 h-5" />
-                        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Screen Time</h2>
-                    </div>
-                    <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-100 dark:border-green-900/20 rounded-full text-[10px] font-bold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping"></span>
-                        Active
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <Clock className="text-orange-500 w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                        <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-100 truncate">Screen Time</h2>
+                        <span className="relative flex h-2 w-2 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -112,17 +112,17 @@ export default function ScreenTimeCard() {
                         <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Today's Usage</p>
                         {formatTime(todayTime)}
                     </div>
-                    <div className="p-2.5 bg-orange-50 dark:bg-orange-950/30 text-orange-500 rounded-xl">
-                        <BarChart2 size={20} />
+                    <div className="p-2 bg-orange-50 dark:bg-orange-950/30 text-orange-500 rounded-xl shrink-0">
+                        <BarChart2 size={18} />
                     </div>
                 </div>
 
                 {/* Progress Visual */}
                 <div className="min-h-[44px] flex flex-col justify-end">
                     {isEditing ? (
-                        <form onSubmit={handleSaveTarget} className="flex items-center justify-between gap-1.5 w-full bg-gray-50 dark:bg-gray-900 p-1.5 rounded-lg border border-orange-100 dark:border-gray-700">
-                            <div className="flex items-center gap-1">
-                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap uppercase">Target:</span>
+                        <form onSubmit={handleSaveTarget} className="flex items-center justify-between gap-1 w-full bg-gray-50 dark:bg-gray-900 p-1 rounded-lg border border-orange-100 dark:border-gray-700">
+                            <div className="flex items-center gap-1 min-w-0">
+                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Tgt:</span>
                                 <input
                                     type="number"
                                     step="0.5"
@@ -130,15 +130,15 @@ export default function ScreenTimeCard() {
                                     max="24"
                                     value={editValue}
                                     onChange={(e) => setEditValue(e.target.value)}
-                                    className="w-14 text-xs font-bold bg-white dark:bg-gray-800 text-gray-800 dark:text-white px-2 py-0.5 rounded border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                    className="w-10 text-xs font-bold bg-white dark:bg-gray-800 text-gray-800 dark:text-white px-1 py-0.5 rounded border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-500"
                                 />
-                                <span className="text-[10px] font-bold text-gray-400">hrs</span>
+                                <span className="text-[10px] font-bold text-gray-400">h</span>
                             </div>
-                            <div className="flex gap-1">
-                                <button type="submit" className="p-1 bg-green-500 text-white rounded hover:bg-green-600 transition flex items-center justify-center">
+                            <div className="flex gap-1 shrink-0">
+                                <button type="submit" className="p-1 bg-green-500 text-white rounded hover:bg-green-600 transition flex items-center justify-center cursor-pointer outline-none focus:outline-none">
                                     <Check size={10} />
                                 </button>
-                                <button type="button" onClick={() => setIsEditing(false)} className="p-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition flex items-center justify-center">
+                                <button type="button" onClick={() => setIsEditing(false)} className="p-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition flex items-center justify-center cursor-pointer outline-none focus:outline-none">
                                     <X size={10} />
                                 </button>
                             </div>

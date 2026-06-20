@@ -19,6 +19,7 @@ import RoadmapDetail from './components/Dashboard/RoadmapDetail';
 import SocialDashboard from './components/Dashboard/Social/SocialDashboard';
 import LanguageLearning from './components/Dashboard/LanguagePractice/LanguageLearning';
 import LanguageRoom from './components/Dashboard/LanguagePractice/LanguageRoom';
+import DailyGoalsPage from './components/Dashboard/DailyGoalsPage';
 
 import AdminLayout from './components/Admin/AdminLayout';
 import AdminDashboardHome from './components/Admin/pages/AdminDashboardHome';
@@ -87,6 +88,7 @@ const App = () => {
                             <Route path="roadmap/:pid" element={<RoadmapDetail />} />
                             <Route path='inbox' element={<Inbox />} />
                             <Route path='quiz' element={<Quiz />} />
+                            <Route path='goals' element={<DailyGoalsPage />} />
                             <Route path='ai-benchmark' element={<AIBenchmark />} />
                             <Route path='ask-my-notes' element={<AskMyNotes />} />
                             <Route path='support' element={<Support />} />

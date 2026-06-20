@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Search, BookOpen, Quote, Menu } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const BottomNav = ({ onMenuClick }) => {
     const navItems = [
@@ -11,37 +12,37 @@ const BottomNav = ({ onMenuClick }) => {
     ];
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 pb-safe-area-inset-bottom shadow-[0_-8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_-8px_30px_rgb(0,0,0,0.2)]">
-            <div className="flex items-center justify-around h-16 max-w-md mx-auto">
+        <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-md z-50 lg:hidden bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300">
+            <div className="flex items-center justify-around h-14 px-2 relative">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}
                         to={item.path}
                         end
-                        className={({ isActive }) =>
-                            `flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 relative ${
-                                isActive 
-                                ? 'text-orange-600 dark:text-orange-400' 
-                                : 'text-gray-500 dark:text-gray-500 hover:text-orange-500'
-                            }`
-                        }
+                        className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-500 no-underline touch-manipulation select-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
                     >
                         {({ isActive }) => (
-                            <>
-                                <div className={`transition-all duration-300 ${isActive ? 'scale-110 -translate-y-0.5' : 'scale-100'}`}>
+                            <motion.div
+                                whileTap={{ scale: 0.88 }}
+                                className="flex flex-col items-center justify-center w-full h-full relative"
+                            >
+                                <div className={`transition-all duration-300 z-10 ${isActive ? 'scale-110 text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
                                     <item.icon 
-                                        size={22} 
+                                        size={23} 
                                         strokeWidth={isActive ? 2.5 : 2} 
-                                        className={isActive ? 'drop-shadow-sm' : ''}
+                                        className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
                                     />
                                 </div>
-                                <span className={`text-[10px] mt-1 font-semibold transition-all duration-300 ${isActive ? 'opacity-100' : 'opacity-60'}`}>
-                                    {item.name}
-                                </span>
+                                
+                                {/* Sleek sliding active background glass pill */}
                                 {isActive && (
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-orange-500 rounded-b-full hidden" />
+                                    <motion.div
+                                        layoutId="activeTabPill"
+                                        className="absolute inset-x-1 inset-y-1.5 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl z-0 border border-orange-500/10 dark:border-orange-500/25"
+                                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                                    />
                                 )}
-                            </>
+                            </motion.div>
                         )}
                     </NavLink>
                 ))}
@@ -49,10 +50,16 @@ const BottomNav = ({ onMenuClick }) => {
                 {/* Menu Button */}
                 <button
                     onClick={onMenuClick}
-                    className="flex flex-col items-center justify-center flex-1 h-full text-gray-500 dark:text-gray-500 hover:text-orange-500 transition-all duration-300"
+                    className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-500 touch-manipulation select-none hover:text-orange-500 dark:hover:text-orange-400 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
                 >
-                    <Menu size={22} strokeWidth={2} />
-                    <span className="text-[10px] mt-1 font-semibold opacity-60">More</span>
+                    <motion.div
+                        whileTap={{ scale: 0.88 }}
+                        className="flex flex-col items-center justify-center w-full h-full"
+                    >
+                        <div className="scale-100 transition-all duration-300">
+                            <Menu size={23} strokeWidth={2} />
+                        </div>
+                    </motion.div>
                 </button>
             </div>
         </nav>
@@ -60,3 +67,5 @@ const BottomNav = ({ onMenuClick }) => {
 };
 
 export default BottomNav;
+
+
