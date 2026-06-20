@@ -8,7 +8,41 @@ import React from 'react';
  * Utility to request user's notification permission, register service worker,
  * retrieve the FCM token, and save it to the backend server.
  */
+export const saveNativeFcmToken = async (token) => {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+  const googleToken = localStorage.getItem('google_token');
+  
+  if (!googleToken) {
+    console.warn("User is not logged in. Skipping native token sync with backend.");
+    return;
+  }
+
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    await axios.post(`${backendUrl}/api/save-fcm-token`, {
+      token,
+      deviceType: 'twa',
+      timezone
+    }, {
+      headers: {
+        Authorization: `Bearer ${googleToken}`
+      }
+    });
+    console.log("Native FCM Token synchronized with backend database successfully.");
+  } catch (error) {
+    console.error("Failed to synchronize native FCM token with backend:", error);
+  }
+};
+
 export const requestNotificationPermissionAndGetToken = async () => {
+  // Check if we are running in the native mobile app and have a native token
+  const nativeToken = localStorage.getItem('native_fcm_token');
+  if (nativeToken) {
+    console.log("Found native FCM token in localStorage:", nativeToken);
+    await saveNativeFcmToken(nativeToken);
+    return nativeToken;
+  }
+
   // Support check
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
     console.warn("FCM Notifications are not supported in this browser environment.");
@@ -115,6 +149,17 @@ if (messaging) {
         duration: 5000,
         position: 'top-right'
       });
+    }
+  });
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('nativeFcmTokenReady', async (e) => {
+    const token = e.detail;
+    console.log("Received nativeFcmTokenReady event:", token);
+    if (token) {
+      localStorage.setItem('native_fcm_token', token);
+      await saveNativeFcmToken(token);
     }
   });
 }
