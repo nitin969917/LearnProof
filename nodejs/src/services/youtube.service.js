@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const axios = require('axios');
 require('dotenv').config();
 
 const youtube = google.youtube({
@@ -155,94 +156,193 @@ const parseDurationToSeconds = (duration) => {
 };
 
 /**
+/**
+ * Convert plain text duration (e.g. 1:20:04 or 10:30) to seconds
+ */
+const parseDurationText = (durationText) => {
+    if (!durationText) return 0;
+    const parts = durationText.split(':').map(Number);
+    if (parts.some(isNaN)) return 0;
+    if (parts.length === 3) {
+        // H:MM:SS
+        return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    } else if (parts.length === 2) {
+        // MM:SS
+        return parts[0] * 60 + parts[1];
+    } else if (parts.length === 1) {
+        // SS
+        return parts[0];
+    }
+    return 0;
+};
+
+/**
  * Search YouTube for videos and playlists
  */
 const searchYoutube = async (query, maxResults = 15, searchType = 'video,playlist', order = 'relevance') => {
+    let endpoint = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+    if (searchType === 'playlist') {
+        endpoint += '&sp=EgIQAw%3D%3D';
+    } else if (searchType === 'video') {
+        endpoint += '&sp=EgIQAQ%3D%3D';
+    }
+
     try {
-        const res = await youtube.search.list({
-            q: query,
-            part: 'snippet',
-            maxResults: maxResults,
-            type: searchType,
-            order: order
+        const page = await axios.get(endpoint, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
         });
+        const ytInitData = page.data.split("var ytInitialData =");
+        if (!ytInitData || ytInitData.length <= 1) {
+            return { error: "Failed to parse YouTube page data" };
+        }
+
+        const dataStr = ytInitData[1].split("</script>")[0].trim();
+        const cleanedData = dataStr.endsWith(';') ? dataStr.slice(0, -1) : dataStr;
+        const initdata = JSON.parse(cleanedData);
+
+        const contents = initdata.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents;
+        if (!contents) {
+            return { results: [] };
+        }
 
         const results = [];
-        const playlistIds = [];
-        const videoIds = [];
 
-        res.data.items.forEach(item => {
-            const { snippet, id } = item;
-            const kind = id.kind;
+        contents.forEach(section => {
+            if (section.itemSectionRenderer?.contents) {
+                section.itemSectionRenderer.contents.forEach(item => {
+                    // 1. Check for videoRenderer
+                    if (item.videoRenderer) {
+                        const vr = item.videoRenderer;
+                        const durationText = vr.lengthText?.simpleText || "";
+                        const durationSec = parseDurationText(durationText);
+                        
+                        // Filter out shorts (less than or equal to 60 seconds)
+                        if (durationSec > 60) {
+                            results.push({
+                                type: 'video',
+                                id: vr.videoId,
+                                title: vr.title?.runs?.[0]?.text || vr.title?.simpleText || "",
+                                channel: vr.ownerText?.runs?.[0]?.text || vr.shortBylineText?.runs?.[0]?.text || "",
+                                description: vr.detailedMetadataSnippets?.[0]?.snippetText?.runs?.map(r => r.text).join('') || vr.descriptionSnippet?.runs?.map(r => r.text).join('') || "",
+                                thumbnail: vr.thumbnail?.thumbnails?.[vr.thumbnail?.thumbnails.length - 1]?.url || vr.thumbnail?.thumbnails?.[0]?.url || "",
+                                published_at: vr.publishedTimeText?.simpleText || "",
+                                url: `https://www.youtube.com/watch?v=${vr.videoId}`
+                            });
+                        }
+                    }
 
-            const result = {
-                title: snippet.title,
-                channel: snippet.channelTitle,
-                description: snippet.description || '',
-                thumbnail: snippet.thumbnails.high?.url || snippet.thumbnails.default?.url,
-                published_at: snippet.publishedAt
-            };
+                    // 2. Check for playlistRenderer (older style)
+                    if (item.playlistRenderer) {
+                        const pr = item.playlistRenderer;
+                        const count = parseInt(pr.videoCount) || 0;
+                        results.push({
+                            type: 'playlist',
+                            id: pr.playlistId,
+                            title: pr.title?.simpleText || pr.title?.runs?.[0]?.text || "",
+                            channel: pr.longBylineText?.runs?.[0]?.text || pr.shortBylineText?.runs?.[0]?.text || "",
+                            description: "",
+                            thumbnail: pr.thumbnails?.[0]?.thumbnails?.[pr.thumbnails[0].thumbnails.length - 1]?.url || pr.thumbnails?.[0]?.thumbnails?.[0]?.url || "",
+                            published_at: "",
+                            url: `https://www.youtube.com/playlist?list=${pr.playlistId}`,
+                            video_count: count
+                        });
+                    }
 
-            if (kind === 'youtube#video') {
-                result.type = 'video';
-                result.id = id.videoId;
-                result.url = `https://www.youtube.com/watch?v=${id.videoId}`;
-                videoIds.push(id.videoId);
-            } else if (kind === 'youtube#playlist') {
-                result.type = 'playlist';
-                result.id = id.playlistId;
-                result.url = `https://www.youtube.com/playlist?list=${id.playlistId}`;
-                playlistIds.push(id.playlistId);
-            } else {
-                return;
+                    // 3. Check for lockupViewModel
+                    if (item.lockupViewModel) {
+                        const vm = item.lockupViewModel;
+                        const contentType = vm.contentType;
+                        const contentId = vm.contentId;
+
+                        const title = vm.metadata?.lockupMetadataViewModel?.title?.content || "";
+                        
+                        // Get channel name
+                        let channel = "";
+                        const rows = vm.metadata?.lockupMetadataViewModel?.metadata?.contentMetadataViewModel?.metadataRows;
+                        if (rows && rows.length > 0) {
+                            const parts = rows[0].metadataParts;
+                            if (parts && parts.length > 0) {
+                                channel = parts[0].text?.content || "";
+                            }
+                        }
+
+                        // Get thumbnail
+                        let thumbnail = "";
+                        if (vm.contentImage?.collectionThumbnailViewModel?.primaryThumbnail?.thumbnailViewModel?.image?.sources) {
+                            const sources = vm.contentImage.collectionThumbnailViewModel.primaryThumbnail.thumbnailViewModel.image.sources;
+                            thumbnail = sources[sources.length - 1]?.url || "";
+                        } else if (vm.contentImage?.thumbnailViewModel?.image?.sources) {
+                            const sources = vm.contentImage.thumbnailViewModel.image.sources;
+                            thumbnail = sources[sources.length - 1]?.url || "";
+                        }
+
+                        if (contentType === 'LOCKUP_CONTENT_TYPE_PLAYLIST') {
+                            // Extract video count from badges/overlays
+                            let videoCount = 0;
+                            const overlays = vm.contentImage?.collectionThumbnailViewModel?.primaryThumbnail?.thumbnailViewModel?.overlays;
+                            if (overlays) {
+                                for (const overlay of overlays) {
+                                    const badges = overlay.thumbnailOverlayBadgeViewModel?.thumbnailBadges;
+                                    if (badges) {
+                                        for (const badge of badges) {
+                                            const badgeText = badge.thumbnailBadgeViewModel?.text || "";
+                                            const match = badgeText.match(/\d+/);
+                                            if (match) {
+                                                videoCount = parseInt(match[0]) || 0;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (videoCount > 0) break;
+                                }
+                            }
+
+                            results.push({
+                                type: 'playlist',
+                                id: contentId,
+                                title: title,
+                                channel: channel,
+                                description: "",
+                                thumbnail: thumbnail,
+                                published_at: "",
+                                url: `https://www.youtube.com/playlist?list=${contentId}`,
+                                video_count: videoCount
+                            });
+                        } else if (contentType === 'LOCKUP_CONTENT_TYPE_VIDEO') {
+                            // Extract duration/time status
+                            let durationText = "";
+                            const overlays = vm.contentImage?.thumbnailViewModel?.overlays;
+                            if (overlays) {
+                                for (const overlay of overlays) {
+                                    if (overlay.thumbnailOverlayTimeStatusRenderer) {
+                                        durationText = overlay.thumbnailOverlayTimeStatusRenderer.text || "";
+                                        break;
+                                    }
+                                }
+                            }
+                            const durationSec = parseDurationText(durationText);
+                            if (durationSec > 60) {
+                                results.push({
+                                    type: 'video',
+                                    id: contentId,
+                                    title: title,
+                                    channel: channel,
+                                    description: "",
+                                    thumbnail: thumbnail,
+                                    published_at: "",
+                                    url: `https://www.youtube.com/watch?v=${contentId}`
+                                });
+                            }
+                        }
+                    }
+                });
             }
-
-            results.push(result);
         });
 
-        // Fetch durations for videos to filter out shorts
-        let filteredResults = results;
-        if (videoIds.length) {
-            const vRes = await youtube.videos.list({
-                part: 'contentDetails',
-                id: videoIds.join(',')
-            });
-
-            const durationMap = {};
-            vRes.data.items.forEach(item => {
-                durationMap[item.id] = parseDurationToSeconds(item.contentDetails.duration);
-            });
-
-            // Filter out shorts (less than or equal to 60 seconds)
-            filteredResults = results.filter(r => {
-                if (r.type === 'video') {
-                    const duration = durationMap[r.id] || 0;
-                    return duration > 60; // Keep only videos longer than 1 minute
-                }
-                return true; // Keep playlists
-            });
-        }
-
-        // Fetch playlist video counts
-        if (playlistIds.length) {
-            const plRes = await youtube.playlists.list({
-                part: 'contentDetails',
-                id: playlistIds.join(',')
-            });
-
-            const plMap = {};
-            plRes.data.items.forEach(p => {
-                plMap[p.id] = p.contentDetails.itemCount;
-            });
-
-            filteredResults.forEach(r => {
-                if (r.type === 'playlist') {
-                    r.video_count = plMap[r.id] || 0;
-                }
-            });
-        }
-
-        return { results: filteredResults };
+        const slicedResults = maxResults ? results.slice(0, maxResults) : results;
+        return { results: slicedResults };
     } catch (error) {
         return { error: `Search API Error: ${error.message}` };
     }
