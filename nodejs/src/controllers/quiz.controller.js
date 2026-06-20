@@ -544,6 +544,34 @@ const verifyCertificate = async (req, res) => {
     }
 };
 
+const deleteQuizHistory = async (req, res) => {
+    const { id } = req.params;
+    const user = req.user;
+
+    try {
+        const quiz = await prisma.quiz.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!quiz) {
+            return res.status(404).json({ error: 'Quiz attempt not found' });
+        }
+
+        // Security check: ensure the user owns this quiz attempt
+        if (quiz.userId !== user.id) {
+            return res.status(403).json({ error: 'Forbidden: You do not own this quiz attempt' });
+        }
+
+        await prisma.quiz.delete({
+            where: { id: parseInt(id) }
+        });
+
+        res.status(200).json({ success: true, message: 'Quiz attempt deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getQuizList,
     startQuiz,
@@ -552,4 +580,5 @@ module.exports = {
     getActivityGraph,
     getQuizHistory,
     verifyCertificate,
+    deleteQuizHistory,
 };

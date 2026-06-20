@@ -66,6 +66,7 @@ router.post('/submit-quiz/', authMiddleware, quizController.submitQuiz);
 router.post('/certs/', authMiddleware, quizController.getCertificates);
 router.post('/activity/', authMiddleware, quizController.getActivityGraph);
 router.get('/quiz-history/', authMiddleware, quizController.getQuizHistory);
+router.delete('/quiz-history/:id', authMiddleware, quizController.deleteQuizHistory);
 router.get('/verify-certificate/:certId', quizController.verifyCertificate);
 
 // Admin Routes

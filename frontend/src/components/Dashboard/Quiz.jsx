@@ -3,7 +3,7 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
-import { Play, CheckCircle, Circle, ArrowLeft, Clock, Sparkles, BookOpen, AlertCircle, X, Trophy, Lock, Award, ChevronLeft, ChevronRight, Video, Library } from 'lucide-react';
+import { Play, CheckCircle, Circle, ArrowLeft, Clock, Sparkles, BookOpen, AlertCircle, X, Trophy, Lock, Award, ChevronLeft, ChevronRight, Video, Library, Trash2 } from 'lucide-react';
 import { useModal } from "../../context/ModalContext";
 
 const Quiz = () => {
@@ -122,6 +122,29 @@ const Quiz = () => {
             toast.error("Failed to submit quiz");
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleDeleteHistory = async (id) => {
+        const confirmed = await confirm({
+            title: "Delete Quiz Attempt",
+            message: "Are you sure you want to delete this quiz attempt from your history?",
+            confirmText: "Delete",
+            type: "danger"
+        });
+
+        if (!confirmed) return;
+
+        try {
+            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${id}?idToken=${authToken}`);
+            toast.success("Quiz attempt deleted successfully");
+            setHistory(prev => prev.filter(item => item.id !== id));
+            if (selectedHistoryQuiz?.id === id) {
+                setSelectedHistoryQuiz(null);
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to delete quiz attempt");
         }
     };
 
@@ -341,13 +364,23 @@ const Quiz = () => {
         return (
             <div className="bg-orange-50 dark:bg-gray-900 transition-colors duration-300">
                 <div className="max-w-4xl mx-auto">
-                    <button
-                        onClick={() => setSelectedHistoryQuiz(null)}
-                        className="mb-6 sm:mb-8 flex items-center gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-white text-xs sm:text-base font-bold rounded-xl border border-orange-100 dark:border-gray-600/50 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 w-fit"
-                    >
-                        <ArrowLeft size={16} className="sm:w-[18px] sm:h-[18px]" />
-                        Back to Selection
-                    </button>
+                    <div className="flex justify-between items-center mb-6 sm:mb-8">
+                        <button
+                            onClick={() => setSelectedHistoryQuiz(null)}
+                            className="flex items-center gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-white dark:bg-gray-700 text-gray-705 dark:text-white text-xs sm:text-base font-bold rounded-xl border border-orange-100 dark:border-gray-600/50 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 w-fit"
+                        >
+                            <ArrowLeft size={16} className="sm:w-[18px] sm:h-[18px]" />
+                            Back to Selection
+                        </button>
+
+                        <button
+                            onClick={() => handleDeleteHistory(selectedHistoryQuiz.id)}
+                            className="flex items-center gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs sm:text-base font-bold rounded-xl border border-red-200 dark:border-red-900/30 shadow-sm hover:bg-red-105 dark:hover:bg-red-900/40 transition-all active:scale-95 w-fit"
+                        >
+                            <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
+                            Delete Attempt
+                        </button>
+                    </div>
 
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
@@ -604,7 +637,7 @@ const Quiz = () => {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-3 flex-shrink-0 ml-2">
+                                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                                             <div className={`px-2.5 py-1.5 rounded-xl text-[11px] font-black tracking-tighter shadow-sm min-w-[50px] text-center ${
                                                 hist.passed 
                                                 ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' 
@@ -612,6 +645,18 @@ const Quiz = () => {
                                             }`}>
                                                 {hist.score}%
                                             </div>
+                                            
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteHistory(hist.id);
+                                                }}
+                                                className="p-2 text-gray-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex items-center justify-center cursor-pointer"
+                                                title="Delete Attempt"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+
                                             <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 border dark:border-gray-700 hidden sm:flex">
                                                 <ChevronRight size={18} className="text-orange-500" />
                                             </div>
