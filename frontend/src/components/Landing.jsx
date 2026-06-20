@@ -853,9 +853,9 @@ const LandingPage = () => {
                                 </div>
                                 <div className="flex flex-col space-y-3">
                                     <h4 className="font-bold text-gray-900 mb-2">Company</h4>
-                                    <a href="/privacy" className="hover:text-orange-600 transition-colors">Privacy</a>
+                                    <a href="/privacy-policy" className="hover:text-orange-600 transition-colors">Privacy</a>
                                     <a href="/terms" className="hover:text-orange-600 transition-colors">Terms</a>
-                                    <a href="mailto:hello@learnproofai.com" className="hover:text-orange-600 transition-colors">Support</a>
+                                    <a href="/support" className="hover:text-orange-600 transition-colors">Support</a>
                                 </div>
                             </div>
                         </div>

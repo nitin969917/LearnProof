@@ -20,6 +20,7 @@ import SocialDashboard from './components/Dashboard/Social/SocialDashboard';
 import LanguageLearning from './components/Dashboard/LanguagePractice/LanguageLearning';
 import LanguageRoom from './components/Dashboard/LanguagePractice/LanguageRoom';
 import DailyGoalsPage from './components/Dashboard/DailyGoalsPage';
+import LoginPage from './components/Common/LoginPage';
 
 import AdminLayout from './components/Admin/AdminLayout';
 import AdminDashboardHome from './components/Admin/pages/AdminDashboardHome';
@@ -35,6 +36,7 @@ import Support from './components/Common/SupportPage';
 import AdminSupportList from './components/Admin/pages/AdminSupportList';
 import PrivacyPolicy from './components/Common/PrivacyPolicy';
 import DeleteAccount from './components/Common/DeleteAccount';
+import TermsOfService from './components/Common/TermsOfService';
 
 const App = () => {
     React.useEffect(() => {
@@ -70,7 +72,10 @@ const App = () => {
                         <Route path='/ai-study-planner' element={<LandingPage />} />
                         <Route path='/verify/:certId' element={<VerifyCertificate />} />
                         <Route path='/privacy-policy' element={<PrivacyPolicy />} />
+                        <Route path='/terms' element={<TermsOfService />} />
+                        <Route path='/support' element={<Support />} />
                         <Route path='/delete-account' element={<DeleteAccount />} />
+                        <Route path='/login' element={<LoginPage />} />
 
                         <Route
                             path='/dashboard/*'

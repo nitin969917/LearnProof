@@ -174,7 +174,7 @@ const DailyGoalsPage = () => {
             </div>
 
             {/* Progress Card */}
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm space-y-3">
+            <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm space-y-3">
                 <div className="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">
                     <span className="flex items-center gap-1.5">
                         <Trophy size={14} className="text-amber-500" />
@@ -193,7 +193,7 @@ const DailyGoalsPage = () => {
             </div>
 
             {/* Daily Management Panel */}
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm space-y-4">
                 {/* Form */}
                 <form onSubmit={handleAddTask} className="flex gap-2">
                     <input
@@ -201,12 +201,12 @@ const DailyGoalsPage = () => {
                         value={newTask}
                         onChange={(e) => setNewTask(e.target.value)}
                         placeholder="What is your goal for today?"
-                        className="flex-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 text-sm py-2.5 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all placeholder-gray-400 dark:placeholder-gray-500"
+                        className="flex-1 min-w-0 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 text-sm py-2.5 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500 transition-all placeholder-gray-400 dark:placeholder-gray-500"
                     />
                     <button
                         type="submit"
                         disabled={!newTask.trim()}
-                        className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0"
                     >
                         <Plus size={16} />
                         Add
@@ -267,7 +267,7 @@ const DailyGoalsPage = () => {
             </div>
 
             {/* Past Day Progress section */}
-            <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm space-y-4">
+            <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-orange-50 dark:border-gray-700 pb-2">
                     <Calendar className="text-orange-500 w-4 h-4" />
                     <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">Past Progress</h2>
