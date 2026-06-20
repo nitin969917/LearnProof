@@ -18,6 +18,10 @@ out/
 # Database
 dev.db
 dev.db-journal
+dating-dev.db
+dating-dev.db-journal
+*.db
+*.db-journal
 prisma/migrations/
 
 # Logs
