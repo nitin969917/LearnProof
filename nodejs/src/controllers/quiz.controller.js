@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const { generateQuiz } = require('../services/ai.service');
 const { generateCertificatePDF } = require('../services/certificate.service');
+const cacheService = require('../services/cache.service');
 
 const normalizeQuestions = (questionsStr) => {
     let parsed = JSON.parse(questionsStr);
@@ -178,9 +179,20 @@ const startQuiz = async (req, res) => {
                     if (intuitionText && !intuitionRes.isSystemFallback) {
                         await prisma.videoIntuition.upsert({
                             where: { vid: contentId },
-                            update: { content: intuitionRes.content, model_name: intuitionRes.model_name },
-                            create: { vid: contentId, content: intuitionRes.content, model_name: intuitionRes.model_name }
+                            update: { 
+                                content: intuitionRes.content, 
+                                model_name: intuitionRes.model_name,
+                                transcript_used: !!intuitionRes.transcript_used
+                            },
+                            create: { 
+                                vid: contentId, 
+                                content: intuitionRes.content, 
+                                model_name: intuitionRes.model_name,
+                                transcript_used: !!intuitionRes.transcript_used
+                            }
                         });
+                        // Invalidate Redis cache to ensure synchronization
+                        await cacheService.del(`video:intuition:${contentId}:English`);
                     }
                 } catch (e) {
                     console.error("[Quiz] Intuition generation failed:", e.message);
