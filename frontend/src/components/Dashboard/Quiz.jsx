@@ -520,8 +520,8 @@ const Quiz = () => {
                                                         <div className="h-2.5 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden p-0.5">
                                                             <motion.div 
                                                                 initial={{ width: 0 }}
-                                                                animate={{ width: `${(pl.passed_video_quizzes / pl.total_videos) * 100}%` }}
-                                                                className={`h-full rounded-full bg-gradient-to-r ${pl.passed_video_quizzes === pl.total_videos ? 'from-green-500 to-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'from-orange-400 to-amber-500 shadow-[0_0_10px_rgba(249,115,22,0.3)]'}`}
+                                                                animate={{ width: `${pl.total_videos > 0 ? (pl.passed_video_quizzes / pl.total_videos) * 100 : 0}%` }}
+                                                                className={`h-full rounded-full bg-gradient-to-r ${pl.total_videos > 0 && pl.passed_video_quizzes === pl.total_videos ? 'from-green-500 to-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'from-orange-400 to-amber-500 shadow-[0_0_10px_rgba(249,115,22,0.3)]'}`}
                                                             />
                                                         </div>
                                                     </div>
