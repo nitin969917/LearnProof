@@ -319,6 +319,14 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
         Structure the content such that a student can directly use it to answer descriptive university exam questions.
         If the video is a tutorial, provide the underlying theory as well.
         
+        STRICT FORMATTING RULES:
+        1. NO HTML TAGS: Do NOT output raw HTML tags (e.g., do NOT use <br>, <b>, <i>, etc.). Use standard Markdown syntax (like double newlines) for line breaks and paragraphs.
+        2. STANDARD MATH FORMATTING: If you write mathematical formulas, variables, or equations, use standard LaTeX delimiters:
+           - Use single dollar signs ($...$) for inline math (e.g., $t \\ge A_i$, $\\tau > 0$).
+           - Use double dollar signs ($$...$$) for block equations (e.g., $$W_{avg} = \\frac{1}{n}\\sum W_i$$).
+           - Do NOT use parenthesis delimiters like (t \\ge A_i) or square brackets like [t \\ge A_i].
+        3. STRICT MARKDOWN BOLDING: Ensure every opening bold marker "**" has a matching closing bold marker "**". Do not leave trailing or loose asterisks.
+        
         Video Title: '${title}'
         Video URL: '${url || 'Not provided'}'
         Video Description: '${description}'
@@ -509,6 +517,14 @@ const benchmarkAllModels = async (title, description, url = null) => {
     const intuitionPrompt = `
         Act as an expert, highly engaging educational tutor.
         Provide a concise yet complete intuition and breakdown of the core concepts for the video.
+        
+        STRICT FORMATTING RULES:
+        1. NO HTML TAGS: Do NOT output raw HTML tags (e.g., do NOT use <br>, <b>, <i>, etc.). Use standard Markdown syntax (like double newlines) for line breaks and paragraphs.
+        2. STANDARD MATH FORMATTING: If you write mathematical formulas, variables, or equations, use standard LaTeX delimiters:
+           - Use single dollar signs ($...$) for inline math (e.g., $t \\ge A_i$, $\\tau > 0$).
+           - Use double dollar signs ($$...$$) for block equations (e.g., $$W_{avg} = \\frac{1}{n}\\sum W_i$$).
+           - Do NOT use parenthesis delimiters like (t \\ge A_i) or square brackets like [t \\ge A_i].
+        3. STRICT MARKDOWN BOLDING: Ensure every opening bold marker "**" has a matching closing bold marker "**". Do not leave trailing or loose asterisks.
         
         Title: '${title}'
         URL: '${url || 'Not provided'}'
