@@ -325,7 +325,7 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
            - Use single dollar signs ($...$) for inline math (e.g., $t \\ge A_i$, $\\tau > 0$).
            - Use double dollar signs ($$...$$) for block equations (e.g., $$W_{avg} = \\frac{1}{n}\\sum W_i$$).
            - Do NOT use parenthesis delimiters like (t \\ge A_i) or square brackets like [t \\ge A_i].
-        3. STRICT MARKDOWN BOLDING: Ensure every opening bold marker "**" has a matching closing bold marker "**". Do not leave trailing or loose asterisks.
+        3. STRICT MARKDOWN BOLDING & HEADERS: Ensure every opening bold marker "**" has a matching closing bold marker "**". Do not leave trailing or loose asterisks. Do NOT use single asterisks (*) for headers or titles; always use double asterisks (**) to bold them.
         
         Video Title: '${title}'
         Video URL: '${url || 'Not provided'}'
@@ -351,7 +351,7 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
         (Instruction: Provide concrete examples, use-cases, or code. Include a 'Pros vs Cons' or 'Comparison Table' in markdown if applicable. Around 150-200 words.)
         
         ### 📝 Potential Exam Questions & High-Score Tips
-        (Instruction: List 3 likely descriptive exam questions based on this video and provide short 'Bullet-Point' outlines of how the user should answer them to get full marks.)
+        (Instruction: List 3 likely descriptive exam questions based on this video. Format each question title strictly in bold using double asterisks: **Question X: [Question Text]**, followed by short 'Bullet-Point' outlines of how the user should answer them to get full marks. Do NOT use single asterisks * for question titles or headers.)
 
         Make sure the explanation is illuminating and complete, yet highly token-efficient.
         IMPORTANT: Your entire response MUST be in ${finalLanguage}.
@@ -524,7 +524,7 @@ const benchmarkAllModels = async (title, description, url = null) => {
            - Use single dollar signs ($...$) for inline math (e.g., $t \\ge A_i$, $\\tau > 0$).
            - Use double dollar signs ($$...$$) for block equations (e.g., $$W_{avg} = \\frac{1}{n}\\sum W_i$$).
            - Do NOT use parenthesis delimiters like (t \\ge A_i) or square brackets like [t \\ge A_i].
-        3. STRICT MARKDOWN BOLDING: Ensure every opening bold marker "**" has a matching closing bold marker "**". Do not leave trailing or loose asterisks.
+        3. STRICT MARKDOWN BOLDING & HEADERS: Ensure every opening bold marker "**" has a matching closing bold marker "**". Do not leave trailing or loose asterisks. Do NOT use single asterisks (*) for headers or titles; always use double asterisks (**) to bold them.
         
         Title: '${title}'
         URL: '${url || 'Not provided'}'

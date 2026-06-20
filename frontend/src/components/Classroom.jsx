@@ -37,6 +37,37 @@ const INDIAN_LANGS = [
   'Tamil', 'Gujarati', 'Urdu', 'Kannada', 'Odia', 'Malayalam'
 ];
 
+const preprocessMarkdown = (text) => {
+  if (!text) return "";
+
+  let processed = text;
+
+  // 1. Convert block math delimiters: \[ or \\[ or any number of backslashes followed by [ to $$
+  processed = processed
+    .replace(/\\+\[/g, () => '$$')
+    .replace(/\\+\]/g, () => '$$');
+
+  // 2. Convert parenthesized inline math delimiters: \(( math )\) to $ math $
+  processed = processed.replace(/\\+\(\s*\(\s*(.*?)\s*\)\s*\\+\)/g, (_, math) => `$${math}$`);
+
+  // 3. Convert normal inline math delimiters: \( or \\( to $
+  processed = processed
+    .replace(/\\+\(/g, () => '$')
+    .replace(/\\+\)/g, () => '$');
+
+  // 4. Convert literal parentheses containing LaTeX commands to math delimiters:
+  // e.g. ( \overline{W} ) -> $ \overline{W} $
+  processed = processed.replace(/\(\s*([^)]*?\\[a-zA-Z][^)]*?)\s*\)/g, (_, math) => `$${math}$`);
+
+  // 5. Convert HTML break tags to newlines
+  processed = processed.replace(/<br\s*\/?>/gi, '\n');
+
+  // 6. Fix list item question headers starting with a single asterisk:
+  processed = processed.replace(/^\*(?=[a-zA-Z0-9])(.*?)\*?$/gm, '**$1**');
+
+  return processed;
+};
+
 const Classroom = () => {
 
   const { user, token, loading: authLoading } = useAuth();
@@ -921,7 +952,7 @@ const Classroom = () => {
                                 td: ({ node, ...props }) => <td className="px-4 py-3 border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 break-words" {...props} />
                               }}
                             >
-                              {intuitionContent}
+                              {preprocessMarkdown(intuitionContent)}
                             </ReactMarkdown>
                             : "No intuition could be generated for this video."}
                         </div>
