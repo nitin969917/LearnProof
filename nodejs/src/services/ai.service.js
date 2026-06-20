@@ -14,7 +14,7 @@ const MODELS = {
     GROQ_QWEN_32B: 'qwen/qwen3-32b',
     GROQ_LLAMA_4_MAVERICK: 'meta-llama/llama-4-maverick-17b-128e-instruct',
     OPENROUTER_MODEL: 'openrouter/free', // Free model router
-    CEREBRAS_MODEL: 'llama3.1-8b' // Ultra-fast inference (Verified ID)
+    CEREBRAS_MODEL: 'gpt-oss-120b'
 };
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -183,9 +183,9 @@ async function callCerebras(prompt, jsonMode = false, temperature = 0.1) {
 /**
  * Generate quiz using Gemini. Mimics quiz_generator.py logic but with actual AI.
  */
-const generateQuiz = async (title, description, url = null, intuitionText = null, numQuestions = 15) => {
+const generateQuiz = async (title, description, url = null, intuitionText = null, numQuestions = 10) => {
     const quizPrompt = `
-      Act as an expert educator. Based ONLY on the following video/playlist info and specifically the provided "AI Intuition Summary", generate a highly comprehensive and DIVERSE quiz with BETWEEN 15 and 20 multiple-choice questions (STRICTLY AT MOST 20). 
+      Act as an expert educator. Based ONLY on the following video/playlist info and specifically the provided "AI Intuition Summary", generate a highly comprehensive and DIVERSE quiz with BETWEEN 8 and 10 multiple-choice questions (STRICTLY AT MOST 10). 
       
       STRICT CONSTRAINTS:
       - EVERY question must be unique. Do NOT repeat the same concept or wording across questions.

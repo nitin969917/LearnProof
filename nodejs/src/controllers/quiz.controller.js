@@ -190,8 +190,8 @@ const startQuiz = async (req, res) => {
 
                 console.log(`[Quiz] Grounding quiz in intuition for ${contentId}...`);
                 try {
-                    const quizRes = await generateQuiz(title, description, target.url, intuitionText, 20);
-                    questions = (quizRes.questions || []).slice(0, 20);
+                    const quizRes = await generateQuiz(title, description, target.url, intuitionText, 10);
+                    questions = (quizRes.questions || []).slice(0, 10);
 
                     // Cache Quiz if successful
                     if (questions && questions.length > 0 && !quizRes.isSystemFallback) {
@@ -210,8 +210,8 @@ const startQuiz = async (req, res) => {
                 console.log(`[Quiz] Using cached intuition for ${contentId} to generate quiz...`);
                 const { generateQuiz } = require('../services/ai.service');
                 try {
-                    const { questions: generatedQuestions, isSystemFallback } = await generateQuiz(title, description, target.url, intuitionText, 20);
-                    questions = (generatedQuestions || []).slice(0, 20);
+                    const { questions: generatedQuestions, isSystemFallback } = await generateQuiz(title, description, target.url, intuitionText, 10);
+                    questions = (generatedQuestions || []).slice(0, 10);
 
                     // Save for videos if not fallback
                     if (questions && questions.length > 0 && !isSystemFallback) {
