@@ -320,7 +320,7 @@ const LandingPage = () => {
                         initial={{ opacity: 0, y: 30 }}
                         animate={showContent ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.8, duration: 0.8 }}
-                        className="flex flex-col sm:flex-row items-center gap-6"
+                        className="flex flex-col sm:flex-row items-center gap-6 flex-wrap"
                     >
                         <button 
                             onClick={handleManualGoogleLogin}
@@ -329,6 +329,19 @@ const LandingPage = () => {
                             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
                             <span>Continue with Google</span>
                         </button>
+                        <a
+                            href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="transition-all duration-300 transform hover:-translate-y-1 hover:opacity-90 drop-shadow-lg hover:drop-shadow-xl"
+                            aria-label="Get it on Google Play"
+                        >
+                            <img
+                                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                                alt="Get it on Google Play"
+                                className="h-[58px] w-auto"
+                            />
+                        </a>
                         <div className="flex items-center gap-2 text-sm text-gray-500 font-medium bg-white/50 px-4 py-2 rounded-full border border-gray-200/50 backdrop-blur-sm">
                             <CheckCircle size={16} className="text-green-500" />
                             <span>Free forever to start</span>
@@ -447,85 +460,56 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
                 viewport={{ once: true }}
-                className="py-16 px-4 sm:px-8 lg:px-16"
+                className="py-10 sm:py-16 px-3 sm:px-8 lg:px-16"
             >
-                <div className="max-w-7xl mx-auto">
+                <div className="max-w-5xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
                         viewport={{ once: true }}
-                        className="text-center mb-12"
+                        className="text-center mb-8 sm:mb-12"
                     >
-                        <h2 className="text-3xl lg:text-5xl font-bold mb-6 text-gray-800">
+                        <h2 className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-3 sm:mb-6 text-gray-800">
                             See LearnProof in <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">Action</span>
                         </h2>
-                        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                            Watch our introduction and learn how to make the most of your AI learning journey.
+                        <p className="text-gray-600 text-sm sm:text-lg max-w-2xl mx-auto px-2">
+                            Watch how LearnProof AI transforms YouTube videos into a complete learning experience with quizzes, notes, and verified certificates.
                         </p>
                     </motion.div>
-                    
-                    <div className="grid md:grid-cols-2 gap-8">
-                        {/* Intro Video */}
-                        <motion.div 
-                            initial={{ opacity: 0, x: -30 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.6, delay: 0.2 }}
-                            viewport={{ once: true }}
-                            className="bg-white/80 backdrop-blur-xl border border-orange-200 rounded-3xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-                        >
-                            <div className="flex items-center gap-3 mb-5 px-2">
-                                <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-                                    <Sparkles className="w-5 h-5 text-orange-600" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-800">Introduction</h3>
-                                    <p className="text-sm text-gray-500 font-medium">Discover what LearnProof AI is all about</p>
-                                </div>
-                            </div>
-                            <div className="aspect-video w-full rounded-2xl overflow-hidden border-2 border-gray-100/50 bg-gray-50 shadow-inner relative group">
-                                <div className="absolute inset-0 bg-gray-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl z-10"></div>
-                                <iframe 
-                                    src="https://drive.google.com/file/d/1IKaW11_N2w1lZzh3tx9GGLiu2LMy6Ro3/preview" 
-                                    className="w-full h-full relative z-0"
-                                    allow="autoplay; encrypted-media" 
-                                    allowFullScreen
-                                    title="Introduction to LearnProof"
-                                ></iframe>
-                            </div>
-                        </motion.div>
 
-                        {/* How to Use Video */}
-                        <motion.div 
-                            initial={{ opacity: 0, x: 30 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.6, delay: 0.4 }}
-                            viewport={{ once: true }}
-                            className="bg-white/80 backdrop-blur-xl border border-orange-200 rounded-3xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1"
-                        >
-                            <div className="flex items-center gap-3 mb-5 px-2">
-                                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                                    <Lightbulb className="w-5 h-5 text-amber-600" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-800">How to Use</h3>
-                                    <p className="text-sm text-gray-500 font-medium">A quick tutorial to get you started</p>
-                                </div>
+                    {/* Single YouTube Video */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.7, delay: 0.2 }}
+                        viewport={{ once: true }}
+                        className="bg-white/80 backdrop-blur-xl border border-orange-200 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-xl hover:shadow-2xl transition-all duration-300"
+                    >
+                        <div className="flex items-center gap-3 mb-3 sm:mb-5 px-1 sm:px-2">
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                                <Youtube className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
                             </div>
-                            <div className="aspect-video w-full rounded-2xl overflow-hidden border-2 border-gray-100/50 bg-gray-50 shadow-inner relative group">
-                                <div className="absolute inset-0 bg-gray-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-2xl z-10"></div>
-                                <iframe 
-                                    src="https://drive.google.com/file/d/1RjXIjOJudLngSfPLc17SFXoAtVZDuTq9/preview" 
-                                    className="w-full h-full relative z-0"
-                                    allow="autoplay; encrypted-media" 
-                                    allowFullScreen
-                                    title="How to Use LearnProof"
-                                ></iframe>
+                            <div>
+                                <h3 className="text-base sm:text-xl font-bold text-gray-800 leading-tight">Introduction & How to Use</h3>
+                                <p className="text-xs sm:text-sm text-gray-500 font-medium mt-0.5">Discover what LearnProof AI is all about and get started in minutes</p>
                             </div>
-                        </motion.div>
-                    </div>
+                        </div>
+
+                        {/* Responsive video wrapper — fixed 16:9 on all screens */}
+                        <div className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-gray-900 shadow-inner"
+                             style={{ paddingTop: '56.25%' }}>
+                            <iframe
+                                src="https://www.youtube.com/embed/wnRCqWk36Ok?si=3c3JI20l21-2VZXR"
+                                className="absolute inset-0 w-full h-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                                title="Introduction to LearnProof AI - How to Use"
+                            ></iframe>
+                        </div>
+                    </motion.div>
                 </div>
-            </motion.section >
+            </motion.section>
 
             {/* Benefits Section */}
             < motion.section
