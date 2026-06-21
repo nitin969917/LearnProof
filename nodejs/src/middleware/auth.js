@@ -1,7 +1,8 @@
 const admin = require('firebase-admin');
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const JWT_SECRET = process.env.JWT_SECRET || 'learnproof_default_secret_9988';

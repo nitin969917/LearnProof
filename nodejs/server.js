@@ -3,7 +3,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 const http = require('http');
 const { Server } = require('socket.io');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const apiRoutes = require('./src/routes/api');
 const datingRoutes = require('./src/routes/datingRoutes');

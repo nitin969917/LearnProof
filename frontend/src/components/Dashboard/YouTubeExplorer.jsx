@@ -93,7 +93,8 @@ const YouTubeExplorer = () => {
             }
         } catch (err) {
             console.error(err);
-            toast.error("Failed to fetch details.", { id: toastId });
+            const errMsg = err.response?.data?.error || "Failed to fetch details.";
+            toast.error(errMsg, { id: toastId });
         } finally {
             setImportLoading(false);
         }

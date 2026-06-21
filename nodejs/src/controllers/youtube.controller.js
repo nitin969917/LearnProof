@@ -18,7 +18,10 @@ const importMetadata = async (req, res) => {
     if (!url) return res.status(400).json({ error: 'Missing url' });
 
     const result = await getYoutubeMetadata(url);
-    if (result.error) return res.status(400).json({ error: result.error });
+    if (result.error) {
+        console.error('Import metadata error:', result.error);
+        return res.status(400).json({ error: result.error });
+    }
 
     res.status(200).json({ success: true, data: result });
 };

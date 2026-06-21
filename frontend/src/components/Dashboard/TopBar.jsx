@@ -36,7 +36,8 @@ const TopBar = ({ onMenuClick }) => {
             }
         } catch (err) {
             console.error(err);
-            toast.error("Failed to import. Check URL or token.");
+            const errMsg = err.response?.data?.error || "Failed to import. Check URL or token.";
+            toast.error(errMsg);
         } finally {
             setLoading(false);
         }
