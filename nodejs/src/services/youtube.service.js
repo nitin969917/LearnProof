@@ -47,12 +47,15 @@ const getYoutubeMetadata = async (url, maxPlaylistVideos = null) => {
         if (!type) return { error: 'Invalid YouTube URL' };
 
         if (type === 'video') {
-            const res = await youtube.videos.list({
-                part: 'snippet,contentDetails,statistics',
-                id: id
+            const res = await axios.get('https://youtube.googleapis.com/youtube/v3/videos', {
+                params: {
+                    part: 'snippet,contentDetails,statistics',
+                    id: id,
+                    key: process.env.YOUTUBE_API_KEY
+                }
             });
 
-            if (!res.data.items.length) return { error: 'Video not found' };
+            if (!res.data.items || !res.data.items.length) return { error: 'Video not found' };
 
             const item = res.data.items[0];
             return {
@@ -69,12 +72,15 @@ const getYoutubeMetadata = async (url, maxPlaylistVideos = null) => {
                 url: `https://www.youtube.com/watch?v=${id}`
             };
         } else if (type === 'playlist') {
-            const plRes = await youtube.playlists.list({
-                part: 'snippet,contentDetails',
-                id: id
+            const plRes = await axios.get('https://youtube.googleapis.com/youtube/v3/playlists', {
+                params: {
+                    part: 'snippet,contentDetails',
+                    id: id,
+                    key: process.env.YOUTUBE_API_KEY
+                }
             });
 
-            if (!plRes.data.items.length) return { error: 'Playlist not found' };
+            if (!plRes.data.items || !plRes.data.items.length) return { error: 'Playlist not found' };
 
             const playlistItem = plRes.data.items[0];
 
@@ -86,12 +92,17 @@ const getYoutubeMetadata = async (url, maxPlaylistVideos = null) => {
                 const currentMax = maxPlaylistVideos ? Math.min(50, maxPlaylistVideos - videosFetched) : 50;
                 if (maxPlaylistVideos && currentMax <= 0) break;
 
-                const itemsRes = await youtube.playlistItems.list({
-                    part: 'snippet',
-                    playlistId: id,
-                    maxResults: currentMax,
-                    pageToken: nextPageToken
+                const itemsRes = await axios.get('https://youtube.googleapis.com/youtube/v3/playlistItems', {
+                    params: {
+                        part: 'snippet',
+                        playlistId: id,
+                        maxResults: currentMax,
+                        pageToken: nextPageToken,
+                        key: process.env.YOUTUBE_API_KEY
+                    }
                 });
+
+                if (!itemsRes.data.items) break;
 
                 const pageVideos = itemsRes.data.items
                     .filter(v => v.snippet.resourceId.kind === 'youtube#video')
@@ -104,15 +115,20 @@ const getYoutubeMetadata = async (url, maxPlaylistVideos = null) => {
 
                 if (pageVideos.length) {
                     const videoIds = pageVideos.map(pv => pv.video_id);
-                    const descRes = await youtube.videos.list({
-                        part: 'snippet',
-                        id: videoIds.join(',')
+                    const descRes = await axios.get('https://youtube.googleapis.com/youtube/v3/videos', {
+                        params: {
+                            part: 'snippet',
+                            id: videoIds.join(','),
+                            key: process.env.YOUTUBE_API_KEY
+                        }
                     });
 
                     const descMap = {};
-                    descRes.data.items.forEach(item => {
-                        descMap[item.id] = item.snippet.description || '';
-                    });
+                    if (descRes.data.items) {
+                        descRes.data.items.forEach(item => {
+                            descMap[item.id] = item.snippet.description || '';
+                        });
+                    }
 
                     pageVideos.forEach(pv => {
                         pv.description = descMap[pv.video_id] || '';
