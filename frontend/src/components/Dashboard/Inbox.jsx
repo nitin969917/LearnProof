@@ -60,9 +60,9 @@ const Inbox = () => {
     }
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto min-h-[80vh] animate-in fade-in duration-500">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto min-h-[80vh]">
             {/* Header */}
-            <div className="mb-8 flex flex-col items-center text-center sm:flex-row sm:items-center sm:justify-between sm:text-left gap-6">
+            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
                     <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white flex flex-col sm:flex-row items-center gap-4">
                         <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20">
@@ -72,8 +72,8 @@ const Inbox = () => {
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">Keep up with the latest updates and personalized insights.</p>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm">
-                    <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm shrink-0">
+                    <span className="w-2 h-2 bg-orange-500 rounded-full" />
                     <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
                         {messages.filter(m => !m.isRead).length} Unread
                     </span>
