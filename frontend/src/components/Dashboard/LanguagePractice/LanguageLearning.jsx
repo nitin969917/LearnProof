@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mic, Globe, Plus, Users, Search, GraduationCap } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { useAuth } from '../../../context/AuthContext.jsx';
+import toast from 'react-hot-toast';
 
 export default function LanguageLearning() {
   const [roomsList, setRoomsList] = useState([]);
@@ -62,7 +63,7 @@ export default function LanguageLearning() {
       navigate(`/dashboard/live-rooms/${formattedRoomName}`);
     } catch (error) {
       console.error('Error creating room:', error);
-      alert(error.response?.data?.message || 'Failed to create room. Room name might already be in use.');
+      toast.error(error.response?.data?.message || 'Failed to create room. Room name might already be in use.');
       setCreating(false);
     }
   };
@@ -113,7 +114,7 @@ export default function LanguageLearning() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
           {roomsList.length === 0 ? (
-             <div className="col-span-full bg-white dark:bg-gray-800 border border-orange-100 dark:border-gray-700 rounded-3xl text-center py-16 px-6 text-gray-500 dark:text-gray-400 shadow-sm relative overflow-hidden transition-colors duration-200">
+             <div className="col-span-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl text-center py-16 px-6 text-gray-500 dark:text-gray-400 shadow-sm relative overflow-hidden">
                 {/* Decorative glow blob */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
                 
@@ -135,7 +136,7 @@ export default function LanguageLearning() {
             roomsList.map(room => (
               <div 
                 key={room.id} 
-                className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl border border-orange-100 dark:border-gray-700 p-3 sm:p-5 md:p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between aspect-square relative group hover:-translate-y-1 duration-300"
+                className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl border border-gray-100 dark:border-gray-700 p-3 sm:p-5 md:p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between aspect-square relative group hover:-translate-y-1 duration-300"
                 onClick={() => navigate(`/dashboard/live-rooms/${room.roomName}`)}
               >
                 {/* Decorative background blur blob */}
@@ -194,7 +195,7 @@ export default function LanguageLearning() {
       {/* Create Room Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white dark:bg-gray-800 border border-orange-100 dark:border-gray-700 rounded-3xl max-w-md w-full p-6 shadow-2xl animate-scale-up">
+          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-md w-full p-6 shadow-2xl animate-scale-up">
             <h2 className="text-xl font-black text-gray-900 dark:text-white mb-4">Create Live Room</h2>
             <form onSubmit={handleCreateRoom} className="space-y-4">
               <div>
