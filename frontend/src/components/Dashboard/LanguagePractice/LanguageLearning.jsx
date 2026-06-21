@@ -7,6 +7,7 @@ import { useAuth } from '../../../context/AuthContext.jsx';
 export default function LanguageLearning() {
   const [roomsList, setRoomsList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [newRoom, setNewRoom] = useState({ roomName: '', topic: '', language: '' });
   const navigate = useNavigate();
@@ -16,6 +17,10 @@ export default function LanguageLearning() {
   useEffect(() => {
     fetchRooms();
     fetchSocialUser();
+
+    // Poll active rooms list every 5 seconds to keep it dynamic and fresh
+    const pollInterval = setInterval(fetchRooms, 5000);
+    return () => clearInterval(pollInterval);
   }, []);
 
   const fetchSocialUser = async () => {
@@ -41,6 +46,7 @@ export default function LanguageLearning() {
   const handleCreateRoom = async (e) => {
     e.preventDefault();
     if (!newRoom.roomName || !newRoom.language) return;
+    setCreating(true);
 
     try {
       // Format room name to be url safe
@@ -57,6 +63,7 @@ export default function LanguageLearning() {
     } catch (error) {
       console.error('Error creating room:', error);
       alert(error.response?.data?.message || 'Failed to create room. Room name might already be in use.');
+      setCreating(false);
     }
   };
 
@@ -145,16 +152,16 @@ export default function LanguageLearning() {
                   )}
                 </div>
 
-                {/* Middle: Centered Mic icon + Topic */}
+                {/* Middle: Centered Mic icon + Room Title (large) & Topic (small) */}
                 <div className="flex flex-col items-center justify-center text-center my-auto px-1 z-10">
                   <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-tr from-orange-500 to-amber-500 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20 mb-2 sm:mb-4 group-hover:scale-110 transition-transform duration-300">
                     <Mic size={18} className="sm:size-[24px] animate-pulse" />
                   </div>
-                  <h3 className="font-extrabold text-gray-900 dark:text-white text-xs sm:text-sm md:text-base leading-snug line-clamp-2 px-0.5">
-                    {room.topic}
+                  <h3 className="font-black text-gray-900 dark:text-white text-sm sm:text-base md:text-lg leading-snug line-clamp-1 px-0.5 uppercase tracking-wide">
+                    {room.roomName}
                   </h3>
-                  <p className="text-gray-405 dark:text-gray-500 text-[9px] sm:text-xs font-bold mt-1 uppercase tracking-wider">
-                    Room: {room.roomName}
+                  <p className="text-gray-450 dark:text-gray-500 text-[10px] sm:text-xs font-bold mt-1.5 leading-tight line-clamp-2 px-1">
+                    {room.topic}
                   </p>
                 </div>
                 
@@ -230,16 +237,25 @@ export default function LanguageLearning() {
               <div className="flex gap-3 pt-3">
                 <button 
                   type="button" 
+                  disabled={creating}
                   onClick={() => setShowModal(false)} 
-                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-650 rounded-xl text-gray-700 dark:text-gray-350 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-750 transition cursor-pointer"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-650 rounded-xl text-gray-700 dark:text-gray-350 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-750 transition cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
-                  className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow transition rounded-xl cursor-pointer"
+                  disabled={creating}
+                  className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow transition rounded-xl cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2"
                 >
-                  Create & Join
+                  {creating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <span>Create & Join</span>
+                  )}
                 </button>
               </div>
             </form>

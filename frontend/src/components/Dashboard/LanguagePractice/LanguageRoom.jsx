@@ -1,15 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { JitsiMeeting } from '@jitsi/react-sdk';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
 
+const RoomLoadingSpinner = () => (
+  <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-black z-50 gap-4">
+    <div className="relative flex items-center justify-center">
+      {/* Premium pulsing and spinning rings */}
+      <div className="animate-ping absolute inline-flex h-16 w-16 rounded-full bg-orange-500/20 opacity-75"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-500 border-t-transparent"></div>
+    </div>
+    <div className="flex flex-col items-center text-center px-4 animate-pulse">
+      <span className="text-base font-black uppercase tracking-widest text-orange-500">Connecting</span>
+      <span className="text-xs text-gray-400 font-bold mt-1">Initializing secure practice room...</span>
+    </div>
+  </div>
+);
+
 export default function LanguageRoom() {
   const { roomName } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!user) return null;
 
@@ -41,16 +64,16 @@ export default function LanguageRoom() {
       
       {/* Jitsi Meeting Panel */}
       <div className="flex-1 bg-black overflow-hidden relative">
-        {loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-black z-10 gap-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent mb-1"></div>
-            <span className="text-sm font-bold">Connecting to practice room...</span>
-          </div>
-        )}
+        {loading && <RoomLoadingSpinner />}
         <JitsiMeeting
             domain="meet.element.io"
             roomName={`LearnProof-LiveRoom-${roomName}`}
+            spinner={RoomLoadingSpinner}
             configOverwrite={{
+                disableDeepLinking: true,
+                prejoinConfig: {
+                    enabled: false
+                },
                 startWithAudioMuted: false,
                 disableModeratorIndicator: true,
                 startScreenSharing: true,
@@ -64,7 +87,16 @@ export default function LanguageRoom() {
                 email: user.email
             }}
             onApiReady={(externalApi) => {
-                setLoading(false);
+                // Listen for videoConferenceJoined to dynamically dismiss the spinner when interface loads
+                externalApi.addListener('videoConferenceJoined', () => {
+                    setLoading(false);
+                });
+
+                // Safety backup timeout in case signaling takes too long
+                timeoutRef.current = setTimeout(() => {
+                    setLoading(false);
+                }, 7500);
+
                 externalApi.addListener('readyToClose', handleLeaveRoom);
             }}
             getIFrameRef={(iframeRef) => {
