@@ -1,11 +1,145 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle } from 'lucide-react';
+import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown } from 'lucide-react';
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+
+const faqs = [
+    {
+        q: "What is LearnProof AI?",
+        a: "LearnProof AI is an advanced educational platform that uses artificial intelligence to transform YouTube videos into comprehensive learning experiences, complete with automated notes, interactive quizzes, and verifiable certificates."
+    },
+    {
+        q: "How does the YouTube Course Tracker work?",
+        a: "By simply importing a YouTube video or playlist, LearnProof AI tracks your progress, parses the content for intuition, and ensures you're mastering the material through AI-grounded assessments."
+    },
+    {
+        q: "Are the certificates truly verifiable?",
+        a: "Yes. Every certificate issued by LearnProof AI comes with a unique Verification ID and a public link that can be shared on LinkedIn, resumes, or portfolios for employers to authenticate."
+    },
+    {
+        q: "Is LearnProof AI free to use?",
+        a: "We offer a generous free tier that allows anyone to start learning immediately without a credit card. Advanced features and higher limits are available for power learners."
+    },
+    {
+        q: "How does the AI generate quizzes and notes?",
+        a: "Our proprietary AI engine analyzes the video content and descriptions to extract key insights, creating contextually accurate summaries and challenging quizzes tailored to the specific material."
+    }
+];
+
+const FAQSection = () => {
+    const [openIndex, setOpenIndex] = useState(null);
+    const toggle = (i) => setOpenIndex(openIndex === i ? null : i);
+
+    return (
+        <section className="py-24 px-4 sm:px-8 lg:px-16 bg-gradient-to-br from-gray-50 to-orange-50/40 border-t border-orange-100">
+            <div className="max-w-5xl mx-auto">
+                {/* Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-16"
+                >
+                    <div>
+                        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 text-orange-600 text-sm font-bold mb-4">
+                            <Sparkles size={14} /> FAQs
+                        </span>
+                        <h2 className="text-3xl lg:text-5xl font-black text-gray-900 leading-tight">
+                            Common <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">Questions</span>
+                        </h2>
+                    </div>
+                    <p className="text-gray-500 text-base lg:text-lg max-w-sm leading-relaxed">
+                        Everything you need to know about the LearnProof AI ecosystem.
+                    </p>
+                </motion.div>
+
+                {/* Accordion Items */}
+                <div className="space-y-3">
+                    {faqs.map((item, i) => {
+                        const isOpen = openIndex === i;
+                        return (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.08 }}
+                            >
+                                <button
+                                    onClick={() => toggle(i)}
+                                    className={`w-full text-left rounded-2xl border transition-all duration-300 overflow-hidden focus:outline-none ${
+                                        isOpen
+                                            ? 'bg-white border-orange-300 shadow-lg shadow-orange-100'
+                                            : 'bg-white/70 border-gray-200 hover:border-orange-200 hover:shadow-md'
+                                    }`}
+                                >
+                                    {/* Question row */}
+                                    <div className="flex items-center gap-4 px-6 py-5">
+                                        {/* Number badge */}
+                                        <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black transition-colors duration-300 ${
+                                            isOpen ? 'bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-md shadow-orange-200' : 'bg-orange-50 text-orange-400'
+                                        }`}>
+                                            {String(i + 1).padStart(2, '0')}
+                                        </div>
+
+                                        <span className={`flex-1 text-base sm:text-lg font-bold transition-colors duration-300 ${isOpen ? 'text-orange-600' : 'text-gray-800'}`}>
+                                            {item.q}
+                                        </span>
+
+                                        {/* Chevron */}
+                                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
+                                            isOpen ? 'bg-orange-500 text-white rotate-180' : 'bg-gray-100 text-gray-400'
+                                        }`}>
+                                            <ChevronDown size={16} />
+                                        </div>
+                                    </div>
+
+                                    {/* Answer — animated */}
+                                    <AnimatePresence initial={false}>
+                                        {isOpen && (
+                                            <motion.div
+                                                key="answer"
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                                className="overflow-hidden"
+                                            >
+                                                <div className="px-6 pb-6 pt-0">
+                                                    <div className="h-px bg-orange-100 mb-4" />
+                                                    <p className="text-gray-600 leading-relaxed text-sm sm:text-base pl-[52px]">
+                                                        {item.a}
+                                                    </p>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </button>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* FAQ Schema for Google */}
+            <script type="application/ld+json">
+                {JSON.stringify({
+                    "@context": "https://schema.org",
+                    "@type": "FAQPage",
+                    "mainEntity": faqs.map(f => ({
+                        "@type": "Question",
+                        "name": f.q,
+                        "acceptedAnswer": { "@type": "Answer", "text": f.a }
+                    }))
+                })}
+            </script>
+        </section>
+    );
+};
 
 const LandingPage = () => {
     const navigate = useNavigate();
@@ -137,106 +271,147 @@ const LandingPage = () => {
 
     const features = [
         {
-            icon: <Youtube className="w-8 h-8" />,
+            icon: <Youtube className="w-7 h-7" />,
             title: "Discover YouTube Content",
-            description: "Search and find curated YouTube videos tailored to your learning goals right from the dashboard."
+            description: "Search and find curated YouTube videos tailored to your learning goals right from the dashboard.",
+            gradient: "from-red-500 to-rose-500", glow: "rgba(239,68,68,0.18)", accent: "border-red-400", badge: "bg-red-50 text-red-600"
         },
         {
-            icon: <Sparkles className="w-8 h-8" />,
+            icon: <Sparkles className="w-7 h-7" />,
             title: "AI Video Intuition",
-            description: "Get instant, AI-generated summaries and deep insights extracted directly from video content."
+            description: "Get instant, AI-generated summaries and deep insights extracted directly from video content.",
+            gradient: "from-violet-500 to-purple-600", glow: "rgba(139,92,246,0.18)", accent: "border-violet-400", badge: "bg-violet-50 text-violet-600"
         },
         {
-            icon: <FileText className="w-8 h-8" />,
+            icon: <FileText className="w-7 h-7" />,
             title: "Rich Text Notes",
-            description: "Take formatted, time-stamped notes alongside your videos using a native rich-text editor."
+            description: "Take formatted, time-stamped notes alongside your videos using a native rich-text editor.",
+            gradient: "from-blue-500 to-cyan-500", glow: "rgba(59,130,246,0.18)", accent: "border-blue-400", badge: "bg-blue-50 text-blue-600"
         },
         {
-            icon: <MessageSquare className="w-8 h-8" />,
+            icon: <MessageSquare className="w-7 h-7" />,
             title: "Community Discussions",
-            description: "Engage with fellow learners, ask questions, and share knowledge on specific video topics."
+            description: "Engage with fellow learners, ask questions, and share knowledge on specific video topics.",
+            gradient: "from-emerald-500 to-teal-500", glow: "rgba(16,185,129,0.18)", accent: "border-emerald-400", badge: "bg-emerald-50 text-emerald-600"
         },
         {
-            icon: <CheckSquare className="w-8 h-8" />,
+            icon: <CheckSquare className="w-7 h-7" />,
             title: "Daily Tasks & Goals",
-            description: "Set personalized daily learning objectives and maintain accountability with persistent task tracking."
+            description: "Set personalized daily learning objectives and maintain accountability with persistent task tracking.",
+            gradient: "from-orange-500 to-amber-500", glow: "rgba(249,115,22,0.18)", accent: "border-orange-400", badge: "bg-orange-50 text-orange-600"
         },
         {
-            icon: <Lightbulb className="w-8 h-8" />,
+            icon: <Lightbulb className="w-7 h-7" />,
             title: "AI-Powered Quizzes",
-            description: "Test your understanding with personalized, dynamically generated quizzes tailored to video content."
+            description: "Test your understanding with personalized, dynamically generated quizzes tailored to video content.",
+            gradient: "from-yellow-500 to-orange-500", glow: "rgba(234,179,8,0.18)", accent: "border-yellow-400", badge: "bg-yellow-50 text-yellow-700"
         },
         {
-            icon: <Award className="w-8 h-8" />,
+            icon: <Award className="w-7 h-7" />,
             title: "Verifiable Certificates",
-            description: "Earn cryptographic certificates proving your completion status with unique verification IDs."
+            description: "Earn cryptographic certificates proving your completion status with unique verification IDs.",
+            gradient: "from-pink-500 to-rose-600", glow: "rgba(236,72,153,0.18)", accent: "border-pink-400", badge: "bg-pink-50 text-pink-600"
         },
         {
-            icon: <Trophy className="w-8 h-8" />,
+            icon: <Trophy className="w-7 h-7" />,
             title: "Gamified Learning XP",
-            description: "Level up your profile, earn XP for completing milestones, and unlock exclusive achievements."
+            description: "Level up your profile, earn XP for completing milestones, and unlock exclusive achievements.",
+            gradient: "from-amber-500 to-yellow-400", glow: "rgba(245,158,11,0.18)", accent: "border-amber-400", badge: "bg-amber-50 text-amber-700"
         },
         {
-            icon: <TrendingUp className="w-8 h-8" />,
+            icon: <TrendingUp className="w-7 h-7" />,
             title: "Progress Analytics",
-            description: "Visualize your learning journey, track completion rates, and analyze your activity heatmap."
+            description: "Visualize your learning journey, track completion rates, and analyze your activity heatmap.",
+            gradient: "from-indigo-500 to-blue-600", glow: "rgba(99,102,241,0.18)", accent: "border-indigo-400", badge: "bg-indigo-50 text-indigo-600"
         },
         {
-            icon: <Target className="w-8 h-8" />,
+            icon: <Target className="w-7 h-7" />,
             title: "AI-Powered Roadmaps",
-            description: "Generate structured, step-by-step learning paths tailored to your specific goals and timelines."
+            description: "Generate structured, step-by-step learning paths tailored to your specific goals and timelines.",
+            gradient: "from-fuchsia-500 to-pink-500", glow: "rgba(217,70,239,0.18)", accent: "border-fuchsia-400", badge: "bg-fuchsia-50 text-fuchsia-600"
         },
         {
-            icon: <BookOpen className="w-8 h-8" />,
+            icon: <BookOpen className="w-7 h-7" />,
             title: "Personalized Skill Paths",
-            description: "Follow curated sequences of videos and quizzes designed to master specific technical domains."
+            description: "Follow curated sequences of videos and quizzes designed to master specific technical domains.",
+            gradient: "from-teal-500 to-emerald-600", glow: "rgba(20,184,166,0.18)", accent: "border-teal-400", badge: "bg-teal-50 text-teal-600"
         },
         {
-            icon: <BookOpen className="w-8 h-8" />,
+            icon: <BookOpen className="w-7 h-7" />,
             title: "Smart Notes Q&A (AskMyNotes)",
-            description: "Upload personal PDFs or notes and ask questions to get precise, content-based answers instantly."
+            description: "Upload personal PDFs or notes and ask questions to get precise, content-based answers instantly.",
+            gradient: "from-cyan-500 to-sky-600", glow: "rgba(6,182,212,0.18)", accent: "border-cyan-400", badge: "bg-cyan-50 text-cyan-600"
         },
         {
-            icon: <Target className="w-8 h-8" />,
+            icon: <Target className="w-7 h-7" />,
             title: "Subject-Scoped Intelligence",
-            description: "Ask questions within a specific subject domain to guarantee highly focused, accurate AI responses."
+            description: "Ask questions within a specific subject domain to guarantee highly focused, accurate AI responses.",
+            gradient: "from-slate-600 to-gray-700", glow: "rgba(71,85,105,0.18)", accent: "border-slate-400", badge: "bg-slate-50 text-slate-600"
         },
         {
-            icon: <Search className="w-8 h-8" />,
-            title: "Evidence-Based Answers",
-            description: "Verify information instantly with exact citations and text snippets straight from your uploaded notes."
+            icon: <Users className="w-7 h-7" />,
+            title: "Live Language Room",
+            description: "Practice languages in real-time with AI-powered live rooms to speak, listen, and improve fluency.",
+            gradient: "from-green-500 to-emerald-600", glow: "rgba(34,197,94,0.18)", accent: "border-green-400", badge: "bg-green-50 text-green-600"
         },
         {
-            icon: <AlertTriangle className="w-8 h-8" />,
-            title: "Strict \"Not Found\" Guarantee",
-            description: "Eliminate AI guesswork. The system clearly states if a requested answer is not found in your notes."
+            icon: <Clock className="w-7 h-7" />,
+            title: "Daily Target & Screen Time",
+            description: "Set daily learning goals and track screen time to build consistent study habits with streak tracking.",
+            gradient: "from-orange-600 to-red-500", glow: "rgba(234,88,12,0.18)", accent: "border-orange-500", badge: "bg-orange-50 text-orange-700"
         }
     ];
 
     const steps = [
         {
             number: "01",
-            title: "Discover Content",
-            description: "Search for specific topics or let AI recommend the best YouTube resources for you",
-            icon: <Youtube className="w-6 h-6" />
+            title: "Paste YouTube Link",
+            description: "Add any lecture or tutorial video from YouTube instantly.",
+            icon: <Youtube className="w-7 h-7" />,
+            gradient: "from-red-500 to-rose-600",
+            glow: "rgba(239,68,68,0.25)",
+            bg: "bg-red-50",
+            border: "border-red-200"
         },
         {
             number: "02",
-            title: "Watch & Learn",
-            description: "Complete your learning with progress tracking",
-            icon: <Play className="w-6 h-6" />
+            title: "Generate AI Notes",
+            description: "Get instant summaries, structured notes and live note taking.",
+            icon: <FileText className="w-7 h-7" />,
+            gradient: "from-violet-500 to-purple-600",
+            glow: "rgba(139,92,246,0.25)",
+            bg: "bg-violet-50",
+            border: "border-violet-200"
         },
         {
             number: "03",
-            title: "Take Quiz",
-            description: "Test your knowledge with AI-generated questions",
-            icon: <Lightbulb className="w-6 h-6" />
+            title: "Practice with Quizzes",
+            description: "Test your understanding instantly with AI-generated quizzes.",
+            icon: <CheckSquare className="w-7 h-7" />,
+            gradient: "from-blue-500 to-cyan-500",
+            glow: "rgba(59,130,246,0.25)",
+            bg: "bg-blue-50",
+            border: "border-blue-200"
         },
         {
             number: "04",
-            title: "Get Certified",
-            description: "Receive verifiable certificates for your achievements",
-            icon: <Award className="w-6 h-6" />
+            title: "Follow Learning Roadmap",
+            description: "Study topics step by step with your AI-curated roadmap.",
+            icon: <TrendingUp className="w-7 h-7" />,
+            gradient: "from-orange-500 to-amber-500",
+            glow: "rgba(249,115,22,0.25)",
+            bg: "bg-orange-50",
+            border: "border-orange-200"
+        },
+        {
+            number: "05",
+            title: "Track Progress & Earn Certificate",
+            description: "Monitor learning and get verifiable proof of completion.",
+            icon: <Award className="w-7 h-7" />,
+            gradient: "from-emerald-500 to-green-600",
+            glow: "rgba(16,185,129,0.25)",
+            bg: "bg-emerald-50",
+            border: "border-emerald-200"
         }
     ];
 
@@ -454,6 +629,11 @@ const LandingPage = () => {
                 </motion.div >
             </div >
 
+            {/* Section Divider */}
+            <div className="px-8 sm:px-16">
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
+            </div>
+
             {/* Videos Section */}
             <motion.section
                 initial={{ opacity: 0, y: 50 }}
@@ -500,7 +680,7 @@ const LandingPage = () => {
                         <div className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-gray-900 shadow-inner"
                              style={{ paddingTop: '56.25%' }}>
                             <iframe
-                                src="https://www.youtube.com/embed/wnRCqWk36Ok?si=3c3JI20l21-2VZXR"
+                                src="https://www.youtube.com/embed/wnRCqWk36Ok?si=3c3JI20l21-2VZXR&vq=hd2160&hd=1&rel=0"
                                 className="absolute inset-0 w-full h-full"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allowFullScreen
@@ -511,55 +691,20 @@ const LandingPage = () => {
                 </div>
             </motion.section>
 
-            {/* Benefits Section */}
-            < motion.section
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
-                viewport={{ once: true }}
-                className="py-16 px-4 sm:px-8 lg:px-16 bg-white/50"
-            >
-                <div className="max-w-7xl mx-auto">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {benefits.map((benefit, index) => (
-                            <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 30 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.2, duration: 0.6 }}
-                                viewport={{ once: true }}
-                                className="text-center"
-                            >
-                                <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center text-white mx-auto mb-4">
-                                    {benefit.icon}
-                                </div>
-                                <h3 className="text-lg font-semibold text-gray-800 mb-2">{benefit.title}</h3>
-                                <p className="text-gray-600 leading-relaxed text-sm">{benefit.description}</p>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
+            {/* Section Divider */}
+            <div className="px-8 sm:px-16">
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
+            </div>
 
-                <div className="max-w-4xl mx-auto mt-16 text-center text-gray-600 leading-loose border-t border-orange-100 pt-16">
-                    <h3 className="text-2xl font-bold text-gray-800 mb-6 uppercase tracking-wider">Your Personal AI Campus</h3>
-                    <p className="mb-6">
-                        LearnProof AI is not just another course tracker; it's a complete ecosystem designed for modern learners who leverage YouTube as their primary educational resource. We've combined state-of-the-art Large Language Models (LLMs) with intuitive progress tracking to create an environment where every video watched is a step toward a verified credential.
-                    </p>
-                    <p>
-                        Whether you're mastering computer science, delving into history, or learning a new language, our AI agents work in the background to summarize transcripts, generate relevant assessments, and provide immediate feedback on your performance. No more passive watching—with LearnProof, you engage, you learn, and you prove your competency to the world.
-                    </p>
-                </div>
-            </motion.section >
-
-            {/* Features Section */}
-            < motion.section
+            {/* How It Works Section */}
+            <motion.section
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 transition={{ duration: 0.8 }}
                 viewport={{ once: true }}
-                className="py-20 px-4 sm:px-8 lg:px-16"
+                className="py-20 px-4 sm:px-8 lg:px-16 bg-gradient-to-br from-orange-50 via-amber-50 to-red-50 overflow-hidden"
             >
-                <div className="max-w-6xl mx-auto">
+                <div className="max-w-7xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -567,87 +712,146 @@ const LandingPage = () => {
                         viewport={{ once: true }}
                         className="text-center mb-16"
                     >
-                        <h2 className="text-3xl lg:text-5xl font-bold mb-6 text-gray-800">
+                        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 text-orange-600 text-sm font-bold mb-5 border border-orange-200">
+                            <Zap size={14} /> 5 Simple Steps
+                        </span>
+                        <h2 className="text-3xl lg:text-5xl font-bold mb-4 text-gray-900">
+                            How It{" "}
+                            <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">
+                                Works
+                            </span>
+                        </h2>
+                        <p className="text-gray-500 text-lg max-w-xl mx-auto leading-relaxed">
+                            Get started in <span className="font-semibold text-orange-500">minutes</span> and transform your YouTube videos into verified learning achievements.
+                        </p>
+                    </motion.div>
+
+                    {/* Horizontal Step Cards */}
+                    <div className="flex flex-col items-center sm:flex-row sm:items-stretch gap-3 sm:gap-2">
+                        {steps.map((step, index) => (
+                            <React.Fragment key={index}>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 40 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.12, duration: 0.6, ease: "easeOut" }}
+                                    viewport={{ once: true }}
+                                    whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                                    className="w-72 sm:w-auto sm:h-auto sm:flex-1 group"
+                                >
+                                    <div className={`w-full h-full bg-white/80 backdrop-blur-sm border ${step.border} rounded-2xl p-5 shadow-md hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center`}>
+                                        {/* Icon */}
+                                        <div className="relative mb-3">
+                                            <div
+                                                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${step.gradient} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                                                style={{ boxShadow: `0 8px 20px ${step.glow}` }}
+                                            >
+                                                {step.icon}
+                                            </div>
+                                            {/* Step badge */}
+                                            <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center shadow-sm">
+                                                <span className="text-[9px] font-black text-gray-500">{step.number}</span>
+                                            </div>
+                                        </div>
+                                        <h3 className="text-sm sm:text-base font-bold text-gray-800 mb-1 sm:mb-2 leading-tight">{step.title}</h3>
+                                        <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">{step.description}</p>
+                                    </div>
+                                </motion.div>
+
+                                {/* Arrow connector between steps */}
+                                {index < steps.length - 1 && (
+                                    <div className="flex items-center justify-center flex-shrink-0">
+                                        {/* Desktop: horizontal arrow */}
+                                        <div className="hidden sm:flex items-center">
+                                            <svg width="28" height="20" viewBox="0 0 28 20" fill="none" className="text-orange-300">
+                                                <path d="M0 10 H22 M18 4 L26 10 L18 16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
+                                        </div>
+                                        {/* Mobile: vertical arrow */}
+                                        <div className="sm:hidden text-orange-300">
+                                            <svg width="16" height="22" viewBox="0 0 20 28" fill="none">
+                                                <path d="M10 0 V22 M4 18 L10 26 L16 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+            </motion.section>
+
+            {/* Section Divider */}
+            <div className="px-8 sm:px-16">
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
+            </div>
+
+            {/* Features Section */}
+            <motion.section
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 0.8 }}
+                viewport={{ once: true }}
+                className="py-20 px-4 sm:px-8 lg:px-16 bg-gradient-to-br from-orange-50 via-amber-50 to-red-50"
+            >
+                <div className="max-w-7xl mx-auto">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                        viewport={{ once: true }}
+                        className="text-center mb-16"
+                    >
+                        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 text-orange-600 text-sm font-bold mb-5 border border-orange-200">
+                            <Sparkles size={14} /> 15 Powerful Features
+                        </span>
+                        <h2 className="text-3xl lg:text-5xl font-bold mb-4 text-gray-900">
                             Why Choose{" "}
                             <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">
                                 LearnProof?
                             </span>
                         </h2>
-                        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                        <p className="text-gray-500 text-lg max-w-2xl mx-auto">
                             Transform your YouTube learning experience with verified progress tracking and achievement certification
                         </p>
                     </motion.div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {/* Mobile: centered single-column cards | Desktop: grid */}
+                    <div className="flex flex-col items-center gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 sm:gap-4">
                         {features.map((feature, index) => (
                             <motion.div
                                 key={index}
-                                initial={{ opacity: 0, y: 50 }}
+                                initial={{ opacity: 0, y: 40 }}
                                 whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.1, duration: 0.6 }}
+                                transition={{ delay: index * 0.05, duration: 0.5 }}
                                 viewport={{ once: true }}
-                                whileHover={{ y: -5, scale: 1.02 }}
-                                className="bg-white/70 backdrop-blur-lg border border-orange-200 rounded-xl p-6 hover:border-orange-400 hover:shadow-xl transition-all duration-300"
+                                whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                                className="w-72 sm:w-auto group relative bg-white border border-orange-100 rounded-2xl p-5 hover:border-orange-300 hover:shadow-xl transition-all duration-300 cursor-default overflow-hidden flex flex-col items-center text-center"
+                                onMouseEnter={e => e.currentTarget.style.boxShadow = `0 8px 32px ${feature.glow}`}
+                                onMouseLeave={e => e.currentTarget.style.boxShadow = ''}
                             >
-                                <div className="text-orange-600 mb-4">{feature.icon}</div>
-                                <h3 className="text-xl font-semibold mb-3 text-gray-800">{feature.title}</h3>
-                                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </motion.section >
+                                {/* Top accent line on hover */}
+                                <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-2xl`} />
 
-            {/* How It Works Section */}
-            < motion.section
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                transition={{ duration: 0.8 }}
-                viewport={{ once: true }}
-                className="py-20 px-4 sm:px-8 lg:px-16 bg-gradient-to-r from-orange-100 to-red-100"
-            >
-                <div className="max-w-6xl mx-auto">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
-                        viewport={{ once: true }}
-                        className="text-center mb-16"
-                    >
-                        <h2 className="text-3xl lg:text-5xl font-bold mb-6 text-gray-800">How It Works</h2>
-                        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                            Get started in minutes and transform your learning journey
-                        </p>
-                    </motion.div>
-
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                        {steps.map((step, index) => (
-                            <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 50 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.2, duration: 0.6 }}
-                                viewport={{ once: true }}
-                                className="text-center relative"
-                            >
-                                <div className="mb-6 relative">
-                                    <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4 shadow-lg">
-                                        {step.number}
-                                    </div>
-                                    <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-orange-500 mx-auto border-2 border-orange-200">
-                                        {step.icon}
-                                    </div>
-                                    {index < steps.length - 1 && (
-                                        <div className="hidden lg:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-orange-400 to-red-400 opacity-30 transform translate-x-4" />
-                                    )}
+                                {/* Icon tile */}
+                                <div
+                                    className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center text-white mb-4 shadow-md group-hover:scale-110 transition-transform duration-300`}
+                                    style={{ boxShadow: `0 4px 14px ${feature.glow}` }}
+                                >
+                                    {feature.icon}
                                 </div>
-                                <h3 className="text-xl font-semibold mb-3 text-gray-800">{step.title}</h3>
-                                <p className="text-gray-600">{step.description}</p>
+
+                                <h3 className="text-sm font-bold text-gray-800 mb-2 leading-snug">{feature.title}</h3>
+                                <p className="text-xs text-gray-500 leading-relaxed">{feature.description}</p>
                             </motion.div>
                         ))}
                     </div>
                 </div>
-            </motion.section >
+            </motion.section>
+
+            {/* Section Divider */}
+            <div className="px-8 sm:px-16">
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
+            </div>
 
             {/* CTA Section */}
             < motion.section
@@ -673,13 +877,28 @@ const LandingPage = () => {
                         <p className="text-gray-600 text-lg mb-10 max-w-2xl mx-auto">
                             Start your journey of transforming YouTube videos into verified certificates and showcase your dedication to learning
                         </p>
-                        <button 
-                            onClick={handleManualGoogleLogin}
-                            className="inline-flex items-center gap-3 px-8 py-3.5 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-gray-700 mb-6"
-                        >
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-                            <span>Continue with Google</span>
-                        </button>
+                        <div className="flex flex-col items-center gap-4 mb-6">
+                            <button 
+                                onClick={handleManualGoogleLogin}
+                                className="inline-flex items-center gap-3 px-8 py-3.5 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-gray-700"
+                            >
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                                <span>Continue with Google</span>
+                            </button>
+                            <a
+                                href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-lg hover:drop-shadow-xl"
+                                aria-label="Get it on Google Play"
+                            >
+                                <img
+                                    src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                                    alt="Get it on Google Play"
+                                    className="h-[58px] w-auto"
+                                />
+                            </a>
+                        </div>
 
                         <motion.p
                             className="text-sm text-gray-500 mt-4"
@@ -694,91 +913,18 @@ const LandingPage = () => {
                 </div>
             </motion.section >
 
+            {/* Section Divider */}
+            <div className="px-8 sm:px-16">
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
+            </div>
+
             {/* FAQ Section with Schema */}
-            <section className="py-24 px-4 sm:px-8 lg:px-16 bg-white border-t border-orange-100">
-                <div className="max-w-4xl mx-auto">
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        className="text-center mb-16"
-                    >
-                        <h2 className="text-3xl lg:text-5xl font-black text-gray-900 mb-6 uppercase tracking-tighter">Common Questions</h2>
-                        <p className="text-gray-500 text-lg font-medium">Everything you need to know about the LearnProof AI ecosystem.</p>
-                    </motion.div>
+            <FAQSection />
 
-                    <div className="space-y-4">
-                        {[
-                            { 
-                                q: "What is LearnProof AI?", 
-                                a: "LearnProof AI is an advanced educational platform that uses artificial intelligence to transform YouTube videos into comprehensive learning experiences, complete with automated notes, interactive quizzes, and verifiable certificates." 
-                            },
-                            { 
-                                q: "How does the YouTube Course Tracker work?", 
-                                a: "By simply importing a YouTube video or playlist, LearnProof AI tracks your progress, parses the content for intuition, and ensures you're mastering the material through AI-grounded assessments." 
-                            },
-                            { 
-                                q: "Are the certificates truly verifiable?", 
-                                a: "Yes. Every certificate issued by LearnProof AI comes with a unique Verification ID and a public link that can be shared on LinkedIn, resumes, or portfolios for employers to authenticate." 
-                            },
-                            { 
-                                q: "Is LearnProof AI free to use?", 
-                                a: "We offer a generous free tier that allows anyone to start learning immediately without a credit card. Advanced features and higher limits are available for power learners." 
-                            },
-                            { 
-                                q: "How does the AI generate quizzes and notes?", 
-                                a: "Our proprietary AI engine analyzes the video content and descriptions to extract key insights, creating contextually accurate summaries and challenging quizzes tailored to the specific material." 
-                            }
-                        ].map((item, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: i * 0.1 }}
-                                className="group bg-orange-50/50 rounded-2xl p-6 border border-transparent hover:border-orange-200 transition-all"
-                            >
-                                <h3 className="text-lg font-black text-gray-900 mb-3 group-hover:text-orange-600 transition-colors uppercase tracking-tight">{item.q}</h3>
-                                <p className="text-gray-600 leading-relaxed font-medium">{item.a}</p>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* FAQ Schema for Google */}
-                <script type="application/ld+json">
-                    {JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "FAQPage",
-                        "mainEntity": [
-                            {
-                                "@type": "Question",
-                                "name": "What is LearnProof AI?",
-                                "acceptedAnswer": {
-                                    "@type": "Answer",
-                                    "text": "LearnProof AI is an advanced educational platform that uses artificial intelligence to transform YouTube videos into comprehensive learning experiences, complete with automated notes, interactive quizzes, and verifiable certificates."
-                                }
-                            },
-                            {
-                                "@type": "Question",
-                                "name": "How does the YouTube Course Tracker work?",
-                                "acceptedAnswer": {
-                                    "@type": "Answer",
-                                    "text": "By simply importing a YouTube video or playlist, LearnProof AI tracks your progress, parses the content for intuition, and ensures you're mastering the material through AI-grounded assessments."
-                                }
-                            },
-                            {
-                                "@type": "Question",
-                                "name": "Are the certificates truly verifiable?",
-                                "acceptedAnswer": {
-                                    "@type": "Answer",
-                                    "text": "Yes. Every certificate issued by LearnProof AI comes with a unique Verification ID and a public link that can be shared on LinkedIn, resumes, or portfolios for employers to authenticate."
-                                }
-                            }
-                        ]
-                    })}
-                </script>
-            </section>
+            {/* Section Divider */}
+            <div className="px-8 sm:px-16">
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
+            </div>
 
             {/* SEO Keyword Cloud Section (Hidden for SEO) */}
             <section className="sr-only">
@@ -812,9 +958,7 @@ const LandingPage = () => {
                 <div className="max-w-6xl mx-auto">
                         <div className="flex flex-col md:flex-row justify-between items-center">
                             <div className="mb-6 md:mb-0">
-                                <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">
-                                    LearnProof
-                                </h3>
+                                <img src="/LP_logo.png" alt="LearnProof" className="h-10 w-auto object-contain" />
                                 <p className="text-gray-600 mt-2">The ultimate AI classroom for YouTube learners.</p>
                                 <div className="flex space-x-6 mt-4">
                                     <a href="https://www.linkedin.com/company/learnproof-ai/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-orange-600 transition-colors">
@@ -823,7 +967,7 @@ const LandingPage = () => {
                                     <a href="https://instagram.com/learnproofai" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-orange-600 transition-colors">
                                         <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
                                     </a>
-                                    <a href="https://youtube.com/@learnproofai" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-orange-600 transition-colors">
+                                    <a href="https://youtube.com/@LearnProof_AI" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-orange-600 transition-colors">
                                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"></path></svg>
                                     </a>
                                 </div>
@@ -844,7 +988,7 @@ const LandingPage = () => {
                             </div>
                         </div>
                         <div className="border-t border-orange-200 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-gray-500 text-sm">
-                            <p>&copy; 2025 LearnProof AI. All rights reserved.</p>
+                            <p>&copy; 2026 LearnProof AI. All rights reserved.</p>
                             <div className="flex space-x-6 mt-4 md:mt-0">
                                 <span>Built with ❤️ for lifelong learners</span>
                             </div>
