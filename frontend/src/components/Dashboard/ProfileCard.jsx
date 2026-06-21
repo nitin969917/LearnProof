@@ -14,15 +14,12 @@ const ProfileCard = () => {
 
     useEffect(() => {
         const fetchProfile = async () => {
-            const pl = toast.loading("Loading your learning card...");
             try {
                 const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/profile/`, {
                     idToken: token,
                 });
                 setProfile(res.data);
-                toast.success("Profile Loaded", { id: pl });
             } catch (err) {
-                toast.error("Failed to load profile", { id: pl });
                 console.error('Error fetching profile:', err);
             } finally {
                 setLoading(false);

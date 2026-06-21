@@ -33,7 +33,7 @@ import 'react-quill-new/dist/quill.snow.css';
 import { motion } from "framer-motion";
 
 const INDIAN_LANGS = [
-  'English', 'Hindi', 'Marathi', 'Bengali', 'Telugu', 
+  'English', 'Hindi', 'Marathi', 'Bengali', 'Telugu',
   'Tamil', 'Gujarati', 'Urdu', 'Kannada', 'Odia', 'Malayalam'
 ];
 
@@ -42,28 +42,116 @@ const preprocessMarkdown = (text) => {
 
   let processed = text;
 
-  // 1. Convert block math delimiters: \[ or \\[ or any number of backslashes followed by [ to $$
+  // Split multiple block math blocks on the same line (e.g. $$ block1 $$ $$ block2 $$) into separate lines
+  processed = processed.replace(/\$\$\s+\$\$/g, '$$$$\n$$$$');
+
+  // Remove literal newlines and carriage returns inside block math delimiters (KaTeX parsing fixes)
+  processed = processed.replace(/\$\$(.*?)\$\$/gs, (match, math) => {
+    const cleanedMath = math.replace(/[\r\n]+/g, ' ');
+    return `$$${cleanedMath}$$`;
+  });
+
+  // 1. Convert HTML break tags to newlines BEFORE line-by-line processing
+  processed = processed.replace(/<br\s*\/?>/gi, '\n');
+
+  // Fix nested dollar signs inside \boxed{...} (common malformed LaTeX)
+  processed = processed.replace(/\\boxed\{([^{}]*)\}/g, (match, content) => {
+    return `\\boxed{${content.replace(/\$/g, '')}}`;
+  });
+
+  // Repair hybrid/malformed probability expressions like P$A\cap B$=P(A)\,P(B|A) or $P$\Omega$=1$
+  // This matches a variety of P$Event$ = Expression styles and standardizes them to $P(Event) = Expression$
+  // It uses a negative lookahead to avoid eating conversational text like ", where..." or "and..."
+  processed = processed.replace(/(?:\$?P\$([a-zA-Z\\{}_\s\cap\cup\theta\Omega\alpha\beta]+)\$=\s*([a-zA-Z0-9\\|()_\s\\+*/\approx\sim\to{}.,&;!\\~#-]+?)\$?)(?=\s+[a-z]{3,}\b|[\s.,;:!]*$)/g, (match, event, expr) => {
+    const cleanEvent = event.replace(/\$/g, '');
+    const cleanExpr = expr.replace(/\$/g, '');
+    return `$P(${cleanEvent}) = ${cleanExpr}$`;
+  });
+
+  // Convert standalone math lines that contain LaTeX commands but are not wrapped in delimiters
+  processed = processed.split('\n').map(line => {
+    let trimmed = line.trim();
+    if (!trimmed) return line;
+
+    // Clean up mismatched leading/trailing delimiters on the line first
+    if (trimmed.startsWith('$$') && !trimmed.endsWith('$$')) {
+      trimmed = trimmed.substring(2).trim();
+    } else if (!trimmed.startsWith('$$') && trimmed.endsWith('$$')) {
+      trimmed = trimmed.substring(0, trimmed.length - 2).trim();
+    }
+    if (trimmed.startsWith('$') && !trimmed.endsWith('$')) {
+      trimmed = trimmed.substring(1).trim();
+    } else if (!trimmed.startsWith('$') && trimmed.endsWith('$')) {
+      trimmed = trimmed.substring(0, trimmed.length - 1).trim();
+    }
+
+    // Only process if the line contains LaTeX commands OUTSIDE of already delimited math blocks
+    const lineWithoutMath = trimmed.replace(/\$\$.*?\$\$/g, '').replace(/\$.*?\$/g, '');
+    const hasLatex = /\\[a-zA-Z]+/.test(lineWithoutMath);
+
+    if (hasLatex) {
+      const isAlreadyBlock = trimmed.startsWith('$$') && trimmed.endsWith('$$');
+      const isAlreadyInline = trimmed.startsWith('$') && trimmed.endsWith('$');
+
+      if (!isAlreadyBlock && !isAlreadyInline) {
+        // Strip out \text{...} blocks entirely so text descriptions inside math don't count as conversational words
+        let mathOnlyText = trimmed.replace(/\\text\{[^{}]*\}/g, '');
+
+        // Strip all LaTeX commands and math/formatting symbols to count actual English conversational words
+        const cleanText = mathOnlyText
+          .replace(/\\[a-zA-Z]+/g, '')
+          .replace(/[\d$={}+*/<>()\[\]|,\-_.:;?!\s]+/g, ' ');
+
+        const words = cleanText.trim().split(/\s+/).filter(w => {
+          const cleanWord = w.replace(/[^a-zA-Z]/g, '');
+          return cleanWord.length > 2;
+        });
+
+        // If it contains very few non-math English words, it's a math equation block
+        if (words.length <= 3) {
+          const cleanedLine = trimmed.replace(/\$/g, '');
+          if (cleanedLine.includes('=')) {
+            return `$$${cleanedLine.trim()}$$`;
+          } else {
+            return `$${cleanedLine.trim()}$`;
+          }
+        }
+      }
+    }
+    // Return the cleaned line (with mismatched delimiters stripped) if we processed it
+    return trimmed;
+  }).join('\n');
+
+  // 2. Convert block math delimiters: \[ or \\[ or any number of backslashes followed by [ to $$
   processed = processed
     .replace(/\\+\[/g, () => '$$')
     .replace(/\\+\]/g, () => '$$');
 
-  // 2. Convert parenthesized inline math delimiters: \(( math )\) to $ math $
+  // 3. Convert parenthesized inline math delimiters: \(( math )\) to $ math $
   processed = processed.replace(/\\+\(\s*\(\s*(.*?)\s*\)\s*\\+\)/g, (_, math) => `$${math}$`);
 
-  // 3. Convert normal inline math delimiters: \( or \\( to $
+  // 4. Convert normal inline math delimiters: \( or \\( to $
   processed = processed
     .replace(/\\+\(/g, () => '$')
     .replace(/\\+\)/g, () => '$');
 
-  // 4. Convert literal parentheses containing LaTeX commands to math delimiters:
-  // e.g. ( \overline{W} ) -> $ \overline{W} $
-  processed = processed.replace(/\(\s*([^)]*?\\[a-zA-Z][^)]*?)\s*\)/g, (_, math) => `$${math}$`);
-
-  // 5. Convert HTML break tags to newlines
-  processed = processed.replace(/<br\s*\/?>/gi, '\n');
-
   // 6. Fix list item question headers starting with a single asterisk:
   processed = processed.replace(/^\*(?=[a-zA-Z0-9])(.*?)\*?$/gm, '**$1**');
+
+  // 7. Fix spaced bold markers at the start of lists like * *Non-negativity : **
+  processed = processed.replace(/\*\s+\*(.*?)\s*\*\*/g, '**$1**');
+
+  // 8. Wrap raw/unwrapped math expressions inside conversational lines in inline math delimiters
+  processed = processed.split('\n').map(line => {
+    // This matches equations that start with typical math symbols (\, single uppercase letters, brackets, or numbers),
+    // contain LaTeX commands, and do not include conversational words, ensuring we don't match already delimited math.
+    const regex = /(?<!\$)(?:\\|\b[A-Z]\b|[A-Z]\s*[(_{]|[{([0-9])(?:[a-zA-Z0-9\\|(){}[\]_=<>\-+*/\approx\sim\to&;!~#\s]*?\\[a-zA-Z]+[a-zA-Z0-9\\|(){}[\]_=<>\-+*/\approx\sim\to&;!~#\s]*?)(?=\s+[a-z]{3,}\b|[\s.,;:!]*$)(?!\$)/g;
+    return line.replace(regex, (match) => {
+      // Clean up internal dollar signs if there are any malformed fragments
+      const cleanMatch = match.replace(/\$/g, '');
+      return `$${cleanMatch.trim()}$`;
+    });
+  }).join('\n');
 
   return processed;
 };
@@ -154,7 +242,7 @@ const Classroom = () => {
   const fetchIntuition = async (lang = null) => {
     // If a specific language is requested, we ALWAYS fetch (or rely on backend cache-key)
     // If no lang and content exists, we skip.
-    if (!lang && intuitionContent) return; 
+    if (!lang && intuitionContent) return;
 
     setLoadingIntuition(true);
     if (lang) setSelectedLanguage(lang); // Track the user's choice
@@ -316,7 +404,6 @@ const Classroom = () => {
 
   useEffect(() => {
     const fetchClassroom = async () => {
-      const loader = toast.loading("Loading classroom...");
       try {
         const res = await axios.post(
           `${import.meta.env.VITE_BACKEND_URL}/api/classroom/`,
@@ -336,11 +423,9 @@ const Classroom = () => {
         } else if (!res.data.playlist && activeTab === 'playlist') {
           setActiveTab('overview');
         }
-        
-        toast.success("Classroom loaded", { id: loader });
       } catch (err) {
         console.error(err);
-        toast.error("Failed to load classroom", { id: loader });
+        toast.error("Failed to load classroom");
       } finally {
         setLoading(false);
       }
@@ -436,7 +521,7 @@ const Classroom = () => {
     } catch (err) {
       console.error(err);
       const errorMsg = err.response?.data?.error || err.response?.data?.message || "Failed to start quiz. Check your connection.";
-      
+
       if (err.response?.status === 403) {
         toast.error(errorMsg);
       } else {
@@ -662,11 +747,10 @@ const Classroom = () => {
               <button
                 onClick={video.is_completed ? unmarkAsCompleted : markAsCompleted}
                 disabled={marking}
-                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${
-                  video.is_completed
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${video.is_completed
                     ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100'
                     : 'bg-orange-500 text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600 hover:shadow-orange-500/30'
-                }`}
+                  }`}
               >
                 {marking ? (
                   <div className={`animate-spin rounded-full h-4 w-4 border-2 ${video.is_completed ? 'border-green-500 border-t-transparent' : 'border-white border-t-transparent'}`}></div>
@@ -710,7 +794,7 @@ const Classroom = () => {
             {playerError && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-6 bg-gray-950 text-white text-center px-6">
                 <div className="p-5 bg-red-500/10 rounded-full border border-red-500/20">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-400"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-400"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                 </div>
                 <div>
                   <h3 className="text-xl font-black mb-2">Embedding Restricted</h3>
@@ -722,7 +806,7 @@ const Classroom = () => {
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 px-8 py-3.5 bg-red-600 text-white font-black text-sm rounded-2xl hover:bg-red-700 transition-all hover:scale-105 shadow-2xl shadow-red-500/30"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
                   Watch on YouTube
                 </a>
               </div>
@@ -734,13 +818,13 @@ const Classroom = () => {
             <div className="max-w-5xl mx-auto p-4 sm:p-6 pb-20 lg:pb-6 text-gray-900 dark:text-white">
               <div className="flex flex-col gap-3 mb-4">
                 <h1 className="text-xl md:text-2xl font-black leading-tight flex-1">{video.name}</h1>
-                <a 
+                <a
                   href={`https://www.youtube.com/watch?v=${video.vid}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-fit inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50/80 dark:bg-slate-800/80 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white text-gray-500 dark:text-slate-400 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all border border-gray-100 dark:border-slate-700/50 backdrop-blur-sm shadow-sm"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122-2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122-2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
                   <span>Watch on YouTube</span>
                 </a>
               </div>
@@ -779,11 +863,10 @@ const Classroom = () => {
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-0.5 sm:px-3 rounded-xl text-[8px] sm:text-[11px] font-black uppercase tracking-tight sm:tracking-widest transition-all flex-1 ${
-                          activeTab === tab.id
+                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-0.5 sm:px-3 rounded-xl text-[8px] sm:text-[11px] font-black uppercase tracking-tight sm:tracking-widest transition-all flex-1 ${activeTab === tab.id
                             ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                             : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800'
-                        }`}
+                          }`}
                       >
                         <Icon size={16} className="sm:w-[14px] sm:h-[14px] flex-shrink-0" />
                         <span className="mt-0.5 sm:mt-0">{tab.label}</span>
@@ -810,11 +893,10 @@ const Classroom = () => {
                                 key={v.vid}
                                 ref={isActive ? activeVideoRef : null}
                                 onClick={() => navigate(`/classroom/${v.vid}`)}
-                                className={`group flex gap-3 p-3 cursor-pointer transition-all duration-200 rounded-xl ${
-                                  isActive
+                                className={`group flex gap-3 p-3 cursor-pointer transition-all duration-200 rounded-xl ${isActive
                                     ? 'bg-orange-50 dark:bg-orange-900/10 ring-1 ring-orange-200 dark:ring-orange-900/50'
                                     : 'hover:bg-gray-50 dark:hover:bg-slate-800/60'
-                                }`}
+                                  }`}
                               >
                                 <div className="relative flex-shrink-0">
                                   <img
@@ -868,10 +950,10 @@ const Classroom = () => {
                   {activeTab === 'overview' && (
                     <div className="prose dark:prose-invert max-w-none break-words overflow-hidden bg-gray-50/50 dark:bg-slate-800/30 p-6 rounded-2xl border border-gray-100 dark:border-slate-800">
                       <div className="text-gray-700 dark:text-slate-300 leading-relaxed text-sm md:text-base whitespace-pre-line break-words">
-                        <ReactMarkdown 
+                        <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
                           components={{
-                            a: ({node, ...props}) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline font-bold" />
+                            a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline font-bold" />
                           }}
                         >
                           {video.description || "No description available for this video."}
@@ -1216,7 +1298,7 @@ const Classroom = () => {
                                 if (e.target.files && e.target.files.length > 0) {
                                   const filesArray = Array.from(e.target.files);
                                   const validFiles = [];
-                                  
+
                                   filesArray.forEach(file => {
                                     if (file.size > 2 * 1024 * 1024) {
                                       toast.error(`"${file.name}" exceeds the 2MB limit.`);
@@ -1228,7 +1310,7 @@ const Classroom = () => {
                                   if (validFiles.length > 0) {
                                     setNewNoteFiles([...newNoteFiles, ...validFiles]);
                                   }
-                                  
+
                                   // Reset input so the same file can be re-selected if necessary
                                   e.target.value = null;
                                 }

@@ -74,42 +74,51 @@ export default function LanguageLearning() {
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto px-2 md:px-6">
       {/* Header card */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Globe className="text-orange-500 animate-pulse" size={28} />
-            <span>Live Rooms</span>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-750 p-5 sm:p-6 shadow-sm flex items-center justify-between gap-4 transition-colors duration-200">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+            <Globe className="text-orange-500 animate-pulse shrink-0" size={24} />
+            <span className="truncate">Live Rooms</span>
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Join or start a live room to discuss, practice, or learn together with other members.</p>
+          <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mt-1 leading-snug">
+            Join or start a live room to discuss, practice, or learn together with other members.
+          </p>
         </div>
         
         <button 
           onClick={() => setShowModal(true)} 
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-655 text-white font-bold text-sm shadow shadow-orange-500/20 transition-all flex-shrink-0"
+          className="p-2.5 sm:p-3 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer flex items-center justify-center border border-orange-600/10 shrink-0"
+          title="Create Room"
         >
-          <Plus size={18} />
-          <span>Create Room</span>
+          <Plus size={22} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
         </button>
       </div>
 
       {loading ? (
         <div className="text-center py-12 text-gray-500">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent mx-auto mb-2"></div>
-          <span>Loading live rooms...</span>
+          <span className="text-sm font-semibold">Loading live rooms...</span>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
           {roomsList.length === 0 ? (
-             <div className="col-span-full bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-700 rounded-2xl text-center py-16 px-4 text-gray-500 dark:text-gray-400">
-                <Mic size={44} className="mx-auto mb-4 text-orange-400 opacity-60 animate-bounce" />
-                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">No active rooms</h3>
-                <p className="text-sm mb-5">Be the first to start a live room session today!</p>
-                <button 
-                  onClick={() => setShowModal(true)}
-                  className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-655 text-white font-bold text-sm shadow transition"
-                >
-                  Create a Room
-                </button>
+             <div className="col-span-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-750 rounded-3xl text-center py-16 px-6 text-gray-500 dark:text-gray-400 shadow-sm relative overflow-hidden transition-colors duration-200">
+                {/* Decorative glow blob */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div className="relative z-10 max-w-sm mx-auto">
+                    <div className="w-16 h-16 bg-orange-50 dark:bg-orange-950/30 rounded-2xl flex items-center justify-center text-orange-500 mx-auto mb-5 shadow-sm border border-orange-100/50 dark:border-orange-500/10">
+                        <Mic size={32} className="animate-pulse" />
+                    </div>
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">No active rooms</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-405 mb-6 leading-relaxed">Be the first to start a live room session today to discuss, practice, or learn together!</p>
+                    <button 
+                      onClick={() => setShowModal(true)}
+                      className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                    >
+                      Create a Room
+                    </button>
+                </div>
              </div>
           ) : (
             roomsList.map(room => (
@@ -129,7 +138,7 @@ export default function LanguageLearning() {
                   {socialUser && socialUser.id?.toString() === room.creatorId?.toString() && (
                     <button 
                       onClick={(e) => handleDeleteRoom(e, room.id)}
-                      className="text-[9px] sm:text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg transition-all z-20 cursor-pointer"
+                      className="text-[9px] sm:text-xs font-bold text-red-500 hover:bg-red-55/10 dark:hover:bg-red-950/40 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg transition-all z-20 cursor-pointer"
                     >
                       End
                     </button>
@@ -144,7 +153,7 @@ export default function LanguageLearning() {
                   <h3 className="font-extrabold text-gray-900 dark:text-white text-xs sm:text-sm md:text-base leading-snug line-clamp-2 px-0.5">
                     {room.topic}
                   </h3>
-                  <p className="text-gray-400 dark:text-gray-500 text-[9px] sm:text-xs font-bold mt-1 uppercase tracking-wider">
+                  <p className="text-gray-405 dark:text-gray-500 text-[9px] sm:text-xs font-bold mt-1 uppercase tracking-wider">
                     Room: {room.roomName}
                   </p>
                 </div>
@@ -173,12 +182,12 @@ export default function LanguageLearning() {
 
       {/* Create Room Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-550 p-4">
-          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-scale-up">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Create Live Room</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-md w-full p-6 shadow-2xl animate-scale-up">
+            <h2 className="text-xl font-black text-gray-900 dark:text-white mb-4">Create Live Room</h2>
             <form onSubmit={handleCreateRoom} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Room Name</label>
+                <label className="block text-xs font-semibold text-gray-505 dark:text-gray-400 mb-1.5">Room Name</label>
                 <input 
                   type="text" 
                   value={newRoom.roomName}
@@ -189,12 +198,12 @@ export default function LanguageLearning() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Language</label>
+                <label className="block text-xs font-semibold text-gray-505 dark:text-gray-400 mb-1.5">Language</label>
                 <select 
                   value={newRoom.language}
                   onChange={(e) => setNewRoom({...newRoom, language: e.target.value})}
                   required
-                  className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-250 dark:border-gray-750 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-650 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-250 dark:border-gray-750 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-650 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
                 >
                   <option value="">Select Language</option>
                   <option value="English">English</option>
@@ -208,7 +217,7 @@ export default function LanguageLearning() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Topic (Optional)</label>
+                <label className="block text-xs font-semibold text-gray-505 dark:text-gray-400 mb-1.5">Topic (Optional)</label>
                 <input 
                   type="text" 
                   value={newRoom.topic}
@@ -222,13 +231,13 @@ export default function LanguageLearning() {
                 <button 
                   type="button" 
                   onClick={() => setShowModal(false)} 
-                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-650 rounded-xl text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-750 transition"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-650 rounded-xl text-gray-700 dark:text-gray-350 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-750 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
-                  className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-655 text-white font-bold text-sm shadow transition"
+                  className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow transition rounded-xl cursor-pointer"
                 >
                   Create & Join
                 </button>

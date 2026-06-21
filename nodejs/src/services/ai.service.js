@@ -98,7 +98,7 @@ async function callOpenRouter(prompt, jsonMode = false, temperature = 0.1) {
             temperature: temperature,
             frequency_penalty: 0.5, // Prevent looping/repetition
             presence_penalty: 0.3,
-            max_tokens: 8000 
+            max_tokens: 8000
         })
     });
 
@@ -133,7 +133,7 @@ async function callGroq(prompt, jsonMode = false, model = MODELS.GROQ_LLAMA_70B,
             temperature: temperature,
             frequency_penalty: 0.5, // Prevent looping/repetition
             presence_penalty: 0.3,
-            max_tokens: 8000 
+            max_tokens: 8000
         })
     });
 
@@ -155,30 +155,41 @@ async function callCerebras(prompt, jsonMode = false, temperature = 0.1) {
         throw new Error("CEREBRAS_API_KEY is not configured");
     }
 
-    const response = await fetch(CEREBRAS_API_URL, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: MODELS.CEREBRAS_MODEL,
-            messages: [{ role: 'user', content: prompt }],
-            response_format: jsonMode ? { type: "json_object" } : undefined,
-            temperature: temperature,
-            frequency_penalty: 0.5, // Prevent looping/repetition
-            presence_penalty: 0.3,
-            max_tokens: 8000 
-        })
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
 
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(`Cerebras API Error: ${err.error?.message || response.statusText}`);
+    try {
+        const response = await fetch(CEREBRAS_API_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: MODELS.CEREBRAS_MODEL,
+                messages: [{ role: 'user', content: prompt }],
+                response_format: jsonMode ? { type: "json_object" } : undefined,
+                temperature: temperature,
+                frequency_penalty: 0.5, // Prevent looping/repetition
+                presence_penalty: 0.3,
+                max_tokens: 8000
+            }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(`Cerebras API Error: ${err.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
     }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
 }
 
 /**
@@ -227,12 +238,12 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
         });
     };
 
-    // Priority Strategy for Speed (<15s): Cerebras -> Groq (70B) -> Groq (8B) -> Gemini 2.5 -> Gemini 3 -> OpenRouter
+    // Priority Strategy for Speed (<5s): Cerebras -> Gemini 2.5 -> Groq (70B) -> Groq (8B) -> Gemini 3 -> OpenRouter
     const chain = [
         { type: 'cerebras' },
+        { type: 'gemini', model: MODELS.GEMINI_2_5 },
         { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
         { type: 'groq', model: MODELS.GROQ_LLAMA_8B },
-        { type: 'gemini', model: MODELS.GEMINI_2_5 },
         { type: 'gemini', model: MODELS.GEMINI_3 },
         { type: 'groq', model: MODELS.GROQ_QWEN_32B },
         { type: 'openrouter' },
@@ -322,10 +333,13 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
         
         STRICT FORMATTING RULES:
         1. NO HTML TAGS: Do NOT output raw HTML tags (e.g., do NOT use <br>, <b>, <i>, etc.). Use standard Markdown syntax (like double newlines) for line breaks and paragraphs.
-        2. STANDARD MATH FORMATTING: If you write mathematical formulas, variables, or equations, use standard LaTeX delimiters:
-           - Use single dollar signs ($...$) for inline math (e.g., $t \\ge A_i$, $\\tau > 0$).
-           - Use double dollar signs ($$...$$) for block equations (e.g., $$W_{avg} = \\frac{1}{n}\\sum W_i$$).
-           - Do NOT use parenthesis delimiters like (t \\ge A_i) or square brackets like [t \\ge A_i].
+        2. STANDARD MATH FORMATTING: If you write mathematical formulas, variables, equations, or LaTeX commands, you MUST wrap them in standard delimiters:
+           - Wrap the ENTIRE equation, function, or formula (including all variables, operators, spacing commands, and fractions) in a single set of delimiters.
+           - Use single dollar signs ($...$) for inline math (e.g., $t \\ge A_i$, $P(A \\cup B) = P(A) + P(B)$).
+           - Use double dollar signs ($$...$$) for block equations (e.g., $$\\boxed{P(A \\cup B) = P(A) + P(B) - P(A \\cap B)}$$).
+           - CRITICAL: Never write LaTeX commands (like \\frac, \\cup, \\cap, \\boxed, \\qquad, \\Omega, \\varnothing, \\cdot, \\setminus) as plain text outside math delimiters. They will fail to render.
+           - CRITICAL: Never nest dollar signs inside other delimiters (e.g., do NOT write \\boxed{P$A\\cup B$} or P$A\\cup B$. Instead write $\\boxed{P(A\\cup B)}$ or $P(A\\cup B)$).
+           - Do NOT use parenthesis delimiters like (t \\ge A_i) or square brackets like [t \\ge A_i] for math.
         3. STRICT MARKDOWN BOLDING & HEADERS: Ensure every opening bold marker "**" has a matching closing bold marker "**". Do not leave trailing or loose asterisks. Do NOT use single asterisks (*) for headers or titles; always use double asterisks (**) to bold them.
         
         Video Title: '${title}'
@@ -364,7 +378,7 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
     // If transcript is huge (>30k chars ~8k tokens), we MUST avoid Cerebras/Groq8B (too small context)
     // and use Gemini or Groq 70B (massive 1M/128k context).
     const isLongTranscript = transcriptResult.transcript?.length > 30000;
-    
+
     let chain = [];
     if (hasTranscript) {
         if (isLongTranscript) {
@@ -479,16 +493,16 @@ const translateText = async (text, targetLanguage) => {
     try {
         console.log(`[Translate] Using FREE Google Translate to ${targetLanguage} (${targetCode})...`);
         const res = await translate(text, { to: targetCode });
-        
+
         // Basic check for repetition/shortness in free translator output
         if (res.text && res.text.length < text.length * 0.2 && text.length > 500) {
             throw new Error("Translation looks truncated or corrupted");
         }
-        
+
         return { content: res.text, model_name: 'Free Google Translate' };
     } catch (err) {
         console.warn(`[Translate] Free Google Translate failed, falling back to Cerebras/Groq:`, err.message);
-        
+
         // --- FALLBACK: Use LLM as backup if free service is blocked/down ---
         const translationPrompt = `
             Act as a professional polyglot translator. 
@@ -521,10 +535,13 @@ const benchmarkAllModels = async (title, description, url = null) => {
         
         STRICT FORMATTING RULES:
         1. NO HTML TAGS: Do NOT output raw HTML tags (e.g., do NOT use <br>, <b>, <i>, etc.). Use standard Markdown syntax (like double newlines) for line breaks and paragraphs.
-        2. STANDARD MATH FORMATTING: If you write mathematical formulas, variables, or equations, use standard LaTeX delimiters:
-           - Use single dollar signs ($...$) for inline math (e.g., $t \\ge A_i$, $\\tau > 0$).
-           - Use double dollar signs ($$...$$) for block equations (e.g., $$W_{avg} = \\frac{1}{n}\\sum W_i$$).
-           - Do NOT use parenthesis delimiters like (t \\ge A_i) or square brackets like [t \\ge A_i].
+        2. STANDARD MATH FORMATTING: If you write mathematical formulas, variables, equations, or LaTeX commands, you MUST wrap them in standard delimiters:
+           - Wrap the ENTIRE equation, function, or formula (including all variables, operators, spacing commands, and fractions) in a single set of delimiters.
+           - Use single dollar signs ($...$) for inline math (e.g., $t \\ge A_i$, $P(A \\cup B) = P(A) + P(B)$).
+           - Use double dollar signs ($$...$$) for block equations (e.g., $$\\boxed{P(A \\cup B) = P(A) + P(B) - P(A \\cap B)}$$).
+           - CRITICAL: Never write LaTeX commands (like \\frac, \\cup, \\cap, \\boxed, \\qquad, \\Omega, \\varnothing, \\cdot, \\setminus) as plain text outside math delimiters. They will fail to render.
+           - CRITICAL: Never nest dollar signs inside other delimiters (e.g., do NOT write \\boxed{P$A\\cup B$} or P$A\\cup B$. Instead write $\\boxed{P(A\\cup B)}$ or $P(A\\cup B)$).
+           - Do NOT use parenthesis delimiters like (t \\ge A_i) or square brackets like [t \\ge A_i] for math.
         3. STRICT MARKDOWN BOLDING & HEADERS: Ensure every opening bold marker "**" has a matching closing bold marker "**". Do not leave trailing or loose asterisks. Do NOT use single asterisks (*) for headers or titles; always use double asterisks (**) to bold them.
         
         Title: '${title}'
