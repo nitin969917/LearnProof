@@ -214,12 +214,15 @@ export default function LanguageLearning() {
                 >
                   <option value="">Select Language</option>
                   <option value="English">English</option>
-                  <option value="Spanish">Spanish</option>
-                  <option value="French">French</option>
-                  <option value="German">German</option>
-                  <option value="Japanese">Japanese</option>
-                  <option value="Korean">Korean</option>
                   <option value="Hindi">Hindi</option>
+                  <option value="Marathi">Marathi</option>
+                  <option value="Gujarati">Gujarati</option>
+                  <option value="Bengali">Bengali</option>
+                  <option value="Telugu">Telugu</option>
+                  <option value="Tamil">Tamil</option>
+                  <option value="Kannada">Kannada</option>
+                  <option value="Punjabi">Punjabi</option>
+                  <option value="Malayalam">Malayalam</option>
                   <option value="Other">Other</option>
                 </select>
               </div>
