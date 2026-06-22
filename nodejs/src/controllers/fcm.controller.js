@@ -99,7 +99,13 @@ const sendExplicitPush = async (req, res) => {
         // Send to multiple tokens using sendEachForMulticast
         const response = await admin.messaging().sendEachForMulticast({
             tokens,
-            notification: { title, body }
+            notification: { title, body },
+            webpush: {
+                notification: {
+                    icon: '/LP_logo.png',
+                    badge: '/LP_logo.png'
+                }
+            }
         });
 
         console.log(`[Admin Push] Sent ${response.successCount} messages successfully. Failure count: ${response.failureCount}`);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, Download, Laptop, Monitor, AlertCircle, Smartphone } from 'lucide-react';
+import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, Download, Laptop, Monitor, AlertCircle, Smartphone, Linkedin } from 'lucide-react';
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -146,9 +146,23 @@ const LandingPage = () => {
     const location = useLocation();
     const [showContent, setShowContent] = useState(false);
     const [scrollY, setScrollY] = useState(0);
+    const [userCount, setUserCount] = useState(null);
 
     useEffect(() => {
         const timer = setTimeout(() => setShowContent(true), 50);
+
+        const fetchUserCount = async () => {
+            try {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/public-stats`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setUserCount(data.totalUsers);
+                }
+            } catch (err) {
+                console.error("Error fetching user count:", err);
+            }
+        };
+        fetchUserCount();
 
         // SEO Map
         const seoMap = {
@@ -452,6 +466,7 @@ const LandingPage = () => {
                     </div>
 
                     <div className="hidden md:flex items-center gap-8 text-sm font-bold text-gray-600">
+                        <button onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">About</button>
                         <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">Features</button>
                         <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">How It Works</button>
                         <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">FAQs</button>
@@ -556,6 +571,12 @@ const LandingPage = () => {
                             <CheckCircle size={16} className="text-green-500" />
                             <span>Free forever to start</span>
                         </div>
+                        {userCount !== null && (
+                            <div className="flex items-center gap-2 text-sm text-gray-500 font-medium bg-white/50 px-4 py-2 rounded-full border border-gray-200/50 backdrop-blur-sm">
+                                <Users size={16} className="text-orange-500" />
+                                <span>Join <span className="font-bold text-gray-900">{userCount.toLocaleString()}</span> active learners</span>
+                            </div>
+                        )}
                     </motion.div>
                 </motion.div >
 
@@ -1048,7 +1069,7 @@ const LandingPage = () => {
                             </span>
                         </h2>
                         <p className="text-gray-600 text-lg mb-10 max-w-2xl mx-auto">
-                            Start your journey of transforming YouTube videos into verified certificates and showcase your dedication to learning
+                            Start your journey of transforming YouTube videos into verified certificates. Join {userCount !== null ? <span className="font-bold text-orange-600">{userCount.toLocaleString()}</span> : '...'} active learners today and showcase your dedication to learning.
                         </p>
                         <div className="flex flex-col items-center gap-4 mb-6">
                             <button 
@@ -1085,6 +1106,145 @@ const LandingPage = () => {
                     </motion.div>
                 </div>
             </motion.section >
+
+            {/* Section Divider */}
+            <div className="px-8 sm:px-16">
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
+            </div>
+
+            {/* About & Team Section */}
+            <section id="about" className="py-20 px-4 sm:px-8 lg:px-16 bg-gradient-to-br from-orange-50 via-white to-orange-50/30 border-t border-orange-100 relative z-10">
+                <div className="max-w-6xl mx-auto">
+                    {/* Section Header */}
+                    <div className="text-center mb-16">
+                        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 text-orange-600 text-sm font-bold mb-4 border border-orange-200">
+                            <Sparkles size={14} /> Company & Team
+                        </span>
+                        <h2 className="text-3xl sm:text-5xl font-black text-gray-900 leading-tight">
+                            About <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">LearnProof AI</span>
+                        </h2>
+                        <p className="text-gray-500 mt-4 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+                            A brief story of our mission, the problem we solve, and the team driving our platform forward.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch">
+                        
+                        {/* Company Story & Problem/Solution (7 cols on large screens) */}
+                        <motion.div 
+                            initial={{ opacity: 0, x: -35 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.7 }}
+                            className="lg:col-span-7 flex flex-col justify-between bg-white/70 backdrop-blur-md border border-orange-100 rounded-3xl p-8 sm:p-10 shadow-lg shadow-orange-100/50 hover:shadow-xl transition-all duration-300"
+                        >
+                            <div className="space-y-8">
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                        <AlertTriangle size={18} className="text-orange-500" />
+                                        <span>The Problem</span>
+                                    </h3>
+                                    <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                                        Traditional online learning is broken. While millions use YouTube for education, passive video consumption leads to low retention rates (often under 20%). Furthermore, self-taught individuals face significant challenges proving their self-acquired skills to employers without formal credentials.
+                                    </p>
+                                </div>
+
+                                <div className="border-t border-orange-50 pt-6">
+                                    <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                        <CheckCircle size={18} className="text-green-500" />
+                                        <span>Our Solution</span>
+                                    </h3>
+                                    <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                                        LearnProof AI transforms passive media consumption into structured, active learning journeys. By overlaying real-time progress tracking, AI-generated intuition summaries, interactive assessments, and cryptographically verifiable certificates, we help students build true competency and display undeniable proof of their skills.
+                                    </p>
+                                </div>
+
+                                <div className="border-t border-orange-50 pt-6">
+                                    <h3 className="text-xl font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                        <Target size={18} className="text-red-500" />
+                                        <span>Our Story & Mission</span>
+                                    </h3>
+                                    <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                                        Founded in 2026, LearnProof AI was born from a simple mission: to democratize education. We believe that learning should be self-paced, engaging, and globally recognized. We aim to bridge the gap between open-source education and career-defining credentials.
+                                    </p>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        {/* Team Section (5 cols on large screens) */}
+                        <motion.div 
+                            initial={{ opacity: 0, x: 35 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.7 }}
+                            className="lg:col-span-5 flex flex-col justify-between bg-gradient-to-br from-white to-orange-50/20 backdrop-blur-md border border-orange-100 rounded-3xl p-8 sm:p-10 shadow-lg shadow-orange-100/50 hover:shadow-xl transition-all duration-300 relative overflow-hidden group"
+                        >
+                            {/* Decorative background circle */}
+                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-orange-100/50 rounded-full blur-2xl group-hover:bg-orange-200/50 transition-all duration-500" />
+                            
+                            <div className="relative z-10">
+                                <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 text-orange-600 text-sm font-bold mb-6 border border-orange-200">
+                                    <Users size={14} /> Our Team
+                                </span>
+                                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight mb-4">
+                                    Team & <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">Leadership</span>
+                                </h2>
+                                <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+                                    LearnProof AI is currently being developed independently as a founder-led startup.
+                                </p>
+                                
+                                {/* Founder Card (Nitin Gaikwad) */}
+                                <div className="bg-white/80 border border-orange-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <img 
+                                            src="https://unavatar.io/linkedin/nitin9699" 
+                                            alt="Nitin Gaikwad" 
+                                            className="w-20 h-20 rounded-2xl object-cover border-2 border-orange-500/20 shadow-lg shadow-orange-200"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                const fallback = document.getElementById('avatar-fallback');
+                                                if (fallback) fallback.style.display = 'flex';
+                                            }}
+                                        />
+                                        <div 
+                                            id="avatar-fallback"
+                                            style={{ display: 'none' }}
+                                            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-orange-200"
+                                        >
+                                            NG
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-gray-900">Nitin Gaikwad</h3>
+                                            <p className="text-xs font-semibold text-orange-600">Founder & Lead Developer</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-4">
+                                        Nitin is the creator and lead developer of LearnProof AI, building AI-powered study tools for lifelong learners.
+                                    </p>
+                                    
+                                    {/* LinkedIn CTA Button */}
+                                    <a 
+                                        href="https://www.linkedin.com/in/nitin9699" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2.5 px-4 py-2.5 bg-[#0a66c2] hover:bg-[#004182] text-white rounded-xl font-bold text-xs shadow-sm hover:shadow transition-all duration-300 transform hover:-translate-y-0.5"
+                                    >
+                                        <Linkedin size={14} fill="currentColor" />
+                                        <span>LinkedIn Profile</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div className="relative z-10 pt-6 mt-6 border-t border-orange-100/80">
+                                <p className="text-xs text-gray-400 leading-relaxed">
+                                    Interested in collaborating or joining the team? Contact us at <a href="mailto:founder@learnproofai.com" className="text-orange-500 hover:underline">founder@learnproofai.com</a>.
+                                </p>
+                            </div>
+                        </motion.div>
+
+                    </div>
+                </div>
+            </section>
 
             {/* Section Divider */}
             <div className="px-8 sm:px-16">

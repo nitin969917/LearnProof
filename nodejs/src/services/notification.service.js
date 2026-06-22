@@ -206,6 +206,12 @@ const attemptSendNotification = async (userId, token, type, title, body, startOf
                     title,
                     body
                 },
+                webpush: {
+                    notification: {
+                        icon: '/LP_logo.png',
+                        badge: '/LP_logo.png'
+                    }
+                },
                 token
             };
             

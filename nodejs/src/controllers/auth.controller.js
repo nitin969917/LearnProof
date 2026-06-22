@@ -36,8 +36,19 @@ const handleGoogleCallback = async (req, res) => {
     }
 };
 
+const getPublicStats = async (req, res) => {
+    try {
+        const totalUsers = await prisma.userProfile.count();
+        res.status(200).json({ totalUsers });
+    } catch (error) {
+        console.error('getPublicStats Error:', error);
+        res.status(500).json({ error: 'Failed to fetch public stats' });
+    }
+};
+
 module.exports = {
     loginOrRegister,
     getProfile,
-    handleGoogleCallback
+    handleGoogleCallback,
+    getPublicStats
 };

@@ -43,6 +43,7 @@ const appStorage = multer.diskStorage({
 const uploadApp = multer({ storage: appStorage });
 
 // Auth
+router.get('/public-stats', authController.getPublicStats);
 router.post('/signup/', authMiddleware, authController.loginOrRegister);
 router.post('/login/', authMiddleware, authController.loginOrRegister);
 router.post('/oauth-login/', authMiddleware, authController.loginOrRegister);
