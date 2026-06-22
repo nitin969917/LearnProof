@@ -31,8 +31,8 @@ async function sendTestPush() {
         },
         webpush: {
             notification: {
-                icon: '/LP_M_logo.png',
-                badge: '/LP_M_logo.png'
+                icon: 'https://learnproofai.com/LP_M_logo.png',
+                badge: 'https://learnproofai.com/LP_M_logo.png'
             }
         },
         token: token

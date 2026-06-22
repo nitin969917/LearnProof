@@ -13,15 +13,15 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message: ', payload);
   
+  const iconUrl = self.location.origin + '/LP_M_logo.png';
   const notificationTitle = payload.notification?.title || "LearnProof AI";
   const notificationOptions = {
     body: payload.notification?.body || "You have a new update",
-    icon: '/LP_M_logo.png',
-    badge: '/LP_M_logo.png',
+    icon: iconUrl,
+    badge: iconUrl,
     data: payload.data
   };
 

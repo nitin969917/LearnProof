@@ -1,0 +1,20 @@
+{
+  "name": "LearnProof AI",
+  "short_name": "LearnProof",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff7ed",
+  "theme_color": "#ea580c",
+  "icons": [
+    {
+      "src": "/LP_M_logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/LP_M_logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
