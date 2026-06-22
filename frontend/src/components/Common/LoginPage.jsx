@@ -129,15 +129,15 @@ const LoginPage = () => {
                     </div>
 
                     {/* Features Checklist inside a nice styled inner card */}
-                    <div className="bg-orange-50/40 rounded-2xl p-4 border border-orange-100/50 w-full space-y-3.5 mt-8">
+                    <div className="bg-orange-50/40 rounded-2xl p-4 border border-orange-100/50 w-full space-y-3.5 mt-8 flex flex-col items-center">
                         {[
-                            { text: "AI-Generated Quizzes & Course Notes", color: "text-orange-500" },
-                            { text: "Verifiable Cryptographic Certificates", color: "text-red-500" },
+                            { text: "Smart Quizzes & Personalized Course Notes", color: "text-orange-500" },
+                            { text: "Deep Video Insights & AI Summaries", color: "text-red-500" },
                             { text: "Persistent Goal & Progress Tracking", color: "text-amber-500" }
                         ].map((feature, idx) => (
-                            <div key={idx} className="flex items-center gap-3">
+                            <div key={idx} className="flex items-center justify-center gap-3">
                                 <CheckCircle size={16} className={`${feature.color} shrink-0`} />
-                                <span className="text-xs text-gray-650 font-bold leading-none">{feature.text}</span>
+                                <span className="text-xs text-gray-700 font-bold leading-none">{feature.text}</span>
                             </div>
                         ))}
                     </div>

@@ -189,6 +189,35 @@ const Classroom = () => {
   // Playlist Pagination State
   const [playlistPage, setPlaylistPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
+
+  // Lock document scroll on desktop so the browser page-level scrollbar is hidden.
+  // On mobile (< 1024px) we allow natural page scrolling.
+  useEffect(() => {
+    const lockScroll = () => {
+      if (window.innerWidth >= 1024) {
+        document.documentElement.style.overflow = 'hidden';
+        document.documentElement.style.height = '100%';
+        document.body.style.overflow = 'hidden';
+        document.body.style.height = '100%';
+      } else {
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.height = '';
+        document.body.style.overflow = '';
+        document.body.style.height = '';
+      }
+    };
+    lockScroll();
+    window.addEventListener('resize', lockScroll);
+    return () => {
+      // Restore scroll when leaving classroom
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.height = '';
+      document.body.style.overflow = '';
+      document.body.style.height = '';
+      window.removeEventListener('resize', lockScroll);
+    };
+  }, []);
+
   useEffect(() => {
     latestProgressRef.current = liveProgress;
   }, [liveProgress]);
@@ -717,7 +746,7 @@ const Classroom = () => {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
+    <div className="flex flex-col lg:flex-row min-h-screen lg:min-h-0 lg:h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       {/* Main Content */}
       <div className="flex-1 flex flex-col w-full lg:w-auto lg:h-screen lg:overflow-hidden">
         {/* Premium Header */}
