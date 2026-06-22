@@ -5,12 +5,20 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from 'react-hot-toast';
 import { requestNotificationPermissionAndGetToken } from '../../utils/fcm';
+import { GoogleLogin, useGoogleOneTapLogin } from '@react-oauth/google';
 
 const LoginPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { login, user, loading } = useAuth();
     const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+    useGoogleOneTapLogin({
+        onSuccess: credentialResponse => {
+            if (!isAuthenticating) handleLoginFlow(credentialResponse.credential);
+        },
+        onError: () => console.log('One Tap Login Failed'),
+    });
 
     useEffect(() => {
         // If already logged in, redirect to dashboard immediately
@@ -51,22 +59,6 @@ const LoginPage = () => {
         }
     };
 
-    const handleManualGoogleLogin = () => {
-        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-        // MUST redirect to window.location.origin to match the authorized redirect URIs in Google Cloud Console
-        const redirectUri = window.location.origin;
-        const nonce = Math.random().toString(36).substring(2);
-        
-        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + 
-            `client_id=${clientId}` +
-            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-            `&response_type=id_token` +
-            `&scope=${encodeURIComponent('openid email profile')}` +
-            `&nonce=${nonce}` +
-            `&ux_mode=redirect`;
-            
-        window.location.href = authUrl;
-    };
 
     if (loading || isAuthenticating) {
         return (
@@ -129,17 +121,19 @@ const LoginPage = () => {
                     </div>
 
                     {/* Features Checklist inside a nice styled inner card */}
-                    <div className="bg-orange-50/40 rounded-2xl p-4 border border-orange-100/50 w-full space-y-3.5 mt-8 flex flex-col items-center">
-                        {[
-                            { text: "Smart Quizzes & Personalized Course Notes", color: "text-orange-500" },
-                            { text: "Deep Video Insights & AI Summaries", color: "text-red-500" },
-                            { text: "Persistent Goal & Progress Tracking", color: "text-amber-500" }
-                        ].map((feature, idx) => (
-                            <div key={idx} className="flex items-center justify-center gap-3">
-                                <CheckCircle size={16} className={`${feature.color} shrink-0`} />
-                                <span className="text-xs text-gray-700 font-bold leading-none">{feature.text}</span>
-                            </div>
-                        ))}
+                    <div className="bg-orange-50/40 rounded-2xl p-5 border border-orange-100/50 w-full space-y-3.5 mt-8 flex flex-col items-center">
+                        <div className="space-y-3.5 w-fit">
+                            {[
+                                { text: "Smart Quizzes & Personalized Notes", color: "text-orange-500" },
+                                { text: "Deep Video Insights & AI Summaries", color: "text-red-500" },
+                                { text: "Persistent Goal & Progress Tracking", color: "text-amber-500" }
+                            ].map((feature, idx) => (
+                                <div key={idx} className="flex items-start gap-3">
+                                    <CheckCircle size={16} className={`${feature.color} shrink-0 mt-0.5`} />
+                                    <span className="text-xs text-gray-700 font-bold leading-tight">{feature.text}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Secure Badge */}
@@ -149,16 +143,20 @@ const LoginPage = () => {
                     </div>
 
                     {/* Login Button */}
-                    <div className="w-full">
-                        <motion.button 
-                            whileHover={{ scale: 1.02, y: -2 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleManualGoogleLogin}
-                            className="w-full flex items-center justify-center gap-3.5 px-6 py-4 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.18)] transition-all duration-300 transform border border-orange-100 font-extrabold text-gray-700 text-base cursor-pointer"
-                        >
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-                            <span>Continue with Google</span>
-                        </motion.button>
+                    <div className="w-full flex justify-center mt-2">
+                        <GoogleLogin
+                            onSuccess={credentialResponse => {
+                                handleLoginFlow(credentialResponse.credential);
+                            }}
+                            onError={() => {
+                                toast.error('Login Failed');
+                            }}
+                            theme="outline"
+                            size="large"
+                            shape="pill"
+                            width="320"
+                            text="continue_with"
+                        />
                     </div>
                 </motion.div>
             </div>

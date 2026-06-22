@@ -914,20 +914,22 @@ const LandingPage = () => {
 
                     <div className="flex flex-col items-center gap-6 md:grid md:grid-cols-3 md:gap-8 mb-12 max-w-5xl mx-auto">
                         {/* Android Card */}
-                        <div className="w-72 md:w-auto bg-white border border-orange-100 rounded-2xl p-6 shadow-md hover:border-orange-300 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center">
-                            {/* Icon tile */}
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white mb-4 shadow-md">
-                                <Smartphone className="w-6 h-6" />
+                        <div className="w-72 md:w-full h-full bg-white border border-orange-100 rounded-2xl p-6 shadow-md hover:border-orange-300 hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-between text-center">
+                            <div className="flex flex-col items-center">
+                                {/* Icon tile */}
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white mb-4 shadow-md">
+                                    <Smartphone className="w-6 h-6" />
+                                </div>
+
+                                <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full mb-3">
+                                    .apk • Google Play Store
+                                </span>
+
+                                <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug font-sans">LearnProof AI for Android</h3>
+                                <p className="text-xs text-gray-500 leading-relaxed mb-5">
+                                    Access your learning space on the go. Synchronized streak tracking and progress heatmap updates.
+                                </p>
                             </div>
-
-                            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full mb-3">
-                                .apk • Google Play Store
-                            </span>
-
-                            <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug font-sans">LearnProof for Android</h3>
-                            <p className="text-xs text-gray-500 leading-relaxed mb-5 flex-grow">
-                                Access your learning space on the go. Synchronized streak tracking and progress heatmap updates.
-                            </p>
 
                             <a
                                 href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
@@ -945,20 +947,22 @@ const LandingPage = () => {
                         </div>
 
                         {/* macOS Card */}
-                        <div className="w-72 md:w-auto bg-white border border-orange-100 rounded-2xl p-6 shadow-md hover:border-orange-300 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center">
-                            {/* Icon tile */}
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white mb-4 shadow-md">
-                                <Laptop className="w-6 h-6" />
+                        <div className="w-72 md:w-full h-full bg-white border border-orange-100 rounded-2xl p-6 shadow-md hover:border-orange-300 hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-between text-center">
+                            <div className="flex flex-col items-center">
+                                {/* Icon tile */}
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white mb-4 shadow-md">
+                                    <Laptop className="w-6 h-6" />
+                                </div>
+
+                                <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full mb-3">
+                                    .dmg • approx. 80MB
+                                </span>
+
+                                <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug font-sans">LearnProof AI for macOS</h3>
+                                <p className="text-xs text-gray-500 leading-relaxed mb-5">
+                                    Companion desktop environment optimized for macOS. Includes floating note sidebar overlays.
+                                </p>
                             </div>
-
-                            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full mb-3">
-                                .dmg • approx. 80MB
-                            </span>
-
-                            <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug font-sans">LearnProof for macOS</h3>
-                            <p className="text-xs text-gray-500 leading-relaxed mb-5 flex-grow">
-                                Companion desktop environment optimized for macOS. Includes floating note sidebar overlays.
-                            </p>
 
                             <a
                                 href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/apps/LearnProof-AI.dmg`}
@@ -970,20 +974,22 @@ const LandingPage = () => {
                         </div>
 
                         {/* Windows Card */}
-                        <div className="w-72 md:w-auto bg-white border border-orange-100 rounded-2xl p-6 shadow-md hover:border-orange-300 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center">
-                            {/* Icon tile */}
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white mb-4 shadow-md">
-                                <Monitor className="w-6 h-6" />
+                        <div className="w-72 md:w-full h-full bg-white border border-orange-100 rounded-2xl p-6 shadow-md hover:border-orange-300 hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-between text-center">
+                            <div className="flex flex-col items-center">
+                                {/* Icon tile */}
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white mb-4 shadow-md">
+                                    <Monitor className="w-6 h-6" />
+                                </div>
+
+                                <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full mb-3">
+                                    .exe • approx. 65MB
+                                </span>
+
+                                <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug font-sans">LearnProof AI for Windows</h3>
+                                <p className="text-xs text-gray-500 leading-relaxed mb-5">
+                                    Native Windows runtime with low resource usage and system tray quick-launch tools.
+                                </p>
                             </div>
-
-                            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full mb-3">
-                                .exe • approx. 65MB
-                            </span>
-
-                            <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug font-sans">LearnProof for Windows</h3>
-                            <p className="text-xs text-gray-500 leading-relaxed mb-5 flex-grow">
-                                Native Windows runtime with low resource usage and system tray quick-launch tools.
-                            </p>
 
                             <a
                                 href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/apps/LearnProof-AI.exe`}
