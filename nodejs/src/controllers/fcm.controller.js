@@ -102,8 +102,8 @@ const sendExplicitPush = async (req, res) => {
             notification: { title, body },
             webpush: {
                 notification: {
-                    icon: '/LP_logo.png',
-                    badge: '/LP_logo.png'
+                    icon: '/LP_M_logo.png',
+                    badge: '/LP_M_logo.png'
                 }
             }
         });

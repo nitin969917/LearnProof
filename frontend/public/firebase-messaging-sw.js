@@ -20,8 +20,8 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification?.title || "LearnProof AI";
   const notificationOptions = {
     body: payload.notification?.body || "You have a new update",
-    icon: '/LP_logo.png',
-    badge: '/LP_logo.png',
+    icon: '/LP_M_logo.png',
+    badge: '/LP_M_logo.png',
     data: payload.data
   };
 

@@ -29,6 +29,12 @@ async function sendTestPush() {
             title: '📚 LearnProof Test Alert',
             body: 'Your Firebase Cloud Messaging test notification works! 🔥'
         },
+        webpush: {
+            notification: {
+                icon: '/LP_M_logo.png',
+                badge: '/LP_M_logo.png'
+            }
+        },
         token: token
     };
     
