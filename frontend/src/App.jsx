@@ -28,6 +28,7 @@ import AdminUsersList from './components/Admin/pages/AdminUsersList';
 import AdminContentList from './components/Admin/pages/AdminContentList';
 import AdminUserDetails from './components/Admin/pages/AdminUserDetails';
 import AdminInbox from './components/Admin/pages/AdminInbox';
+import AdminAppsManagement from './components/Admin/pages/AdminAppsManagement';
 
 import { ModalProvider } from './context/ModalContext';
 
@@ -37,6 +38,7 @@ import AdminSupportList from './components/Admin/pages/AdminSupportList';
 import PrivacyPolicy from './components/Common/PrivacyPolicy';
 import DeleteAccount from './components/Common/DeleteAccount';
 import TermsOfService from './components/Common/TermsOfService';
+import DownloadPage from './components/Common/DownloadPage';
 
 const App = () => {
     React.useEffect(() => {
@@ -76,6 +78,7 @@ const App = () => {
                         <Route path='/support' element={<Support />} />
                         <Route path='/delete-account' element={<DeleteAccount />} />
                         <Route path='/login' element={<LoginPage />} />
+                        <Route path='/download' element={<DownloadPage />} />
 
                         <Route
                             path='/dashboard/*'
@@ -125,13 +128,14 @@ const App = () => {
                                 </AdminRoute>
                             }
                         >
-                            <Route path='dashboard' element={<AdminDashboardHome />} />
-                            <Route path='users' element={<AdminUsersList />} />
-                            <Route path='users/:id' element={<AdminUserDetails />} />
-                            <Route path='content' element={<AdminContentList />} />
-                            <Route path='support' element={<AdminSupportList />} />
-                            <Route path='inbox' element={<AdminInbox />} />
-                            <Route path='' element={<Navigate to="dashboard" replace />} />
+                             <Route path='dashboard' element={<AdminDashboardHome />} />
+                             <Route path='users' element={<AdminUsersList />} />
+                             <Route path='users/:id' element={<AdminUserDetails />} />
+                             <Route path='content' element={<AdminContentList />} />
+                             <Route path='support' element={<AdminSupportList />} />
+                             <Route path='inbox' element={<AdminInbox />} />
+                             <Route path='apps' element={<AdminAppsManagement />} />
+                             <Route path='' element={<Navigate to="dashboard" replace />} />
                         </Route>
                         <Route path='*' element={<Navigate to="/" replace />} />
                     </Routes>

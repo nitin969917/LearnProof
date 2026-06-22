@@ -105,6 +105,8 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(morgan('dev'));
 app.use('/media', express.static('media')); // Serve static media files
 app.use('/api/media', express.static('media')); // Compatibility for Passenger routing
+app.use('/apps', express.static(path.join(__dirname, 'apps'))); // Serve desktop apps
+app.use('/api/apps', express.static(path.join(__dirname, 'apps'))); // Passenger compatibility for apps
 
 // Routes
 app.use('/api', apiRoutes);

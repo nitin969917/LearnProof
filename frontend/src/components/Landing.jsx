@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown } from 'lucide-react';
+import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, Download, Laptop, Monitor, AlertCircle, Smartphone } from 'lucide-react';
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -35,7 +35,7 @@ const FAQSection = () => {
     const toggle = (i) => setOpenIndex(openIndex === i ? null : i);
 
     return (
-        <section className="py-24 px-4 sm:px-8 lg:px-16 bg-gradient-to-br from-gray-50 to-orange-50/40 border-t border-orange-100">
+        <section id="faq" className="py-24 px-4 sm:px-8 lg:px-16 bg-gradient-to-br from-gray-50 to-orange-50/40 border-t border-orange-100">
             <div className="max-w-5xl mx-auto">
                 {/* Header */}
                 <motion.div
@@ -439,9 +439,44 @@ const LandingPage = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-orange-50 relative overflow-hidden selection:bg-orange-200">
+        <div className="min-h-screen bg-orange-50 relative overflow-hidden selection:bg-orange-200 pt-16 md:pt-18">
+            {/* Header / Sticky Glassmorphism Navbar */}
+            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+                scrollY > 20 
+                    ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-orange-100/50 py-1' 
+                    : 'bg-transparent py-2.5'
+            }`}>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+                    <div className="flex items-center cursor-pointer py-0 my-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                        <img src="/LP_logo.png" alt="LearnProof" className="h-14 sm:h-15 w-auto object-contain my-0 py-0 block" />
+                    </div>
+
+                    <div className="hidden md:flex items-center gap-8 text-sm font-bold text-gray-600">
+                        <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">Features</button>
+                        <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">How It Works</button>
+                        <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">FAQs</button>
+                        <button onClick={() => document.getElementById('download')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">Downloads</button>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <button 
+                            onClick={handleManualGoogleLogin}
+                            className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors hidden sm:block"
+                        >
+                            Login
+                        </button>
+                        <button 
+                            onClick={handleManualGoogleLogin}
+                            className="px-5 py-2.5 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all transform active:scale-95 animate-fade-in"
+                        >
+                            Get Started
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
             {/* Background Texture & Blobs */}
-            < div className="absolute inset-0 z-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }} ></div >
+            <div className="absolute inset-0 z-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }} />
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-orange-200 via-red-100 to-transparent rounded-full blur-[120px] opacity-60 z-0 pointer-events-none -translate-y-1/2 translate-x-1/3"></div>
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-amber-200 to-transparent rounded-full blur-[100px] opacity-40 z-0 pointer-events-none -translate-x-1/3"></div>
 
@@ -698,6 +733,7 @@ const LandingPage = () => {
 
             {/* How It Works Section */}
             <motion.section
+                id="how-it-works"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 transition={{ duration: 0.8 }}
@@ -787,6 +823,7 @@ const LandingPage = () => {
 
             {/* Features Section */}
             <motion.section
+                id="features"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
                 transition={{ duration: 0.8 }}
@@ -844,6 +881,136 @@ const LandingPage = () => {
                                 <p className="text-xs text-gray-500 leading-relaxed">{feature.description}</p>
                             </motion.div>
                         ))}
+                    </div>
+                </div>
+            </motion.section>
+
+            {/* Section Divider */}
+            <div className="px-8 sm:px-16">
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
+            </div>
+
+            {/* Downloads Section */}
+            <motion.section
+                id="download"
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                viewport={{ once: true }}
+                className="py-20 px-4 sm:px-8 lg:px-16 bg-gradient-to-br from-gray-50 to-orange-50/40 relative overflow-hidden border-t border-b border-orange-100"
+            >
+                <div className="max-w-5xl mx-auto relative z-10">
+                    <div className="text-center mb-12">
+                        <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 text-orange-600 text-sm font-bold mb-4 shadow-sm border border-orange-200">
+                            <Sparkles size={14} /> Desktop Apps
+                        </span>
+                        <h2 className="text-3xl sm:text-5xl font-black text-gray-900 leading-tight">
+                            Download the <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">LearnProof AI</span> App
+                        </h2>
+                        <p className="text-gray-600 mt-4 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+                            Access our full companion client. Run locally on your desktop for high-performance trackability.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-6 md:grid md:grid-cols-3 md:gap-8 mb-12 max-w-5xl mx-auto">
+                        {/* Android Card */}
+                        <div className="w-72 md:w-auto bg-white border border-orange-100 rounded-2xl p-6 shadow-md hover:border-orange-300 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center">
+                            {/* Icon tile */}
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white mb-4 shadow-md">
+                                <Smartphone className="w-6 h-6" />
+                            </div>
+
+                            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full mb-3">
+                                .apk • Google Play Store
+                            </span>
+
+                            <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug font-sans">LearnProof for Android</h3>
+                            <p className="text-xs text-gray-500 leading-relaxed mb-5 flex-grow">
+                                Access your learning space on the go. Synchronized streak tracking and progress heatmap updates.
+                            </p>
+
+                            <a
+                                href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-md hover:drop-shadow-lg mt-auto block"
+                                aria-label="Get it on Google Play"
+                            >
+                                <img
+                                    src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                                    alt="Get it on Google Play"
+                                    className="h-[48px] w-auto object-contain"
+                                />
+                            </a>
+                        </div>
+
+                        {/* macOS Card */}
+                        <div className="w-72 md:w-auto bg-white border border-orange-100 rounded-2xl p-6 shadow-md hover:border-orange-300 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center">
+                            {/* Icon tile */}
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white mb-4 shadow-md">
+                                <Laptop className="w-6 h-6" />
+                            </div>
+
+                            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full mb-3">
+                                .dmg • approx. 80MB
+                            </span>
+
+                            <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug font-sans">LearnProof for macOS</h3>
+                            <p className="text-xs text-gray-500 leading-relaxed mb-5 flex-grow">
+                                Companion desktop environment optimized for macOS. Includes floating note sidebar overlays.
+                            </p>
+
+                            <a
+                                href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/apps/LearnProof-AI.dmg`}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-bold text-xs shadow-md bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 transition-all transform active:scale-95 mt-auto"
+                            >
+                                <Download size={14} />
+                                <span>Download for macOS</span>
+                            </a>
+                        </div>
+
+                        {/* Windows Card */}
+                        <div className="w-72 md:w-auto bg-white border border-orange-100 rounded-2xl p-6 shadow-md hover:border-orange-300 hover:shadow-xl transition-all duration-300 flex flex-col items-center text-center">
+                            {/* Icon tile */}
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white mb-4 shadow-md">
+                                <Monitor className="w-6 h-6" />
+                            </div>
+
+                            <span className="text-[10px] font-bold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full mb-3">
+                                .exe • approx. 65MB
+                            </span>
+
+                            <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug font-sans">LearnProof for Windows</h3>
+                            <p className="text-xs text-gray-500 leading-relaxed mb-5 flex-grow">
+                                Native Windows runtime with low resource usage and system tray quick-launch tools.
+                            </p>
+
+                            <a
+                                href={`${import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'}/apps/LearnProof-AI.exe`}
+                                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-bold text-xs shadow-md bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-600 transition-all transform active:scale-95 mt-auto"
+                            >
+                                <Download size={14} />
+                                <span>Download for Windows</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    {/* Installation Notes / Help Accordion */}
+                    <div className="bg-white/80 rounded-2xl p-6 border border-orange-100 max-w-3xl mx-auto text-left space-y-4">
+                        <h4 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                            <AlertCircle size={16} className="text-orange-500" />
+                            <span>Installation Security Guides</span>
+                        </h4>
+                        <div className="grid sm:grid-cols-2 gap-6 text-xs text-gray-500">
+                            <div>
+                                <strong className="text-violet-600 block mb-1">macOS User Action:</strong>
+                                If you see a &quot;Developer cannot be verified&quot; Gatekeeper alert, Control-click the application icon in your Applications folder and select <strong>Open</strong> to bypass.
+                            </div>
+                            <div>
+                                <strong className="text-orange-600 block mb-1">Windows User Action:</strong>
+                                If a Windows SmartScreen banner appears saying &quot;Windows protected your PC&quot;, click <strong>More Info</strong> followed by <strong>Run Anyway</strong>.
+                            </div>
+                        </div>
                     </div>
                 </div>
             </motion.section>
@@ -978,6 +1145,7 @@ const LandingPage = () => {
                                     <a href="/dashboard" className="hover:text-orange-600 transition-colors">Courses</a>
                                     <a href="/dashboard" className="hover:text-orange-600 transition-colors">Roadmaps</a>
                                     <a href="/dashboard" className="hover:text-orange-600 transition-colors">Certificates</a>
+                                    <button onClick={() => document.getElementById('download')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors text-left">Downloads</button>
                                 </div>
                                 <div className="flex flex-col space-y-3">
                                     <h4 className="font-bold text-gray-900 mb-2">Company</h4>

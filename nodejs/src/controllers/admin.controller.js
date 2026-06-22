@@ -234,6 +234,66 @@ const getAnalyticsData = async (req, res) => {
     }
 };
 
+const getApps = async (req, res) => {
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const appsDir = path.join(__dirname, '../../apps');
+        const files = [
+            { name: 'LearnProof-AI.dmg', platform: 'macos', label: 'macOS' },
+            { name: 'LearnProof-AI.exe', platform: 'windows', label: 'Windows' }
+        ];
+
+        const result = files.map(item => {
+            const filePath = path.join(appsDir, item.name);
+            const exists = fs.existsSync(filePath);
+            if (exists) {
+                const stats = fs.statSync(filePath);
+                return {
+                    name: item.name,
+                    platform: item.platform,
+                    label: item.label,
+                    exists: true,
+                    size: stats.size,
+                    updatedAt: stats.mtime
+                };
+            } else {
+                return {
+                    name: item.name,
+                    platform: item.platform,
+                    label: item.label,
+                    exists: false,
+                    size: 0,
+                    updatedAt: null
+                };
+            }
+        });
+
+        res.json({ apps: result });
+    } catch (error) {
+        console.error('getApps Error:', error);
+        res.status(500).json({ error: 'Failed to retrieve apps status' });
+    }
+};
+
+const uploadAppFile = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+        res.json({
+            message: 'App uploaded successfully',
+            file: {
+                name: req.file.filename,
+                size: req.file.size
+            }
+        });
+    } catch (error) {
+        console.error('uploadAppFile Error:', error);
+        res.status(500).json({ error: 'Failed to upload app file' });
+    }
+};
+
 module.exports = {
     getDashboardStats,
     getUsers,
@@ -241,5 +301,7 @@ module.exports = {
     getContent,
     deleteContent,
     getUserDetails,
-    getAnalyticsData
+    getAnalyticsData,
+    getApps,
+    uploadAppFile
 };

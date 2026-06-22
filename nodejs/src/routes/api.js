@@ -25,6 +25,23 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
+const appStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'apps/');
+    },
+    filename: (req, file, cb) => {
+        const platform = req.query.platform;
+        if (platform === 'macos') {
+            cb(null, 'LearnProof-AI.dmg');
+        } else if (platform === 'windows') {
+            cb(null, 'LearnProof-AI.exe');
+        } else {
+            cb(null, file.originalname);
+        }
+    }
+});
+const uploadApp = multer({ storage: appStorage });
+
 // Auth
 router.post('/signup/', authMiddleware, authController.loginOrRegister);
 router.post('/login/', authMiddleware, authController.loginOrRegister);
@@ -84,6 +101,10 @@ router.post('/admin/send-push/', authMiddleware, isAdminMiddleware, fcmControlle
 router.get('/admin/notification-templates', authMiddleware, isAdminMiddleware, fcmController.getNotificationTemplates);
 router.post('/admin/notification-templates', authMiddleware, isAdminMiddleware, fcmController.updateNotificationTemplate);
 router.post('/admin/notification-templates/', authMiddleware, isAdminMiddleware, fcmController.updateNotificationTemplate);
+
+// Admin Desktop App Releases
+router.get('/admin/apps', authMiddleware, isAdminMiddleware, adminController.getApps);
+router.post('/admin/apps/upload', authMiddleware, isAdminMiddleware, uploadApp.single('appFile'), adminController.uploadAppFile);
 
 // Messages & Inbox
 router.post('/messages/send/', authMiddleware, isAdminMiddleware, messageController.sendMessage);

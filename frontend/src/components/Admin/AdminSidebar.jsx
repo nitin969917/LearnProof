@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Video, LogOut, Settings, ShieldAlert, LifeBuoy, Mail } from 'lucide-react';
+import { LayoutDashboard, Users, Video, LogOut, Settings, ShieldAlert, LifeBuoy, Mail, HardDrive } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useModal } from '../../context/ModalContext';
 
@@ -29,6 +29,7 @@ const AdminSidebar = ({ onClose }) => {
         { path: '/admin/content', icon: <Video size={20} />, label: 'Content Audit' },
         { path: '/admin/support', icon: <LifeBuoy size={20} />, label: 'Support Tickets' },
         { path: '/admin/inbox', icon: <Mail size={20} />, label: 'Communication Center' },
+        { path: '/admin/apps', icon: <HardDrive size={20} />, label: 'App Releases' },
     ];
 
     return (
