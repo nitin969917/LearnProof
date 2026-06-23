@@ -151,11 +151,14 @@ model CloseFriendRequest {
 }
 
 model LanguageRoom {
-  id        Int      @id @default(autoincrement())
-  roomName  String   @unique
-  topic     String
-  language  String
-  createdAt DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  roomName        String   @unique
+  topic           String
+  language        String
+  roomType        String   @default("group") // "group" or "1-on-1"
+  mediaType       String   @default("audio") // "audio" or "video"
+  maxParticipants Int      @default(10)
+  createdAt       DateTime @default(now())
 
   creatorId Int
   creator   User @relation(fields: [creatorId], references: [id])

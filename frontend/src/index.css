@@ -98,3 +98,111 @@ h1, h2, h3, h4 {
     -webkit-user-select: text;
     user-select: text;
 }
+
+/* ── LiveKit Elements Theme Overrides ────────────────────────────────────── */
+
+/* Base tile */
+.lk-participant-tile {
+    border-radius: 1rem !important;
+    overflow: hidden !important;
+    transition: all 0.25s ease !important;
+    position: relative !important;
+}
+
+/* Light mode tile */
+.lk-participant-tile {
+    background-color: #f1f5f9 !important;
+    border: 1.5px solid #e2e8f0 !important;
+}
+/* Dark mode tile */
+.dark .lk-participant-tile {
+    background-color: #0f172a !important;
+    border-color: #1e293b !important;
+}
+
+/* Speaking glow */
+.lk-participant-tile[data-lk-speaking="true"] {
+    border-color: #f97316 !important;
+    box-shadow: 0 0 0 2px rgba(249,115,22,0.3), 0 8px 32px -4px rgba(249,115,22,0.25) !important;
+}
+
+/* ── Placeholder (camera off) ─────────────────────────────────────────────── */
+.lk-participant-tile .lk-participant-placeholder {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%) !important;
+}
+
+.dark .lk-participant-tile .lk-participant-placeholder {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+}
+
+/* The SVG person icon — DARK in light mode, LIGHT in dark mode */
+.lk-participant-tile .lk-participant-placeholder svg {
+    width: 40% !important;
+    height: 40% !important;
+    color: #475569 !important;
+    fill: #475569 !important;
+    stroke: #475569 !important;
+    opacity: 0.6 !important;
+}
+
+.dark .lk-participant-tile .lk-participant-placeholder svg {
+    color: #94a3b8 !important;
+    fill: #94a3b8 !important;
+    stroke: #94a3b8 !important;
+    opacity: 0.5 !important;
+}
+
+/* Force ALL svg paths inside placeholder to inherit color */
+.lk-participant-tile .lk-participant-placeholder svg *,
+.lk-participant-tile .lk-participant-placeholder svg path,
+.lk-participant-tile .lk-participant-placeholder svg circle,
+.lk-participant-tile .lk-participant-placeholder svg rect {
+    fill: currentColor !important;
+    stroke: currentColor !important;
+}
+
+/* ── Name label (bottom overlay) ─────────────────────────────────────────── */
+.lk-participant-metadata {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, transparent 100%) !important;
+    backdrop-filter: none !important;
+    border: none !important;
+    padding: 1.5rem 0.6rem 0.5rem !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+}
+
+.lk-participant-metadata-item {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.9) !important;
+    letter-spacing: 0.01em !important;
+    background: none !important;
+}
+
+/* ── Connection quality ───────────────────────────────────────────────────── */
+.lk-connection-quality {
+    background: transparent !important;
+    border: none !important;
+}
+.lk-connection-quality svg {
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7));
+    width: 14px !important;
+    height: 14px !important;
+}
+
+/* ── Audio waveform / animation ───────────────────────────────────────────── */
+.lk-audio-visualizer {
+    color: #f97316 !important;
+}
+

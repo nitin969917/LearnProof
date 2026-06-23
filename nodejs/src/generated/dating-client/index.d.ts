@@ -10522,11 +10522,13 @@ export namespace Prisma {
 
   export type LanguageRoomAvgAggregateOutputType = {
     id: number | null
+    maxParticipants: number | null
     creatorId: number | null
   }
 
   export type LanguageRoomSumAggregateOutputType = {
     id: number | null
+    maxParticipants: number | null
     creatorId: number | null
   }
 
@@ -10535,6 +10537,9 @@ export namespace Prisma {
     roomName: string | null
     topic: string | null
     language: string | null
+    roomType: string | null
+    mediaType: string | null
+    maxParticipants: number | null
     createdAt: Date | null
     creatorId: number | null
   }
@@ -10544,6 +10549,9 @@ export namespace Prisma {
     roomName: string | null
     topic: string | null
     language: string | null
+    roomType: string | null
+    mediaType: string | null
+    maxParticipants: number | null
     createdAt: Date | null
     creatorId: number | null
   }
@@ -10553,6 +10561,9 @@ export namespace Prisma {
     roomName: number
     topic: number
     language: number
+    roomType: number
+    mediaType: number
+    maxParticipants: number
     createdAt: number
     creatorId: number
     _all: number
@@ -10561,11 +10572,13 @@ export namespace Prisma {
 
   export type LanguageRoomAvgAggregateInputType = {
     id?: true
+    maxParticipants?: true
     creatorId?: true
   }
 
   export type LanguageRoomSumAggregateInputType = {
     id?: true
+    maxParticipants?: true
     creatorId?: true
   }
 
@@ -10574,6 +10587,9 @@ export namespace Prisma {
     roomName?: true
     topic?: true
     language?: true
+    roomType?: true
+    mediaType?: true
+    maxParticipants?: true
     createdAt?: true
     creatorId?: true
   }
@@ -10583,6 +10599,9 @@ export namespace Prisma {
     roomName?: true
     topic?: true
     language?: true
+    roomType?: true
+    mediaType?: true
+    maxParticipants?: true
     createdAt?: true
     creatorId?: true
   }
@@ -10592,6 +10611,9 @@ export namespace Prisma {
     roomName?: true
     topic?: true
     language?: true
+    roomType?: true
+    mediaType?: true
+    maxParticipants?: true
     createdAt?: true
     creatorId?: true
     _all?: true
@@ -10688,6 +10710,9 @@ export namespace Prisma {
     roomName: string
     topic: string
     language: string
+    roomType: string
+    mediaType: string
+    maxParticipants: number
     createdAt: Date
     creatorId: number
     _count: LanguageRoomCountAggregateOutputType | null
@@ -10716,6 +10741,9 @@ export namespace Prisma {
     roomName?: boolean
     topic?: boolean
     language?: boolean
+    roomType?: boolean
+    mediaType?: boolean
+    maxParticipants?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10726,6 +10754,9 @@ export namespace Prisma {
     roomName?: boolean
     topic?: boolean
     language?: boolean
+    roomType?: boolean
+    mediaType?: boolean
+    maxParticipants?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10736,6 +10767,9 @@ export namespace Prisma {
     roomName?: boolean
     topic?: boolean
     language?: boolean
+    roomType?: boolean
+    mediaType?: boolean
+    maxParticipants?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10746,11 +10780,14 @@ export namespace Prisma {
     roomName?: boolean
     topic?: boolean
     language?: boolean
+    roomType?: boolean
+    mediaType?: boolean
+    maxParticipants?: boolean
     createdAt?: boolean
     creatorId?: boolean
   }
 
-  export type LanguageRoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "roomName" | "topic" | "language" | "createdAt" | "creatorId", ExtArgs["result"]["languageRoom"]>
+  export type LanguageRoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "roomName" | "topic" | "language" | "roomType" | "mediaType" | "maxParticipants" | "createdAt" | "creatorId", ExtArgs["result"]["languageRoom"]>
   export type LanguageRoomInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     creator?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -10771,6 +10808,9 @@ export namespace Prisma {
       roomName: string
       topic: string
       language: string
+      roomType: string
+      mediaType: string
+      maxParticipants: number
       createdAt: Date
       creatorId: number
     }, ExtArgs["result"]["languageRoom"]>
@@ -11201,6 +11241,9 @@ export namespace Prisma {
     readonly roomName: FieldRef<"LanguageRoom", 'String'>
     readonly topic: FieldRef<"LanguageRoom", 'String'>
     readonly language: FieldRef<"LanguageRoom", 'String'>
+    readonly roomType: FieldRef<"LanguageRoom", 'String'>
+    readonly mediaType: FieldRef<"LanguageRoom", 'String'>
+    readonly maxParticipants: FieldRef<"LanguageRoom", 'Int'>
     readonly createdAt: FieldRef<"LanguageRoom", 'DateTime'>
     readonly creatorId: FieldRef<"LanguageRoom", 'Int'>
   }
@@ -15110,6 +15153,9 @@ export namespace Prisma {
     roomName: 'roomName',
     topic: 'topic',
     language: 'language',
+    roomType: 'roomType',
+    mediaType: 'mediaType',
+    maxParticipants: 'maxParticipants',
     createdAt: 'createdAt',
     creatorId: 'creatorId'
   };
@@ -15808,6 +15854,9 @@ export namespace Prisma {
     roomName?: StringFilter<"LanguageRoom"> | string
     topic?: StringFilter<"LanguageRoom"> | string
     language?: StringFilter<"LanguageRoom"> | string
+    roomType?: StringFilter<"LanguageRoom"> | string
+    mediaType?: StringFilter<"LanguageRoom"> | string
+    maxParticipants?: IntFilter<"LanguageRoom"> | number
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -15818,6 +15867,9 @@ export namespace Prisma {
     roomName?: SortOrder
     topic?: SortOrder
     language?: SortOrder
+    roomType?: SortOrder
+    mediaType?: SortOrder
+    maxParticipants?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
     creator?: UserOrderByWithRelationInput
@@ -15831,6 +15883,9 @@ export namespace Prisma {
     NOT?: LanguageRoomWhereInput | LanguageRoomWhereInput[]
     topic?: StringFilter<"LanguageRoom"> | string
     language?: StringFilter<"LanguageRoom"> | string
+    roomType?: StringFilter<"LanguageRoom"> | string
+    mediaType?: StringFilter<"LanguageRoom"> | string
+    maxParticipants?: IntFilter<"LanguageRoom"> | number
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -15841,6 +15896,9 @@ export namespace Prisma {
     roomName?: SortOrder
     topic?: SortOrder
     language?: SortOrder
+    roomType?: SortOrder
+    mediaType?: SortOrder
+    maxParticipants?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
     _count?: LanguageRoomCountOrderByAggregateInput
@@ -15858,6 +15916,9 @@ export namespace Prisma {
     roomName?: StringWithAggregatesFilter<"LanguageRoom"> | string
     topic?: StringWithAggregatesFilter<"LanguageRoom"> | string
     language?: StringWithAggregatesFilter<"LanguageRoom"> | string
+    roomType?: StringWithAggregatesFilter<"LanguageRoom"> | string
+    mediaType?: StringWithAggregatesFilter<"LanguageRoom"> | string
+    maxParticipants?: IntWithAggregatesFilter<"LanguageRoom"> | number
     createdAt?: DateTimeWithAggregatesFilter<"LanguageRoom"> | Date | string
     creatorId?: IntWithAggregatesFilter<"LanguageRoom"> | number
   }
@@ -16658,6 +16719,9 @@ export namespace Prisma {
     roomName: string
     topic: string
     language: string
+    roomType?: string
+    mediaType?: string
+    maxParticipants?: number
     createdAt?: Date | string
     creator: UserCreateNestedOneWithoutLanguageRoomsInput
   }
@@ -16667,6 +16731,9 @@ export namespace Prisma {
     roomName: string
     topic: string
     language: string
+    roomType?: string
+    mediaType?: string
+    maxParticipants?: number
     createdAt?: Date | string
     creatorId: number
   }
@@ -16675,6 +16742,9 @@ export namespace Prisma {
     roomName?: StringFieldUpdateOperationsInput | string
     topic?: StringFieldUpdateOperationsInput | string
     language?: StringFieldUpdateOperationsInput | string
+    roomType?: StringFieldUpdateOperationsInput | string
+    mediaType?: StringFieldUpdateOperationsInput | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutLanguageRoomsNestedInput
   }
@@ -16684,6 +16754,9 @@ export namespace Prisma {
     roomName?: StringFieldUpdateOperationsInput | string
     topic?: StringFieldUpdateOperationsInput | string
     language?: StringFieldUpdateOperationsInput | string
+    roomType?: StringFieldUpdateOperationsInput | string
+    mediaType?: StringFieldUpdateOperationsInput | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creatorId?: IntFieldUpdateOperationsInput | number
   }
@@ -16693,6 +16766,9 @@ export namespace Prisma {
     roomName: string
     topic: string
     language: string
+    roomType?: string
+    mediaType?: string
+    maxParticipants?: number
     createdAt?: Date | string
     creatorId: number
   }
@@ -16701,6 +16777,9 @@ export namespace Prisma {
     roomName?: StringFieldUpdateOperationsInput | string
     topic?: StringFieldUpdateOperationsInput | string
     language?: StringFieldUpdateOperationsInput | string
+    roomType?: StringFieldUpdateOperationsInput | string
+    mediaType?: StringFieldUpdateOperationsInput | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -16709,6 +16788,9 @@ export namespace Prisma {
     roomName?: StringFieldUpdateOperationsInput | string
     topic?: StringFieldUpdateOperationsInput | string
     language?: StringFieldUpdateOperationsInput | string
+    roomType?: StringFieldUpdateOperationsInput | string
+    mediaType?: StringFieldUpdateOperationsInput | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creatorId?: IntFieldUpdateOperationsInput | number
   }
@@ -17475,12 +17557,16 @@ export namespace Prisma {
     roomName?: SortOrder
     topic?: SortOrder
     language?: SortOrder
+    roomType?: SortOrder
+    mediaType?: SortOrder
+    maxParticipants?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
 
   export type LanguageRoomAvgOrderByAggregateInput = {
     id?: SortOrder
+    maxParticipants?: SortOrder
     creatorId?: SortOrder
   }
 
@@ -17489,6 +17575,9 @@ export namespace Prisma {
     roomName?: SortOrder
     topic?: SortOrder
     language?: SortOrder
+    roomType?: SortOrder
+    mediaType?: SortOrder
+    maxParticipants?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17498,12 +17587,16 @@ export namespace Prisma {
     roomName?: SortOrder
     topic?: SortOrder
     language?: SortOrder
+    roomType?: SortOrder
+    mediaType?: SortOrder
+    maxParticipants?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
 
   export type LanguageRoomSumOrderByAggregateInput = {
     id?: SortOrder
+    maxParticipants?: SortOrder
     creatorId?: SortOrder
   }
 
@@ -19099,6 +19192,9 @@ export namespace Prisma {
     roomName: string
     topic: string
     language: string
+    roomType?: string
+    mediaType?: string
+    maxParticipants?: number
     createdAt?: Date | string
   }
 
@@ -19107,6 +19203,9 @@ export namespace Prisma {
     roomName: string
     topic: string
     language: string
+    roomType?: string
+    mediaType?: string
+    maxParticipants?: number
     createdAt?: Date | string
   }
 
@@ -19463,6 +19562,9 @@ export namespace Prisma {
     roomName?: StringFilter<"LanguageRoom"> | string
     topic?: StringFilter<"LanguageRoom"> | string
     language?: StringFilter<"LanguageRoom"> | string
+    roomType?: StringFilter<"LanguageRoom"> | string
+    mediaType?: StringFilter<"LanguageRoom"> | string
+    maxParticipants?: IntFilter<"LanguageRoom"> | number
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
   }
@@ -22545,6 +22647,9 @@ export namespace Prisma {
     roomName: string
     topic: string
     language: string
+    roomType?: string
+    mediaType?: string
+    maxParticipants?: number
     createdAt?: Date | string
   }
 
@@ -22836,6 +22941,9 @@ export namespace Prisma {
     roomName?: StringFieldUpdateOperationsInput | string
     topic?: StringFieldUpdateOperationsInput | string
     language?: StringFieldUpdateOperationsInput | string
+    roomType?: StringFieldUpdateOperationsInput | string
+    mediaType?: StringFieldUpdateOperationsInput | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -22844,6 +22952,9 @@ export namespace Prisma {
     roomName?: StringFieldUpdateOperationsInput | string
     topic?: StringFieldUpdateOperationsInput | string
     language?: StringFieldUpdateOperationsInput | string
+    roomType?: StringFieldUpdateOperationsInput | string
+    mediaType?: StringFieldUpdateOperationsInput | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -22852,6 +22963,9 @@ export namespace Prisma {
     roomName?: StringFieldUpdateOperationsInput | string
     topic?: StringFieldUpdateOperationsInput | string
     language?: StringFieldUpdateOperationsInput | string
+    roomType?: StringFieldUpdateOperationsInput | string
+    mediaType?: StringFieldUpdateOperationsInput | string
+    maxParticipants?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

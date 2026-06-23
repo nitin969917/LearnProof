@@ -585,7 +585,7 @@ const getUnreadCounts = async (req, res) => {
 // ==========================================
 
 const createLanguageRoom = async (req, res) => {
-  const { roomName, topic, language } = req.body;
+  const { roomName, topic, language, roomType, mediaType, maxParticipants } = req.body;
   const creatorId = req.user.id;
 
   try {
@@ -597,12 +597,21 @@ const createLanguageRoom = async (req, res) => {
       return res.status(400).json({ message: 'Room name already in use' });
     }
 
+    const finalRoomType = roomType || 'group';
+    let finalMaxParticipants = parseInt(maxParticipants) || 10;
+    if (finalRoomType === '1-on-1') {
+      finalMaxParticipants = 2;
+    }
+
     const room = await datingPrisma.languageRoom.create({
       data: {
         roomName,
-        topic,
+        topic: topic || 'General Discussion',
         language,
         creatorId,
+        roomType: finalRoomType,
+        mediaType: mediaType || 'audio',
+        maxParticipants: finalMaxParticipants,
       },
       include: {
         creator: {

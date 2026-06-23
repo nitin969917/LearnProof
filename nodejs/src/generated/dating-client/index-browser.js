@@ -204,6 +204,9 @@ exports.Prisma.LanguageRoomScalarFieldEnum = {
   roomName: 'roomName',
   topic: 'topic',
   language: 'language',
+  roomType: 'roomType',
+  mediaType: 'mediaType',
+  maxParticipants: 'maxParticipants',
   createdAt: 'createdAt',
   creatorId: 'creatorId'
 };

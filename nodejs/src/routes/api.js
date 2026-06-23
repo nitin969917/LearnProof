@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware, isAdminMiddleware } = require('../middleware/auth');
+const datingAuth = require('../middleware/datingAuth');
 const multer = require('multer');
 
 const authController = require('../controllers/auth.controller');
@@ -12,6 +13,7 @@ const quizController = require('../controllers/quiz.controller');
 const adminController = require('../controllers/admin.controller');
 const messageController = require('../controllers/message.controller');
 const fcmController = require('../controllers/fcm.controller');
+const livekitController = require('../controllers/livekit.controller');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -118,5 +120,15 @@ router.get('/messages/users/', authMiddleware, isAdminMiddleware, messageControl
 // Support
 const supportRoutes = require('./support.routes');
 router.use('/support', supportRoutes);
+
+// LiveKit — Video Rooms
+router.get('/livekit/token', datingAuth, livekitController.getToken);
+router.get('/livekit/rooms', datingAuth, livekitController.getRooms);
+router.delete('/livekit/rooms/:roomName', datingAuth, livekitController.deleteRoom);
+router.get('/livekit/rooms/:roomName/participants', datingAuth, livekitController.getParticipants);
+router.delete('/livekit/rooms/:roomName/participants/:identity', datingAuth, livekitController.kickParticipant);
+router.post('/livekit/rooms/:roomName/participants/:identity/promote', datingAuth, livekitController.promoteParticipant);
+router.post('/livekit/rooms/:roomName/participants/:identity/demote', datingAuth, livekitController.demoteParticipant);
+router.post('/livekit/translate', datingAuth, livekitController.translateText);
 
 module.exports = router;

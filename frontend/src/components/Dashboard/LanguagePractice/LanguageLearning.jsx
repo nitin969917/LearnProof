@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Globe, Plus, Users, Search, GraduationCap } from 'lucide-react';
+import { Mic, Globe, Plus, Users, Search, GraduationCap, Video } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import toast from 'react-hot-toast';
@@ -10,7 +10,8 @@ export default function LanguageLearning() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [newRoom, setNewRoom] = useState({ roomName: '', topic: '', language: '' });
+  const [newRoom, setNewRoom] = useState({ roomName: '', topic: '', language: '', mediaType: 'audio' });
+  const [activeTab, setActiveTab] = useState(localStorage.getItem('languageRoomsTab') || 'audio'); // 'audio' or 'video'
   const navigate = useNavigate();
   const { user } = useAuth();
   const [socialUser, setSocialUser] = useState(null);
@@ -56,7 +57,8 @@ export default function LanguageLearning() {
       await socialApi.post('/language-rooms', {
         roomName: formattedRoomName,
         topic: newRoom.topic || 'General Discussion',
-        language: newRoom.language
+        language: newRoom.language,
+        mediaType: newRoom.mediaType || 'audio'
       });
       
       setShowModal(false);
@@ -98,11 +100,46 @@ export default function LanguageLearning() {
 
         {/* + button: absolute top-right on mobile, normal flow (right side) on desktop */}
         <button 
-          onClick={() => setShowModal(true)} 
+          onClick={() => {
+            setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab });
+            setShowModal(true);
+          }} 
           className="absolute top-0 right-0 sm:static p-2.5 sm:p-3 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
           title="Create Room"
         >
           <Plus size={20} />
+        </button>
+      </div>
+
+      {/* Tabs Selector */}
+      <div className="flex border-b border-gray-200 dark:border-gray-800 gap-6">
+        <button
+          onClick={() => {
+            setActiveTab('audio');
+            localStorage.setItem('languageRoomsTab', 'audio');
+          }}
+          className={`pb-3 text-sm font-black uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+            activeTab === 'audio'
+              ? 'border-orange-500 text-orange-500'
+              : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+          }`}
+        >
+          <Mic size={16} />
+          <span>Audio Rooms</span>
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('video');
+            localStorage.setItem('languageRoomsTab', 'video');
+          }}
+          className={`pb-3 text-sm font-black uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+            activeTab === 'video'
+              ? 'border-orange-500 text-orange-500'
+              : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+          }`}
+        >
+          <Video size={16} />
+          <span>Video Rooms</span>
         </button>
       </div>
 
@@ -113,19 +150,22 @@ export default function LanguageLearning() {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-          {roomsList.length === 0 ? (
+          {roomsList.filter(r => (r.mediaType || 'audio') === activeTab).length === 0 ? (
              <div className="col-span-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl text-center py-16 px-6 text-gray-500 dark:text-gray-400 shadow-sm relative overflow-hidden">
                 {/* Decorative glow blob */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
                 
                 <div className="relative z-10 max-w-sm mx-auto">
                     <div className="w-16 h-16 bg-orange-50 dark:bg-orange-950/30 rounded-2xl flex items-center justify-center text-orange-500 mx-auto mb-5 shadow-sm border border-orange-100/50 dark:border-orange-500/10">
-                        <Mic size={32} className="animate-pulse" />
+                        {activeTab === 'video' ? <Video size={32} className="animate-pulse" /> : <Mic size={32} className="animate-pulse" />}
                     </div>
-                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">No active rooms</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-405 mb-6 leading-relaxed">Be the first to start a live room session today to discuss, practice, or learn together!</p>
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">No active {activeTab} rooms</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-405 mb-6 leading-relaxed">Be the first to start a live {activeTab} room session today to discuss, practice, or learn together!</p>
                     <button 
-                      onClick={() => setShowModal(true)}
+                      onClick={() => {
+                        setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab });
+                        setShowModal(true);
+                      }}
                       className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
                     >
                       Create a Room
@@ -133,7 +173,7 @@ export default function LanguageLearning() {
                 </div>
              </div>
           ) : (
-            roomsList.map(room => (
+            roomsList.filter(r => (r.mediaType || 'audio') === activeTab).map(room => (
               <div 
                 key={room.id} 
                 className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl border border-gray-100 dark:border-gray-700 p-3 sm:p-5 md:p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between aspect-square relative group hover:-translate-y-1 duration-300"
@@ -157,10 +197,18 @@ export default function LanguageLearning() {
                   )}
                 </div>
 
-                {/* Middle: Centered Mic icon + Room Title (large) & Topic (small) */}
+                {/* Middle: Centered Icon + Room Title & Topic */}
                 <div className="flex flex-col items-center justify-center text-center my-auto px-1 z-10">
-                  <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-tr from-orange-500 to-amber-500 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20 mb-2 sm:mb-4 group-hover:scale-110 transition-transform duration-300">
-                    <Mic size={18} className="sm:size-[24px] animate-pulse" />
+                  <div className={`w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-tr ${
+                    room.mediaType === 'video'
+                      ? 'from-blue-500 to-indigo-500 shadow-blue-500/20'
+                      : 'from-orange-500 to-amber-500 shadow-orange-500/20'
+                  } rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg mb-2 sm:mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    {room.mediaType === 'video' ? (
+                      <Video size={18} className="sm:size-[24px] animate-pulse" />
+                    ) : (
+                      <Mic size={18} className="sm:size-[24px] animate-pulse" />
+                    )}
                   </div>
                   <h3 className="font-black text-gray-900 dark:text-white text-sm sm:text-base md:text-lg leading-snug line-clamp-1 px-0.5 uppercase tracking-wide">
                     {room.roomName}
@@ -176,13 +224,17 @@ export default function LanguageLearning() {
                     <img 
                       src={room.creator.profilePicture || '/default-avatar.png'} 
                       alt={room.creator.name}
-                      className="w-5 h-5 sm:w-8 sm:h-8 rounded-full object-cover bg-gray-150 dark:bg-gray-750 flex-shrink-0 border border-white dark:border-gray-800 shadow-sm" 
+                      className="w-5 h-5 sm:w-8 sm:h-8 rounded-full object-cover bg-gray-150 dark:bg-gray-755 flex-shrink-0 border border-white dark:border-gray-800 shadow-sm" 
                     />
-                    <span className="text-[10px] sm:text-xs font-black text-gray-650 dark:text-gray-400 truncate max-w-[45px] sm:max-w-[80px]">
+                    <span className="text-[10px] sm:text-xs font-black text-gray-655 dark:text-gray-400 truncate max-w-[45px] sm:max-w-[80px]">
                       {room.creator.name.split(' ')[0]}
                     </span>
                   </div>
-                  <button className="px-2.5 py-1 sm:px-4 sm:py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[9px] sm:text-xs font-black rounded-lg sm:rounded-xl transition-all shadow-md shadow-orange-500/10 group-hover:shadow-orange-500/20">
+                  <button className={`px-2.5 py-1 sm:px-4 sm:py-2 bg-gradient-to-r ${
+                    room.mediaType === 'video'
+                      ? 'from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 shadow-blue-500/10 group-hover:shadow-blue-500/20'
+                      : 'from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-orange-500/10 group-hover:shadow-orange-500/20'
+                  } text-white text-[9px] sm:text-xs font-black rounded-lg sm:rounded-xl transition-all shadow-md shadow-orange-500/10 group-hover:shadow-orange-500/20`}>
                     Join
                   </button>
                 </div>
@@ -231,6 +283,37 @@ export default function LanguageLearning() {
                   <option value="Other">Other</option>
                 </select>
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Room Type</label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setNewRoom({ ...newRoom, mediaType: 'audio' })}
+                    className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      newRoom.mediaType === 'audio'
+                        ? 'border-orange-500 bg-orange-500/5 text-orange-500'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                    }`}
+                  >
+                    <Mic size={14} />
+                    <span>Audio Room</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewRoom({ ...newRoom, mediaType: 'video' })}
+                    className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      newRoom.mediaType === 'video'
+                        ? 'border-orange-500 bg-orange-500/5 text-orange-500'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                    }`}
+                  >
+                    <Video size={14} />
+                    <span>Video Room</span>
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Topic (Optional)</label>
                 <input 
