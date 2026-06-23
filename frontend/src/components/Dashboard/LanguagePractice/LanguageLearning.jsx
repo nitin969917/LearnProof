@@ -37,9 +37,11 @@ export default function LanguageLearning() {
   const fetchRooms = async () => {
     try {
       const response = await socialApi.get('/language-rooms');
-      setRoomsList(response.data);
+      // Guard: always set an array, even if API returns an error object
+      setRoomsList(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching rooms:', error);
+      setRoomsList([]);
     } finally {
       setLoading(false);
     }
@@ -150,7 +152,7 @@ export default function LanguageLearning() {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-          {roomsList.filter(r => (r.mediaType || 'audio') === activeTab).length === 0 ? (
+          {(Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === activeTab).length === 0 ? (
              <div className="col-span-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl text-center py-16 px-6 text-gray-500 dark:text-gray-400 shadow-sm relative overflow-hidden">
                 {/* Decorative glow blob */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
@@ -173,7 +175,7 @@ export default function LanguageLearning() {
                 </div>
              </div>
           ) : (
-            roomsList.filter(r => (r.mediaType || 'audio') === activeTab).map(room => (
+            (Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === activeTab).map(room => (
               <div 
                 key={room.id} 
                 className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl border border-gray-100 dark:border-gray-700 p-3 sm:p-5 md:p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between aspect-square relative group hover:-translate-y-1 duration-300"
