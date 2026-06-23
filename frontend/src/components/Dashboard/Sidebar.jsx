@@ -91,18 +91,24 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                 </div>
  
                 {/* Navigation */}
-                <nav className="flex flex-col space-y-1.5 lg:space-y-2.5">
+                <nav className="flex flex-col space-y-1.5 lg:space-y-2">
                     {navItems.map((item) => (
                         item.isExternal ? (
                             <a
                                 key={item.name}
                                 href={item.path}
-                                className={`flex ${
-                                    isExpanded ? 'flex-row items-center px-4 py-2 gap-3' : 'flex-col items-center justify-center p-2 gap-1 px-1'
-                                } rounded-lg transition-all text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700`}
+                                className={`flex flex-row items-center rounded-xl transition-all duration-300 ${
+                                    isExpanded 
+                                        ? 'px-4 py-2.5 gap-3' 
+                                        : 'justify-center p-2.5'
+                                } text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700`}
                             >
                                 <div className="flex-shrink-0">{item.icon}</div>
-                                <span className={`${isExpanded ? 'text-base text-left' : 'text-[9px] text-center whitespace-nowrap tracking-tighter font-semibold'} transition-all`}>
+                                <span className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${
+                                    isExpanded 
+                                        ? 'opacity-100 max-w-[180px]' 
+                                        : 'opacity-0 max-w-0 w-0 pointer-events-none'
+                                } text-sm font-semibold`}>
                                     {item.name}
                                 </span>
                             </a>
@@ -113,14 +119,12 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                 end
                                 onClick={() => onClose && onClose()}
                                 className={({ isActive }) =>
-                                    `relative flex ${
+                                    `relative flex flex-row items-center rounded-xl transition-all duration-300 ${
                                         isExpanded 
-                                            ? 'flex-row items-center px-4 py-2 gap-3 rounded-xl' 
-                                            : 'flex-col items-center justify-center py-2 px-1 gap-0.5 mb-0.5 rounded-xl'
-                                    } transition-all duration-300 ${isActive
-                                        ? isExpanded
-                                            ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold'
-                                            : 'text-orange-600 dark:text-orange-400 font-black'
+                                            ? 'px-4 py-2.5 gap-3' 
+                                            : 'justify-center p-2.5'
+                                    } ${isActive
+                                        ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold'
                                         : 'text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-500/5 dark:hover:bg-orange-500/10'
                                     }`
                                 }
@@ -128,9 +132,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                 {({ isActive }) => (
                                     <motion.div
                                         whileTap={{ scale: 0.92 }}
-                                        className={`flex ${
-                                            isExpanded ? 'flex-row items-center gap-3' : 'flex-col items-center justify-center'
-                                        } w-full h-full relative`}
+                                        className="flex flex-row items-center w-full h-full relative"
                                     >
                                         <div className={`flex-shrink-0 relative transition-all duration-300 z-10 ${isActive && !isExpanded ? 'scale-110 text-orange-600 dark:text-orange-400' : ''}`}>
                                             {React.cloneElement(item.icon, {
@@ -144,14 +146,18 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                                 </span>
                                             )}
                                         </div>
-                                        <span className={`${isExpanded ? 'text-base text-left' : 'text-[9px] text-center font-bold tracking-tight whitespace-nowrap scale-[0.88] z-10'} transition-all`}>
+                                        <span className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${
+                                            isExpanded 
+                                                ? 'opacity-100 max-w-[180px] ml-3' 
+                                                : 'opacity-0 max-w-0 w-0 pointer-events-none'
+                                        } text-sm font-semibold z-10`}>
                                             {item.name}
                                         </span>
                                         {/* Sliding active background glass pill when collapsed */}
                                         {isActive && !isExpanded && (
                                             <motion.div
                                                 layoutId="activeSidebarPill"
-                                                className="absolute inset-x-0.5 inset-y-0 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl z-0 border border-orange-500/10 dark:border-orange-500/25 pointer-events-none"
+                                                className="absolute inset-0 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl z-0 border border-orange-500/10 dark:border-orange-500/25 pointer-events-none"
                                                 transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                                             />
                                         )}
