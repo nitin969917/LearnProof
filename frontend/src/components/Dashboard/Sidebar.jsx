@@ -69,7 +69,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                 ? 'h-full w-full bg-white dark:bg-gray-800 border-r border-orange-100 dark:border-gray-700' 
                 : 'h-[calc(100vh-2rem)] w-[70px] bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-[2.2rem] shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] my-4 mx-[10px]'
         }`}>
-            <div className={`flex-1 overflow-y-auto py-4 ${isExpanded ? 'px-4 sm:px-6 space-y-8' : 'px-2 space-y-5 scrollbar-none'}`}>
+            <div className={`flex-1 overflow-y-auto py-4 ${isExpanded ? 'px-4 sm:px-6 space-y-8' : 'px-1.5 space-y-5 scrollbar-none'}`}>
                 <div className={`flex items-center ${isExpanded ? 'justify-between' : 'justify-center'} px-2 mb-2`}>
                     {/* Desktop Menu Toggle (Replaces Logo) */}
                     <button
@@ -91,40 +91,40 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                 </div>
  
                 {/* Navigation */}
-                <nav className="flex flex-col space-y-1.5 lg:space-y-2">
+                <nav className="flex flex-col space-y-1.5 lg:space-y-2.5">
                     {navItems.map((item) => (
                         item.isExternal ? (
                             <a
                                 key={item.name}
                                 href={item.path}
-                                className={`flex flex-row items-center rounded-xl transition-all duration-300 ${
-                                    isExpanded 
-                                        ? 'px-4 py-2.5 gap-3' 
-                                        : 'justify-center p-2.5'
-                                } text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700`}
+                                title={!isExpanded ? item.name : undefined}
+                                className={`flex ${
+                                    isExpanded ? 'flex-row items-center px-4 py-2 gap-3' : 'items-center justify-center p-2.5'
+                                } rounded-lg transition-all text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700`}
                             >
                                 <div className="flex-shrink-0">{item.icon}</div>
-                                <span className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${
-                                    isExpanded 
-                                        ? 'opacity-100 max-w-[180px]' 
-                                        : 'opacity-0 max-w-0 w-0 pointer-events-none'
-                                } text-sm font-semibold`}>
-                                    {item.name}
-                                </span>
+                                {isExpanded && (
+                                    <span className="text-base text-left transition-all">
+                                        {item.name}
+                                    </span>
+                                )}
                             </a>
                         ) : (
                             <NavLink
                                 key={item.name}
                                 to={item.path}
                                 end
+                                title={!isExpanded ? item.name : undefined}
                                 onClick={() => onClose && onClose()}
                                 className={({ isActive }) =>
-                                    `relative flex flex-row items-center rounded-xl transition-all duration-300 ${
+                                    `relative flex ${
                                         isExpanded 
-                                            ? 'px-4 py-2.5 gap-3' 
-                                            : 'justify-center p-2.5'
-                                    } ${isActive
-                                        ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold'
+                                            ? 'flex-row items-center px-4 py-2 gap-3 rounded-xl' 
+                                            : 'items-center justify-center p-2.5 mb-0.5 rounded-xl'
+                                    } transition-all duration-300 ${isActive
+                                        ? isExpanded
+                                            ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold'
+                                            : 'text-orange-600 dark:text-orange-400 font-black'
                                         : 'text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-500/5 dark:hover:bg-orange-500/10'
                                     }`
                                 }
@@ -132,9 +132,9 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                 {({ isActive }) => (
                                     <motion.div
                                         whileTap={{ scale: 0.92 }}
-                                        className={`flex flex-row items-center w-full h-full relative ${
-                                            isExpanded ? 'justify-start' : 'justify-center'
-                                        }`}
+                                        className={`flex ${
+                                            isExpanded ? 'flex-row items-center gap-3' : 'items-center justify-center'
+                                        } w-full h-full relative`}
                                     >
                                         <div className={`flex-shrink-0 relative transition-all duration-300 z-10 ${isActive && !isExpanded ? 'scale-110 text-orange-600 dark:text-orange-400' : ''}`}>
                                             {React.cloneElement(item.icon, {
@@ -148,18 +148,16 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                                 </span>
                                             )}
                                         </div>
-                                        <span className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${
-                                            isExpanded 
-                                                ? 'opacity-100 max-w-[180px] ml-3' 
-                                                : 'opacity-0 max-w-0 w-0 pointer-events-none'
-                                        } text-sm font-semibold z-10`}>
-                                            {item.name}
-                                        </span>
+                                        {isExpanded && (
+                                            <span className="text-base text-left font-bold transition-all">
+                                                {item.name}
+                                            </span>
+                                        )}
                                         {/* Sliding active background glass pill when collapsed */}
                                         {isActive && !isExpanded && (
                                             <motion.div
                                                 layoutId="activeSidebarPill"
-                                                className="absolute inset-0 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl z-0 border border-orange-500/10 dark:border-orange-500/25 pointer-events-none"
+                                                className="absolute inset-x-0.5 inset-y-0 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl z-0 border border-orange-500/10 dark:border-orange-500/25 pointer-events-none"
                                                 transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                                             />
                                         )}
@@ -172,7 +170,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
             </div>
  
             {/* Bottom Section: Profile & Actions */}
-            <div className={`py-4 ${isExpanded ? 'px-4 sm:px-6' : 'px-2'} space-y-4 border-t border-orange-100 dark:border-gray-700 flex flex-col`}>
+            <div className={`py-4 ${isExpanded ? 'px-4 sm:px-6' : 'px-1'} space-y-4 border-t border-orange-100 dark:border-gray-700 flex flex-col`}>
                 {user && (
                     <div
                         onClick={onProfileClick}

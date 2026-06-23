@@ -101,7 +101,6 @@ const DashboardLayout = () => {
         const savedState = localStorage.getItem('sidebarExpanded');
         return savedState !== null ? savedState === 'true' : false;
     });
-    const [isSidebarHovered, setIsSidebarHovered] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const location = useLocation();
 
@@ -155,30 +154,21 @@ const DashboardLayout = () => {
                 />
             )}
 
-            {/* Sidebar Layout Placeholder (Desktop only, so layout spacing is preserved and doesn't shift on hover) */}
-            {!isAskMyNotes && !isLiveRoom && !isMobile && (
-                <div 
-                    className={`transition-all duration-300 shrink-0 ${
-                        isSidebarExpanded ? 'w-64' : 'w-[90px]'
-                    }`}
-                />
-            )}
-
-            {/* Sidebar (Desktop expands/collapses on hover or locked via toggle, Mobile via drawer) */}
+            {/* Sidebar (Desktop expands/collapses, Mobile via drawer) */}
             {!isAskMyNotes && !isLiveRoom && (
                 <aside
-                    onMouseEnter={() => !isMobile && setIsSidebarHovered(true)}
-                    onMouseLeave={() => !isMobile && setIsSidebarHovered(false)}
-                    className={`fixed inset-y-0 left-0 z-[60] ${
-                        (isSidebarExpanded || isSidebarHovered || isMobileSidebarOpen) 
-                            ? 'w-64 bg-white dark:bg-gray-800 border-r border-orange-200 dark:border-gray-700 shadow-xl dark:shadow-gray-950/40' 
-                            : 'w-[90px] bg-transparent border-none'
+                    className={`fixed lg:static inset-y-0 left-0 z-[60] ${
+                        isSidebarExpanded 
+                            ? 'w-64 lg:w-64 bg-white dark:bg-gray-800 border-r border-orange-200 dark:border-gray-700' 
+                            : 'w-64 lg:w-[90px] bg-transparent border-none'
                     } ${
-                        isMobile && !isMobileSidebarOpen ? '-translate-x-full' : 'translate-x-0'
+                        isMobileSidebarOpen 
+                            ? 'translate-x-0 bg-white dark:bg-gray-800 border-r border-orange-200 dark:border-gray-700' 
+                            : '-translate-x-full lg:translate-x-0'
                     } transition-all duration-300 ease-in-out transform`}
                 >
                     <Sidebar
-                        isExpanded={isMobile || isSidebarExpanded || isSidebarHovered}
+                        isExpanded={isMobile || isSidebarExpanded}
                         onProfileClick={() => setIsProfileModalOpen(true)}
                         onClose={() => setIsMobileSidebarOpen(false)}
                         onMenuClick={toggleSidebar}
