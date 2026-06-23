@@ -94,7 +94,7 @@ const DashboardHome = () => {
     }
 
     return (
-        <div className="p-4 sm:p-6 flex flex-col lg:flex-row gap-6 lg:items-start animate-in fade-in duration-500">
+        <div className="flex flex-col lg:flex-row gap-6 lg:items-start animate-in fade-in duration-500">
             {/* Left column (Flexible) */}
             <div className="flex-1 min-w-0 space-y-4">
                 <PlaylistSection data={dashboardData.playlists} loading={dashboardData.loading} />
