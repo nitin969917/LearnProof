@@ -203,6 +203,15 @@ const getContinueWatching = async (req, res) => {
                     lt: 90
                 }
             },
+            select: {
+                id: true,
+                vid: true,
+                name: true,
+                url: true,
+                watch_progress: true,
+                is_completed: true,
+                imported_at: true
+            },
             orderBy: { imported_at: 'desc' },
             take: 3
         });

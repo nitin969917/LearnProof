@@ -150,11 +150,40 @@ const getMyLearnings = async (req, res) => {
         };
 
         const [videos, totalVideos, playlists] = await Promise.all([
-            prisma.video.findMany({ where: videoWhere, skip, take, orderBy: { imported_at: 'desc' } }),
+            prisma.video.findMany({
+                where: videoWhere,
+                skip,
+                take,
+                select: {
+                    id: true,
+                    vid: true,
+                    name: true,
+                    url: true,
+                    watch_progress: true,
+                    is_completed: true,
+                    imported_at: true
+                },
+                orderBy: { imported_at: 'desc' }
+            }),
             prisma.video.count({ where: videoWhere }),
             prisma.playlist.findMany({
                 where: playlistWhere,
-                include: { videos: true },
+                select: {
+                    id: true,
+                    pid: true,
+                    name: true,
+                    url: true,
+                    thumbnail: true,
+                    imported_at: true,
+                    duration_goal: true,
+                    videos: {
+                        select: {
+                            id: true,
+                            vid: true,
+                            is_completed: true
+                        }
+                    }
+                },
                 orderBy: { id: 'desc' }
             })
         ]);
