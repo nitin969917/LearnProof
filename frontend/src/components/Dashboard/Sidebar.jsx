@@ -69,7 +69,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                 ? 'h-full w-full bg-white dark:bg-gray-800 border-r border-orange-100 dark:border-gray-700' 
                 : 'h-[calc(100vh-2rem)] w-[70px] bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-[2.2rem] shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] my-4 mx-[10px]'
         }`}>
-            <div className={`flex-1 overflow-y-auto py-4 ${isExpanded ? 'px-4 sm:px-6 space-y-8' : 'px-1.5 space-y-5 scrollbar-none'}`}>
+            <div className={`flex-1 overflow-y-auto py-4 ${isExpanded ? 'px-4 sm:px-6 space-y-8' : 'px-2 space-y-5 scrollbar-none'}`}>
                 <div className={`flex items-center ${isExpanded ? 'justify-between' : 'justify-center'} px-2 mb-2`}>
                     {/* Desktop Menu Toggle (Replaces Logo) */}
                     <button
@@ -132,7 +132,9 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                 {({ isActive }) => (
                                     <motion.div
                                         whileTap={{ scale: 0.92 }}
-                                        className="flex flex-row items-center w-full h-full relative"
+                                        className={`flex flex-row items-center w-full h-full relative ${
+                                            isExpanded ? 'justify-start' : 'justify-center'
+                                        }`}
                                     >
                                         <div className={`flex-shrink-0 relative transition-all duration-300 z-10 ${isActive && !isExpanded ? 'scale-110 text-orange-600 dark:text-orange-400' : ''}`}>
                                             {React.cloneElement(item.icon, {
@@ -170,7 +172,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
             </div>
  
             {/* Bottom Section: Profile & Actions */}
-            <div className={`py-4 ${isExpanded ? 'px-4 sm:px-6' : 'px-1'} space-y-4 border-t border-orange-100 dark:border-gray-700 flex flex-col`}>
+            <div className={`py-4 ${isExpanded ? 'px-4 sm:px-6' : 'px-2'} space-y-4 border-t border-orange-100 dark:border-gray-700 flex flex-col`}>
                 {user && (
                     <div
                         onClick={onProfileClick}
