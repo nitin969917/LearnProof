@@ -119,6 +119,8 @@ const DashboardLayout = () => {
         }
     };
 
+    const contentRef = useRef(null);
+
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 1024);
         window.addEventListener('resize', handleResize);
@@ -134,6 +136,13 @@ const DashboardLayout = () => {
             document.documentElement.classList.remove('dark');
         }
     }, []);
+
+    // Scroll to top of the dashboard content container on route changes
+    useEffect(() => {
+        if (contentRef.current) {
+            contentRef.current.scrollTop = 0;
+        }
+    }, [location.pathname]);
 
     return (
         <div className="flex h-screen bg-orange-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 relative transition-colors duration-200 overflow-hidden">
@@ -173,13 +182,16 @@ const DashboardLayout = () => {
                 {!isAskMyNotes && !isSocialHub && !isLiveRoom && <TopBar onMenuClick={toggleSidebar} />}
 
                 {/* Dashboard Content */}
-                <div className={`flex-1 ${
-                    isSocialHub 
-                        ? 'p-0 overflow-hidden' 
-                        : isAskMyNotes || isLiveRoom 
-                            ? 'p-0 overflow-y-auto' 
-                            : 'p-4 sm:p-6 pb-24 lg:pb-6 overflow-y-auto'
-                }`}>
+                <div 
+                    ref={contentRef}
+                    className={`flex-1 ${
+                        isSocialHub 
+                            ? 'p-0 overflow-hidden' 
+                            : isAskMyNotes || isLiveRoom 
+                                ? 'p-0 overflow-y-auto' 
+                                : 'p-4 sm:p-6 pb-24 lg:pb-6 overflow-y-auto'
+                    }`}
+                >
                     <ErrorBoundary>
                         <Outlet />
                     </ErrorBoundary>
