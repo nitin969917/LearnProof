@@ -24,9 +24,10 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
     const fetchContacts = async () => {
       try {
         const response = await socialApi.get('/social/friendships');
-        setContacts(response.data.friends || []);
+        setContacts(Array.isArray(response.data?.friends) ? response.data.friends : []);
       } catch (err) {
         console.error('Failed to fetch contacts', err);
+        setContacts([]);
       }
     };
     fetchContacts();
@@ -52,9 +53,10 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
     const fetchMessages = async () => {
       try {
         const response = await socialApi.get(`/messages/${selectedUser.id}`);
-        setMessages(response.data);
+        setMessages(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error('Failed to fetch messages:', err);
+        setMessages([]);
       }
     };
     fetchMessages();

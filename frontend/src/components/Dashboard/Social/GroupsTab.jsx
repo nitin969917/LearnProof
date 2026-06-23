@@ -77,9 +77,10 @@ export default function GroupsTab({ currentUserId }) {
   const fetchGroups = async () => {
     try {
       const response = await socialApi.get('/groups');
-      setGroups(response.data);
+      setGroups(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Failed to fetch groups', err);
+      setGroups([]);
     } finally {
       setLoading(false);
     }
@@ -88,9 +89,10 @@ export default function GroupsTab({ currentUserId }) {
   const fetchMessages = async (groupId) => {
     try {
       const response = await socialApi.get(`/groups/${groupId}/messages`);
-      setMessages(response.data);
+      setMessages(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Failed to fetch group messages', err);
+      setMessages([]);
     }
   };
 

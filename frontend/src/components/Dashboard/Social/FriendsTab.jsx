@@ -16,9 +16,14 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
     setLoading(true);
     try {
       const response = await socialApi.get('/social/friendships');
-      setData(response.data);
+      const d = response.data;
+      setData({
+        friends: Array.isArray(d?.friends) ? d.friends : [],
+        pending: Array.isArray(d?.pending) ? d.pending : [],
+      });
     } catch (err) {
       console.error('Failed to fetch social data', err);
+      setData({ friends: [], pending: [] });
     } finally {
       setLoading(false);
     }

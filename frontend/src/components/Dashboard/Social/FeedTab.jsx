@@ -28,23 +28,24 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
   const fetchPosts = async () => {
     try {
       const response = await socialApi.get('/posts/feed');
-      setPosts(response.data);
+      setPosts(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Failed to fetch posts', err);
+      setPosts([]);
     }
   };
 
   const fetchFriends = async () => {
     try {
       const response = await socialApi.get('/social/friendships');
-      const allFriends = response.data.friends || [];
-      
+      const allFriends = Array.isArray(response.data?.friends) ? response.data.friends : [];
       const close = allFriends.filter(f => f.isCloseFriend);
-      
       setFriends(allFriends);
       setCloseFriends(close);
     } catch (err) {
       console.error('Failed to fetch friends', err);
+      setFriends([]);
+      setCloseFriends([]);
     }
   };
 
