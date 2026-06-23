@@ -69,7 +69,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                 ? 'h-full w-full bg-white dark:bg-gray-800 border-r border-orange-100 dark:border-gray-700' 
                 : 'h-[calc(100vh-2rem)] w-[70px] bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-[2.2rem] shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] my-4 mx-[10px]'
         }`}>
-            <div className={`flex-1 overflow-y-auto py-4 ${isExpanded ? 'px-4 sm:px-6 space-y-8' : 'px-1.5 space-y-5 scrollbar-none'}`}>
+            <div className={`flex-1 overflow-y-auto py-4 ${isExpanded ? 'px-3 sm:px-4 space-y-8' : 'px-1.5 space-y-5 scrollbar-none'}`}>
                 <div className={`flex items-center ${isExpanded ? 'justify-between' : 'justify-center'} px-2 mb-2`}>
                     {/* Desktop Menu Toggle (Replaces Logo) */}
                     <button
@@ -102,9 +102,13 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                     isExpanded ? 'flex-row items-center px-4 py-2 gap-3' : 'items-center justify-center p-2.5'
                                 } rounded-lg transition-all text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700`}
                             >
-                                <div className="flex-shrink-0">{item.icon}</div>
+                                <div className="flex-shrink-0">
+                                    {React.cloneElement(item.icon, {
+                                        size: isExpanded ? 20 : 24
+                                    })}
+                                </div>
                                 {isExpanded && (
-                                    <span className="text-base text-left transition-all">
+                                    <span className="text-base text-left transition-all whitespace-nowrap font-medium">
                                         {item.name}
                                     </span>
                                 )}
@@ -119,7 +123,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                 className={({ isActive }) =>
                                     `relative flex ${
                                         isExpanded 
-                                            ? 'flex-row items-center px-4 py-2 gap-3 rounded-xl' 
+                                            ? 'flex-row items-center px-3 py-2 gap-3 rounded-xl' 
                                             : 'items-center justify-center p-2.5 mb-0.5 rounded-xl'
                                     } transition-all duration-300 ${isActive
                                         ? isExpanded
@@ -138,7 +142,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                     >
                                         <div className={`flex-shrink-0 relative transition-all duration-300 z-10 ${isActive && !isExpanded ? 'scale-110 text-orange-600 dark:text-orange-400' : ''}`}>
                                             {React.cloneElement(item.icon, {
-                                                size: 20,
+                                                size: isExpanded ? 20 : 24,
                                                 strokeWidth: isActive ? 2.5 : 2,
                                                 className: isActive && !isExpanded ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''
                                             })}
@@ -149,7 +153,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                             )}
                                         </div>
                                         {isExpanded && (
-                                            <span className="text-base text-left font-bold transition-all">
+                                            <span className={`text-base text-left transition-all whitespace-nowrap ${isActive ? 'font-bold' : 'font-medium'}`}>
                                                 {item.name}
                                             </span>
                                         )}
@@ -170,7 +174,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
             </div>
  
             {/* Bottom Section: Profile & Actions */}
-            <div className={`py-4 ${isExpanded ? 'px-4 sm:px-6' : 'px-1'} space-y-4 border-t border-orange-100 dark:border-gray-700 flex flex-col`}>
+            <div className={`py-4 ${isExpanded ? 'px-3 sm:px-4' : 'px-1'} space-y-4 border-t border-orange-100 dark:border-gray-700 flex flex-col`}>
                 {user && (
                     <div
                         onClick={onProfileClick}
@@ -195,20 +199,20 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                 <div className={`flex ${isExpanded ? 'flex-row items-center gap-3' : 'flex-col gap-2.5 items-center'}`}>
                     <button
                         onClick={handleLogout}
-                        className={`flex items-center justify-center ${isExpanded ? 'flex-1 gap-2 px-4 py-2.5 border border-transparent hover:border-red-100 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20' : 'p-2 text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/20'} rounded-xl transition-all font-medium cursor-pointer`}
+                        className={`flex items-center justify-center ${isExpanded ? 'flex-1 gap-2 px-3 py-2.5 border border-transparent hover:border-red-100 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20' : 'p-2 text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/20'} rounded-xl transition-all font-medium cursor-pointer`}
                         title="Logout"
                     >
-                        <LogOut size={isExpanded ? 20 : 22} />
-                        {isExpanded && <span className="text-sm">Logout</span>}
+                        <LogOut size={isExpanded ? 20 : 24} />
+                        {isExpanded && <span className="text-sm whitespace-nowrap">Logout</span>}
                     </button>
  
                     <button
                         onClick={toggleTheme}
-                        className={`flex items-center justify-center ${isExpanded ? 'px-4 py-2.5 border border-gray-200 dark:border-gray-700' : 'p-2 hover:bg-gray-500/10'} rounded-xl text-gray-750 dark:text-gray-300 transition-all cursor-pointer`}
+                        className={`flex items-center justify-center ${isExpanded ? 'px-3 py-2.5 border border-gray-200 dark:border-gray-700' : 'p-2 hover:bg-gray-500/10'} rounded-xl text-gray-755 dark:text-gray-300 transition-all cursor-pointer`}
                         title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                         aria-label="Toggle Dark Mode"
                     >
-                        {isDarkMode ? <Sun size={isExpanded ? 20 : 22} className="text-amber-500" /> : <Moon size={isExpanded ? 20 : 22} className="text-indigo-600" />}
+                        {isDarkMode ? <Sun size={isExpanded ? 20 : 24} className="text-amber-500" /> : <Moon size={isExpanded ? 20 : 24} className="text-indigo-600" />}
                     </button>
                 </div>
             </div>

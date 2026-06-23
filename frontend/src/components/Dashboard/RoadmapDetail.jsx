@@ -216,7 +216,7 @@ const RoadmapDetail = () => {
     const videosPerDay = Math.ceil(totalVideos / playlist.duration_goal);
 
     return (
-        <div className="max-w-[1200px] mx-auto p-4 sm:p-8 space-y-8">
+        <div className="max-w-[1200px] mx-auto space-y-6">
             {/* Back Button */}
             <button
                 onClick={() => navigate('/dashboard/library')}
@@ -349,59 +349,59 @@ const RoadmapDetail = () => {
             </motion.div>
 
             {/* Roadmap Specific Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-4 gap-3 sm:gap-4">
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-gray-50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all"
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 border border-gray-50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all"
                 >
-                    <div className="w-10 h-10 bg-blue-50 dark:bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center mb-3">
-                        <Clock size={20} />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-50 dark:bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center mb-2 sm:mb-3">
+                        <Clock size={16} className="sm:w-5 sm:h-5" />
                     </div>
-                    <p className="text-2xl font-black text-gray-800 dark:text-white">{playlist.duration_goal}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 mt-1">Target Days</p>
+                    <p className="text-lg sm:text-2xl font-black text-gray-800 dark:text-white">{playlist.duration_goal}</p>
+                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 mt-1">Target Days</p>
                 </motion.div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 }}
-                    className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-gray-50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all"
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 border border-gray-50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all"
                 >
-                    <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 rounded-xl flex items-center justify-center mb-3">
-                        <BookOpen size={20} />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 rounded-xl flex items-center justify-center mb-2 sm:mb-3">
+                        <BookOpen size={16} className="sm:w-5 sm:h-5" />
                     </div>
-                    <p className="text-2xl font-black text-gray-800 dark:text-white">{totalVideos}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 mt-1">Total Lessons</p>
+                    <p className="text-lg sm:text-2xl font-black text-gray-800 dark:text-white">{totalVideos}</p>
+                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 mt-1">Total Lessons</p>
                 </motion.div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-gray-50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all"
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 border border-gray-50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all"
                 >
-                    <div className="w-10 h-10 bg-orange-50 dark:bg-orange-500/10 text-orange-500 rounded-xl flex items-center justify-center mb-3">
-                        <BarChart2 size={20} />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-50 dark:bg-orange-500/10 text-orange-500 rounded-xl flex items-center justify-center mb-2 sm:mb-3">
+                        <BarChart2 size={16} className="sm:w-5 sm:h-5" />
                     </div>
-                    <p className="text-2xl font-black text-gray-800 dark:text-white">~{videosPerDay}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 mt-1">Lessons / Day</p>
+                    <p className="text-lg sm:text-2xl font-black text-gray-800 dark:text-white">~{videosPerDay}</p>
+                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 mt-1">Lessons / Day</p>
                 </motion.div>
 
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.25 }}
-                    className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-gray-50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all"
+                    className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 border border-gray-50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all"
                 >
-                    <div className="w-10 h-10 bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center mb-3">
-                        <Trophy size={20} />
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-50 dark:bg-amber-500/10 text-amber-500 rounded-xl flex items-center justify-center mb-2 sm:mb-3">
+                        <Trophy size={16} className="sm:w-5 sm:h-5" />
                     </div>
-                    <p className="text-2xl font-black text-gray-800 dark:text-white">
+                    <p className="text-lg sm:text-2xl font-black text-gray-800 dark:text-white">
                         {videosPerDay > 10 ? "Intense" : videosPerDay > 5 ? "Steady" : "Relaxed"}
                     </p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 mt-1">Effort Level</p>
+                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 mt-1">Effort Level</p>
                 </motion.div>
             </div>
 
