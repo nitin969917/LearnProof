@@ -80,7 +80,7 @@ export default function LanguageLearning() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto px-2 md:px-6">
+    <div className="flex flex-col gap-6 max-w-6xl mx-auto p-4 sm:p-8 lg:p-12">
       {/* Header */}
       <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {/* Text block: centered on mobile, left-aligned on desktop */}
