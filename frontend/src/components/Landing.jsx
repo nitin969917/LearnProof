@@ -736,7 +736,7 @@ const LandingPage = () => {
                         <div className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-gray-900 shadow-inner"
                              style={{ paddingTop: '56.25%' }}>
                             <iframe
-                                src="https://www.youtube.com/embed/wnRCqWk36Ok?si=3c3JI20l21-2VZXR&vq=hd2160&hd=1&rel=0"
+                                src="https://www.youtube.com/embed/HndfbcftAdQ?si=bugw11VaM70ux1bf&vq=hd2160&hd=1&rel=0"
                                 className="absolute inset-0 w-full h-full"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allowFullScreen
