@@ -15,6 +15,7 @@ services:
     volumes:
       - ./nodejs/media:/app/media
       - ./nodejs/prisma:/app/prisma
+      - /home/ubuntu/.config/gcloud:/root/.config/gcloud:ro
     depends_on:
       - db
       - cache

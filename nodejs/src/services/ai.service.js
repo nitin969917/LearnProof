@@ -1,15 +1,85 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 const { fetchTranscript } = require('./transcript.service');
 const { translate } = require('google-translate-api-x');
 
+// Legacy AI Studio client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
+// Modern Google GenAI client (Vertex AI / Unified)
+let vertexAIClient = null;
+if (process.env.GCP_PROJECT_ID) {
+    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.GCP_SERVICE_ACCOUNT_KEY) {
+        try {
+            const tempKeyPath = path.join(os.tmpdir(), 'gcp-vertex-key.json');
+            fs.writeFileSync(tempKeyPath, process.env.GCP_SERVICE_ACCOUNT_KEY.trim());
+            process.env.GOOGLE_APPLICATION_CREDENTIALS = tempKeyPath;
+            console.log(`[Vertex AI] Auto-configured GOOGLE_APPLICATION_CREDENTIALS using GCP_SERVICE_ACCOUNT_KEY at: ${tempKeyPath}`);
+        } catch (err) {
+            console.error('[Vertex AI] Failed to write temporary GCP service account key:', err.message);
+        }
+    }
+    console.log(`[Vertex AI] Initializing client for project: ${process.env.GCP_PROJECT_ID} in location: ${process.env.GCP_LOCATION || 'us-central1'}`);
+    vertexAIClient = new GoogleGenAI({
+        enterprise: true,
+        project: process.env.GCP_PROJECT_ID,
+        location: process.env.GCP_LOCATION || 'us-central1'
+    });
+}
+
+/**
+ * Helper to call Gemini content generation using either Vertex AI (if configured) or Google AI Studio.
+ */
+const generateGeminiContent = async (modelName, contents, config = {}) => {
+    const timeoutMs = config.timeout || 30000; // Default 30 seconds timeout
+    
+    const callPromise = (async () => {
+        if (vertexAIClient) {
+            console.log(`[Gemini] Calling Vertex AI client with model: ${modelName}`);
+            
+            // Setup payload structure. In @google/genai, contents can be a string, a Part, or an array.
+            // Let's pass it directly as it is structured by caller (either string or array of parts).
+            const response = await vertexAIClient.models.generateContent({
+                model: modelName,
+                contents: contents,
+                config: {
+                    maxOutputTokens: config.maxOutputTokens || 8192,
+                    temperature: config.temperature,
+                    responseMimeType: config.responseMimeType
+                }
+            });
+            return response.text;
+        } else {
+            console.log(`[Gemini] Calling Google AI Studio client with model: ${modelName}`);
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                generationConfig: {
+                    maxOutputTokens: config.maxOutputTokens || 8192,
+                    temperature: config.temperature,
+                    responseMimeType: config.responseMimeType
+                }
+            });
+            const result = await model.generateContent(contents);
+            return result.response.text();
+        }
+    })();
+
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`Gemini request timed out after ${timeoutMs}ms`)), timeoutMs);
+    });
+
+    return Promise.race([callPromise, timeoutPromise]);
+};
+
+
 const MODELS = {
-    GEMINI_2_5: 'gemini-2.5-flash',
+    GEMINI_2_5: 'gemini-2.5-flash-lite', // Optimized for low latency & higher rate limits
     GEMINI_3: 'gemini-3-flash-preview',
-    GEMINI_2_5_LITE: 'gemini-2.5-flash-lite',
+    GEMINI_2_5_LITE: 'gemini-2.5-flash', // Full flash model as fallback
     GROQ_LLAMA_70B: 'llama-3.3-70b-versatile',
     GROQ_LLAMA_8B: 'llama-3.1-8b-instant',
     GROQ_QWEN_32B: 'qwen/qwen3-32b',
@@ -34,10 +104,20 @@ const cleanAIJSON = (text) => {
 
         // If the AI returned an object containing the array instead of just the array
         if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            // Find the first value that is an array
-            const arrayKey = Object.keys(parsed).find(key => Array.isArray(parsed[key]));
-            if (arrayKey) {
-                parsed = parsed[arrayKey];
+            const findFirstArray = (obj) => {
+                if (Array.isArray(obj)) return obj;
+                if (obj && typeof obj === 'object') {
+                    for (const key of Object.keys(obj)) {
+                        if (Array.isArray(obj[key])) return obj[key];
+                        const nested = findFirstArray(obj[key]);
+                        if (Array.isArray(nested)) return nested;
+                    }
+                }
+                return null;
+            };
+            const extractedArray = findFirstArray(parsed);
+            if (extractedArray) {
+                parsed = extractedArray;
             }
         }
 
@@ -83,32 +163,43 @@ async function callOpenRouter(prompt, jsonMode = false, temperature = 0.1) {
         throw new Error("OPENROUTER_API_KEY is not configured");
     }
 
-    const response = await fetch(OPENROUTER_API_URL, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://learnproof.vercel.app', // Required by OpenRouter
-            'X-Title': 'LearnProof'
-        },
-        body: JSON.stringify({
-            model: MODELS.OPENROUTER_MODEL,
-            messages: [{ role: 'user', content: prompt }],
-            response_format: jsonMode ? { type: "json_object" } : undefined,
-            temperature: temperature,
-            frequency_penalty: 0.5, // Prevent looping/repetition
-            presence_penalty: 0.3,
-            max_tokens: 8000
-        })
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
 
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(`OpenRouter API Error: ${err.error?.message || response.statusText}`);
+    try {
+        const response = await fetch(OPENROUTER_API_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://learnproof.vercel.app', // Required by OpenRouter
+                'X-Title': 'LearnProof'
+            },
+            body: JSON.stringify({
+                model: MODELS.OPENROUTER_MODEL,
+                messages: [{ role: 'user', content: prompt }],
+                response_format: jsonMode ? { type: "json_object" } : undefined,
+                temperature: temperature,
+                frequency_penalty: 0.5, // Prevent looping/repetition
+                presence_penalty: 0.3,
+                max_tokens: 8000
+            }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(`OpenRouter API Error: ${err.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
     }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
 }
 
 /**
@@ -120,30 +211,41 @@ async function callGroq(prompt, jsonMode = false, model = MODELS.GROQ_LLAMA_70B,
         throw new Error("GROQ_API_KEY is not configured");
     }
 
-    const response = await fetch(GROQ_API_URL, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: model,
-            messages: [{ role: 'user', content: prompt }],
-            response_format: jsonMode ? { type: "json_object" } : undefined,
-            temperature: temperature,
-            frequency_penalty: 0.5, // Prevent looping/repetition
-            presence_penalty: 0.3,
-            max_tokens: 8000
-        })
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
 
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(`Groq API Error: ${err.error?.message || response.statusText}`);
+    try {
+        const response = await fetch(GROQ_API_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: model,
+                messages: [{ role: 'user', content: prompt }],
+                response_format: jsonMode ? { type: "json_object" } : undefined,
+                temperature: temperature,
+                frequency_penalty: 0.5, // Prevent looping/repetition
+                presence_penalty: 0.3,
+                max_tokens: 8000
+            }),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(`Groq API Error: ${err.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
     }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
 }
 
 /**
@@ -156,7 +258,7 @@ async function callCerebras(prompt, jsonMode = false, temperature = 0.1) {
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
 
     try {
         const response = await fetch(CEREBRAS_API_URL, {
@@ -185,6 +287,11 @@ async function callCerebras(prompt, jsonMode = false, temperature = 0.1) {
         }
 
         const data = await response.json();
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message || data.choices[0].message.content === undefined || data.choices[0].message.content === null) {
+            throw new Error("Cerebras returned an empty response or was interrupted");
+        }
+
         return data.choices[0].message.content;
     } catch (error) {
         clearTimeout(timeoutId);
@@ -252,19 +359,15 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
 
     for (const provider of chain) {
         try {
-            console.log(`[Quiz] Attempting with ${provider.type === 'groq' ? provider.model : (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : provider.model)}...`);
+            const providerName = provider.type === 'groq' ? provider.model : (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : (provider.type === 'openrouter' ? MODELS.OPENROUTER_MODEL : provider.model));
+            console.log(`[Quiz] Attempting with ${providerName}...`);
             let text;
             if (provider.type === 'gemini') {
-                const model = genAI.getGenerativeModel({
-                    model: provider.model,
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        maxOutputTokens: 2000,
-                        temperature: 0.3
-                    }
+                text = await generateGeminiContent(provider.model, quizPrompt, {
+                    responseMimeType: "application/json",
+                    maxOutputTokens: 2000,
+                    temperature: 0.3
                 });
-                const result = await model.generateContent(quizPrompt);
-                text = (await result.response).text();
             } else if (provider.type === 'groq') {
                 text = await callGroq(quizPrompt, true, provider.model, 0.3);
             } else if (provider.type === 'cerebras') {
@@ -276,53 +379,99 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
             const rawQs = cleanAIJSON(text);
             const cleanQs = deduplicateQuestions(rawQs);
 
+            if (!Array.isArray(cleanQs) || cleanQs.length === 0) {
+                throw new Error("AI did not return a valid array of questions");
+            }
+
             return {
                 questions: cleanQs,
                 isFallback: provider.model !== MODELS.GEMINI_2_5,
                 isSystemFallback: false
             };
         } catch (error) {
-            console.warn(`[Quiz] ${provider.type === 'groq' ? provider.model : (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : provider.model)} failed:`, error.message);
+            const providerName = provider.type === 'groq' ? provider.model : (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : (provider.type === 'openrouter' ? MODELS.OPENROUTER_MODEL : provider.model));
+            console.warn(`[Quiz] ${providerName} failed:`, error.message);
             if (provider === chain[chain.length - 1]) throw error; // Re-throw if last in chain
         }
     }
 };
 
 /**
- * Generate intuition/summary using the actual video transcript as the primary source.
- * Falls back to title+description if transcript is unavailable.
+ * Helper to strip leading indentation from template literals.
  */
-const generateIntuition = async (title, description, url = null, targetLanguage = null) => {
-    // --- STEP 1: Fetch the real transcript ---
-    const transcriptResult = await fetchTranscript(url);
-    const hasTranscript = !!(!transcriptResult.isFallback && transcriptResult.transcript);
+const dedent = (str) => {
+    const lines = str.split('\n');
+    const minIndent = lines
+        .filter(line => line.trim())
+        .reduce((min, line) => {
+            const match = line.match(/^(\s*)/);
+            return match ? Math.min(min, match[1].length) : min;
+        }, Infinity);
+    
+    if (minIndent === Infinity) return str;
+    
+    return lines
+        .map(line => {
+            if (line.trim() === '') return '';
+            return line.startsWith(' '.repeat(minIndent)) ? line.substring(minIndent) : line.trimStart();
+        })
+        .join('\n')
+        .trim();
+};
+
+/**
+ * Generate intuition/summary using the actual video transcript as the primary source.
+ * Falls back to direct YouTube URL multimodal analysis or title+description.
+ */
+const generateIntuition = async (title, description, url = null, targetLanguage = null, forceDeepVisual = false) => {
+    // --- STEP 1: Determine Routing Path ---
+    // Direct video multimodal analysis is ONLY used if explicitly forced by the user (forceDeepVisual = true).
+    // By default, we always use the text transcript, falling back to title+description if the transcript is unavailable.
+    const isMultimodalVideoRouting = forceDeepVisual && !!vertexAIClient && !!url;
+    
+    let hasTranscript = false;
+    let transcriptResult = { transcript: null, language: null, isFallback: true };
+    let transcriptText = null;
+
+    if (isMultimodalVideoRouting) {
+        console.log(`[Intuition] Routing to Direct YouTube Multimodal Analysis (Forced) for URL: ${url}`);
+    } else {
+        // Attempt to fetch transcript
+        transcriptResult = await fetchTranscript(url);
+        hasTranscript = !transcriptResult.isFallback && !!transcriptResult.transcript;
+
+        if (hasTranscript) {
+            console.log(`[Intuition] Routing to Transcript-Only Analysis. Transcript fetched (${transcriptResult.transcript.length} chars)`);
+            transcriptText = transcriptResult.transcript;
+        } else {
+            console.log(`[Intuition] Transcript unavailable. Falling back to Title+Description text-only analysis.`);
+        }
+    }
+
     const detectedLanguage = transcriptResult.language || 'English';
     const finalLanguage = targetLanguage || detectedLanguage;
 
-
-    if (hasTranscript) {
-        console.log(`[Intuition] Real transcript fetched (${transcriptResult.transcript.length} chars, language: ${detectedLanguage})`);
-    } else {
-        console.warn(`[Intuition] Transcript unavailable (${transcriptResult.reason}). Falling back to title+description.`);
-    }
-
-    // --- STEP 2: Build the prompt with transcript as primary source ---
-    const transcriptSection = hasTranscript
+    // --- STEP 2: Build Prompt ---
+    const transcriptSection = isMultimodalVideoRouting
         ? `
+(Using direct YouTube video link multimodal analysis. Do NOT use any transcripts. Analyze the video frames and audio directly.)
+`
+        : (hasTranscript
+            ? `
 === ACTUAL VIDEO TRANSCRIPT (PRIMARY SOURCE — use this as the ground truth for all content) ===
-${transcriptResult.transcript}
-=== END OF TRASNRIPT ===
+${transcriptText}
+=== END OF TRANSCRIPT ===
 
 IMPORTANT LANGUAGE INSTRUCTION: You MUST write your entire response in ${finalLanguage}.
 Even though the transcript is in ${detectedLanguage}, the user wants the final explanation in ${finalLanguage}.
 Do NOT translate names of core concepts if they are standardized, but explain everything else in ${finalLanguage}.
 `
-        : `
+            : `
 (No transcript available. Generate intuition based on the video title and description below in ${finalLanguage}. 
 IMPORTANT: Use ONLY information that can be inferred from the title and description.)
-`;
+`);
 
-    const intuitionPrompt = `
+    const intuitionPrompt = dedent(`
         Act as an Expert Academic Professor and Exam Specialist.
         Your goal is to provide a STERN, HIGHLY TECHNICAL, and CONCISE academic breakdown of the subject matter.
         
@@ -341,6 +490,8 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
            - CRITICAL: Never nest dollar signs inside other delimiters (e.g., do NOT write \\boxed{P$A\\cup B$} or P$A\\cup B$. Instead write $\\boxed{P(A\\cup B)}$ or $P(A\\cup B)$).
            - Do NOT use parenthesis delimiters like (t \\ge A_i) or square brackets like [t \\ge A_i] for math.
         3. STRICT MARKDOWN BOLDING & HEADERS: Ensure every opening bold marker "**" has a matching closing bold marker "**". Do not leave trailing or loose asterisks. Do NOT use single asterisks (*) for headers or titles; always use double asterisks (**) to bold them.
+        4. BULLET POINT LIST ITEMS & NEWLINES: When writing lists (such as learning objectives/takeaways or exam tip outlines), you MUST format each item on a new line starting with a hyphen and a space (e.g. "- **Concept**: Explanation"). You MUST separate every consecutive list item and every paragraph with double newlines (\\n\\n). Do NOT combine multiple bullet points, lists, or distinct takeaways into a single line or paragraph.
+        5. NO PREAMBLE, GREETINGS, OR TITLE: Start your output immediately with the first heading "### 🎯 Core Technical Definition". Do NOT write any introduction (such as "Here is the summary:", "Sure, here is the breakdown:"), titles (like "# Topic Name"), or horizontal rules at the very beginning of the response.
         
         Video Title: '${title}'
         Video URL: '${url || 'Not provided'}'
@@ -351,76 +502,82 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
         
         Break it down exactly into these academic headings:
         ### 🎯 Core Technical Definition
-        (Instruction: Provide a formal, academic definition of the subject. Use standard industry/academic terminology. Around 150-200 words of foundational theory.)
+        (Instruction: Provide a formal, academic definition of the subject. Use standard industry/academic terminology. Around 60-80 words of foundational theory.)
         
         ### 💡 Key Learning Objectives & Takeaways
-        (Instruction: Provide a list of key concepts covered. Each point must explain the 'Mechanism', 'Process', or 'Rule'. Exactly 5-6 key points.)
+        (Instruction: Provide a list of key concepts covered. Each point must explain the 'Mechanism', 'Process', or 'Rule'. Exactly 3-4 key points, each formatted as a bullet point starting with a hyphen and separated by double newlines.)
         
         ### 🧠 Theoretical Framework & Why It Matters
-        (Instruction: Provide deep intuition, the underlying philosophy, and the scientific/industrial logic behind the concept. Around 150-200 words.)
+        (Instruction: Provide deep intuition, the underlying philosophy, and the scientific/industrial logic behind the concept. Around 60-80 words.)
         
         ### 📚 Progressive Deep Dive (The Exam Core)
-        (Instruction: Walk through the content progressively. Explain 'How it works' step-by-step with technical rigor. Include any 'Types', 'Classifications', or 'Stages'. Around 300-400 words.)
+        (Instruction: Walk through the content progressively. Explain 'How it works' step-by-step with technical rigor. Around 120-150 words.)
         
         ### 🛠️ Practical Scenarios & Comparative Analysis
-        (Instruction: Provide concrete examples, use-cases, or code. Include a 'Pros vs Cons' or 'Comparison Table' in markdown if applicable. Around 150-200 words.)
+        (Instruction: Provide concrete examples, use-cases, or code. Around 60-80 words.)
         
         ### 📝 Potential Exam Questions & High-Score Tips
-        (Instruction: List 3 likely descriptive exam questions based on this video. Format each question title strictly in bold using double asterisks: **Question X: [Question Text]**, followed by short 'Bullet-Point' outlines of how the user should answer them to get full marks. Do NOT use single asterisks * for question titles or headers.)
+        (Instruction: List 2 likely descriptive exam questions based on this video. Format each question title strictly in bold using double asterisks: **Question X: [Question Text]**, followed by short 'Bullet-Point' outlines of how the user should answer them to get full marks. Do NOT use single asterisks * for question titles or headers. Separate all elements by double newlines.)
 
-        Make sure the explanation is illuminating and complete, yet highly token-efficient.
+        CRITICAL SPEED INSTRUCTION: Be extremely technical but highly concise. Write at most 450-500 words in total. This is crucial for real-time responsiveness.
         IMPORTANT: Your entire response MUST be in ${finalLanguage}.
-      `;
+    `);
 
-    // Master English generation uses Cerebras first for maximum speed.
-    // This master is then translated cheaply via Google Translate.
-    // --- STEP 3: Smart Master Generation Routing ---
-    // If transcript is huge (>30k chars ~8k tokens), we MUST avoid Cerebras/Groq8B (too small context)
-    // and use Gemini or Groq 70B (massive 1M/128k context).
-    const isLongTranscript = transcriptResult.transcript?.length > 30000;
-
+    // --- STEP 3: Setup Provider Routing Chain ---
     let chain = [];
-    if (hasTranscript) {
-        if (isLongTranscript) {
-            console.log(`[Intuition] Long transcript detected (${transcriptResult.transcript.length} chars). Prioritizing Cerebras (truncated) then Large Context Models.`);
-            chain = [
-                { type: 'cerebras' },
-                { type: 'gemini', model: MODELS.GEMINI_2_5 },
-                { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-                { type: 'gemini', model: MODELS.GEMINI_3 },
-                { type: 'openrouter' }
-            ];
-        } else {
-            chain = [
-                { type: 'cerebras' },
-                { type: 'gemini', model: MODELS.GEMINI_2_5 },
-                { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-                { type: 'gemini', model: MODELS.GEMINI_3 },
-                { type: 'openrouter' }
-            ];
-        }
-    } else {
+
+    if (isMultimodalVideoRouting) {
         chain = [
+            { type: 'gemini', model: MODELS.GEMINI_2_5 },
+            { type: 'gemini', model: MODELS.GEMINI_3 },
+            { type: 'cerebras' },
+            { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
+        ];
+    } else if (hasTranscript) {
+        chain = [
+            { type: 'gemini', model: MODELS.GEMINI_2_5 },
             { type: 'cerebras' },
             { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
+            { type: 'gemini', model: MODELS.GEMINI_3 },
+            { type: 'openrouter' }
+        ];
+    } else {
+        chain = [
             { type: 'gemini', model: MODELS.GEMINI_2_5 },
+            { type: 'cerebras' },
+            { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
             { type: 'openrouter' }
         ];
     }
 
     for (const provider of chain) {
         try {
-            console.log(`[Intuition] Attempting with ${provider.type === 'groq' ? provider.model : (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : provider.model)}...`);
+            const providerName = provider.type === 'groq' ? provider.model : (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : (provider.type === 'openrouter' ? MODELS.OPENROUTER_MODEL : provider.model));
+            console.log(`[Intuition] Attempting with ${providerName}...`);
             let text;
             if (provider.type === 'gemini') {
-                const model = genAI.getGenerativeModel({
-                    model: provider.model,
-                    generationConfig: {
-                        maxOutputTokens: 8192
-                    }
-                });
-                const result = await model.generateContent(intuitionPrompt);
-                text = (await result.response).text();
+                if (isMultimodalVideoRouting && vertexAIClient) {
+                    const contents = [
+                        {
+                            fileData: {
+                                fileUri: url,
+                                mimeType: 'video/mp4'
+                            }
+                        },
+                        {
+                            text: intuitionPrompt
+                        }
+                    ];
+                    text = await generateGeminiContent(provider.model, contents, {
+                        maxOutputTokens: 2048,
+                        temperature: 0.2
+                    });
+                } else {
+                    text = await generateGeminiContent(provider.model, intuitionPrompt, {
+                        maxOutputTokens: 2048,
+                        temperature: 0.2
+                    });
+                }
             } else if (provider.type === 'groq') {
                 text = await callGroq(intuitionPrompt, false, provider.model);
             } else if (provider.type === 'cerebras') {
@@ -429,15 +586,20 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
                 text = await callOpenRouter(intuitionPrompt);
             }
 
+            if (!text || text.trim() === '') {
+                throw new Error("Model returned empty or null content");
+            }
+
             return {
-                content: text,
+                content: text.trim(),
                 isFallback: provider.model !== MODELS.GEMINI_2_5,
                 isSystemFallback: false,
                 transcript_used: hasTranscript,
                 model_name: provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : (provider.type === 'groq' ? provider.model : (provider.type === 'openrouter' ? MODELS.OPENROUTER_MODEL : provider.model))
             };
         } catch (error) {
-            console.warn(`[Intuition] ${provider.type === 'groq' ? provider.model : (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : provider.model)} failed:`, error.message);
+            const providerName = provider.type === 'groq' ? provider.model : (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : (provider.type === 'openrouter' ? MODELS.OPENROUTER_MODEL : provider.model));
+            console.warn(`[Intuition] ${providerName} failed:`, error.message);
             if (provider === chain[chain.length - 1]) {
                 return {
                     content: `
@@ -568,9 +730,7 @@ const benchmarkAllModels = async (title, description, url = null) => {
         try {
             let text;
             if (p.type === 'gemini') {
-                const model = genAI.getGenerativeModel({ model: p.model, generationConfig: { maxOutputTokens: 8192 } });
-                const result = await model.generateContent(intuitionPrompt);
-                text = (await result.response).text();
+                text = await generateGeminiContent(p.model, intuitionPrompt, { maxOutputTokens: 8192 });
             } else if (p.type === 'groq') {
                 text = await callGroq(intuitionPrompt, false, p.model);
             } else if (p.type === 'cerebras') {

@@ -181,20 +181,31 @@ const deleteComment = async (req, res) => {
 };
 
 const getIntuition = async (req, res) => {
-    const { videoId, targetLanguage } = req.query;
+    const { videoId, targetLanguage, deepVisual } = req.query;
     const requestedLang = targetLanguage && targetLanguage !== 'auto' ? targetLanguage : 'English';
+    const isDeepVisual = deepVisual === 'true';
 
     try {
         // --- STEP 1: Check Cache for this specific language ---
         const cacheKey = `video:intuition:${videoId}:${requestedLang}`;
         const cached = await cacheService.get(cacheKey);
-        if (cached && !req.query.refresh) return res.status(200).json(cached);
+        
+        // If deepVisual is requested but the cached version is not multimodal, bypass cache to regenerate
+        const isCachedMultimodal = cached && cached.model_name && cached.model_name.includes('(multimodal)');
+        const skipCache = req.query.refresh || (isDeepVisual && !isCachedMultimodal);
+
+        if (cached && !skipCache) return res.status(200).json(cached);
 
         // --- STEP 2: Get or Generate the English "Master" version from DB ---
         let englishIntuition = await prisma.videoIntuition.findUnique({ where: { vid: videoId } });
         
-        // Force master regeneration only if missing OR generated without transcript
-        const isStale = englishIntuition && !englishIntuition.transcript_used;
+        // Force master regeneration only if missing, generated without transcript (and not multimodal),
+        // or if deep visual analysis is requested but the existing version is transcript-based.
+        const isMultimodal = englishIntuition && englishIntuition.model_name && englishIntuition.model_name.includes('(multimodal)');
+        const isStale = englishIntuition && (
+            (!englishIntuition.transcript_used && !isMultimodal) ||
+            (isDeepVisual && !isMultimodal)
+        );
 
         if (!englishIntuition || isStale) {
             const video = await prisma.video.findFirst({ where: { vid: videoId } });
@@ -202,8 +213,8 @@ const getIntuition = async (req, res) => {
             const description = video ? video.description : 'No description available.';
             const url = video ? video.url : null;
 
-            console.log(`[Intuition] 🔥 Zero-to-Master English generation (from transcript) for ${videoId}...`);
-            const { content, isSystemFallback, model_name, transcript_used } = await generateIntuition(title, description, url, 'English');
+            console.log(`[Intuition] 🔥 Zero-to-Master English generation for ${videoId}...`);
+            const { content, isSystemFallback, model_name, transcript_used } = await generateIntuition(title, description, url, 'English', isDeepVisual);
             const isTranscriptUsed = !!transcript_used;
             
             if (!isSystemFallback) {

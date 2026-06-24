@@ -139,7 +139,8 @@ const preprocessMarkdown = (text) => {
   processed = processed.replace(/^\*(?=[a-zA-Z0-9])(.*?)\*?$/gm, '**$1**');
 
   // 7. Fix spaced bold markers at the start of lists like * *Non-negativity : **
-  processed = processed.replace(/\*\s+\*(.*?)\s*\*\*/g, '**$1**');
+  // Safe lookup: only match if the second asterisk is NOT followed by another asterisk (prevents matching * ** list items)
+  processed = processed.replace(/\*\s+\*(?!\*)(.*?)\s*\*\*/g, '**$1**');
 
   // 8. Wrap raw/unwrapped math expressions inside conversational lines in inline math delimiters
   processed = processed.split('\n').map(line => {
