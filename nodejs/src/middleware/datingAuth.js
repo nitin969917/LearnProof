@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const datingPrisma = require('../utils/datingPrisma');
+const { verifyFirebaseToken } = require('./auth');
 const JWT_SECRET = process.env.JWT_SECRET || 'learnproof_default_secret_9988';
 
 const datingAuth = async (req, res, next) => {
@@ -10,7 +11,21 @@ const datingAuth = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(idToken, JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(idToken, JWT_SECRET);
+    } catch (jwtErr) {
+      // Fallback to Google verification
+      console.log('[Dating Auth] Not a custom JWT, falling back to Google verification...');
+      const googleDecoded = await verifyFirebaseToken(idToken);
+      decoded = {
+        email: googleDecoded.email,
+        uid: googleDecoded.uid,
+        name: googleDecoded.name,
+        picture: googleDecoded.picture
+      };
+    }
+
     if (!decoded || !decoded.email) {
       return res.status(401).json({ error: 'Unauthorized: Invalid token payload' });
     }
