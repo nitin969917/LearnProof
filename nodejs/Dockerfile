@@ -20,5 +20,5 @@ COPY . .
 
 EXPOSE 8000
 
-# Auto-push schema changes to databases, then start command with PM2 Runtime for clustering
-CMD npx prisma db push --schema=prisma/schema.prisma && npx prisma db push --schema=prisma/dating.prisma && pm2-runtime start server.js -i max
+# Auto-push schema changes to databases, then start command with PM2 Runtime
+CMD npx prisma db push --schema=prisma/schema.prisma && npx prisma db push --schema=prisma/dating.prisma && pm2-runtime start server.js
