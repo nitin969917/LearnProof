@@ -2,6 +2,24 @@ const livekitService = require('../services/livekit.service');
 const datingPrisma = require('../utils/datingPrisma');
 const translate = require('google-translate-api-x');
 
+// In-memory stage request queue: roomName -> Map(identity -> { identity, name, requestedAt })
+const stageRequestStore = new Map();
+
+const getStageRequestMap = (roomName) => {
+  if (!stageRequestStore.has(roomName)) {
+    stageRequestStore.set(roomName, new Map());
+  }
+  return stageRequestStore.get(roomName);
+};
+
+const clearStageRequest = (roomName, identity) => {
+  getStageRequestMap(roomName).delete(String(identity));
+};
+
+const clearAllStageRequests = (roomName) => {
+  stageRequestStore.delete(roomName);
+};
+
 /**
  * GET /api/livekit/token?room=roomName
  * Returns a LiveKit JWT token for the authenticated user
@@ -62,6 +80,7 @@ const deleteRoom = async (req, res) => {
   try {
     const { roomName } = req.params;
     await livekitService.deleteRoom(roomName);
+    clearAllStageRequests(roomName);
     return res.json({ success: true });
   } catch (err) {
     console.error('LiveKit delete room error:', err);
@@ -154,6 +173,8 @@ const promoteParticipant = async (req, res) => {
       canPublishData: true
     });
 
+    clearStageRequest(roomName, identity);
+
     return res.json({ success: true, message: 'Participant promoted to speaker' });
   } catch (err) {
     console.error('Failed to promote participant:', err);
@@ -202,6 +223,84 @@ const demoteParticipant = async (req, res) => {
 };
 
 /**
+ * POST /api/livekit/rooms/:roomName/stage-requests
+ * Listener submits a request to join the stage
+ */
+const submitStageRequest = async (req, res) => {
+  try {
+    const { roomName } = req.params;
+    const userId = String(req.user.id);
+    const userName = req.user.name || 'User';
+
+    const dbRoom = await datingPrisma.languageRoom.findUnique({ where: { roomName } });
+    if (!dbRoom) return res.status(404).json({ error: 'Room not found' });
+    if (String(dbRoom.creatorId) === userId) {
+      return res.status(400).json({ error: 'Host cannot request the stage' });
+    }
+
+    getStageRequestMap(roomName).set(userId, {
+      identity: userId,
+      name: userName,
+      requestedAt: Date.now(),
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to submit stage request:', err);
+    return res.status(500).json({ error: 'Failed to submit stage request' });
+  }
+};
+
+/**
+ * GET /api/livekit/rooms/:roomName/stage-requests
+ * Host fetches pending stage requests
+ */
+const getStageRequests = async (req, res) => {
+  try {
+    const { roomName } = req.params;
+    const userId = req.user.id;
+
+    const dbRoom = await datingPrisma.languageRoom.findUnique({ where: { roomName } });
+    if (!dbRoom) return res.status(404).json({ error: 'Room not found' });
+    if (dbRoom.creatorId !== userId) {
+      return res.status(403).json({ error: 'Only the room host can view stage requests' });
+    }
+
+    const requests = Array.from(getStageRequestMap(roomName).values());
+    return res.json({ requests });
+  } catch (err) {
+    console.error('Failed to fetch stage requests:', err);
+    return res.status(500).json({ error: 'Failed to fetch stage requests' });
+  }
+};
+
+/**
+ * DELETE /api/livekit/rooms/:roomName/stage-requests/:identity
+ * Host dismisses a stage request (or after promote)
+ */
+const dismissStageRequest = async (req, res) => {
+  try {
+    const { roomName, identity } = req.params;
+    const userId = req.user.id;
+
+    const dbRoom = await datingPrisma.languageRoom.findUnique({ where: { roomName } });
+    if (!dbRoom) return res.status(404).json({ error: 'Room not found' });
+
+    const isHost = dbRoom.creatorId === userId;
+    const isSelf = String(identity) === String(userId);
+    if (!isHost && !isSelf) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    clearStageRequest(roomName, identity);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to dismiss stage request:', err);
+    return res.status(500).json({ error: 'Failed to dismiss stage request' });
+  }
+};
+
+/**
  * POST /api/livekit/translate
  * Translates transcriptions in real time using google-translate-api-x
  */
@@ -234,5 +333,8 @@ module.exports = {
   kickParticipant, 
   promoteParticipant, 
   demoteParticipant, 
-  translateText 
+  translateText,
+  submitStageRequest,
+  getStageRequests,
+  dismissStageRequest,
 };

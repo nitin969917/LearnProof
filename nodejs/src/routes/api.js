@@ -129,6 +129,9 @@ router.get('/livekit/rooms/:roomName/participants', datingAuth, livekitControlle
 router.delete('/livekit/rooms/:roomName/participants/:identity', datingAuth, livekitController.kickParticipant);
 router.post('/livekit/rooms/:roomName/participants/:identity/promote', datingAuth, livekitController.promoteParticipant);
 router.post('/livekit/rooms/:roomName/participants/:identity/demote', datingAuth, livekitController.demoteParticipant);
+router.post('/livekit/rooms/:roomName/stage-requests', datingAuth, livekitController.submitStageRequest);
+router.get('/livekit/rooms/:roomName/stage-requests', datingAuth, livekitController.getStageRequests);
+router.delete('/livekit/rooms/:roomName/stage-requests/:identity', datingAuth, livekitController.dismissStageRequest);
 router.post('/livekit/translate', datingAuth, livekitController.translateText);
 
 module.exports = router;
