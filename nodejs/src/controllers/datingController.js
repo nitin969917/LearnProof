@@ -589,12 +589,27 @@ const createLanguageRoom = async (req, res) => {
   const creatorId = req.user.id;
 
   try {
-    const existingRoom = await datingPrisma.languageRoom.findUnique({
-      where: { roomName },
-    });
+    // Generate a unique roomName by appending a random suffix and checking existence
+    let uniqueRoomName = roomName;
+    let isUnique = false;
+    let attempts = 0;
 
-    if (existingRoom) {
-      return res.status(400).json({ message: 'Room name already in use' });
+    while (!isUnique && attempts < 10) {
+      const suffix = Math.floor(1000 + Math.random() * 9000); // 4-digit number
+      uniqueRoomName = `${roomName}-${suffix}`;
+      
+      const checkRoom = await datingPrisma.languageRoom.findUnique({
+        where: { roomName: uniqueRoomName },
+      });
+      
+      if (!checkRoom) {
+        isUnique = true;
+      }
+      attempts++;
+    }
+
+    if (!isUnique) {
+      uniqueRoomName = `${roomName}-${Date.now()}`;
     }
 
     const finalRoomType = roomType || 'group';
@@ -605,7 +620,7 @@ const createLanguageRoom = async (req, res) => {
 
     const room = await datingPrisma.languageRoom.create({
       data: {
-        roomName,
+        roomName: uniqueRoomName,
         topic: topic || 'General Discussion',
         language,
         creatorId,

@@ -66,10 +66,10 @@ router.get('/messages/unread-counts', datingAuth, getUnreadCounts);
 router.get('/messages/:targetUserId', datingAuth, getMessages);
 
 // Language Room routes
-router.post('/language-rooms', datingAuth, createLanguageRoom);
+router.post('/language-rooms/', datingAuth, createLanguageRoom);
 router.delete('/language-rooms/:id', datingAuth, deleteLanguageRoom);
 router.delete('/language-rooms/by-name/:roomName', datingAuth, deleteLanguageRoomByName);
-router.get('/language-rooms', datingAuth, getLanguageRooms);
+router.get('/language-rooms/', datingAuth, getLanguageRooms);
 
 // Group Discussion routes
 router.get('/groups', datingAuth, getGroups);

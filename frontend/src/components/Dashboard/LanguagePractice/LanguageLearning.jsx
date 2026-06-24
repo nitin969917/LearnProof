@@ -36,7 +36,7 @@ export default function LanguageLearning() {
 
   const fetchRooms = async () => {
     try {
-      const response = await socialApi.get('/language-rooms');
+      const response = await socialApi.get('/language-rooms/');
       // Guard: always set an array, even if API returns an error object
       setRoomsList(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
@@ -56,7 +56,7 @@ export default function LanguageLearning() {
       // Format room name to be url safe
       const formattedRoomName = newRoom.roomName.replace(/\s+/g, '-').toLowerCase();
       
-      await socialApi.post('/language-rooms', {
+      const response = await socialApi.post('/language-rooms/', {
         roomName: formattedRoomName,
         topic: newRoom.topic || 'General Discussion',
         language: newRoom.language,
@@ -64,7 +64,7 @@ export default function LanguageLearning() {
       });
       
       setShowModal(false);
-      navigate(`/dashboard/live-rooms/${formattedRoomName}`);
+      navigate(`/dashboard/live-rooms/${response.data.roomName}`);
     } catch (error) {
       console.error('Error creating room:', error);
       toast.error(error.response?.data?.message || 'Failed to create room. Room name might already be in use.');
@@ -213,7 +213,7 @@ export default function LanguageLearning() {
                     )}
                   </div>
                   <h3 className="font-black text-gray-900 dark:text-white text-sm sm:text-base md:text-lg leading-snug line-clamp-1 px-0.5 uppercase tracking-wide">
-                    {room.roomName}
+                    {room.roomName.replace(/-\d+$/, '').split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                   </h3>
                   <p className="text-gray-450 dark:text-gray-500 text-[10px] sm:text-xs font-bold mt-1.5 leading-tight line-clamp-2 px-1">
                     {room.topic}

@@ -823,7 +823,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-sm shadow-red-500/60 shrink-0" />
             <h1 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wide truncate max-w-[140px] sm:max-w-xs">
-              {roomName}
+              {roomName.replace(/-\d+$/, '').split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
             </h1>
             {dbRoom?.language && (
               <span className="hidden sm:flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full text-[9px] font-black text-gray-600 dark:text-gray-400 uppercase tracking-wider">
@@ -1291,7 +1291,7 @@ export default function LanguageRoom() {
       try {
         let roomInfo = null;
         try {
-          const roomsRes = await socialApi.get('/language-rooms');
+          const roomsRes = await socialApi.get('/language-rooms/');
           roomInfo = roomsRes.data.find(r => r.roomName === roomName);
           if (roomInfo) setDbRoom(roomInfo);
         } catch (roomErr) {

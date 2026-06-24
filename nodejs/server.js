@@ -115,6 +115,7 @@ app.use('/api/apps', express.static(path.join(__dirname, 'apps'))); // Passenger
 app.use('/api', apiRoutes);
 app.use('/api', datingRoutes);
 app.use('/', apiRoutes); // Fallback for Hostinger/Passenger stripped routes
+app.use('/', datingRoutes); // Fallback for Hostinger/Passenger stripped routes
 
 // Root endpoint
 app.get('/', (req, res) => {
