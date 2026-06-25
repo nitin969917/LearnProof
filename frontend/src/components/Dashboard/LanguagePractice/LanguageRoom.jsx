@@ -129,8 +129,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       });
       return [...prev, { identity, name: name || 'User' }];
     });
-    setShowParticipants(true);
+    // Do NOT auto-open participants panel — host can open it manually
+    // setShowParticipants(true); ← removed: was causing panel to pop open unexpectedly
   }, []);
+
 
   // Media states
   const [isMicEnabled, setIsMicEnabled] = useState(false);
