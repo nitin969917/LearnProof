@@ -51,6 +51,9 @@ router.post('/login/', authMiddleware, authController.loginOrRegister);
 router.post('/oauth-login/', authMiddleware, authController.loginOrRegister);
 router.post('/profile/', authMiddleware, authController.getProfile);
 router.post('/save-fcm-token', authMiddleware, fcmController.saveFcmToken);
+router.get('/auth/admin-check', authMiddleware, isAdminMiddleware, (req, res) => {
+    res.status(200).json({ isAdmin: true });
+});
 
 // YouTube
 router.post('/import/', authMiddleware, youtubeController.importMetadata);
