@@ -36,7 +36,7 @@ export default function LanguageLearning() {
 
   const fetchRooms = async () => {
     try {
-      const response = await socialApi.get('/language-rooms/');
+      const response = await socialApi.get('/language-rooms');
       // Guard: always set an array, even if API returns an error object
       setRoomsList(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
@@ -56,7 +56,7 @@ export default function LanguageLearning() {
       // Format room name to be url safe
       const formattedRoomName = newRoom.roomName.replace(/\s+/g, '-').toLowerCase();
       
-      const response = await socialApi.post('/language-rooms/', {
+      const response = await socialApi.post('/language-rooms', {
         roomName: formattedRoomName,
         topic: newRoom.topic || 'General Discussion',
         language: newRoom.language,
