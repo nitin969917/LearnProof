@@ -70,6 +70,16 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const navigateRef = useRef(navigate);
   useEffect(() => { navigateRef.current = navigate; }, [navigate]);
 
+  // Helper: back-navigate respecting where the user came from
+  const navigateBack = useCallback(() => {
+    const src = sessionStorage.getItem('nav_source');
+    if (src === 'social') {
+      navigateRef.current('/dashboard/social');
+    } else {
+      navigateRef.current('/dashboard/live-rooms');
+    }
+  }, []);
+
   // Session Time
   const [sessionSeconds, setSessionSeconds] = useState(0);
 
@@ -115,6 +125,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // Kick Confirmation Modal
   const [kickTarget, setKickTarget] = useState(null); // { identity, name }
+
+  // End Session Confirmation Modal (host only)
+  const [showEndRoomModal, setShowEndRoomModal] = useState(false);
+
+  // Detect if user came from Social Hub (read once at mount — sessionStorage is set before navigation)
+  const [fromSocial] = useState(() => sessionStorage.getItem('nav_source') === 'social');
 
   // Speaker Requests State (Host Only)
   const [speakRequests, setSpeakRequests] = useState([]);
@@ -336,8 +352,22 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // ── Leave/End room ─────────────────────────────────────────────────────────
   const handleLeaveClick = async () => {
-    if (isHost && room) {
-      // Broadcast room_ended to all participants
+    if (isHost) {
+      // Show confirmation modal for hosts before ending the session for everyone
+      setShowEndRoomModal(true);
+      return;
+    }
+    // Non-hosts leave immediately without confirmation
+    localStorage.removeItem(`livekit_stage_${roomName}`);
+    localStorage.removeItem(`livekit_mic_${roomName}`);
+    localStorage.removeItem(`livekit_cam_${roomName}`);
+    await handleLeaveRoom();
+  };
+
+  // Called when host confirms ending the session
+  const handleConfirmEndRoom = async () => {
+    setShowEndRoomModal(false);
+    if (room) {
       try {
         await sendSignal({ type: 'room_ended' });
         await new Promise(resolve => setTimeout(resolve, 400));
@@ -345,7 +375,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         console.error('Failed to broadcast room_ended:', err);
       }
     }
-    // Clear local state
     localStorage.removeItem(`livekit_stage_${roomName}`);
     localStorage.removeItem(`livekit_mic_${roomName}`);
     localStorage.removeItem(`livekit_cam_${roomName}`);
@@ -589,7 +618,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           localStorage.removeItem(`livekit_stage_${roomName}`);
           localStorage.removeItem(`livekit_mic_${roomName}`);
           localStorage.removeItem(`livekit_cam_${roomName}`);
-          navigateRef.current('/dashboard/live-rooms');
+          navigateBack();
         } else if (data.type === 'subtitle') {
           setActiveSubtitle({ text: data.text, translation: data.translation, sender: data.sender });
           if (subtitleTimeoutRef.current) clearTimeout(subtitleTimeoutRef.current);
@@ -877,19 +906,60 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         </div>
       )}
 
+      {/* ── End Session Confirmation Modal (host only) ── */}
+      {showEndRoomModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-xs w-full p-6 shadow-2xl text-center">
+            <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+              <PhoneOff size={26} className="text-red-500" />
+            </div>
+            <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">End Session?</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
+              This will <span className="font-extrabold text-gray-800 dark:text-white">end the session for everyone</span> in the room. This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEndRoomModal(false)}
+                className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-bold text-xs transition cursor-pointer active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmEndRoom}
+                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-red-500/20 transition cursor-pointer active:scale-95"
+              >
+                End for All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Header Bar ── */}
+      {/* Brand section changes based on nav_source (fromSocial state set at mount) */}
       <div className="flex items-center justify-between px-4 sm:px-5 h-14 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 shrink-0 z-30">
 
-        {/* Left: Brand + Room */}
-        <div className="flex items-center gap-3 min-w-0">
+        {/* Left: Brand + Separator + Room Name */}
+        <div className="flex items-center gap-2.5 min-w-0">
+          {/* Logo — same position in both Social Hub and Main App headers */}
           <div className="flex items-center gap-2 shrink-0">
-            <img src="/LP_M_logo.png" alt="LearnProof Logo" className="w-8 h-8 object-contain shrink-0" />
-            <span className="text-xs font-black text-orange-500 uppercase tracking-widest hidden sm:block">LearnProof</span>
+            <img src="/LP_M_logo.png" alt="LearnProof" className="w-8 h-8 object-contain shrink-0" />
+            {fromSocial ? (
+              <div className="flex flex-col justify-center">
+                <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest leading-none">Social Hub</span>
+                <span className="text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider leading-none mt-0.5">Live Room</span>
+              </div>
+            ) : (
+              <span className="text-xs font-black text-orange-500 uppercase tracking-widest hidden sm:block">LearnProof</span>
+            )}
           </div>
+
           <div className="w-px h-5 bg-gray-200 dark:bg-white/10 shrink-0" />
+
+          {/* Room name + live dot */}
           <div className="flex items-center gap-2 min-w-0">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-sm shadow-red-500/60 shrink-0" />
-            <h1 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wide truncate max-w-[140px] sm:max-w-xs">
+            <h1 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wide truncate max-w-[110px] sm:max-w-xs">
               {roomName.replace(/-\d+$/, '').split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
             </h1>
             {dbRoom?.language && (
@@ -900,13 +970,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           </div>
         </div>
 
-        {/* Center: Timer */}
+        {/* Center: Session Timer */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
           <span className="text-xs font-black text-orange-600 dark:text-orange-400 tabular-nums">{formatTime(sessionSeconds)}</span>
         </div>
 
-        {/* Right: Actions */}
+        {/* Right: Leave / End button */}
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleLeaveClick}
@@ -1365,7 +1435,8 @@ export default function LanguageRoom() {
 
         // If room no longer exists in DB, it was ended by host — redirect
         if (!roomInfo) {
-          navigate('/dashboard/live-rooms');
+          const navSrc = sessionStorage.getItem('nav_source');
+          navigate(navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms');
           return;
         }
 
@@ -1407,12 +1478,18 @@ export default function LanguageRoom() {
     } catch (err) {
       // Ignore cleanup errors
     }
-    navigate('/dashboard/live-rooms');
+    // Navigate back respecting where user came from
+    const navSrc = sessionStorage.getItem('nav_source');
+    navigate(navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms');
   }, [roomName, navigate, dbRoom, userIdentity]);
 
   if (!user) return null;
   if (loading) return <RoomLoadingSpinner />;
-  if (error) return <RoomError error={error} onBack={() => navigate('/dashboard/live-rooms')} />;
+  if (error) {
+    const navSrc = sessionStorage.getItem('nav_source');
+    const backPath = navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms';
+    return <RoomError error={error} onBack={() => navigate(backPath)} />;
+  }
 
   return (
     <div className="w-full h-full">

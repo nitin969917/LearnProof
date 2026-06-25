@@ -114,14 +114,14 @@ export default function LanguageLearning() {
         </button>
       </div>
 
-      {/* Tabs Selector */}
-      <div className="flex border-b border-gray-200 dark:border-gray-800 gap-6">
+      {/* Tabs Selector — centered on mobile, left-aligned on desktop */}
+      <div className="flex justify-center sm:justify-start border-b border-gray-200 dark:border-gray-800 gap-0 sm:gap-6">
         <button
           onClick={() => {
             setActiveTab('audio');
             localStorage.setItem('languageRoomsTab', 'audio');
           }}
-          className={`pb-3 text-sm font-black uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+          className={`flex-1 sm:flex-none pb-3 text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
             activeTab === 'audio'
               ? 'border-orange-500 text-orange-500'
               : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
@@ -135,7 +135,7 @@ export default function LanguageLearning() {
             setActiveTab('video');
             localStorage.setItem('languageRoomsTab', 'video');
           }}
-          className={`pb-3 text-sm font-black uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+          className={`flex-1 sm:flex-none pb-3 text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
             activeTab === 'video'
               ? 'border-orange-500 text-orange-500'
               : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe } from 'lucide-react';
-import { Link, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
 import FeedTab from './FeedTab.jsx';
@@ -14,6 +14,7 @@ import { motion } from 'framer-motion';
 
 export default function SocialDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const outletContext = useOutletContext();
   const toggleSidebar = outletContext?.toggleSidebar || (() => {});
   const [socialUser, setSocialUser] = useState(null);
@@ -378,8 +379,12 @@ export default function SocialDashboard() {
 
                 {/* Live Rooms Globe icon next to Chats (idx === 3) */}
                 {idx === 3 && (
-                  <Link
-                    to="/dashboard/live-rooms"
+                  <button
+                    onClick={() => {
+                      // Store nav_source so DashboardLayout shows Social Hub bottom nav on live-rooms pages
+                      sessionStorage.setItem('nav_source', 'social');
+                      navigate('/dashboard/live-rooms', { state: { from: 'social' } });
+                    }}
                     className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 no-underline touch-manipulation select-none outline-none focus:outline-none cursor-pointer"
                   >
                     <motion.div
@@ -391,7 +396,7 @@ export default function SocialDashboard() {
                       </div>
                       <span className="sr-only">Live Rooms</span>
                     </motion.div>
-                  </Link>
+                  </button>
                 )}
               </Fragment>
             );

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
+import SocialBottomNavBar from "./Social/SocialBottomNavBar";
 import { Outlet, useLocation } from "react-router-dom";
 import ProfileModal from "./ProfileModal";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -107,6 +108,30 @@ const DashboardLayout = () => {
     const isAskMyNotes = location.pathname === '/dashboard/ask-my-notes';
     const isSocialHub = location.pathname.startsWith('/dashboard/social');
     const isLiveRoom = location.pathname.includes('/dashboard/live-rooms/') && location.pathname !== '/dashboard/live-rooms';
+    const isLiveRoomList = location.pathname === '/dashboard/live-rooms';
+
+    // --- Reactive social nav source tracking ---
+    // Use useState (not bare sessionStorage) so React re-renders when the source changes.
+    const [cameFromSocial, setCameFromSocial] = useState(
+        () => sessionStorage.getItem('nav_source') === 'social'
+    );
+
+    useEffect(() => {
+        if (location.state?.from === 'social') {
+            sessionStorage.setItem('nav_source', 'social');
+            setCameFromSocial(true);
+        } else if (isSocialHub) {
+            sessionStorage.setItem('nav_source', 'social');
+            setCameFromSocial(true);
+        } else if (!isLiveRoom && !isLiveRoomList) {
+            // Navigated outside live-rooms context — clear social source
+            sessionStorage.removeItem('nav_source');
+            setCameFromSocial(false);
+        }
+    }, [location.pathname, location.state, isSocialHub, isLiveRoom, isLiveRoomList]);
+
+    // Show social-context nav if on any live-rooms page and user came from Social Hub
+    const showSocialBottomNav = (isLiveRoom || isLiveRoomList) && cameFromSocial;
     const toggleSidebar = () => {
         if (!isMobile) {
             setIsSidebarExpanded(prev => {
@@ -179,7 +204,37 @@ const DashboardLayout = () => {
             {/* Main content area */}
             <main className="flex-1 flex flex-col min-w-0">
                 {/* Top Bar */}
-                {!isAskMyNotes && !isSocialHub && !isLiveRoom && <TopBar onMenuClick={toggleSidebar} />}
+                {/* Hidden when: ask-my-notes, social hub, inside a live room, or on live-rooms list coming from social */}
+                {!isAskMyNotes && !isSocialHub && !isLiveRoom && !showSocialBottomNav && <TopBar onMenuClick={toggleSidebar} />}
+
+                {/* Social Hub-context header shown on /dashboard/live-rooms list when user came from Social Hub.
+                    Logo is in the same left position as the main TopBar so the UI feels consistent. */}
+                {showSocialBottomNav && isLiveRoomList && (
+                    <div className="flex items-center justify-between px-4 h-16 sm:h-20 bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm shrink-0 w-full transition-colors duration-200">
+                        {/* Left — logo + Social Hub label (same position as main TopBar logo) */}
+                        <div className="flex items-center gap-3 h-full min-w-0">
+                            <div className="h-full cursor-default flex items-stretch shrink-0">
+                                {/* Mobile logo */}
+                                <img src="/LP_M_logo.png" alt="LearnProof" className="h-full w-auto object-cover object-left block sm:hidden" />
+                                {/* Desktop logo */}
+                                <img src="/LP_logo.png" alt="LearnProof" className="h-full w-auto object-cover object-left hidden sm:block" />
+                            </div>
+                            <div className="border-l border-gray-200 dark:border-gray-700 h-8 mx-1" />
+                            <div className="min-w-0">
+                                <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h1>
+                                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Live Rooms</p>
+                            </div>
+                        </div>
+                        {/* Right — menu toggle */}
+                        <button
+                            onClick={toggleSidebar}
+                            className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-orange-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                            title="Menu"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                        </button>
+                    </div>
+                )}
 
                 {/* Dashboard Content */}
                 <div 
@@ -199,7 +254,14 @@ const DashboardLayout = () => {
             </main>
 
             {/* Bottom Navigation for Mobile */}
-            {!isSocialHub && !isLiveRoom && <BottomNav onMenuClick={toggleSidebar} />}
+            {/* Show main BottomNav only when: not in social hub, not in a live room, and not when came from social */}
+            {!isSocialHub && !isLiveRoom && !showSocialBottomNav && <BottomNav onMenuClick={toggleSidebar} />
+            }
+
+            {/* Social Hub's bottom nav — shown on live-rooms pages when the user navigated from Social Hub */}
+            {showSocialBottomNav && (
+                <SocialBottomNavBar onMenuClick={toggleSidebar} />
+            )}
 
             <ProfileModal
                 isOpen={isProfileModalOpen}
