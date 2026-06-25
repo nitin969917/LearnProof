@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, CheckCircle, Shield } from 'lucide-react';
+import { Trophy, CheckCircle, Shield, Youtube, Zap, Lightbulb, TrendingUp, Users, MessageSquare, Award } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from 'react-hot-toast';
@@ -10,7 +10,15 @@ const LoginPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { login, user, loading } = useAuth();
-    const [isAuthenticating, setIsAuthenticating] = useState(false);
+    const [isAuthenticating, setIsAuthenticating] = useState(() => {
+        const hash = window.location.hash;
+        const hasHashToken = hash.includes("id_token") || hash.includes("credential");
+        const wasAuthenticating = sessionStorage.getItem("is_authenticating") === "true";
+        if (hasHashToken) {
+            sessionStorage.setItem("is_authenticating", "true");
+        }
+        return hasHashToken || wasAuthenticating;
+    });
 
     useEffect(() => {
         // If already logged in, redirect to dashboard immediately
@@ -25,6 +33,8 @@ const LoginPage = () => {
             const params = new URLSearchParams(hash.substring(1));
             const idToken = params.get('id_token') || params.get('credential');
             if (idToken) {
+                setIsAuthenticating(true);
+                sessionStorage.setItem("is_authenticating", "true");
                 handleLoginFlow(idToken);
             }
         }
@@ -32,6 +42,7 @@ const LoginPage = () => {
 
     const handleLoginFlow = async (idToken) => {
         setIsAuthenticating(true);
+        sessionStorage.setItem("is_authenticating", "true");
         try {
             await login({ credential: idToken });
             // Clean the hash from URL
@@ -43,11 +54,13 @@ const LoginPage = () => {
                 console.error("Failed to setup notifications after login:", err);
             });
             
+            sessionStorage.removeItem("is_authenticating");
             navigate("/dashboard");
         } catch (err) {
             console.error("Authentication error:", err);
             toast.error(err.message || "Failed to sign in. Please try again.");
             setIsAuthenticating(false);
+            sessionStorage.removeItem("is_authenticating");
         }
     };
 
@@ -119,7 +132,7 @@ const LoginPage = () => {
                         <img src="/LP_logo.png" alt="LearnProof" className="h-20 w-auto object-contain" />
                     </motion.div>
 
-                    <div className="text-center space-y-1 mb-8">
+                    <div className="text-center space-y-1 mb-3">
                         <h2 className="text-2xl font-black text-gray-800 tracking-tight uppercase">
                             Welcome Back
                         </h2>
@@ -129,15 +142,19 @@ const LoginPage = () => {
                     </div>
 
                     {/* Features Checklist inside a nice styled inner card */}
-                    <div className="bg-orange-50/40 rounded-2xl p-5 border border-orange-100/50 w-full space-y-3.5 mt-8 flex flex-col items-center">
-                        <div className="space-y-3.5 w-fit">
+                    <div className="bg-orange-50/40 rounded-2xl p-5 border border-orange-100/50 w-full space-y-3 mt-1 flex flex-col items-center">
+                        <div className="space-y-3 w-fit">
                             {[
-                                { text: "Smart Quizzes & Personalized Course Notes", color: "text-orange-500" },
-                                { text: "Deep Video Insights & AI Summaries", color: "text-red-500" },
-                                { text: "Persistent Goal & Progress Tracking", color: "text-amber-500" }
+                                { text: "AI-Powered YouTube Course Learning", icon: <Youtube className="w-4 h-4 text-red-500" /> },
+                                { text: "AI Quiz & Roadmaps", icon: <Zap className="w-4 h-4 text-amber-500" /> },
+                                { text: "Smart Notes & AI Intuition", icon: <Lightbulb className="w-4 h-4 text-yellow-500" /> },
+                                { text: "Progress Tracking & Study Planner", icon: <TrendingUp className="w-4 h-4 text-blue-500" /> },
+                                { text: "Social Learning & Real-Time Collaboration", icon: <Users className="w-4 h-4 text-indigo-500" /> },
+                                { text: "Interactive Speaking Rooms", icon: <MessageSquare className="w-4 h-4 text-emerald-500" /> },
+                                { text: "Certificates & Achievements", icon: <Award className="w-4 h-4 text-orange-500" /> }
                             ].map((feature, idx) => (
-                                <div key={idx} className="flex items-start gap-3">
-                                    <CheckCircle size={16} className={`${feature.color} shrink-0 mt-0.5`} />
+                                <div key={idx} className="flex items-center gap-3.5">
+                                    <div className="shrink-0 w-5 h-5 flex items-center justify-center">{feature.icon}</div>
                                     <span className="text-xs text-gray-700 font-bold leading-tight">{feature.text}</span>
                                 </div>
                             ))}
@@ -145,21 +162,21 @@ const LoginPage = () => {
                     </div>
 
                     {/* Secure Badge */}
-                    <div className="mt-8 mb-6 flex items-center gap-2 text-[10px] text-gray-500 font-black uppercase tracking-wider bg-orange-100/40 px-3.5 py-2 rounded-full border border-orange-200/50">
+                    <div className="mt-6 mb-5 flex items-center gap-2 text-[10px] text-gray-500 font-black uppercase tracking-wider bg-orange-100/40 px-3.5 py-2 rounded-full border border-orange-200/50">
                         <Shield size={12} className="text-gray-500" />
                         <span>Secure Sign In</span>
                     </div>
 
                     {/* Login Button */}
-                    <div className="w-full">
+                    <div className="w-full flex justify-center">
                         <motion.button 
-                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileHover={{ scale: 1.02, y: -0.5 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={handleManualGoogleLogin}
-                            className="w-full flex items-center justify-center gap-3.5 px-6 py-4 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.18)] transition-all duration-300 transform border border-orange-100 font-extrabold text-gray-700 text-base cursor-pointer"
+                            className="flex items-center gap-2.5 px-4 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform border border-orange-100 font-bold text-gray-700 text-sm h-[40px] w-[230px] justify-center cursor-pointer"
                         >
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-                            <span>Continue with Google</span>
+                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
+                            <span className="whitespace-nowrap">Continue with Google</span>
                         </motion.button>
                     </div>
                 </motion.div>

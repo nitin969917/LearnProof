@@ -659,35 +659,33 @@ const createLanguageRoom = async (req, res) => {
       },
     });
 
-    // Send push notification if it is friends only
-    if (room.isFriendsOnly) {
-      try {
-        const friendships = await datingPrisma.friendship.findMany({
-          where: {
-            status: 'accepted',
-            OR: [
-              { senderId: creatorId },
-              { receiverId: creatorId }
-            ]
-          }
-        });
-        const friendIds = friendships.map(f => f.senderId === creatorId ? f.receiverId : f.senderId);
-        
-        if (friendIds.length > 0) {
-          const creatorName = room.creator?.name || 'A friend';
-          const formattedLanguage = room.language || 'English';
-          const topicText = room.topic || 'General Discussion';
-          
-          sendPushNotification(
-            friendIds,
-            `${creatorName} started a live room`,
-            `Join the live room "${topicText}" in ${formattedLanguage} to discuss together!`,
-            { type: 'LIVE_ROOM_CREATED', roomName: room.roomName }
-          );
+    // Send push notification to creator's friends
+    try {
+      const friendships = await datingPrisma.friendship.findMany({
+        where: {
+          status: 'accepted',
+          OR: [
+            { senderId: creatorId },
+            { receiverId: creatorId }
+          ]
         }
-      } catch (pushErr) {
-        console.error('Error sending friends-only room push notification:', pushErr.message);
+      });
+      const friendIds = friendships.map(f => f.senderId === creatorId ? f.receiverId : f.senderId);
+      
+      if (friendIds.length > 0) {
+        const creatorName = room.creator?.name || 'A friend';
+        const formattedLanguage = room.language || 'English';
+        const topicText = room.topic || 'General Discussion';
+        
+        sendPushNotification(
+          friendIds,
+          `${creatorName} started a live room`,
+          `Join the live room "${topicText}" in ${formattedLanguage} to discuss together!`,
+          { type: 'LIVE_ROOM_CREATED', roomName: room.roomName }
+        );
       }
+    } catch (pushErr) {
+      console.error('Error sending room push notification to friends:', pushErr.message);
     }
 
     res.status(201).json(room);

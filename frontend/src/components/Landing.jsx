@@ -150,6 +150,15 @@ const LandingPage = () => {
     const [scrollY, setScrollY] = useState(0);
     const [userCount, setUserCount] = useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isLoggingIn, setIsLoggingIn] = useState(() => {
+        const hash = window.location.hash;
+        const hasHashToken = hash.includes("id_token") || hash.includes("credential");
+        const wasLoggingIn = sessionStorage.getItem("is_logging_in") === "true";
+        if (hasHashToken) {
+            sessionStorage.setItem("is_logging_in", "true");
+        }
+        return hasHashToken || wasLoggingIn;
+    });
 
     const handleMobileLinkClick = (id) => {
         setIsMobileMenuOpen(false);
@@ -162,16 +171,20 @@ const LandingPage = () => {
     };
 
     const handleGoogleSuccess = async (credentialResponse) => {
+        setIsLoggingIn(true);
+        sessionStorage.setItem("is_logging_in", "true");
         try {
             // Handle both GSI component response and useGoogleLogin response
             const idToken = credentialResponse.credential || credentialResponse.id_token;
             
             if (!idToken) {
                 console.error("No ID token received", credentialResponse);
+                setIsLoggingIn(false);
+                sessionStorage.removeItem("is_logging_in");
                 return;
             }
 
-            login({ credential: idToken });
+            await login({ credential: idToken });
             
             const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/login/`, {
                 method: "POST",
@@ -189,10 +202,13 @@ const LandingPage = () => {
             const data = await res.json();
             console.log("User synced with backend:", data);
 
+            sessionStorage.removeItem("is_logging_in");
             navigate("/dashboard");
         } catch (err) {
             console.error("Google login error:", err);
             toast.error(`Login failed: ${err.message}`);
+            setIsLoggingIn(false);
+            sessionStorage.removeItem("is_logging_in");
         }
     };
 
@@ -252,6 +268,8 @@ const LandingPage = () => {
             const params = new URLSearchParams(hash.substring(1));
             const idToken = params.get('id_token') || params.get('credential');
             if (idToken) {
+                setIsLoggingIn(true);
+                sessionStorage.setItem("is_logging_in", "true");
                 handleGoogleSuccess({ credential: idToken });
                 // Clean the hash from URL
                 window.history.replaceState(null, '', window.location.pathname);
@@ -275,12 +293,14 @@ const LandingPage = () => {
         }
     }, [user, loading, navigate, location.pathname]);
 
-    if (loading) {
+    if (loading || isLoggingIn) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white">
                 <div className="flex flex-col items-center gap-3">
                     <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm font-medium text-slate-400">Loading LearnProof AI...</p>
+                    <p className="text-sm font-medium text-slate-400">
+                        {isLoggingIn ? "Redirecting to Dashboard..." : "Loading LearnProof AI..."}
+                    </p>
                 </div>
             </div>
         );
