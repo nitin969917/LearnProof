@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, Download, Laptop, Monitor, AlertCircle, Smartphone, Linkedin } from 'lucide-react';
+import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, Download, Laptop, Monitor, AlertCircle, Smartphone, Linkedin, Menu, X } from 'lucide-react';
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -144,9 +144,57 @@ const FAQSection = () => {
 const LandingPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { login, user, loading } = useAuth();
+    
     const [showContent, setShowContent] = useState(false);
     const [scrollY, setScrollY] = useState(0);
     const [userCount, setUserCount] = useState(null);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const handleMobileLinkClick = (id) => {
+        setIsMobileMenuOpen(false);
+        setTimeout(() => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 150);
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        try {
+            // Handle both GSI component response and useGoogleLogin response
+            const idToken = credentialResponse.credential || credentialResponse.id_token;
+            
+            if (!idToken) {
+                console.error("No ID token received", credentialResponse);
+                return;
+            }
+
+            login({ credential: idToken });
+            
+            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/login/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ idToken }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.details || errorData.error || "Backend login failed");
+            }
+
+            const data = await res.json();
+            console.log("User synced with backend:", data);
+
+            navigate("/dashboard");
+        } catch (err) {
+            console.error("Google login error:", err);
+            toast.error(`Login failed: ${err.message}`);
+        }
+    };
 
     useEffect(() => {
         const timer = setTimeout(() => setShowContent(true), 50);
@@ -219,7 +267,13 @@ const LandingPage = () => {
         };
     }, []);
 
-    const { login, user, loading } = useAuth();
+    useEffect(() => {
+        if (!loading && user) {
+            if (location.pathname === '/') {
+                navigate("/dashboard");
+            }
+        }
+    }, [user, loading, navigate, location.pathname]);
 
     if (loading) {
         return (
@@ -243,62 +297,20 @@ const LandingPage = () => {
         );
     }
 
-    const handleGoogleSuccess = async (credentialResponse) => {
-        try {
-            // Handle both GSI component response and useGoogleLogin response
-            const idToken = credentialResponse.credential || credentialResponse.id_token;
-            
-            if (!idToken) {
-                console.error("No ID token received", credentialResponse);
-                return;
-            }
-
-            login({ credential: idToken });
-            
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/login/`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ idToken }),
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.details || errorData.error || "Backend login failed");
-            }
-
-            const data = await res.json();
-            console.log("User synced with backend:", data);
-
-            navigate("/dashboard");
-        } catch (err) {
-            console.error("Google login error:", err);
-            toast.error(`Login failed: ${err.message}`);
-        }
-    };
-
-    useEffect(() => {
-        if (!loading && user) {
-            if (location.pathname === '/') {
-                navigate("/dashboard");
-            }
-        }
-    }, [user, loading, navigate, location.pathname]);
-
     const handleManualGoogleLogin = () => {
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         const redirectUri = window.location.origin;
         const nonce = Math.random().toString(36).substring(2);
         
-        // Construct the Google OAuth URL manually to guarantee same-tab redirect
+        // Construct the Google OAuth URL manually to guarantee same-tab redirect and account selection
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + 
             `client_id=${clientId}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +
             `&response_type=id_token` +
             `&scope=${encodeURIComponent('openid email profile')}` +
             `&nonce=${nonce}` +
-            `&ux_mode=redirect`;
+            `&ux_mode=redirect` +
+            `&prompt=select_account`;
             
         window.location.href = authUrl;
     };
@@ -477,11 +489,7 @@ const LandingPage = () => {
     return (
         <div className="min-h-screen bg-orange-50 relative overflow-hidden selection:bg-orange-200 pt-16 md:pt-18">
             {/* Header / Sticky Glassmorphism Navbar */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-                scrollY > 20 
-                    ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-orange-100/50 py-1' 
-                    : 'bg-transparent py-2.5'
-            }`}>
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-orange-100/50 py-1">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
                     <div className="flex items-center cursor-pointer py-0 my-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                         <img src="/LP_logo.png" alt="LearnProof" className="h-14 sm:h-15 w-auto object-contain my-0 py-0 block" />
@@ -495,21 +503,108 @@ const LandingPage = () => {
                         <button onClick={() => document.getElementById('download')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">Downloads</button>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4">
                         <button 
                             onClick={handleManualGoogleLogin}
-                            className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors hidden sm:block"
+                            className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors hidden md:block"
                         >
                             Login
                         </button>
                         <button 
                             onClick={handleManualGoogleLogin}
-                            className="px-5 py-2.5 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white rounded-xl text-sm font-bold shadow-md hover:shadow-lg transition-all transform active:scale-95 animate-fade-in"
+                            className="group hidden md:inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white rounded-xl text-sm font-bold shadow-[0_4px_18px_rgba(249,115,22,0.35)] hover:shadow-[0_6px_25px_rgba(249,115,22,0.5)] transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 animate-fade-in"
                         >
-                            Get Started
+                            <span>Get Started</span>
+                            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                        </button>
+
+                        {/* Mobile hamburger menu toggle */}
+                        <button 
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="md:hidden p-2 rounded-xl text-gray-600 hover:text-orange-600 hover:bg-orange-50/50 transition-colors focus:outline-none"
+                            aria-label="Toggle navigation menu"
+                        >
+                            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                         </button>
                     </div>
                 </div>
+
+                {/* Mobile Menu Drawer inside fixed nav */}
+                <AnimatePresence>
+                    {isMobileMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                            className="w-full bg-white/95 backdrop-blur-md border-t border-orange-100 shadow-xl md:hidden overflow-hidden"
+                        >
+                            <div className="px-6 py-6 flex flex-col gap-5 max-h-[85vh] overflow-y-auto">
+                                <div className="flex flex-col gap-3 text-sm font-bold text-gray-700">
+                                    <button 
+                                        onClick={() => handleMobileLinkClick('about')}
+                                        className="w-full text-left py-2.5 px-3.5 rounded-xl hover:bg-orange-50 hover:text-orange-600 transition-colors flex items-center justify-between"
+                                    >
+                                        <span>About</span>
+                                        <span className="text-orange-400">→</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => handleMobileLinkClick('features')}
+                                        className="w-full text-left py-2.5 px-3.5 rounded-xl hover:bg-orange-50 hover:text-orange-600 transition-colors flex items-center justify-between"
+                                    >
+                                        <span>Features</span>
+                                        <span className="text-orange-400">→</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => handleMobileLinkClick('how-it-works')}
+                                        className="w-full text-left py-2.5 px-3.5 rounded-xl hover:bg-orange-50 hover:text-orange-600 transition-colors flex items-center justify-between"
+                                    >
+                                        <span>How It Works</span>
+                                        <span className="text-orange-400">→</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => handleMobileLinkClick('faq')}
+                                        className="w-full text-left py-2.5 px-3.5 rounded-xl hover:bg-orange-50 hover:text-orange-600 transition-colors flex items-center justify-between"
+                                    >
+                                        <span>FAQs</span>
+                                        <span className="text-orange-400">→</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => handleMobileLinkClick('download')}
+                                        className="w-full text-left py-2.5 px-3.5 rounded-xl hover:bg-orange-50 hover:text-orange-600 transition-colors flex items-center justify-between"
+                                    >
+                                        <span>Downloads</span>
+                                        <span className="text-orange-400">→</span>
+                                    </button>
+                                </div>
+
+                                <div className="h-px bg-orange-100/70" />
+
+                                <div className="flex flex-row gap-3">
+                                    <button 
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false);
+                                            handleManualGoogleLogin();
+                                        }}
+                                        className="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold rounded-xl text-center border border-gray-200 transition-colors text-sm active:scale-95"
+                                    >
+                                        Login
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false);
+                                            handleManualGoogleLogin();
+                                        }}
+                                        className="flex-1 py-3 bg-gradient-to-r from-orange-600 to-red-500 text-white font-bold rounded-xl text-center shadow-md hover:shadow-lg transition-all text-sm active:scale-95 flex items-center justify-center gap-2"
+                                    >
+                                        <span>Get Started</span>
+                                        <ArrowRight size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </nav>
 
             {/* Background Texture & Blobs */}
@@ -536,70 +631,74 @@ const LandingPage = () => {
                         <span>The Ultimate AI Learning Platform</span>
                     </motion.div>
 
-                    <h1 className="text-5xl sm:text-6xl lg:text-[5.5rem] font-extrabold text-gray-900 tracking-tight leading-[1.1] mb-6">
-                        <span className="bg-gradient-to-br from-orange-600 via-red-500 to-amber-500 bg-clip-text text-transparent drop-shadow-sm">LearnProof AI</span>
+                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-[1.15] mb-6">
+                        <span className="bg-gradient-to-br from-orange-600 via-red-500 to-amber-500 bg-clip-text text-transparent drop-shadow-sm">LearnProof AI</span> Makes Self-Learning More Structured, Interactive, and Effective.
                     </h1>
 
-                    <p className="text-xl sm:text-2xl text-gray-600 font-medium mb-10 max-w-xl leading-relaxed">
-                        Transform <span className="text-gray-900 font-bold border-b-2 border-orange-300">YouTube videos</span> into verifiable achievements with AI-powered course tracking, personalized notes, and quizzes.
+                    <p className="text-xl sm:text-2xl text-gray-600 font-medium mb-8 max-w-2xl leading-relaxed">
+                        Turn scattered content into structured learning outcomes with AI notes, quizzes, and analytics.
                     </p>
 
-                    <div className="flex flex-wrap gap-4 mb-12">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={showContent ? { opacity: 1, y: 0 } : {}}
+                        transition={{ delay: 0.4, duration: 0.8 }}
+                        className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 flex-wrap mb-10"
+                    >
+                        <button 
+                            onClick={handleManualGoogleLogin}
+                            className="flex items-center gap-2.5 px-4 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-gray-700 text-sm h-[40px] w-[230px] justify-center"
+                        >
+                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
+                            <span className="whitespace-nowrap">Continue with Google</span>
+                        </button>
+                        <a
+                            href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="transition-all duration-300 transform hover:-translate-y-1 hover:opacity-90 drop-shadow-lg hover:drop-shadow-xl block w-auto"
+                            aria-label="Get it on Google Play"
+                        >
+                            <img
+                                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                                alt="Get it on Google Play"
+                                className="h-[58px] w-auto mx-auto"
+                            />
+                        </a>
+                        <div className="flex items-center gap-2 text-sm text-gray-500 font-medium bg-white/50 px-4 py-2 rounded-full border border-gray-200/50 backdrop-blur-sm mx-auto sm:mx-0">
+                            <CheckCircle size={16} className="text-green-500" />
+                            <span>Free forever to start</span>
+                        </div>
+                        {userCount !== null && (
+                            <div className="flex items-center gap-2 text-sm text-gray-500 font-medium bg-white/50 px-4 py-2 rounded-full border border-gray-200/50 backdrop-blur-sm mx-auto sm:mx-0">
+                                <Users size={16} className="text-orange-500" />
+                                <span>Join <span className="font-bold text-gray-900">{userCount.toLocaleString()}</span> active learners</span>
+                            </div>
+                        )}
+                    </motion.div>
+
+                    <div className="flex flex-wrap gap-3 mb-12">
                         {[
-                            { text: "Discover Curated Videos", icon: <Youtube size={18} className="text-red-500" /> },
-                            { text: "AI-Generated Quizzes", icon: <Zap size={18} className="text-amber-500" /> },
-                            { text: "Earn Certificates", icon: <Award size={18} className="text-orange-500" /> },
+                            { text: "AI-Powered YouTube Course Learning", icon: <Youtube size={18} className="text-red-500" /> },
+                            { text: "AI Quiz & Roadmaps", icon: <Zap size={18} className="text-amber-500" /> },
+                            { text: "Smart Notes & AI Intuition", icon: <Lightbulb size={18} className="text-yellow-500" /> },
+                            { text: "Progress Tracking & Study Planner", icon: <TrendingUp size={18} className="text-blue-500" /> },
+                            { text: "Social Learning & Real-Time Collaboration", icon: <Users size={18} className="text-indigo-500" /> },
+                            { text: "Interactive Speaking Rooms", icon: <MessageSquare size={18} className="text-emerald-500" /> },
+                            { text: "Certificates & Achievements", icon: <Award size={18} className="text-orange-500" /> },
                         ].map((item, i) => (
                             <motion.div
                                 key={i}
-                                initial={{ opacity: 0, x: -20 }}
+                                initial={{ opacity: 0, x: -15 }}
                                 animate={showContent ? { opacity: 1, x: 0 } : {}}
-                                transition={{ delay: 0.4 + (i * 0.1), duration: 0.6 }}
-                                className="flex items-center gap-2.5 bg-white/70 backdrop-blur-md border border-gray-200/60 rounded-full px-5 py-2.5 shadow-sm text-gray-700 font-semibold"
+                                transition={{ delay: 0.6 + (i * 0.05), duration: 0.5 }}
+                                className="flex items-center gap-2 bg-white/70 backdrop-blur-md border border-gray-200/60 rounded-full px-4 py-2 shadow-sm text-gray-700 font-semibold text-sm hover:border-orange-200 transition-colors"
                             >
                                 <div role="img" aria-label={item.text}>{item.icon}</div>
                                 <span>{item.text}</span>
                             </motion.div>
                         ))}
                     </div>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={showContent ? { opacity: 1, y: 0 } : {}}
-                        transition={{ delay: 0.8, duration: 0.8 }}
-                        className="flex flex-col sm:flex-row items-center gap-6 flex-wrap"
-                    >
-                        <button 
-                            onClick={handleManualGoogleLogin}
-                            className="flex items-center gap-3 px-8 py-3.5 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.2)] transition-all duration-300 transform hover:-translate-y-1 border border-orange-100 font-bold text-gray-700"
-                        >
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
-                            <span>Continue with Google</span>
-                        </button>
-                        <a
-                            href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="transition-all duration-300 transform hover:-translate-y-1 hover:opacity-90 drop-shadow-lg hover:drop-shadow-xl"
-                            aria-label="Get it on Google Play"
-                        >
-                            <img
-                                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-                                alt="Get it on Google Play"
-                                className="h-[58px] w-auto"
-                            />
-                        </a>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 font-medium bg-white/50 px-4 py-2 rounded-full border border-gray-200/50 backdrop-blur-sm">
-                            <CheckCircle size={16} className="text-green-500" />
-                            <span>Free forever to start</span>
-                        </div>
-                        {userCount !== null && (
-                            <div className="flex items-center gap-2 text-sm text-gray-500 font-medium bg-white/50 px-4 py-2 rounded-full border border-gray-200/50 backdrop-blur-sm">
-                                <Users size={16} className="text-orange-500" />
-                                <span>Join <span className="font-bold text-gray-900">{userCount.toLocaleString()}</span> active learners</span>
-                            </div>
-                        )}
-                    </motion.div>
                 </motion.div >
 
                 {/* Enhanced Right Side Design */}
@@ -754,16 +853,30 @@ const LandingPage = () => {
                             </div>
                         </div>
 
-                        {/* Responsive video wrapper — fixed 16:9 on all screens */}
-                        <div className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-gray-900 shadow-inner"
-                             style={{ paddingTop: '56.25%' }}>
-                            <iframe
-                                src="https://www.youtube.com/embed/HndfbcftAdQ?si=bugw11VaM70ux1bf&vq=hd2160&hd=1&rel=0"
-                                className="absolute inset-0 w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                allowFullScreen
-                                title="Introduction to LearnProof AI - How to Use"
-                            ></iframe>
+                        {/* Responsive video wrapper — 9:16 vertical on mobile, 16:9 horizontal on desktop */}
+                        <div className="block md:hidden max-w-[340px] mx-auto bg-gray-950 rounded-2xl overflow-hidden shadow-inner border border-orange-100">
+                            <div className="relative w-full" style={{ paddingTop: '177.77%' }}>
+                                <iframe
+                                    src="https://www.youtube.com/embed/4qnh0P1jCRY?rel=0"
+                                    className="absolute inset-0 w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                    title="Introduction to LearnProof AI - How to Use (Mobile)"
+                                ></iframe>
+                            </div>
+                        </div>
+
+                        <div className="hidden md:block">
+                            <div className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-gray-900 shadow-inner"
+                                 style={{ paddingTop: '56.25%' }}>
+                                <iframe
+                                    src="https://www.youtube.com/embed/HndfbcftAdQ?si=bugw11VaM70ux1bf&vq=hd2160&hd=1&rel=0"
+                                    className="absolute inset-0 w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                    allowFullScreen
+                                    title="Introduction to LearnProof AI - How to Use"
+                                ></iframe>
+                            </div>
                         </div>
                     </motion.div>
                 </div>
@@ -1096,9 +1209,9 @@ const LandingPage = () => {
                         <div className="flex flex-col items-center gap-4 mb-6">
                             <button 
                                 onClick={handleManualGoogleLogin}
-                                className="inline-flex items-center gap-3 px-8 py-3.5 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-gray-700"
+                                className="inline-flex items-center gap-2.5 px-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-gray-700 text-sm h-[40px] justify-center"
                             >
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
                                 <span>Continue with Google</span>
                             </button>
                             <a
