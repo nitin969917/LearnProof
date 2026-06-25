@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { Mail, Send, Users, User, Trash2, Search, Filter, CheckCircle, Clock, Edit2, Bell, PlayCircle, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { useModal } from '../../../context/ModalContext';
 
 // 12-hour format helper
 const formatTime12h = (hour, minute) => {
@@ -15,6 +16,7 @@ const formatTime12h = (hour, minute) => {
 
 const AdminInbox = () => {
     const { token, user } = useAuth();
+    const { confirm } = useModal();
     const [users, setUsers] = useState([]);
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -36,8 +38,10 @@ const AdminInbox = () => {
     const [templateEnabled, setTemplateEnabled] = useState(true);
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (token) {
+            fetchData();
+        }
+    }, [token]);
 
     const fetchData = async () => {
         try {
@@ -191,7 +195,13 @@ const AdminInbox = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this message?")) return;
+        const confirmed = await confirm({
+            title: "Delete Message?",
+            message: "Are you sure you want to permanently delete this system message?",
+            confirmText: "Delete",
+            type: "danger"
+        });
+        if (!confirmed) return;
         try {
             await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/messages/delete/`, {
                 idToken: token,

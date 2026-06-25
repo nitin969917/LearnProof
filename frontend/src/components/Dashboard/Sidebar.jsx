@@ -46,7 +46,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
         { name: 'Certificates', icon: <Award size={20} />, path: '/dashboard/certificates' },
         { name: 'Ask My Notes', icon: <MessageSquare size={20} />, path: '/dashboard/ask-my-notes' },
         { name: 'Quiz', icon: <Quote size={20} />, path: '/dashboard/quiz' },
-        { name: 'Help & Support', icon: <HelpCircle size={20} />, path: '/support' },
+        { name: 'Help & Support', icon: <HelpCircle size={20} />, path: '/dashboard/support' },
     ];
 
     const handleLogout = async () => {

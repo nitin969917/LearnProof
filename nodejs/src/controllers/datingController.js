@@ -1,5 +1,6 @@
 const datingPrisma = require('../utils/datingPrisma');
 const { sendPushNotification } = require('../utils/pushNotifier');
+const livekitService = require('../services/livekit.service');
 
 // ==========================================
 // POST CONTROLLERS
@@ -58,26 +59,34 @@ const getFeed = async (req, res) => {
 
     const limit = parseInt(req.query.limit) || 20;
 
+    const targetAuthorId = req.query.authorId ? parseInt(req.query.authorId, 10) : null;
+
+    const whereClause = {
+      OR: [
+        // Author's own posts
+        { authorId: userId },
+        // Public posts
+        { visibility: 'public' },
+        // Friends posts (if author is a friend)
+        {
+          visibility: 'friends',
+          authorId: { in: friendIds }
+        },
+        // Close friends posts (if author is a close friend)
+        {
+          visibility: 'close_friends',
+          authorId: { in: closeFriendIds }
+        }
+      ]
+    };
+
+    if (targetAuthorId) {
+      whereClause.authorId = targetAuthorId;
+    }
+
     // 2. Query posts based on visibility permissions
     const posts = await datingPrisma.post.findMany({
-      where: {
-        OR: [
-          // Author's own posts
-          { authorId: userId },
-          // Public posts
-          { visibility: 'public' },
-          // Friends posts (if author is a friend)
-          {
-            visibility: 'friends',
-            authorId: { in: friendIds }
-          },
-          // Close friends posts (if author is a close friend)
-          {
-            visibility: 'close_friends',
-            authorId: { in: closeFriendIds }
-          }
-        ]
-      },
+      where: whereClause,
       take: limit,
       include: {
         author: {
@@ -738,7 +747,16 @@ const getLanguageRooms = async (req, res) => {
   const userId = req.user.id;
 
   try {
-    // 1. Fetch all accepted friendships for the current user to resolve friend IDs
+    // 1. Fetch active rooms from LiveKit to synchronize DB
+    let activeLkRoomNames = [];
+    try {
+      const lkRooms = await livekitService.listRooms();
+      activeLkRoomNames = Array.isArray(lkRooms) ? lkRooms.map(r => r.name) : [];
+    } catch (lkErr) {
+      console.error('Failed to list LiveKit rooms:', lkErr);
+    }
+
+    // 2. Fetch all accepted friendships for the current user to resolve friend IDs
     const friendships = await datingPrisma.friendship.findMany({
       where: {
         status: 'accepted',
@@ -753,7 +771,7 @@ const getLanguageRooms = async (req, res) => {
       f.senderId === userId ? f.receiverId : f.senderId
     );
 
-    // 2. Fetch rooms that are public, owned by the user, or owned by their friends
+    // 3. Fetch rooms that are public, owned by the user, or owned by their friends
     const rooms = await datingPrisma.languageRoom.findMany({
       where: {
         OR: [
@@ -775,7 +793,25 @@ const getLanguageRooms = async (req, res) => {
         createdAt: 'desc',
       },
     });
-    res.json(rooms);
+
+    // 4. Filter and clean up: Delete rooms from DB if they are no longer active in LiveKit
+    // (Only delete if they were created more than 30 seconds ago to avoid race conditions with creation)
+    const now = new Date();
+    const validRooms = [];
+
+    for (const room of rooms) {
+      const isNew = (now - new Date(room.createdAt)) < 30000; // 30 seconds
+      if (isNew || activeLkRoomNames.includes(room.roomName)) {
+        validRooms.push(room);
+      } else {
+        // Delete dead room from DB asynchronously
+        datingPrisma.languageRoom.delete({
+          where: { id: room.id }
+        }).catch(err => console.error(`Failed to auto-delete dead room ${room.roomName}:`, err));
+      }
+    }
+
+    res.json(validRooms);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch rooms' });

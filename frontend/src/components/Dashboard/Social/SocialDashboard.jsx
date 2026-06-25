@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe } from 'lucide-react';
-import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
 import FeedTab from './FeedTab.jsx';
@@ -15,17 +15,34 @@ import { motion } from 'framer-motion';
 export default function SocialDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const outletContext = useOutletContext();
   const toggleSidebar = outletContext?.toggleSidebar || (() => {});
   const [socialUser, setSocialUser] = useState(null);
+
+  // Initialize state variables from URL query parameters (or fall back to localStorage/defaults)
   const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam) return tabParam;
     return localStorage.getItem('social_active_tab') || 'feed';
   });
+
   const [selectedProfileId, setSelectedProfileId] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const profileIdParam = params.get('profileId');
+    if (profileIdParam) return parseInt(profileIdParam, 10);
     const saved = localStorage.getItem('social_selected_profile_id');
     return saved ? parseInt(saved, 10) : null;
   });
+
   const [selectedChatContact, setSelectedChatContact] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const chatIdParam = params.get('chatId');
+    const chatTypeParam = params.get('chatType');
+    if (chatIdParam && chatTypeParam) {
+      return { id: parseInt(chatIdParam, 10), type: chatTypeParam };
+    }
     const saved = localStorage.getItem('social_selected_chat_contact');
     try {
       return saved ? JSON.parse(saved) : null;
@@ -67,36 +84,55 @@ export default function SocialDashboard() {
     }
   }, []);
 
-  // Handle incoming deep links (e.g. from push notifications click)
+  // Update URL parameters dynamically to maintain reload persistency
   useEffect(() => {
-    if (!socialUser) return;
+    const url = new URL(window.location);
+    url.searchParams.set('tab', activeTab);
     
-    const params = new URLSearchParams(window.location.search);
+    if (activeTab === 'profile' && selectedProfileId) {
+      url.searchParams.set('profileId', selectedProfileId);
+    } else {
+      url.searchParams.delete('profileId');
+    }
+    
+    if (activeTab === 'chat' && selectedChatContact) {
+      url.searchParams.set('chatId', selectedChatContact.id);
+      url.searchParams.set('chatType', selectedChatContact.type);
+    } else {
+      url.searchParams.delete('chatId');
+      url.searchParams.delete('chatType');
+    }
+    
+    // Check if we also have 'post' search parameter to preserve it if it exists
+    const postParam = new URLSearchParams(window.location.search).get('post');
+    if (postParam) {
+      url.searchParams.set('post', postParam);
+    }
+    
+    window.history.replaceState({}, '', url);
+  }, [activeTab, selectedProfileId, selectedChatContact]);
+
+  // Handle URL parameters sync when location.search changes (e.g. deep links or back navigation)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    const chatTypeParam = params.get('chatType');
+    const profileIdParam = params.get('profileId');
     const chatIdParam = params.get('chatId');
+    const chatTypeParam = params.get('chatType');
 
     if (tabParam) {
-      if (tabParam === 'chat') {
-        setActiveTab('chat');
-        if (chatTypeParam && chatIdParam) {
-          setSelectedChatContact({
-            id: parseInt(chatIdParam, 10),
-            type: chatTypeParam
-          });
-        }
-      } else {
-        setActiveTab(tabParam);
-      }
-      
-      // Clean up search parameters from URL without reloading
-      const url = new URL(window.location);
-      url.searchParams.delete('tab');
-      url.searchParams.delete('chatType');
-      url.searchParams.delete('chatId');
-      window.history.replaceState({}, '', url);
+      setActiveTab(tabParam);
     }
-  }, [socialUser]);
+    if (profileIdParam) {
+      setSelectedProfileId(parseInt(profileIdParam, 10));
+    }
+    if (chatIdParam && chatTypeParam) {
+      setSelectedChatContact({
+        id: parseInt(chatIdParam, 10),
+        type: chatTypeParam
+      });
+    }
+  }, [location.search]);
 
   useEffect(() => {
     localStorage.setItem('social_active_tab', activeTab);

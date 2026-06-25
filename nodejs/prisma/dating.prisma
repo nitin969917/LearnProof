@@ -78,6 +78,10 @@ model Post {
   
   likes       User[]    @relation("PostLikes")
   comments    Comment[]
+
+  @@index([authorId])
+  @@index([visibility])
+  @@index([createdAt])
 }
 
 model Friendship {
@@ -94,6 +98,9 @@ model Friendship {
   receiver       User     @relation("ReceivedFriendRequests", fields: [receiverId], references: [id])
 
   @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
 }
 
 model Message {
@@ -108,6 +115,10 @@ model Message {
   
   receiverId Int
   receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
 }
 
 model Comment {
@@ -121,6 +132,9 @@ model Comment {
   
   authorId  Int
   author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([postId])
+  @@index([authorId])
 }
 
 model Crush {

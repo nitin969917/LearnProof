@@ -107,7 +107,7 @@ const DashboardLayout = () => {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const location = useLocation();
 
-    const isAskMyNotes = location.pathname === '/dashboard/ask-my-notes';
+    const isAskMyNotes = false;
     const isSocialHub = location.pathname.startsWith('/dashboard/social');
     const isLiveRoom = location.pathname.includes('/dashboard/live-rooms/') && location.pathname !== '/dashboard/live-rooms';
     const isLiveRoomList = location.pathname === '/dashboard/live-rooms';
@@ -273,7 +273,7 @@ const DashboardLayout = () => {
             }
 
             {/* Social Hub's bottom nav — shown on live-rooms pages when the user navigated from Social Hub */}
-            {showSocialBottomNav && (
+            {showSocialBottomNav && !isLiveRoom && (
                 <SocialBottomNavBar onMenuClick={toggleSidebar} />
             )}
 

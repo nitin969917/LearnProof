@@ -36,16 +36,41 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
       return;
     }
 
-    // 3. Dispatch FCM Push Notifications
+    // 3. Compute relative clickAction URL based on data type
+    let clickAction = '/dashboard';
+    if (data && data.type) {
+      if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+        clickAction = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
+      } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+        clickAction = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
+      } else if (data.type === 'LIVE_ROOM_CREATED' && data.roomName) {
+        clickAction = `/dashboard/live-rooms/${data.roomName}`;
+      }
+    }
+
+    // Serialize all values to string to comply with FCM data payload requirements
+    const serializedData = {};
+    if (data) {
+      for (const [key, value] of Object.entries(data)) {
+        if (value !== undefined && value !== null) {
+          serializedData[key] = String(value);
+        }
+      }
+    }
+    serializedData.clickAction = clickAction;
+
+    // 4. Dispatch FCM Push Notifications
     if (admin && admin.apps.length > 0) {
       const response = await admin.messaging().sendEachForMulticast({
         tokens,
         notification: { title, body },
-        data: data || {},
+        data: serializedData,
         webpush: {
           notification: {
             icon: 'https://learnproofai.com/LP_M_logo.png',
-            badge: 'https://learnproofai.com/LP_M_logo.png'
+            badge: 'https://learnproofai.com/LP_M_logo.png',
+            clickAction: clickAction,
+            data: serializedData
           }
         }
       });

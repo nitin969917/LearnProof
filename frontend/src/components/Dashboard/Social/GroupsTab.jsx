@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Users, Lock, Unlock, Plus, Copy, Check, MessageSquare, ArrowLeft, Send, LogOut, Search } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
+import { useModal } from '../../../context/ModalContext';
 
 export default function GroupsTab({ currentUserId }) {
+  const { confirm } = useModal();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeGroupId, setActiveGroupId] = useState(null);
@@ -138,7 +140,13 @@ export default function GroupsTab({ currentUserId }) {
   };
 
   const handleLeaveGroup = async (groupId) => {
-    if (!window.confirm('Are you sure you want to leave this group?')) return;
+    const confirmed = await confirm({
+      title: "Leave Group?",
+      message: "Are you sure you want to leave this discussion group?",
+      confirmText: "Leave",
+      type: "danger"
+    });
+    if (!confirmed) return;
     try {
       await socialApi.post('/groups/leave', { groupId });
       if (activeGroupId === groupId) {

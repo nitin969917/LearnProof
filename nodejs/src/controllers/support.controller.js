@@ -80,9 +80,11 @@ const getTicketById = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
-        const isAdmin = (process.env.ADMIN_EMAIL && req.user.email === process.env.ADMIN_EMAIL) || 
-                        (process.env.ADMIN_EMAIL && req.user.email.endsWith('@learnproofai.com')) ||
-                        !process.env.ADMIN_EMAIL; // Allow dev bypass if no admin email set
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const isAdmin = adminEmail && (
+            req.user.email.toLowerCase() === adminEmail.toLowerCase() ||
+            req.user.email.toLowerCase().endsWith('@learnproofai.com')
+        );
 
         const ticket = await prisma.supportTicket.findUnique({
             where: { id: parseInt(id) },
@@ -184,14 +186,13 @@ const respondToTicket = async (req, res) => {
         }
 
         // Logic fix: Only treat as Admin if they ARE an admin AND NOT the owner.
-        // If no ADMIN_EMAIL is set, we assume anyone who isn't the owner is acting as an admin.
-        const isAdminEmail = process.env.ADMIN_EMAIL && req.user.email === process.env.ADMIN_EMAIL;
-        const isOfficialAdmin = isAdminEmail || (process.env.ADMIN_EMAIL && req.user.email.endsWith('@learnproofai.com'));
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const isOfficialAdmin = adminEmail && (
+            req.user.email.toLowerCase() === adminEmail.toLowerCase() ||
+            req.user.email.toLowerCase().endsWith('@learnproofai.com')
+        );
         
-        let isAdmin = isOfficialAdmin;
-        if (!process.env.ADMIN_EMAIL) {
-            isAdmin = (userId !== ticket.userId); 
-        }
+        let isAdmin = !!isOfficialAdmin;
 
         if (!message) {
             return res.status(400).json({ error: 'Message is required' });
@@ -269,6 +270,32 @@ const updateTicket = async (req, res) => {
     }
 };
 
+/**
+ * ADMIN: Delete ticket (and all its responses via DB cascade)
+ */
+const deleteTicket = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const ticket = await prisma.supportTicket.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!ticket) {
+            return res.status(404).json({ error: 'Ticket not found' });
+        }
+
+        await prisma.supportTicket.delete({
+            where: { id: parseInt(id) }
+        });
+
+        res.json({ message: 'Support ticket deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting support ticket:', error);
+        res.status(500).json({ error: 'Failed to delete support ticket' });
+    }
+};
+
 module.exports = {
     createTicket,
     getUserTickets,
@@ -276,4 +303,5 @@ module.exports = {
     getAllTickets,
     respondToTicket,
     updateTicket,
+    deleteTicket,
 };

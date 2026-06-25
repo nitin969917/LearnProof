@@ -18,11 +18,29 @@ messaging.onBackgroundMessage((payload) => {
   
   const iconUrl = self.location.origin + '/LP_M_logo.png';
   const notificationTitle = payload.notification?.title || "LearnProof AI";
+  
+  const data = payload.data || {};
+  let clickAction = data.clickAction || data.click_action;
+  if (!clickAction && data.type) {
+    if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+      clickAction = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
+    } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+      clickAction = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
+    } else if (data.type === 'LIVE_ROOM_CREATED' && data.roomName) {
+      clickAction = `/dashboard/live-rooms/${data.roomName}`;
+    }
+  }
+
+  const enrichedData = {
+    ...data,
+    clickAction: clickAction || '/dashboard'
+  };
+
   const notificationOptions = {
     body: payload.notification?.body || "You have a new update",
     icon: iconUrl,
     badge: iconUrl,
-    data: payload.data
+    data: enrichedData
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
@@ -33,23 +51,28 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
   const data = event.notification.data || {};
-  let targetPath = '/dashboard';
+  let targetPath = data.clickAction || data.click_action || '/dashboard';
   
-  if (data.type === 'CHAT_MESSAGE' && data.senderId) {
-    targetPath = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
-  } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
-    targetPath = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
-  } else if (data.type === 'LIVE_ROOM_CREATED' && data.roomName) {
-    targetPath = `/dashboard/live-rooms/${data.roomName}`;
+  if (!data.clickAction && !data.click_action && data.type) {
+    if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+      targetPath = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
+    } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+      targetPath = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
+    } else if (data.type === 'LIVE_ROOM_CREATED' && data.roomName) {
+      targetPath = `/dashboard/live-rooms/${data.roomName}`;
+    }
   }
   
-  const targetUrl = self.location.origin + targetPath;
+  const targetUrl = targetPath.startsWith('http') ? targetPath : (self.location.origin + targetPath);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       // If a window is already open, navigate it to targetUrl and focus
       for (const client of clientList) {
         if ('focus' in client && 'navigate' in client) {
+          if (client.url === targetUrl) {
+            return client.focus();
+          }
           client.navigate(targetUrl);
           return client.focus();
         }

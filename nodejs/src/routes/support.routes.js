@@ -12,5 +12,6 @@ router.post('/tickets/:id/respond', authMiddleware, supportController.respondToT
 // Admin routes
 router.get('/admin/tickets', authMiddleware, isAdminMiddleware, supportController.getAllTickets);
 router.patch('/admin/tickets/:id', authMiddleware, isAdminMiddleware, supportController.updateTicket);
+router.delete('/admin/tickets/:id', authMiddleware, isAdminMiddleware, supportController.deleteTicket);
 
 module.exports = router;

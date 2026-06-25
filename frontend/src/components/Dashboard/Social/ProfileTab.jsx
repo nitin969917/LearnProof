@@ -20,11 +20,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
   const fetchUserPosts = async () => {
     try {
-      const response = await socialApi.get('/posts/feed');
-      const userPosts = response.data.filter(p => p.authorId.toString() === targetId.toString());
-      setPosts(userPosts);
+      const response = await socialApi.get(`/posts/feed?authorId=${targetId}`);
+      setPosts(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Failed to fetch user posts', err);
+      setPosts([]);
     }
   };
 

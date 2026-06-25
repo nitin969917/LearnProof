@@ -8,8 +8,10 @@ import { getSocialSocket } from '../../../utils/socialSocket.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useModal } from '../../../context/ModalContext';
 
 export default function ChatsTab({ currentUserId, selectedContact, onClearSelectedContact, onToggleHeader, onViewProfile }) {
+  const { confirm } = useModal();
   const [contacts, setContacts] = useState([]);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,7 +94,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   };
 
   const handleRemoveMember = async (memberId) => {
-    if (!window.confirm('Are you sure you want to remove this member?')) return;
+    const confirmed = await confirm({
+      title: "Remove Member?",
+      message: "Are you sure you want to remove this member from the group?",
+      confirmText: "Remove",
+      type: "danger"
+    });
+    if (!confirmed) return;
     try {
       await socialApi.delete(`/groups/${selectedChat.id}/members/${memberId}`);
       await fetchGroupDetails(selectedChat.id);
@@ -436,7 +444,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   // Delete message handler
   const handleDeleteMessage = async (msg) => {
     if (!msg.id) return;
-    if (!window.confirm('Are you sure you want to delete this message?')) return;
+    const confirmed = await confirm({
+      title: "Delete Message?",
+      message: "Are you sure you want to delete this message? This action cannot be undone.",
+      confirmText: "Delete",
+      type: "danger"
+    });
+    if (!confirmed) return;
     try {
       if (selectedChat.type === 'direct') {
         await socialApi.delete(`/messages/${msg.id}`);
@@ -556,7 +570,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   };
 
   const handleLeaveGroup = async (groupId) => {
-    if (!window.confirm('Are you sure you want to leave this group?')) return;
+    const confirmed = await confirm({
+      title: "Leave Group?",
+      message: "Are you sure you want to leave this discussion group?",
+      confirmText: "Leave",
+      type: "danger"
+    });
+    if (!confirmed) return;
     try {
       await socialApi.post('/groups/leave', { groupId });
       setSelectedChat(null);

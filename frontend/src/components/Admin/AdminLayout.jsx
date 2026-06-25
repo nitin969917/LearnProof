@@ -49,7 +49,7 @@ const AdminLayout = () => {
     };
 
     return (
-        <div className="flex h-screen bg-slate-50 text-slate-800">
+        <div className="flex h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 transition-colors duration-200">
             {/* Sidebar Overlay for Mobile */}
             {isSidebarOpen && (
                 <div
@@ -60,41 +60,41 @@ const AdminLayout = () => {
 
             {/* Sidebar */}
             <aside
-                className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-orange-100 dark:border-gray-700 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
                     }`}
             >
                 <AdminSidebar onClose={() => setIsSidebarOpen(false)} />
             </aside>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 overflow-hidden">
                 {/* Admin Topbar */}
-                <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200">
+                <header className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
                     <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => setIsSidebarOpen(true)}
-                                className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
+                                className="lg:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             >
                                 <Menu size={24} />
                             </button>
-                            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+                            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
                                 {getPageTitle()}
                             </h1>
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-600 rounded-full border border-orange-200 font-medium text-sm">
+                            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-full border border-orange-200 dark:border-orange-500/20 font-medium text-sm">
                                 <ShieldAlert size={16} />
                                 <span>Admin Access</span>
                             </div>
                             {user && (
-                                <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                                    <span className="hidden sm:block text-sm font-medium text-slate-700">{user.name}</span>
+                                <div className="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
+                                    <span className="hidden sm:block text-sm font-medium text-slate-700 dark:text-slate-300">{user.name}</span>
                                     {user.profile_pic ? (
-                                        <img src={user.profile_pic} alt="Profile" className="w-8 h-8 rounded-full border-2 border-slate-200" />
+                                        <img src={user.profile_pic} alt="Profile" className="w-8 h-8 rounded-full border-2 border-slate-200 dark:border-slate-700" />
                                     ) : (
-                                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold">
+                                        <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-400 font-bold">
                                             {user.name?.charAt(0)}
                                         </div>
                                     )}

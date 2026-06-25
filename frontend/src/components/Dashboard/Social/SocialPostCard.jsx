@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Star, Trash2, Edit3, X, Check } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
+import { useModal } from '../../../context/ModalContext';
 
 export default function SocialPostCard({ post, onLike, currentUserId, onViewProfile }) {
   const isAuthor = currentUserId === post.authorId;
+  const { confirm } = useModal();
 
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -20,11 +22,6 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
   const [liked, setLiked] = useState(() => post.likes?.some((l) => l.id === currentUserId));
   const [likesCount, setLikesCount] = useState(() => post._count?.likes || 0);
   const [commentsCount, setCommentsCount] = useState(() => post._count?.comments || 0);
-
-  // Custom Modal States
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null); // 'post' or 'comment'
-  const [targetCommentId, setTargetCommentId] = useState(null);
 
   // Sync state if props change (e.g. from parent refresh or initial fetch)
   useEffect(() => {
@@ -50,38 +47,42 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
     }
   };
 
-  const handleDeleteClick = () => {
-    setConfirmAction('post');
-    setShowConfirmModal(true);
+  const handleDeleteClick = async () => {
     setShowMenu(false);
-  };
+    const confirmed = await confirm({
+      title: "Delete Post?",
+      message: "Are you sure you want to delete this post? This action cannot be undone.",
+      confirmText: "Delete",
+      type: "danger"
+    });
 
-  const handleCommentDeleteClick = (commentId) => {
-    setConfirmAction('comment');
-    setTargetCommentId(commentId);
-    setShowConfirmModal(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    setShowConfirmModal(false);
-    if (confirmAction === 'post') {
+    if (confirmed) {
       try {
         await socialApi.delete(`/posts/${post.id}`);
         onLike(); // Refresh feed to remove deleted post
       } catch (err) {
         console.error('Failed to delete post', err);
       }
-    } else if (confirmAction === 'comment' && targetCommentId) {
+    }
+  };
+
+  const handleCommentDeleteClick = async (commentId) => {
+    const confirmed = await confirm({
+      title: "Delete Comment?",
+      message: "Are you sure you want to delete this comment? This action cannot be undone.",
+      confirmText: "Delete",
+      type: "danger"
+    });
+
+    if (confirmed) {
       try {
-        await socialApi.delete(`/posts/comments/${targetCommentId}`);
-        setComments(comments.filter(c => c.id !== targetCommentId));
+        await socialApi.delete(`/posts/comments/${commentId}`);
+        setComments(comments.filter(c => c.id !== commentId));
         setCommentsCount(prev => Math.max(0, prev - 1));
       } catch (err) {
         console.error('Failed to delete comment', err);
       }
     }
-    setConfirmAction(null);
-    setTargetCommentId(null);
   };
 
   const handleUpdate = async () => {
@@ -367,39 +368,6 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
               )}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Custom Confirmation Modal */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-750 w-full max-w-sm p-6 shadow-2xl relative text-center animate-in zoom-in-95 duration-200">
-            <div className="mx-auto w-12 h-12 bg-red-50 dark:bg-red-950/30 text-red-500 rounded-full flex items-center justify-center mb-4 border border-red-100/50 dark:border-red-900/30">
-              <Trash2 size={24} />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Delete {confirmAction === 'post' ? 'Post' : 'Comment'}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium leading-relaxed">
-              Are you sure you want to delete this {confirmAction === 'post' ? 'post' : 'comment'}? This action cannot be undone.
-            </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  setConfirmAction(null);
-                  setTargetCommentId(null);
-                }}
-                className="px-5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-700 dark:text-gray-200 font-bold transition flex-1 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition flex-1 cursor-pointer"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

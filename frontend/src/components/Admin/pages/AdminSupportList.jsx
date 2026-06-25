@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Search, Filter, MessageSquare, Clock, CheckCircle, ChevronRight, ArrowLeft, Send, ShieldCheck, User } from 'lucide-react';
+import { Search, Filter, MessageSquare, Clock, CheckCircle, ChevronRight, ArrowLeft, Send, ShieldCheck, User, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useModal } from '../../../context/ModalContext';
 
 const AdminSupportList = () => {
     const { token } = useAuth();
+    const { confirm } = useModal();
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -14,6 +16,29 @@ const AdminSupportList = () => {
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [responseMessage, setResponseMessage] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleDeleteTicket = async (id, subject) => {
+        const confirmed = await confirm({
+            title: "Delete Support Ticket",
+            message: `Are you sure you want to permanently delete support ticket "${subject || `#${id}`}"? This will delete all responses and cannot be undone.`,
+            confirmText: "Delete Ticket",
+            type: "danger"
+        });
+
+        if (!confirmed) return;
+
+        try {
+            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/support/admin/tickets/${id}?idToken=${token}`);
+            toast.success("Support ticket deleted successfully");
+            setTickets(prev => prev.filter(t => t.id !== id));
+            if (selectedTicket && selectedTicket.id === id) {
+                setSelectedTicket(null);
+            }
+        } catch (err) {
+            console.error("Failed to delete ticket", err);
+            toast.error(err.response?.data?.error || "Failed to delete support ticket");
+        }
+    };
 
     const fetchTickets = async () => {
         try {
@@ -129,11 +154,11 @@ const AdminSupportList = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full"
+                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col h-full"
                     >
                         {/* Header & Filters */}
-                        <div className="p-6 border-b border-slate-200 flex flex-col xl:flex-row items-center justify-between gap-4">
-                            <h2 className="text-xl font-bold text-slate-800">Support Tickets</h2>
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col xl:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-800/10">
+                            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Support Tickets</h2>
                             <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
                                 <div className="relative w-full sm:w-72">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -142,15 +167,15 @@ const AdminSupportList = () => {
                                         placeholder="Search tickets..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-sm"
+                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all text-sm shadow-inner"
                                     />
                                 </div>
-                                <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+                                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full sm:w-auto gap-1 border border-slate-200/55 dark:border-slate-700/50">
                                     {['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED'].map(status => (
                                         <button
                                             key={status}
                                             onClick={() => setStatusFilter(status)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${statusFilter === status ? 'bg-white text-orange-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${statusFilter === status ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'}`}
                                         >
                                             {status.replace('_', ' ')}
                                         </button>
@@ -163,7 +188,7 @@ const AdminSupportList = () => {
                         <div className="flex-1 overflow-y-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 font-semibold sticky top-0 z-10">
+                                    <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold sticky top-0 z-10">
                                         <th className="px-6 py-4">Ticket</th>
                                         <th className="px-6 py-4">User</th>
                                         <th className="px-6 py-4">Status</th>
@@ -171,44 +196,54 @@ const AdminSupportList = () => {
                                         <th className="px-6 py-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100">
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                                     {filteredTickets.length > 0 ? (
                                         filteredTickets.map((ticket) => (
-                                            <tr key={ticket.id} className="hover:bg-slate-50/80 transition-colors group">
+                                            <tr key={ticket.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors group">
                                                 <td className="px-6 py-4">
                                                     <div>
-                                                        <p className="font-bold text-slate-800 line-clamp-1">{ticket.subject}</p>
-                                                        <p className="text-xs text-slate-500 mt-1 line-clamp-1">{ticket.message}</p>
+                                                        <p className="font-bold text-slate-800 dark:text-white line-clamp-1">{ticket.subject}</p>
+                                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">{ticket.message}</p>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
                                                         {ticket.user.profile_pic ? (
-                                                            <img src={ticket.user.profile_pic} alt="" className="w-8 h-8 rounded-full" />
+                                                            <img src={ticket.user.profile_pic} alt="" className="w-8 h-8 rounded-full object-cover" />
                                                         ) : (
-                                                            <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold">{ticket.user.name.charAt(0)}</div>
+                                                            <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-700 dark:text-slate-300">{ticket.user.name.charAt(0)}</div>
                                                         )}
                                                         <div>
-                                                            <p className="text-sm font-semibold">{ticket.user.name}</p>
-                                                            <p className="text-[10px] text-slate-500">{ticket.user.email}</p>
+                                                            <p className="text-sm font-semibold text-slate-800 dark:text-white">{ticket.user.name}</p>
+                                                            <p className="text-[10px] text-slate-500 dark:text-slate-400">{ticket.user.email}</p>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border ${getStatusColor(ticket.status)}`}>
+                                                    <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border ${getStatusColor(ticket.status)} bg-opacity-10 dark:bg-opacity-20`}>
                                                         {ticket.status.replace('_', ' ')}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-slate-500">
+                                                <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
                                                     {formatDate(ticket.created_at)}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <button 
-                                                        onClick={() => setSelectedTicket(ticket)}
-                                                        className="p-2 text-slate-400 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
-                                                    >
-                                                        <ChevronRight size={20} />
-                                                    </button>
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <button 
+                                                            onClick={() => setSelectedTicket(ticket)}
+                                                            className="p-2 text-slate-400 dark:text-slate-550 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-500/10 rounded-lg transition-colors"
+                                                            title="View Ticket"
+                                                        >
+                                                            <ChevronRight size={20} />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDeleteTicket(ticket.id, ticket.subject)}
+                                                            className="p-2 text-slate-400 dark:text-slate-550 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                            title="Delete Ticket"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))
@@ -227,85 +262,106 @@ const AdminSupportList = () => {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.98 }}
-                        className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full"
+                        className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col h-full"
                     >
                         {/* Detail Header */}
-                        <div className="p-6 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/10 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
-                                <button onClick={() => setSelectedTicket(null)} className="p-2 hover:bg-white rounded-xl shadow-sm border border-slate-200 transition-all">
-                                    <ArrowLeft size={20} className="text-slate-600" />
+                                <button onClick={() => setSelectedTicket(null)} className="p-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 transition-all">
+                                    <ArrowLeft size={20} />
                                 </button>
                                 <div>
-                                    <h3 className="text-lg font-bold text-slate-800">{selectedTicket.subject}</h3>
-                                    <p className="text-xs text-slate-500">Ticket ID: #{selectedTicket.id}</p>
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">{selectedTicket.subject}</h3>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">Ticket ID: #{selectedTicket.id}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black border ${getStatusColor(selectedTicket.status)}`}>{selectedTicket.status}</span>
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-black border ${getStatusColor(selectedTicket.status)} bg-opacity-10 dark:bg-opacity-20`}>{selectedTicket.status}</span>
                                 <select 
                                     value={selectedTicket.status}
                                     onChange={(e) => updateStatus(selectedTicket.id, e.target.value)}
-                                    className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500/20 transition-all shadow-sm"
+                                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500/20 transition-all shadow-sm dark:text-slate-200"
                                 >
                                     <option value="OPEN">Set Open</option>
                                     <option value="IN_PROGRESS">Set In Progress</option>
                                     <option value="RESOLVED">Set Resolved</option>
                                     <option value="CLOSED">Set Closed</option>
                                 </select>
+                                <button
+                                    onClick={() => handleDeleteTicket(selectedTicket.id, selectedTicket.subject)}
+                                    className="p-2 text-slate-400 dark:text-slate-550 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors border border-slate-200 dark:border-slate-750"
+                                    title="Delete Support Ticket"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
                             </div>
                         </div>
 
                         {/* Chat / Messages Area */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30">
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 dark:bg-slate-950/20">
                             {/* User Info Card */}
-                            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+                            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     {selectedTicket.user.profile_pic ? (
-                                        <img src={selectedTicket.user.profile_pic} alt="" className="w-12 h-12 rounded-full ring-2 ring-slate-100" />
+                                        <img src={selectedTicket.user.profile_pic} alt="" className="w-12 h-12 rounded-full ring-2 ring-slate-100 dark:ring-slate-800 object-cover" />
                                     ) : (
-                                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-lg font-bold">{selectedTicket.user.name.charAt(0)}</div>
+                                        <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-lg font-bold text-slate-700 dark:text-slate-300">{selectedTicket.user.name.charAt(0)}</div>
                                     )}
                                     <div>
-                                        <p className="font-bold text-slate-800">{selectedTicket.user.name}</p>
-                                        <p className="text-xs text-slate-500">{selectedTicket.user.email}</p>
+                                        <p className="font-bold text-slate-800 dark:text-white">{selectedTicket.user.name}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{selectedTicket.user.email}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[10px] font-black uppercase text-slate-400">Submitted</p>
-                                    <p className="text-sm font-semibold">{formatDate(selectedTicket.created_at)}</p>
+                                    <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Submitted</p>
+                                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{formatDate(selectedTicket.created_at)}</p>
                                 </div>
                             </div>
 
                             {/* Ticket Message */}
-                            <div className="flex gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center flex-shrink-0">
+                            <div className="flex gap-3 max-w-[85%] md:max-w-[75%] mr-auto">
+                                <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center flex-shrink-0">
                                     <User size={20} />
                                 </div>
-                                <div className="flex-1">
-                                    <div className="bg-white p-6 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm shadow-orange-500/5">
-                                        <p className="text-slate-700 leading-relaxed">{selectedTicket.message}</p>
+                                <div className="flex flex-col items-start">
+                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 ml-1.5 mb-1">{selectedTicket.user.name}</span>
+                                    <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl rounded-tl-none border border-slate-200 dark:border-slate-800 shadow-sm shadow-orange-500/5">
+                                        <p className="text-slate-750 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{selectedTicket.message}</p>
                                     </div>
+                                    <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 ml-1.5 mt-1">{formatDate(selectedTicket.created_at)}</span>
                                 </div>
                             </div>
 
                             {/* Responses */}
-                            {selectedTicket.responses.map(resp => (
-                                <div key={resp.id} className={`flex gap-4 ${resp.adminId ? 'flex-row-reverse' : ''}`}>
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${resp.adminId ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'bg-slate-200 text-slate-600'}`}>
-                                        {resp.adminId ? <ShieldCheck size={20} /> : <User size={20} />}
-                                    </div>
-                                    <div className={`flex-1 max-w-[85%] ${resp.adminId ? 'text-right' : ''}`}>
-                                        <div className={`p-6 rounded-2xl border shadow-sm ${resp.adminId ? 'bg-orange-500 text-white border-transparent rounded-tr-none' : 'bg-white border-slate-200 rounded-tl-none text-slate-700'}`}>
-                                            <p className="leading-relaxed">{resp.message}</p>
+                            {selectedTicket.responses.map(resp => {
+                                const isAdmin = !!resp.adminId;
+                                return (
+                                    <div key={resp.id} className={`flex gap-3 max-w-[85%] md:max-w-[75%] ${isAdmin ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}>
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isAdmin ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-350'}`}>
+                                            {isAdmin ? <ShieldCheck size={20} /> : <User size={20} />}
                                         </div>
-                                        <p className="mt-2 text-[10px] font-bold text-slate-400 uppercase">{formatDate(resp.created_at)}</p>
+                                        <div className={`flex flex-col ${isAdmin ? 'items-end' : 'items-start'}`}>
+                                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 px-1.5 mb-1">
+                                                {isAdmin ? 'System Admin' : selectedTicket.user.name}
+                                            </span>
+                                            <div className={`p-4 rounded-2xl border shadow-sm ${
+                                                isAdmin 
+                                                    ? 'bg-orange-500 text-white border-transparent rounded-tr-none' 
+                                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-tl-none text-slate-700 dark:text-slate-300'
+                                            }`}>
+                                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{resp.message}</p>
+                                            </div>
+                                            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 px-1.5 mt-1">
+                                                {formatDate(resp.created_at)}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
                         {/* Reply Form */}
-                        <div className="p-6 border-t border-slate-200 bg-white">
+                        <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                             <form onSubmit={handleRespond} className="relative">
                                 <textarea 
                                     required
@@ -313,7 +369,7 @@ const AdminSupportList = () => {
                                     placeholder="Type your response to the user..."
                                     value={responseMessage}
                                     onChange={(e) => setResponseMessage(e.target.value)}
-                                    className="w-full px-5 py-4 bg-slate-50 border-2 border-transparent focus:border-orange-500/30 rounded-2xl outline-none transition-all text-slate-800 font-medium resize-none shadow-inner"
+                                    className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-950 border-2 border-transparent focus:border-orange-500/30 rounded-2xl outline-none transition-all text-slate-800 dark:text-slate-200 font-medium resize-none shadow-inner"
                                 />
                                 <div className="absolute right-3 bottom-3 flex items-center gap-2">
                                     <button 

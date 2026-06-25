@@ -116,12 +116,12 @@ const isAdminMiddleware = (req, res, next) => {
     }
 
     const adminEmail = process.env.ADMIN_EMAIL;
-    if (adminEmail && req.user.email.toLowerCase() === adminEmail.toLowerCase()) {
-        return next();
+    if (!adminEmail) {
+        console.error('ADMIN_EMAIL is not configured in environment variables. Access denied.');
+        return res.status(403).json({ error: 'Access denied. Admin configuration missing.' });
     }
 
-    if (!adminEmail) {
-        console.warn('ADMIN_EMAIL is not set in backend .env. Bypassing admin check for development.');
+    if (req.user.email.toLowerCase() === adminEmail.toLowerCase()) {
         return next();
     }
 

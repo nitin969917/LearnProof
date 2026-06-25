@@ -8,8 +8,11 @@ const AdminRoute = ({ children }) => {
 
     useEffect(() => {
         // Show a message once if they get kicked out
-        if (!loading && user && import.meta.env.VITE_ADMIN_EMAIL && user.email.toLowerCase() !== import.meta.env.VITE_ADMIN_EMAIL.toLowerCase()) {
-            toast.error("Access Denied: You do not have administrator privileges.");
+        const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+        if (!loading && user) {
+            if (!adminEmail || user.email.toLowerCase() !== adminEmail.toLowerCase()) {
+                toast.error("Access Denied: You do not have administrator privileges.");
+            }
         }
     }, [user, loading]);
 
@@ -25,15 +28,14 @@ const AdminRoute = ({ children }) => {
         return <Navigate to="/" replace />;
     }
 
-    // Check admin email if the environment variable is configured
+    // Check admin email configured in env
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
 
-    if (adminEmail && user.email.toLowerCase() !== adminEmail.toLowerCase()) {
-        // Redirect unauthorized standard users back to their own dashboard
+    if (!adminEmail || user.email.toLowerCase() !== adminEmail.toLowerCase()) {
+        // Redirect unauthorized users back to their own dashboard
         return <Navigate to="/dashboard" replace />;
     }
 
-    // Allow access if they match the admin email OR if no admin email is enforced (dev mode fallback)
     return children;
 };
 

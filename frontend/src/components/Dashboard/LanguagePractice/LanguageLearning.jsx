@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, Globe, Plus, Users, Search, GraduationCap, Video } from 'lucide-react';
+import { Mic, Globe, Plus, Users, Search, GraduationCap, Video, PhoneOff, Trash2, X } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import toast from 'react-hot-toast';
@@ -12,6 +12,8 @@ export default function LanguageLearning() {
   const [showModal, setShowModal] = useState(false);
   const [newRoom, setNewRoom] = useState({ roomName: '', topic: '', language: '', mediaType: 'audio', isFriendsOnly: false });
   const [activeTab, setActiveTab] = useState(localStorage.getItem('languageRoomsTab') || 'audio'); // 'audio' or 'video'
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const [socialUser, setSocialUser] = useState(null);
@@ -73,16 +75,28 @@ export default function LanguageLearning() {
     }
   };
 
-  const handleDeleteRoom = async (e, id) => {
+  const handleDeleteRoom = (e, id) => {
     e.stopPropagation();
-    if (!window.confirm("End this practice session?")) return;
+    setRoomToDelete(id);
+    setShowConfirmModal(true);
+  };
+
+  const confirmDeleteRoom = async () => {
+    if (!roomToDelete) return;
     try {
-      await socialApi.delete(`/language-rooms/${id}`);
+      await socialApi.delete(`/language-rooms/${roomToDelete}`);
       fetchRooms();
     } catch (error) {
       console.error('Error deleting room:', error);
+    } finally {
+      setShowConfirmModal(false);
+      setRoomToDelete(null);
     }
   };
+
+  const audioRoomsCount = (Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === 'audio').length;
+  const videoRoomsCount = (Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === 'video').length;
+  const totalRoomsCount = audioRoomsCount + videoRoomsCount;
 
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto p-4 sm:p-8 lg:p-12">
@@ -94,7 +108,14 @@ export default function LanguageLearning() {
             <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20">
               <Globe className="text-white" size={32} />
             </div>
-            Live Rooms
+            <div className="flex items-center gap-3">
+              <span>Live Rooms</span>
+              {totalRoomsCount > 0 && (
+                <span className="text-xs px-2.5 py-1 bg-orange-500/10 border border-orange-500/20 text-orange-500 rounded-full font-black">
+                  {totalRoomsCount} Active
+                </span>
+              )}
+            </div>
           </h1>
           <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">
             Join or start a live room to discuss, practice, or learn together with other members.
@@ -128,7 +149,7 @@ export default function LanguageLearning() {
           }`}
         >
           <Mic size={16} />
-          <span>Audio Rooms</span>
+          <span>Audio Rooms ({audioRoomsCount})</span>
         </button>
         <button
           onClick={() => {
@@ -142,7 +163,7 @@ export default function LanguageLearning() {
           }`}
         >
           <Video size={16} />
-          <span>Video Rooms</span>
+          <span>Video Rooms ({videoRoomsCount})</span>
         </button>
       </div>
 
@@ -390,6 +411,56 @@ export default function LanguageLearning() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal for ending room */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-xs w-full p-6 shadow-2xl relative text-center animate-in zoom-in-95 duration-200">
+            {/* Close button at top-right */}
+            <button
+              onClick={() => {
+                setShowConfirmModal(false);
+                setRoomToDelete(null);
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-250 transition-colors p-1"
+            >
+              <X size={18} />
+            </button>
+
+            {/* Centered Icon */}
+            <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+              <PhoneOff size={26} className="text-red-500" />
+            </div>
+
+            {/* Centered Title */}
+            <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">End Practice Session?</h3>
+
+            {/* Centered Message */}
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
+              Are you sure you want to end this practice session for everyone? This action cannot be undone.
+            </p>
+
+            {/* Buttons in One Row */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setRoomToDelete(null);
+                }}
+                className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-bold text-xs transition cursor-pointer active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteRoom}
+                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-red-500/20 transition cursor-pointer active:scale-95"
+              >
+                End Room
+              </button>
+            </div>
           </div>
         </div>
       )}

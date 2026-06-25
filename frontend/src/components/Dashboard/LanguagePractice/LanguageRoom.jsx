@@ -21,7 +21,7 @@ import {
   Mic, MicOff, Video, VideoOff,
   PhoneOff, Users, Globe,
   Volume2, Send, UserX, UserPlus, UserMinus,
-  Check, X, Hand
+  Check, X, Hand, LogOut
 } from 'lucide-react';
 
 import { Track } from 'livekit-client';
@@ -104,6 +104,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   const dbRoomRef = useRef(dbRoom);
   const userIdentityRef = useRef(userIdentity);
+  const popStateTriggeredRef = useRef(false);
+  const handlePopStateRef = useRef(null);
   useEffect(() => { dbRoomRef.current = dbRoom; }, [dbRoom]);
   useEffect(() => { userIdentityRef.current = userIdentity; }, [userIdentity]);
 
@@ -328,6 +330,79 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     return () => room.off('participantConnected', handleConnected);
   }, [room]);
 
+  // ── Host disconnected auto-end room listener ──────────────────────────────
+  useEffect(() => {
+    if (!room || isHost) return;
+    const handleDisconnected = (p) => {
+      if (p.identity === hostIdentity) {
+        toast.error('The host has left. This session has ended.', { duration: 5000 });
+        localStorage.removeItem(`livekit_stage_${roomName}`);
+        localStorage.removeItem(`livekit_mic_${roomName}`);
+        localStorage.removeItem(`livekit_cam_${roomName}`);
+        navigateBack();
+      }
+    };
+    room.on('participantDisconnected', handleDisconnected);
+    return () => room.off('participantDisconnected', handleDisconnected);
+  }, [room, hostIdentity, isHost, roomName, navigateBack]);
+
+  // ── Host page unload cleanup ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!isHost) return;
+    const handleUnload = () => {
+      const token = localStorage.getItem('google_token');
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      
+      // Delete database room record
+      const dbUrl = `${backendUrl}/api/language-rooms/by-name/${roomName}`;
+      fetch(dbUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        keepalive: true
+      }).catch(() => {});
+
+      // Delete LiveKit server room
+      const lkUrl = `${backendUrl}/api/livekit/rooms/${roomName}`;
+      fetch(lkUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        keepalive: true
+      }).catch(() => {});
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, [isHost, roomName]);
+
+  // ── Browser back button blocker ───────────────────────────────────────────
+  useEffect(() => {
+    // Only block if user is the host
+    if (!isHost) return;
+
+    // Push an extra history entry so we can intercept back navigation
+    window.history.pushState(null, '', window.location.href);
+
+    const handlePopState = (e) => {
+      popStateTriggeredRef.current = true;
+      // Push state back to prevent leaving the active room URL
+      window.history.pushState(null, '', window.location.href);
+      // Show confirmation modal
+      setShowEndRoomModal(true);
+    };
+
+    handlePopStateRef.current = handlePopState;
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [isHost]);
+
   // ── Combine and sort chat messages + system events ─────────────────────────
   const timelineItems = [
     ...chatMessages.map(m => ({
@@ -367,6 +442,15 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Called when host confirms ending the session
   const handleConfirmEndRoom = async () => {
     setShowEndRoomModal(false);
+
+    if (handlePopStateRef.current) {
+      window.removeEventListener('popstate', handlePopStateRef.current);
+      if (popStateTriggeredRef.current) {
+        // Go back once to clean up the extra state we pushed
+        window.history.back();
+      }
+    }
+
     if (room) {
       try {
         await sendSignal({ type: 'room_ended' });
@@ -379,6 +463,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     localStorage.removeItem(`livekit_mic_${roomName}`);
     localStorage.removeItem(`livekit_cam_${roomName}`);
     await handleLeaveRoom();
+  };
+
+  const handleCancelEndRoom = () => {
+    setShowEndRoomModal(false);
+    popStateTriggeredRef.current = false;
   };
 
   // ─── Helper: send a data message to room participants ─────────────────────
@@ -442,43 +531,32 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   };
 
   // ── Host: Invite listener to stage ────────────────────────────────────────
-  // Strategy: Promote via API immediately AND send data signal to listener
-  // This is reliable since it doesn't depend on an accept round-trip.
   const handleInviteToStage = async (identity, pName) => {
     try {
-      // Step 1: Promote via API immediately
-      await socialApi.post(`/livekit/rooms/${roomName}/participants/${identity}/promote`);
-      toast.success(`${pName || 'User'} has been promoted to stage!`, { icon: '🎤' });
-      // Step 2: Also send a data signal so the listener gets a UI notification
-      try {
-        await sendSignal({
-          type: 'invite_to_stage',
-          targetIdentity: identity,
-          hostName: localParticipant.name || 'Host'
-        }, [identity]);
-      } catch (signalErr) {
-        // Signal is optional - permissions are already updated
-        console.warn('[Signal] Invite notification failed (non-critical):', signalErr);
-      }
+      // Send invitation signal to listener first. Do not promote yet!
+      await sendSignal({
+        type: 'invite_to_stage',
+        targetIdentity: identity,
+        hostName: localParticipant.name || 'Host'
+      }, [identity]);
+      toast.success(`Stage invitation sent to ${pName || 'user'}!`);
     } catch (err) {
       console.error('[Signal] Failed to invite to stage:', err);
-      toast.error(err.response?.data?.error || 'Failed to invite participant to stage.');
+      toast.error('Failed to send stage invitation.');
     }
   };
 
-  // ── Listener: Accept host invite (now just a courtesy notification) ─────────
+  // ── Listener: Accept host invite ───────────────────────────────────────────
   const handleAcceptInvite = async () => {
     setShowInviteModal(false);
-    // Permissions are already updated server-side when host invited.
-    // Just send a courtesy acknowledgment back.
     try {
+      // Send confirmation signal back to host so they promote us
       await sendSignal({
         type: 'accept_invite_response',
         identity: localParticipant.identity,
         name: localParticipant.name || 'User'
       });
     } catch (err) {
-      // Non-critical - permissions are already updated
       console.warn('[Signal] Accept notification failed:', err);
     }
   };
@@ -486,11 +564,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // ── Listener: Decline host invite ─────────────────────────────────────────
   const handleDeclineInvite = async () => {
     setShowInviteModal(false);
-    // Demote them back since we already promoted server-side
     try {
-      await socialApi.post(`/livekit/rooms/${roomName}/participants/${localParticipant.identity}/demote`);
+      // Notify host that we declined
+      await sendSignal({
+        type: 'decline_invite_response',
+        name: localParticipant.name || 'User'
+      });
     } catch (err) {
-      console.warn('[Signal] Decline demote failed:', err);
+      console.warn('[Signal] Decline notification failed:', err);
     }
   };
 
@@ -611,7 +692,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           setHasRequested(false);
         } else if (data.type === 'accept_invite_response') {
           if (amIHost()) {
-            toast(`${data.name || 'User'} joined the stage!`, { icon: '🎤' });
+            toast(`${data.name || 'User'} accepted the stage invitation!`, { icon: '🎤' });
+            if (handlePromoteSpeakerRef.current) {
+              handlePromoteSpeakerRef.current(data.identity, data.name);
+            }
+          }
+        } else if (data.type === 'decline_invite_response') {
+          if (amIHost()) {
+            toast.error(`${data.name || 'User'} declined the stage invitation.`);
           }
         } else if (data.type === 'room_ended') {
           toast.error('The host has ended this session.', { duration: 5000 });
@@ -799,12 +887,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             : 'border-gray-200 dark:border-gray-800'
         }`}
       >
-        {/* Clickable profile overlay */}
-        <div
-          onClick={() => handleUserProfileClick(p.identity)}
-          className="absolute inset-0 w-full h-full z-25 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-white/5 transition-all"
-          title={`View ${p.name || 'User'}'s Profile`}
-        />
+
 
         <div className="flex flex-col items-center justify-center gap-2 z-10 w-full">
           <div className="relative">
@@ -919,7 +1002,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             </p>
             <div className="flex gap-3">
               <button
-                onClick={() => setShowEndRoomModal(false)}
+                onClick={handleCancelEndRoom}
                 className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-bold text-xs transition cursor-pointer active:scale-95"
               >
                 Cancel
@@ -1080,11 +1163,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                     {listeners.map((p) => (
                       <div
                         key={p.identity}
-                        onClick={() => handleUserProfileClick(p.identity)}
-                        className="flex flex-col items-center gap-1 cursor-pointer group"
-                        title={`${p.name || 'User'}'s profile`}
+                        className="flex flex-col items-center gap-1 group"
                       >
-                        <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${getGradient(p.identity)} flex items-center justify-center text-white font-black text-xs uppercase shadow-sm border border-white/10 group-hover:scale-110 transition-all`}>
+                        <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${getGradient(p.identity)} flex items-center justify-center text-white font-black text-xs uppercase shadow-sm border border-white/10 group-hover:scale-105 transition-all`}>
                           {p.name ? p.name[0] : 'U'}
                         </div>
                         <span className="text-[8px] font-bold text-gray-500 truncate max-w-[40px] text-center">{p.name?.split(' ')[0] || 'User'}</span>
@@ -1221,7 +1302,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                         title="Step down from stage"
                         className="p-3 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
                       >
-                        <MicOff size={20} />
+                        <LogOut size={20} />
                       </button>
                     )}
                   </>

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Video, LogOut, Settings, ShieldAlert, LifeBuoy, Mail, HardDrive } from 'lucide-react';
+import { LayoutDashboard, Users, Video, LogOut, Settings, ShieldAlert, LifeBuoy, Mail, HardDrive, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useModal } from '../../context/ModalContext';
 
@@ -8,6 +8,30 @@ const AdminSidebar = ({ onClose }) => {
     const { logout } = useAuth();
     const { confirm } = useModal();
     const navigate = useNavigate();
+    const [isDarkMode, setIsDarkMode] = useState(false);
+
+    // Initialize dark mode from localStorage or system preference
+    useEffect(() => {
+        const isDark = localStorage.getItem('theme') === 'dark';
+        setIsDarkMode(isDark);
+        if (isDark) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    }, []);
+
+    const toggleTheme = () => {
+        if (isDarkMode) {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+            setIsDarkMode(false);
+        } else {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+            setIsDarkMode(true);
+        }
+    };
 
     const handleLogout = async () => {
         const confirmed = await confirm({
@@ -33,32 +57,32 @@ const AdminSidebar = ({ onClose }) => {
     ];
 
     return (
-        <div className="flex flex-col h-full bg-slate-900 text-slate-300">
+        <div className="flex flex-col h-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
             {/* Logo Area */}
-            <div className="p-6 border-b border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-3 text-white font-bold text-xl tracking-tight">
+            <div className="p-6 border-b border-orange-100 dark:border-gray-700 flex items-center justify-between">
+                <div className="flex items-center gap-3 text-gray-900 dark:text-white font-bold text-xl tracking-tight">
                     <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/20">
                         <ShieldAlert size={18} className="text-white" />
                     </div>
                     <span>System Admin</span>
                 </div>
                 {/* Mobile Close Button */}
-                <button onClick={onClose} className="lg:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors">
+                <button onClick={onClose} className="lg:hidden p-2 text-gray-500 hover:text-orange-500 dark:text-gray-400 dark:hover:text-orange-400 rounded-lg hover:bg-orange-500/5 dark:hover:bg-orange-500/10 transition-colors">
                     &times;
                 </button>
             </div>
 
             {/* Navigation */}
             <nav className="flex-1 py-6 px-4 space-y-2 overflow-y-auto">
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-3">Management</div>
+                <div className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-4 px-3">Management</div>
                 {navItems.map((item) => (
                     <NavLink
                         key={item.path}
                         to={item.path}
                         onClick={onClose}
                         className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium ${isActive
-                            ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20'
-                            : 'hover:bg-slate-800 hover:text-white'
+                            ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold'
+                            : 'text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-500/5 dark:hover:bg-orange-500/10'
                             }`}
                     >
                         {item.icon}
@@ -68,17 +92,24 @@ const AdminSidebar = ({ onClose }) => {
             </nav>
 
             {/* Footer Actions */}
-            <div className="p-4 border-t border-slate-800 space-y-2">
+            <div className="p-4 border-t border-orange-100 dark:border-gray-700 space-y-2">
+                <button
+                    onClick={toggleTheme}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-500/5 dark:hover:bg-orange-500/10 rounded-xl transition-colors font-medium"
+                >
+                    {isDarkMode ? <Sun size={20} className="text-amber-500" /> : <Moon size={20} className="text-indigo-600" />}
+                    <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+                </button>
                 <button
                     onClick={() => navigate('/dashboard')}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors font-medium"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-500/5 dark:hover:bg-orange-500/10 rounded-xl transition-colors font-medium"
                 >
                     <Settings size={20} />
                     <span>User Portal</span>
                 </button>
                 <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-white hover:bg-red-500/10 rounded-xl transition-colors font-medium"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:text-white hover:bg-red-500/10 rounded-xl transition-colors font-medium"
                 >
                     <LogOut size={20} />
                     <span>Sign Out</span>

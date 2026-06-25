@@ -130,13 +130,15 @@ if (messaging) {
     console.log('[FCM] Foreground message received:', payload);
     if (payload.notification) {
       const data = payload.data || {};
-      let targetPath = '/dashboard';
-      if (data.type === 'CHAT_MESSAGE' && data.senderId) {
-        targetPath = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
-      } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
-        targetPath = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
-      } else if (data.type === 'LIVE_ROOM_CREATED' && data.roomName) {
-        targetPath = `/dashboard/live-rooms/${data.roomName}`;
+      let targetPath = data.clickAction || data.click_action || '/dashboard';
+      if (!data.clickAction && !data.click_action && data.type) {
+        if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+          targetPath = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
+        } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+          targetPath = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
+        } else if (data.type === 'LIVE_ROOM_CREATED' && data.roomName) {
+          targetPath = `/dashboard/live-rooms/${data.roomName}`;
+        }
       }
 
       const path = targetPath;

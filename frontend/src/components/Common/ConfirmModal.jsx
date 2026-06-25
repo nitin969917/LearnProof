@@ -6,15 +6,15 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText
     if (!isOpen) return null;
 
     const colors = {
-        danger: "bg-red-500 hover:bg-red-600 text-white",
-        warning: "bg-amber-500 hover:bg-amber-600 text-white",
-        info: "bg-orange-500 hover:bg-orange-600 text-white"
+        danger: "bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20",
+        warning: "bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20",
+        info: "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20"
     };
 
     const iconColors = {
-        danger: "text-red-500 bg-red-50 dark:bg-red-900/20",
-        warning: "text-amber-500 bg-amber-50 dark:bg-amber-900/20",
-        info: "text-orange-500 bg-orange-50 dark:bg-orange-900/20"
+        danger: "text-red-500 bg-red-500/10",
+        warning: "text-amber-500 bg-amber-500/10",
+        info: "text-orange-500 bg-orange-500/10"
     };
 
     return (
@@ -26,7 +26,7 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={onCancel}
-                    className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                 />
 
                 {/* Modal Container */}
@@ -34,44 +34,44 @@ const ConfirmModal = ({ isOpen, title, message, onConfirm, onCancel, confirmText
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700"
+                    className="relative w-full max-w-xs bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-2xl text-center"
                 >
-                    <div className="p-5">
-                        <div className="flex items-start gap-3">
-                            <div className={`p-2.5 rounded-full shrink-0 ${iconColors[type]}`}>
-                                <AlertCircle size={20} />
-                            </div>
+                    {/* Close button at top-right */}
+                    <button
+                        onClick={onCancel}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-250 transition-colors p-1"
+                    >
+                        <X size={18} />
+                    </button>
 
-                            <div className="flex-1 min-w-0">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">
-                                    {title}
-                                </h3>
-                                <p className="text-gray-600 dark:text-gray-400 text-xs leading-relaxed">
-                                    {message}
-                                </p>
-                            </div>
-
-                            <button
-                                onClick={onCancel}
-                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1"
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
+                    {/* Centered Icon */}
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${iconColors[type]}`}>
+                        <AlertCircle size={26} />
                     </div>
 
-                    <div className="bg-gray-50 dark:bg-gray-900/50 px-5 py-3 flex flex-col sm:flex-row-reverse gap-2">
-                        <button
-                            onClick={onConfirm}
-                            className={`px-5 py-2 rounded-xl font-bold text-sm transition-all transform active:scale-95 ${colors[type]}`}
-                        >
-                            {confirmText}
-                        </button>
+                    {/* Centered Title */}
+                    <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">
+                        {title}
+                    </h3>
+
+                    {/* Centered Message */}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
+                        {message}
+                    </p>
+
+                    {/* Action Buttons in One Row */}
+                    <div className="flex gap-3">
                         <button
                             onClick={onCancel}
-                            className="px-5 py-2 rounded-xl font-bold text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all active:scale-95"
+                            className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-bold text-xs transition cursor-pointer active:scale-95"
                         >
                             {cancelText}
+                        </button>
+                        <button
+                            onClick={onConfirm}
+                            className={`flex-1 px-4 py-2.5 rounded-2xl font-extrabold text-xs transition-all active:scale-95 ${colors[type]}`}
+                        >
+                            {confirmText}
                         </button>
                     </div>
                 </motion.div>
