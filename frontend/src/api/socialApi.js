@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const baseURL = isLocalhost 
-  ? `http://${window.location.hostname}:8000/api` 
-  : `${window.location.protocol}//${window.location.host}/api`;
+// Use the same backend URL as the rest of the app (VITE_BACKEND_URL env var)
+// Previously used window.location.host which pointed to Cloudflare Pages (static host)
+// and caused 405 Method Not Allowed for POST requests
+const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const baseURL = `${backendUrl}/api`;
 
 const socialApi = axios.create({
   baseURL,
