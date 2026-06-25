@@ -28,10 +28,16 @@ const {
   getGroups,
   getGroupMessages,
   sendGroupMessage,
+  getGroupDetails,
+  updateGroupSettings,
+  addGroupMember,
+  removeGroupMember,
   getComments,
   createComment,
   deleteComment,
   getPost,
+  deleteMessage,
+  deleteGroupMessage,
 } = require('../controllers/datingController');
 
 // Post routes
@@ -78,5 +84,13 @@ router.post('/groups/join', datingAuth, joinGroup);
 router.post('/groups/leave', datingAuth, leaveGroup);
 router.get('/groups/:groupId/messages', datingAuth, getGroupMessages);
 router.post('/groups/:groupId/messages', datingAuth, sendGroupMessage);
+router.get('/groups/:groupId', datingAuth, getGroupDetails);
+router.put('/groups/:groupId/settings', datingAuth, updateGroupSettings);
+router.post('/groups/:groupId/members', datingAuth, addGroupMember);
+router.delete('/groups/:groupId/members/:userId', datingAuth, removeGroupMember);
+router.delete('/groups/:groupId/messages/:messageId', datingAuth, deleteGroupMessage);
+
+// Message delete routes
+router.delete('/messages/:messageId', datingAuth, deleteMessage);
 
 module.exports = router;

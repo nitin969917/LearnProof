@@ -32,17 +32,31 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
+  const data = event.notification.data || {};
+  let targetPath = '/dashboard';
+  
+  if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+    targetPath = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
+  } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+    targetPath = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
+  } else if (data.type === 'LIVE_ROOM_CREATED' && data.roomName) {
+    targetPath = `/dashboard/live-rooms/${data.roomName}`;
+  }
+  
+  const targetUrl = self.location.origin + targetPath;
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // If a window is already open, focus it
+      // If a window is already open, navigate it to targetUrl and focus
       for (const client of clientList) {
-        if ('focus' in client) {
+        if ('focus' in client && 'navigate' in client) {
+          client.navigate(targetUrl);
           return client.focus();
         }
       }
-      // Otherwise open a new tab
+      // Otherwise open a new tab at the target URL
       if (clients.openWindow) {
-        return clients.openWindow('/');
+        return clients.openWindow(targetUrl);
       }
     })
   );

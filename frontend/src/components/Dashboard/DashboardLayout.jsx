@@ -193,7 +193,7 @@ const DashboardLayout = () => {
                     }`}
                 >
                     <ErrorBoundary>
-                        <Outlet />
+                        <Outlet context={{ toggleSidebar }} />
                     </ErrorBoundary>
                 </div>
             </main>

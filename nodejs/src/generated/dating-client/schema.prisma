@@ -100,6 +100,7 @@ model Message {
   id        Int      @id @default(autoincrement())
   content   String
   isRead    Boolean  @default(false)
+  isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
 
   senderId Int
@@ -158,6 +159,7 @@ model LanguageRoom {
   roomType        String   @default("group") // "group" or "1-on-1"
   mediaType       String   @default("audio") // "audio" or "video"
   maxParticipants Int      @default(10)
+  isFriendsOnly   Boolean  @default(false)
   createdAt       DateTime @default(now())
 
   creatorId Int
@@ -165,12 +167,13 @@ model LanguageRoom {
 }
 
 model Group {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  description String?
-  isPrivate   Boolean  @default(false)
-  entryKey    String?
-  createdAt   DateTime @default(now())
+  id                Int      @id @default(autoincrement())
+  name              String   @unique
+  description       String?
+  isPrivate         Boolean  @default(false)
+  entryKey          String?
+  createdAt         DateTime @default(now())
+  onlyAdminsCanPost Boolean  @default(false)
 
   creatorId Int
   creator   User @relation(fields: [creatorId], references: [id])
@@ -195,6 +198,7 @@ model GroupMember {
 model GroupMessage {
   id        Int      @id @default(autoincrement())
   content   String
+  isDeleted Boolean  @default(false)
   createdAt DateTime @default(now())
 
   groupId Int

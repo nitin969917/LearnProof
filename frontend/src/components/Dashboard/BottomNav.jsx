@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Search, BookOpen, Quote, Menu, Globe } from 'lucide-react';
+import { Home, Search, BookOpen, Quote, Menu, Globe, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const BottomNav = ({ onMenuClick }) => {
@@ -10,10 +10,11 @@ const BottomNav = ({ onMenuClick }) => {
         { name: 'Library', icon: BookOpen, path: '/dashboard/library' },
         { name: 'Quiz', icon: Quote, path: '/dashboard/quiz' },
         { name: 'Rooms', icon: Globe, path: '/dashboard/live-rooms' },
+        { name: 'Social', icon: Users, path: '/dashboard/social' },
     ];
 
     return (
-        <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[82vw] sm:w-[320px] max-w-[340px] z-50 lg:hidden bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300">
+        <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[82vw] sm:w-[310px] max-w-[330px] z-50 lg:hidden bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300">
             <div className="flex items-center justify-around h-14 px-1.5 relative">
                 {navItems.map((item) => (
                     <NavLink

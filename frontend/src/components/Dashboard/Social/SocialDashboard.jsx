@@ -1,20 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
-import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef, Fragment } from 'react';
+import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe } from 'lucide-react';
+import { Link, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
 import FeedTab from './FeedTab.jsx';
 import DiscoverTab from './DiscoverTab.jsx';
 import FriendsTab from './FriendsTab.jsx';
-import MessagesTab from './MessagesTab.jsx';
+import ChatsTab from './ChatsTab.jsx';
 import ProfileTab from './ProfileTab.jsx';
-import GroupsTab from './GroupsTab.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
 import { motion } from 'framer-motion';
 
 export default function SocialDashboard() {
   const { user } = useAuth();
+  const outletContext = useOutletContext();
+  const toggleSidebar = outletContext?.toggleSidebar || (() => {});
   const [socialUser, setSocialUser] = useState(null);
   const [activeTab, setActiveTab] = useState(() => {
     return localStorage.getItem('social_active_tab') || 'feed';
@@ -41,6 +42,7 @@ export default function SocialDashboard() {
   const [visibility, setVisibility] = useState('public');
   const [selectedImage, setSelectedImage] = useState(null);
   const [showDevBanner, setShowDevBanner] = useState(true);
+  const [hideHeader, setHideHeader] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -63,6 +65,37 @@ export default function SocialDashboard() {
       fetchPost();
     }
   }, []);
+
+  // Handle incoming deep links (e.g. from push notifications click)
+  useEffect(() => {
+    if (!socialUser) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    const chatTypeParam = params.get('chatType');
+    const chatIdParam = params.get('chatId');
+
+    if (tabParam) {
+      if (tabParam === 'chat') {
+        setActiveTab('chat');
+        if (chatTypeParam && chatIdParam) {
+          setSelectedChatContact({
+            id: parseInt(chatIdParam, 10),
+            type: chatTypeParam
+          });
+        }
+      } else {
+        setActiveTab(tabParam);
+      }
+      
+      // Clean up search parameters from URL without reloading
+      const url = new URL(window.location);
+      url.searchParams.delete('tab');
+      url.searchParams.delete('chatType');
+      url.searchParams.delete('chatId');
+      window.history.replaceState({}, '', url);
+    }
+  }, [socialUser]);
 
   useEffect(() => {
     localStorage.setItem('social_active_tab', activeTab);
@@ -157,10 +190,9 @@ export default function SocialDashboard() {
     { id: 'feed', name: 'Feed', icon: Home },
     { id: 'discover', name: 'Discover', icon: Search },
     { id: 'friends', name: 'Friends', icon: Users },
-    { id: 'groups', name: 'Groups', icon: MessageCircle },
     { 
       id: 'chat', 
-      name: 'Messages', 
+      name: 'Chats', 
       icon: MessageSquare,
       badge: totalUnreadCount > 0 ? totalUnreadCount : null
     },
@@ -177,9 +209,9 @@ export default function SocialDashboard() {
   }
 
   return (
-    <div className="flex flex-col h-full w-full relative overflow-hidden">
+    <div className="flex flex-col h-full w-full relative overflow-hidden transition-colors duration-200 bg-[#FAF6EE] dark:bg-gray-950">
       {/* Top Header Bar (Full width, static, styled like main app's TopBar) */}
-      <div className="bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm flex items-center justify-between gap-4 h-16 sm:h-20 px-4 md:px-6 shrink-0 w-full transition-colors duration-200">
+      <div className={`bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm flex items-center justify-between gap-4 h-16 sm:h-20 px-4 md:px-6 shrink-0 w-full transition-colors duration-200 ${hideHeader ? 'hidden md:flex' : 'flex'}`}>
         {/* Left Side: Logo and Social Hub title */}
         <div className="flex items-center gap-3 h-full min-w-0">
           <Link
@@ -231,9 +263,9 @@ export default function SocialDashboard() {
       </div>
 
       {/* Main Content Area (Scrollable container, no padding outside) */}
-      <div className="flex-1 overflow-y-auto w-full relative">
-        <div className="max-w-7xl w-full mx-auto px-4 md:px-6 py-6 pb-28">
-          {showDevBanner && (
+      <div className={`flex-1 w-full relative ${(hideHeader || activeTab === 'chat') ? 'overflow-hidden md:overflow-y-auto' : 'overflow-y-auto'}`}>
+        <div className={`max-w-7xl w-full mx-auto ${(hideHeader || activeTab === 'chat') ? 'px-0 md:px-6 py-0 md:py-6 pb-0 md:pb-28 h-full' : 'px-4 md:px-6 py-6 pb-28'}`}>
+          {showDevBanner && activeTab !== 'chat' && (
             <div className="mb-6 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 dark:from-orange-500/20 dark:to-orange-500/20 border border-orange-200/50 dark:border-orange-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-500 text-white rounded-xl shadow-md shadow-orange-500/20 flex-shrink-0">
@@ -257,7 +289,7 @@ export default function SocialDashboard() {
           )}
 
           {/* Tab Panels */}
-          <div className="w-full">
+          <div className={`w-full ${hideHeader ? 'h-full' : ''}`}>
             {activeTab === 'feed' && (
               <FeedTab 
                 currentUserId={socialUser.id} 
@@ -269,6 +301,7 @@ export default function SocialDashboard() {
             {activeTab === 'discover' && (
               <DiscoverTab 
                 onViewProfile={viewUserProfile} 
+                onSelectChatUser={startDirectChat}
               />
             )}
             {activeTab === 'friends' && (
@@ -277,16 +310,13 @@ export default function SocialDashboard() {
                 onSelectChatUser={startDirectChat} 
               />
             )}
-            {activeTab === 'groups' && (
-              <GroupsTab 
-                currentUserId={socialUser.id} 
-              />
-            )}
             {activeTab === 'chat' && (
-              <MessagesTab 
+              <ChatsTab 
                 currentUserId={socialUser.id}
                 selectedContact={selectedChatContact}
                 onClearSelectedContact={() => setSelectedChatContact(null)}
+                onToggleHeader={setHideHeader}
+                onViewProfile={viewUserProfile}
               />
             )}
             {activeTab === 'profile' && (
@@ -303,50 +333,85 @@ export default function SocialDashboard() {
       </div>
 
       {/* Floating Bottom Navigation Bar (matches design of main application BottomNav) */}
-      <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[340px] xs:w-[380px] sm:w-[460px] md:w-[540px] max-w-[95vw] z-50 bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300">
+      <nav className={`fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[340px] xs:w-[380px] sm:w-[460px] md:w-[540px] max-w-[95vw] z-50 bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300 ${hideHeader ? 'hidden md:block' : 'block'}`}>
         <div className="flex items-center justify-around h-16 px-3 relative">
-          {tabs.map((tab) => {
+          {tabs.map((tab, idx) => {
             const isActive = activeTab === tab.id || (tab.id === 'profile' && activeTab === 'profile' && selectedProfileId === socialUser.id);
             const Icon = tab.icon;
 
             return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabChange(tab.id)}
-                className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-500 no-underline touch-manipulation select-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 cursor-pointer"
-              >
-                <motion.div
-                  whileTap={{ scale: 0.88 }}
-                  className="flex flex-col items-center justify-center w-full h-full relative"
+              <Fragment key={tab.id}>
+                <button
+                  onClick={() => handleTabChange(tab.id)}
+                  className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 no-underline touch-manipulation select-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 cursor-pointer"
                 >
-                  <div className={`transition-all duration-300 z-10 ${isActive ? 'scale-110 text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
-                    <Icon 
-                      size={22} 
-                      strokeWidth={isActive ? 2.5 : 2} 
-                      className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
-                    />
-                  </div>
+                  <motion.div
+                    whileTap={{ scale: 0.88 }}
+                    className="flex flex-col items-center justify-center w-full h-full relative"
+                  >
+                    <div className={`transition-all duration-300 z-10 ${isActive ? 'scale-110 text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
+                      <Icon 
+                        size={22} 
+                        strokeWidth={isActive ? 2.5 : 2} 
+                        className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
+                      />
+                    </div>
 
-                  <span className="sr-only">{tab.name}</span>
+                    <span className="sr-only">{tab.name}</span>
 
-                  {tab.badge && (
-                    <span className="absolute top-0.5 right-2 text-[9px] font-black rounded-full min-w-[15px] h-[15px] px-1 flex items-center justify-center bg-orange-500 text-white shadow-md z-20">
-                      {tab.badge}
-                    </span>
-                  )}
-                  
-                  {/* Sliding active background pill */}
-                  {isActive && (
+                    {tab.badge && (
+                      <span className="absolute top-0.5 right-2 text-[9px] font-black rounded-full min-w-[15px] h-[15px] px-1 flex items-center justify-center bg-orange-500 text-white shadow-md z-20">
+                        {tab.badge}
+                      </span>
+                    )}
+                    
+                    {/* Sliding active background pill */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeSocialTabPill"
+                        className="absolute inset-x-1 sm:inset-x-2 inset-y-1 bg-orange-500/10 dark:bg-orange-500/20 rounded-full z-0 border border-orange-500/10 dark:border-orange-500/25"
+                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </motion.div>
+                </button>
+
+                {/* Live Rooms Globe icon next to Chats (idx === 3) */}
+                {idx === 3 && (
+                  <Link
+                    to="/dashboard/live-rooms"
+                    className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 no-underline touch-manipulation select-none outline-none focus:outline-none cursor-pointer"
+                  >
                     <motion.div
-                      layoutId="activeSocialTabPill"
-                      className="absolute inset-x-1 sm:inset-x-2 inset-y-1 bg-orange-500/10 dark:bg-orange-500/20 rounded-full z-0 border border-orange-500/10 dark:border-orange-500/25"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                </motion.div>
-              </button>
+                      whileTap={{ scale: 0.88 }}
+                      className="flex flex-col items-center justify-center w-full h-full relative"
+                    >
+                      <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300">
+                        <Globe size={22} strokeWidth={2} />
+                      </div>
+                      <span className="sr-only">Live Rooms</span>
+                    </motion.div>
+                  </Link>
+                )}
+              </Fragment>
             );
           })}
+
+          {/* Menu Hamburger Button */}
+          <button
+            onClick={toggleSidebar}
+            className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-450 dark:text-gray-550 touch-manipulation select-none outline-none focus:outline-none cursor-pointer"
+          >
+            <motion.div
+              whileTap={{ scale: 0.88 }}
+              className="flex flex-col items-center justify-center w-full h-full relative"
+            >
+              <div className="text-gray-400 dark:text-gray-550 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300">
+                <Menu size={22} strokeWidth={2} />
+              </div>
+              <span className="sr-only">Menu</span>
+            </motion.div>
+          </button>
         </div>
       </nav>
 

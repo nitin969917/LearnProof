@@ -20,8 +20,8 @@ import '@livekit/components-styles';
 import {
   Mic, MicOff, Video, VideoOff,
   PhoneOff, Users, Globe,
-  Volume2, Send, ShieldAlert, Languages,
-  Check, X, Radio
+  Volume2, Send, UserX, UserPlus, UserMinus,
+  Check, X, Hand
 } from 'lucide-react';
 
 import { Track } from 'livekit-client';
@@ -112,6 +112,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Invitation Modal
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviterName, setInviterName] = useState('');
+
+  // Kick Confirmation Modal
+  const [kickTarget, setKickTarget] = useState(null); // { identity, name }
 
   // Speaker Requests State (Host Only)
   const [speakRequests, setSpeakRequests] = useState([]);
@@ -386,6 +389,29 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     }
   };
 
+  const handleWithdrawRequest = async () => {
+    if (!hasRequested) return;
+    try {
+      if (localParticipant?.identity) {
+        // Send signal to host so they remove us from their list immediately
+        if (hostIdentity) {
+          await sendSignal({
+            type: 'withdraw_stage_request',
+            identity: localParticipant.identity,
+          }, [hostIdentity]);
+        }
+        
+        // Call backend API to delete the request
+        await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${localParticipant.identity}`);
+      }
+      setHasRequested(false);
+      toast.success('Stage request withdrawn.', { icon: '🎤' });
+    } catch (err) {
+      console.error('[Signal] Failed to withdraw speak request:', err);
+      toast.error('Failed to withdraw speak request. Please try again.');
+    }
+  };
+
   // ── Host: Invite listener to stage ────────────────────────────────────────
   // Strategy: Promote via API immediately AND send data signal to listener
   // This is reliable since it doesn't depend on an accept round-trip.
@@ -475,12 +501,20 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // ── Host: Kick participant ─────────────────────────────────────────────────
   const handleKickParticipant = async (identity, pName) => {
-    if (!window.confirm(`Remove ${pName} from this session?`)) return;
+    // Show user-friendly modal instead of window.confirm
+    setKickTarget({ identity, name: pName });
+  };
+
+  const confirmKick = async () => {
+    if (!kickTarget) return;
     try {
-      await socialApi.delete(`/livekit/rooms/${roomName}/participants/${identity}`);
+      await socialApi.delete(`/livekit/rooms/${roomName}/participants/${kickTarget.identity}`);
+      toast.success(`${kickTarget.name} has been removed from the session.`);
     } catch (err) {
       console.error(err);
       toast.error('Failed to remove participant');
+    } finally {
+      setKickTarget(null);
     }
   };
 
@@ -531,6 +565,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         if (data.type === 'request_to_speak') {
           if (amIHost()) {
             addSpeakRequest(data.identity, data.name);
+          }
+        } else if (data.type === 'withdraw_stage_request') {
+          if (amIHost()) {
+            setSpeakRequests(prev => prev.filter(r => r.identity !== data.identity));
           }
         } else if (data.type === 'invite_to_stage') {
           // The host already promoted us server-side. Show confirmation toast.
@@ -687,11 +725,17 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const listeners = uniqueParticipants.filter(p => !stageSpeakers.some(s => s.identity === p.identity));
 
   const getGridClassName = (count) => {
-    if (count <= 1) return 'grid-cols-1 grid-rows-1 h-full';
+    if (count <= 1) return 'grid-cols-1 h-full';
     if (count === 2) return 'grid-cols-2 grid-rows-1 h-full';
-    if (count === 3) return 'grid-cols-3 grid-rows-1 h-full';
+    if (count === 3) return 'grid-cols-2 grid-rows-2 h-full'; // host spans 2 rows
     if (count === 4) return 'grid-cols-2 grid-rows-2 h-full';
-    return 'grid-cols-2 sm:grid-cols-3 grid-rows-3 sm:grid-rows-2 h-full';
+    return 'grid-cols-2 grid-rows-3 h-full'; // 5–6 people
+  };
+
+  // Returns 'row-span-2' for the host tile when 3 people (asymmetric layout)
+  const getTileSpan = (index, total) => {
+    if (total === 3 && index === 0) return 'row-span-2';
+    return '';
   };
 
   const gradientColors = [
@@ -708,19 +752,21 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     return gradientColors[hash % gradientColors.length];
   };
 
-  const renderSpeakerTile = (p) => {
+  const renderSpeakerTile = (p, spanClass = '') => {
     const isCreator = dbRoom && dbRoom.creatorId?.toString() === p.identity;
     const isMe = p.identity === localParticipant?.identity;
     const hasMic = p.isMicrophoneEnabled;
     const isSpeaking = p.isSpeaking;
     const gradient = getGradient(p.identity);
+    // Truncate name: first 10 chars of first word
+    const displayName = p.name ? (p.name.split(' ')[0].slice(0, 10) + (p.name.split(' ')[0].length > 10 ? '…' : '')) : 'User';
 
     return (
       <div
         key={p.identity}
-        className={`relative rounded-2xl overflow-hidden bg-white dark:bg-gray-900 border-2 transition-all flex flex-col items-center justify-center p-4 w-full h-full shadow-sm ${
+        className={`${spanClass} relative rounded-2xl overflow-hidden bg-white dark:bg-gray-900 border-2 transition-all flex flex-col items-center justify-center p-3 w-full h-full shadow-sm ${
           isSpeaking
-            ? 'border-orange-500 shadow-lg shadow-orange-500/20 scale-[0.99]'
+            ? 'border-orange-500 shadow-lg shadow-orange-500/20'
             : 'border-gray-200 dark:border-gray-800'
         }`}
       >
@@ -731,12 +777,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           title={`View ${p.name || 'User'}'s Profile`}
         />
 
-        <div className="flex flex-col items-center justify-center gap-2 z-10">
+        <div className="flex flex-col items-center justify-center gap-2 z-10 w-full">
           <div className="relative">
             {isSpeaking && (
               <span className="absolute -inset-1.5 rounded-full bg-orange-500/30 animate-ping"></span>
             )}
-            <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr ${gradient} flex items-center justify-center text-white font-black text-sm sm:text-lg shadow-md border border-white/10 uppercase`}>
+            <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-gradient-to-tr ${gradient} flex items-center justify-center text-white font-black text-sm sm:text-lg shadow-md border border-white/10 uppercase`}>
               {p.name ? p.name[0] : 'U'}
             </div>
             {isSpeaking && (
@@ -746,30 +792,26 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             )}
           </div>
 
-          <div className="text-center animate-fade-in">
-            <span className="text-[11px] font-black text-gray-800 dark:text-white flex items-center gap-1 justify-center max-w-[100px] truncate">
-              {p.name || 'User'}
-              {isMe && <span className="text-[7px] bg-orange-500/10 dark:bg-white/20 text-orange-600 dark:text-white px-1 rounded uppercase tracking-wider">You</span>}
-            </span>
-            <span className="text-[8px] font-bold text-gray-500 dark:text-gray-400 block mt-0.5">
-              {isCreator ? 'Host' : 'Speaker'}
+          <div className="text-center w-full px-1">
+            <div className="flex items-center justify-center gap-1 flex-wrap">
+              <span className="text-[11px] font-black text-gray-800 dark:text-white leading-tight">
+                {displayName}
+              </span>
+              {isMe && <span className="text-[7px] bg-orange-500/10 dark:bg-white/20 text-orange-600 dark:text-white px-1 py-0.5 rounded uppercase tracking-wider shrink-0">You</span>}
+            </div>
+            <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 block mt-0.5">
+              {isCreator ? '👑 Host' : 'Speaker'}
             </span>
           </div>
         </div>
 
         <div className="absolute top-2 right-2 z-20 flex gap-1">
-          <span className={`p-1 rounded text-white text-[9px] font-bold shadow-sm ${
+          <span className={`p-1 rounded-lg text-white shadow-sm ${
             hasMic ? 'bg-green-500/80 backdrop-blur-sm' : 'bg-red-500/80 backdrop-blur-sm'
           }`}>
             {hasMic ? <Mic size={9} /> : <MicOff size={9} />}
           </span>
         </div>
-
-        {isCreator && (
-          <div className="absolute bottom-2 left-2 z-20 bg-orange-500/80 backdrop-blur-sm px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider text-white">
-            Host
-          </div>
-        )}
       </div>
     );
   };
@@ -779,31 +821,56 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
       {/* Stage Invitation Modal */}
       {showInviteModal && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-md flex items-center justify-center z-[200] p-4">
-          <div className="bg-white dark:bg-gray-900 border border-orange-200 dark:border-orange-500/30 rounded-3xl max-w-sm w-full p-7 shadow-2xl shadow-orange-500/10 text-center">
-            <div className="relative mb-5">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center mx-auto shadow-xl shadow-orange-500/30">
-                <Mic size={36} className="text-white animate-pulse" />
-              </div>
-              <div className="absolute inset-0 rounded-full bg-orange-500/20 blur-xl -z-10" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-xs w-full p-6 shadow-2xl text-center">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center mx-auto mb-4 shadow-xl shadow-orange-500/25">
+              <Hand size={28} className="text-white animate-bounce" />
             </div>
-            <h3 className="text-xl font-black text-gray-900 dark:text-white mb-1">You're on Stage! 🎙️</h3>
-            <p className="text-sm text-orange-600 dark:text-orange-400 font-bold mb-1">{inviterName} invited you</p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
-              Mic access granted. Join the stage to speak, or decline to stay as a listener.
+            <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">You're Invited to the Stage!</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
+              <span className="font-extrabold text-orange-500">{inviterName || 'The host'}</span> has invited you to speak. Your mic will be activated.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={handleDeclineInvite}
-                className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-2xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-600 font-bold text-xs transition cursor-pointer"
+                className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-bold text-xs transition cursor-pointer active:scale-95"
               >
                 Decline
               </button>
               <button
                 onClick={handleAcceptInvite}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-orange-500/30 transition cursor-pointer active:scale-95"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-orange-500/20 transition cursor-pointer active:scale-95"
               >
-                🎙️ Join Stage
+                🎤 Join Stage
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kick Confirmation Modal */}
+      {kickTarget && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-xs w-full p-6 shadow-2xl text-center">
+            <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+              <UserX size={26} className="text-red-500" />
+            </div>
+            <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">Remove Participant?</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
+              <span className="font-extrabold text-gray-800 dark:text-white">{kickTarget.name}</span> will be removed from this session and cannot rejoin.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setKickTarget(null)}
+                className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-bold text-xs transition cursor-pointer active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmKick}
+                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-red-500/20 transition cursor-pointer active:scale-95"
+              >
+                Remove
               </button>
             </div>
           </div>
@@ -816,9 +883,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         {/* Left: Brand + Room */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center shadow-lg shadow-orange-500/30">
-              <Radio size={15} className="text-white" />
-            </div>
+            <img src="/LP_M_logo.png" alt="LearnProof Logo" className="w-8 h-8 object-contain shrink-0" />
             <span className="text-xs font-black text-orange-500 uppercase tracking-widest hidden sm:block">LearnProof</span>
           </div>
           <div className="w-px h-5 bg-gray-200 dark:bg-white/10 shrink-0" />
@@ -845,15 +910,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleLeaveClick}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-lg transition-all active:scale-95 cursor-pointer ${
+            className={`flex items-center justify-center p-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-lg transition-all active:scale-95 cursor-pointer ${
               isHost
-                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/25'
-                : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/25 border-none'
+                : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/30'
             }`}
             title={isHost ? 'End Session for all' : 'Leave Room'}
           >
-            <PhoneOff size={13} />
-            <span>{isHost ? 'End Room' : 'Leave'}</span>
+            <PhoneOff size={16} />
           </button>
         </div>
       </div>
@@ -889,15 +953,30 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           )}
 
           {isVideoRoom ? (
+            // Video room: show camera when active, fallback to same card as audio room
             <div className="w-full h-full p-2 bg-orange-50 dark:bg-gray-950 overflow-hidden">
-              <div className={`grid ${getGridClassName(stageTracks.length)} w-full h-full gap-2`}>
-                {stageTracks.map((trackRef) => (
-                  <ParticipantTile
-                    key={`${trackRef.participant.identity}_${trackRef.source}`}
-                    trackRef={trackRef}
-                    className="rounded-2xl overflow-hidden shadow-2xl w-full h-full"
-                  />
-                ))}
+              <div className={`grid ${getGridClassName(stageSpeakers.length)} w-full h-full gap-2`}>
+                {stageSpeakers.map((p, i) => {
+                  // Check if this participant has their camera on
+                  const camTrack = tracks.find(t =>
+                    t.participant?.identity === p.identity && t.source === Track.Source.Camera && t.participant?.isCameraEnabled
+                  );
+                  return (
+                    <div
+                      key={p.identity}
+                      className={`${getTileSpan(i, stageSpeakers.length)} h-full`}
+                    >
+                      {camTrack ? (
+                        <ParticipantTile
+                          trackRef={camTrack}
+                          className="rounded-2xl overflow-hidden shadow-2xl w-full h-full"
+                        />
+                      ) : (
+                        renderSpeakerTile(p, 'h-full')
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : (
@@ -915,7 +994,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
               {/* Speaker Tiles */}
               <div className="flex-1 min-h-0">
                 <div className={`grid ${getGridClassName(stageSpeakers.length)} w-full h-full gap-3`}>
-                  {stageSpeakers.map(renderSpeakerTile)}
+                  {stageSpeakers.map((p, i) =>
+                    renderSpeakerTile(p, getTileSpan(i, stageSpeakers.length))
+                  )}
                 </div>
               </div>
 
@@ -1068,41 +1149,26 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                       <button
                         onClick={handleLeaveStage}
                         title="Step down from stage"
-                        className="flex items-center gap-1.5 px-3 py-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer font-black text-[11px] uppercase tracking-wider active:scale-95"
+                        className="p-3 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
                       >
-                        <MicOff size={15} />
-                        <span>Leave Stage</span>
+                        <MicOff size={20} />
                       </button>
                     )}
                   </>
                 ) : (
+                  /* Listener: Request / Withdraw stage button */
                   <button
-                    onClick={handleRequestToSpeak}
-                    disabled={hasRequested}
-                    className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border font-black text-[11px] uppercase tracking-wider transition-all cursor-pointer active:scale-95 ${
+                    onClick={hasRequested ? handleWithdrawRequest : handleRequestToSpeak}
+                    title={hasRequested ? 'Withdraw Stage Request' : 'Request to Speak'}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
                       hasRequested
-                        ? 'bg-orange-500/10 border-orange-500/25 text-orange-400 cursor-not-allowed opacity-75'
-                        : 'bg-gradient-to-r from-orange-500 to-amber-500 border-orange-500 text-white shadow-md shadow-orange-500/25 hover:from-orange-600 hover:to-amber-600'
+                        ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
+                        : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
                     }`}
                   >
-                    <Mic size={15} />
-                    <span>{hasRequested ? '✓ Requested' : 'Request Stage'}</span>
+                    <Hand size={20} className={hasRequested ? 'animate-pulse' : ''} />
                   </button>
                 )}
-
-                <div className="w-px h-5 bg-gray-200 dark:bg-white/10 mx-0.5" />
-
-                <button
-                  onClick={toggleTranslation}
-                  title={isTranscribing ? 'Stop Subtitles' : 'Live Subtitles'}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
-                    isTranscribing
-                      ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
-                      : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
-                  }`}
-                >
-                  <Languages size={20} />
-                </button>
               </div>
 
               {/* Right: Participants */}
@@ -1234,29 +1300,26 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                             {!pCanPublish ? (
                               <button
                                 onClick={() => handleInviteToStage(p.identity, p.name || 'User')}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-500/10 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-500/20 rounded-full transition-all cursor-pointer text-[10px] font-black uppercase tracking-wider active:scale-95"
+                                className="p-1.5 bg-orange-500/10 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
                                 title="Invite to Stage"
                               >
-                                <Mic size={13} />
-                                <span>Invite</span>
+                                <UserPlus size={14} />
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleDemoteSpeaker(p.identity, p.name || 'User')}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-500/15 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-500/20 rounded-full transition-all cursor-pointer text-[10px] font-black uppercase tracking-wider active:scale-95"
+                                className="p-1.5 bg-orange-500/10 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
                                 title="Demote to Audience"
                               >
-                                <MicOff size={13} />
-                                <span>Demote</span>
+                                <UserMinus size={14} />
                               </button>
                             )}
                             <button
                               onClick={() => handleKickParticipant(p.identity, p.name || 'User')}
-                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-full transition-all cursor-pointer text-[10px] font-black uppercase tracking-wider active:scale-95"
+                              className="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
                               title="Remove participant"
                             >
-                              <ShieldAlert size={13} />
-                              <span>Kick</span>
+                              <UserX size={14} />
                             </button>
                           </div>
                         )}

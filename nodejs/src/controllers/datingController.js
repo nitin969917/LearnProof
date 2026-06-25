@@ -1,4 +1,5 @@
 const datingPrisma = require('../utils/datingPrisma');
+const { sendPushNotification } = require('../utils/pushNotifier');
 
 // ==========================================
 // POST CONTROLLERS
@@ -585,7 +586,7 @@ const getUnreadCounts = async (req, res) => {
 // ==========================================
 
 const createLanguageRoom = async (req, res) => {
-  const { roomName, topic, language, roomType, mediaType, maxParticipants } = req.body;
+  const { roomName, topic, language, roomType, mediaType, maxParticipants, isFriendsOnly } = req.body;
   const creatorId = req.user.id;
 
   try {
@@ -627,6 +628,7 @@ const createLanguageRoom = async (req, res) => {
         roomType: finalRoomType,
         mediaType: mediaType || 'audio',
         maxParticipants: finalMaxParticipants,
+        isFriendsOnly: !!isFriendsOnly,
       },
       include: {
         creator: {
@@ -638,6 +640,37 @@ const createLanguageRoom = async (req, res) => {
         },
       },
     });
+
+    // Send push notification if it is friends only
+    if (room.isFriendsOnly) {
+      try {
+        const friendships = await datingPrisma.friendship.findMany({
+          where: {
+            status: 'accepted',
+            OR: [
+              { senderId: creatorId },
+              { receiverId: creatorId }
+            ]
+          }
+        });
+        const friendIds = friendships.map(f => f.senderId === creatorId ? f.receiverId : f.senderId);
+        
+        if (friendIds.length > 0) {
+          const creatorName = room.creator?.name || 'A friend';
+          const formattedLanguage = room.language || 'English';
+          const topicText = room.topic || 'General Discussion';
+          
+          sendPushNotification(
+            friendIds,
+            `${creatorName} started a live room`,
+            `Join the live room "${topicText}" in ${formattedLanguage} to discuss together!`,
+            { type: 'LIVE_ROOM_CREATED', roomName: room.roomName }
+          );
+        }
+      } catch (pushErr) {
+        console.error('Error sending friends-only room push notification:', pushErr.message);
+      }
+    }
 
     res.status(201).json(room);
   } catch (error) {
@@ -693,8 +726,33 @@ const deleteLanguageRoomByName = async (req, res) => {
 };
 
 const getLanguageRooms = async (req, res) => {
+  const userId = req.user.id;
+
   try {
+    // 1. Fetch all accepted friendships for the current user to resolve friend IDs
+    const friendships = await datingPrisma.friendship.findMany({
+      where: {
+        status: 'accepted',
+        OR: [
+          { senderId: userId },
+          { receiverId: userId }
+        ]
+      }
+    });
+
+    const friendIds = friendships.map((f) => 
+      f.senderId === userId ? f.receiverId : f.senderId
+    );
+
+    // 2. Fetch rooms that are public, owned by the user, or owned by their friends
     const rooms = await datingPrisma.languageRoom.findMany({
+      where: {
+        OR: [
+          { isFriendsOnly: false },
+          { creatorId: userId },
+          { creatorId: { in: friendIds } }
+        ]
+      },
       include: {
         creator: {
           select: {
@@ -716,7 +774,7 @@ const getLanguageRooms = async (req, res) => {
 };
 
 const createGroup = async (req, res) => {
-  const { name, description, isPrivate, entryKey } = req.body;
+  const { name, description, isPrivate, entryKey, onlyAdminsCanPost } = req.body;
   const creatorId = req.user.id;
 
   try {
@@ -734,6 +792,7 @@ const createGroup = async (req, res) => {
         description,
         isPrivate: !!isPrivate,
         entryKey: isPrivate ? entryKey : null,
+        onlyAdminsCanPost: !!onlyAdminsCanPost,
         creatorId,
         members: {
           create: {
@@ -921,6 +980,15 @@ const sendGroupMessage = async (req, res) => {
       return res.status(403).json({ error: 'Access denied: join group first' });
     }
 
+    // Check if onlyAdminsCanPost is enabled and sender is not admin
+    const group = await datingPrisma.group.findUnique({
+      where: { id: parseInt(groupId) },
+    });
+
+    if (group && group.onlyAdminsCanPost && group.creatorId !== senderId) {
+      return res.status(403).json({ error: 'Only admins can send messages in this group' });
+    }
+
     const message = await datingPrisma.groupMessage.create({
       data: {
         groupId: parseInt(groupId),
@@ -934,12 +1002,209 @@ const sendGroupMessage = async (req, res) => {
       },
     });
 
+    // Send push notifications to group members
+    try {
+      const members = await datingPrisma.groupMember.findMany({
+        where: {
+          groupId: parseInt(groupId),
+          userId: { not: senderId }
+        },
+        select: { userId: true }
+      });
+      const receiverIds = members.map(m => m.userId);
+      if (receiverIds.length > 0) {
+        sendPushNotification(
+          receiverIds,
+          `New message in ${group.name}`,
+          `${message.sender.name}: ${content}`,
+          { type: 'GROUP_MESSAGE', groupId: String(groupId) }
+        );
+      }
+    } catch (pushErr) {
+      console.error('Error sending group message push notification:', pushErr.message);
+    }
+
     res.status(201).json(message);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to send group message' });
   }
 };
+
+const getGroupDetails = async (req, res) => {
+  const { groupId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const group = await datingPrisma.group.findUnique({
+      where: { id: parseInt(groupId) },
+      include: {
+        creator: {
+          select: { id: true, name: true, profilePicture: true },
+        },
+        members: {
+          include: {
+            user: {
+              select: { id: true, name: true, profilePicture: true, collegeName: true, department: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+
+    // Verify membership
+    const isMember = group.members.some(m => m.userId === userId);
+    if (!isMember) {
+      return res.status(403).json({ error: 'Access denied: join group first' });
+    }
+
+    res.json(group);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch group details' });
+  }
+};
+
+const updateGroupSettings = async (req, res) => {
+  const { groupId } = req.params;
+  const { onlyAdminsCanPost, description, name } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const group = await datingPrisma.group.findUnique({
+      where: { id: parseInt(groupId) }
+    });
+
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+
+    if (group.creatorId !== userId) {
+      return res.status(403).json({ error: 'Only the group admin can update settings' });
+    }
+
+    const updatedGroup = await datingPrisma.group.update({
+      where: { id: parseInt(groupId) },
+      data: {
+        onlyAdminsCanPost: onlyAdminsCanPost !== undefined ? !!onlyAdminsCanPost : group.onlyAdminsCanPost,
+        description: description !== undefined ? description : group.description,
+        name: name !== undefined ? name : group.name
+      },
+      include: {
+        creator: {
+          select: { id: true, name: true, profilePicture: true },
+        }
+      }
+    });
+
+    res.json(updatedGroup);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update group settings' });
+  }
+};
+
+const addGroupMember = async (req, res) => {
+  const { groupId } = req.params;
+  const { userId } = req.body;
+  const adminId = req.user.id;
+
+  try {
+    const group = await datingPrisma.group.findUnique({
+      where: { id: parseInt(groupId) }
+    });
+
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+
+    if (group.creatorId !== adminId) {
+      return res.status(403).json({ error: 'Only the group admin can add members' });
+    }
+
+    // Check if already a member
+    const existingMember = await datingPrisma.groupMember.findUnique({
+      where: {
+        groupId_userId: {
+          groupId: parseInt(groupId),
+          userId: parseInt(userId),
+        },
+      },
+    });
+
+    if (existingMember) {
+      return res.status(400).json({ error: 'User is already a member of this group' });
+    }
+
+    const newMember = await datingPrisma.groupMember.create({
+      data: {
+        groupId: parseInt(groupId),
+        userId: parseInt(userId),
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, profilePicture: true }
+        }
+      }
+    });
+
+    res.json(newMember);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to add member' });
+  }
+};
+
+const removeGroupMember = async (req, res) => {
+  const { groupId, userId } = req.params;
+  const adminId = req.user.id;
+
+  try {
+    const group = await datingPrisma.group.findUnique({
+      where: { id: parseInt(groupId) }
+    });
+
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+
+    if (group.creatorId !== adminId) {
+      return res.status(403).json({ error: 'Only the group admin can remove members' });
+    }
+
+    if (parseInt(userId) === group.creatorId) {
+      return res.status(400).json({ error: 'The group creator cannot be removed' });
+    }
+
+    const member = await datingPrisma.groupMember.findUnique({
+      where: {
+        groupId_userId: {
+          groupId: parseInt(groupId),
+          userId: parseInt(userId),
+        },
+      },
+    });
+
+    if (!member) {
+      return res.status(404).json({ error: 'User is not a member of this group' });
+    }
+
+    await datingPrisma.groupMember.delete({
+      where: { id: member.id },
+    });
+
+    res.json({ message: 'Member successfully removed' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to remove member' });
+  }
+};
+
+
 
 const getComments = async (req, res) => {
   const { postId } = req.params;
@@ -1089,6 +1354,71 @@ const getPost = async (req, res) => {
   }
 };
 
+const deleteMessage = async (req, res) => {
+  const { messageId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const msg = await datingPrisma.message.findUnique({
+      where: { id: parseInt(messageId) }
+    });
+
+    if (!msg) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    if (msg.senderId !== userId) {
+      return res.status(403).json({ error: 'Unauthorized to delete this message' });
+    }
+
+    const updated = await datingPrisma.message.update({
+      where: { id: parseInt(messageId) },
+      data: { isDeleted: true, content: 'This message was deleted' }
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to delete message' });
+  }
+};
+
+const deleteGroupMessage = async (req, res) => {
+  const { messageId, groupId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const msg = await datingPrisma.groupMessage.findUnique({
+      where: { id: parseInt(messageId) }
+    });
+
+    if (!msg) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    const group = await datingPrisma.group.findUnique({
+      where: { id: parseInt(groupId) }
+    });
+
+    const isGroupCreator = group && group.creatorId === userId;
+    const isSender = msg.senderId === userId;
+
+    if (!isSender && !isGroupCreator) {
+      return res.status(403).json({ error: 'Unauthorized to delete this message' });
+    }
+
+    const updated = await datingPrisma.groupMessage.update({
+      where: { id: parseInt(messageId) },
+      data: { isDeleted: true, content: 'This message was deleted' }
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to delete message' });
+  }
+};
+
 module.exports = {
   createPost,
   getFeed,
@@ -1116,8 +1446,14 @@ module.exports = {
   getGroups,
   getGroupMessages,
   sendGroupMessage,
+  getGroupDetails,
+  updateGroupSettings,
+  addGroupMember,
+  removeGroupMember,
   getComments,
   createComment,
   deleteComment,
   getPost,
+  deleteMessage,
+  deleteGroupMessage,
 };

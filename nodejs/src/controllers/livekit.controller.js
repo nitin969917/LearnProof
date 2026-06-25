@@ -37,6 +37,22 @@ const getToken = async (req, res) => {
       where: { roomName: room }
     });
 
+    if (dbRoom && dbRoom.isFriendsOnly && dbRoom.creatorId !== userId) {
+      const friendship = await datingPrisma.friendship.findFirst({
+        where: {
+          status: 'accepted',
+          OR: [
+            { senderId: dbRoom.creatorId, receiverId: userId },
+            { senderId: userId, receiverId: dbRoom.creatorId }
+          ]
+        }
+      });
+
+      if (!friendship) {
+        return res.status(403).json({ error: 'Access denied: this is a friends-only room' });
+      }
+    }
+
     const isAdmin = dbRoom ? (dbRoom.creatorId === userId) : false;
 
     // 2. Ensure room exists in LiveKit server (support up to 500 audience members for "unlimited" feel)

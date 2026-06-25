@@ -6086,6 +6086,7 @@ export namespace Prisma {
     id: number | null
     content: string | null
     isRead: boolean | null
+    isDeleted: boolean | null
     createdAt: Date | null
     senderId: number | null
     receiverId: number | null
@@ -6095,6 +6096,7 @@ export namespace Prisma {
     id: number | null
     content: string | null
     isRead: boolean | null
+    isDeleted: boolean | null
     createdAt: Date | null
     senderId: number | null
     receiverId: number | null
@@ -6104,6 +6106,7 @@ export namespace Prisma {
     id: number
     content: number
     isRead: number
+    isDeleted: number
     createdAt: number
     senderId: number
     receiverId: number
@@ -6127,6 +6130,7 @@ export namespace Prisma {
     id?: true
     content?: true
     isRead?: true
+    isDeleted?: true
     createdAt?: true
     senderId?: true
     receiverId?: true
@@ -6136,6 +6140,7 @@ export namespace Prisma {
     id?: true
     content?: true
     isRead?: true
+    isDeleted?: true
     createdAt?: true
     senderId?: true
     receiverId?: true
@@ -6145,6 +6150,7 @@ export namespace Prisma {
     id?: true
     content?: true
     isRead?: true
+    isDeleted?: true
     createdAt?: true
     senderId?: true
     receiverId?: true
@@ -6241,6 +6247,7 @@ export namespace Prisma {
     id: number
     content: string
     isRead: boolean
+    isDeleted: boolean
     createdAt: Date
     senderId: number
     receiverId: number
@@ -6269,6 +6276,7 @@ export namespace Prisma {
     id?: boolean
     content?: boolean
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: boolean
     senderId?: boolean
     receiverId?: boolean
@@ -6280,6 +6288,7 @@ export namespace Prisma {
     id?: boolean
     content?: boolean
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: boolean
     senderId?: boolean
     receiverId?: boolean
@@ -6291,6 +6300,7 @@ export namespace Prisma {
     id?: boolean
     content?: boolean
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: boolean
     senderId?: boolean
     receiverId?: boolean
@@ -6302,12 +6312,13 @@ export namespace Prisma {
     id?: boolean
     content?: boolean
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: boolean
     senderId?: boolean
     receiverId?: boolean
   }
 
-  export type MessageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "content" | "isRead" | "createdAt" | "senderId" | "receiverId", ExtArgs["result"]["message"]>
+  export type MessageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "content" | "isRead" | "isDeleted" | "createdAt" | "senderId" | "receiverId", ExtArgs["result"]["message"]>
   export type MessageInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sender?: boolean | UserDefaultArgs<ExtArgs>
     receiver?: boolean | UserDefaultArgs<ExtArgs>
@@ -6331,6 +6342,7 @@ export namespace Prisma {
       id: number
       content: string
       isRead: boolean
+      isDeleted: boolean
       createdAt: Date
       senderId: number
       receiverId: number
@@ -6762,6 +6774,7 @@ export namespace Prisma {
     readonly id: FieldRef<"Message", 'Int'>
     readonly content: FieldRef<"Message", 'String'>
     readonly isRead: FieldRef<"Message", 'Boolean'>
+    readonly isDeleted: FieldRef<"Message", 'Boolean'>
     readonly createdAt: FieldRef<"Message", 'DateTime'>
     readonly senderId: FieldRef<"Message", 'Int'>
     readonly receiverId: FieldRef<"Message", 'Int'>
@@ -10540,6 +10553,7 @@ export namespace Prisma {
     roomType: string | null
     mediaType: string | null
     maxParticipants: number | null
+    isFriendsOnly: boolean | null
     createdAt: Date | null
     creatorId: number | null
   }
@@ -10552,6 +10566,7 @@ export namespace Prisma {
     roomType: string | null
     mediaType: string | null
     maxParticipants: number | null
+    isFriendsOnly: boolean | null
     createdAt: Date | null
     creatorId: number | null
   }
@@ -10564,6 +10579,7 @@ export namespace Prisma {
     roomType: number
     mediaType: number
     maxParticipants: number
+    isFriendsOnly: number
     createdAt: number
     creatorId: number
     _all: number
@@ -10590,6 +10606,7 @@ export namespace Prisma {
     roomType?: true
     mediaType?: true
     maxParticipants?: true
+    isFriendsOnly?: true
     createdAt?: true
     creatorId?: true
   }
@@ -10602,6 +10619,7 @@ export namespace Prisma {
     roomType?: true
     mediaType?: true
     maxParticipants?: true
+    isFriendsOnly?: true
     createdAt?: true
     creatorId?: true
   }
@@ -10614,6 +10632,7 @@ export namespace Prisma {
     roomType?: true
     mediaType?: true
     maxParticipants?: true
+    isFriendsOnly?: true
     createdAt?: true
     creatorId?: true
     _all?: true
@@ -10713,6 +10732,7 @@ export namespace Prisma {
     roomType: string
     mediaType: string
     maxParticipants: number
+    isFriendsOnly: boolean
     createdAt: Date
     creatorId: number
     _count: LanguageRoomCountAggregateOutputType | null
@@ -10744,6 +10764,7 @@ export namespace Prisma {
     roomType?: boolean
     mediaType?: boolean
     maxParticipants?: boolean
+    isFriendsOnly?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10757,6 +10778,7 @@ export namespace Prisma {
     roomType?: boolean
     mediaType?: boolean
     maxParticipants?: boolean
+    isFriendsOnly?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10770,6 +10792,7 @@ export namespace Prisma {
     roomType?: boolean
     mediaType?: boolean
     maxParticipants?: boolean
+    isFriendsOnly?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10783,11 +10806,12 @@ export namespace Prisma {
     roomType?: boolean
     mediaType?: boolean
     maxParticipants?: boolean
+    isFriendsOnly?: boolean
     createdAt?: boolean
     creatorId?: boolean
   }
 
-  export type LanguageRoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "roomName" | "topic" | "language" | "roomType" | "mediaType" | "maxParticipants" | "createdAt" | "creatorId", ExtArgs["result"]["languageRoom"]>
+  export type LanguageRoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "roomName" | "topic" | "language" | "roomType" | "mediaType" | "maxParticipants" | "isFriendsOnly" | "createdAt" | "creatorId", ExtArgs["result"]["languageRoom"]>
   export type LanguageRoomInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     creator?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -10811,6 +10835,7 @@ export namespace Prisma {
       roomType: string
       mediaType: string
       maxParticipants: number
+      isFriendsOnly: boolean
       createdAt: Date
       creatorId: number
     }, ExtArgs["result"]["languageRoom"]>
@@ -11244,6 +11269,7 @@ export namespace Prisma {
     readonly roomType: FieldRef<"LanguageRoom", 'String'>
     readonly mediaType: FieldRef<"LanguageRoom", 'String'>
     readonly maxParticipants: FieldRef<"LanguageRoom", 'Int'>
+    readonly isFriendsOnly: FieldRef<"LanguageRoom", 'Boolean'>
     readonly createdAt: FieldRef<"LanguageRoom", 'DateTime'>
     readonly creatorId: FieldRef<"LanguageRoom", 'Int'>
   }
@@ -11687,6 +11713,7 @@ export namespace Prisma {
     isPrivate: boolean | null
     entryKey: string | null
     createdAt: Date | null
+    onlyAdminsCanPost: boolean | null
     creatorId: number | null
   }
 
@@ -11697,6 +11724,7 @@ export namespace Prisma {
     isPrivate: boolean | null
     entryKey: string | null
     createdAt: Date | null
+    onlyAdminsCanPost: boolean | null
     creatorId: number | null
   }
 
@@ -11707,6 +11735,7 @@ export namespace Prisma {
     isPrivate: number
     entryKey: number
     createdAt: number
+    onlyAdminsCanPost: number
     creatorId: number
     _all: number
   }
@@ -11729,6 +11758,7 @@ export namespace Prisma {
     isPrivate?: true
     entryKey?: true
     createdAt?: true
+    onlyAdminsCanPost?: true
     creatorId?: true
   }
 
@@ -11739,6 +11769,7 @@ export namespace Prisma {
     isPrivate?: true
     entryKey?: true
     createdAt?: true
+    onlyAdminsCanPost?: true
     creatorId?: true
   }
 
@@ -11749,6 +11780,7 @@ export namespace Prisma {
     isPrivate?: true
     entryKey?: true
     createdAt?: true
+    onlyAdminsCanPost?: true
     creatorId?: true
     _all?: true
   }
@@ -11846,6 +11878,7 @@ export namespace Prisma {
     isPrivate: boolean
     entryKey: string | null
     createdAt: Date
+    onlyAdminsCanPost: boolean
     creatorId: number
     _count: GroupCountAggregateOutputType | null
     _avg: GroupAvgAggregateOutputType | null
@@ -11875,6 +11908,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: boolean
     createdAt?: boolean
+    onlyAdminsCanPost?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
     members?: boolean | Group$membersArgs<ExtArgs>
@@ -11889,6 +11923,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: boolean
     createdAt?: boolean
+    onlyAdminsCanPost?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["group"]>
@@ -11900,6 +11935,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: boolean
     createdAt?: boolean
+    onlyAdminsCanPost?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["group"]>
@@ -11911,10 +11947,11 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: boolean
     createdAt?: boolean
+    onlyAdminsCanPost?: boolean
     creatorId?: boolean
   }
 
-  export type GroupOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "isPrivate" | "entryKey" | "createdAt" | "creatorId", ExtArgs["result"]["group"]>
+  export type GroupOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "isPrivate" | "entryKey" | "createdAt" | "onlyAdminsCanPost" | "creatorId", ExtArgs["result"]["group"]>
   export type GroupInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     creator?: boolean | UserDefaultArgs<ExtArgs>
     members?: boolean | Group$membersArgs<ExtArgs>
@@ -11942,6 +11979,7 @@ export namespace Prisma {
       isPrivate: boolean
       entryKey: string | null
       createdAt: Date
+      onlyAdminsCanPost: boolean
       creatorId: number
     }, ExtArgs["result"]["group"]>
     composites: {}
@@ -12375,6 +12413,7 @@ export namespace Prisma {
     readonly isPrivate: FieldRef<"Group", 'Boolean'>
     readonly entryKey: FieldRef<"Group", 'String'>
     readonly createdAt: FieldRef<"Group", 'DateTime'>
+    readonly onlyAdminsCanPost: FieldRef<"Group", 'Boolean'>
     readonly creatorId: FieldRef<"Group", 'Int'>
   }
     
@@ -13956,6 +13995,7 @@ export namespace Prisma {
   export type GroupMessageMinAggregateOutputType = {
     id: number | null
     content: string | null
+    isDeleted: boolean | null
     createdAt: Date | null
     groupId: number | null
     senderId: number | null
@@ -13964,6 +14004,7 @@ export namespace Prisma {
   export type GroupMessageMaxAggregateOutputType = {
     id: number | null
     content: string | null
+    isDeleted: boolean | null
     createdAt: Date | null
     groupId: number | null
     senderId: number | null
@@ -13972,6 +14013,7 @@ export namespace Prisma {
   export type GroupMessageCountAggregateOutputType = {
     id: number
     content: number
+    isDeleted: number
     createdAt: number
     groupId: number
     senderId: number
@@ -13994,6 +14036,7 @@ export namespace Prisma {
   export type GroupMessageMinAggregateInputType = {
     id?: true
     content?: true
+    isDeleted?: true
     createdAt?: true
     groupId?: true
     senderId?: true
@@ -14002,6 +14045,7 @@ export namespace Prisma {
   export type GroupMessageMaxAggregateInputType = {
     id?: true
     content?: true
+    isDeleted?: true
     createdAt?: true
     groupId?: true
     senderId?: true
@@ -14010,6 +14054,7 @@ export namespace Prisma {
   export type GroupMessageCountAggregateInputType = {
     id?: true
     content?: true
+    isDeleted?: true
     createdAt?: true
     groupId?: true
     senderId?: true
@@ -14105,6 +14150,7 @@ export namespace Prisma {
   export type GroupMessageGroupByOutputType = {
     id: number
     content: string
+    isDeleted: boolean
     createdAt: Date
     groupId: number
     senderId: number
@@ -14132,6 +14178,7 @@ export namespace Prisma {
   export type GroupMessageSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     content?: boolean
+    isDeleted?: boolean
     createdAt?: boolean
     groupId?: boolean
     senderId?: boolean
@@ -14142,6 +14189,7 @@ export namespace Prisma {
   export type GroupMessageSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     content?: boolean
+    isDeleted?: boolean
     createdAt?: boolean
     groupId?: boolean
     senderId?: boolean
@@ -14152,6 +14200,7 @@ export namespace Prisma {
   export type GroupMessageSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     content?: boolean
+    isDeleted?: boolean
     createdAt?: boolean
     groupId?: boolean
     senderId?: boolean
@@ -14162,12 +14211,13 @@ export namespace Prisma {
   export type GroupMessageSelectScalar = {
     id?: boolean
     content?: boolean
+    isDeleted?: boolean
     createdAt?: boolean
     groupId?: boolean
     senderId?: boolean
   }
 
-  export type GroupMessageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "content" | "createdAt" | "groupId" | "senderId", ExtArgs["result"]["groupMessage"]>
+  export type GroupMessageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "content" | "isDeleted" | "createdAt" | "groupId" | "senderId", ExtArgs["result"]["groupMessage"]>
   export type GroupMessageInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     group?: boolean | GroupDefaultArgs<ExtArgs>
     sender?: boolean | UserDefaultArgs<ExtArgs>
@@ -14190,6 +14240,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: number
       content: string
+      isDeleted: boolean
       createdAt: Date
       groupId: number
       senderId: number
@@ -14620,6 +14671,7 @@ export namespace Prisma {
   interface GroupMessageFieldRefs {
     readonly id: FieldRef<"GroupMessage", 'Int'>
     readonly content: FieldRef<"GroupMessage", 'String'>
+    readonly isDeleted: FieldRef<"GroupMessage", 'Boolean'>
     readonly createdAt: FieldRef<"GroupMessage", 'DateTime'>
     readonly groupId: FieldRef<"GroupMessage", 'Int'>
     readonly senderId: FieldRef<"GroupMessage", 'Int'>
@@ -15106,6 +15158,7 @@ export namespace Prisma {
     id: 'id',
     content: 'content',
     isRead: 'isRead',
+    isDeleted: 'isDeleted',
     createdAt: 'createdAt',
     senderId: 'senderId',
     receiverId: 'receiverId'
@@ -15156,6 +15209,7 @@ export namespace Prisma {
     roomType: 'roomType',
     mediaType: 'mediaType',
     maxParticipants: 'maxParticipants',
+    isFriendsOnly: 'isFriendsOnly',
     createdAt: 'createdAt',
     creatorId: 'creatorId'
   };
@@ -15170,6 +15224,7 @@ export namespace Prisma {
     isPrivate: 'isPrivate',
     entryKey: 'entryKey',
     createdAt: 'createdAt',
+    onlyAdminsCanPost: 'onlyAdminsCanPost',
     creatorId: 'creatorId'
   };
 
@@ -15189,6 +15244,7 @@ export namespace Prisma {
   export const GroupMessageScalarFieldEnum: {
     id: 'id',
     content: 'content',
+    isDeleted: 'isDeleted',
     createdAt: 'createdAt',
     groupId: 'groupId',
     senderId: 'senderId'
@@ -15601,6 +15657,7 @@ export namespace Prisma {
     id?: IntFilter<"Message"> | number
     content?: StringFilter<"Message"> | string
     isRead?: BoolFilter<"Message"> | boolean
+    isDeleted?: BoolFilter<"Message"> | boolean
     createdAt?: DateTimeFilter<"Message"> | Date | string
     senderId?: IntFilter<"Message"> | number
     receiverId?: IntFilter<"Message"> | number
@@ -15612,6 +15669,7 @@ export namespace Prisma {
     id?: SortOrder
     content?: SortOrder
     isRead?: SortOrder
+    isDeleted?: SortOrder
     createdAt?: SortOrder
     senderId?: SortOrder
     receiverId?: SortOrder
@@ -15626,6 +15684,7 @@ export namespace Prisma {
     NOT?: MessageWhereInput | MessageWhereInput[]
     content?: StringFilter<"Message"> | string
     isRead?: BoolFilter<"Message"> | boolean
+    isDeleted?: BoolFilter<"Message"> | boolean
     createdAt?: DateTimeFilter<"Message"> | Date | string
     senderId?: IntFilter<"Message"> | number
     receiverId?: IntFilter<"Message"> | number
@@ -15637,6 +15696,7 @@ export namespace Prisma {
     id?: SortOrder
     content?: SortOrder
     isRead?: SortOrder
+    isDeleted?: SortOrder
     createdAt?: SortOrder
     senderId?: SortOrder
     receiverId?: SortOrder
@@ -15654,6 +15714,7 @@ export namespace Prisma {
     id?: IntWithAggregatesFilter<"Message"> | number
     content?: StringWithAggregatesFilter<"Message"> | string
     isRead?: BoolWithAggregatesFilter<"Message"> | boolean
+    isDeleted?: BoolWithAggregatesFilter<"Message"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"Message"> | Date | string
     senderId?: IntWithAggregatesFilter<"Message"> | number
     receiverId?: IntWithAggregatesFilter<"Message"> | number
@@ -15857,6 +15918,7 @@ export namespace Prisma {
     roomType?: StringFilter<"LanguageRoom"> | string
     mediaType?: StringFilter<"LanguageRoom"> | string
     maxParticipants?: IntFilter<"LanguageRoom"> | number
+    isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -15870,6 +15932,7 @@ export namespace Prisma {
     roomType?: SortOrder
     mediaType?: SortOrder
     maxParticipants?: SortOrder
+    isFriendsOnly?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
     creator?: UserOrderByWithRelationInput
@@ -15886,6 +15949,7 @@ export namespace Prisma {
     roomType?: StringFilter<"LanguageRoom"> | string
     mediaType?: StringFilter<"LanguageRoom"> | string
     maxParticipants?: IntFilter<"LanguageRoom"> | number
+    isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -15899,6 +15963,7 @@ export namespace Prisma {
     roomType?: SortOrder
     mediaType?: SortOrder
     maxParticipants?: SortOrder
+    isFriendsOnly?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
     _count?: LanguageRoomCountOrderByAggregateInput
@@ -15919,6 +15984,7 @@ export namespace Prisma {
     roomType?: StringWithAggregatesFilter<"LanguageRoom"> | string
     mediaType?: StringWithAggregatesFilter<"LanguageRoom"> | string
     maxParticipants?: IntWithAggregatesFilter<"LanguageRoom"> | number
+    isFriendsOnly?: BoolWithAggregatesFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"LanguageRoom"> | Date | string
     creatorId?: IntWithAggregatesFilter<"LanguageRoom"> | number
   }
@@ -15933,6 +15999,7 @@ export namespace Prisma {
     isPrivate?: BoolFilter<"Group"> | boolean
     entryKey?: StringNullableFilter<"Group"> | string | null
     createdAt?: DateTimeFilter<"Group"> | Date | string
+    onlyAdminsCanPost?: BoolFilter<"Group"> | boolean
     creatorId?: IntFilter<"Group"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
     members?: GroupMemberListRelationFilter
@@ -15946,6 +16013,7 @@ export namespace Prisma {
     isPrivate?: SortOrder
     entryKey?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    onlyAdminsCanPost?: SortOrder
     creatorId?: SortOrder
     creator?: UserOrderByWithRelationInput
     members?: GroupMemberOrderByRelationAggregateInput
@@ -15962,6 +16030,7 @@ export namespace Prisma {
     isPrivate?: BoolFilter<"Group"> | boolean
     entryKey?: StringNullableFilter<"Group"> | string | null
     createdAt?: DateTimeFilter<"Group"> | Date | string
+    onlyAdminsCanPost?: BoolFilter<"Group"> | boolean
     creatorId?: IntFilter<"Group"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
     members?: GroupMemberListRelationFilter
@@ -15975,6 +16044,7 @@ export namespace Prisma {
     isPrivate?: SortOrder
     entryKey?: SortOrderInput | SortOrder
     createdAt?: SortOrder
+    onlyAdminsCanPost?: SortOrder
     creatorId?: SortOrder
     _count?: GroupCountOrderByAggregateInput
     _avg?: GroupAvgOrderByAggregateInput
@@ -15993,6 +16063,7 @@ export namespace Prisma {
     isPrivate?: BoolWithAggregatesFilter<"Group"> | boolean
     entryKey?: StringNullableWithAggregatesFilter<"Group"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Group"> | Date | string
+    onlyAdminsCanPost?: BoolWithAggregatesFilter<"Group"> | boolean
     creatorId?: IntWithAggregatesFilter<"Group"> | number
   }
 
@@ -16058,6 +16129,7 @@ export namespace Prisma {
     NOT?: GroupMessageWhereInput | GroupMessageWhereInput[]
     id?: IntFilter<"GroupMessage"> | number
     content?: StringFilter<"GroupMessage"> | string
+    isDeleted?: BoolFilter<"GroupMessage"> | boolean
     createdAt?: DateTimeFilter<"GroupMessage"> | Date | string
     groupId?: IntFilter<"GroupMessage"> | number
     senderId?: IntFilter<"GroupMessage"> | number
@@ -16068,6 +16140,7 @@ export namespace Prisma {
   export type GroupMessageOrderByWithRelationInput = {
     id?: SortOrder
     content?: SortOrder
+    isDeleted?: SortOrder
     createdAt?: SortOrder
     groupId?: SortOrder
     senderId?: SortOrder
@@ -16081,6 +16154,7 @@ export namespace Prisma {
     OR?: GroupMessageWhereInput[]
     NOT?: GroupMessageWhereInput | GroupMessageWhereInput[]
     content?: StringFilter<"GroupMessage"> | string
+    isDeleted?: BoolFilter<"GroupMessage"> | boolean
     createdAt?: DateTimeFilter<"GroupMessage"> | Date | string
     groupId?: IntFilter<"GroupMessage"> | number
     senderId?: IntFilter<"GroupMessage"> | number
@@ -16091,6 +16165,7 @@ export namespace Prisma {
   export type GroupMessageOrderByWithAggregationInput = {
     id?: SortOrder
     content?: SortOrder
+    isDeleted?: SortOrder
     createdAt?: SortOrder
     groupId?: SortOrder
     senderId?: SortOrder
@@ -16107,6 +16182,7 @@ export namespace Prisma {
     NOT?: GroupMessageScalarWhereWithAggregatesInput | GroupMessageScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"GroupMessage"> | number
     content?: StringWithAggregatesFilter<"GroupMessage"> | string
+    isDeleted?: BoolWithAggregatesFilter<"GroupMessage"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"GroupMessage"> | Date | string
     groupId?: IntWithAggregatesFilter<"GroupMessage"> | number
     senderId?: IntWithAggregatesFilter<"GroupMessage"> | number
@@ -16500,6 +16576,7 @@ export namespace Prisma {
   export type MessageCreateInput = {
     content: string
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: Date | string
     sender: UserCreateNestedOneWithoutSentMessagesInput
     receiver: UserCreateNestedOneWithoutReceivedMessagesInput
@@ -16509,6 +16586,7 @@ export namespace Prisma {
     id?: number
     content: string
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: Date | string
     senderId: number
     receiverId: number
@@ -16517,6 +16595,7 @@ export namespace Prisma {
   export type MessageUpdateInput = {
     content?: StringFieldUpdateOperationsInput | string
     isRead?: BoolFieldUpdateOperationsInput | boolean
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sender?: UserUpdateOneRequiredWithoutSentMessagesNestedInput
     receiver?: UserUpdateOneRequiredWithoutReceivedMessagesNestedInput
@@ -16526,6 +16605,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
     isRead?: BoolFieldUpdateOperationsInput | boolean
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     senderId?: IntFieldUpdateOperationsInput | number
     receiverId?: IntFieldUpdateOperationsInput | number
@@ -16535,6 +16615,7 @@ export namespace Prisma {
     id?: number
     content: string
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: Date | string
     senderId: number
     receiverId: number
@@ -16543,6 +16624,7 @@ export namespace Prisma {
   export type MessageUpdateManyMutationInput = {
     content?: StringFieldUpdateOperationsInput | string
     isRead?: BoolFieldUpdateOperationsInput | boolean
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -16550,6 +16632,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
     isRead?: BoolFieldUpdateOperationsInput | boolean
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     senderId?: IntFieldUpdateOperationsInput | number
     receiverId?: IntFieldUpdateOperationsInput | number
@@ -16722,6 +16805,7 @@ export namespace Prisma {
     roomType?: string
     mediaType?: string
     maxParticipants?: number
+    isFriendsOnly?: boolean
     createdAt?: Date | string
     creator: UserCreateNestedOneWithoutLanguageRoomsInput
   }
@@ -16734,6 +16818,7 @@ export namespace Prisma {
     roomType?: string
     mediaType?: string
     maxParticipants?: number
+    isFriendsOnly?: boolean
     createdAt?: Date | string
     creatorId: number
   }
@@ -16745,6 +16830,7 @@ export namespace Prisma {
     roomType?: StringFieldUpdateOperationsInput | string
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
+    isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutLanguageRoomsNestedInput
   }
@@ -16757,6 +16843,7 @@ export namespace Prisma {
     roomType?: StringFieldUpdateOperationsInput | string
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
+    isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creatorId?: IntFieldUpdateOperationsInput | number
   }
@@ -16769,6 +16856,7 @@ export namespace Prisma {
     roomType?: string
     mediaType?: string
     maxParticipants?: number
+    isFriendsOnly?: boolean
     createdAt?: Date | string
     creatorId: number
   }
@@ -16780,6 +16868,7 @@ export namespace Prisma {
     roomType?: StringFieldUpdateOperationsInput | string
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
+    isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -16791,6 +16880,7 @@ export namespace Prisma {
     roomType?: StringFieldUpdateOperationsInput | string
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
+    isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creatorId?: IntFieldUpdateOperationsInput | number
   }
@@ -16801,6 +16891,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: string | null
     createdAt?: Date | string
+    onlyAdminsCanPost?: boolean
     creator: UserCreateNestedOneWithoutCreatedGroupsInput
     members?: GroupMemberCreateNestedManyWithoutGroupInput
     messages?: GroupMessageCreateNestedManyWithoutGroupInput
@@ -16813,6 +16904,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: string | null
     createdAt?: Date | string
+    onlyAdminsCanPost?: boolean
     creatorId: number
     members?: GroupMemberUncheckedCreateNestedManyWithoutGroupInput
     messages?: GroupMessageUncheckedCreateNestedManyWithoutGroupInput
@@ -16824,6 +16916,7 @@ export namespace Prisma {
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
     creator?: UserUpdateOneRequiredWithoutCreatedGroupsNestedInput
     members?: GroupMemberUpdateManyWithoutGroupNestedInput
     messages?: GroupMessageUpdateManyWithoutGroupNestedInput
@@ -16836,6 +16929,7 @@ export namespace Prisma {
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
     creatorId?: IntFieldUpdateOperationsInput | number
     members?: GroupMemberUncheckedUpdateManyWithoutGroupNestedInput
     messages?: GroupMessageUncheckedUpdateManyWithoutGroupNestedInput
@@ -16848,6 +16942,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: string | null
     createdAt?: Date | string
+    onlyAdminsCanPost?: boolean
     creatorId: number
   }
 
@@ -16857,6 +16952,7 @@ export namespace Prisma {
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type GroupUncheckedUpdateManyInput = {
@@ -16866,6 +16962,7 @@ export namespace Prisma {
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
     creatorId?: IntFieldUpdateOperationsInput | number
   }
 
@@ -16915,6 +17012,7 @@ export namespace Prisma {
 
   export type GroupMessageCreateInput = {
     content: string
+    isDeleted?: boolean
     createdAt?: Date | string
     group: GroupCreateNestedOneWithoutMessagesInput
     sender: UserCreateNestedOneWithoutGroupMessagesInput
@@ -16923,6 +17021,7 @@ export namespace Prisma {
   export type GroupMessageUncheckedCreateInput = {
     id?: number
     content: string
+    isDeleted?: boolean
     createdAt?: Date | string
     groupId: number
     senderId: number
@@ -16930,6 +17029,7 @@ export namespace Prisma {
 
   export type GroupMessageUpdateInput = {
     content?: StringFieldUpdateOperationsInput | string
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     group?: GroupUpdateOneRequiredWithoutMessagesNestedInput
     sender?: UserUpdateOneRequiredWithoutGroupMessagesNestedInput
@@ -16938,6 +17038,7 @@ export namespace Prisma {
   export type GroupMessageUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     groupId?: IntFieldUpdateOperationsInput | number
     senderId?: IntFieldUpdateOperationsInput | number
@@ -16946,6 +17047,7 @@ export namespace Prisma {
   export type GroupMessageCreateManyInput = {
     id?: number
     content: string
+    isDeleted?: boolean
     createdAt?: Date | string
     groupId: number
     senderId: number
@@ -16953,12 +17055,14 @@ export namespace Prisma {
 
   export type GroupMessageUpdateManyMutationInput = {
     content?: StringFieldUpdateOperationsInput | string
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type GroupMessageUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     groupId?: IntFieldUpdateOperationsInput | number
     senderId?: IntFieldUpdateOperationsInput | number
@@ -17391,6 +17495,7 @@ export namespace Prisma {
     id?: SortOrder
     content?: SortOrder
     isRead?: SortOrder
+    isDeleted?: SortOrder
     createdAt?: SortOrder
     senderId?: SortOrder
     receiverId?: SortOrder
@@ -17406,6 +17511,7 @@ export namespace Prisma {
     id?: SortOrder
     content?: SortOrder
     isRead?: SortOrder
+    isDeleted?: SortOrder
     createdAt?: SortOrder
     senderId?: SortOrder
     receiverId?: SortOrder
@@ -17415,6 +17521,7 @@ export namespace Prisma {
     id?: SortOrder
     content?: SortOrder
     isRead?: SortOrder
+    isDeleted?: SortOrder
     createdAt?: SortOrder
     senderId?: SortOrder
     receiverId?: SortOrder
@@ -17560,6 +17667,7 @@ export namespace Prisma {
     roomType?: SortOrder
     mediaType?: SortOrder
     maxParticipants?: SortOrder
+    isFriendsOnly?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17578,6 +17686,7 @@ export namespace Prisma {
     roomType?: SortOrder
     mediaType?: SortOrder
     maxParticipants?: SortOrder
+    isFriendsOnly?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17590,6 +17699,7 @@ export namespace Prisma {
     roomType?: SortOrder
     mediaType?: SortOrder
     maxParticipants?: SortOrder
+    isFriendsOnly?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17607,6 +17717,7 @@ export namespace Prisma {
     isPrivate?: SortOrder
     entryKey?: SortOrder
     createdAt?: SortOrder
+    onlyAdminsCanPost?: SortOrder
     creatorId?: SortOrder
   }
 
@@ -17622,6 +17733,7 @@ export namespace Prisma {
     isPrivate?: SortOrder
     entryKey?: SortOrder
     createdAt?: SortOrder
+    onlyAdminsCanPost?: SortOrder
     creatorId?: SortOrder
   }
 
@@ -17632,6 +17744,7 @@ export namespace Prisma {
     isPrivate?: SortOrder
     entryKey?: SortOrder
     createdAt?: SortOrder
+    onlyAdminsCanPost?: SortOrder
     creatorId?: SortOrder
   }
 
@@ -17686,6 +17799,7 @@ export namespace Prisma {
   export type GroupMessageCountOrderByAggregateInput = {
     id?: SortOrder
     content?: SortOrder
+    isDeleted?: SortOrder
     createdAt?: SortOrder
     groupId?: SortOrder
     senderId?: SortOrder
@@ -17700,6 +17814,7 @@ export namespace Prisma {
   export type GroupMessageMaxOrderByAggregateInput = {
     id?: SortOrder
     content?: SortOrder
+    isDeleted?: SortOrder
     createdAt?: SortOrder
     groupId?: SortOrder
     senderId?: SortOrder
@@ -17708,6 +17823,7 @@ export namespace Prisma {
   export type GroupMessageMinOrderByAggregateInput = {
     id?: SortOrder
     content?: SortOrder
+    isDeleted?: SortOrder
     createdAt?: SortOrder
     groupId?: SortOrder
     senderId?: SortOrder
@@ -19055,6 +19171,7 @@ export namespace Prisma {
   export type MessageCreateWithoutSenderInput = {
     content: string
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: Date | string
     receiver: UserCreateNestedOneWithoutReceivedMessagesInput
   }
@@ -19063,6 +19180,7 @@ export namespace Prisma {
     id?: number
     content: string
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: Date | string
     receiverId: number
   }
@@ -19079,6 +19197,7 @@ export namespace Prisma {
   export type MessageCreateWithoutReceiverInput = {
     content: string
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: Date | string
     sender: UserCreateNestedOneWithoutSentMessagesInput
   }
@@ -19087,6 +19206,7 @@ export namespace Prisma {
     id?: number
     content: string
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: Date | string
     senderId: number
   }
@@ -19195,6 +19315,7 @@ export namespace Prisma {
     roomType?: string
     mediaType?: string
     maxParticipants?: number
+    isFriendsOnly?: boolean
     createdAt?: Date | string
   }
 
@@ -19206,6 +19327,7 @@ export namespace Prisma {
     roomType?: string
     mediaType?: string
     maxParticipants?: number
+    isFriendsOnly?: boolean
     createdAt?: Date | string
   }
 
@@ -19224,6 +19346,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: string | null
     createdAt?: Date | string
+    onlyAdminsCanPost?: boolean
     members?: GroupMemberCreateNestedManyWithoutGroupInput
     messages?: GroupMessageCreateNestedManyWithoutGroupInput
   }
@@ -19235,6 +19358,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: string | null
     createdAt?: Date | string
+    onlyAdminsCanPost?: boolean
     members?: GroupMemberUncheckedCreateNestedManyWithoutGroupInput
     messages?: GroupMessageUncheckedCreateNestedManyWithoutGroupInput
   }
@@ -19270,6 +19394,7 @@ export namespace Prisma {
 
   export type GroupMessageCreateWithoutSenderInput = {
     content: string
+    isDeleted?: boolean
     createdAt?: Date | string
     group: GroupCreateNestedOneWithoutMessagesInput
   }
@@ -19277,6 +19402,7 @@ export namespace Prisma {
   export type GroupMessageUncheckedCreateWithoutSenderInput = {
     id?: number
     content: string
+    isDeleted?: boolean
     createdAt?: Date | string
     groupId: number
   }
@@ -19431,6 +19557,7 @@ export namespace Prisma {
     id?: IntFilter<"Message"> | number
     content?: StringFilter<"Message"> | string
     isRead?: BoolFilter<"Message"> | boolean
+    isDeleted?: BoolFilter<"Message"> | boolean
     createdAt?: DateTimeFilter<"Message"> | Date | string
     senderId?: IntFilter<"Message"> | number
     receiverId?: IntFilter<"Message"> | number
@@ -19565,6 +19692,7 @@ export namespace Prisma {
     roomType?: StringFilter<"LanguageRoom"> | string
     mediaType?: StringFilter<"LanguageRoom"> | string
     maxParticipants?: IntFilter<"LanguageRoom"> | number
+    isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
   }
@@ -19595,6 +19723,7 @@ export namespace Prisma {
     isPrivate?: BoolFilter<"Group"> | boolean
     entryKey?: StringNullableFilter<"Group"> | string | null
     createdAt?: DateTimeFilter<"Group"> | Date | string
+    onlyAdminsCanPost?: BoolFilter<"Group"> | boolean
     creatorId?: IntFilter<"Group"> | number
   }
 
@@ -19646,6 +19775,7 @@ export namespace Prisma {
     NOT?: GroupMessageScalarWhereInput | GroupMessageScalarWhereInput[]
     id?: IntFilter<"GroupMessage"> | number
     content?: StringFilter<"GroupMessage"> | string
+    isDeleted?: BoolFilter<"GroupMessage"> | boolean
     createdAt?: DateTimeFilter<"GroupMessage"> | Date | string
     groupId?: IntFilter<"GroupMessage"> | number
     senderId?: IntFilter<"GroupMessage"> | number
@@ -21947,6 +22077,7 @@ export namespace Prisma {
 
   export type GroupMessageCreateWithoutGroupInput = {
     content: string
+    isDeleted?: boolean
     createdAt?: Date | string
     sender: UserCreateNestedOneWithoutGroupMessagesInput
   }
@@ -21954,6 +22085,7 @@ export namespace Prisma {
   export type GroupMessageUncheckedCreateWithoutGroupInput = {
     id?: number
     content: string
+    isDeleted?: boolean
     createdAt?: Date | string
     senderId: number
   }
@@ -22097,6 +22229,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: string | null
     createdAt?: Date | string
+    onlyAdminsCanPost?: boolean
     creator: UserCreateNestedOneWithoutCreatedGroupsInput
     messages?: GroupMessageCreateNestedManyWithoutGroupInput
   }
@@ -22108,6 +22241,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: string | null
     createdAt?: Date | string
+    onlyAdminsCanPost?: boolean
     creatorId: number
     messages?: GroupMessageUncheckedCreateNestedManyWithoutGroupInput
   }
@@ -22220,6 +22354,7 @@ export namespace Prisma {
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
     creator?: UserUpdateOneRequiredWithoutCreatedGroupsNestedInput
     messages?: GroupMessageUpdateManyWithoutGroupNestedInput
   }
@@ -22231,6 +22366,7 @@ export namespace Prisma {
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
     creatorId?: IntFieldUpdateOperationsInput | number
     messages?: GroupMessageUncheckedUpdateManyWithoutGroupNestedInput
   }
@@ -22333,6 +22469,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: string | null
     createdAt?: Date | string
+    onlyAdminsCanPost?: boolean
     creator: UserCreateNestedOneWithoutCreatedGroupsInput
     members?: GroupMemberCreateNestedManyWithoutGroupInput
   }
@@ -22344,6 +22481,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: string | null
     createdAt?: Date | string
+    onlyAdminsCanPost?: boolean
     creatorId: number
     members?: GroupMemberUncheckedCreateNestedManyWithoutGroupInput
   }
@@ -22456,6 +22594,7 @@ export namespace Prisma {
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
     creator?: UserUpdateOneRequiredWithoutCreatedGroupsNestedInput
     members?: GroupMemberUpdateManyWithoutGroupNestedInput
   }
@@ -22467,6 +22606,7 @@ export namespace Prisma {
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
     creatorId?: IntFieldUpdateOperationsInput | number
     members?: GroupMemberUncheckedUpdateManyWithoutGroupNestedInput
   }
@@ -22602,6 +22742,7 @@ export namespace Prisma {
     id?: number
     content: string
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: Date | string
     receiverId: number
   }
@@ -22610,6 +22751,7 @@ export namespace Prisma {
     id?: number
     content: string
     isRead?: boolean
+    isDeleted?: boolean
     createdAt?: Date | string
     senderId: number
   }
@@ -22650,6 +22792,7 @@ export namespace Prisma {
     roomType?: string
     mediaType?: string
     maxParticipants?: number
+    isFriendsOnly?: boolean
     createdAt?: Date | string
   }
 
@@ -22660,6 +22803,7 @@ export namespace Prisma {
     isPrivate?: boolean
     entryKey?: string | null
     createdAt?: Date | string
+    onlyAdminsCanPost?: boolean
   }
 
   export type GroupMemberCreateManyUserInput = {
@@ -22671,6 +22815,7 @@ export namespace Prisma {
   export type GroupMessageCreateManySenderInput = {
     id?: number
     content: string
+    isDeleted?: boolean
     createdAt?: Date | string
     groupId: number
   }
@@ -22814,6 +22959,7 @@ export namespace Prisma {
   export type MessageUpdateWithoutSenderInput = {
     content?: StringFieldUpdateOperationsInput | string
     isRead?: BoolFieldUpdateOperationsInput | boolean
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     receiver?: UserUpdateOneRequiredWithoutReceivedMessagesNestedInput
   }
@@ -22822,6 +22968,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
     isRead?: BoolFieldUpdateOperationsInput | boolean
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     receiverId?: IntFieldUpdateOperationsInput | number
   }
@@ -22830,6 +22977,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
     isRead?: BoolFieldUpdateOperationsInput | boolean
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     receiverId?: IntFieldUpdateOperationsInput | number
   }
@@ -22837,6 +22985,7 @@ export namespace Prisma {
   export type MessageUpdateWithoutReceiverInput = {
     content?: StringFieldUpdateOperationsInput | string
     isRead?: BoolFieldUpdateOperationsInput | boolean
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sender?: UserUpdateOneRequiredWithoutSentMessagesNestedInput
   }
@@ -22845,6 +22994,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
     isRead?: BoolFieldUpdateOperationsInput | boolean
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     senderId?: IntFieldUpdateOperationsInput | number
   }
@@ -22853,6 +23003,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
     isRead?: BoolFieldUpdateOperationsInput | boolean
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     senderId?: IntFieldUpdateOperationsInput | number
   }
@@ -22944,6 +23095,7 @@ export namespace Prisma {
     roomType?: StringFieldUpdateOperationsInput | string
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
+    isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -22955,6 +23107,7 @@ export namespace Prisma {
     roomType?: StringFieldUpdateOperationsInput | string
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
+    isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -22966,6 +23119,7 @@ export namespace Prisma {
     roomType?: StringFieldUpdateOperationsInput | string
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
+    isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -22975,6 +23129,7 @@ export namespace Prisma {
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
     members?: GroupMemberUpdateManyWithoutGroupNestedInput
     messages?: GroupMessageUpdateManyWithoutGroupNestedInput
   }
@@ -22986,6 +23141,7 @@ export namespace Prisma {
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
     members?: GroupMemberUncheckedUpdateManyWithoutGroupNestedInput
     messages?: GroupMessageUncheckedUpdateManyWithoutGroupNestedInput
   }
@@ -22997,6 +23153,7 @@ export namespace Prisma {
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type GroupMemberUpdateWithoutUserInput = {
@@ -23018,6 +23175,7 @@ export namespace Prisma {
 
   export type GroupMessageUpdateWithoutSenderInput = {
     content?: StringFieldUpdateOperationsInput | string
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     group?: GroupUpdateOneRequiredWithoutMessagesNestedInput
   }
@@ -23025,6 +23183,7 @@ export namespace Prisma {
   export type GroupMessageUncheckedUpdateWithoutSenderInput = {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     groupId?: IntFieldUpdateOperationsInput | number
   }
@@ -23032,6 +23191,7 @@ export namespace Prisma {
   export type GroupMessageUncheckedUpdateManyWithoutSenderInput = {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     groupId?: IntFieldUpdateOperationsInput | number
   }
@@ -23184,6 +23344,7 @@ export namespace Prisma {
   export type GroupMessageCreateManyGroupInput = {
     id?: number
     content: string
+    isDeleted?: boolean
     createdAt?: Date | string
     senderId: number
   }
@@ -23207,6 +23368,7 @@ export namespace Prisma {
 
   export type GroupMessageUpdateWithoutGroupInput = {
     content?: StringFieldUpdateOperationsInput | string
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sender?: UserUpdateOneRequiredWithoutGroupMessagesNestedInput
   }
@@ -23214,6 +23376,7 @@ export namespace Prisma {
   export type GroupMessageUncheckedUpdateWithoutGroupInput = {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     senderId?: IntFieldUpdateOperationsInput | number
   }
@@ -23221,6 +23384,7 @@ export namespace Prisma {
   export type GroupMessageUncheckedUpdateManyWithoutGroupInput = {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
+    isDeleted?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     senderId?: IntFieldUpdateOperationsInput | number
   }

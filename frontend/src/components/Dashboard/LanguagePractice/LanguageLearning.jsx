@@ -10,7 +10,7 @@ export default function LanguageLearning() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [newRoom, setNewRoom] = useState({ roomName: '', topic: '', language: '', mediaType: 'audio' });
+  const [newRoom, setNewRoom] = useState({ roomName: '', topic: '', language: '', mediaType: 'audio', isFriendsOnly: false });
   const [activeTab, setActiveTab] = useState(localStorage.getItem('languageRoomsTab') || 'audio'); // 'audio' or 'video'
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -60,7 +60,8 @@ export default function LanguageLearning() {
         roomName: formattedRoomName,
         topic: newRoom.topic || 'General Discussion',
         language: newRoom.language,
-        mediaType: newRoom.mediaType || 'audio'
+        mediaType: newRoom.mediaType || 'audio',
+        isFriendsOnly: !!newRoom.isFriendsOnly
       });
       
       setShowModal(false);
@@ -103,7 +104,7 @@ export default function LanguageLearning() {
         {/* + button: absolute top-right on mobile, normal flow (right side) on desktop */}
         <button 
           onClick={() => {
-            setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab });
+            setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
             setShowModal(true);
           }} 
           className="absolute top-0 right-0 sm:static p-2.5 sm:p-3 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
@@ -165,7 +166,7 @@ export default function LanguageLearning() {
                     <p className="text-sm text-gray-500 dark:text-gray-405 mb-6 leading-relaxed">Be the first to start a live {activeTab} room session today to discuss, practice, or learn together!</p>
                     <button 
                       onClick={() => {
-                        setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab });
+                        setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
                         setShowModal(true);
                       }}
                       className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
@@ -185,10 +186,17 @@ export default function LanguageLearning() {
                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-all duration-300 pointer-events-none"></div>
 
                 {/* Top bar: Language badge and End room button */}
-                <div className="flex justify-between items-center z-10">
-                  <span className="bg-orange-100/60 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-wider">
-                    {room.language}
-                  </span>
+                <div className="flex justify-between items-center gap-1.5 z-10 w-full">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="bg-orange-100/60 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-wider truncate">
+                      {room.language}
+                    </span>
+                    {room.isFriendsOnly && (
+                      <span className="bg-orange-500/10 text-orange-500 p-1 rounded-full shrink-0" title="Friends Only Room">
+                        <Users size={10} className="sm:size-[12px] shrink-0" />
+                      </span>
+                    )}
+                  </div>
                   {socialUser && socialUser.id?.toString() === room.creatorId?.toString() && (
                     <button 
                       onClick={(e) => handleDeleteRoom(e, room.id)}
@@ -312,6 +320,36 @@ export default function LanguageLearning() {
                   >
                     <Video size={14} />
                     <span>Video Room</span>
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Visibility</label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setNewRoom({ ...newRoom, isFriendsOnly: false })}
+                    className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      !newRoom.isFriendsOnly
+                        ? 'border-orange-500 bg-orange-500/5 text-orange-500'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                    }`}
+                  >
+                    <Globe size={14} />
+                    <span>Public</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewRoom({ ...newRoom, isFriendsOnly: true })}
+                    className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      newRoom.isFriendsOnly
+                        ? 'border-orange-500 bg-orange-500/5 text-orange-500'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                    }`}
+                  >
+                    <Users size={14} />
+                    <span>Friends Only</span>
                   </button>
                 </div>
               </div>

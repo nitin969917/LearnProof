@@ -169,6 +169,7 @@ exports.Prisma.MessageScalarFieldEnum = {
   id: 'id',
   content: 'content',
   isRead: 'isRead',
+  isDeleted: 'isDeleted',
   createdAt: 'createdAt',
   senderId: 'senderId',
   receiverId: 'receiverId'
@@ -207,6 +208,7 @@ exports.Prisma.LanguageRoomScalarFieldEnum = {
   roomType: 'roomType',
   mediaType: 'mediaType',
   maxParticipants: 'maxParticipants',
+  isFriendsOnly: 'isFriendsOnly',
   createdAt: 'createdAt',
   creatorId: 'creatorId'
 };
@@ -218,6 +220,7 @@ exports.Prisma.GroupScalarFieldEnum = {
   isPrivate: 'isPrivate',
   entryKey: 'entryKey',
   createdAt: 'createdAt',
+  onlyAdminsCanPost: 'onlyAdminsCanPost',
   creatorId: 'creatorId'
 };
 
@@ -231,6 +234,7 @@ exports.Prisma.GroupMemberScalarFieldEnum = {
 exports.Prisma.GroupMessageScalarFieldEnum = {
   id: 'id',
   content: 'content',
+  isDeleted: 'isDeleted',
   createdAt: 'createdAt',
   groupId: 'groupId',
   senderId: 'senderId'

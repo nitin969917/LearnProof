@@ -31,6 +31,7 @@ const io = new Server(server, {
 
 // Mount Socket.io handler
 const datingPrisma = require('./src/utils/datingPrisma');
+const { sendPushNotification } = require('./src/utils/pushNotifier');
 const userSockets = new Map(); // userId -> Set of socketIds
 
 io.on('connection', (socket) => {
@@ -70,6 +71,23 @@ io.on('connection', (socket) => {
       io.to(receiverId.toString()).emit('receiveMessage', savedMessage);
       // Emit confirmation back to sender so their message is DB-synced
       socket.emit('messageSent', savedMessage);
+
+      // Send Push Notification
+      try {
+        const sender = await datingPrisma.user.findUnique({
+          where: { id: message.senderId },
+          select: { name: true }
+        });
+        const senderName = sender ? sender.name : 'A friend';
+        sendPushNotification(
+          [parseInt(receiverId)],
+          `New message from ${senderName}`,
+          message.content,
+          { type: 'CHAT_MESSAGE', senderId: String(message.senderId) }
+        );
+      } catch (pushErr) {
+        console.error('Error sending push notification for direct message:', pushErr.message);
+      }
     } catch (error) {
       console.error('Error saving socket message:', error);
       socket.emit('messageError', { error: 'Failed to send message' });
@@ -85,6 +103,16 @@ io.on('connection', (socket) => {
   socket.on('sendGroupMessage', (message) => {
     if (!message || !message.groupId) return;
     io.to(`group-${message.groupId}`).emit('receiveGroupMessage', message);
+  });
+
+  socket.on('deleteMessage', (data) => {
+    if (!data || !data.messageId || !data.receiverId) return;
+    io.to(data.receiverId.toString()).emit('messageDeleted', { messageId: data.messageId });
+  });
+
+  socket.on('deleteGroupMessage', (data) => {
+    if (!data || !data.messageId || !data.groupId) return;
+    io.to(`group-${data.groupId}`).emit('groupMessageDeleted', { messageId: data.messageId });
   });
 
   socket.on('disconnect', () => {
