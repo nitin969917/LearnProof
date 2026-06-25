@@ -1041,26 +1041,26 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                     <button
                       onClick={toggleMic}
                       title={isMicEnabled ? 'Mute' : 'Unmute'}
-                      className={`p-2 rounded-xl border transition-all cursor-pointer active:scale-95 ${
+                      className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
                         isMicEnabled
                           ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
                           : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
                       }`}
                     >
-                      {isMicEnabled ? <Mic size={14} /> : <MicOff size={14} />}
+                      {isMicEnabled ? <Mic size={20} /> : <MicOff size={20} />}
                     </button>
 
                     {isVideoRoom && (
                       <button
                         onClick={toggleCam}
                         title={isCamEnabled ? 'Camera Off' : 'Camera On'}
-                        className={`p-2 rounded-xl border transition-all cursor-pointer active:scale-95 ${
+                        className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
                           isCamEnabled
                             ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
                             : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
                         }`}
                       >
-                        {isCamEnabled ? <Video size={14} /> : <VideoOff size={14} />}
+                        {isCamEnabled ? <Video size={20} /> : <VideoOff size={20} />}
                       </button>
                     )}
 
@@ -1068,9 +1068,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                       <button
                         onClick={handleLeaveStage}
                         title="Step down from stage"
-                        className="flex items-center gap-1 px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer font-black text-[9px] uppercase tracking-wider active:scale-95"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer font-black text-[11px] uppercase tracking-wider active:scale-95"
                       >
-                        <MicOff size={11} />
+                        <MicOff size={15} />
                         <span>Leave Stage</span>
                       </button>
                     )}
@@ -1079,13 +1079,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                   <button
                     onClick={handleRequestToSpeak}
                     disabled={hasRequested}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-black text-[10px] uppercase tracking-wider transition-all cursor-pointer active:scale-95 ${
+                    className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border font-black text-[11px] uppercase tracking-wider transition-all cursor-pointer active:scale-95 ${
                       hasRequested
                         ? 'bg-orange-500/10 border-orange-500/25 text-orange-400 cursor-not-allowed opacity-75'
                         : 'bg-gradient-to-r from-orange-500 to-amber-500 border-orange-500 text-white shadow-md shadow-orange-500/25 hover:from-orange-600 hover:to-amber-600'
                     }`}
                   >
-                    <Mic size={11} />
+                    <Mic size={15} />
                     <span>{hasRequested ? '✓ Requested' : 'Request Stage'}</span>
                   </button>
                 )}
@@ -1095,13 +1095,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                 <button
                   onClick={toggleTranslation}
                   title={isTranscribing ? 'Stop Subtitles' : 'Live Subtitles'}
-                  className={`p-2 rounded-xl border transition-all cursor-pointer active:scale-95 ${
+                  className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
                     isTranscribing
                       ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
                       : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
                   }`}
                 >
-                  <Languages size={14} />
+                  <Languages size={20} />
                 </button>
               </div>
 
@@ -1109,13 +1109,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
               <button
                 onClick={() => setShowParticipants(prev => !prev)}
                 title="Participants"
-                className={`p-2 rounded-xl border transition-all cursor-pointer relative active:scale-95 ${
+                className={`p-3 rounded-xl border transition-all cursor-pointer relative active:scale-95 ${
                   showParticipants
                     ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
                     : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
                 }`}
               >
-                <Users size={14} />
+                <Users size={20} />
                 <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-gray-900 shadow">
                   {uniqueParticipants.length}
                 </span>
@@ -1230,32 +1230,32 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                         </div>
 
                         {isHost && !isMe && (
-                          <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex gap-1.5 shrink-0">
                             {!pCanPublish ? (
                               <button
                                 onClick={() => handleInviteToStage(p.identity, p.name || 'User')}
-                                className="flex items-center gap-1 px-2 py-1 bg-orange-500/10 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-500/20 rounded-full transition-all cursor-pointer text-[9px] font-black uppercase tracking-wider"
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-500/10 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-500/20 rounded-full transition-all cursor-pointer text-[10px] font-black uppercase tracking-wider active:scale-95"
                                 title="Invite to Stage"
                               >
-                                <Mic size={10} />
+                                <Mic size={13} />
                                 <span>Invite</span>
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleDemoteSpeaker(p.identity, p.name || 'User')}
-                                className="flex items-center gap-1 px-2 py-1 bg-orange-500/15 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-500/20 rounded-full transition-all cursor-pointer text-[9px] font-black uppercase tracking-wider"
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-orange-500/15 hover:bg-orange-600 text-orange-600 hover:text-white border border-orange-500/20 rounded-full transition-all cursor-pointer text-[10px] font-black uppercase tracking-wider active:scale-95"
                                 title="Demote to Audience"
                               >
-                                <MicOff size={10} />
+                                <MicOff size={13} />
                                 <span>Demote</span>
                               </button>
                             )}
                             <button
                               onClick={() => handleKickParticipant(p.identity, p.name || 'User')}
-                              className="flex items-center gap-1 px-2 py-1 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-full transition-all cursor-pointer text-[9px] font-black uppercase tracking-wider"
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-full transition-all cursor-pointer text-[10px] font-black uppercase tracking-wider active:scale-95"
                               title="Remove participant"
                             >
-                              <ShieldAlert size={10} />
+                              <ShieldAlert size={13} />
                               <span>Kick</span>
                             </button>
                           </div>
