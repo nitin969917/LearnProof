@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getSocialSocket } from '../utils/socialSocket.js';
+import { useSocialFeedStore } from './socialFeedStore.js';
 
 export const useSocialStatusStore = create((set, get) => ({
   onlineUserIds: [],
@@ -16,6 +17,7 @@ export const useSocialStatusStore = create((set, get) => ({
     // Remove any stale listeners before adding fresh ones
     socket.off('getOnlineUsers');
     socket.off('userStatus');
+    socket.off('NEW_POST');
     
     socket.on('getOnlineUsers', (userIds) => {
       console.log('Received online users:', userIds);
@@ -31,6 +33,11 @@ export const useSocialStatusStore = create((set, get) => ({
       } else {
         set({ onlineUserIds: current.filter(id => id !== idStr) });
       }
+    });
+
+    socket.on('NEW_POST', (post) => {
+      console.log('Real-time post received via socket:', post);
+      useSocialFeedStore.getState().addPostLocally(post);
     });
 
     // Re-request the current online list in case we missed it

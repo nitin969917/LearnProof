@@ -933,11 +933,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               {/* WhatsApp Wallpaper Chat Area */}
               <div 
                 className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#efeae2] dark:bg-[#0b141a] relative"
-                style={{
-                  backgroundImage: 'radial-gradient(#dfdcd6 0.7px, transparent 0.7px), radial-gradient(#dfdcd6 0.7px, transparent 0.7px)',
-                  backgroundSize: '12px 12px',
-                  backgroundPosition: '0 0, 6px 6px',
-                }}
               >
                 <div className="absolute inset-0 bg-black/[0.02] dark:bg-black/[0.15] pointer-events-none"></div>
 

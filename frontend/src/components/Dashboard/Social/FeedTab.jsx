@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Sparkles } from 'lucide-react';
-import socialApi from '../../../api/socialApi.js';
-import SocialPostCard from './SocialPostCard.jsx';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
+import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
+import SocialPostCard from './SocialPostCard.jsx';
 
 export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser, postCreatedTrigger }) {
-  const [posts, setPosts] = useState([]);
-  const [friends, setFriends] = useState([]);
-  const [closeFriends, setCloseFriends] = useState([]);
+  const posts = useSocialFeedStore(state => state.posts);
+  const friends = useSocialFeedStore(state => state.friends);
+  const closeFriends = useSocialFeedStore(state => state.closeFriends);
+  const fetchPosts = useSocialFeedStore(state => state.fetchPosts);
+  const fetchFriends = useSocialFeedStore(state => state.fetchFriends);
   
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
   const onlineFriends = friends.filter(friend => 
@@ -16,38 +18,15 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
 
   useEffect(() => {
     if (postCreatedTrigger > 0) {
-      fetchPosts();
+      fetchPosts(true);
     }
   }, [postCreatedTrigger]);
 
   useEffect(() => {
+    // Silent background updates, cache-first display
     fetchPosts();
     fetchFriends();
   }, []);
-
-  const fetchPosts = async () => {
-    try {
-      const response = await socialApi.get('/posts/feed');
-      setPosts(Array.isArray(response.data) ? response.data : []);
-    } catch (err) {
-      console.error('Failed to fetch posts', err);
-      setPosts([]);
-    }
-  };
-
-  const fetchFriends = async () => {
-    try {
-      const response = await socialApi.get('/social/friendships');
-      const allFriends = Array.isArray(response.data?.friends) ? response.data.friends : [];
-      const close = allFriends.filter(f => f.isCloseFriend);
-      setFriends(allFriends);
-      setCloseFriends(close);
-    } catch (err) {
-      console.error('Failed to fetch friends', err);
-      setFriends([]);
-      setCloseFriends([]);
-    }
-  };
 
 
   return (

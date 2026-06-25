@@ -26,8 +26,58 @@ const createPost = async (req, res) => {
             profilePicture: true,
           },
         },
+        likes: {
+          select: {
+            id: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
       },
     });
+
+    // Broadcast new post to friends via WebSockets
+    try {
+      const friendships = await datingPrisma.friendship.findMany({
+        where: {
+          status: 'accepted',
+          OR: [
+            { senderId: authorId },
+            { receiverId: authorId }
+          ]
+        }
+      });
+
+      const friendIds = friendships.map(f => f.senderId === authorId ? f.receiverId : f.senderId);
+      const io = req.app.get('io');
+
+      if (io) {
+        // Emit to the author themselves (e.g. across multiple tabs/devices)
+        io.to(authorId.toString()).emit('NEW_POST', post);
+
+        // Emit to friends based on visibility
+        let targetIds = [];
+        if (post.visibility === 'close_friends') {
+          targetIds = friendships
+            .filter(f => f.isCloseFriend)
+            .map(f => f.senderId === authorId ? f.receiverId : f.senderId);
+        } else {
+          // public or friends
+          targetIds = friendIds;
+        }
+
+        targetIds.forEach(friendId => {
+          io.to(friendId.toString()).emit('NEW_POST', post);
+        });
+      }
+    } catch (wsError) {
+      console.error('Failed to broadcast new post via socket:', wsError);
+    }
+
     res.status(201).json(post);
   } catch (error) {
     console.error(error);

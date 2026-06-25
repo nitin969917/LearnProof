@@ -2,10 +2,15 @@ import { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Star, Trash2, Edit3, X, Check } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { useModal } from '../../../context/ModalContext';
+import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 
 export default function SocialPostCard({ post, onLike, currentUserId, onViewProfile }) {
   const isAuthor = currentUserId === post.authorId;
   const { confirm } = useModal();
+
+  const likePost = useSocialFeedStore(state => state.likePost);
+  const deletePost = useSocialFeedStore(state => state.deletePost);
+  const updatePost = useSocialFeedStore(state => state.updatePost);
 
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -18,33 +23,19 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [isShared, setIsShared] = useState(false);
 
-  // Optimistic UI States
-  const [liked, setLiked] = useState(() => post.likes?.some((l) => l.id === currentUserId));
-  const [likesCount, setLikesCount] = useState(() => post._count?.likes || 0);
+  // Derived values from store-managed post prop
+  const liked = post.likes?.some((l) => l.id === currentUserId);
+  const likesCount = post._count?.likes || 0;
+
+  // Local state only for comments count
   const [commentsCount, setCommentsCount] = useState(() => post._count?.comments || 0);
 
-  // Sync state if props change (e.g. from parent refresh or initial fetch)
   useEffect(() => {
-    setLiked(post.likes?.some((l) => l.id === currentUserId));
-    setLikesCount(post._count?.likes || 0);
     setCommentsCount(post._count?.comments || 0);
-  }, [post, currentUserId]);
+  }, [post._count?.comments]);
 
-  const handleLike = async () => {
-    // Optimistic toggle
-    const nextLiked = !liked;
-    setLiked(nextLiked);
-    setLikesCount(prev => nextLiked ? prev + 1 : Math.max(0, prev - 1));
-
-    try {
-      await socialApi.post(`/posts/${post.id}/like`);
-      // Instant action success, no feed reload needed
-    } catch (err) {
-      console.error('Failed to like post', err);
-      // Revert if request fails
-      setLiked(!nextLiked);
-      setLikesCount(prev => !nextLiked ? prev + 1 : Math.max(0, prev - 1));
-    }
+  const handleLike = () => {
+    likePost(post.id, currentUserId);
   };
 
   const handleDeleteClick = async () => {
@@ -57,12 +48,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
     });
 
     if (confirmed) {
-      try {
-        await socialApi.delete(`/posts/${post.id}`);
-        onLike(); // Refresh feed to remove deleted post
-      } catch (err) {
-        console.error('Failed to delete post', err);
-      }
+      deletePost(post.id);
     }
   };
 
@@ -87,12 +73,8 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
 
   const handleUpdate = async () => {
     try {
-      await socialApi.put(`/posts/${post.id}`, { 
-        content: editedContent, 
-        visibility: editedVisibility 
-      });
+      await updatePost(post.id, editedContent, editedVisibility);
       setIsEditing(false);
-      onLike(); // Refresh feed
     } catch (err) {
       console.error('Failed to update post', err);
     }

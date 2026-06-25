@@ -29,10 +29,20 @@ function generateToken(roomName, userId, userName, isAdmin = false, canPublish =
   return token.toJwt();
 }
 
+let cachedRooms = null;
+let lastCacheTime = 0;
+const CACHE_TTL_MS = 8000; // 8 seconds cache for LiveKit listRooms requests
+
+function invalidateRoomsCache() {
+  cachedRooms = null;
+  lastCacheTime = 0;
+}
+
 /**
  * Create a LiveKit room with config
  */
 async function createRoom(roomName, maxParticipants = 10) {
+  invalidateRoomsCache();
   try {
     await roomService.createRoom({
       name: roomName,
@@ -51,14 +61,30 @@ async function createRoom(roomName, maxParticipants = 10) {
  * List all active rooms
  */
 async function listRooms() {
-  const rooms = await roomService.listRooms();
-  return rooms;
+  const now = Date.now();
+  if (cachedRooms && (now - lastCacheTime < CACHE_TTL_MS)) {
+    return cachedRooms;
+  }
+
+  try {
+    const rooms = await roomService.listRooms();
+    cachedRooms = rooms;
+    lastCacheTime = Date.now();
+    return rooms;
+  } catch (err) {
+    if (cachedRooms) {
+      console.warn("Failed to fetch rooms from LiveKit, returning cached fallback:", err.message);
+      return cachedRooms;
+    }
+    throw err;
+  }
 }
 
 /**
  * Delete a room by name
  */
 async function deleteRoom(roomName) {
+  invalidateRoomsCache();
   try {
     await roomService.deleteRoom(roomName);
     return true;

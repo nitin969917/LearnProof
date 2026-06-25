@@ -29,6 +29,8 @@ const io = new Server(server, {
   transports: ['websocket', 'polling'],
 });
 
+app.set('io', io);
+
 // Mount Socket.io handler
 const datingPrisma = require('./src/utils/datingPrisma');
 const { sendPushNotification } = require('./src/utils/pushNotifier');

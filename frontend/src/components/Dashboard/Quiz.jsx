@@ -23,6 +23,7 @@ const Quiz = () => {
     const [result, setResult] = useState(null);
 
     const [currentPage, setCurrentPage] = useState(1);
+    const [loadingQuizDetails, setLoadingQuizDetails] = useState(null);
     const itemsPerPage = 6;
 
     const playlistScrollRef = useRef(null);
@@ -117,11 +118,44 @@ const Quiz = () => {
             setResult(res.data);
             toast.success("Quiz submitted!");
             setQuizData(null); 
+
+            if (res.data.quiz) {
+                setHistory(prev => [res.data.quiz, ...prev]);
+            }
+
+            // Fetch target lists in background to update progress
+            axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-list/`, { idToken: authToken })
+                .then(listRes => {
+                    setVideos(listRes.data.videos || []);
+                    setPlaylists(listRes.data.playlists || []);
+                })
+                .catch(console.error);
+
         } catch (err) {
             console.error(err);
             toast.error("Failed to submit quiz");
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleViewHistoryQuiz = async (hist) => {
+        if (hist.questions) {
+            setSelectedHistoryQuiz(hist);
+            return;
+        }
+
+        setLoadingQuizDetails(hist.id);
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${hist.id}?idToken=${authToken}`);
+            const fullQuiz = res.data;
+            setHistory(prev => prev.map(item => item.id === hist.id ? fullQuiz : item));
+            setSelectedHistoryQuiz(fullQuiz);
+        } catch (err) {
+            console.error("Failed to fetch quiz attempt details:", err);
+            toast.error("Failed to load quiz details. Please try again.");
+        } finally {
+            setLoadingQuizDetails(null);
         }
     };
 
@@ -622,7 +656,7 @@ const Quiz = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         whileHover={{ y: -4 }}
                                         className="flex items-center justify-between p-5 bg-white dark:bg-gray-700 rounded-2xl shadow-sm border border-transparent dark:border-gray-600/50 hover:shadow-xl hover:border-orange-200 dark:hover:border-orange-500/30 cursor-pointer transition-all group"
-                                        onClick={() => setSelectedHistoryQuiz(hist)}
+                                        onClick={() => handleViewHistoryQuiz(hist)}
                                     >
                                         <div className="flex items-center gap-4 min-w-0 flex-1">
                                             <div className={`p-3 rounded-2xl flex-shrink-0 transition-colors ${hist.video ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500 group-hover:bg-blue-500 group-hover:text-white' : 'bg-purple-50 dark:bg-purple-900/20 text-purple-500 group-hover:bg-purple-500 group-hover:text-white'}`}>
@@ -657,9 +691,15 @@ const Quiz = () => {
                                                 <Trash2 size={16} />
                                             </button>
 
-                                            <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 border dark:border-gray-700 hidden sm:flex">
-                                                <ChevronRight size={18} className="text-orange-500" />
-                                            </div>
+                                            {loadingQuizDetails === hist.id ? (
+                                                <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center border dark:border-gray-700/50">
+                                                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-orange-500 border-t-transparent"></div>
+                                                </div>
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 border dark:border-gray-700 hidden sm:flex">
+                                                    <ChevronRight size={18} className="text-orange-500" />
+                                                </div>
+                                            )}
                                         </div>
                                     </motion.div>
                                 ))}

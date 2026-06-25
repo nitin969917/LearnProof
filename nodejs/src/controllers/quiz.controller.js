@@ -487,19 +487,55 @@ const getQuizHistory = async (req, res) => {
         const user = req.user;
         const history = await prisma.quiz.findMany({
             where: { userId: user.id },
-            include: {
+            select: {
+                id: true,
+                userId: true,
+                videoId: true,
+                playlistId: true,
+                score: true,
+                passed: true,
+                is_combined: true,
+                time_limit: true,
+                attempted_at: true,
                 video: { select: { name: true, vid: true } },
                 playlist: { select: { name: true, pid: true } }
             },
             orderBy: { attempted_at: 'desc' }
         });
 
-        const normalizedHistory = history.map(h => ({
-            ...h,
-            questions: JSON.stringify(normalizeQuestions(h.questions))
-        }));
+        res.status(200).json(history);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 
-        res.status(200).json(normalizedHistory);
+const getQuizHistoryDetails = async (req, res) => {
+    const { id } = req.params;
+    const user = req.user;
+
+    try {
+        const quiz = await prisma.quiz.findUnique({
+            where: { id: parseInt(id) },
+            include: {
+                video: { select: { name: true, vid: true } },
+                playlist: { select: { name: true, pid: true } }
+            }
+        });
+
+        if (!quiz) {
+            return res.status(404).json({ error: 'Quiz attempt not found' });
+        }
+
+        if (quiz.userId !== user.id) {
+            return res.status(403).json({ error: 'Forbidden: You do not own this quiz attempt' });
+        }
+
+        const normalizedQuiz = {
+            ...quiz,
+            questions: JSON.stringify(normalizeQuestions(quiz.questions))
+        };
+
+        res.status(200).json(normalizedQuiz);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -579,6 +615,7 @@ module.exports = {
     getCertificates,
     getActivityGraph,
     getQuizHistory,
+    getQuizHistoryDetails,
     verifyCertificate,
     deleteQuizHistory,
 };

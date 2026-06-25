@@ -10,6 +10,7 @@ import ChatsTab from './ChatsTab.jsx';
 import ProfileTab from './ProfileTab.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
+import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import { motion } from 'framer-motion';
 
 export default function SocialDashboard() {
@@ -170,13 +171,16 @@ export default function SocialDashboard() {
     }
   }, [user]);
 
+  const addPostLocally = useSocialFeedStore(state => state.addPostLocally);
+
   const handlePost = async (e) => {
     e.preventDefault();
     if (!content.trim() && !selectedImage) return;
     setLoadingPost(true);
 
     try {
-      await socialApi.post('/posts', { content, image: selectedImage, visibility });
+      const response = await socialApi.post('/posts', { content, image: selectedImage, visibility });
+      addPostLocally(response.data);
       setContent('');
       setSelectedImage(null);
       setVisibility('public');
