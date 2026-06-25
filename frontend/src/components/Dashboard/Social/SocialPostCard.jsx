@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Star, Trash2, Edit3, X, Check } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 
 export default function SocialPostCard({ post, onLike, currentUserId, onViewProfile }) {
-  const isLiked = post.likes?.some((l) => l.id === currentUserId);
   const isAuthor = currentUserId === post.authorId;
 
   const [showMenu, setShowMenu] = useState(false);
@@ -17,23 +16,72 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [isShared, setIsShared] = useState(false);
 
+  // Optimistic UI States
+  const [liked, setLiked] = useState(() => post.likes?.some((l) => l.id === currentUserId));
+  const [likesCount, setLikesCount] = useState(() => post._count?.likes || 0);
+  const [commentsCount, setCommentsCount] = useState(() => post._count?.comments || 0);
+
+  // Custom Modal States
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // 'post' or 'comment'
+  const [targetCommentId, setTargetCommentId] = useState(null);
+
+  // Sync state if props change (e.g. from parent refresh or initial fetch)
+  useEffect(() => {
+    setLiked(post.likes?.some((l) => l.id === currentUserId));
+    setLikesCount(post._count?.likes || 0);
+    setCommentsCount(post._count?.comments || 0);
+  }, [post, currentUserId]);
+
   const handleLike = async () => {
+    // Optimistic toggle
+    const nextLiked = !liked;
+    setLiked(nextLiked);
+    setLikesCount(prev => nextLiked ? prev + 1 : Math.max(0, prev - 1));
+
     try {
       await socialApi.post(`/posts/${post.id}/like`);
-      onLike();
+      // Instant action success, no feed reload needed
     } catch (err) {
       console.error('Failed to like post', err);
+      // Revert if request fails
+      setLiked(!nextLiked);
+      setLikesCount(prev => !nextLiked ? prev + 1 : Math.max(0, prev - 1));
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this post?")) return;
-    try {
-      await socialApi.delete(`/posts/${post.id}`);
-      onLike(); // Refresh feed
-    } catch (err) {
-      console.error('Failed to delete post', err);
+  const handleDeleteClick = () => {
+    setConfirmAction('post');
+    setShowConfirmModal(true);
+    setShowMenu(false);
+  };
+
+  const handleCommentDeleteClick = (commentId) => {
+    setConfirmAction('comment');
+    setTargetCommentId(commentId);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setShowConfirmModal(false);
+    if (confirmAction === 'post') {
+      try {
+        await socialApi.delete(`/posts/${post.id}`);
+        onLike(); // Refresh feed to remove deleted post
+      } catch (err) {
+        console.error('Failed to delete post', err);
+      }
+    } else if (confirmAction === 'comment' && targetCommentId) {
+      try {
+        await socialApi.delete(`/posts/comments/${targetCommentId}`);
+        setComments(comments.filter(c => c.id !== targetCommentId));
+        setCommentsCount(prev => Math.max(0, prev - 1));
+      } catch (err) {
+        console.error('Failed to delete comment', err);
+      }
     }
+    setConfirmAction(null);
+    setTargetCommentId(null);
   };
 
   const handleUpdate = async () => {
@@ -78,20 +126,9 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
       });
       setNewComment('');
       setComments([...comments, res.data]);
-      onLike(); // Refresh comment count on post card
+      setCommentsCount(prev => prev + 1);
     } catch (err) {
       console.error('Failed to submit comment', err);
-    }
-  };
-
-  const handleCommentDelete = async (commentId) => {
-    if (!window.confirm("Are you sure you want to delete this comment?")) return;
-    try {
-      await socialApi.delete(`/posts/comments/${commentId}`);
-      setComments(comments.filter(c => c.id !== commentId));
-      onLike(); // Refresh comment count on post card
-    } catch (err) {
-      console.error('Failed to delete comment', err);
     }
   };
 
@@ -154,7 +191,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
                   <Edit3 size={16} /> Edit
                 </button>
                 <button 
-                  onClick={handleDelete}
+                  onClick={handleDeleteClick}
                   className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/35 transition font-medium"
                 >
                   <Trash2 size={16} /> Delete
@@ -220,13 +257,13 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
         <button 
           onClick={handleLike}
           className={`flex items-center gap-1.5 font-semibold text-xs md:text-sm transition-colors ${
-            isLiked 
+            liked 
               ? 'text-orange-500' 
               : 'text-gray-500 dark:text-gray-400 hover:text-orange-500'
           }`}
         >
-          <Heart size={18} fill={isLiked ? 'currentColor' : 'transparent'} />
-          <span>{post._count?.likes || 0}</span>
+          <Heart size={18} fill={liked ? 'currentColor' : 'transparent'} />
+          <span>{likesCount}</span>
         </button>
         <button 
           onClick={toggleComments}
@@ -237,7 +274,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
           }`}
         >
           <MessageCircle size={18} fill={showComments ? 'currentColor' : 'transparent'} />
-          <span>{post._count?.comments || 0}</span>
+          <span>{commentsCount}</span>
         </button>
         <button 
           onClick={handleShare}
@@ -315,7 +352,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
                     </div>
                     {canDelete && (
                       <button 
-                        onClick={() => handleCommentDelete(comment.id)}
+                        onClick={() => handleCommentDeleteClick(comment.id)}
                         className="text-gray-400 hover:text-red-500 p-0.5 rounded transition"
                       >
                         <Trash2 size={14} />
@@ -330,6 +367,39 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Custom Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-750 w-full max-w-sm p-6 shadow-2xl relative text-center animate-in zoom-in-95 duration-200">
+            <div className="mx-auto w-12 h-12 bg-red-50 dark:bg-red-950/30 text-red-500 rounded-full flex items-center justify-center mb-4 border border-red-100/50 dark:border-red-900/30">
+              <Trash2 size={24} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Delete {confirmAction === 'post' ? 'Post' : 'Comment'}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium leading-relaxed">
+              Are you sure you want to delete this {confirmAction === 'post' ? 'post' : 'comment'}? This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setConfirmAction(null);
+                  setTargetCommentId(null);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-700 dark:text-gray-200 font-bold transition flex-1 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition flex-1 cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

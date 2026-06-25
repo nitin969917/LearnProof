@@ -56,6 +56,8 @@ const getFeed = async (req, res) => {
       .filter(f => f.isCloseFriend)
       .map(f => f.senderId === userId ? f.receiverId : f.senderId);
 
+    const limit = parseInt(req.query.limit) || 20;
+
     // 2. Query posts based on visibility permissions
     const posts = await datingPrisma.post.findMany({
       where: {
@@ -76,6 +78,7 @@ const getFeed = async (req, res) => {
           }
         ]
       },
+      take: limit,
       include: {
         author: {
           select: {
@@ -176,6 +179,12 @@ const deletePost = async (req, res) => {
     if (post.authorId !== userId) return res.status(403).json({ error: 'Forbidden' });
 
     // Clean up connections first (Prisma SQLite disconnects automatically for implicit m-n, but let's delete post)
+    // 1. Delete all comments on this post first to satisfy database foreign keys
+    await datingPrisma.comment.deleteMany({
+      where: { postId: parseInt(postId) },
+    });
+
+    // 2. Now delete the post itself
     await datingPrisma.post.delete({
       where: { id: parseInt(postId) },
     });

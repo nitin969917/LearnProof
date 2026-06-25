@@ -211,10 +211,11 @@ export default function SocialDashboard() {
 
   return (
     <div className="flex flex-col h-full w-full relative overflow-hidden transition-colors duration-200 bg-[#FAF6EE] dark:bg-gray-950">
-      {/* Top Header Bar (Full width, static, styled like main app's TopBar) */}
-      <div className={`bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm flex items-center justify-between gap-4 h-16 sm:h-20 px-4 md:px-6 shrink-0 w-full transition-colors duration-200 ${hideHeader ? 'hidden md:flex' : 'flex'}`}>
-        {/* Left Side: Logo and Social Hub title */}
-        <div className="flex items-center gap-3 h-full min-w-0">
+      {/* Top Header Bar — matches main app TopBar logo position exactly */}
+      <div className={`bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm flex items-stretch justify-between h-16 sm:h-20 shrink-0 w-full transition-colors duration-200 overflow-hidden ${hideHeader ? 'hidden md:flex' : 'flex'}`}>
+        {/* Left Side: Logo (flush left, same as main TopBar) + Social Hub title */}
+        <div className="flex items-stretch min-w-0">
+          {/* Logo wrapper — identical classes to TopBar.jsx */}
           <Link
             to="/dashboard"
             className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 flex items-stretch ml-2 sm:ml-0"
@@ -232,17 +233,19 @@ export default function SocialDashboard() {
               className="h-full w-auto object-cover object-left hidden sm:block"
             />
           </Link>
-          
-          <div className="border-l border-gray-250 dark:border-gray-700 h-8 mx-1"></div>
-          
-          <div className="min-w-0">
-            <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h1>
-            <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Connect & Share</p>
+
+          {/* Divider + Title */}
+          <div className="flex items-center gap-3 px-3 md:px-4 min-w-0">
+            <div className="border-l border-gray-200 dark:border-gray-700 h-8"></div>
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h1>
+              <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Connect &amp; Share</p>
+            </div>
           </div>
         </div>
 
         {/* Right Side: Actions (Exit Hub & Create Post) */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 px-4 md:px-6">
           {activeTab === 'feed' && (
             <button
               onClick={() => setShowCreatePostModal(true)}

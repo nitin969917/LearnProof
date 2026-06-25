@@ -3,7 +3,8 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
 import SocialBottomNavBar from "./Social/SocialBottomNavBar";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import { useAuth } from "../../context/AuthContext.jsx";
 import socialApi from "../../api/socialApi.js";
@@ -98,6 +99,7 @@ const DashboardLayout = () => {
 
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+    const navigate = useNavigate();
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
         const savedState = localStorage.getItem('sidebarExpanded');
         return savedState !== null ? savedState === 'true' : false;
@@ -207,34 +209,46 @@ const DashboardLayout = () => {
                 {/* Hidden when: ask-my-notes, social hub, inside a live room, or on live-rooms list coming from social */}
                 {!isAskMyNotes && !isSocialHub && !isLiveRoom && !showSocialBottomNav && <TopBar onMenuClick={toggleSidebar} />}
 
-                {/* Social Hub-context header shown on /dashboard/live-rooms list when user came from Social Hub.
-                    Logo is in the same left position as the main TopBar so the UI feels consistent. */}
+                {/* Social Hub-context header — mirrors SocialDashboard header and main TopBar logo position exactly. */}
                 {showSocialBottomNav && isLiveRoomList && (
-                    <div className="flex items-center justify-between px-4 h-16 sm:h-20 bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm shrink-0 w-full transition-colors duration-200">
-                        {/* Left — logo + Social Hub label (same position as main TopBar logo) */}
-                        <div className="flex items-center gap-3 h-full min-w-0">
-                            <div className="h-full cursor-default flex items-stretch shrink-0">
+                    <div className="bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm flex items-stretch justify-between h-16 sm:h-20 shrink-0 w-full transition-colors duration-200 overflow-hidden">
+                        {/* Left — flush-left logo identical to TopBar.jsx + SocialDashboard */}
+                        <div className="flex items-stretch min-w-0">
+                            {/* Logo wrapper: ml-2 sm:ml-0, no left padding on container */}
+                            <div className="h-full cursor-default hover:opacity-90 transition-opacity shrink-0 flex items-stretch ml-2 sm:ml-0">
                                 {/* Mobile logo */}
                                 <img src="/LP_M_logo.png" alt="LearnProof" className="h-full w-auto object-cover object-left block sm:hidden" />
                                 {/* Desktop logo */}
                                 <img src="/LP_logo.png" alt="LearnProof" className="h-full w-auto object-cover object-left hidden sm:block" />
                             </div>
-                            <div className="border-l border-gray-200 dark:border-gray-700 h-8 mx-1" />
-                            <div className="min-w-0">
-                                <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h1>
-                                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Live Rooms</p>
+
+                            {/* Divider + Title */}
+                            <div className="flex items-center gap-3 px-3 md:px-4 min-w-0">
+                                <div className="border-l border-gray-200 dark:border-gray-700 h-8"></div>
+                                <div className="min-w-0">
+                                    <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h1>
+                                    <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Live Rooms</p>
+                                </div>
                             </div>
                         </div>
-                        {/* Right — menu toggle */}
-                        <button
-                            onClick={toggleSidebar}
-                            className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-orange-50 dark:hover:bg-gray-700 transition cursor-pointer"
-                            title="Menu"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-                        </button>
+
+                        {/* Right — exit arrow matching Social Hub's ArrowLeft button */}
+                        <div className="flex items-center shrink-0 px-4 md:px-6">
+                            <button
+                                onClick={() => {
+                                    sessionStorage.removeItem('nav_source');
+                                    navigate('/dashboard/social');
+                                }}
+                                className="p-2 sm:p-2.5 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-950/70 transition-all border border-orange-100 dark:border-orange-900/50 rounded-xl active:scale-95 flex items-center justify-center shrink-0 cursor-pointer"
+                                title="Back to Social Hub"
+                            >
+                                <ArrowLeft size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
+                            </button>
+                        </div>
                     </div>
                 )}
+
+
 
                 {/* Dashboard Content */}
                 <div 
