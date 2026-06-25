@@ -221,6 +221,17 @@ const LandingPage = () => {
 
     const { login, user, loading } = useAuth();
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-sm font-medium text-slate-400">Loading LearnProof AI...</p>
+                </div>
+            </div>
+        );
+    }
+
     const handleGoogleSuccess = async (credentialResponse) => {
         try {
             // Handle both GSI component response and useGoogleLogin response
