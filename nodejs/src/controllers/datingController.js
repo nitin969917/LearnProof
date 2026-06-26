@@ -147,6 +147,7 @@ const getFeed = async (req, res) => {
           },
         },
         likes: {
+          where: { id: userId },
           select: {
             id: true,
           },
@@ -1429,6 +1430,7 @@ const getPost = async (req, res) => {
           },
         },
         likes: {
+          where: { id: userId },
           select: {
             id: true,
           },
