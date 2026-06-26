@@ -5,41 +5,59 @@ import AdminRoute from "./routes/AdminRoute";
 import { AuthProvider } from './context/AuthContext';
 import { ModalProvider } from './context/ModalContext';
 
+// Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
+const lazyWithRetry = (componentImport) => {
+    return lazy(async () => {
+        try {
+            return await componentImport();
+        } catch (error) {
+            console.error("Failed to load chunk, attempting to reload...", error);
+            const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
+            const now = Date.now();
+            if (!lastReload || now - parseInt(lastReload, 10) > 15000) {
+                sessionStorage.setItem('chunk_reload_timestamp', String(now));
+                window.location.reload();
+            }
+            throw error;
+        }
+    });
+};
+
 // Lazy load components to optimize bundle size
-const LandingPage = lazy(() => import('./components/Landing'));
-const DashboardLayout = lazy(() => import('./components/Dashboard/DashboardLayout'));
-const DashboardHome = lazy(() => import('./components/Dashboard/DashboardHome'));
-const MyCertificates = lazy(() => import('./components/Dashboard/MyCertificates'));
-const MyLearnings = lazy(() => import('./components/Dashboard/MyLearnings'));
-const Inbox = lazy(() => import('./components/Dashboard/Inbox'));
-const Quiz = lazy(() => import('./components/Dashboard/Quiz'));
-const Classroom = lazy(() => import('./components/Classroom'));
-const YouTubeExplorer = lazy(() => import('./components/Dashboard/YouTubeExplorer'));
-const PlaylistProgress = lazy(() => import('./components/Dashboard/PlaylistProgress'));
-const AIBenchmark = lazy(() => import('./components/Dashboard/AIBenchmark'));
-const AskMyNotes = lazy(() => import('./components/Dashboard/AskMyNotes'));
-const RoadmapDetail = lazy(() => import('./components/Dashboard/RoadmapDetail'));
-const SocialDashboard = lazy(() => import('./components/Dashboard/Social/SocialDashboard'));
-const LanguageLearning = lazy(() => import('./components/Dashboard/LanguagePractice/LanguageLearning'));
-const LanguageRoom = lazy(() => import('./components/Dashboard/LanguagePractice/LanguageRoom'));
-const DailyGoalsPage = lazy(() => import('./components/Dashboard/DailyGoalsPage'));
-const LoginPage = lazy(() => import('./components/Common/LoginPage'));
+const LandingPage = lazyWithRetry(() => import('./components/Landing'));
+const DashboardLayout = lazyWithRetry(() => import('./components/Dashboard/DashboardLayout'));
+const DashboardHome = lazyWithRetry(() => import('./components/Dashboard/DashboardHome'));
+const MyCertificates = lazyWithRetry(() => import('./components/Dashboard/MyCertificates'));
+const MyLearnings = lazyWithRetry(() => import('./components/Dashboard/MyLearnings'));
+const Inbox = lazyWithRetry(() => import('./components/Dashboard/Inbox'));
+const Quiz = lazyWithRetry(() => import('./components/Dashboard/Quiz'));
+const Classroom = lazyWithRetry(() => import('./components/Classroom'));
+const YouTubeExplorer = lazyWithRetry(() => import('./components/Dashboard/YouTubeExplorer'));
+const PlaylistProgress = lazyWithRetry(() => import('./components/Dashboard/PlaylistProgress'));
+const AIBenchmark = lazyWithRetry(() => import('./components/Dashboard/AIBenchmark'));
+const AskMyNotes = lazyWithRetry(() => import('./components/Dashboard/AskMyNotes'));
+const RoadmapDetail = lazyWithRetry(() => import('./components/Dashboard/RoadmapDetail'));
+const SocialDashboard = lazyWithRetry(() => import('./components/Dashboard/Social/SocialDashboard'));
+const LanguageLearning = lazyWithRetry(() => import('./components/Dashboard/LanguagePractice/LanguageLearning'));
+const LanguageRoom = lazyWithRetry(() => import('./components/Dashboard/LanguagePractice/LanguageRoom'));
+const DailyGoalsPage = lazyWithRetry(() => import('./components/Dashboard/DailyGoalsPage'));
+const LoginPage = lazyWithRetry(() => import('./components/Common/LoginPage'));
 
-const AdminLayout = lazy(() => import('./components/Admin/AdminLayout'));
-const AdminDashboardHome = lazy(() => import('./components/Admin/pages/AdminDashboardHome'));
-const AdminUsersList = lazy(() => import('./components/Admin/pages/AdminUsersList'));
-const AdminContentList = lazy(() => import('./components/Admin/pages/AdminContentList'));
-const AdminUserDetails = lazy(() => import('./components/Admin/pages/AdminUserDetails'));
-const AdminInbox = lazy(() => import('./components/Admin/pages/AdminInbox'));
-const AdminAppsManagement = lazy(() => import('./components/Admin/pages/AdminAppsManagement'));
+const AdminLayout = lazyWithRetry(() => import('./components/Admin/AdminLayout'));
+const AdminDashboardHome = lazyWithRetry(() => import('./components/Admin/pages/AdminDashboardHome'));
+const AdminUsersList = lazyWithRetry(() => import('./components/Admin/pages/AdminUsersList'));
+const AdminContentList = lazyWithRetry(() => import('./components/Admin/pages/AdminContentList'));
+const AdminUserDetails = lazyWithRetry(() => import('./components/Admin/pages/AdminUserDetails'));
+const AdminInbox = lazyWithRetry(() => import('./components/Admin/pages/AdminInbox'));
+const AdminAppsManagement = lazyWithRetry(() => import('./components/Admin/pages/AdminAppsManagement'));
 
-const VerifyCertificate = lazy(() => import('./components/Common/VerifyCertificate'));
-const Support = lazy(() => import('./components/Common/SupportPage'));
-const AdminSupportList = lazy(() => import('./components/Admin/pages/AdminSupportList'));
-const PrivacyPolicy = lazy(() => import('./components/Common/PrivacyPolicy'));
-const DeleteAccount = lazy(() => import('./components/Common/DeleteAccount'));
-const TermsOfService = lazy(() => import('./components/Common/TermsOfService'));
-const DownloadPage = lazy(() => import('./components/Common/DownloadPage'));
+const VerifyCertificate = lazyWithRetry(() => import('./components/Common/VerifyCertificate'));
+const Support = lazyWithRetry(() => import('./components/Common/SupportPage'));
+const AdminSupportList = lazyWithRetry(() => import('./components/Admin/pages/AdminSupportList'));
+const PrivacyPolicy = lazyWithRetry(() => import('./components/Common/PrivacyPolicy'));
+const DeleteAccount = lazyWithRetry(() => import('./components/Common/DeleteAccount'));
+const TermsOfService = lazyWithRetry(() => import('./components/Common/TermsOfService'));
+const DownloadPage = lazyWithRetry(() => import('./components/Common/DownloadPage'));
 
 const PageLoader = () => (
     <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white">

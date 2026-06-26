@@ -12,6 +12,7 @@ import { useSocialStatusStore } from "../../store/socialStatusStore.js";
 import { useSocialMessageStore } from "../../store/socialMessageStore.js";
 import { getSocialSocket } from "../../utils/socialSocket.js";
 import { requestNotificationPermissionAndGetToken } from "../../utils/fcm.js";
+import LiveRoomPipWindow from "./LanguagePractice/LiveRoomPipWindow";
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -276,6 +277,9 @@ const DashboardLayout = () => {
             {showSocialBottomNav && !isLiveRoom && (
                 <SocialBottomNavBar onMenuClick={toggleSidebar} />
             )}
+
+            {/* Floating Live Room Picture-in-Picture Window */}
+            {!isLiveRoom && <LiveRoomPipWindow />}
 
             <ProfileModal
                 isOpen={isProfileModalOpen}

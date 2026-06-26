@@ -14,8 +14,8 @@ const BottomNav = ({ onMenuClick }) => {
     ];
 
     return (
-        <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[340px] xs:w-[380px] sm:w-[460px] md:w-[540px] max-w-[95vw] z-50 lg:hidden bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300">
-            <div className="flex items-stretch justify-around h-16 px-3 relative">
+        <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[370px] xs:w-[415px] sm:w-[490px] md:w-[560px] max-w-[95vw] z-50 lg:hidden bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300">
+            <div className="flex items-stretch justify-around h-16 px-3.5 relative">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}
@@ -30,21 +30,15 @@ const BottomNav = ({ onMenuClick }) => {
                             >
                                 <div className={`transition-all duration-300 z-10 flex flex-col items-center justify-center ${isActive ? 'scale-110 text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
                                     <item.icon 
-                                        size={20} 
+                                        size={22} 
                                         strokeWidth={isActive ? 2.5 : 2} 
                                         className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
                                     />
-                                    <span className="text-[9px] font-semibold mt-0.5 tracking-wide leading-none">{item.name}</span>
+                                    <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">{item.name}</span>
                                 </div>
                                 
-                                {/* Sleek sliding active background glass pill */}
-                                {isActive && (
-                                    <motion.div
-                                        layoutId="activeTabPill"
-                                        className="absolute inset-x-1 inset-y-1.5 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl z-0 border border-orange-500/10 dark:border-orange-500/25 pointer-events-none"
-                                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                                    />
-                                )}
+                                
+
                             </motion.div>
                         )}
                     </NavLink>
@@ -59,9 +53,9 @@ const BottomNav = ({ onMenuClick }) => {
                         whileTap={{ scale: 0.88 }}
                         className="flex flex-col items-center justify-center w-full h-full outline-none border-none"
                     >
-                        <div className="scale-100 transition-all duration-300 flex flex-col items-center justify-center">
-                            <Menu size={20} strokeWidth={2} />
-                            <span className="text-[9px] font-semibold mt-0.5 tracking-wide leading-none">Menu</span>
+                        <div className="scale-100 transition-all duration-300 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400">
+                            <Menu size={22} strokeWidth={2} />
+                            <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">Menu</span>
                         </div>
                     </motion.div>
                 </button>

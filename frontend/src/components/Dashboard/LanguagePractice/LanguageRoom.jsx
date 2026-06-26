@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
 import toast from 'react-hot-toast';
+import { useLiveRoomPipStore } from '../../../store/liveRoomPipStore';
 
 import {
   LiveKitRoom,
@@ -21,8 +22,9 @@ import {
   Mic, MicOff, Video, VideoOff,
   PhoneOff, Users, Globe,
   Volume2, Send, UserX, UserPlus, UserMinus,
-  Check, X, Hand, LogOut, ChevronsDown
+  Check, X, Hand, LogOut, ChevronsDown, Settings, Languages, Sparkles, Camera
 } from 'lucide-react';
+
 
 import { Track } from 'livekit-client';
 
@@ -59,8 +61,25 @@ const RoomError = ({ error, onBack }) => (
   </div>
 );
 
+// ─── Filter CSS Helper ───────────────────────────────────────────────────────
+const getFilterCss = (filterName) => {
+  switch (filterName) {
+    case 'smooth':
+      return 'contrast(0.95) saturate(1.02) brightness(1.04) sepia(0.02) blur(0.3px)';
+    case 'glow':
+      return 'brightness(1.10) contrast(0.96) saturate(1.05) sepia(0.01) blur(0.2px)';
+    case 'warm':
+      return 'sepia(0.12) saturate(1.08) brightness(1.02) contrast(0.98)';
+    case 'rosy':
+      return 'brightness(1.08) contrast(0.95) saturate(1.06) hue-rotate(-6deg) sepia(0.03) blur(0.2px)';
+    default:
+      return 'none';
+  }
+};
+
 // ─── Custom Inner Content (Has access to LiveKit context) ───────────────────
 function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, userIdentity }) {
+
   const room = useRoomContext();
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
@@ -158,6 +177,66 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Media states
   const [isMicEnabled, setIsMicEnabled] = useState(false);
   const [isCamEnabled, setIsCamEnabled] = useState(false);
+
+  // Settings & Beauty filter states
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [beautyFilter, setBeautyFilter] = useState(() => {
+    return localStorage.getItem('livekit_beauty_filter') || 'none';
+  });
+  const [videoDevices, setVideoDevices] = useState([]);
+  const [selectedDevice, setSelectedDevice] = useState('');
+  const [activeSettingsTab, setActiveSettingsTab] = useState('camera'); // 'camera' or 'filter'
+
+
+  // Fetch devices when settings modal is opened
+  useEffect(() => {
+    const fetchDevices = async () => {
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevs = devices.filter(d => d.kind === 'videoinput');
+          setVideoDevices(videoDevs);
+          
+          if (room) {
+            const activeId = room.getActiveDevice ? room.getActiveDevice('videoinput') : undefined;
+            if (activeId) {
+              setSelectedDevice(activeId);
+            } else if (videoDevs.length > 0) {
+              setSelectedDevice(videoDevs[0].deviceId);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error enumerating video devices:', err);
+      }
+    };
+
+    if (showSettingsModal) {
+      fetchDevices();
+    }
+  }, [showSettingsModal, room]);
+
+  const handleDeviceChange = async (deviceId) => {
+    if (!room) return;
+    try {
+      setSelectedDevice(deviceId);
+      if (room.switchActiveDevice) {
+        await room.switchActiveDevice('videoinput', deviceId);
+        toast.success('Camera switched successfully!');
+      } else {
+        toast.error('Device switching not supported by the room context.');
+      }
+    } catch (err) {
+      console.error('Failed to switch camera:', err);
+      toast.error('Failed to switch camera. Make sure the device is not in use.');
+    }
+  };
+
+  const handleSelectFilter = (filterName) => {
+    setBeautyFilter(filterName);
+    localStorage.setItem('livekit_beauty_filter', filterName);
+  };
+
 
   // Participants panel
   const [showParticipants, setShowParticipants] = useState(false);
@@ -930,6 +1009,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   return (
     <div className="flex flex-col h-screen w-full bg-orange-50 dark:bg-gray-950 font-sans text-gray-900 dark:text-white overflow-hidden relative">
+      
+      {/* Dynamic style block for beauty filter */}
+      <style>{`
+        div[data-lk-local-participant="true"] video {
+          filter: ${getFilterCss(beautyFilter)} !important;
+        }
+      `}</style>
+
 
       {/* Stage Invitation Modal */}
       {showInviteModal && (
@@ -1018,7 +1105,152 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         </div>
       )}
 
+      {/* ── Settings Modal ── */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-md w-full p-6 shadow-2xl transition-all scale-100 flex flex-col gap-5">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+              <h3 className="text-base font-black text-gray-900 dark:text-white flex items-center gap-2">
+                <Settings size={18} className="text-orange-500" />
+                Room Settings
+              </h3>
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Tabs */}
+            {isVideoRoom && (
+              <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+                <button
+                  onClick={() => setActiveSettingsTab('camera')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-black text-xs transition-all cursor-pointer ${
+                    activeSettingsTab === 'camera'
+                      ? 'bg-white dark:bg-gray-900 text-orange-500 shadow-sm'
+                      : 'text-gray-550 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'
+                  }`}
+                >
+                  <Camera size={14} />
+                  Switch Camera
+                </button>
+                <button
+                  onClick={() => setActiveSettingsTab('filter')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-black text-xs transition-all cursor-pointer ${
+                    activeSettingsTab === 'filter'
+                      ? 'bg-white dark:bg-gray-900 text-orange-500 shadow-sm'
+                      : 'text-gray-550 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'
+                  }`}
+                >
+                  <Sparkles size={14} />
+                  Beauty Filters
+                </button>
+              </div>
+            )}
+
+            {/* Content */}
+            <div className="flex flex-col gap-4 overflow-y-auto max-h-[50vh] pr-1">
+              {isVideoRoom ? (
+                <>
+                  {activeSettingsTab === 'camera' && (
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        Select Video Source
+                      </label>
+                      {canPublish ? (
+                        videoDevices.length > 0 ? (
+                          <select
+                            value={selectedDevice}
+                            onChange={(e) => handleDeviceChange(e.target.value)}
+                            className="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/8 text-gray-900 dark:text-white text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 font-bold"
+                          >
+                            {videoDevices.map((dev) => (
+                              <option key={dev.deviceId} value={dev.deviceId}>
+                                {dev.label || `Camera ${dev.deviceId.slice(0, 5)}`}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <p className="text-xs text-gray-550 dark:text-gray-400 italic">No camera devices found or permission not granted.</p>
+                        )
+                      ) : (
+                        <div className="p-4 bg-orange-500/5 border border-orange-500/10 rounded-2xl text-center">
+                          <p className="text-xs text-gray-500 dark:text-gray-450 font-bold">
+                            Camera switching is only available when you are speaking on stage.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeSettingsTab === 'filter' && (
+                    <div className="flex flex-col gap-2.5">
+                      <div className="flex flex-col">
+                        <label className="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                          Skin Tone & Smoothing Filter
+                        </label>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-450 mt-0.5 font-bold leading-normal">
+                          Choose a visual style to improve skin tone and smoothing in real-time.
+                        </span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 mt-1">
+                        {[
+                          { id: 'none', label: 'Natural', desc: 'Original camera' },
+                          { id: 'smooth', label: 'Soft Smooth', desc: 'Skin smoothing' },
+                          { id: 'glow', label: 'Radiant Glow', desc: 'Brighter tone' },
+                          { id: 'warm', label: 'Warm Sun', desc: 'Warm amber hue' },
+                          { id: 'rosy', label: 'Pink Blossom', desc: 'Rosy brightness' },
+                        ].map((f) => {
+                          const isActive = beautyFilter === f.id;
+                          return (
+                            <button
+                              key={f.id}
+                              onClick={() => handleSelectFilter(f.id)}
+                              className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all cursor-pointer active:scale-95 ${
+                                isActive
+                                  ? 'bg-orange-500/10 border-orange-500 text-orange-600 dark:text-orange-400 shadow-sm'
+                                  : 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-white/5 text-gray-700 dark:text-gray-300 hover:border-orange-500/30'
+                              }`}
+                            >
+                              <span className="text-xs font-black">{f.label}</span>
+                              <span className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5 leading-none font-bold">
+                                {f.desc}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-xs text-gray-550 dark:text-gray-400">Camera and skin filters are only available in video rooms.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end pt-2 border-t border-gray-150 dark:border-gray-800">
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition cursor-pointer active:scale-95"
+              >
+                Done
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* ── Header Bar ── */}
+
       {/* Brand section changes based on nav_source (fromSocial state set at mount) */}
       <div className="flex items-center justify-between px-4 sm:px-5 h-14 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 shrink-0 z-30">
 
@@ -1325,27 +1557,37 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                 )}
               </div>
 
-              {/* Right: Participants */}
-              <button
-                onClick={() => setShowParticipants(prev => !prev)}
-                title="Participants"
-                className={`p-3 rounded-xl border transition-all cursor-pointer relative active:scale-95 ${
-                  showParticipants
-                    ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
-                    : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
-                }`}
-              >
-                <Users size={20} />
-                <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-gray-900 shadow">
-                  {uniqueParticipants.length}
-                </span>
-                {isHost && speakRequests.length > 0 && (
-                  <span className="absolute -bottom-1 -left-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500 border border-white dark:border-gray-900" />
+              {/* Right: Settings and Participants */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setShowSettingsModal(true)}
+                  title="Room Settings"
+                  className="p-3 rounded-xl border transition-all cursor-pointer bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40 active:scale-95"
+                >
+                  <Settings size={20} />
+                </button>
+
+                <button
+                  onClick={() => setShowParticipants(prev => !prev)}
+                  title="Participants"
+                  className={`p-3 rounded-xl border transition-all cursor-pointer relative active:scale-95 ${
+                    showParticipants
+                      ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
+                      : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
+                  }`}
+                >
+                  <Users size={20} />
+                  <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-gray-900 shadow">
+                    {uniqueParticipants.length}
                   </span>
-                )}
-              </button>
+                  {isHost && speakRequests.length > 0 && (
+                    <span className="absolute -bottom-1 -left-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500 border border-white dark:border-gray-900" />
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1450,30 +1692,32 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                         </div>
 
                         {isHost && !isMe && (
-                          <div className="flex gap-1.5 shrink-0">
+                          <div className="flex items-center gap-2 shrink-0">
                             {!pCanPublish ? (
                               <button
                                 onClick={() => handleInviteToStage(p.identity, p.name || 'User')}
-                                className="p-1.5 bg-orange-500/10 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
+                                className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[10px] font-black rounded-full shadow-md shadow-orange-500/10 transition-all cursor-pointer active:scale-95 border-none"
                                 title="Invite to Stage"
                               >
-                                <UserPlus size={14} />
+                                <UserPlus size={11} />
+                                <span>Invite</span>
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleDemoteSpeaker(p.identity, p.name || 'User')}
-                                className="p-1.5 bg-orange-500/10 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
+                                className="flex items-center gap-1 px-3 py-1.5 bg-gray-105 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-[10px] font-black rounded-full transition-all cursor-pointer active:scale-95 border border-gray-200 dark:border-white/5"
                                 title="Demote to Audience"
                               >
-                                <UserMinus size={14} />
+                                <UserMinus size={11} />
+                                <span>Demote</span>
                               </button>
                             )}
                             <button
                               onClick={() => handleKickParticipant(p.identity, p.name || 'User')}
-                              className="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
+                              className="p-1.5 text-red-500 hover:text-white bg-red-500/10 hover:bg-red-500 rounded-full transition-all cursor-pointer active:scale-95"
                               title="Remove participant"
                             >
-                              <UserX size={14} />
+                              <UserX size={13} />
                             </button>
                           </div>
                         )}
@@ -1495,6 +1739,7 @@ export default function LanguageRoom() {
   const { roomName } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const hasExplicitlyLeft = useRef(false);
 
   const [token, setToken] = useState('');
   const [serverUrl, setServerUrl] = useState('');
@@ -1546,7 +1791,32 @@ export default function LanguageRoom() {
     fetchTokenAndRoom();
   }, [user, roomName, navigate]);
 
+  // On mount/unmount logic for PIP
+  const pipValuesRef = useRef({ token, serverUrl, dbRoom, userIdentity });
+  useEffect(() => {
+    pipValuesRef.current = { token, serverUrl, dbRoom, userIdentity };
+  }, [token, serverUrl, dbRoom, userIdentity]);
+
+  useEffect(() => {
+    // Clear PIP state if we return to the room
+    useLiveRoomPipStore.getState().clearPipRoom();
+
+    return () => {
+      const { token, serverUrl, dbRoom, userIdentity } = pipValuesRef.current;
+      if (!hasExplicitlyLeft.current && token && serverUrl && dbRoom) {
+        useLiveRoomPipStore.getState().setPipRoom({
+          roomName,
+          token,
+          serverUrl,
+          dbRoom,
+          userIdentity
+        });
+      }
+    };
+  }, [roomName]);
+
   const handleLeaveRoom = useCallback(async () => {
+    hasExplicitlyLeft.current = true; // User explicitly left the room
     try {
       localStorage.removeItem(`livekit_stage_${roomName}`);
       localStorage.removeItem(`livekit_mic_${roomName}`);

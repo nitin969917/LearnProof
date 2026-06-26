@@ -309,28 +309,7 @@ export default function SocialDashboard() {
       {/* Main Content Area (Scrollable container, no padding outside) */}
       <div className={`flex-1 w-full relative ${(hideHeader || activeTab === 'chat') ? 'overflow-hidden md:overflow-y-auto' : 'overflow-y-auto'}`}>
         <div className={`max-w-7xl w-full mx-auto ${(hideHeader || activeTab === 'chat') ? 'px-0 md:px-6 py-0 md:py-6 pb-0 md:pb-28 h-full' : 'px-4 md:px-6 py-6 pb-28'}`}>
-          {showDevBanner && activeTab !== 'chat' && (
-            <div className="mb-6 bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 dark:from-orange-500/20 dark:to-orange-500/20 border border-orange-200/50 dark:border-orange-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-500 text-white rounded-xl shadow-md shadow-orange-500/20 flex-shrink-0">
-                  <AlertTriangle size={18} className="animate-pulse" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-sm font-black text-orange-850 dark:text-orange-300 uppercase tracking-wider">Under Development</h4>
-                  <p className="text-xs text-orange-750 dark:text-orange-400 font-bold mt-0.5">
-                    We are actively building the Social Hub! You might experience minor glitches or errors during this process.
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowDevBanner(false)}
-                className="p-1.5 rounded-xl hover:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-700 dark:text-orange-400 transition cursor-pointer"
-                title="Dismiss"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          )}
+
 
           {/* Tab Panels */}
           <div className={`w-full ${hideHeader ? 'h-full' : ''}`}>
@@ -377,8 +356,8 @@ export default function SocialDashboard() {
       </div>
 
       {/* Floating Bottom Navigation Bar (matches design of main application BottomNav) */}
-      <nav className={`fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[340px] xs:w-[380px] sm:w-[460px] md:w-[540px] max-w-[95vw] z-50 bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300 ${hideHeader ? 'hidden md:block' : 'block'}`}>
-        <div className="flex items-stretch justify-around h-16 px-3 relative">
+      <nav className={`fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[370px] xs:w-[415px] sm:w-[490px] md:w-[560px] max-w-[95vw] z-50 bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300 ${hideHeader ? 'hidden md:block' : 'block'}`}>
+        <div className="flex items-stretch justify-around h-16 px-3.5 relative">
           {tabs.map((tab, idx) => {
             const isActive = activeTab === tab.id || (tab.id === 'profile' && activeTab === 'profile' && selectedProfileId === socialUser.id);
             const Icon = tab.icon;
@@ -395,11 +374,11 @@ export default function SocialDashboard() {
                   >
                     <div className={`transition-all duration-300 z-10 flex flex-col items-center justify-center ${isActive ? 'scale-110 text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
                       <Icon 
-                        size={20} 
+                        size={22} 
                         strokeWidth={isActive ? 2.5 : 2} 
                         className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
                       />
-                      <span className="text-[9px] font-semibold mt-0.5 tracking-wide leading-none">{tab.name}</span>
+                      <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">{tab.name}</span>
                     </div>
 
                     <span className="sr-only">{tab.name}</span>
@@ -410,14 +389,7 @@ export default function SocialDashboard() {
                       </span>
                     )}
                     
-                    {/* Sliding active background pill */}
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeSocialTabPill"
-                        className="absolute inset-x-1 sm:inset-x-2 inset-y-1 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl z-0 border border-orange-500/10 dark:border-orange-500/25"
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                      />
-                    )}
+
                   </motion.div>
                 </button>
 
@@ -436,8 +408,8 @@ export default function SocialDashboard() {
                       className="flex flex-col items-center justify-center w-full h-full relative"
                     >
                       <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
-                        <Globe size={20} strokeWidth={2} />
-                        <span className="text-[9px] font-semibold mt-0.5 tracking-wide leading-none">Rooms</span>
+                        <Globe size={22} strokeWidth={2} />
+                        <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">Rooms</span>
                       </div>
                       <span className="sr-only">Live Rooms</span>
                     </motion.div>
@@ -450,15 +422,15 @@ export default function SocialDashboard() {
           {/* Menu Hamburger Button */}
           <button
             onClick={toggleSidebar}
-            className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-450 dark:text-gray-550 touch-manipulation select-none outline-none focus:outline-none cursor-pointer"
+            className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-500 touch-manipulation select-none outline-none focus:outline-none cursor-pointer"
           >
             <motion.div
               whileTap={{ scale: 0.88 }}
               className="flex flex-col items-center justify-center w-full h-full relative"
             >
-              <div className="text-gray-405 dark:text-gray-555 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
-                <Menu size={20} strokeWidth={2} />
-                <span className="text-[9px] font-semibold mt-0.5 tracking-wide leading-none">Menu</span>
+              <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
+                <Menu size={22} strokeWidth={2} />
+                <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">Menu</span>
               </div>
               <span className="sr-only">Menu</span>
             </motion.div>

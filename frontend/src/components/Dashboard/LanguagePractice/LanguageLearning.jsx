@@ -101,34 +101,36 @@ export default function LanguageLearning() {
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto p-4 sm:p-8 lg:p-12">
       {/* Header */}
-      <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {/* Text block: centered on mobile, left-aligned on desktop */}
-        <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white flex flex-col sm:flex-row items-center gap-4">
-            <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20">
-              <Globe className="text-white" size={32} />
-            </div>
-            <div className="flex items-center gap-3">
-              <span>Live Rooms</span>
-              {totalRoomsCount > 0 && (
-                <span className="text-xs px-2.5 py-1 bg-orange-500/10 border border-orange-500/20 text-orange-500 rounded-full font-black">
-                  {totalRoomsCount} Active
-                </span>
-              )}
-            </div>
+      <div className="relative flex flex-col items-center text-center gap-4">
+        {/* Globe Icon */}
+        <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20 w-fit flex items-center justify-center shrink-0">
+          <Globe className="text-white" size={32} />
+        </div>
+        
+        {/* Text and Info */}
+        <div className="flex flex-col items-center text-center">
+          <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white leading-tight">
+            Live Rooms
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">
+          {totalRoomsCount > 0 && (
+            <div className="mt-2.5 flex items-center justify-center">
+              <span className="text-xs px-2.5 py-1 bg-orange-500/10 border border-orange-500/20 text-orange-500 rounded-full font-black">
+                {totalRoomsCount} Active
+              </span>
+            </div>
+          )}
+          <p className="text-gray-500 dark:text-gray-400 mt-3 text-sm sm:text-lg max-w-xl">
             Join or start a live room to discuss, practice, or learn together with other members.
           </p>
         </div>
 
-        {/* + button: absolute top-right on mobile, normal flow (right side) on desktop */}
+        {/* + button */}
         <button 
           onClick={() => {
             setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
             setShowModal(true);
           }} 
-          className="absolute top-0 right-0 sm:static p-2.5 sm:p-3 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
+          className="absolute top-0 right-0 p-2.5 sm:p-3 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer flex items-center justify-center shrink-0"
           title="Create Room"
         >
           <Plus size={20} />
