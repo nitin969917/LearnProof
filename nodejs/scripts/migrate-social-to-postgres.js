@@ -41,15 +41,21 @@ async function migrate() {
 
   try {
     // ── 0. Create Database Schema ──────────────────────────────────────
-    console.log('📋 Creating PostgreSQL social tables and indexes if they do not exist...');
     const { Client } = require('pg');
     const fs = require('fs');
     const sql = fs.readFileSync(path.join(__dirname, '../prisma/dating_schema.sql'), 'utf8');
     const schemaClient = new Client({ connectionString: process.env.SOCIAL_DATABASE_URL });
     await schemaClient.connect();
-    await schemaClient.query(sql);
+
+    const tableCheck = await schemaClient.query("SELECT 1 FROM information_schema.tables WHERE table_name = 'social_users'");
+    if (tableCheck.rows.length === 0) {
+      console.log('📋 Creating PostgreSQL social tables and indexes...');
+      await schemaClient.query(sql);
+      console.log('   ✅ Social database schema applied successfully');
+    } else {
+      console.log('   ℹ️ Social tables already exist, skipping schema creation');
+    }
     await schemaClient.end();
-    console.log('   ✅ Social database schema applied successfully');
 
     await sqliteClient.$connect();
     await pgClient.$connect();
