@@ -560,16 +560,28 @@ const getFriendships = async (req, res) => {
       },
     });
 
-    const friends = friendships
-      .filter((f) => f.status === 'accepted')
-      .map((f) => {
-        const friend = f.senderId === userId ? f.receiver : f.sender;
-        return {
-          ...friend,
-          isCloseFriend: f.isCloseFriend,
-          friendshipId: f.id,
-        };
-      });
+    const friends = await Promise.all(
+      friendships
+        .filter((f) => f.status === 'accepted')
+        .map(async (f) => {
+          const friend = f.senderId === userId ? f.receiver : f.sender;
+          const lastMessage = await datingPrisma.message.findFirst({
+            where: {
+              OR: [
+                { senderId: userId, receiverId: friend.id },
+                { senderId: friend.id, receiverId: userId }
+              ]
+            },
+            orderBy: { createdAt: 'desc' }
+          });
+          return {
+            ...friend,
+            isCloseFriend: f.isCloseFriend,
+            friendshipId: f.id,
+            lastMessage
+          };
+        })
+    );
 
     const pending = friendships.filter((f) => f.status === 'pending' && f.receiverId === userId);
 
@@ -997,18 +1009,32 @@ const getGroups = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    const formattedGroups = groups.map((g) => {
-      const isJoined = g.members.some((m) => m.userId === userId);
-      const memberCount = g.members.length;
-      return {
-        ...g,
-        isJoined,
-        memberCount,
-        // Hide entry key for other users
-        entryKey: g.creatorId === userId ? g.entryKey : null,
-        members: undefined, // remove raw array from output
-      };
-    });
+    const formattedGroups = await Promise.all(
+      groups.map(async (g) => {
+        const isJoined = g.members.some((m) => m.userId === userId);
+        const memberCount = g.members.length;
+        let lastMessage = null;
+        if (isJoined) {
+          lastMessage = await datingPrisma.groupMessage.findFirst({
+            where: { groupId: g.id },
+            include: {
+              sender: {
+                select: { id: true, name: true, profilePicture: true }
+              }
+            },
+            orderBy: { createdAt: 'desc' }
+          });
+        }
+        return {
+          ...g,
+          isJoined,
+          memberCount,
+          entryKey: g.creatorId === userId ? g.entryKey : null,
+          members: undefined,
+          lastMessage
+        };
+      })
+    );
 
     res.json(formattedGroups);
   } catch (error) {

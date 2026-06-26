@@ -166,8 +166,19 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       setContacts(friendsList);
       setGroups(groupsList);
 
-      // Load last messages in the background
-      loadLastMessages(friendsList, groupsList.filter(g => g.isJoined));
+      // Populate lastMessages instantly from the backend response
+      const initialLastMsgs = {};
+      friendsList.forEach(friend => {
+        if (friend.lastMessage) {
+          initialLastMsgs[`direct-${friend.id}`] = friend.lastMessage;
+        }
+      });
+      groupsList.forEach(group => {
+        if (group.lastMessage) {
+          initialLastMsgs[`group-${group.id}`] = group.lastMessage;
+        }
+      });
+      setLastMessages(initialLastMsgs);
     } catch (err) {
       console.error('Failed to fetch chat data:', err);
     } finally {
@@ -307,40 +318,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     };
   }, [currentUserId]);
 
-  // Load latest message for each active chat in background
-  const loadLastMessages = async (friendsList, joinedGroups) => {
-    const lastMsgs = {};
-    
-    // Friends last messages
-    await Promise.all(
-      friendsList.map(async (friend) => {
-        try {
-          const res = await socialApi.get(`/messages/${friend.id}`);
-          if (res.data && res.data.length > 0) {
-            lastMsgs[`direct-${friend.id}`] = res.data[res.data.length - 1];
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      })
-    );
 
-    // Groups last messages
-    await Promise.all(
-      joinedGroups.map(async (group) => {
-        try {
-          const res = await socialApi.get(`/groups/${group.id}/messages`);
-          if (res.data && res.data.length > 0) {
-            lastMsgs[`group-${group.id}`] = res.data[res.data.length - 1];
-          }
-        } catch (err) {
-          console.error(err);
-        }
-      })
-    );
-
-    setLastMessages(lastMsgs);
-  };
 
   // Sync if opened via shortcut from other tabs (Feed, Friends, etc.)
   useEffect(() => {
