@@ -20,5 +20,8 @@ COPY . .
 
 EXPOSE 8000
 
-# Auto-push schema changes to databases, then start command with PM2 Runtime
-CMD npx prisma db push --schema=prisma/schema.prisma && npx prisma db push --schema=prisma/dating.prisma && pm2-runtime start server.js
+# Push schema changes then start with PM2 in CLUSTER mode (uses all CPU cores)
+# instances: max automatically detects and uses all available CPU cores
+CMD npx prisma db push --schema=prisma/schema.prisma && \
+    npx prisma db push --schema=prisma/dating.prisma && \
+    pm2-runtime start server.js -i max --name learnproof

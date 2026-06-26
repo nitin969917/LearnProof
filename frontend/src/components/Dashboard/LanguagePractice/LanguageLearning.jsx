@@ -4,6 +4,7 @@ import { Mic, Globe, Plus, Users, Search, GraduationCap, Video, PhoneOff, Trash2
 import socialApi from '../../../api/socialApi.js';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import toast from 'react-hot-toast';
+import { getSocialSocket } from '../../../utils/socialSocket.js';
 
 export default function LanguageLearning() {
   const [roomsList, setRoomsList] = useState([]);
@@ -21,11 +22,31 @@ export default function LanguageLearning() {
   useEffect(() => {
     fetchRooms();
     fetchSocialUser();
-
-    // Poll active rooms list every 5 seconds to keep it dynamic and fresh
-    const pollInterval = setInterval(fetchRooms, 5000);
-    return () => clearInterval(pollInterval);
   }, []);
+
+  useEffect(() => {
+    // Listen to real-time room creation/deletion events from other users via socket
+    let socket = null;
+    if (socialUser?.id) {
+      try {
+        socket = getSocialSocket(socialUser.id);
+        if (socket) {
+          socket.on('ROOMS_UPDATED', fetchRooms);
+        }
+      } catch (err) {
+        console.error('Failed to bind ROOMS_UPDATED socket listener:', err);
+      }
+    }
+
+    // Poll active rooms list every 30 seconds to keep it dynamic and fresh without overloading
+    const pollInterval = setInterval(fetchRooms, 30000);
+    return () => {
+      clearInterval(pollInterval);
+      if (socket) {
+        socket.off('ROOMS_UPDATED', fetchRooms);
+      }
+    };
+  }, [socialUser]);
 
   const fetchSocialUser = async () => {
     try {

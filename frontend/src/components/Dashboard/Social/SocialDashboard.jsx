@@ -136,23 +136,32 @@ export default function SocialDashboard() {
   }, [location.search]);
 
   useEffect(() => {
-    localStorage.setItem('social_active_tab', activeTab);
+    const handler = setTimeout(() => {
+      localStorage.setItem('social_active_tab', activeTab);
+    }, 300);
+    return () => clearTimeout(handler);
   }, [activeTab]);
 
   useEffect(() => {
-    if (selectedProfileId) {
-      localStorage.setItem('social_selected_profile_id', selectedProfileId);
-    } else {
-      localStorage.removeItem('social_selected_profile_id');
-    }
+    const handler = setTimeout(() => {
+      if (selectedProfileId) {
+        localStorage.setItem('social_selected_profile_id', selectedProfileId);
+      } else {
+        localStorage.removeItem('social_selected_profile_id');
+      }
+    }, 300);
+    return () => clearTimeout(handler);
   }, [selectedProfileId]);
 
   useEffect(() => {
-    if (selectedChatContact) {
-      localStorage.setItem('social_selected_chat_contact', JSON.stringify(selectedChatContact));
-    } else {
-      localStorage.removeItem('social_selected_chat_contact');
-    }
+    const handler = setTimeout(() => {
+      if (selectedChatContact) {
+        localStorage.setItem('social_selected_chat_contact', JSON.stringify(selectedChatContact));
+      } else {
+        localStorage.removeItem('social_selected_chat_contact');
+      }
+    }, 300);
+    return () => clearTimeout(handler);
   }, [selectedChatContact]);
 
   const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);

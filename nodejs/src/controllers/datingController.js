@@ -35,13 +35,18 @@ const invalidateGroupsCache = async () => {
   }
 };
 
-const invalidateProfileCache = async () => {
+const invalidateProfileCache = async (userId, email) => {
   try {
-    await cacheService.delByPattern('user:profile:*');
+    await Promise.all([
+      cacheService.delByPattern('user:profile:*'),
+      // Also clear the auth middleware cache so profile updates are reflected immediately
+      email ? cacheService.del(`social:user:email:${email}`) : cacheService.delByPattern('social:user:email:*'),
+    ]);
   } catch (err) {
     console.error('Failed to invalidate profile cache:', err);
   }
 };
+
 
 // ==========================================
 // POST CONTROLLERS
@@ -325,13 +330,9 @@ const getProfile = async (req, res) => {
     const profileUser = await datingPrisma.user.findUnique({
       where: { id: parseInt(profileIdParam) },
       include: {
-        posts: {
-          orderBy: { createdAt: 'desc' },
-        },
         _count: {
           select: {
             posts: true,
-            likedPosts: true,
           },
         },
       },
@@ -404,11 +405,18 @@ const updateProfile = async (req, res) => {
   const data = req.body;
 
   try {
+    // Enforce 50-word limit on bio
+    let bioVal = data.bio || '';
+    const bioWords = bioVal.trim().split(/\s+/).filter(Boolean);
+    if (bioWords.length > 50) {
+      bioVal = bioWords.slice(0, 50).join(' ');
+    }
+
     const updatedUser = await datingPrisma.user.update({
       where: { id: userId },
       data: {
         name: data.name,
-        bio: data.bio,
+        bio: bioVal,
         collegeName: data.collegeName,
         department: data.department,
         yearOfStudy: data.yearOfStudy,
@@ -439,15 +447,17 @@ const searchUsers = async (req, res) => {
   const { q } = req.query;
   const userId = req.user.id;
 
-  if (!q || typeof q !== 'string') return res.json([]);
+  if (!q || typeof q !== 'string' || q.trim().length < 2) return res.json([]);
+
+  const trimmed = q.trim();
 
   try {
     const users = await datingPrisma.user.findMany({
       where: {
         OR: [
-          { name: { contains: q } },
-          { collegeName: { contains: q } },
-          { department: { contains: q } },
+          { name: { contains: trimmed, mode: 'insensitive' } },
+          { collegeName: { contains: trimmed, mode: 'insensitive' } },
+          { department: { contains: trimmed, mode: 'insensitive' } },
         ],
         NOT: { id: userId },
       },
@@ -645,30 +655,53 @@ const getFriendships = async (req, res) => {
       },
     });
 
-    const friends = await Promise.all(
-      friendships
-        .filter((f) => f.status === 'accepted')
-        .map(async (f) => {
-          const friend = f.senderId === userId ? f.receiver : f.sender;
-          const lastMessage = await datingPrisma.message.findFirst({
-            where: {
-              OR: [
-                { senderId: userId, receiverId: friend.id },
-                { senderId: friend.id, receiverId: userId }
-              ]
-            },
-            orderBy: { createdAt: 'desc' }
-          });
-          return {
-            ...friend,
-            isCloseFriend: f.isCloseFriend,
-            friendshipId: f.id,
-            lastMessage
-          };
-        })
-    );
+    const acceptedFriendships = friendships.filter(f => f.status === 'accepted');
+    const friendIds = acceptedFriendships.map(f => f.senderId === userId ? f.receiverId : f.senderId);
 
-    const pending = friendships.filter((f) => f.status === 'pending' && f.receiverId === userId);
+    // ── Batch last-message fetch (1 query instead of N) ──────────────────────
+    // Previously: 1 findFirst() per friend = N DB queries
+    // Now: 1 raw query using DISTINCT ON to get latest message per conversation
+    let lastMessageMap = new Map();
+    if (friendIds.length > 0) {
+      try {
+        const rawMessages = await datingPrisma.$queryRaw`
+          SELECT DISTINCT ON (
+            LEAST("senderId", "receiverId"),
+            GREATEST("senderId", "receiverId")
+          )
+            id, content, "senderId", "receiverId", "isRead", "createdAt"
+          FROM "social_messages"
+          WHERE
+            ("senderId" = ${userId} AND "receiverId" = ANY(${friendIds}::int[]))
+            OR
+            ("receiverId" = ${userId} AND "senderId" = ANY(${friendIds}::int[]))
+          ORDER BY
+            LEAST("senderId", "receiverId"),
+            GREATEST("senderId", "receiverId"),
+            "createdAt" DESC
+        `;
+        rawMessages.forEach(msg => {
+          const friendId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+          lastMessageMap.set(Number(friendId), msg);
+        });
+      } catch (rawErr) {
+        // Fallback gracefully if raw query fails (e.g. tables not yet created)
+        console.error('Last message batch query failed:', rawErr.message);
+      }
+    }
+
+    // Build friends list — zero additional queries
+    const friends = acceptedFriendships.map(f => {
+      const friend = f.senderId === userId ? f.receiver : f.sender;
+      return {
+        ...friend,
+        isCloseFriend: f.isCloseFriend,
+        friendshipId: f.id,
+        lastMessage: lastMessageMap.get(friend.id) || null,
+      };
+    });
+
+    const pending = friendships.filter(f => f.status === 'pending' && f.receiverId === userId);
 
     const result = { friends, pending };
     await cacheService.set(cacheKey, result, 30); // Cache for 30 seconds
@@ -682,6 +715,7 @@ const getFriendships = async (req, res) => {
 
 
 
+
 // ==========================================
 // MESSAGE CONTROLLERS
 // ==========================================
@@ -689,33 +723,48 @@ const getFriendships = async (req, res) => {
 const getMessages = async (req, res) => {
   const { targetUserId } = req.params;
   const userId = req.user.id;
+  // Pagination: default to last 50 messages, load older on scroll
+  const page = parseInt(req.query.page) || 0;
+  const PAGE_SIZE = 50;
 
   try {
     const messages = await datingPrisma.message.findMany({
       where: {
+        isDeleted: false,
         OR: [
           { senderId: userId, receiverId: parseInt(targetUserId) },
           { senderId: parseInt(targetUserId), receiverId: userId }
         ]
       },
-      orderBy: {
-        createdAt: 'asc',
+      select: {
+        id: true,
+        content: true,
+        senderId: true,
+        receiverId: true,
+        isRead: true,
+        isDeleted: true,
+        createdAt: true,
       },
+      orderBy: { createdAt: 'desc' }, // newest first for pagination
+      take: PAGE_SIZE,
+      skip: page * PAGE_SIZE,
     });
 
-    // Mark messages as read
-    await datingPrisma.message.updateMany({
+    // Mark messages as read (non-blocking — don't await)
+    datingPrisma.message.updateMany({
       where: {
         senderId: parseInt(targetUserId),
         receiverId: userId,
         isRead: false,
       },
-      data: {
-        isRead: true,
-      },
-    });
+      data: { isRead: true },
+    }).then(() => {
+      // Invalidate unread cache after marking read
+      cacheService.del(`user:unread:${userId}`);
+    }).catch(() => {});
 
-    res.json(messages);
+    // Return in chronological order (oldest first)
+    res.json(messages.reverse());
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch messages' });
@@ -726,6 +775,11 @@ const getUnreadCounts = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    // Cache unread counts — this is called on every Social Dashboard load
+    const cacheKey = `user:unread:${userId}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return res.json(cached);
+
     const unread = await datingPrisma.message.groupBy({
       by: ['senderId'],
       where: {
@@ -742,6 +796,7 @@ const getUnreadCounts = async (req, res) => {
       counts[item.senderId] = item._count.senderId;
     });
 
+    await cacheService.set(cacheKey, counts, 10); // 10 second cache
     res.json(counts);
   } catch (error) {
     console.error(error);
@@ -839,6 +894,14 @@ const createLanguageRoom = async (req, res) => {
     }
 
     await invalidateRoomsCache();
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('ROOMS_UPDATED');
+      }
+    } catch (ioErr) {
+      console.error('Socket emit failed for room creation:', ioErr.message);
+    }
     res.status(201).json(room);
   } catch (error) {
     console.error(error);
@@ -863,6 +926,14 @@ const deleteLanguageRoom = async (req, res) => {
     });
 
     await invalidateRoomsCache();
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('ROOMS_UPDATED');
+      }
+    } catch (ioErr) {
+      console.error('Socket emit failed for room deletion:', ioErr.message);
+    }
     res.json({ message: 'Room ended successfully' });
   } catch (error) {
     console.error(error);
@@ -887,6 +958,14 @@ const deleteLanguageRoomByName = async (req, res) => {
     });
 
     await invalidateRoomsCache();
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('ROOMS_UPDATED');
+      }
+    } catch (ioErr) {
+      console.error('Socket emit failed for room deletion by name:', ioErr.message);
+    }
     res.json({ message: 'Room ended successfully' });
   } catch (error) {
     console.error(error);
@@ -894,26 +973,16 @@ const deleteLanguageRoomByName = async (req, res) => {
   }
 };
 
-const getLanguageRooms = async (req, res) => {
-  const userId = req.user.id;
-
+const refreshRoomsInBackground = async (userId, cacheKey) => {
   try {
-    const cacheKey = `user:live-rooms:${userId}`;
-    const cached = await cacheService.get(cacheKey);
-    if (cached) {
-      return res.json(cached);
-    }
-
-    // 1. Fetch active rooms from LiveKit to synchronize DB
     let activeLkRoomNames = [];
     try {
       const lkRooms = await livekitService.listRooms();
       activeLkRoomNames = Array.isArray(lkRooms) ? lkRooms.map(r => r.name) : [];
     } catch (lkErr) {
-      console.error('Failed to list LiveKit rooms:', lkErr);
+      console.error('Failed to list LiveKit rooms in background:', lkErr);
     }
 
-    // 2. Fetch all accepted friendships for the current user to resolve friend IDs
     const friendships = await datingPrisma.friendship.findMany({
       where: {
         status: 'accepted',
@@ -928,7 +997,6 @@ const getLanguageRooms = async (req, res) => {
       f.senderId === userId ? f.receiverId : f.senderId
     );
 
-    // 3. Fetch rooms that are public, owned by the user, or owned by their friends
     const rooms = await datingPrisma.languageRoom.findMany({
       where: {
         OR: [
@@ -951,25 +1019,98 @@ const getLanguageRooms = async (req, res) => {
       },
     });
 
-    // 4. Filter and clean up: Delete rooms from DB if they are no longer active in LiveKit
-    // (Only delete if they were created more than 30 seconds ago to avoid race conditions with creation)
     const now = new Date();
     const validRooms = [];
 
     for (const room of rooms) {
-      const isNew = (now - new Date(room.createdAt)) < 30000; // 30 seconds
+      const isNew = (now - new Date(room.createdAt)) < 30000;
       if (isNew || activeLkRoomNames.includes(room.roomName)) {
         validRooms.push(room);
       } else {
-        // Delete dead room from DB asynchronously
+        datingPrisma.languageRoom.delete({
+          where: { id: room.id }
+        }).catch(err => console.error(`Failed to auto-delete dead room ${room.roomName} in background:`, err));
+      }
+    }
+
+    await cacheService.set(cacheKey, validRooms, 15);
+  } catch (err) {
+    console.error('Failed background room refresh:', err);
+  }
+};
+
+const getLanguageRooms = async (req, res) => {
+  const userId = req.user.id;
+  const cacheKey = `user:live-rooms:${userId}`;
+
+  try {
+    const cached = await cacheService.get(cacheKey);
+    if (cached) {
+      // Refresh in background to keep data fresh without blocking current response
+      refreshRoomsInBackground(userId, cacheKey).catch(() => {});
+      return res.json(cached);
+    }
+
+    // Cache miss: do sync fetch
+    let activeLkRoomNames = [];
+    try {
+      const lkRooms = await livekitService.listRooms();
+      activeLkRoomNames = Array.isArray(lkRooms) ? lkRooms.map(r => r.name) : [];
+    } catch (lkErr) {
+      console.error('Failed to list LiveKit rooms:', lkErr);
+    }
+
+    const friendships = await datingPrisma.friendship.findMany({
+      where: {
+        status: 'accepted',
+        OR: [
+          { senderId: userId },
+          { receiverId: userId }
+        ]
+      }
+    });
+
+    const friendIds = friendships.map((f) => 
+      f.senderId === userId ? f.receiverId : f.senderId
+    );
+
+    const rooms = await datingPrisma.languageRoom.findMany({
+      where: {
+        OR: [
+          { isFriendsOnly: false },
+          { creatorId: userId },
+          { creatorId: { in: friendIds } }
+        ]
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const now = new Date();
+    const validRooms = [];
+
+    for (const room of rooms) {
+      const isNew = (now - new Date(room.createdAt)) < 30000;
+      if (isNew || activeLkRoomNames.includes(room.roomName)) {
+        validRooms.push(room);
+      } else {
         datingPrisma.languageRoom.delete({
           where: { id: room.id }
         }).catch(err => console.error(`Failed to auto-delete dead room ${room.roomName}:`, err));
       }
     }
 
-    await cacheService.set(cacheKey, validRooms, 5); // Cache for 5 seconds
-
+    await cacheService.set(cacheKey, validRooms, 15); // Cache for 15 seconds
     res.json(validRooms);
   } catch (error) {
     console.error(error);
@@ -1117,32 +1258,50 @@ const getGroups = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    const formattedGroups = await Promise.all(
-      groups.map(async (g) => {
-        const isJoined = g.members.some((m) => m.userId === userId);
-        const memberCount = g.members.length;
-        let lastMessage = null;
-        if (isJoined) {
-          lastMessage = await datingPrisma.groupMessage.findFirst({
-            where: { groupId: g.id },
-            include: {
-              sender: {
-                select: { id: true, name: true, profilePicture: true }
-              }
-            },
-            orderBy: { createdAt: 'desc' }
+    // Determine which groups user has joined
+    const joinedGroupIds = groups
+      .filter(g => g.members.some(m => m.userId === userId))
+      .map(g => g.id);
+
+    // ── Batch last-message fetch (1 query instead of N) ─────────────────────
+    let lastMessageByGroupId = new Map();
+    if (joinedGroupIds.length > 0) {
+      try {
+        const rawLastMessages = await datingPrisma.$queryRaw`
+          SELECT DISTINCT ON ("groupId")
+            gm.id, gm.content, gm."senderId", gm."groupId", gm."createdAt",
+            u.id as "senderId", u.name as "senderName", u."profilePicture" as "senderPic"
+          FROM "social_group_messages" gm
+          JOIN "social_users" u ON u.id = gm."senderId"
+          WHERE gm."groupId" = ANY(${joinedGroupIds}::int[])
+            AND gm."isDeleted" = false
+          ORDER BY "groupId", gm."createdAt" DESC
+        `;
+        rawLastMessages.forEach(msg => {
+          lastMessageByGroupId.set(Number(msg.groupId), {
+            id: msg.id,
+            content: msg.content,
+            senderId: msg.senderId,
+            createdAt: msg.createdAt,
+            sender: { id: msg.senderId, name: msg.senderName, profilePicture: msg.senderPic }
           });
-        }
-        return {
-          ...g,
-          isJoined,
-          memberCount,
-          entryKey: g.creatorId === userId ? g.entryKey : null,
-          members: undefined,
-          lastMessage
-        };
-      })
-    );
+        });
+      } catch (rawErr) {
+        console.error('Group last message batch query failed:', rawErr.message);
+      }
+    }
+
+    const formattedGroups = groups.map(g => {
+      const isJoined = g.members.some(m => m.userId === userId);
+      return {
+        ...g,
+        isJoined,
+        memberCount: g.members.length,
+        entryKey: g.creatorId === userId ? g.entryKey : null,
+        members: undefined,
+        lastMessage: isJoined ? (lastMessageByGroupId.get(g.id) || null) : null,
+      };
+    });
 
     await cacheService.set(cacheKey, formattedGroups, 10); // Cache for 10 seconds
 
@@ -1156,6 +1315,8 @@ const getGroups = async (req, res) => {
 const getGroupMessages = async (req, res) => {
   const { groupId } = req.params;
   const userId = req.user.id;
+  const page = parseInt(req.query.page) || 0;
+  const PAGE_SIZE = 50;
 
   try {
     // Verify membership
@@ -1172,17 +1333,20 @@ const getGroupMessages = async (req, res) => {
       return res.status(403).json({ error: 'Access denied: join group first' });
     }
 
+    // Paginated — newest 50 first, reversed for chronological display
     const messages = await datingPrisma.groupMessage.findMany({
-      where: { groupId: parseInt(groupId) },
+      where: { groupId: parseInt(groupId), isDeleted: false },
       include: {
         sender: {
           select: { id: true, name: true, profilePicture: true },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
+      take: PAGE_SIZE,
+      skip: page * PAGE_SIZE,
     });
 
-    res.json(messages);
+    res.json(messages.reverse());
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch group messages' });
@@ -1195,35 +1359,25 @@ const sendGroupMessage = async (req, res) => {
   const senderId = req.user.id;
 
   try {
-    // Verify membership
-    const isMember = await datingPrisma.groupMember.findUnique({
-      where: {
-        groupId_userId: {
-          groupId: parseInt(groupId),
-          userId: senderId,
-        },
-      },
-    });
+    // Run membership check and group settings lookup IN PARALLEL (was sequential)
+    const [isMember, group] = await Promise.all([
+      datingPrisma.groupMember.findUnique({
+        where: { groupId_userId: { groupId: parseInt(groupId), userId: senderId } },
+      }),
+      datingPrisma.group.findUnique({
+        where: { id: parseInt(groupId) },
+      }),
+    ]);
 
     if (!isMember) {
       return res.status(403).json({ error: 'Access denied: join group first' });
     }
-
-    // Check if onlyAdminsCanPost is enabled and sender is not admin
-    const group = await datingPrisma.group.findUnique({
-      where: { id: parseInt(groupId) },
-    });
-
     if (group && group.onlyAdminsCanPost && group.creatorId !== senderId) {
       return res.status(403).json({ error: 'Only admins can send messages in this group' });
     }
 
     const message = await datingPrisma.groupMessage.create({
-      data: {
-        groupId: parseInt(groupId),
-        senderId,
-        content,
-      },
+      data: { groupId: parseInt(groupId), senderId, content },
       include: {
         sender: {
           select: { id: true, name: true, profilePicture: true },
@@ -1231,17 +1385,13 @@ const sendGroupMessage = async (req, res) => {
       },
     });
 
-    // Send push notifications to group members
-    try {
-      const members = await datingPrisma.groupMember.findMany({
-        where: {
-          groupId: parseInt(groupId),
-          userId: { not: senderId }
-        },
-        select: { userId: true }
-      });
+    // Send push notifications to group members (non-blocking)
+    datingPrisma.groupMember.findMany({
+      where: { groupId: parseInt(groupId), userId: { not: senderId } },
+      select: { userId: true }
+    }).then(members => {
       const receiverIds = members.map(m => m.userId);
-      if (receiverIds.length > 0) {
+      if (receiverIds.length > 0 && group) {
         sendPushNotification(
           receiverIds,
           `New message in ${group.name}`,
@@ -1249,9 +1399,9 @@ const sendGroupMessage = async (req, res) => {
           { type: 'GROUP_MESSAGE', groupId: String(groupId) }
         );
       }
-    } catch (pushErr) {
+    }).catch(pushErr => {
       console.error('Error sending group message push notification:', pushErr.message);
-    }
+    });
 
     res.status(201).json(message);
   } catch (error) {

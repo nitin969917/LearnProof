@@ -10,6 +10,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
 
@@ -19,12 +20,15 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   }, [targetId]);
 
   const fetchUserPosts = async () => {
+    setPostsLoading(true);
     try {
       const response = await socialApi.get(`/posts/feed?authorId=${targetId}`);
       setPosts(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Failed to fetch user posts', err);
       setPosts([]);
+    } finally {
+      setPostsLoading(false);
     }
   };
 
@@ -101,98 +105,124 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       {isEditing ? (
         <>
           {/* Profile Header Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm flex flex-col md:flex-row gap-6 items-center md:items-start relative">
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-4xl shadow-md border-4 border-orange-50 dark:border-orange-950/20">
-              {profile.profilePicture ? (
-                <img src={profile.profilePicture} alt={profile.name} className="w-full h-full object-cover" />
-              ) : (
-                profile.name?.[0]?.toUpperCase() || '?'
-              )}
-            </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 md:p-6 shadow-sm flex flex-col gap-4">
+            <div className="flex gap-4 md:gap-6 items-start">
+              {/* Avatar */}
+              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-3xl md:text-4xl shadow border-2 border-orange-50 dark:border-orange-950/20">
+                {profile.profilePicture ? (
+                  <img src={profile.profilePicture} alt={profile.name} className="w-full h-full object-cover" />
+                ) : (
+                  profile.name?.[0]?.toUpperCase() || '?'
+                )}
+              </div>
 
-            <div className="flex-1 text-center md:text-left min-w-0">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate">{profile.name}</h2>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 leading-relaxed font-medium">{profile.bio || 'This user has not set a bio yet.'}</p>
-              
-              <div className="flex flex-wrap justify-center md:justify-start gap-x-4 gap-y-1.5 mt-4 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                {profile.collegeName && (
-                  <span className="flex items-center gap-1"><MapPin size={14} className="text-orange-500" /> {profile.collegeName}</span>
-                )}
-                {profile.department && (
-                  <span className="flex items-center gap-1"><GraduationCap size={14} className="text-orange-500" /> {profile.department} {profile.yearOfStudy ? `• Year ${profile.yearOfStudy}` : ''}</span>
-                )}
+              {/* Info */}
+              <div className="flex-1 text-left min-w-0">
+                <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">{profile.name}</h2>
+                <div className="flex flex-wrap gap-2 mt-1 mb-1.5">
+                  {profile.collegeName && (
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-2.5 py-0.5 rounded-full">
+                      <MapPin size={10} /> {profile.collegeName}
+                    </span>
+                  )}
+                  {profile.department && (
+                    <span className="flex items-center gap-1 text-[11px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-2.5 py-0.5 rounded-full">
+                      <GraduationCap size={10} /> {profile.department} {profile.yearOfStudy ? `• Year ${profile.yearOfStudy}` : ''}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5">
+                  {profile._count?.posts || 0} Posts
+                </div>
+                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{profile.bio || 'This user has not set a bio yet.'}</p>
               </div>
             </div>
 
-            <div className="flex flex-wrap md:flex-col gap-2 flex-shrink-0 w-full md:w-auto">
+            <div className="flex gap-2 w-fit mt-1">
               <button 
                 onClick={() => setIsEditing(!isEditing)}
-                className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-orange-100 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 hover:bg-orange-100 font-bold text-sm transition"
+                className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/80 font-bold text-xs transition"
               >
-                <Edit3 size={16} />
-                <span>{isEditing ? 'Cancel Edit' : 'Edit Profile'}</span>
+                <Edit3 size={13} />
+                <span>Cancel Edit</span>
               </button>
             </div>
           </div>
 
           {/* Profile Details (Edit Mode) */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
-            <form onSubmit={handleSave} className="space-y-6">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-2">Edit Credentials</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 md:p-6 shadow-sm">
+            <form onSubmit={handleSave} className="space-y-5">
+              <h3 className="text-base font-bold text-gray-800 dark:text-white border-b border-gray-100 dark:border-gray-700/50 pb-2">Edit Credentials</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Full Name</label>
+                <div className="flex flex-col gap-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-2xl">
+                  <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Full Name</label>
                   <input 
                     type="text" 
                     value={formData.name || ''} 
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-750 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium"
+                    className="w-full bg-white dark:bg-gray-850 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                     required 
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">College Name</label>
+                <div className="flex flex-col gap-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-2xl">
+                  <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">College Name</label>
                   <input 
                     type="text" 
                     value={formData.collegeName || ''} 
                     onChange={(e) => setFormData({...formData, collegeName: e.target.value})}
-                    className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-750 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium"
+                    className="w-full bg-white dark:bg-gray-850 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Department / Major</label>
+                <div className="flex flex-col gap-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-2xl">
+                  <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Department / Major</label>
                   <input 
                     type="text" 
                     value={formData.department || ''} 
                     onChange={(e) => setFormData({...formData, department: e.target.value})}
-                    className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-750 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium"
+                    className="w-full bg-white dark:bg-gray-850 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Year of Study</label>
+                <div className="flex flex-col gap-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-2xl">
+                  <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Year of Study</label>
                   <input 
                     type="text" 
                     value={formData.yearOfStudy || ''} 
                     onChange={(e) => setFormData({...formData, yearOfStudy: e.target.value})}
-                    className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-750 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium"
+                    className="w-full bg-white dark:bg-gray-850 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Bio</label>
+              <div className="flex flex-col gap-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-2xl">
+                <div className="flex justify-between items-center">
+                  <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Bio</label>
+                  <span className={`text-[10px] font-bold ${(formData.bio || '').trim().split(/\s+/).filter(Boolean).length >= 50 ? 'text-red-500 animate-pulse' : 'text-gray-400 dark:text-gray-500'}`}>
+                    {(formData.bio || '').trim().split(/\s+/).filter(Boolean).length}/50 words
+                  </span>
+                </div>
                 <textarea 
                   value={formData.bio || ''} 
-                  onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const words = val.trim().split(/\s+/).filter(Boolean);
+                    if (words.length <= 50) {
+                      setFormData({...formData, bio: val});
+                    } else {
+                      // Allow editing/deleting even when word count is 50+
+                      if (val.length < (formData.bio || '').length) {
+                        setFormData({...formData, bio: val});
+                      }
+                    }
+                  }}
                   rows={3}
-                  className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-750 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium resize-none"
+                  className="w-full bg-white dark:bg-gray-850 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold resize-none"
                 />
               </div>
 
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-750 pb-2 pt-4">Social & Contact Links</h3>
+              <h3 className="text-base font-bold text-gray-800 dark:text-white border-b border-gray-100 dark:border-gray-700/50 pb-2 pt-2">Social & Contact Links</h3>
               
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <SocialFieldEdit 
                   label="Phone Number" 
                   valueKey="phoneNumber" 
@@ -237,10 +267,10 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                 />
               </div>
 
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-end pt-3">
                 <button 
                   type="submit"
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-655 text-white font-bold text-sm shadow transition"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow transition"
                 >
                   <Save size={16} />
                   <span>Save Changes</span>
@@ -250,10 +280,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           </div>
         </>
       ) : (
-        /* Unified View Mode Card */
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm flex flex-col gap-6">
-          <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-4xl shadow-md border-4 border-orange-50 dark:border-orange-950/20">
+        /* Unified View Mode Card *        /* Unified View Mode Card */
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 md:p-6 shadow-sm flex flex-col gap-4">
+          <div className="flex gap-4 md:gap-6 items-start">
+            {/* Avatar */}
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-3xl md:text-4xl shadow border-2 border-orange-50 dark:border-orange-950/20">
               {profile.profilePicture ? (
                 <img src={profile.profilePicture} alt={profile.name} className="w-full h-full object-cover" />
               ) : (
@@ -261,64 +292,72 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               )}
             </div>
 
-            <div className="flex-1 text-center md:text-left min-w-0">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white truncate">{profile.name}</h2>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 leading-relaxed font-medium">{profile.bio || 'This user has not set a bio yet.'}</p>
-              
-              <div className="flex flex-wrap justify-center md:justify-start gap-x-4 gap-y-1.5 mt-4 text-xs font-semibold text-gray-500 dark:text-gray-400">
+            {/* Info */}
+            <div className="flex-1 text-left min-w-0">
+              <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">{profile.name}</h2>
+              <div className="flex flex-wrap gap-2 mt-1 mb-1.5">
                 {profile.collegeName && (
-                  <span className="flex items-center gap-1"><MapPin size={14} className="text-orange-500" /> {profile.collegeName}</span>
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-2.5 py-0.5 rounded-full">
+                    <MapPin size={10} /> {profile.collegeName}
+                  </span>
                 )}
                 {profile.department && (
-                  <span className="flex items-center gap-1"><GraduationCap size={14} className="text-orange-500" /> {profile.department} {profile.yearOfStudy ? `• Year ${profile.yearOfStudy}` : ''}</span>
+                  <span className="flex items-center gap-1 text-[11px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-2.5 py-0.5 rounded-full">
+                    <GraduationCap size={10} /> {profile.department} {profile.yearOfStudy ? `• Year ${profile.yearOfStudy}` : ''}
+                  </span>
                 )}
               </div>
-            </div>
-
-            <div className="flex flex-wrap md:flex-col gap-2 flex-shrink-0 w-full md:w-auto">
-              {isOwnProfile ? (
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-orange-100 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 hover:bg-orange-100 font-bold text-sm transition"
-                >
-                  <Edit3 size={16} />
-                  <span>Edit Profile</span>
-                </button>
-              ) : (
-                <>
-                  <button 
-                    onClick={handleFriendAction}
-                    className={`flex-1 md:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition ${
-                      profile.isFriend 
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200' 
-                        : profile.hasPendingRequest 
-                          ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 hover:bg-orange-200' 
-                          : 'bg-orange-500 hover:bg-orange-600 text-white shadow shadow-orange-500/20'
-                    }`}
-                  >
-                    {profile.isFriend ? (
-                      <><UserCheck size={16} /><span>Connected</span></>
-                    ) : profile.hasPendingRequest ? (
-                      <><Shield size={16} /><span>{profile.isRequestSender ? 'Request Sent' : 'Accept Request'}</span></>
-                    ) : (
-                      <><UserPlus size={16} /><span>Connect</span></>
-                    )}
-                  </button>
-                  {profile.isFriend && (
-                    <button 
-                      onClick={() => onSelectChatUser(profile)}
-                      className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow shadow-orange-500/20 transition"
-                    >
-                      <MessageSquare size={16} />
-                      <span>Chat</span>
-                    </button>
-                  )}
-                </>
-              )}
+              <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5">
+                {profile._count?.posts || 0} Posts
+              </div>
+              <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{profile.bio || 'This user has not set a bio yet.'}</p>
             </div>
           </div>
 
-          <div className="border-t border-gray-100 dark:border-gray-750/40 w-full" />
+          {/* Action Buttons */}
+          <div className="flex gap-2 w-fit mt-1">
+            {isOwnProfile ? (
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-250 hover:bg-gray-100 dark:hover:bg-gray-700/80 font-bold text-xs transition"
+              >
+                <Edit3 size={13} />
+                <span>Edit Profile</span>
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleFriendAction}
+                  className={`flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg font-bold text-xs transition ${
+                    profile.isFriend 
+                      ? 'border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-250 hover:bg-gray-100' 
+                      : profile.hasPendingRequest 
+                        ? 'border border-orange-200 dark:border-orange-950 bg-orange-50/50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100/50' 
+                        : 'bg-orange-500 hover:bg-orange-600 text-white shadow shadow-orange-500/10'
+                  }`}
+                >
+                  {profile.isFriend ? (
+                    <><UserCheck size={13} /><span>Connected</span></>
+                  ) : profile.hasPendingRequest ? (
+                    <><Shield size={13} /><span>{profile.isRequestSender ? 'Request Sent' : 'Accept Request'}</span></>
+                  ) : (
+                    <><UserPlus size={13} /><span>Connect</span></>
+                  )}
+                </button>
+                {profile.isFriend && (
+                  <button 
+                    onClick={() => onSelectChatUser(profile)}
+                    className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow shadow-orange-500/10 transition"
+                  >
+                    <MessageSquare size={13} />
+                    <span>Message</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="border-t border-gray-100 dark:border-gray-700/40 w-full" />
 
           {(() => {
             const getSocialLink = (label, val) => {
@@ -429,17 +468,24 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           <span>Recent Posts</span>
         </h3>
         <div className="flex flex-col gap-6">
-          {posts.map((post) => (
-            <SocialPostCard 
-              key={post.id} 
-              post={post} 
-              onLike={fetchUserPosts} 
-              currentUserId={currentUserId}
-              onViewProfile={onViewProfile}
-            />
-          ))}
+          {postsLoading ? (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-8 text-gray-500">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent mx-auto mb-2"></div>
+              <span className="text-sm font-medium">Loading recent posts...</span>
+            </div>
+          ) : (
+            posts.map((post) => (
+              <SocialPostCard 
+                key={post.id} 
+                post={post} 
+                onLike={fetchUserPosts} 
+                currentUserId={currentUserId}
+                onViewProfile={onViewProfile}
+              />
+            ))
+          )}
           
-          {posts.length === 0 && (
+          {!postsLoading && posts.length === 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-500 dark:text-gray-400">
                <Sparkles size={32} className="mx-auto mb-3 text-orange-400 opacity-60 animate-pulse" />
                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">No posts shared yet</p>
@@ -454,26 +500,25 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
 function SocialFieldEdit({ label, valueKey, visibilityKey, formData, setFormData }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-      <div className="sm:col-span-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{label}</div>
-      <div className="sm:col-span-5">
+    <div className="flex flex-col gap-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-2xl">
+      <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{label}</label>
+      <div className="relative flex items-center bg-white dark:bg-gray-850 border border-gray-200/80 dark:border-gray-700/80 rounded-xl focus-within:ring-2 focus-within:ring-orange-500 focus-within:border-transparent transition-all overflow-hidden px-1">
         <input 
           type="text" 
           value={formData[valueKey] || ''} 
           onChange={(e) => setFormData({...formData, [valueKey]: e.target.value})}
           placeholder={`Enter ${label.toLowerCase()}`}
-          className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium"
+          className="flex-1 bg-transparent text-gray-900 dark:text-white border-0 rounded-none py-2.5 px-2.5 focus:outline-none focus:ring-0 text-sm font-semibold min-w-0"
         />
-      </div>
-      <div className="sm:col-span-3">
+        <div className="border-l border-gray-100 dark:border-gray-700/60 h-6 mx-1" />
         <select 
           value={formData[visibilityKey] || 'public'} 
           onChange={(e) => setFormData({...formData, [visibilityKey]: e.target.value})}
-          className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
+          className="bg-transparent border-0 text-xs font-bold text-orange-500 dark:text-orange-400 focus:outline-none cursor-pointer outline-none py-2 px-2.5 pr-8 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23f97316%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:0.65rem_auto] bg-[right_0.5rem_center] bg-no-repeat"
         >
-          <option value="public">🌐 Public</option>
-          <option value="friends">👥 Friends</option>
-          <option value="close_friends">⭐️ Close Friends</option>
+          <option value="public" className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white">🌐 Public</option>
+          <option value="friends" className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white">👥 Friends</option>
+          <option value="close_friends" className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white">⭐️ Close</option>
         </select>
       </div>
     </div>

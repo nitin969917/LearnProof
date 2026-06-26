@@ -99,7 +99,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                 href={item.path}
                                 title={!isExpanded ? item.name : undefined}
                                 className={`flex ${
-                                    isExpanded ? 'flex-row items-center px-4 py-2 gap-3' : 'items-center justify-center p-2.5'
+                                    isExpanded ? 'flex-row items-center px-4 py-2 gap-3' : 'flex-col items-center justify-center py-2 px-1 mb-1'
                                 } rounded-lg transition-all text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700`}
                             >
                                 <div className="flex-shrink-0">
@@ -107,8 +107,12 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                         size: isExpanded ? 20 : 24
                                     })}
                                 </div>
-                                {isExpanded && (
+                                {isExpanded ? (
                                     <span className="text-base text-left transition-all whitespace-nowrap font-medium">
+                                        {item.name}
+                                    </span>
+                                ) : (
+                                    <span className="text-[9px] font-bold mt-1 tracking-wide leading-none text-center text-gray-500 dark:text-gray-400">
                                         {item.name}
                                     </span>
                                 )}
@@ -124,12 +128,14 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                     `relative flex ${
                                         isExpanded 
                                             ? 'flex-row items-center px-3 py-2 gap-3 rounded-xl' 
-                                            : 'items-center justify-center p-2.5 mb-0.5 rounded-xl'
+                                            : 'flex-col items-center justify-center py-2 px-1 mb-1 rounded-xl'
                                     } transition-all duration-300 ${isActive
                                         ? isExpanded
                                             ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold'
-                                            : 'text-orange-600 dark:text-orange-400 font-black'
-                                        : 'text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-500/5 dark:hover:bg-orange-500/10'
+                                            : 'text-orange-600 dark:text-orange-400'
+                                        : isExpanded
+                                            ? 'text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-500/5 dark:hover:bg-orange-500/10'
+                                            : 'text-gray-550 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400'
                                     }`
                                 }
                             >
@@ -137,10 +143,10 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                     <motion.div
                                         whileTap={{ scale: 0.92 }}
                                         className={`flex ${
-                                            isExpanded ? 'flex-row items-center gap-3' : 'items-center justify-center'
+                                            isExpanded ? 'flex-row items-center gap-3' : 'flex-col items-center justify-center'
                                         } w-full h-full relative`}
                                     >
-                                        <div className={`flex-shrink-0 relative transition-all duration-300 z-10 ${isActive && !isExpanded ? 'scale-110 text-orange-600 dark:text-orange-400' : ''}`}>
+                                        <div className={`flex-shrink-0 relative transition-all duration-300 z-10 ${isActive && !isExpanded ? 'scale-105 text-orange-600 dark:text-orange-400' : ''}`}>
                                             {React.cloneElement(item.icon, {
                                                 size: isExpanded ? 20 : 24,
                                                 strokeWidth: isActive ? 2.5 : 2,
@@ -152,18 +158,14 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                                 </span>
                                             )}
                                         </div>
-                                        {isExpanded && (
+                                        {isExpanded ? (
                                             <span className={`text-base text-left transition-all whitespace-nowrap ${isActive ? 'font-bold' : 'font-medium'}`}>
                                                 {item.name}
                                             </span>
-                                        )}
-                                        {/* Sliding active background glass pill when collapsed */}
-                                        {isActive && !isExpanded && (
-                                            <motion.div
-                                                layoutId="activeSidebarPill"
-                                                className="absolute inset-x-0.5 inset-y-0 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl z-0 border border-orange-500/10 dark:border-orange-500/25 pointer-events-none"
-                                                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                                            />
+                                        ) : (
+                                            <span className={`text-[9px] font-bold mt-1 tracking-wide leading-none text-center transition-all duration-300 ${isActive ? 'text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-500 dark:text-gray-450'}`}>
+                                                {item.name}
+                                            </span>
                                         )}
                                     </motion.div>
                                 )}

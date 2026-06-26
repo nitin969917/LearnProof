@@ -4,6 +4,7 @@ dns.setDefaultResultOrder('ipv4first');
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const compression = require('compression');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
@@ -39,8 +40,7 @@ const userSockets = new Map(); // userId -> Set of socketIds
 io.on('connection', (socket) => {
   console.log('Social Socket connected:', socket.id);
 
-  socket.on('join', (userId) => {
-    console.log(`Social Socket join: ${userId}`);
+  socket.on('join', async (userId) => {
     if (!userId) return;
     
     const userIdStr = userId.toString();
@@ -52,11 +52,20 @@ io.on('connection', (socket) => {
     }
     userSockets.get(userIdStr).add(socket.id);
     
-    // Broadcast status
-    io.emit('userStatus', { userId: userIdStr, online: true });
-    
-    // Send back online list
+    // Send back online list to the joining user only
     socket.emit('getOnlineUsers', Array.from(userSockets.keys()));
+
+    // Notify only this user's friends (not ALL connected sockets)
+    try {
+      const friendships = await datingPrisma.friendship.findMany({
+        where: { status: 'accepted', OR: [{ senderId: parseInt(userIdStr) }, { receiverId: parseInt(userIdStr) }] },
+        select: { senderId: true, receiverId: true }
+      });
+      friendships.forEach(f => {
+        const friendId = f.senderId === parseInt(userIdStr) ? f.receiverId : f.senderId;
+        io.to(friendId.toString()).emit('userStatus', { userId: userIdStr, online: true });
+      });
+    } catch (e) { /* non-critical */ }
   });
 
   socket.on('sendMessage', async (data) => {
@@ -117,15 +126,24 @@ io.on('connection', (socket) => {
     io.to(`group-${data.groupId}`).emit('groupMessageDeleted', { messageId: data.messageId });
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     const userIdStr = socket.userId;
     if (userIdStr && userSockets.has(userIdStr)) {
       const sockets = userSockets.get(userIdStr);
       sockets.delete(socket.id);
       if (sockets.size === 0) {
         userSockets.delete(userIdStr);
-        console.log(`Social User disconnected: ${userIdStr}`);
-        io.emit('userStatus', { userId: userIdStr, online: false });
+        // Notify only friends — not ALL connected users
+        try {
+          const friendships = await datingPrisma.friendship.findMany({
+            where: { status: 'accepted', OR: [{ senderId: parseInt(userIdStr) }, { receiverId: parseInt(userIdStr) }] },
+            select: { senderId: true, receiverId: true }
+          });
+          friendships.forEach(f => {
+            const friendId = f.senderId === parseInt(userIdStr) ? f.receiverId : f.senderId;
+            io.to(friendId.toString()).emit('userStatus', { userId: userIdStr, online: false });
+          });
+        } catch (e) { /* non-critical */ }
       }
     }
   });
@@ -133,9 +151,18 @@ io.on('connection', (socket) => {
 
 // Middleware
 app.use(cors());
+// Gzip compress all responses — reduces API payload size by 60-80%
+app.use(compression({ level: 5, threshold: 1024 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use(morgan('dev'));
+// Only log verbosely in development — dev format is synchronous and slow in production
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev'));
+} else {
+  app.use(morgan('combined', {
+    skip: (req) => req.url === '/health' // skip health check noise
+  }));
+}
 app.use('/media', express.static('media')); // Serve static media files
 app.use('/api/media', express.static('media')); // Compatibility for Passenger routing
 app.use('/apps', express.static(path.join(__dirname, 'apps'))); // Serve desktop apps
@@ -146,6 +173,11 @@ app.use('/api', apiRoutes);
 app.use('/api', datingRoutes);
 app.use('/', apiRoutes); // Fallback for Hostinger/Passenger stripped routes
 app.use('/', datingRoutes); // Fallback for Hostinger/Passenger stripped routes
+
+// Health check endpoint (used by PM2, Cloudflare, and load balancers)
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -161,4 +193,19 @@ app.use((err, req, res, next) => {
 // Listen using the HTTP server
 server.listen(PORT, () => {
     console.log(`Express server running on http://localhost:${PORT}`);
+});
+
+// Graceful shutdown — important for PM2 cluster mode
+// When PM2 restarts a worker, give in-flight requests 10s to complete
+const prisma = require('./src/lib/prisma');
+const datingPrismaClient = require('./src/utils/datingPrisma');
+process.on('SIGTERM', async () => {
+    console.log('SIGTERM received, shutting down gracefully...');
+    server.close(async () => {
+        await prisma.$disconnect();
+        await datingPrismaClient.$disconnect();
+        process.exit(0);
+    });
+    // Force exit after 10s if connections don't close
+    setTimeout(() => process.exit(1), 10000);
 });

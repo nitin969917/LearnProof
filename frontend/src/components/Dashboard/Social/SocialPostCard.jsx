@@ -135,7 +135,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
         >
           <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
             {post.author.profilePicture ? (
-              <img src={post.author.profilePicture} alt={post.author.name} className="w-full h-full object-cover" />
+              <img src={post.author.profilePicture} alt={post.author.name} className="w-full h-full object-cover" loading="lazy" />
             ) : (
               <div className="w-full h-full bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-lg">
                 {post.author.name?.[0]?.toUpperCase() || '?'}
@@ -230,6 +230,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
               src={post.image} 
               alt="Post content" 
               className="w-full h-auto max-h-[600px] object-contain" 
+              loading="lazy"
             />
           </div>
         )}
@@ -312,7 +313,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
                       className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 cursor-pointer"
                     >
                       {comment.author.profilePicture ? (
-                        <img src={comment.author.profilePicture} alt={comment.author.name} className="w-full h-full object-cover" />
+                        <img src={comment.author.profilePicture} alt={comment.author.name} className="w-full h-full object-cover" loading="lazy" />
                       ) : (
                         <div className="w-full h-full bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold">
                           {comment.author.name?.[0]?.toUpperCase() || '?'}
