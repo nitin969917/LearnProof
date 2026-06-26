@@ -83,6 +83,7 @@ model Playlist {
   certificates Certificate[]
 
   @@unique([userId, pid])
+  @@index([userId, id])
 }
 
 model Video {
@@ -107,6 +108,9 @@ model Video {
 
   @@unique([userId, vid])
   @@index([playlistId])
+  @@index([userId, playlistId, imported_at])
+  @@index([userId, is_completed, watch_progress])
+  @@index([userId, is_completed, updated_at])
 }
 
 model Quiz {

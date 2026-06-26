@@ -37,19 +37,33 @@ const getQuizList = async (req, res) => {
 
     try {
         const user = req.user;
+        const cacheKey = `user:quiz-list:${user.id}`;
+        const cached = await cacheService.get(cacheKey);
+        if (cached) {
+            return res.status(200).json(cached);
+        }
 
         const allPlaylists = await prisma.playlist.findMany({
             where: { userId: user.id },
-            include: { 
+            select: {
+                id: true,
+                pid: true,
+                name: true,
+                url: true,
+                thumbnail: true,
+                imported_at: true,
+                duration_goal: true,
                 videos: {
-                    include: {
+                    select: {
+                        id: true,
+                        is_completed: true,
                         quizzes: {
                             where: { userId: user.id, passed: true },
                             select: { id: true },
                             take: 1
                         }
                     }
-                } 
+                }
             }
         });
 
@@ -59,17 +73,27 @@ const getQuizList = async (req, res) => {
             const allVideosCompleted = pl.videos.every(v => v.is_completed);
 
             return {
-                ...pl,
+                id: pl.id,
+                pid: pl.pid,
+                name: pl.name,
+                url: pl.url,
+                thumbnail: pl.thumbnail,
+                imported_at: pl.imported_at,
+                duration_goal: pl.duration_goal,
                 total_videos: totalVideos,
                 passed_video_quizzes: passedVideos,
                 is_eligible: passedVideos >= totalVideos && allVideosCompleted && totalVideos > 0
             };
         });
 
-        res.status(200).json({
+        const result = {
             videos: [], // Removing standalone videos from the main dashboard
             playlists: playlistProgress
-        });
+        };
+
+        await cacheService.set(cacheKey, result, 3600); // Cache for 1 hour
+
+        res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -362,6 +386,10 @@ const submitQuiz = async (req, res) => {
             }
         });
 
+        // Invalidate caches
+        await cacheService.del(`user:quiz-list:${user.id}`);
+        await cacheService.del(`user:quiz-history:${user.id}`);
+
         res.status(200).json({
             score: finalScore,
             passed,
@@ -482,6 +510,12 @@ const getActivityGraph = async (req, res) => {
 const getQuizHistory = async (req, res) => {
     try {
         const user = req.user;
+        const cacheKey = `user:quiz-history:${user.id}`;
+        const cached = await cacheService.get(cacheKey);
+        if (cached) {
+            return res.status(200).json(cached);
+        }
+
         const history = await prisma.quiz.findMany({
             where: { userId: user.id },
             select: {
@@ -499,6 +533,8 @@ const getQuizHistory = async (req, res) => {
             },
             orderBy: { attempted_at: 'desc' }
         });
+
+        await cacheService.set(cacheKey, history, 3600); // Cache for 1 hour
 
         res.status(200).json(history);
     } catch (error) {
@@ -598,6 +634,10 @@ const deleteQuizHistory = async (req, res) => {
         await prisma.quiz.delete({
             where: { id: parseInt(id) }
         });
+
+        // Invalidate caches
+        await cacheService.del(`user:quiz-list:${user.id}`);
+        await cacheService.del(`user:quiz-history:${user.id}`);
 
         res.status(200).json({ success: true, message: 'Quiz attempt deleted successfully' });
     } catch (error) {

@@ -10,11 +10,13 @@ export const useSocialMessageStore = create((set, get) => ({
 
   fetchUnreadCounts: async () => {
     try {
-      const response = await socialApi.get('/messages/unread/total');
+      const response = await socialApi.get('/messages/unread-counts');
       console.log('Fetched unread counts:', response.data);
+      const byContact = response.data || {};
+      const total = Object.values(byContact).reduce((sum, val) => sum + val, 0);
       set({ 
-        totalUnreadCount: response.data.total, 
-        unreadByContact: response.data.byContact 
+        totalUnreadCount: total, 
+        unreadByContact: byContact 
       });
     } catch (err) {
       console.error('Failed to fetch unread counts', err);

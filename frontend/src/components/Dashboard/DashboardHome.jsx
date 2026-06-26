@@ -18,48 +18,70 @@ const DashboardHome = () => {
     const navigate = useNavigate();
     const [isNewUser, setIsNewUser] = useState(false);
     const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
-    const [dashboardData, setDashboardData] = useState({ playlists: [], videos: [], loading: true });
+
+    const [playlists, setPlaylists] = useState([]);
+    const [videos, setVideos] = useState([]);
+    const [continueVideos, setContinueVideos] = useState([]);
+    const [loadingLearnings, setLoadingLearnings] = useState(true);
+    const [loadingContinue, setLoadingContinue] = useState(true);
 
     useEffect(() => {
-        const fetchDashboardData = async () => {
+        let active = true;
+
+        const fetchLearnings = async () => {
             try {
-                // Check both playlists AND continue watching status
-                const [playlistRes, continueWatchRes] = await Promise.all([
-                    axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/my-learnings/`, {
-                        idToken: token,
-                        page: 1,
-                        searchQuery: ""
-                    }),
-                    axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/continue-watch/`, {
-                        idToken: token
-                    })
-                ]);
-
-                const playlists = playlistRes.data?.playlists || [];
-                const videos = playlistRes.data?.videos?.results || [];
-                const continueVideos = continueWatchRes.data?.videos || [];
-
-                setDashboardData({
-                    playlists,
-                    videos,
-                    loading: false
+                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/my-learnings/`, {
+                    idToken: token,
+                    page: 1,
+                    searchQuery: ""
                 });
-
-                if (playlists.length === 0 && continueVideos.length === 0 && videos.length === 0) {
-                    setIsNewUser(true);
+                if (active) {
+                    setPlaylists(res.data?.playlists || []);
+                    setVideos(res.data?.videos?.results || []);
                 }
             } catch (err) {
-                console.error("Dashboard data fetch failed", err);
-                setDashboardData(prev => ({ ...prev, loading: false }));
+                console.error("Dashboard learnings data fetch failed", err);
             } finally {
-                setHasCheckedStatus(true);
+                if (active) setLoadingLearnings(false);
+            }
+        };
+
+        const fetchContinueWatching = async () => {
+            try {
+                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/continue-watch/`, {
+                    idToken: token
+                });
+                if (active) {
+                    setContinueVideos(res.data?.videos || []);
+                }
+            } catch (err) {
+                console.error("Dashboard continue watch fetch failed", err);
+            } finally {
+                if (active) setLoadingContinue(false);
             }
         };
 
         if (token) {
-            fetchDashboardData();
+            setLoadingLearnings(true);
+            setLoadingContinue(true);
+            fetchLearnings();
+            fetchContinueWatching();
         }
+
+        return () => {
+            active = false;
+        };
     }, [token]);
+
+    // Check if new user after both finished loading
+    useEffect(() => {
+        if (!loadingLearnings && !loadingContinue) {
+            if (playlists.length === 0 && continueVideos.length === 0 && videos.length === 0) {
+                setIsNewUser(true);
+            }
+            setHasCheckedStatus(true);
+        }
+    }, [loadingLearnings, loadingContinue, playlists, continueVideos, videos]);
 
     if (isNewUser) {
         return (
@@ -97,9 +119,9 @@ const DashboardHome = () => {
         <div className="flex flex-col lg:flex-row gap-6 lg:items-start animate-in fade-in duration-500">
             {/* Left column (Flexible) */}
             <div className="flex-1 min-w-0 space-y-4">
-                <PlaylistSection data={dashboardData.playlists} loading={dashboardData.loading} />
-                <VideosSection data={dashboardData.videos} loading={dashboardData.loading} />
-                <ContinueWatching />
+                <PlaylistSection data={playlists} loading={loadingLearnings} />
+                <VideosSection data={videos} loading={loadingLearnings} />
+                <ContinueWatching videos={continueVideos} loading={loadingContinue} />
                 <CompletedSection />
             </div>
 

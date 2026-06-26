@@ -7,14 +7,24 @@ import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
+import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
+import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useModal } from '../../../context/ModalContext';
 
 export default function ChatsTab({ currentUserId, selectedContact, onClearSelectedContact, onToggleHeader, onViewProfile }) {
   const { confirm } = useModal();
+  // Use shared Zustand stores for instant loading (no spinner on re-open)
+  const storeFriends = useSocialFeedStore(state => state.friends);
+  const fetchStoreFriends = useSocialFeedStore(state => state.fetchFriends);
+  const hasLoadedFriends = useSocialFeedStore(state => state.hasLoadedFriends);
+  const storeGroups = useSocialGroupsStore(state => state.groups);
+  const fetchStoreGroups = useSocialGroupsStore(state => state.fetchGroups);
+  const hasLoadedGroups = useSocialGroupsStore(state => state.hasLoadedGroups);
+
   const [contacts, setContacts] = useState([]);
   const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!hasLoadedFriends || !hasLoadedGroups);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'direct', 'groups', 'discover'
 
@@ -153,20 +163,17 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
   // Fetch initial friendships and groups
   const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [friendsRes, groupsRes] = await Promise.all([
-        socialApi.get('/social/friendships'),
-        socialApi.get('/groups')
-      ]);
+    // Use store data immediately if available (cache-first)
+    const cachedFriends = useSocialFeedStore.getState().friends;
+    const cachedGroups = useSocialGroupsStore.getState().groups;
 
-      const friendsList = Array.isArray(friendsRes.data?.friends) ? friendsRes.data.friends : [];
-      const groupsList = Array.isArray(groupsRes.data) ? groupsRes.data : [];
-
+    if (cachedFriends.length > 0 || cachedGroups.length > 0) {
+      // Show store data instantly
+      const friendsList = cachedFriends;
+      const groupsList = cachedGroups;
       setContacts(friendsList);
       setGroups(groupsList);
 
-      // Populate lastMessages instantly from the backend response
       const initialLastMsgs = {};
       friendsList.forEach(friend => {
         if (friend.lastMessage) {
@@ -179,10 +186,41 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         }
       });
       setLastMessages(initialLastMsgs);
-    } catch (err) {
-      console.error('Failed to fetch chat data:', err);
-    } finally {
       setLoading(false);
+
+      // Then silently refresh in background
+      Promise.all([fetchStoreFriends(), fetchStoreGroups()]).then(() => {
+        const freshFriends = useSocialFeedStore.getState().friends;
+        const freshGroups = useSocialGroupsStore.getState().groups;
+        setContacts(freshFriends);
+        setGroups(freshGroups);
+        const updatedMsgs = {};
+        freshFriends.forEach(f => { if (f.lastMessage) updatedMsgs[`direct-${f.id}`] = f.lastMessage; });
+        freshGroups.forEach(g => { if (g.lastMessage) updatedMsgs[`group-${g.id}`] = g.lastMessage; });
+        setLastMessages(updatedMsgs);
+      });
+    } else {
+      // First ever load — show spinner and fetch
+      try {
+        setLoading(true);
+        await Promise.all([fetchStoreFriends(), fetchStoreGroups()]);
+        const friendsList = useSocialFeedStore.getState().friends;
+        const groupsList = useSocialGroupsStore.getState().groups;
+        setContacts(friendsList);
+        setGroups(groupsList);
+        const initialLastMsgs = {};
+        friendsList.forEach(friend => {
+          if (friend.lastMessage) initialLastMsgs[`direct-${friend.id}`] = friend.lastMessage;
+        });
+        groupsList.forEach(group => {
+          if (group.lastMessage) initialLastMsgs[`group-${group.id}`] = group.lastMessage;
+        });
+        setLastMessages(initialLastMsgs);
+      } catch (err) {
+        console.error('Failed to fetch chat data:', err);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 

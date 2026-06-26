@@ -96,6 +96,7 @@ const markVideoCompleted = async (req, res) => {
             await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
         }
         await cacheService.delByPattern(`user:learnings:${user.id}:*`);
+        await cacheService.del(`user:quiz-list:${user.id}`);
 
         res.status(200).json({ message: 'Video marked as completed' });
     } catch (error) {
@@ -144,6 +145,7 @@ const unmarkVideoCompleted = async (req, res) => {
                 await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
             }
             await cacheService.delByPattern(`user:learnings:${user.id}:*`);
+            await cacheService.del(`user:quiz-list:${user.id}`);
         }
 
         res.status(200).json({ message: 'Video unmarked successfully' });
@@ -176,6 +178,7 @@ const updateProgress = async (req, res) => {
             await cacheService.del(`user:continue:${user.id}`);
             await cacheService.del(`classroom:v1:${user.id}:${videoId}`);
             await cacheService.delByPattern(`user:learnings:${user.id}:*`);
+            await cacheService.del(`user:quiz-list:${user.id}`);
         }
 
         res.status(200).json({ message: 'Progress updated' });
@@ -240,14 +243,24 @@ const getCompletedLearnings = async (req, res) => {
             take: 3
         });
 
-        const allPlaylists = await prisma.playlist.findMany({
-            where: { userId: user.id },
-            include: { videos: true }
+        const completedPlaylists = await prisma.playlist.findMany({
+            where: {
+                userId: user.id,
+                videos: {
+                    some: {},
+                    none: { is_completed: false }
+                }
+            },
+            include: {
+                videos: {
+                    select: {
+                        id: true,
+                        vid: true,
+                        is_completed: true
+                    }
+                }
+            }
         });
-
-        const completedPlaylists = allPlaylists.filter(pl =>
-            pl.videos.length > 0 && pl.videos.every(v => v.is_completed)
-        );
 
         const result = {
             videos: completedVideos,

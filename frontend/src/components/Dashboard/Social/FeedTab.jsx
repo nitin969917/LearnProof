@@ -10,6 +10,7 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
   const closeFriends = useSocialFeedStore(state => state.closeFriends);
   const fetchPosts = useSocialFeedStore(state => state.fetchPosts);
   const fetchFriends = useSocialFeedStore(state => state.fetchFriends);
+  const loadingPosts = useSocialFeedStore(state => state.loadingPosts);
   
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
   const onlineFriends = friends.filter(friend => 
@@ -57,22 +58,27 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
 
         {/* Posts Feed */}
         <div className="flex flex-col gap-6">
-          {posts.map((post) => (
-            <SocialPostCard 
-              key={post.id} 
-              post={post} 
-              onLike={fetchPosts} 
-              currentUserId={currentUserId}
-              onViewProfile={onViewProfile}
-            />
-          ))}
-          
-          {posts.length === 0 && (
+          {loadingPosts ? (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-500 dark:text-gray-400 flex flex-col items-center justify-center min-h-[200px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 font-medium">Loading feed...</p>
+            </div>
+          ) : posts.length === 0 ? (
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-500 dark:text-gray-400">
                <Sparkles size={40} className="mx-auto mb-3 text-orange-400 opacity-60 animate-pulse" />
                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">Your feed is quiet</h3>
                <p className="text-sm">Be the first to share a moment with the community!</p>
             </div>
+          ) : (
+            posts.map((post) => (
+              <SocialPostCard 
+                key={post.id} 
+                post={post} 
+                onLike={fetchPosts} 
+                currentUserId={currentUserId}
+                onViewProfile={onViewProfile}
+              />
+            ))
           )}
         </div>
       </div>

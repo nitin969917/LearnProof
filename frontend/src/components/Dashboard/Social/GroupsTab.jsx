@@ -3,11 +3,17 @@ import { Users, Lock, Unlock, Plus, Copy, Check, MessageSquare, ArrowLeft, Send,
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
 import { useModal } from '../../../context/ModalContext';
+import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
 
 export default function GroupsTab({ currentUserId }) {
   const { confirm } = useModal();
-  const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const groups = useSocialGroupsStore(state => state.groups);
+  const loadingGroups = useSocialGroupsStore(state => state.loadingGroups);
+  const hasLoadedGroups = useSocialGroupsStore(state => state.hasLoadedGroups);
+  const fetchGroups = useSocialGroupsStore(state => state.fetchGroups);
+  const setGroupJoined = useSocialGroupsStore(state => state.setGroupJoined);
+  // Keep local loading as alias for initial load only
+  const loading = loadingGroups && !hasLoadedGroups;
   const [activeGroupId, setActiveGroupId] = useState(null);
   const [activeGroup, setActiveGroup] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -76,15 +82,11 @@ export default function GroupsTab({ currentUserId }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchGroups = async () => {
+  const fetchGroupsLocal = async () => {
     try {
-      const response = await socialApi.get('/groups');
-      setGroups(Array.isArray(response.data) ? response.data : []);
+      await fetchGroups(true); // force refresh from backend
     } catch (err) {
       console.error('Failed to fetch groups', err);
-      setGroups([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -111,11 +113,10 @@ export default function GroupsTab({ currentUserId }) {
       });
 
       const created = response.data;
-      setGroups((prev) => [created, ...prev]);
       setActiveGroupId(created.id);
       setShowCreateModal(false);
       setNewGroup({ name: '', description: '', isPrivate: false, entryKey: '' });
-      fetchGroups();
+      fetchGroups(true); // force refresh store
     } catch (err) {
       console.error('Error creating group', err);
       alert(err.response?.data?.error || 'Failed to create group');
@@ -124,15 +125,16 @@ export default function GroupsTab({ currentUserId }) {
 
   const handleJoinGroup = async (group, keyToUse = '') => {
     try {
-      const response = await socialApi.post('/groups/join', {
+      await socialApi.post('/groups/join', {
         groupId: group.id,
         entryKey: keyToUse,
       });
 
       setShowJoinModal(null);
       setJoinKey('');
+      setGroupJoined(group.id, true); // optimistic update in store
       setActiveGroupId(group.id);
-      fetchGroups();
+      fetchGroups(true); // sync from server
     } catch (err) {
       console.error('Error joining group', err);
       alert(err.response?.data?.error || 'Failed to join group');
@@ -152,7 +154,8 @@ export default function GroupsTab({ currentUserId }) {
       if (activeGroupId === groupId) {
         setActiveGroupId(null);
       }
-      fetchGroups();
+      setGroupJoined(groupId, false); // optimistic update in store
+      fetchGroups(true); // sync from server
     } catch (err) {
       console.error('Error leaving group', err);
     }

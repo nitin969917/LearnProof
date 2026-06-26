@@ -8,6 +8,7 @@ export const useSocialFeedStore = create((set, get) => ({
   loadingPosts: false,
   loadingFriends: false,
   hasLoadedOnce: false,
+  hasLoadedFriends: false,
 
   fetchPosts: async (force = false) => {
     const postsExist = get().posts.length > 0;
@@ -41,7 +42,8 @@ export const useSocialFeedStore = create((set, get) => ({
       set({ 
         friends: allFriends, 
         closeFriends: close,
-        loadingFriends: false
+        loadingFriends: false,
+        hasLoadedFriends: true
       });
     } catch (err) {
       console.error('Failed to fetch friends', err);

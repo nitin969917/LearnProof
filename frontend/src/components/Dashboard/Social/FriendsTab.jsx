@@ -2,80 +2,80 @@ import { useState, useEffect } from 'react';
 import { Clock, UserCheck, Check, X, Star, MessageSquare, UserX, AlertTriangle } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
+import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 
 export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
-  const [data, setData] = useState({ friends: [], pending: [] });
-  const [loading, setLoading] = useState(true);
+  const friends = useSocialFeedStore(state => state.friends);
+  const pending = useSocialFeedStore(state => state.friends); // will recalculate below
+  const fetchFriends = useSocialFeedStore(state => state.fetchFriends);
+  const loadingFriends = useSocialFeedStore(state => state.loadingFriends);
+  const hasLoadedFriends = useSocialFeedStore(state => state.hasLoadedFriends);
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
 
-  // Confirmation modal state
+  // Local pending state (friendships endpoint returns both friends + pending)
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [confirmModal, setConfirmModal] = useState(null);
-  // confirmModal shape: { userId, name, avatar, action: 'remove' | 'reject' }
 
-  useEffect(() => {
-    fetchSocial();
-  }, []);
-
-  const fetchSocial = async () => {
-    setLoading(true);
+  // Fetch and sync pending requests (lightweight separate call)
+  const syncPending = async () => {
     try {
       const response = await socialApi.get('/social/friendships');
-      const d = response.data;
-      setData({
-        friends: Array.isArray(d?.friends) ? d.friends : [],
-        pending: Array.isArray(d?.pending) ? d.pending : [],
-      });
+      setPendingRequests(Array.isArray(response.data?.pending) ? response.data.pending : []);
     } catch (err) {
-      console.error('Failed to fetch social data', err);
-      setData({ friends: [], pending: [] });
-    } finally {
-      setLoading(false);
+      console.error('Failed to fetch pending requests', err);
     }
   };
 
+  useEffect(() => {
+    // Always refresh on mount to get pending requests too
+    fetchFriends();
+    syncPending();
+  }, []);
+
   const toggleCloseFriend = async (friendId) => {
-    // Optimistic update
-    setData(prev => ({
-      ...prev,
-      friends: prev.friends.map(f => f.id === friendId ? { ...f, isCloseFriend: !f.isCloseFriend } : f)
+    // Optimistic update in store
+    useSocialFeedStore.setState(state => ({
+      friends: state.friends.map(f => f.id === friendId ? { ...f, isCloseFriend: !f.isCloseFriend } : f),
+      closeFriends: state.friends.filter(f => f.id === friendId ? !f.isCloseFriend : f.isCloseFriend),
     }));
     try {
       await socialApi.post('/social/toggle-close-friend', { friendId });
-      fetchSocial();
+      fetchFriends(); // sync store with server
     } catch (err) {
       console.error('Failed to toggle close friend', err);
-      fetchSocial(); // revert on error
+      fetchFriends(); // revert on error
     }
   };
 
   const handleAccept = async (requestId) => {
     try {
       await socialApi.post(`/social/friend-request/${requestId}/accept`);
-      fetchSocial();
+      fetchFriends();
+      syncPending();
     } catch (err) {
       console.error('Failed to accept request', err);
     }
   };
 
-  // Opens the custom confirmation modal instead of window.confirm
   const confirmRemove = (userId, name, avatar, action) => {
     setConfirmModal({ userId, name, avatar, action });
   };
 
-  // Called when user presses "Confirm" in the modal
   const handleConfirmedAction = async () => {
     if (!confirmModal) return;
     const { userId } = confirmModal;
     setConfirmModal(null);
     try {
       await socialApi.post('/social/remove-friendship', { targetUserId: userId });
-      fetchSocial();
+      fetchFriends();
+      syncPending();
     } catch (err) {
       console.error('Failed to remove friendship', err);
     }
   };
 
-  if (loading) {
+  // Only show full-screen spinner on very first load
+  if (loadingFriends && !hasLoadedFriends) {
     return (
       <div className="text-center py-12 text-gray-500">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent mx-auto mb-2"></div>
@@ -139,7 +139,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
           </div>
           
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm space-y-4">
-            {data.pending.map((req) => (
+            {pendingRequests.map((req) => (
               <div 
                 key={req.id} 
                 className="flex items-center justify-between gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-xl"
@@ -174,7 +174,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
               </div>
             ))}
             
-            {data.pending.length === 0 && (
+            {pendingRequests.length === 0 && (
               <div className="text-center py-8 text-gray-400 dark:text-gray-500">
                 <p className="text-xs">No pending friend requests.</p>
               </div>
@@ -190,7 +190,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm space-y-4">
-            {data.friends.map((friend) => {
+            {friends.map((friend) => {
               const isFriendOnline = onlineUserIds.some(id => id.toString() === friend.id.toString());
               return (
                 <div 
@@ -248,7 +248,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
               );
             })}
 
-            {data.friends.length === 0 && (
+            {friends.length === 0 && (
               <div className="text-center py-16 text-gray-400 dark:text-gray-500 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
                  <UserCheck size={36} className="mx-auto mb-3 opacity-50" />
                  <p className="font-semibold mb-1 text-sm">No connections yet</p>

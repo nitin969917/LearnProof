@@ -2,39 +2,33 @@ import { useState, useEffect } from 'react';
 import { Search, Compass, GraduationCap, MapPin, ArrowRight, UserCheck, Check, UserPlus, Users, MessageSquare, Lock, Unlock, Sparkles, MessageSquareMore } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import socialApi from '../../../api/socialApi.js';
+import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
 
 export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const [searchType, setSearchType] = useState('students'); // 'students' or 'groups'
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
-  const [groupsList, setGroupsList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sentRequests, setSentRequests] = useState([]);
+
+  // Groups from shared store (pre-fetched by GroupsTab/ChatsTab)
+  const storeGroups = useSocialGroupsStore(state => state.groups);
+  const fetchStoreGroups = useSocialGroupsStore(state => state.fetchGroups);
+  const hasLoadedGroups = useSocialGroupsStore(state => state.hasLoadedGroups);
 
   // Join Private Group Modal states
   const [showJoinGroupModal, setShowJoinGroupModal] = useState(null);
   const [joinKey, setJoinKey] = useState('');
 
-  // Fetch groups from backend
-  const fetchGroups = async () => {
-    setLoading(true);
-    try {
-      const res = await socialApi.get('/groups');
-      setGroupsList(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error('Failed to fetch groups:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Trigger search or fetch when query or searchType changes
   useEffect(() => {
     if (searchType === 'groups') {
-      fetchGroups();
+      // Use store if already loaded, else fetch
+      if (!hasLoadedGroups) {
+        fetchStoreGroups();
+      }
     } else {
-      // Clear groups list, let typing trigger students search
-      setGroupsList([]);
+      // Clear results, let typing trigger students search
       if (!query.trim()) {
         setResults([]);
       }
@@ -88,16 +82,16 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
       });
       setShowJoinGroupModal(null);
       setJoinKey('');
-      // Refresh groups list to reflect "joined" state
-      await fetchGroups();
+      // Refresh shared groups store to reflect "joined" state
+      await fetchStoreGroups(true);
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.error || 'Failed to join group');
     }
   };
 
-  // Filter groups locally based on query
-  const filteredGroups = groupsList.filter(g =>
+  // Filter groups locally based on query (from shared store)
+  const filteredGroups = storeGroups.filter(g =>
     g.name.toLowerCase().includes(query.toLowerCase()) ||
     (g.description && g.description.toLowerCase().includes(query.toLowerCase()))
   );

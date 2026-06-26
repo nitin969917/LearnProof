@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
-const ContinueWatching = () => {
+const ContinueWatching = ({ videos: propVideos, loading: propLoading }) => {
     const { token } = useAuth();
     const [loading, setLoading] = useState(true);
     const [videos, setVideos] = useState([]);
@@ -26,6 +26,12 @@ const ContinueWatching = () => {
     };
 
     useEffect(() => {
+        if (propVideos !== undefined) {
+            setVideos(propVideos);
+            setLoading(propLoading !== undefined ? propLoading : false);
+            return;
+        }
+
         const fetchVideos = async () => {
             try {
                 const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/continue-watch/`, {
@@ -46,7 +52,7 @@ const ContinueWatching = () => {
         if (token) {
             fetchVideos();
         }
-    }, [token]);
+    }, [token, propVideos, propLoading]);
 
     if (loading) {
         return (

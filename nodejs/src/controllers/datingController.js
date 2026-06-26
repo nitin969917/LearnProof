@@ -1,6 +1,47 @@
 const datingPrisma = require('../utils/datingPrisma');
 const { sendPushNotification } = require('../utils/pushNotifier');
 const livekitService = require('../services/livekit.service');
+const cacheService = require('../services/cache.service');
+
+const invalidateFeedCache = async () => {
+  try {
+    await cacheService.delByPattern('user:feed:*');
+  } catch (err) {
+    console.error('Failed to invalidate feed cache:', err);
+  }
+};
+
+const invalidateRoomsCache = async () => {
+  try {
+    await cacheService.delByPattern('user:live-rooms:*');
+  } catch (err) {
+    console.error('Failed to invalidate rooms cache:', err);
+  }
+};
+
+const invalidateFriendshipsCache = async () => {
+  try {
+    await cacheService.delByPattern('user:friendships:*');
+  } catch (err) {
+    console.error('Failed to invalidate friendships cache:', err);
+  }
+};
+
+const invalidateGroupsCache = async () => {
+  try {
+    await cacheService.delByPattern('user:groups:*');
+  } catch (err) {
+    console.error('Failed to invalidate groups cache:', err);
+  }
+};
+
+const invalidateProfileCache = async () => {
+  try {
+    await cacheService.delByPattern('user:profile:*');
+  } catch (err) {
+    console.error('Failed to invalidate profile cache:', err);
+  }
+};
 
 // ==========================================
 // POST CONTROLLERS
@@ -78,6 +119,7 @@ const createPost = async (req, res) => {
       console.error('Failed to broadcast new post via socket:', wsError);
     }
 
+    await invalidateFeedCache();
     res.status(201).json(post);
   } catch (error) {
     console.error(error);
@@ -87,8 +129,16 @@ const createPost = async (req, res) => {
 
 const getFeed = async (req, res) => {
   const userId = req.user.id;
+  const limit = parseInt(req.query.limit) || 20;
+  const targetAuthorId = req.query.authorId ? parseInt(req.query.authorId, 10) : null;
 
   try {
+    const cacheKey = `user:feed:${userId}:${limit}:${targetAuthorId || 'all'}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     // 1. Fetch accepted friendships to identify who are friends
     const friendships = await datingPrisma.friendship.findMany({
       where: {
@@ -106,10 +156,6 @@ const getFeed = async (req, res) => {
     const closeFriendIds = friendships
       .filter(f => f.isCloseFriend)
       .map(f => f.senderId === userId ? f.receiverId : f.senderId);
-
-    const limit = parseInt(req.query.limit) || 20;
-
-    const targetAuthorId = req.query.authorId ? parseInt(req.query.authorId, 10) : null;
 
     const whereClause = {
       OR: [
@@ -164,6 +210,8 @@ const getFeed = async (req, res) => {
       },
     });
 
+    await cacheService.set(cacheKey, posts, 1800); // Cache for 30 minutes
+
     res.json(posts);
   } catch (error) {
     console.error(error);
@@ -194,6 +242,7 @@ const likePost = async (req, res) => {
       },
     });
 
+    await invalidateFeedCache();
     res.json({ liked: !isLiked });
   } catch (error) {
     console.error(error);
@@ -219,6 +268,7 @@ const updatePost = async (req, res) => {
       data: { content, visibility },
     });
 
+    await invalidateFeedCache();
     res.json(updatedPost);
   } catch (error) {
     console.error(error);
@@ -249,6 +299,7 @@ const deletePost = async (req, res) => {
       where: { id: parseInt(postId) },
     });
 
+    await invalidateFeedCache();
     res.json({ message: 'Post deleted successfully' });
   } catch (error) {
     console.error(error);
@@ -265,6 +316,12 @@ const getProfile = async (req, res) => {
   const currentUserId = req.user.id;
 
   try {
+    const cacheKey = `user:profile:${currentUserId}:${profileIdParam}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const profileUser = await datingPrisma.user.findUnique({
       where: { id: parseInt(profileIdParam) },
       include: {
@@ -324,14 +381,18 @@ const getProfile = async (req, res) => {
       });
     }
 
-    res.json({
+    const result = {
       ...profileUser,
       isFriend,
       isCloseFriend,
       hasPendingRequest,
       isRequestSender,
       password: null,
-    });
+    };
+
+    await cacheService.set(cacheKey, result, 60); // Cache for 60 seconds
+
+    res.json(result);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });
@@ -366,6 +427,7 @@ const updateProfile = async (req, res) => {
       },
     });
 
+    await invalidateProfileCache(); // Clear cached profiles for this user
     res.json(updatedUser);
   } catch (error) {
     console.error(error);
@@ -450,6 +512,10 @@ const acceptFriendRequest = async (req, res) => {
       data: { status: 'accepted' },
     });
 
+    await invalidateFeedCache();
+    await invalidateRoomsCache();
+    await invalidateFriendshipsCache();
+    await invalidateProfileCache();
     res.json(friendship);
   } catch (error) {
     console.error(error);
@@ -477,6 +543,10 @@ const acceptFriendship = async (req, res) => {
       data: { status: 'accepted' },
     });
 
+    await invalidateFeedCache();
+    await invalidateRoomsCache();
+    await invalidateFriendshipsCache();
+    await invalidateProfileCache();
     res.json(friendship);
   } catch (error) {
     console.error(error);
@@ -504,6 +574,10 @@ const removeFriendship = async (req, res) => {
       where: { id: friendship.id },
     });
 
+    await invalidateFeedCache();
+    await invalidateRoomsCache();
+    await invalidateFriendshipsCache();
+    await invalidateProfileCache();
     res.json({ message: 'Friendship removed' });
   } catch (error) {
     console.error(error);
@@ -533,6 +607,10 @@ const toggleCloseFriend = async (req, res) => {
       data: { isCloseFriend: !friendship.isCloseFriend },
     });
 
+    await invalidateFeedCache();
+    await invalidateRoomsCache();
+    await invalidateFriendshipsCache();
+    await invalidateProfileCache();
     res.json(updated);
   } catch (error) {
     console.error(error);
@@ -544,6 +622,12 @@ const getFriendships = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    const cacheKey = `user:friendships:${userId}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const friendships = await datingPrisma.friendship.findMany({
       where: {
         OR: [
@@ -586,7 +670,10 @@ const getFriendships = async (req, res) => {
 
     const pending = friendships.filter((f) => f.status === 'pending' && f.receiverId === userId);
 
-    res.json({ friends, pending });
+    const result = { friends, pending };
+    await cacheService.set(cacheKey, result, 30); // Cache for 30 seconds
+
+    res.json(result);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch friendships' });
@@ -751,6 +838,7 @@ const createLanguageRoom = async (req, res) => {
       console.error('Error sending room push notification to friends:', pushErr.message);
     }
 
+    await invalidateRoomsCache();
     res.status(201).json(room);
   } catch (error) {
     console.error(error);
@@ -774,6 +862,7 @@ const deleteLanguageRoom = async (req, res) => {
       where: { id: parseInt(id) },
     });
 
+    await invalidateRoomsCache();
     res.json({ message: 'Room ended successfully' });
   } catch (error) {
     console.error(error);
@@ -797,6 +886,7 @@ const deleteLanguageRoomByName = async (req, res) => {
       where: { roomName },
     });
 
+    await invalidateRoomsCache();
     res.json({ message: 'Room ended successfully' });
   } catch (error) {
     console.error(error);
@@ -808,6 +898,12 @@ const getLanguageRooms = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    const cacheKey = `user:live-rooms:${userId}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     // 1. Fetch active rooms from LiveKit to synchronize DB
     let activeLkRoomNames = [];
     try {
@@ -872,6 +968,8 @@ const getLanguageRooms = async (req, res) => {
       }
     }
 
+    await cacheService.set(cacheKey, validRooms, 5); // Cache for 5 seconds
+
     res.json(validRooms);
   } catch (error) {
     console.error(error);
@@ -913,6 +1011,7 @@ const createGroup = async (req, res) => {
       },
     });
 
+    await invalidateGroupsCache();
     res.status(201).json(group);
   } catch (error) {
     console.error(error);
@@ -958,6 +1057,7 @@ const joinGroup = async (req, res) => {
       },
     });
 
+    await invalidateGroupsCache();
     res.json({ message: 'Successfully joined group', group });
   } catch (error) {
     console.error(error);
@@ -987,6 +1087,7 @@ const leaveGroup = async (req, res) => {
       where: { id: member.id },
     });
 
+    await invalidateGroupsCache();
     res.json({ message: 'Successfully left group' });
   } catch (error) {
     console.error(error);
@@ -998,6 +1099,12 @@ const getGroups = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    const cacheKey = `user:groups:${userId}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
+
     const groups = await datingPrisma.group.findMany({
       include: {
         creator: {
@@ -1036,6 +1143,8 @@ const getGroups = async (req, res) => {
         };
       })
     );
+
+    await cacheService.set(cacheKey, formattedGroups, 10); // Cache for 10 seconds
 
     res.json(formattedGroups);
   } catch (error) {
@@ -1221,6 +1330,7 @@ const updateGroupSettings = async (req, res) => {
       }
     });
 
+    await invalidateGroupsCache();
     res.json(updatedGroup);
   } catch (error) {
     console.error(error);
@@ -1272,6 +1382,7 @@ const addGroupMember = async (req, res) => {
       }
     });
 
+    await invalidateGroupsCache();
     res.json(newMember);
   } catch (error) {
     console.error(error);
@@ -1317,6 +1428,7 @@ const removeGroupMember = async (req, res) => {
       where: { id: member.id },
     });
 
+    await invalidateGroupsCache();
     res.json({ message: 'Member successfully removed' });
   } catch (error) {
     console.error(error);
@@ -1375,6 +1487,7 @@ const createComment = async (req, res) => {
         },
       },
     });
+    await invalidateFeedCache();
     res.status(201).json(comment);
   } catch (error) {
     console.error(error);
@@ -1407,6 +1520,7 @@ const deleteComment = async (req, res) => {
       where: { id: parseInt(commentId) },
     });
 
+    await invalidateFeedCache();
     res.json({ message: 'Comment deleted successfully' });
   } catch (error) {
     console.error(error);
