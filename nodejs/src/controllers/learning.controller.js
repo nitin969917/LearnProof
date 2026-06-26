@@ -284,6 +284,7 @@ const getPlaylistDetail = async (req, res) => {
                     include: {
                         quizzes: {
                             where: { userId: user.id, passed: true },
+                            select: { id: true },
                             take: 1
                         }
                     }

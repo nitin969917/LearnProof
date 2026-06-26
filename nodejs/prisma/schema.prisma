@@ -106,6 +106,7 @@ model Video {
   certificates Certificate[]
 
   @@unique([userId, vid])
+  @@index([playlistId])
 }
 
 model Quiz {
@@ -123,6 +124,12 @@ model Quiz {
   is_combined  Boolean  @default(false)
   time_limit   Int      @default(15) // In minutes
   attempted_at DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, passed])
+  @@index([userId, attempted_at])
+  @@index([videoId])
+  @@index([playlistId])
 }
 
 model Certificate {
@@ -136,6 +143,8 @@ model Certificate {
   certificate_id String   @unique @default(uuid())
   issued_at      DateTime @default(now())
   download_url   String?
+
+  @@index([userId])
 }
 
 model UserActivityLog {
@@ -144,6 +153,9 @@ model UserActivityLog {
   userId        Int
   activity_type String
   timestamp     DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, timestamp])
 }
 
 model VideoNote {

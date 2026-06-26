@@ -175,11 +175,11 @@ export default function SocialDashboard() {
 
   const handlePost = async (e) => {
     e.preventDefault();
-    if (!content.trim() && !selectedImage) return;
+    if (!content.trim()) return;
     setLoadingPost(true);
 
     try {
-      const response = await socialApi.post('/posts', { content, image: selectedImage, visibility });
+      const response = await socialApi.post('/posts', { content, image: null, visibility });
       addPostLocally(response.data);
       setContent('');
       setSelectedImage(null);
@@ -188,7 +188,7 @@ export default function SocialDashboard() {
       setShowCreatePostModal(false);
     } catch (err) {
       console.error('Failed to create post', err);
-      alert(err.response?.data?.error || "Failed to create post. The image might be too large.");
+      alert(err.response?.data?.error || "Failed to create post.");
     } finally {
       setLoadingPost(false);
     }
@@ -520,43 +520,8 @@ export default function SocialDashboard() {
                 autoFocus
               />
               
-              {selectedImage && (
-                <div className="relative mb-4 rounded-xl overflow-hidden max-h-[300px] border border-gray-100 dark:border-gray-750">
-                  <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
-                  <button 
-                    type="button" 
-                    onClick={() => setSelectedImage(null)}
-                    className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              )}
-              
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    accept="image/*" 
-                    className="hidden" 
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => fileInputRef.current.click()}
-                    className={`flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-sm font-semibold transition cursor-pointer ${
-                      selectedImage 
-                        ? 'text-orange-500 bg-orange-50 dark:bg-orange-950/40' 
-                        : 'text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-750'
-                    }`}
-                  >
-                    <ImageIcon size={20} />
-                    <span>{selectedImage ? "Image Added" : "Add Image"}</span>
-                  </button>
-                  
-                  <div className="w-[1px] h-5 bg-gray-200 dark:bg-gray-700"></div>
-                  
                   <select 
                     value={visibility}
                     onChange={(e) => setVisibility(e.target.value)}
@@ -578,7 +543,7 @@ export default function SocialDashboard() {
                   </button>
                   <button 
                     type="submit" 
-                    disabled={loadingPost || (!content.trim() && !selectedImage)}
+                    disabled={loadingPost || !content.trim()}
                     className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-orange-500 text-white font-bold flex items-center gap-2 transition shadow-md shadow-orange-500/20 cursor-pointer"
                   >
                     <Send size={16} />

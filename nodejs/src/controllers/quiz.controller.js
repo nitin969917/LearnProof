@@ -38,10 +38,6 @@ const getQuizList = async (req, res) => {
     try {
         const user = req.user;
 
-        const completedVideos = await prisma.video.findMany({
-            where: { userId: user.id, is_completed: true }
-        });
-
         const allPlaylists = await prisma.playlist.findMany({
             where: { userId: user.id },
             include: { 
@@ -49,6 +45,7 @@ const getQuizList = async (req, res) => {
                     include: {
                         quizzes: {
                             where: { userId: user.id, passed: true },
+                            select: { id: true },
                             take: 1
                         }
                     }

@@ -5,16 +5,22 @@ import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { Play, CheckCircle, Circle, ArrowLeft, Clock, Sparkles, BookOpen, AlertCircle, X, Trophy, Lock, Award, ChevronLeft, ChevronRight, Video, Library, Trash2 } from 'lucide-react';
 import { useModal } from "../../context/ModalContext";
+import { useQuizStore } from "../../store/quizStore.js";
 
 const Quiz = () => {
     const [token] = useState(useAuth().token); // Use token from context
     const { token: authToken } = useAuth();
     const { confirm } = useModal();
 
-    const [loading, setLoading] = useState(true);
+    const playlists = useQuizStore(state => state.playlists);
+    const history = useQuizStore(state => state.history);
+    const loading = useQuizStore(state => state.loading);
+    const fetchQuizData = useQuizStore(state => state.fetchQuizData);
+    const addAttempt = useQuizStore(state => state.addAttempt);
+    const deleteAttempt = useQuizStore(state => state.deleteAttempt);
+    const setPlaylists = useQuizStore(state => state.setPlaylists);
+
     const [videos, setVideos] = useState([]);
-    const [playlists, setPlaylists] = useState([]);
-    const [history, setHistory] = useState([]);
     const [selectedHistoryQuiz, setSelectedHistoryQuiz] = useState(null);
     const [quizData, setQuizData] = useState(null);
     const [answers, setAnswers] = useState({});
@@ -40,27 +46,10 @@ const Quiz = () => {
     };
 
     useEffect(() => {
-        if (!authToken) return;
-
-        const fetchQuizTargets = async () => {
-            setLoading(true);
-            try {
-                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-list/`, { idToken: authToken });
-                setVideos(res.data.videos || []);
-                setPlaylists(res.data.playlists || []);
-
-                const historyRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/?idToken=${authToken}`);
-                setHistory((historyRes.data || []).filter(q => q.score !== null));
-            } catch (err) {
-                console.error(err);
-                toast.error("Failed to load quiz options");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchQuizTargets();
-    }, [authToken]);
+        if (authToken) {
+            fetchQuizData(authToken);
+        }
+    }, [authToken, fetchQuizData]);
 
     useEffect(() => {
         if (!quizData) return;
@@ -120,13 +109,12 @@ const Quiz = () => {
             setQuizData(null); 
 
             if (res.data.quiz) {
-                setHistory(prev => [res.data.quiz, ...prev]);
+                addAttempt(res.data.quiz);
             }
 
             // Fetch target lists in background to update progress
             axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-list/`, { idToken: authToken })
                 .then(listRes => {
-                    setVideos(listRes.data.videos || []);
                     setPlaylists(listRes.data.playlists || []);
                 })
                 .catch(console.error);
@@ -149,7 +137,7 @@ const Quiz = () => {
         try {
             const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${hist.id}?idToken=${authToken}`);
             const fullQuiz = res.data;
-            setHistory(prev => prev.map(item => item.id === hist.id ? fullQuiz : item));
+            addAttempt(fullQuiz);
             setSelectedHistoryQuiz(fullQuiz);
         } catch (err) {
             console.error("Failed to fetch quiz attempt details:", err);
@@ -172,7 +160,7 @@ const Quiz = () => {
         try {
             await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${id}?idToken=${authToken}`);
             toast.success("Quiz attempt deleted successfully");
-            setHistory(prev => prev.filter(item => item.id !== id));
+            deleteAttempt(id);
             if (selectedHistoryQuiz?.id === id) {
                 setSelectedHistoryQuiz(null);
             }
