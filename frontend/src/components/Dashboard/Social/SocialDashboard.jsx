@@ -237,7 +237,7 @@ export default function SocialDashboard() {
       icon: MessageSquare,
       badge: totalUnreadCount > 0 ? totalUnreadCount : null
     },
-    { id: 'profile', name: 'My Profile', icon: User },
+    { id: 'profile', name: 'Profile', icon: User },
   ];
 
   if (!socialUser) {
@@ -414,7 +414,7 @@ export default function SocialDashboard() {
                     {isActive && (
                       <motion.div
                         layoutId="activeSocialTabPill"
-                        className="absolute inset-x-1 sm:inset-x-2 inset-y-1 bg-orange-500/10 dark:bg-orange-500/20 rounded-full z-0 border border-orange-500/10 dark:border-orange-500/25"
+                        className="absolute inset-x-1 sm:inset-x-2 inset-y-1 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl z-0 border border-orange-500/10 dark:border-orange-500/25"
                         transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                       />
                     )}

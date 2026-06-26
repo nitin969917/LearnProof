@@ -41,7 +41,7 @@ const BottomNav = ({ onMenuClick }) => {
                                 {isActive && (
                                     <motion.div
                                         layoutId="activeTabPill"
-                                        className="absolute inset-x-1 inset-y-1.5 bg-orange-500/10 dark:bg-orange-500/20 rounded-full z-0 border border-orange-500/10 dark:border-orange-500/25 pointer-events-none"
+                                        className="absolute inset-x-1 inset-y-1.5 bg-orange-500/10 dark:bg-orange-500/20 rounded-xl z-0 border border-orange-500/10 dark:border-orange-500/25 pointer-events-none"
                                         transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                                     />
                                 )}
