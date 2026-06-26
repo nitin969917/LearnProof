@@ -15,7 +15,7 @@ const BottomNav = ({ onMenuClick }) => {
 
     return (
         <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[340px] xs:w-[380px] sm:w-[460px] md:w-[540px] max-w-[95vw] z-50 lg:hidden bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300">
-            <div className="flex items-center justify-around h-16 px-3 relative">
+            <div className="flex items-stretch justify-around h-16 px-3 relative">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}
