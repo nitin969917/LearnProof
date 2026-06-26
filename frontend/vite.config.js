@@ -22,13 +22,6 @@ export default defineConfig({
         // Manual chunk splitting — browser loads only what each page needs.
         // Without this, everything ships in one 4-6 MB JS file.
         manualChunks: (id) => {
-          // React core — loaded on every page
-          if (id.includes('node_modules/react/') ||
-              id.includes('node_modules/react-dom/') ||
-              id.includes('node_modules/react-router-dom/') ||
-              id.includes('node_modules/scheduler/')) {
-            return 'react-core';
-          }
           // LiveKit — only used in video/audio rooms
           if (id.includes('livekit-client') || id.includes('@livekit/')) {
             return 'livekit';
