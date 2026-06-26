@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Inbox, Award, LogOut, Quote, Search, Moon, Sun, X, MessageSquare, HelpCircle, Menu, Users, Globe } from 'lucide-react';
+import { Home, BookOpen, Award, LogOut, Quote, Search, Moon, Sun, X, MessageSquare, HelpCircle, Menu, Users, Globe } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useModal } from '../../context/ModalContext';
 import { useSocialMessageStore } from '../../store/socialMessageStore';
@@ -42,7 +42,6 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
         { name: 'Discover', icon: <Search size={20} />, path: '/dashboard/explore' },
         { name: 'Social Hub', icon: <Users size={20} />, path: '/dashboard/social' },
         { name: 'Live Rooms', icon: <Globe size={20} />, path: '/dashboard/live-rooms' },
-        { name: 'Inbox', icon: <Inbox size={20} />, path: '/dashboard/inbox' },
         { name: 'Certificates', icon: <Award size={20} />, path: '/dashboard/certificates' },
         { name: 'Ask My Notes', icon: <MessageSquare size={20} />, path: '/dashboard/ask-my-notes' },
         { name: 'Quiz', icon: <Quote size={20} />, path: '/dashboard/quiz' },
