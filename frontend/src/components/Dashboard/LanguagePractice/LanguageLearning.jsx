@@ -121,24 +121,51 @@ export default function LanguageLearning() {
 
   return (
     <div className="flex flex-col gap-6 max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
-      {/* Header — matches Inbox/other section style: icon+title left, badge+button right */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Left: icon + title + subtitle */}
+
+      {/* ── MOBILE header: centered stacked (icon → title → subtitle → + button) ── */}
+      <div className="flex flex-col items-center text-center gap-3 sm:hidden relative">
+        <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20 w-fit">
+          <Globe className="text-white" size={32} />
+        </div>
+        <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">
+          Live Rooms
+        </h1>
+        {totalRoomsCount > 0 && (
+          <span className="text-xs px-2.5 py-1 bg-orange-500/10 border border-orange-500/20 text-orange-500 rounded-full font-black">
+            {totalRoomsCount} Active
+          </span>
+        )}
+        <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs">
+          Join or start a live room to discuss, practice, or learn together with other members.
+        </p>
+        {/* Floating + button top-right */}
+        <button
+          onClick={() => {
+            setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
+            setShowModal(true);
+          }}
+          className="absolute top-0 right-0 p-2.5 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer"
+          title="Create Room"
+        >
+          <Plus size={20} />
+        </button>
+      </div>
+
+      {/* ── DESKTOP header: icon+title left, badge+button right ── */}
+      <div className="hidden sm:flex sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20 shrink-0">
             <Globe className="text-white" size={32} />
           </div>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white leading-tight">
+            <h1 className="text-4xl font-black text-gray-900 dark:text-white leading-tight">
               Live Rooms
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm sm:text-base max-w-xl hidden sm:block">
+            <p className="text-gray-500 dark:text-gray-400 mt-1 text-base max-w-xl">
               Join or start a live room to discuss, practice, or learn together.
             </p>
           </div>
         </div>
-
-        {/* Right: active badge + create button */}
         <div className="flex items-center gap-3 shrink-0">
           {totalRoomsCount > 0 && (
             <span className="text-xs px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 text-orange-500 rounded-full font-black">
@@ -154,15 +181,10 @@ export default function LanguageLearning() {
             title="Create Room"
           >
             <Plus size={18} />
-            <span className="hidden sm:inline">Create Room</span>
+            <span>Create Room</span>
           </button>
         </div>
       </div>
-
-      {/* Mobile subtitle */}
-      <p className="text-gray-500 dark:text-gray-400 text-sm sm:hidden -mt-2">
-        Join or start a live room to discuss, practice, or learn together with other members.
-      </p>
 
       {/* Tabs Selector — centered on mobile, left-aligned on desktop */}
       <div className="flex justify-center sm:justify-start border-b border-gray-200 dark:border-gray-800 gap-0 sm:gap-6">
