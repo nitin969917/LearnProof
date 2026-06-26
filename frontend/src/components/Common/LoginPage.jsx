@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, CheckCircle, Shield, Youtube, Zap, Lightbulb, TrendingUp, Users, MessageSquare, Award } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { toast } from 'react-hot-toast';
 import { requestNotificationPermissionAndGetToken } from '../../utils/fcm';
 
@@ -107,6 +107,10 @@ const LoginPage = () => {
                 </div>
             </div>
         );
+    }
+
+    if (user) {
+        return <Navigate to="/dashboard" replace />;
     }
 
     return (
