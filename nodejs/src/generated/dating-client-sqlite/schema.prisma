@@ -1,0 +1,241 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/dating-client-sqlite"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dating-dev.db"
+}
+
+model User {
+  id             Int     @id @default(autoincrement())
+  name           String
+  email          String  @unique
+  password       String?
+  googleId       String? @unique
+  bio            String?
+  profilePicture String?
+  collegeName    String?
+  department     String?
+  yearOfStudy    String?
+
+  // Contact Information
+  phoneNumber     String?
+  phoneVisibility String  @default("public")
+
+  whatsappNumber     String?
+  whatsappVisibility String  @default("public")
+
+  instagramHandle     String?
+  instagramVisibility String  @default("public")
+
+  facebookUrl        String?
+  facebookVisibility String  @default("public")
+
+  snapchatUsername   String?
+  snapchatVisibility String  @default("public")
+
+  linkedinUrl        String?
+  linkedinVisibility String  @default("public")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  posts      Post[]
+  comments   Comment[]
+  likedPosts Post[]    @relation("PostLikes")
+
+  sentFriendRequests     Friendship[] @relation("SentFriendRequests")
+  receivedFriendRequests Friendship[] @relation("ReceivedFriendRequests")
+
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+
+  myCrushes Crush[] @relation("MyCrushes")
+  crushedBy Crush[] @relation("CrushedBy")
+
+  sentCloseFriendRequests     CloseFriendRequest[] @relation("SentCloseFriendRequests")
+  receivedCloseFriendRequests CloseFriendRequest[] @relation("ReceivedCloseFriendRequests")
+
+  languageRooms LanguageRoom[]
+  createdGroups Group[]
+  groupMembers  GroupMember[]
+  groupMessages GroupMessage[]
+
+  @@index([name])
+  @@index([collegeName])
+  @@index([department])
+  @@map("social_users")
+}
+
+model Post {
+  id         Int      @id @default(autoincrement())
+  content    String
+  image      String?
+  visibility String   @default("public")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id])
+
+  likes    User[]    @relation("PostLikes")
+  comments Comment[]
+
+  @@index([authorId])
+  @@index([visibility])
+  @@index([createdAt])
+  @@map("social_posts")
+}
+
+model Friendship {
+  id            Int      @id @default(autoincrement())
+  status        String   @default("pending") // pending, accepted, rejected
+  isCloseFriend Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  senderId Int
+  sender   User @relation("SentFriendRequests", fields: [senderId], references: [id])
+
+  receiverId Int
+  receiver   User @relation("ReceivedFriendRequests", fields: [receiverId], references: [id])
+
+  @@unique([senderId, receiverId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([status])
+  @@map("social_friendships")
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  content   String
+  isRead    Boolean  @default(false)
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  senderId Int
+  sender   User @relation("SentMessages", fields: [senderId], references: [id])
+
+  receiverId Int
+  receiver   User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+  @@map("social_messages")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  postId Int
+  post   Post @relation(fields: [postId], references: [id])
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id])
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("social_comments")
+}
+
+model Crush {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  userId Int
+  user   User @relation("MyCrushes", fields: [userId], references: [id])
+
+  crushId Int
+  crush   User @relation("CrushedBy", fields: [crushId], references: [id])
+
+  @@unique([userId, crushId])
+  @@map("social_crushes")
+}
+
+model CloseFriendRequest {
+  id        Int      @id @default(autoincrement())
+  status    String   @default("pending") // pending, accepted, rejected
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  senderId Int
+  sender   User @relation("SentCloseFriendRequests", fields: [senderId], references: [id])
+
+  receiverId Int
+  receiver   User @relation("ReceivedCloseFriendRequests", fields: [receiverId], references: [id])
+
+  @@unique([senderId, receiverId])
+  @@map("social_close_friend_requests")
+}
+
+model LanguageRoom {
+  id              Int      @id @default(autoincrement())
+  roomName        String   @unique
+  topic           String
+  language        String
+  roomType        String   @default("group") // "group" or "1-on-1"
+  mediaType       String   @default("audio") // "audio" or "video"
+  maxParticipants Int      @default(10)
+  isFriendsOnly   Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  creatorId Int
+  creator   User @relation(fields: [creatorId], references: [id])
+
+  @@map("social_language_rooms")
+}
+
+model Group {
+  id                Int      @id @default(autoincrement())
+  name              String   @unique
+  description       String?
+  isPrivate         Boolean  @default(false)
+  entryKey          String?
+  createdAt         DateTime @default(now())
+  onlyAdminsCanPost Boolean  @default(false)
+
+  creatorId Int
+  creator   User @relation(fields: [creatorId], references: [id])
+
+  members  GroupMember[]
+  messages GroupMessage[]
+
+  @@map("social_groups")
+}
+
+model GroupMember {
+  id       Int      @id @default(autoincrement())
+  joinedAt DateTime @default(now())
+
+  groupId Int
+  group   Group @relation(fields: [groupId], references: [id])
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+  @@map("social_group_members")
+}
+
+model GroupMessage {
+  id        Int      @id @default(autoincrement())
+  content   String
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  groupId Int
+  group   Group @relation(fields: [groupId], references: [id])
+
+  senderId Int
+  sender   User @relation(fields: [senderId], references: [id])
+
+  @@map("social_group_messages")
+}

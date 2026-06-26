@@ -13,7 +13,9 @@ RUN npm install --production --legacy-peer-deps
 RUN npm install pm2 -g
 
 # Generate Prisma Clients
-RUN npx prisma generate --schema=prisma/schema.prisma && npx prisma generate --schema=prisma/dating.prisma
+RUN npx prisma generate --schema=prisma/schema.prisma && \
+    npx prisma generate --schema=prisma/dating.prisma && \
+    npx prisma generate --schema=prisma/dating_sqlite.prisma
 
 # Copy source code
 COPY . .

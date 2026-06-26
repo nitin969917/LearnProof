@@ -17,7 +17,7 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const { PrismaClient: SQLiteClient } = require('../src/generated/dating-client');
+const { PrismaClient: SQLiteClient } = require('../src/generated/dating-client-sqlite');
 const { PrismaClient: PGClient } = require('../src/generated/dating-client');
 
 // Override the datasource URL for SQLite (old) and PostgreSQL (new)
