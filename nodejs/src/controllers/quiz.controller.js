@@ -434,6 +434,10 @@ const getActivityGraph = async (req, res) => {
 
     try {
         const user = req.user;
+        const cacheKey = `user:activity-graph:${user.id}`;
+        
+        const cached = await cacheService.get(cacheKey);
+        if (cached) return res.status(200).json(cached);
 
         const sixtyDaysAgo = new Date();
         sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
@@ -498,10 +502,14 @@ const getActivityGraph = async (req, res) => {
             }
         }
 
-        res.status(200).json({
+        const responseData = {
             graph: streak_data,
             streak_count: currentStreak
-        });
+        };
+
+        await cacheService.set(cacheKey, responseData, 120); // Cache for 2 minutes
+
+        res.status(200).json(responseData);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
