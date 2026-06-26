@@ -21,7 +21,7 @@ import {
   Mic, MicOff, Video, VideoOff,
   PhoneOff, Users, Globe,
   Volume2, Send, UserX, UserPlus, UserMinus,
-  Check, X, Hand, LogOut
+  Check, X, Hand, LogOut, ChevronsDown
 } from 'lucide-react';
 
 import { Track } from 'livekit-client';
@@ -994,7 +994,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-xs w-full p-6 shadow-2xl text-center">
             <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
-              <PhoneOff size={26} className="text-red-500" />
+              <LogOut size={26} className="text-red-500" />
             </div>
             <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">End Session?</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
@@ -1063,14 +1063,17 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleLeaveClick}
-            className={`flex items-center justify-center p-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-lg transition-all active:scale-95 cursor-pointer ${
+            className={`flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl font-black shadow-lg transition-all active:scale-95 cursor-pointer ${
               isHost
                 ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/25 border-none'
                 : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/30'
             }`}
             title={isHost ? 'End Session for all' : 'Leave Room'}
           >
-            <PhoneOff size={16} />
+            <LogOut size={16} />
+            <span className="text-[9px] font-black uppercase tracking-wider mt-0.5 leading-none">
+              {isHost ? 'End' : 'Leave'}
+            </span>
           </button>
         </div>
       </div>
@@ -1302,7 +1305,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                         title="Step down from stage"
                         className="p-3 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
                       >
-                        <LogOut size={20} />
+                        <ChevronsDown size={20} />
                       </button>
                     )}
                   </>
