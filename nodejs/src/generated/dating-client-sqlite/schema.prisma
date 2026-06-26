@@ -67,7 +67,6 @@ model User {
   @@index([name])
   @@index([collegeName])
   @@index([department])
-  @@map("social_users")
 }
 
 model Post {
@@ -87,7 +86,6 @@ model Post {
   @@index([authorId])
   @@index([visibility])
   @@index([createdAt])
-  @@map("social_posts")
 }
 
 model Friendship {
@@ -107,7 +105,6 @@ model Friendship {
   @@index([senderId])
   @@index([receiverId])
   @@index([status])
-  @@map("social_friendships")
 }
 
 model Message {
@@ -126,7 +123,6 @@ model Message {
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt])
-  @@map("social_messages")
 }
 
 model Comment {
@@ -143,7 +139,6 @@ model Comment {
 
   @@index([postId])
   @@index([authorId])
-  @@map("social_comments")
 }
 
 model Crush {
@@ -157,7 +152,6 @@ model Crush {
   crush   User @relation("CrushedBy", fields: [crushId], references: [id])
 
   @@unique([userId, crushId])
-  @@map("social_crushes")
 }
 
 model CloseFriendRequest {
@@ -173,7 +167,6 @@ model CloseFriendRequest {
   receiver   User @relation("ReceivedCloseFriendRequests", fields: [receiverId], references: [id])
 
   @@unique([senderId, receiverId])
-  @@map("social_close_friend_requests")
 }
 
 model LanguageRoom {
@@ -189,8 +182,6 @@ model LanguageRoom {
 
   creatorId Int
   creator   User @relation(fields: [creatorId], references: [id])
-
-  @@map("social_language_rooms")
 }
 
 model Group {
@@ -207,8 +198,6 @@ model Group {
 
   members  GroupMember[]
   messages GroupMessage[]
-
-  @@map("social_groups")
 }
 
 model GroupMember {
@@ -222,7 +211,6 @@ model GroupMember {
   user   User @relation(fields: [userId], references: [id])
 
   @@unique([groupId, userId])
-  @@map("social_group_members")
 }
 
 model GroupMessage {
@@ -236,6 +224,4 @@ model GroupMessage {
 
   senderId Int
   sender   User @relation(fields: [senderId], references: [id])
-
-  @@map("social_group_messages")
 }
