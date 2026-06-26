@@ -28,12 +28,13 @@ const BottomNav = ({ onMenuClick }) => {
                                 whileTap={{ scale: 0.88 }}
                                 className="flex flex-col items-center justify-center w-full h-full relative outline-none border-none focus:outline-none focus:ring-0 focus-visible:outline-none"
                             >
-                                <div className={`transition-all duration-300 z-10 ${isActive ? 'scale-110 text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
+                                <div className={`transition-all duration-300 z-10 flex flex-col items-center justify-center ${isActive ? 'scale-110 text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
                                     <item.icon 
-                                        size={22} 
+                                        size={20} 
                                         strokeWidth={isActive ? 2.5 : 2} 
                                         className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
                                     />
+                                    <span className="text-[9px] font-semibold mt-0.5 tracking-wide leading-none">{item.name}</span>
                                 </div>
                                 
                                 {/* Sleek sliding active background glass pill */}
@@ -58,8 +59,9 @@ const BottomNav = ({ onMenuClick }) => {
                         whileTap={{ scale: 0.88 }}
                         className="flex flex-col items-center justify-center w-full h-full outline-none border-none"
                     >
-                        <div className="scale-100 transition-all duration-300">
-                            <Menu size={22} strokeWidth={2} />
+                        <div className="scale-100 transition-all duration-300 flex flex-col items-center justify-center">
+                            <Menu size={20} strokeWidth={2} />
+                            <span className="text-[9px] font-semibold mt-0.5 tracking-wide leading-none">Menu</span>
                         </div>
                     </motion.div>
                 </button>

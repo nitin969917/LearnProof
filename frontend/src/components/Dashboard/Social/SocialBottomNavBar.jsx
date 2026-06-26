@@ -49,8 +49,9 @@ export default function SocialBottomNavBar({ onMenuClick }) {
                   whileTap={{ scale: 0.88 }}
                   className="flex flex-col items-center justify-center w-full h-full relative"
                 >
-                  <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300">
-                    <Icon size={22} strokeWidth={2} />
+                  <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
+                    <Icon size={20} strokeWidth={2} />
+                    <span className="text-[9px] font-semibold mt-0.5 tracking-wide leading-none">{tab.label}</span>
                   </div>
                   <span className="sr-only">{tab.label}</span>
                   {tab.badge && (
@@ -74,8 +75,9 @@ export default function SocialBottomNavBar({ onMenuClick }) {
                     whileTap={{ scale: 0.88 }}
                     className="flex flex-col items-center justify-center w-full h-full relative"
                   >
-                    <div className={`transition-all duration-300 ${isLiveRoomsActive() ? 'scale-110 text-orange-600 dark:text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
-                      <Globe size={22} strokeWidth={isLiveRoomsActive() ? 2.5 : 2} />
+                    <div className={`transition-all duration-300 flex flex-col items-center justify-center ${isLiveRoomsActive() ? 'scale-110 text-orange-600 dark:text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
+                      <Globe size={20} strokeWidth={isLiveRoomsActive() ? 2.5 : 2} />
+                      <span className="text-[9px] font-semibold mt-0.5 tracking-wide leading-none">Rooms</span>
                     </div>
                     <span className="sr-only">Live Rooms</span>
                     {isLiveRoomsActive() && (
@@ -101,8 +103,9 @@ export default function SocialBottomNavBar({ onMenuClick }) {
             whileTap={{ scale: 0.88 }}
             className="flex flex-col items-center justify-center w-full h-full relative"
           >
-            <div className="text-gray-400 dark:text-gray-550 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300">
-              <Menu size={22} strokeWidth={2} />
+            <div className="text-gray-400 dark:text-gray-550 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
+              <Menu size={20} strokeWidth={2} />
+              <span className="text-[9px] font-semibold mt-0.5 tracking-wide leading-none">Menu</span>
             </div>
             <span className="sr-only">Menu</span>
           </motion.div>
