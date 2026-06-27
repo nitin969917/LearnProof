@@ -5,6 +5,21 @@ import axios from "axios";
 
 const AuthContext = createContext();
 
+// Setup global response interceptor to handle 401 Unauthorized
+axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem("google_token");
+            // If they are on a dashboard/classroom route, redirect to home page to force re-login
+            if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom")) {
+                window.location.href = "/";
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);

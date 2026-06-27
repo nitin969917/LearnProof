@@ -40,8 +40,10 @@ const CompletedSection = () => {
                     setPlaylists(res.data.playlists || []);
                 }
             } catch (err) {
-                toast.error("Failed to load completed content.");
-                console.log('Failed to load completed content.');
+                if (err.response?.status !== 401) {
+                    toast.error("Failed to load completed content.");
+                }
+                console.error('Failed to load completed content:', err);
             } finally {
                 setLoading(false);
             }
