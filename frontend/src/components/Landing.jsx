@@ -203,7 +203,9 @@ const LandingPage = () => {
             console.log("User synced with backend:", data);
 
             sessionStorage.removeItem("is_logging_in");
-            navigate("/dashboard");
+            const redirectTo = sessionStorage.getItem("redirect_to") || "/dashboard";
+            sessionStorage.removeItem("redirect_to");
+            navigate(redirectTo);
         } catch (err) {
             console.error("Google login error:", err);
             toast.error(`Login failed: ${err.message}`);
@@ -288,7 +290,9 @@ const LandingPage = () => {
     useEffect(() => {
         if (!loading && user) {
             if (location.pathname === '/') {
-                navigate("/dashboard");
+                const redirectTo = sessionStorage.getItem("redirect_to") || "/dashboard";
+                sessionStorage.removeItem("redirect_to");
+                navigate(redirectTo);
             }
         }
     }, [user, loading, navigate, location.pathname]);

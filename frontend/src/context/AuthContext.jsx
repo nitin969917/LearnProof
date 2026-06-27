@@ -13,6 +13,7 @@ axios.interceptors.response.use(
             localStorage.removeItem("google_token");
             // If they are on a dashboard/classroom route, redirect to home page to force re-login
             if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom")) {
+                sessionStorage.setItem("redirect_to", window.location.pathname + window.location.search);
                 window.location.href = "/";
             }
         }
@@ -36,6 +37,7 @@ export const AuthProvider = ({ children }) => {
                         console.warn("Stored token is expired, clearing...");
                         localStorage.removeItem("google_token");
                         if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom")) {
+                            sessionStorage.setItem("redirect_to", window.location.pathname + window.location.search);
                             window.location.href = "/";
                             return;
                         }

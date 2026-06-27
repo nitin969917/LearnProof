@@ -55,7 +55,9 @@ const LoginPage = () => {
             });
             
             sessionStorage.removeItem("is_authenticating");
-            navigate("/dashboard");
+            const redirectTo = sessionStorage.getItem("redirect_to") || "/dashboard";
+            sessionStorage.removeItem("redirect_to");
+            navigate(redirectTo);
         } catch (err) {
             console.error("Authentication error:", err);
             toast.error(err.message || "Failed to sign in. Please try again.");
