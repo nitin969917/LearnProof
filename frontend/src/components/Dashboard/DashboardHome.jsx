@@ -24,6 +24,7 @@ const DashboardHome = () => {
     const [continueVideos, setContinueVideos] = useState([]);
     const [loadingLearnings, setLoadingLearnings] = useState(true);
     const [loadingContinue, setLoadingContinue] = useState(true);
+    const [fetchFailed, setFetchFailed] = useState(false);
 
     useEffect(() => {
         let active = true;
@@ -41,6 +42,7 @@ const DashboardHome = () => {
                 }
             } catch (err) {
                 console.error("Dashboard learnings data fetch failed", err);
+                if (active) setFetchFailed(true);
             } finally {
                 if (active) setLoadingLearnings(false);
             }
@@ -56,6 +58,7 @@ const DashboardHome = () => {
                 }
             } catch (err) {
                 console.error("Dashboard continue watch fetch failed", err);
+                if (active) setFetchFailed(true);
             } finally {
                 if (active) setLoadingContinue(false);
             }
@@ -64,6 +67,7 @@ const DashboardHome = () => {
         if (token) {
             setLoadingLearnings(true);
             setLoadingContinue(true);
+            setFetchFailed(false);
             fetchLearnings();
             fetchContinueWatching();
         }
@@ -75,13 +79,41 @@ const DashboardHome = () => {
 
     // Check if new user after both finished loading
     useEffect(() => {
-        if (!loadingLearnings && !loadingContinue) {
+        if (!loadingLearnings && !loadingContinue && !fetchFailed) {
             if (playlists.length === 0 && continueVideos.length === 0 && videos.length === 0) {
                 setIsNewUser(true);
             }
             setHasCheckedStatus(true);
         }
-    }, [loadingLearnings, loadingContinue, playlists, continueVideos, videos]);
+    }, [loadingLearnings, loadingContinue, fetchFailed, playlists, continueVideos, videos]);
+
+    if (fetchFailed) {
+        return (
+            <div className="p-6 h-[80vh] flex flex-col items-center justify-center text-center space-y-6">
+                <motion.div 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="p-6 bg-red-500/10 rounded-full border border-red-500/20 text-red-500"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </motion.div>
+                <div className="space-y-2">
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-white">Connection Issue</h2>
+                    <p className="text-gray-500 dark:text-slate-400 max-w-sm mx-auto font-medium">
+                        We had trouble connecting to the database. Please try reloading the page.
+                    </p>
+                </div>
+                <button 
+                    onClick={() => window.location.reload()}
+                    className="px-8 py-3 bg-orange-500 text-white rounded-2xl font-black text-sm hover:bg-orange-600 shadow-xl shadow-orange-500/30 transition-all"
+                >
+                    Reload Page
+                </button>
+            </div>
+        );
+    }
 
     if (isNewUser) {
         return (

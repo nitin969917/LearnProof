@@ -31,7 +31,15 @@ export const AuthProvider = ({ children }) => {
             if (storedToken) {
                 try {
                     const decoded = jwtDecode(storedToken);
-                    // We trust the backend to handle expiration now for our custom tokens
+                    const currentTime = Date.now() / 1000;
+                    if (decoded.exp && decoded.exp < currentTime) {
+                        console.warn("Stored token is expired, clearing...");
+                        localStorage.removeItem("google_token");
+                        if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom")) {
+                            window.location.href = "/";
+                            return;
+                        }
+                    }
                     setUser({
                         uid: decoded.uid || decoded.sub,
                         email: decoded.email,
