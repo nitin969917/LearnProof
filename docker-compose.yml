@@ -8,8 +8,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/learnproof_db?connection_limit=5&pool_timeout=10
-      - SOCIAL_DATABASE_URL=postgresql://user:password@db:5432/learnproof_db?connection_limit=5&pool_timeout=10
+      - DATABASE_URL=postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30
+      - SOCIAL_DATABASE_URL=postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30
       - REDIS_URL=redis://cache:6379
       - NODE_ENV=production
     env_file:
