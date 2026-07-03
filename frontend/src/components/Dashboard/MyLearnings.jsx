@@ -319,7 +319,7 @@ const MyLearnings = () => {
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: index * 0.05 }}
-                                    className="group/card bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:shadow-orange-100/50 dark:hover:shadow-orange-900/20 hover:border-orange-400 dark:hover:border-orange-500 hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col relative p-4"
+                                    className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative p-3.5"
                                 >
                                     {/* Delete Overlay */}
                                     <button
@@ -327,50 +327,50 @@ const MyLearnings = () => {
                                             e.stopPropagation();
                                             handleVideoDelete(video.vid);
                                         }}
-                                        className="absolute top-4 right-4 z-20 p-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl transition-all duration-300 backdrop-blur-md opacity-100 xl:opacity-0 xl:group-hover/card:opacity-100 shadow-lg border border-red-500/20"
+                                        className="absolute top-3 right-3 z-20 p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all duration-300 backdrop-blur-md opacity-100 xl:opacity-0 xl:group-hover/card:opacity-100 shadow-sm border border-red-500/10"
                                     >
-                                        <Trash2 size={18} />
+                                        <Trash2 size={16} />
                                     </button>
 
                                     <div 
                                         className="cursor-pointer flex flex-col h-full"
                                         onClick={() => navigate(`/classroom/${video.vid}`)}
                                     >
-                                        <div className="aspect-video bg-gray-100 dark:bg-gray-700/50 relative flex items-center justify-center overflow-hidden rounded-xl shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
+                                        <div className="aspect-video bg-gray-100 dark:bg-gray-700/50 relative flex items-center justify-center overflow-hidden rounded-xl shadow-sm border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
                                             <img
                                                 src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
                                                 alt={video.name}
                                                 className="w-full h-full object-cover"
                                             />
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
-                                                    <Play size={28} className="text-white fill-white ml-1" />
+                                                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                                    <Play size={24} className="text-white fill-white ml-1" />
                                                 </div>
                                             </div>
                                             {video.is_completed && (
-                                                <div className="absolute top-4 left-4 bg-green-500 text-white text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest shadow-lg shadow-green-500/40 z-10">
+                                                <div className="absolute top-3 left-3 bg-green-500 text-white text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shadow-md shadow-green-500/20 z-10">
                                                     Achieved
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="pt-4 flex flex-col flex-1">
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
-                                                <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Video Lesson</span>
+                                        <div className="pt-3.5 flex flex-col flex-1">
+                                            <div className="flex items-center gap-1.5 mb-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
+                                                <span className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Video Lesson</span>
                                             </div>
                                             
-                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover/card:text-orange-500 dark:group-hover/card:text-orange-400 text-base mb-2 line-clamp-2 transition-colors duration-300 leading-snug">
+                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover/card:text-orange-500 dark:group-hover/card:text-orange-400 text-sm mb-1.5 line-clamp-2 transition-colors duration-300 leading-snug flex-1">
                                                 {video.name}
                                             </h3>
 
                                             <div className="mt-auto space-y-4">
-                                                <div className="pt-4 border-t border-gray-50 dark:border-slate-800">
-                                                    <div className="flex items-center justify-between text-[11px] mb-2 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
+                                                <div className="pt-3 border-t border-gray-50 dark:border-slate-800/80">
+                                                    <div className="flex items-center justify-between text-[10px] mb-1 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
                                                         <span>Progress</span>
                                                         <span className="text-orange-600 dark:text-orange-400 group-hover/card:text-orange-500 transition-colors">{Math.round(video.watch_progress || 0)}%</span>
                                                     </div>
-                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
                                                         <motion.div
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${Math.round(video.watch_progress || 0)}%` }}
@@ -408,16 +408,16 @@ const MyLearnings = () => {
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ delay: index * 0.05 }}
-                                        className="group/card bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:shadow-orange-100/50 dark:hover:shadow-orange-900/20 hover:border-orange-400 dark:hover:border-orange-500 hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col relative p-4"
+                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative p-3.5"
                                     >
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handlePlaylistDelete(pl, pl.pid);
                                             }}
-                                            className="absolute top-4 right-4 z-20 p-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-2xl transition-all duration-300 backdrop-blur-md opacity-100 xl:opacity-0 xl:group-hover/card:opacity-100 shadow-lg border border-red-500/20"
+                                            className="absolute top-3 right-3 z-20 p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all duration-300 backdrop-blur-md opacity-100 xl:opacity-0 xl:group-hover/card:opacity-100 shadow-sm border border-red-500/10"
                                         >
-                                            <Trash2 size={18} />
+                                            <Trash2 size={16} />
                                         </button>
 
                                         <div
@@ -425,7 +425,7 @@ const MyLearnings = () => {
                                             onClick={() => navigate(`/dashboard/playlist/${pl.pid}`)}
                                         >
                                             {/* Stacked Thumbnail Effect */}
-                                            <div className="relative aspect-video rounded-xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
+                                            <div className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
                                                 {thumbnail ? (
                                                     <img
                                                         src={thumbnail}
@@ -434,37 +434,37 @@ const MyLearnings = () => {
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center">
-                                                        <Library size={48} className="text-orange-200 dark:text-slate-700" />
+                                                        <Library size={44} className="text-orange-200 dark:text-slate-700" />
                                                     </div>
                                                 )}
                                                 
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                                    <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
-                                                        <Play size={28} className="text-white fill-white ml-1" />
+                                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                                        <Play size={24} className="text-white fill-white ml-1" />
                                                     </div>
                                                 </div>
 
-                                                <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest border border-white/10">
+                                                <div className="absolute bottom-3 right-3 bg-black/75 backdrop-blur-sm text-white text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-wider border border-white/5">
                                                     {totalVideos} Lessons
                                                 </div>
                                             </div>
 
-                                            <div className="pt-4 flex flex-col flex-1">
-                                                <div className="flex items-center gap-2 mb-3">
-                                                    <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
-                                                    <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Mastery Path</span>
+                                            <div className="pt-3.5 flex flex-col flex-1">
+                                                <div className="flex items-center gap-1.5 mb-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+                                                    <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Mastery Path</span>
                                                 </div>
 
-                                                <h3 className="font-bold text-gray-900 dark:text-white text-base mb-6 truncate group-hover/card:text-orange-500 transition-colors duration-300">
+                                                <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-3 line-clamp-2 group-hover/card:text-orange-500 transition-colors duration-300 leading-snug flex-1">
                                                     {pl.name}
                                                 </h3>
 
                                                 <div className="mt-auto">
-                                                    <div className="flex items-center justify-between text-[11px] mb-2 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
+                                                    <div className="flex items-center justify-between text-[10px] mb-1 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
                                                         <span>Progress</span>
                                                         <span className="text-orange-600 dark:text-orange-400 group-hover/card:font-bold transition-all">{percentComplete}%</span>
                                                     </div>
-                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
                                                         <motion.div
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${percentComplete}%` }}
@@ -472,15 +472,15 @@ const MyLearnings = () => {
                                                         />
                                                     </div>
                                                     
-                                                    <div className="mt-6 flex items-center justify-between">
-                                                        <div className="flex items-center gap-2 bg-orange-50 dark:bg-orange-500/10 px-3 py-1.5 rounded-xl border border-orange-100 dark:border-orange-500/20">
-                                                            <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)] animate-pulse"></div>
-                                                            <span className="text-[10px] font-black text-orange-700 dark:text-orange-400 uppercase tracking-widest whitespace-nowrap">
+                                                    <div className="mt-3.5 flex items-center justify-between">
+                                                        <div className="flex items-center gap-1.5 bg-orange-50 dark:bg-orange-500/10 px-2.5 py-1 rounded-lg border border-orange-100 dark:border-orange-500/20">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)] animate-pulse"></div>
+                                                            <span className="text-[9px] font-black text-orange-700 dark:text-orange-400 uppercase tracking-wider whitespace-nowrap">
                                                                 {completedVideos} / {totalVideos} COMPLETED
                                                             </span>
                                                         </div>
-                                                        <button className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 flex items-center gap-1 group-hover/card:gap-2 transition-all">
-                                                            Resume <ChevronRight size={14} />
+                                                        <button className="text-[9px] font-black uppercase tracking-wider text-orange-500 flex items-center gap-0.5 group-hover/card:gap-1.5 transition-all">
+                                                            Resume <ChevronRight size={12} />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -517,66 +517,66 @@ const MyLearnings = () => {
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ delay: index * 0.05 }}
-                                        className="group/card bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:shadow-orange-100/50 dark:hover:shadow-orange-900/20 hover:border-orange-400 dark:hover:border-orange-500 hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col relative p-4"
+                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative p-3.5"
                                     >
-                                        <div className="absolute top-4 right-4 z-20 pointer-events-none opacity-10 group-hover/card:opacity-20 group-hover/card:scale-125 transition-all duration-700">
-                                            <Sparkles size={64} className="text-orange-500" />
+                                        <div className="absolute top-3 right-3 z-20 pointer-events-none opacity-10 group-hover/card:opacity-20 group-hover/card:scale-125 transition-all duration-700">
+                                            <Sparkles size={48} className="text-orange-500" />
                                         </div>
 
                                         <div className="cursor-pointer flex flex-col h-full">
                                             {/* Thumbnail Section */}
                                             <div 
-                                                className="relative aspect-video rounded-xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]"
+                                                className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]"
                                                 onClick={() => navigate(`/dashboard/roadmap/${pl.pid}`)}
                                             >
                                                 <img src={thumbnail} alt={pl.name} className="w-full h-full object-cover" />
                                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
-                                                        <Sparkles size={24} className="text-white fill-white" />
+                                                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                                        <Sparkles size={20} className="text-white fill-white" />
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {/* Info Section */}
-                                            <div className="pt-4 flex flex-col flex-1 space-y-4">
+                                            <div className="pt-3.5 flex flex-col flex-1 space-y-3">
                                                 <div>
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
-                                                        <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Active Roadmap</span>
+                                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
+                                                        <span className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Active Roadmap</span>
                                                     </div>
                                                     
                                                     <h3 
-                                                        className="font-bold text-gray-900 dark:text-white text-base mb-1 line-clamp-1 group-hover/card:text-orange-500 transition-colors"
+                                                        className="font-bold text-gray-900 dark:text-white text-sm mb-0.5 line-clamp-1 group-hover/card:text-orange-500 transition-colors"
                                                         onClick={() => navigate(`/dashboard/roadmap/${pl.pid}`)}
                                                     >
                                                         {pl.name}
                                                     </h3>
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{totalVideos} Lessons Total</span>
+                                                    <span className="text-[9px] font-bold text-gray-405 dark:text-slate-500 uppercase tracking-wider">{totalVideos} Lessons Total</span>
                                                 </div>
 
                                                 {currentGoal ? (
-                                                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 bg-gray-50/50 dark:bg-gray-900/30 p-3 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                                                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-slate-500 bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded-xl border border-gray-100 dark:border-gray-700/50">
                                                         <div className="flex flex-col">
-                                                            <span className="text-orange-500">Goal</span>
+                                                            <span className="text-orange-500 text-[8px]">Goal</span>
                                                             <span className="text-xs text-gray-900 dark:text-white capitalize">{currentGoal} Days</span>
                                                         </div>
                                                         <div className="flex flex-col items-end">
-                                                            <span className="text-orange-500">Pacing</span>
+                                                            <span className="text-orange-500 text-[8px]">Pacing</span>
                                                             <span className="text-xs text-gray-900 dark:text-white capitalize">{videosPerDay} Daily</span>
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 bg-gray-50/50 dark:bg-gray-900/30 p-3 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                                                    <div className="flex items-center justify-center text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-slate-500 bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded-xl border border-gray-100 dark:border-gray-700/50">
                                                         <span>Study Goal Not Set</span>
                                                     </div>
                                                 )}
 
-                                                <div className="mt-auto pt-2">
-                                                    <div className="flex items-center justify-between text-[11px] mb-2 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
+                                                <div className="mt-auto pt-1.5">
+                                                    <div className="flex items-center justify-between text-[10px] mb-1 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
                                                         <span>Mastery</span>
                                                         <span className="text-orange-600 dark:text-orange-400 font-bold">{percentComplete}%</span>
                                                     </div>
-                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
                                                         <motion.div
                                                             initial={{ width: 0 }}
                                                             animate={{ width: `${percentComplete}%` }}

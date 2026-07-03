@@ -268,10 +268,9 @@ const DashboardLayout = () => {
                 </div>
             </main>
 
-            {/* Bottom Navigation for Mobile */}
-            {/* Show main BottomNav only when: not in social hub, not in a live room, and not when came from social */}
-            {!isSocialHub && !isLiveRoom && !showSocialBottomNav && <BottomNav onMenuClick={toggleSidebar} />
-            }
+            {!isSocialHub && !isLiveRoom && !showSocialBottomNav && (
+                <BottomNav onMenuClick={toggleSidebar} />
+            )}
 
             {/* Social Hub's bottom nav — shown on live-rooms pages when the user navigated from Social Hub */}
             {showSocialBottomNav && !isLiveRoom && (

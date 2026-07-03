@@ -36,16 +36,36 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
         }
     };
 
-    const navItems = [
-        { name: 'Home', icon: <Home size={20} />, path: '/dashboard' },
-        { name: 'My Learnings', icon: <BookOpen size={20} />, path: '/dashboard/library' },
-        { name: 'Discover', icon: <Search size={20} />, path: '/dashboard/explore' },
-        { name: 'Social Hub', icon: <Users size={20} />, path: '/dashboard/social' },
-        { name: 'Live Rooms', icon: <Globe size={20} />, path: '/dashboard/live-rooms' },
-        { name: 'Certificates', icon: <Award size={20} />, path: '/dashboard/certificates' },
-        { name: 'Ask My Notes', icon: <MessageSquare size={20} />, path: '/dashboard/ask-my-notes' },
-        { name: 'Quiz', icon: <Quote size={20} />, path: '/dashboard/quiz' },
-        { name: 'Help & Support', icon: <HelpCircle size={20} />, path: '/dashboard/support' },
+    const navSections = [
+        {
+            title: 'Portal',
+            items: [
+                { name: 'Home', icon: <Home size={20} />, path: '/dashboard' }
+            ]
+        },
+        {
+            title: 'Learning Hub',
+            items: [
+                { name: 'My Learnings', icon: <BookOpen size={20} />, path: '/dashboard/library' },
+                { name: 'Discover', icon: <Search size={20} />, path: '/dashboard/explore' },
+                { name: 'Quiz', icon: <Quote size={20} />, path: '/dashboard/quiz' },
+                { name: 'Ask My Notes', icon: <MessageSquare size={20} />, path: '/dashboard/ask-my-notes' },
+                { name: 'Certificates', icon: <Award size={20} />, path: '/dashboard/certificates' },
+            ]
+        },
+        {
+            title: 'Social Hubs',
+            items: [
+                { name: 'Live Rooms', icon: <Globe size={20} />, path: '/dashboard/live-rooms' },
+                { name: 'Social Hub', icon: <Users size={20} />, path: '/dashboard/social' },
+            ]
+        },
+        {
+            title: 'Support',
+            items: [
+                { name: 'Help & Support', icon: <HelpCircle size={20} />, path: '/dashboard/support' }
+            ]
+        }
     ];
 
     const handleLogout = async () => {
@@ -90,86 +110,97 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                 </div>
  
                 {/* Navigation */}
-                <nav className="flex flex-col space-y-1.5 lg:space-y-2.5">
-                    {navItems.map((item) => (
-                        item.isExternal ? (
-                            <a
-                                key={item.name}
-                                href={item.path}
-                                title={!isExpanded ? item.name : undefined}
-                                className={`flex ${
-                                    isExpanded ? 'flex-row items-center px-4 py-2 gap-3' : 'flex-col items-center justify-center py-2 px-1 mb-1'
-                                } rounded-lg transition-all text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700`}
-                            >
-                                <div className="flex-shrink-0">
-                                    {React.cloneElement(item.icon, {
-                                        size: isExpanded ? 20 : 24
-                                    })}
+                <nav className="flex flex-col space-y-6">
+                    {navSections.map((section) => (
+                        <div key={section.title} className="flex flex-col space-y-1">
+                            {isExpanded && (
+                                <div className="text-[9px] font-black text-orange-600/70 dark:text-orange-400/80 uppercase tracking-widest px-3 mb-1.5 select-none">
+                                    {section.title}
                                 </div>
-                                {isExpanded ? (
-                                    <span className="text-base text-left transition-all whitespace-nowrap font-medium">
-                                        {item.name}
-                                    </span>
-                                ) : (
-                                    <span className="text-[9px] font-bold mt-1 tracking-wide leading-none text-center text-gray-500 dark:text-gray-400">
-                                        {item.name}
-                                    </span>
-                                )}
-                            </a>
-                        ) : (
-                            <NavLink
-                                key={item.name}
-                                to={item.path}
-                                end
-                                title={!isExpanded ? item.name : undefined}
-                                onClick={() => onClose && onClose()}
-                                className={({ isActive }) =>
-                                    `relative flex ${
-                                        isExpanded 
-                                            ? 'flex-row items-center px-3 py-2 gap-3 rounded-xl' 
-                                            : 'flex-col items-center justify-center py-2 px-1 mb-1 rounded-xl'
-                                    } transition-all duration-300 ${isActive
-                                        ? isExpanded
-                                            ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold'
-                                            : 'text-orange-600 dark:text-orange-400'
-                                        : isExpanded
-                                            ? 'text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-500/5 dark:hover:bg-orange-500/10'
-                                            : 'text-gray-550 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400'
-                                    }`
-                                }
-                            >
-                                {({ isActive }) => (
-                                    <motion.div
-                                        whileTap={{ scale: 0.92 }}
-                                        className={`flex ${
-                                            isExpanded ? 'flex-row items-center gap-3' : 'flex-col items-center justify-center'
-                                        } w-full h-full relative`}
-                                    >
-                                        <div className={`flex-shrink-0 relative transition-all duration-300 z-10 ${isActive && !isExpanded ? 'scale-105 text-orange-600 dark:text-orange-400' : ''}`}>
-                                            {React.cloneElement(item.icon, {
-                                                size: isExpanded ? 20 : 24,
-                                                strokeWidth: isActive ? 2.5 : 2,
-                                                className: isActive && !isExpanded ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''
-                                            })}
-                                            {item.name === 'Social Hub' && totalUnreadCount > 0 && (
-                                                <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-white dark:border-gray-800 z-20 animate-pulse">
-                                                    {totalUnreadCount}
+                            )}
+                            <div className="flex flex-col space-y-1 lg:space-y-1.5">
+                                {section.items.map((item) => (
+                                    item.isExternal ? (
+                                        <a
+                                            key={item.name}
+                                            href={item.path}
+                                            title={!isExpanded ? item.name : undefined}
+                                            className={`flex ${
+                                                isExpanded ? 'flex-row items-center px-4 py-2 gap-3' : 'flex-col items-center justify-center py-2 px-1 mb-1'
+                                            } rounded-lg transition-all text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700`}
+                                        >
+                                            <div className="flex-shrink-0">
+                                                {React.cloneElement(item.icon, {
+                                                    size: isExpanded ? 20 : 24
+                                                })}
+                                            </div>
+                                            {isExpanded ? (
+                                                <span className="text-base text-left transition-all whitespace-nowrap font-medium">
+                                                    {item.name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[9px] font-bold mt-1 tracking-wide leading-none text-center text-gray-500 dark:text-gray-400">
+                                                    {item.name}
                                                 </span>
                                             )}
-                                        </div>
-                                        {isExpanded ? (
-                                            <span className={`text-base text-left transition-all whitespace-nowrap ${isActive ? 'font-bold' : 'font-medium'}`}>
-                                                {item.name}
-                                            </span>
-                                        ) : (
-                                            <span className={`text-[9px] font-bold mt-1 tracking-wide leading-none text-center transition-all duration-300 ${isActive ? 'text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-500 dark:text-gray-450'}`}>
-                                                {item.name}
-                                            </span>
-                                        )}
-                                    </motion.div>
-                                )}
-                            </NavLink>
-                        )
+                                        </a>
+                                    ) : (
+                                        <NavLink
+                                            key={item.name}
+                                            to={item.path}
+                                            end
+                                            title={!isExpanded ? item.name : undefined}
+                                            onClick={() => onClose && onClose()}
+                                            className={({ isActive }) =>
+                                                `relative flex ${
+                                                    isExpanded 
+                                                        ? 'flex-row items-center px-3 py-2 gap-3 rounded-xl' 
+                                                        : 'flex-col items-center justify-center py-2 px-1 mb-1 rounded-xl'
+                                                } transition-all duration-300 ${isActive
+                                                    ? isExpanded
+                                                        ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold'
+                                                        : 'text-orange-600 dark:text-orange-400'
+                                                    : isExpanded
+                                                        ? 'text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-500/5 dark:hover:bg-orange-500/10'
+                                                        : 'text-gray-550 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400'
+                                                }`
+                                            }
+                                        >
+                                            {({ isActive }) => (
+                                                <motion.div
+                                                    whileTap={{ scale: 0.92 }}
+                                                    className={`flex ${
+                                                        isExpanded ? 'flex-row items-center gap-3' : 'flex-col items-center justify-center'
+                                                    } w-full h-full relative`}
+                                                >
+                                                    <div className={`flex-shrink-0 relative transition-all duration-300 z-10 ${isActive && !isExpanded ? 'scale-105 text-orange-600 dark:text-orange-400' : ''}`}>
+                                                        {React.cloneElement(item.icon, {
+                                                            size: isExpanded ? 20 : 24,
+                                                            strokeWidth: isActive ? 2.5 : 2,
+                                                            className: isActive && !isExpanded ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''
+                                                        })}
+                                                        {item.name === 'Social Hub' && totalUnreadCount > 0 && (
+                                                            <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-white dark:border-gray-800 z-20 animate-pulse">
+                                                                {totalUnreadCount}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {isExpanded ? (
+                                                        <span className={`text-base text-left transition-all whitespace-nowrap ${isActive ? 'font-bold' : 'font-medium'}`}>
+                                                            {item.name}
+                                                        </span>
+                                                    ) : (
+                                                        <span className={`text-[9px] font-bold mt-1 tracking-wide leading-none text-center transition-all duration-300 ${isActive ? 'text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-500 dark:text-gray-450'}`}>
+                                                            {item.name}
+                                                        </span>
+                                                    )}
+                                                </motion.div>
+                                            )}
+                                        </NavLink>
+                                    )
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </nav>
             </div>

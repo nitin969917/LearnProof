@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Youtube, Play, Plus, Loader, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Youtube, Play, Plus, Loader, Sparkles, SlidersHorizontal, X } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -13,6 +13,19 @@ const YouTubeExplorer = () => {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    // Autocomplete & Filter States
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState({
+        type: 'all',
+        sortBy: 'relevance',
+        duration: 'any'
+    });
+
+    const searchRef = useRef(null);
+
     // Import modal state
     const [importLoading, setImportLoading] = useState(false);
     const [importData, setImportData] = useState(null);
@@ -24,15 +37,54 @@ const YouTubeExplorer = () => {
     const [recommendLoading, setRecommendLoading] = useState(false);
     const [recommendations, setRecommendations] = useState([]);
 
-    const handleSearch = async (e) => {
-        if (e) e.preventDefault();
-        if (!query.trim()) return;
+    // Debounced Autocomplete Suggestion Fetching
+    useEffect(() => {
+        if (!query.trim()) {
+            setSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
 
+        const delayDebounce = setTimeout(async () => {
+            try {
+                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/youtube-autocomplete/`, {
+                    idToken: token,
+                    query: query
+                });
+                if (res.data.suggestions) {
+                    setSuggestions(res.data.suggestions);
+                    setShowSuggestions(true);
+                }
+            } catch (err) {
+                console.error("Autocomplete error:", err);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounce);
+    }, [query, token]);
+
+    // Handle clicks outside suggestion dropdown to close it
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (searchRef.current && !searchRef.current.contains(e.target)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSearchWithQuery = async (searchQuery) => {
+        if (!searchQuery.trim()) return;
         setLoading(true);
+        setShowSuggestions(false);
         try {
             const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/youtube-search/`, {
                 idToken: token,
-                query: query
+                query: searchQuery,
+                type: filters.type,
+                sortBy: filters.sortBy,
+                duration: filters.duration
             });
             if (res.data.results) {
                 setResults(res.data.results);
@@ -44,6 +96,37 @@ const YouTubeExplorer = () => {
             toast.error("Failed to search YouTube.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSearch = async (e) => {
+        if (e) e.preventDefault();
+        await handleSearchWithQuery(query);
+    };
+
+    const handleKeyDown = (e) => {
+        if (!showSuggestions || suggestions.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActiveSuggestionIndex((prev) => 
+                prev < suggestions.length - 1 ? prev + 1 : 0
+            );
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActiveSuggestionIndex((prev) => 
+                prev > 0 ? prev - 1 : suggestions.length - 1
+            );
+        } else if (e.key === 'Enter') {
+            if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
+                e.preventDefault();
+                const selectedSuggestion = suggestions[activeSuggestionIndex];
+                setQuery(selectedSuggestion);
+                setShowSuggestions(false);
+                handleSearchWithQuery(selectedSuggestion);
+            }
+        } else if (e.key === 'Escape') {
+            setShowSuggestions(false);
         }
     };
 
@@ -160,33 +243,177 @@ const YouTubeExplorer = () => {
                     </p>
                 </motion.div>
 
-                <form onSubmit={handleSearch} className="relative w-full max-w-2xl group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-[2rem] blur-2xl group-focus-within:blur-3xl transition-all duration-500 opacity-50"></div>
-                    <div className="relative flex items-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl sm:rounded-[2rem] p-1.5 sm:p-2 shadow-2xl shadow-gray-200/50 dark:shadow-none transition-all duration-500 focus-within:ring-4 focus-within:ring-red-500/10 focus-within:border-red-500/30">
-                        <div className="pl-3 sm:pl-4 text-gray-400 group-focus-within:text-red-500 transition-colors">
-                            <Search size={20} className="sm:w-[22px] sm:h-[22px]" />
+                <div className="flex flex-col items-center w-full max-w-2xl space-y-4" ref={searchRef}>
+                    <form onSubmit={handleSearch} className="relative w-full group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-[2rem] blur-2xl group-focus-within:blur-3xl transition-all duration-500 opacity-50"></div>
+                        <div className="relative flex items-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl sm:rounded-[2rem] p-1.5 sm:p-2 shadow-2xl shadow-gray-200/50 dark:shadow-none transition-all duration-500 focus-within:ring-4 focus-within:ring-red-500/10 focus-within:border-red-500/30">
+                            <div className="pl-3 sm:pl-4 text-gray-400 group-focus-within:text-red-500 transition-colors">
+                                <Search size={20} className="sm:w-[22px] sm:h-[22px]" />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Search tutorials, courses..."
+                                value={query}
+                                onChange={(e) => {
+                                    setQuery(e.target.value);
+                                    setActiveSuggestionIndex(-1);
+                                }}
+                                onKeyDown={handleKeyDown}
+                                onFocus={() => setShowSuggestions(true)}
+                                className="flex-1 bg-transparent border-none py-3 sm:py-4 px-2 sm:px-4 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-600 focus:ring-0 outline-none text-sm sm:text-base md:text-lg font-medium"
+                            />
+                            
+                            {/* Filters button */}
+                            <button
+                                type="button"
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`p-3 mr-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 ${
+                                    showFilters ? 'text-red-500 bg-red-50/50 dark:bg-red-950/20' : 'text-gray-450 hover:text-gray-600 dark:hover:text-gray-200'
+                                }`}
+                                title="Toggle Filters"
+                            >
+                                <SlidersHorizontal size={18} />
+                                <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">Filters</span>
+                            </button>
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="bg-gray-900 dark:bg-red-600 hover:bg-gray-800 dark:hover:bg-red-700 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-[1.5rem] font-bold text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg disabled:opacity-50"
+                            >
+                                {loading ? <Loader size={18} className="animate-spin" /> : (
+                                    <>
+                                        <span className="hidden sm:inline">Search</span>
+                                        <span className="sm:hidden"><Search size={18} /></span>
+                                    </>
+                                )}
+                            </button>
+
+                            {/* Autocomplete Suggestions dropdown */}
+                            <AnimatePresence>
+                                {showSuggestions && suggestions.length > 0 && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                        className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden z-40 text-left"
+                                    >
+                                        <ul className="py-2">
+                                            {suggestions.map((item, idx) => (
+                                                <li
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        setQuery(item);
+                                                        setShowSuggestions(false);
+                                                        handleSearchWithQuery(item);
+                                                    }}
+                                                    onMouseEnter={() => setActiveSuggestionIndex(idx)}
+                                                    className={`px-6 py-3 cursor-pointer text-sm font-semibold flex items-center gap-3 transition-colors ${
+                                                        idx === activeSuggestionIndex 
+                                                            ? 'bg-red-50/50 dark:bg-red-950/20 text-red-500' 
+                                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                                    }`}
+                                                >
+                                                    <Search size={16} className="text-gray-400 shrink-0" />
+                                                    <span>{item}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Search tutorials, courses..."
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            className="flex-1 bg-transparent border-none py-3 sm:py-4 px-2 sm:px-4 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-600 focus:ring-0 outline-none text-sm sm:text-base md:text-lg font-medium"
-                        />
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="bg-gray-900 dark:bg-red-600 hover:bg-gray-800 dark:hover:bg-red-700 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-[1.5rem] font-bold text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg disabled:opacity-50"
-                        >
-                            {loading ? <Loader size={18} className="animate-spin" /> : (
-                                <>
-                                    <span className="hidden sm:inline">Search</span>
-                                    <span className="sm:hidden"><Search size={18} /></span>
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </form>
+                    </form>
+
+                    {/* Filters drawer */}
+                    <AnimatePresence>
+                        {showFilters && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="w-full bg-white dark:bg-gray-800 border border-gray-105 dark:border-gray-700 rounded-[2rem] p-5 sm:p-6 shadow-xl overflow-hidden text-left"
+                            >
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                    {/* Filter 1: Type */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block font-bold">Type</label>
+                                        <div className="flex flex-col gap-1.5">
+                                            {['all', 'video', 'playlist'].map((t) => (
+                                                <button
+                                                    key={t}
+                                                    type="button"
+                                                    onClick={() => setFilters(prev => ({ ...prev, type: t }))}
+                                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider ${
+                                                        filters.type === t 
+                                                            ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
+                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-750 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                    }`}
+                                                >
+                                                    {t === 'all' ? 'All' : t + 's'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Filter 2: Sort By */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block font-bold">Sort By</label>
+                                        <div className="flex flex-col gap-1.5">
+                                            {[
+                                                { id: 'relevance', label: 'Relevance' },
+                                                { id: 'date', label: 'Upload Date' },
+                                                { id: 'views', label: 'View Count' }
+                                            ].map((s) => (
+                                                <button
+                                                    key={s.id}
+                                                    type="button"
+                                                    onClick={() => setFilters(prev => ({ ...prev, sortBy: s.id }))}
+                                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider ${
+                                                        filters.sortBy === s.id 
+                                                            ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
+                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-750 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                    }`}
+                                                >
+                                                    {s.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Filter 3: Duration */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block font-bold">
+                                            Duration {filters.type === 'playlist' && <span className="text-gray-400 font-medium normal-case">(N/A for Playlists)</span>}
+                                        </label>
+                                        <div className="flex flex-col gap-1.5">
+                                            {[
+                                                { id: 'any', label: 'Any' },
+                                                { id: 'short', label: 'Under 4 minutes' },
+                                                { id: 'medium', label: '4 - 20 minutes' },
+                                                { id: 'long', label: 'Over 20 minutes' }
+                                            ].map((d) => (
+                                                <button
+                                                    key={d.id}
+                                                    type="button"
+                                                    disabled={filters.type === 'playlist'}
+                                                    onClick={() => setFilters(prev => ({ ...prev, duration: d.id }))}
+                                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider disabled:opacity-40 disabled:hover:bg-gray-50 ${
+                                                        filters.duration === d.id && filters.type !== 'playlist'
+                                                            ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
+                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-750 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                    }`}
+                                                >
+                                                    {d.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
 
             {/* Search Results / Loading / Empty State */}
@@ -208,29 +435,29 @@ const YouTubeExplorer = () => {
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: idx * 0.05 }}
-                            className="group relative bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden p-4 flex flex-col"
+                            className="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden p-3.5 flex flex-col"
                         >
-                            <div className="relative aspect-video rounded-xl overflow-hidden shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover:scale-[1.02] cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
+                            <div className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover:scale-[1.02] cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
                                 <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-black/40 xl:bg-gradient-to-t xl:from-black/60 xl:via-transparent xl:to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
                                     <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500">
                                         <Play size={24} className="fill-white ml-1" />
                                     </div>
                                 </div>
-                                <div className={`absolute top-4 right-4 px-3 py-1 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg z-10 ${
+                                <div className={`absolute top-3 right-3 px-2.5 py-1 text-white text-[9px] font-black uppercase tracking-wider rounded-lg shadow-md z-10 ${
                                     item.type === 'playlist' ? 'bg-red-500' : 'bg-blue-500'
                                 }`}>
                                     {item.type}
                                 </div>
                             </div>
-                            <div className="pt-4 space-y-4 flex flex-col flex-1">
-                                <div className="space-y-2">
-                                    <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-500 transition-colors" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
-                                    <span className="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest block">{item.channel}</span>
+                            <div className="pt-3.5 space-y-3.5 flex flex-col flex-1">
+                                <div className="space-y-1.5 flex-1">
+                                    <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-500 transition-colors text-sm" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
+                                    <span className="text-[10px] font-bold text-gray-400 dark:text-slate-505 uppercase tracking-wider block">{item.channel}</span>
                                 </div>
                                 <button
                                     onClick={() => handleImportClick(item.url)}
-                                    className="w-full py-4 bg-gray-50 dark:bg-gray-700 hover:bg-red-500 dark:hover:bg-red-600 text-gray-900 dark:text-white hover:text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 border border-gray-100 dark:border-gray-600 hover:border-transparent"
+                                    className="w-full py-2.5 bg-gray-50 dark:bg-gray-700 hover:bg-red-500 dark:hover:bg-red-650 text-gray-900 dark:text-white hover:text-white font-black text-[10px] uppercase tracking-[0.15em] rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 border border-gray-150 dark:border-gray-600 hover:border-transparent shadow-sm"
                                 >
                                     <Plus size={14} strokeWidth={3} /> Add to Platform
                                 </button>
@@ -396,63 +623,76 @@ const YouTubeExplorer = () => {
             <AnimatePresence>
                 {importData && (
                     <motion.div
-                        className="fixed inset-0 bg-gray-900/60 flex justify-center items-center z-50 backdrop-blur-md p-4"
+                        className="fixed inset-0 bg-gray-900/60 flex justify-center items-center z-50 backdrop-blur-sm p-4"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl max-w-lg w-full overflow-hidden border border-gray-100 dark:border-gray-700"
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-xs bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-2xl text-center"
                         >
-                            <div className="p-8 space-y-8">
-                                <div className="space-y-2 text-center">
-                                    <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                        <Plus size={32} className="text-red-500" />
-                                    </div>
-                                    <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
-                                        Confirm Import
-                                    </h2>
-                                    <p className="text-xs text-gray-400 dark:text-slate-500 font-bold uppercase tracking-widest">Review your selection before saving</p>
-                                </div>
+                            {/* Close button at top-right */}
+                            <button
+                                onClick={handleCancel}
+                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-250 transition-colors p-1"
+                            >
+                                <X size={18} />
+                            </button>
 
-                                <div className="space-y-6 bg-gray-50/50 dark:bg-gray-700/50 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700">
-                                    <div className="space-y-1">
-                                        <span className="text-[10px] font-black text-gray-400 dark:text-slate-600 uppercase tracking-widest block">Course Title</span>
-                                        <p className="text-gray-900 dark:text-white font-bold leading-snug">{importData.title}</p>
+                            {/* Centered Icon */}
+                            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500 bg-red-500/10">
+                                <Plus size={26} />
+                            </div>
+
+                            {/* Centered Title */}
+                            <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">
+                                Confirm Import
+                            </h3>
+
+                            {/* Centered Message */}
+                            <p className="text-[10px] text-gray-450 dark:text-gray-400 font-bold uppercase tracking-wider mb-4 leading-relaxed">
+                                Review your selection before saving
+                            </p>
+
+                            {/* Details Block */}
+                            <div className="text-left bg-gray-50/50 dark:bg-gray-800/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-800/60 mb-5 space-y-3">
+                                <div className="space-y-0.5">
+                                    <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block">Title</span>
+                                    <p className="text-xs text-gray-900 dark:text-white font-bold leading-snug line-clamp-2" dangerouslySetInnerHTML={{ __html: importData.title }}></p>
+                                </div>
+                                <div className="flex items-center justify-between pt-2.5 border-t border-gray-150/50 dark:border-gray-800/50">
+                                    <div className="space-y-0.5">
+                                        <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block">Type</span>
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-100/30 dark:border-red-900/20">
+                                            {importData.type === 'playlist' ? 'Playlist' : 'Video'}
+                                        </span>
                                     </div>
-                                    <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] font-black text-gray-400 dark:text-slate-600 uppercase tracking-widest block">Type</span>
-                                            <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
-                                                {importData.type === 'playlist' ? 'Full Playlist' : 'Single Video'}
-                                            </span>
+                                    {importData.type === 'playlist' && (
+                                        <div className="text-right space-y-0.5">
+                                            <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block">Lessons</span>
+                                            <p className="text-xs text-gray-900 dark:text-white font-black tracking-tight">{importData.videos?.length || 0} Items</p>
                                         </div>
-                                        {importData.type === 'playlist' && (
-                                            <div className="text-right space-y-1">
-                                                <span className="text-[10px] font-black text-gray-400 dark:text-slate-600 uppercase tracking-widest block">Lessons</span>
-                                                <p className="text-gray-900 dark:text-white font-bold tracking-tighter">{importData.videos?.length || 0} Items</p>
-                                            </div>
-                                        )}
-                                    </div>
+                                    )}
                                 </div>
+                            </div>
 
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <button
-                                        onClick={handleCancel}
-                                        className="flex-1 py-4 font-black text-[10px] uppercase tracking-[0.2em] text-gray-400 dark:text-slate-500 hover:text-gray-900 dark:hover:text-white transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleSave}
-                                        className="flex-[2] py-4 bg-gray-900 dark:bg-red-600 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl hover:bg-gray-800 dark:hover:bg-red-700 transition-all shadow-xl shadow-gray-200 dark:shadow-none"
-                                    >
-                                        Add Course
-                                    </button>
-                                </div>
+                            {/* Action Buttons in One Row */}
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={handleCancel}
+                                    className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-650 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-bold text-xs transition cursor-pointer active:scale-95"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    className="flex-1 py-2.5 bg-red-500 hover:bg-red-650 text-white rounded-2xl font-extrabold text-xs transition-all shadow-md shadow-red-500/25 active:scale-95"
+                                >
+                                    Add Course
+                                </button>
                             </div>
                         </motion.div>
                     </motion.div>

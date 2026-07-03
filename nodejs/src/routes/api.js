@@ -58,6 +58,7 @@ router.get('/auth/admin-check', authMiddleware, isAdminMiddleware, (req, res) =>
 // YouTube
 router.post('/import/', authMiddleware, youtubeController.importMetadata);
 router.post('/youtube-search/', authMiddleware, youtubeController.search);
+router.post('/youtube-autocomplete/', authMiddleware, youtubeController.autocomplete);
 router.post('/recommend-playlists/', authMiddleware, youtubeController.recommendPlaylists);
 
 // Learning

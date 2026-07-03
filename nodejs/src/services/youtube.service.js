@@ -196,12 +196,53 @@ const parseDurationText = (durationText) => {
 /**
  * Search YouTube for videos and playlists
  */
-const searchYoutube = async (query, maxResults = 15, searchType = 'video,playlist', order = 'relevance') => {
+const searchYoutube = async (query, maxResults = 15, optionsOrType = {}, order = 'relevance') => {
+    let options = {};
+    if (typeof optionsOrType === 'string') {
+        options = {
+            type: optionsOrType === 'video,playlist' ? 'all' : optionsOrType,
+            sortBy: order === 'viewCount' ? 'views' : 'relevance',
+            duration: 'any'
+        };
+    } else {
+        options = optionsOrType;
+    }
+
+    const { type = 'all', sortBy = 'relevance', duration = 'any' } = options;
     let endpoint = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-    if (searchType === 'playlist') {
-        endpoint += '&sp=EgIQAw%3D%3D';
-    } else if (searchType === 'video') {
-        endpoint += '&sp=EgIQAQ%3D%3D';
+
+    const getSpParam = (t, s, d) => {
+        if (t === 'playlist') {
+            if (s === 'date') return 'CAISAhAD';
+            if (s === 'views') return 'CAMSAhAD';
+            return 'EgIQAw%3D%3D';
+        }
+        if (t === 'video') {
+            if (s === 'date') {
+                if (d === 'short') return 'CAISBBABGAE%3D';
+                if (d === 'medium') return 'CAISBBABGAI%3D';
+                if (d === 'long') return 'CAISBBABGAM%3D';
+                return 'CAISAhAB';
+            }
+            if (s === 'views') {
+                if (d === 'short') return 'CAMSBBABGAE%3D';
+                if (d === 'medium') return 'CAMSBBABGAI%3D';
+                if (d === 'long') return 'CAMSBBABGAM%3D';
+                return 'CAMSAhAB';
+            }
+            if (d === 'short') return 'EgQQARgB';
+            if (d === 'medium') return 'EgQQARgC';
+            if (d === 'long') return 'EgQQARgD';
+            return 'EgIQAQ%3D%3D';
+        }
+        if (s === 'date') return 'CAI%3D';
+        if (s === 'views') return 'CAM%3D';
+        return '';
+    };
+
+    const sp = getSpParam(type, sortBy, duration);
+    if (sp) {
+        endpoint += `&sp=${sp}`;
     }
 
     try {
