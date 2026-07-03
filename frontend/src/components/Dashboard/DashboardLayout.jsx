@@ -42,7 +42,7 @@ class ErrorBoundary extends React.Component {
 }
 
 const DashboardLayout = () => {
-    const { user } = useAuth();
+    const { user, isMatrixActive, matrixClient } = useAuth();
     const [socialUser, setSocialUser] = useState(null);
 
     const initializeStatus = useSocialStatusStore((state) => state.initializeStatus);
@@ -83,20 +83,45 @@ const DashboardLayout = () => {
             initializeStatus(socialUser.id);
             fetchUnreadCounts();
 
-            // Listen for message events globally to increment notification counters if chat not open
-            const socket = getSocialSocket(socialUser.id);
-            const handleGlobalMessage = (message) => {
-                if (message.senderId.toString() !== activeChatUserIdRef.current?.toString()) {
-                    incrementUnread(message.senderId);
-                }
-            };
+            if (isMatrixActive && matrixClient) {
+                const getLocalIdFromMatrixUserId = (matrixUserId) => {
+                    if (!matrixUserId) return null;
+                    const match = matrixUserId.match(/@user_(\d+):/);
+                    return match ? parseInt(match[1]) : matrixUserId;
+                };
 
-            socket.on('receiveMessage', handleGlobalMessage);
-            return () => {
-                socket.off('receiveMessage', handleGlobalMessage);
-            };
+                const handleMatrixGlobalMessage = (event, room, toStartOfTimeline) => {
+                    if (toStartOfTimeline) return;
+                    if (event.getType() !== "m.room.message") return;
+
+                    const senderId = getLocalIdFromMatrixUserId(event.getSender());
+                    if (senderId === socialUser.id) return; // Ignore messages from self
+
+                    if (senderId && senderId.toString() !== activeChatUserIdRef.current?.toString()) {
+                        incrementUnread(senderId);
+                    }
+                };
+
+                matrixClient.on("Room.timeline", handleMatrixGlobalMessage);
+                return () => {
+                    matrixClient.removeListener("Room.timeline", handleMatrixGlobalMessage);
+                };
+            } else {
+                // Listen for message events globally to increment notification counters if chat not open
+                const socket = getSocialSocket(socialUser.id);
+                const handleGlobalMessage = (message) => {
+                    if (message.senderId.toString() !== activeChatUserIdRef.current?.toString()) {
+                        incrementUnread(message.senderId);
+                    }
+                };
+
+                socket.on('receiveMessage', handleGlobalMessage);
+                return () => {
+                    socket.off('receiveMessage', handleGlobalMessage);
+                };
+            }
         }
-    }, [socialUser]);
+    }, [socialUser, isMatrixActive, matrixClient]);
 
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);

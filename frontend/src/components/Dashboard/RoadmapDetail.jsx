@@ -155,46 +155,56 @@ const RoadmapDetail = () => {
 
     if (!playlist.duration_goal) {
         return (
-            <div className="h-[calc(100vh-100px)] flex items-center justify-center p-4">
+            <div className="h-[calc(100vh-100px)] flex items-center justify-center p-3 sm:p-4">
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="max-w-xl w-full bg-white dark:bg-gray-800 rounded-[2.5rem] p-8 md:p-12 shadow-2xl border border-gray-100 dark:border-gray-700 relative overflow-hidden text-center"
+                    className="max-w-xl w-full bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-8 md:p-12 shadow-2xl border border-gray-100 dark:border-gray-700 relative overflow-hidden text-center"
                 >
-                    <div className="absolute top-0 right-0 p-8 opacity-5">
-                        <Sparkles size={160} className="text-orange-500" />
+                    <div className="absolute top-0 right-0 p-6 opacity-5">
+                        <Sparkles size={120} className="text-orange-500" />
                     </div>
 
-                    <div className="relative space-y-8">
-                        <div className="w-24 h-24 bg-orange-50 dark:bg-orange-950/30 rounded-[2rem] flex items-center justify-center mx-auto text-orange-500 shadow-inner">
-                            <Sparkles size={48} />
+                    <div className="relative space-y-5 sm:space-y-8">
+                        {/* Icon */}
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-orange-50 dark:bg-orange-950/30 rounded-2xl flex items-center justify-center mx-auto text-orange-500 shadow-inner">
+                            <Sparkles size={32} className="sm:hidden" />
+                            <Sparkles size={40} className="hidden sm:block" />
                         </div>
 
+                        {/* Heading + description */}
                         <div>
-                            <h2 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">Mastery Roadmap</h2>
-                            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium">To generate your customized study plan for <span className="text-orange-500 font-bold">"{playlist.name}"</span>, how many days do you want to master this in?</p>
+                            <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white leading-tight">Mastery Roadmap</h2>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium text-sm sm:text-base">
+                                To generate your customized study plan for{' '}
+                                <span className="text-orange-500 font-bold">"{playlist.name}"</span>
+                                , how many days do you want to master this in?
+                            </p>
                         </div>
 
-                        <form onSubmit={handleUpdateGoal} className="max-w-sm mx-auto space-y-4">
+                        {/* Form */}
+                        <form onSubmit={handleUpdateGoal} className="max-w-sm mx-auto space-y-3 sm:space-y-4">
                             <div className="relative flex items-center">
                                 <input
                                     type="number"
                                     placeholder="e.g. 7"
                                     value={roadmapDaysInput}
                                     onChange={(e) => setRoadmapDaysInput(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-700 rounded-2xl px-6 py-5 text-xl font-black text-center text-gray-800 dark:text-white focus:outline-none focus:border-orange-500/50 transition-all placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                                    className="w-full bg-gray-50 dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-700 rounded-xl px-5 py-3 text-lg font-black text-center text-gray-800 dark:text-white focus:outline-none focus:border-orange-400 transition-all placeholder:text-gray-300 dark:placeholder:text-gray-600"
                                 />
-                                <div className="absolute right-6 text-gray-400 font-black uppercase text-xs tracking-widest pointer-events-none">Days</div>
+                                <div className="absolute right-5 text-gray-400 font-black uppercase text-xs tracking-widest pointer-events-none">Days</div>
                             </div>
 
-                            <button
-                                type="submit"
-                                disabled={settingGoal}
-                                className="w-full py-5 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-200 dark:disabled:bg-gray-700 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
-                            >
-                                {settingGoal ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles size={20} />}
-                                {settingGoal ? "Generating Plan..." : "Generate My Roadmap"}
-                            </button>
+                            <div className="flex justify-center pt-1">
+                                <button
+                                    type="submit"
+                                    disabled={settingGoal}
+                                    className="inline-flex items-center gap-2 px-7 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 text-white rounded-full font-bold text-sm shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-all active:scale-95 cursor-pointer"
+                                >
+                                    {settingGoal ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles size={15} />}
+                                    {settingGoal ? "Generating..." : "Generate My Roadmap"}
+                                </button>
+                            </div>
                         </form>
                         
                         <button 

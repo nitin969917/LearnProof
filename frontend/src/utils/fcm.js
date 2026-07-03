@@ -3,6 +3,7 @@ import { messaging } from '../firebase';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import React from 'react';
+import { useSocialMessageStore } from '../store/socialMessageStore';
 
 /**
  * Utility to request user's notification permission, register service worker,
@@ -130,6 +131,12 @@ if (messaging) {
     console.log('[FCM] Foreground message received:', payload);
     if (payload.notification) {
       const data = payload.data || {};
+      if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+        const store = useSocialMessageStore.getState();
+        if (store.activeChatUserId?.toString() !== data.senderId.toString()) {
+          store.incrementUnread(data.senderId);
+        }
+      }
       let targetPath = data.clickAction || data.click_action || '/dashboard';
       if (!data.clickAction && !data.click_action && data.type) {
         if (data.type === 'CHAT_MESSAGE' && data.senderId) {

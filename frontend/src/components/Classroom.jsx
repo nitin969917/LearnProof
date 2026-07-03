@@ -846,16 +846,18 @@ const Classroom = () => {
           {/* Video Details */}
           <div className="bg-white dark:bg-gray-900 flex-1 min-w-0 transition-colors duration-200">
             <div className="max-w-5xl mx-auto p-4 sm:p-6 pb-20 lg:pb-6 text-gray-900 dark:text-white">
-              <div className="flex flex-col gap-3 mb-4">
-                <h1 className="text-xl md:text-2xl font-black leading-tight flex-1">{video.name}</h1>
+              <div className="flex items-start gap-2 mb-4">
+                <h1 className="text-sm md:text-base font-bold leading-snug flex-1 text-gray-800 dark:text-white line-clamp-2">{video.name}</h1>
                 <a
                   href={`https://www.youtube.com/watch?v=${video.vid}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-fit inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50/80 dark:bg-slate-800/80 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white text-gray-500 dark:text-slate-400 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all border border-gray-100 dark:border-slate-700/50 backdrop-blur-sm shadow-sm"
+                  title="Watch on YouTube"
+                  className="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-600 dark:hover:text-red-500 transition-colors"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122-2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
-                  <span>Watch on YouTube</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+                  </svg>
                 </a>
               </div>
 
@@ -880,8 +882,8 @@ const Classroom = () => {
                   {[
                     { id: 'playlist', label: 'Playlist', icon: PlayCircle, hideOnDesktop: true },
                     { id: 'overview', label: 'Overview', icon: BookOpen },
-                    { id: 'intuition', label: 'Intuition', icon: Sparkles },
-                    { id: 'quiz', label: 'Quiz', icon: CheckCircle },
+                    { id: 'intuition', label: 'AI Notes', icon: Sparkles },
+                    { id: 'quiz', label: 'AI Quiz', icon: CheckCircle },
                     { id: 'notes', label: 'Notes', icon: FileText },
                     { id: 'discussion', label: `Chat (${comments.length})`, icon: MessageSquare },
                   ].filter(t => {

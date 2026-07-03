@@ -12,6 +12,8 @@ services:
       - SOCIAL_DATABASE_URL=postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30
       - REDIS_URL=redis://cache:6379
       - NODE_ENV=production
+      - MATRIX_HOMESERVER_URL=http://conduit:8008
+      - MATRIX_CLIENT_HOMESERVER_URL=https://learnproofai.com
     env_file:
       - ./nodejs/.env
     volumes:
@@ -21,6 +23,7 @@ services:
     depends_on:
       - db
       - cache
+      - conduit
 
   db:
     image: postgres:14-alpine
@@ -58,6 +61,23 @@ services:
       - ./nodejs/media:/usr/share/nginx/html/media:ro
     depends_on:
       - app
+      - conduit
+
+  conduit:
+    image: matrixconduit/matrix-conduit:latest
+    container_name: learnproof-conduit
+    restart: always
+    environment:
+      CONDUIT_SERVER_NAME: "learnproofai.com"
+      CONDUIT_DATABASE_PATH: "/var/lib/matrix-conduit/"
+      CONDUIT_PORT: "8008"
+      CONDUIT_REGISTRATION_SHARED_SECRET: "1^ZzuyvWeCevsTm1*fTJEJ4KhcTRtdvod*_5QPLK0BGn*Lsx#H"
+      CONDUIT_ALLOW_REGISTRATION: "false"
+    volumes:
+      - conduit_data:/var/lib/matrix-conduit/
+    ports:
+      - "8008:8008"
 
 volumes:
   postgres_data:
+  conduit_data:

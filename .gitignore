@@ -41,3 +41,7 @@ Thumbs.db
 # Media
 media/video_notes/
 media/certificates/
+
+# Synapse Local
+synapse-local/
+.synapse-venv/

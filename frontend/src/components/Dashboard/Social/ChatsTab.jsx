@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Search, Lock, Unlock, Plus, Copy, Check, MessageSquare, 
-  ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, Sparkles, X, Trash2
+  ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, Sparkles, X, Trash2, CornerUpLeft,
+  Phone, Video as VideoIcon, Paperclip, Smile, Mic, Image, FileText, Play
 } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
@@ -11,9 +12,17 @@ import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useModal } from '../../../context/ModalContext';
+import { useAuth } from '../../../context/AuthContext';
+import { getMatrixClient } from '../../../utils/matrixClient';
+import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 export default function ChatsTab({ currentUserId, selectedContact, onClearSelectedContact, onToggleHeader, onViewProfile }) {
   const { confirm } = useModal();
+  const { user, matrixClient } = useAuth();
+  const navigate = useNavigate();
+  const isMatrixActive = !!(user?.matrixCredentials && matrixClient);
+
   // Use shared Zustand stores for instant loading (no spinner on re-open)
   const storeFriends = useSocialFeedStore(state => state.friends);
   const fetchStoreFriends = useSocialFeedStore(state => state.fetchFriends);
@@ -36,6 +45,125 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   // Last message previews
   const [lastMessages, setLastMessages] = useState({});
 
+  // WhatsApp/Telegram features states
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const quickEmojis = ['😀', '😂', '🔥', '👍', '❤️', '👏', '🎉', '🚀', '💡', '🤔'];
+
+  const fileInputRef = useRef(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const recordingInterval = useRef(null);
+
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [swipeState, setSwipeState] = useState({}); // { [msgIndex]: { x: number, triggered: bool } }
+  const SWIPE_THRESHOLD = 60; // px to trigger reply
+
+  const parseMessageContent = (msg) => {
+    if (!msg || !msg.content) return { text: "" };
+    try {
+      const data = JSON.parse(msg.content);
+      if (data && typeof data === 'object' && ('text' in data || 'replyTo' in data || 'reactions' in data)) {
+        return data;
+      }
+    } catch (e) {}
+    return {
+      text: msg.content,
+      isFile: msg.isFile,
+      fileName: msg.fileName,
+      fileSize: msg.fileSize,
+      isVoiceNote: msg.isVoiceNote,
+      duration: msg.duration,
+      reactions: msg.reactions || {}
+    };
+  };
+
+  const handleToggleReaction = (messageId, emoji) => {
+    if (!socketRef.current) return;
+    socketRef.current.emit('messageReaction', {
+      messageId,
+      isGroup: selectedChat.type === 'group',
+      emoji
+    });
+  };
+
+  const [typingUsers, setTypingUsers] = useState({});
+
+  const handleEmojiClick = (emoji) => {
+    setInputText(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("File size cannot exceed 2 MB");
+        e.target.value = "";
+        return;
+      }
+      setSelectedFile(file);
+      toast.success(`Attached ${file.name}`);
+    }
+  };
+
+  const handleDownloadFile = (fileName) => {
+    toast.success(`Downloading ${fileName}...`);
+    const element = document.createElement("a");
+    const file = new Blob(["Simulated content for " + fileName], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = fileName;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+
+  const startRecording = () => {
+    setIsRecording(true);
+    setRecordingSeconds(0);
+    toast.success("Recording voice note...");
+    recordingInterval.current = setInterval(() => {
+      setRecordingSeconds(prev => prev + 1);
+    }, 1000);
+  };
+
+  const stopRecording = async (shouldSend = true) => {
+    setIsRecording(false);
+    clearInterval(recordingInterval.current);
+    if (shouldSend && recordingSeconds > 0) {
+      const voiceMessage = {
+        senderId: currentUserId,
+        receiverId: selectedChat.id,
+        content: `🎙️ Voice Note (${recordingSeconds}s)`,
+        isVoiceNote: true,
+        duration: recordingSeconds,
+        createdAt: new Date().toISOString(),
+      };
+      
+      try {
+        if (isMatrixActive) {
+          const roomId = await getOrCreateMatrixRoom(selectedChat.id);
+          if (roomId) {
+            await matrixClient.sendMessage(roomId, {
+              msgtype: "m.text",
+              body: `🎙️ Voice Note (${recordingSeconds}s)`
+            });
+          }
+        } else {
+          socketRef.current?.emit('sendMessage', {
+            receiverId: selectedChat.id.toString(),
+            message: voiceMessage,
+          });
+        }
+        setMessages((prev) => [...prev, voiceMessage]);
+        toast.success("Voice note sent!");
+      } catch (err) {
+        console.error("Failed to send voice note:", err);
+      }
+    }
+  };
+
   // Modals
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showJoinGroupModal, setShowJoinGroupModal] = useState(null); // stores group object
@@ -56,6 +184,54 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const [friendsToInvite, setFriendsToInvite] = useState([]);
   const [inviteSearch, setInviteSearch] = useState('');
   const [directChatSearch, setDirectChatSearch] = useState('');
+
+  const getLocalIdFromMatrixUserId = (matrixUserId) => {
+    if (!matrixUserId) return null;
+    const match = matrixUserId.match(/@user_(\d+):/);
+    return match ? parseInt(match[1]) : matrixUserId;
+  };
+
+  const formatMatrixEvent = (event) => {
+    const sender = event.getSender();
+    const senderId = getLocalIdFromMatrixUserId(sender);
+    const receiverId = senderId === currentUserId ? selectedChat?.id : currentUserId;
+    return {
+      id: event.getId(),
+      senderId,
+      receiverId,
+      content: event.getContent()?.body || '',
+      createdAt: new Date(event.getTs()).toISOString(),
+    };
+  };
+
+  const getOrCreateMatrixRoom = async (friendId) => {
+    if (!isMatrixActive || !matrixClient) return null;
+
+    const homeserverDomain = user.matrixCredentials.userId.split(':')[1];
+    const friendMatrixId = `@user_${friendId}:${homeserverDomain}`;
+
+    const rooms = matrixClient.getRooms();
+    const existingRoom = rooms.find(r => {
+      const members = r.getJoinedMembers();
+      return members.length === 2 && members.some(m => m.userId === friendMatrixId);
+    });
+
+    if (existingRoom) {
+      return existingRoom.roomId;
+    }
+
+    try {
+      const createRes = await matrixClient.createRoom({
+        invite: [friendMatrixId],
+        preset: "trusted_private_chat",
+        is_direct: true
+      });
+      return createRes.room_id;
+    } catch (e) {
+      console.error("Failed to create Matrix direct room:", e);
+      return null;
+    }
+  };
 
   const fetchGroupDetails = async (groupId) => {
     setLoadingGroupDetails(true);
@@ -163,12 +339,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
   // Fetch initial friendships and groups
   const fetchData = async () => {
-    // Use store data immediately if available (cache-first)
     const cachedFriends = useSocialFeedStore.getState().friends;
     const cachedGroups = useSocialGroupsStore.getState().groups;
 
     if (cachedFriends.length > 0 || cachedGroups.length > 0) {
-      // Show store data instantly
       const friendsList = cachedFriends;
       const groupsList = cachedGroups;
       setContacts(friendsList);
@@ -188,7 +362,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       setLastMessages(initialLastMsgs);
       setLoading(false);
 
-      // Then silently refresh in background
       Promise.all([fetchStoreFriends(), fetchStoreGroups()]).then(() => {
         const freshFriends = useSocialFeedStore.getState().friends;
         const freshGroups = useSocialGroupsStore.getState().groups;
@@ -200,7 +373,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         setLastMessages(updatedMsgs);
       });
     } else {
-      // First ever load — show spinner and fetch
       try {
         setLoading(true);
         await Promise.all([fetchStoreFriends(), fetchStoreGroups()]);
@@ -234,24 +406,117 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         socketRef.current.off('messageSent');
         socketRef.current.off('messageError');
         socketRef.current.off('receiveGroupMessage');
+        socketRef.current.off('incomingCall');
+        socketRef.current.off('callAccepted');
+        socketRef.current.off('callRejected');
       }
       setActiveChatUser(null);
     };
   }, [currentUserId]);
 
+  // Set up Matrix event listeners
+  useEffect(() => {
+    if (!isMatrixActive || !matrixClient) return;
+
+    const handleRoomTimeline = (event, room, toStartOfTimeline) => {
+      if (toStartOfTimeline) return;
+      if (event.getType() !== "m.room.message") return;
+
+      const active = selectedChatRef.current;
+      const senderId = getLocalIdFromMatrixUserId(event.getSender());
+      const isFromMe = senderId === currentUserId;
+
+      if (!isFromMe) {
+        const isFromActiveUser = active && active.type === 'direct' && senderId === active.id;
+        if (isFromActiveUser) {
+          setMessages((prev) => {
+            if (prev.some(m => m.id === event.getId())) return prev;
+            return [...prev, formatMatrixEvent(event)];
+          });
+        } else {
+          incrementUnread(senderId);
+        }
+      } else if (active && active.type === 'direct') {
+        setMessages((prev) => {
+          if (prev.some(m => m.id === event.getId())) return prev;
+          return [...prev, formatMatrixEvent(event)];
+        });
+      }
+
+      const formatted = formatMatrixEvent(event);
+      setLastMessages((prev) => ({
+        ...prev,
+        [`direct-${senderId === currentUserId ? (active?.id || senderId) : senderId}`]: formatted
+      }));
+    };
+
+    matrixClient.on("Room.timeline", handleRoomTimeline);
+
+    return () => {
+      matrixClient.removeListener("Room.timeline", handleRoomTimeline);
+    };
+  }, [isMatrixActive, matrixClient, currentUserId]);
+
   // Set up socket listeners
   useEffect(() => {
     if (!socketRef.current) return;
 
-    // Direct Messages
+    // Typing indicator
+    const handleUserTyping = ({ senderId, isTyping }) => {
+      setTypingUsers(prev => ({
+        ...prev,
+        [senderId]: isTyping
+      }));
+    };
+
+    // Read status listener
+    const handleMessagesRead = ({ readerId }) => {
+      const active = selectedChatRef.current;
+      if (active && active.type === 'direct' && active.id?.toString() === readerId?.toString()) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.receiverId?.toString() === readerId?.toString()
+              ? { ...msg, isRead: true }
+              : msg
+          )
+        );
+      }
+    };
+
+    // Message reaction listener
+    const handleReactionUpdated = ({ messageId, reactions }) => {
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === messageId) {
+            let parsed = {};
+            try {
+              parsed = JSON.parse(msg.content);
+              if (typeof parsed !== 'object' || parsed === null) parsed = { text: msg.content };
+            } catch (e) {
+              parsed = { text: msg.content };
+            }
+            parsed.reactions = reactions;
+            return { ...msg, content: JSON.stringify(parsed) };
+          }
+          return msg;
+        })
+      );
+    };
+
+    socketRef.current.on('userTyping', handleUserTyping);
+    socketRef.current.on('messagesRead', handleMessagesRead);
+    socketRef.current.on('messageReactionUpdated', handleReactionUpdated);
+
+    // Direct Messages (only if Matrix is not active)
     const handleDirectMessage = (message) => {
+      if (isMatrixActive) return;
       const active = selectedChatRef.current;
       const isSenderActive = active && active.type === 'direct' && message.senderId?.toString() === active.id?.toString();
 
       if (isSenderActive) {
         setMessages((prev) => [...prev, message]);
         clearUnreadForContact(message.senderId);
-        // Mark message as read on backend via API
+        socketRef.current?.emit('readReceipt', { senderId: message.senderId });
         socialApi.get(`/messages/${message.senderId}`).catch(err => console.error(err));
       } else {
         incrementUnread(message.senderId);
@@ -264,6 +529,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     };
 
     const handleMessageSent = (savedMessage) => {
+      if (isMatrixActive) return;
       setMessages((prev) => {
         const updated = [...prev];
         const lastOptimisticIdx = updated.map((m) => m.id).lastIndexOf(undefined);
@@ -280,6 +546,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     };
 
     const handleMessageError = ({ error }) => {
+      if (isMatrixActive) return;
       console.error('Socket message error:', error);
       setMessages((prev) => prev.filter((m, i) => !(i === prev.length - 1 && !m.id)));
     };
@@ -347,6 +614,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     socketRef.current.on('groupMessageDeleted', handleGroupMessageDeleted);
 
     return () => {
+      socketRef.current?.off('userTyping', handleUserTyping);
+      socketRef.current?.off('messagesRead', handleMessagesRead);
+      socketRef.current?.off('messageReactionUpdated', handleReactionUpdated);
       socketRef.current?.off('receiveMessage', handleDirectMessage);
       socketRef.current?.off('messageSent', handleMessageSent);
       socketRef.current?.off('messageError', handleMessageError);
@@ -354,9 +624,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       socketRef.current?.off('messageDeleted', handleMessageDeleted);
       socketRef.current?.off('groupMessageDeleted', handleGroupMessageDeleted);
     };
-  }, [currentUserId]);
-
-
+  }, [currentUserId, isMatrixActive]);
 
   // Sync if opened via shortcut from other tabs (Feed, Friends, etc.)
   useEffect(() => {
@@ -376,9 +644,35 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     }
 
     const loadChatHistory = async () => {
+      if (isMatrixActive) {
+        if (selectedChat.type === 'direct') {
+          setActiveChatUser(selectedChat.id);
+          clearUnreadForContact(selectedChat.id);
+          try {
+            const roomId = await getOrCreateMatrixRoom(selectedChat.id);
+            if (roomId) {
+              selectedChat.matrixRoomId = roomId;
+              const room = matrixClient.getRoom(roomId);
+              if (room) {
+                const events = room.getLiveTimeline().getEvents()
+                  .filter(e => e.getType() === "m.room.message");
+                setMessages(events.map(formatMatrixEvent));
+              } else {
+                setMessages([]);
+              }
+            }
+          } catch (e) {
+            console.error("Failed to load Matrix chat history:", e);
+            setMessages([]);
+          }
+        }
+        return;
+      }
+
       if (selectedChat.type === 'direct') {
         setActiveChatUser(selectedChat.id);
         clearUnreadForContact(selectedChat.id);
+        socketRef.current?.emit('readReceipt', { senderId: selectedChat.id });
         try {
           const response = await socialApi.get(`/messages/${selectedChat.id}`);
           setMessages(Array.isArray(response.data) ? response.data : []);
@@ -389,7 +683,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       } else if (selectedChat.type === 'group') {
         setActiveChatUser(null);
         try {
-          // Join socket room for group
           if (socketRef.current) {
             socketRef.current.emit('joinGroup', selectedChat.id);
           }
@@ -403,7 +696,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     };
 
     loadChatHistory();
-  }, [selectedChat]);
+  }, [selectedChat, isMatrixActive]);
 
   // Scroll to bottom of chat
   useEffect(() => {
@@ -412,14 +705,84 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
   // Send Direct or Group Message
   const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!inputText.trim() || !selectedChat) return;
+    if (e) e.preventDefault();
+    if (!selectedChat) return;
+    if (!inputText.trim() && !selectedFile) return;
+
+    if (selectedFile) {
+      const fileMessage = {
+        senderId: currentUserId,
+        receiverId: selectedChat.id,
+        content: `📎 Sent a file: ${selectedFile.name}`,
+        isFile: true,
+        fileName: selectedFile.name,
+        fileSize: `${(selectedFile.size / 1024).toFixed(1)} KB`,
+        createdAt: new Date().toISOString(),
+      };
+
+      try {
+        if (isMatrixActive) {
+          const roomId = await getOrCreateMatrixRoom(selectedChat.id);
+          if (roomId) {
+            await matrixClient.sendMessage(roomId, {
+              msgtype: "m.text",
+              body: `📎 File: ${selectedFile.name}`
+            });
+          }
+        } else {
+          socketRef.current?.emit('sendMessage', {
+            receiverId: selectedChat.id.toString(),
+            message: fileMessage,
+          });
+        }
+        setMessages((prev) => [...prev, fileMessage]);
+        setSelectedFile(null);
+        toast.success("File sent!");
+      } catch (err) {
+        console.error("Failed to send file:", err);
+      }
+      return;
+    }
+
+    if (isMatrixActive) {
+      if (selectedChat.type === 'direct') {
+        const roomId = await getOrCreateMatrixRoom(selectedChat.id);
+        if (roomId) {
+          try {
+            const content = {
+              msgtype: "m.text",
+              body: inputText,
+            };
+            await matrixClient.sendMessage(roomId, content);
+            
+            const newMessage = {
+              senderId: currentUserId,
+              receiverId: selectedChat.id,
+              content: inputText,
+              createdAt: new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, newMessage]);
+            setLastMessages((prev) => ({
+              ...prev,
+              [`direct-${selectedChat.id}`]: newMessage
+            }));
+          } catch (e) {
+            console.error("Failed to send Matrix message:", e);
+          }
+        }
+      }
+      setInputText('');
+      return;
+    }
 
     if (selectedChat.type === 'direct') {
+      const contentPayload = replyingTo
+        ? JSON.stringify({ text: inputText, replyTo: { id: replyingTo.id, senderId: replyingTo.senderId, text: parseMessageContent(replyingTo).text } })
+        : inputText;
       const newMessage = {
         senderId: currentUserId,
         receiverId: selectedChat.id,
-        content: inputText,
+        content: contentPayload,
         createdAt: new Date().toISOString(),
       };
 
@@ -435,8 +798,11 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       }));
     } else if (selectedChat.type === 'group') {
       try {
+        const groupContent = replyingTo
+          ? JSON.stringify({ text: inputText, replyTo: { id: replyingTo.id, senderId: replyingTo.senderId, text: parseMessageContent(replyingTo).text } })
+          : inputText;
         const response = await socialApi.post(`/groups/${selectedChat.id}/messages`, {
-          content: inputText,
+          content: groupContent,
         });
         const savedMessage = response.data;
         
@@ -453,7 +819,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         console.error(err);
       }
     }
-    
+    if (socketRef.current && selectedChat && selectedChat.type === 'direct') {
+      socketRef.current.emit('typing', { targetId: selectedChat.id, isTyping: false });
+    }
+    setReplyingTo(null);
     setInputText('');
   };
 
@@ -799,7 +1168,11 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       
                       <div className="flex justify-between items-center gap-1">
                         <p className={`text-xs truncate flex-1 font-semibold ${isSelected ? 'text-white opacity-85' : 'text-gray-400 dark:text-gray-500'}`}>
-                          {lastMsg ? (
+                          {chat.type === 'direct' && typingUsers[chat.id] ? (
+                            <span className={isSelected ? 'text-white italic animate-pulse font-bold' : 'text-green-500 italic animate-pulse font-bold'}>
+                              typing...
+                            </span>
+                          ) : lastMsg ? (
                             <>
                               {chat.type === 'group' && lastMsg.sender?.name && (
                                 <span className="font-bold text-gray-500 dark:text-gray-400 mr-1">
@@ -807,7 +1180,20 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                                 </span>
                               )}
                               <span className={lastMsg.isDeleted ? 'italic text-gray-450 dark:text-gray-500' : ''}>
-                                {lastMsg.content}
+                                {lastMsg.isDeleted
+                                  ? 'This message was deleted'
+                                  : lastMsg.isFile
+                                  ? '📎 ' + (lastMsg.fileName || 'File')
+                                  : lastMsg.isVoiceNote
+                                  ? '🎤 Voice message'
+                                  : (() => {
+                                      try {
+                                        const p = JSON.parse(lastMsg.content);
+                                        if (p && typeof p === 'object' && p.text !== undefined) return p.text;
+                                      } catch (e) {}
+                                      return lastMsg.content;
+                                    })()
+                                }
                               </span>
                             </>
                           ) : (
@@ -894,7 +1280,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     </div>
                     <p className="text-[10px] font-bold text-gray-400 dark:text-gray-550 mt-0.5 truncate">
                       {selectedChat.type === 'direct' ? (
-                        onlineUserIds.some(id => id.toString() === selectedChat.id.toString()) ? (
+                        typingUsers[selectedChat.id] ? (
+                          <span className="text-green-500 italic font-black animate-pulse">typing...</span>
+                        ) : onlineUserIds.some(id => id.toString() === selectedChat.id.toString()) ? (
                           <span className="text-green-500">Active now</span>
                         ) : (
                           'Offline'
@@ -957,76 +1345,183 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   const senderName = msg.sender?.name || '';
                   const senderPic = msg.sender?.profilePicture || '/default-avatar.png';
                   const formattedTime = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  const canDelete = msg.id && !msg.isDeleted && (isMine || (selectedChat.type === 'group' && selectedChat.creatorId === currentUserId));
+
+                  // Parse JSON content (replies/reactions)
+                  const parsed = parseMessageContent(msg);
+                  const reactions = parsed.reactions || {};
+                  const reactionEntries = Object.entries(reactions);
+
+                  // Swipe-to-reply state
+                  const sw = swipeState[index] || { x: 0, triggered: false };
+                  const swipeX = isMine
+                    ? Math.min(0, Math.max(-(SWIPE_THRESHOLD + 10), sw.x))
+                    : Math.max(0, Math.min(SWIPE_THRESHOLD + 10, sw.x));
+                  const showReplyArrow = Math.abs(swipeX) > 15;
 
                   return (
-                    <div key={index} className={`group flex items-start gap-2 max-w-[85%] md:max-w-[75%] ${isMine ? 'ml-auto justify-end' : 'mr-auto justify-start'} relative`}>
-                      {/* Display Sender Avatar for Group Messages */}
-                      {selectedChat.type === 'group' && !isMine && (
-                        <img 
-                          src={senderPic} 
-                          alt={senderName} 
-                          onClick={() => onViewProfile && onViewProfile(msg.senderId)}
-                          className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5 border border-gray-200 bg-white cursor-pointer hover:opacity-80" 
-                        />
+                    <div
+                      key={index}
+                      className={`group flex items-start max-w-[85%] md:max-w-[75%] ${isMine ? 'ml-auto justify-end' : 'mr-auto justify-start'} relative overflow-hidden`}
+                      onTouchStart={(e) => {
+                        if (msg.isDeleted) return;
+                        setSwipeState(prev => ({ ...prev, [index]: { startX: e.touches[0].clientX, x: 0, triggered: false } }));
+                      }}
+                      onTouchMove={(e) => {
+                        const state = swipeState[index];
+                        if (!state || state.triggered) return;
+                        const dx = e.touches[0].clientX - state.startX;
+                        const clamped = isMine
+                          ? Math.max(-(SWIPE_THRESHOLD + 10), Math.min(0, dx))
+                          : Math.min(SWIPE_THRESHOLD + 10, Math.max(0, dx));
+                        if (Math.abs(clamped) >= SWIPE_THRESHOLD) {
+                          setReplyingTo(msg);
+                          setSwipeState(prev => ({ ...prev, [index]: { x: 0, triggered: true } }));
+                        } else {
+                          setSwipeState(prev => ({ ...prev, [index]: { ...prev[index], x: clamped } }));
+                        }
+                      }}
+                      onTouchEnd={() => {
+                        setSwipeState(prev => ({ ...prev, [index]: { x: 0, triggered: false } }));
+                      }}
+                    >
+                      {/* Reply arrow indicator — fades in as user swipes */}
+                      {showReplyArrow && (
+                        <div
+                          className={`absolute top-1/2 -translate-y-1/2 flex items-center justify-center w-7 h-7 rounded-full bg-orange-100 dark:bg-orange-900/50 border border-orange-300 dark:border-orange-700 pointer-events-none z-10 ${isMine ? 'right-0' : 'left-0'}`}
+                          style={{ opacity: Math.min(1, Math.abs(swipeX) / SWIPE_THRESHOLD) }}
+                        >
+                          <CornerUpLeft size={12} className={`text-orange-500 ${isMine ? 'scale-x-[-1]' : ''}`} />
+                        </div>
                       )}
-                      
-                      <div className="flex flex-col">
-                        {/* Display Sender Name in Group */}
+
+                      {/* Sliding inner wrapper */}
+                      <div
+                        className={`flex items-start gap-2 w-full ${isMine ? 'flex-row-reverse' : ''}`}
+                        style={{ transform: `translateX(${swipeX}px)`, transition: swipeX === 0 ? 'transform 0.2s ease' : 'none' }}
+                      >
+                        {/* Avatar for group messages */}
                         {selectedChat.type === 'group' && !isMine && (
-                          <span 
+                          <img
+                            src={senderPic}
+                            alt={senderName}
                             onClick={() => onViewProfile && onViewProfile(msg.senderId)}
-                            className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 ml-1.5 mb-0.5 cursor-pointer hover:underline"
-                          >
-                            {senderName}
-                          </span>
+                            className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5 border border-gray-200 bg-white cursor-pointer hover:opacity-80"
+                          />
                         )}
 
-                        {/* Message bubble with authentic color scheme */}
-                        <div 
-                          className={`rounded-2xl px-3.5 py-1.5 shadow-sm text-sm relative border border-transparent select-none cursor-pointer active:scale-[0.99] transition-transform duration-100 ${
-                            isMine
-                              ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-gray-900 dark:text-[#e9edef] rounded-tr-none'
-                              : 'bg-white dark:bg-[#202c33] text-gray-800 dark:text-[#e9edef] rounded-tl-none'
-                          }`}
-                          onMouseDown={(e) => !msg.isDeleted && handleStartPress(e, msg)}
-                          onMouseUp={handleEndPress}
-                          onMouseLeave={handleCancelPress}
-                          onTouchStart={(e) => !msg.isDeleted && handleStartPress(e, msg)}
-                          onTouchEnd={handleEndPress}
-                          onTouchMove={handleCancelPress}
-                          onContextMenu={(e) => {
-                            if (!msg.isDeleted) {
-                              e.preventDefault();
-                              setActiveMenuMessage(msg);
-                            }
-                          }}
-                          title={!msg.isDeleted ? "Long press or right click for options" : undefined}
-                        >
-                          {msg.isDeleted ? (
-                            <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 italic pb-3 pr-8 select-none">
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 shrink-0">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
-                              </svg>
-                              <span>This message was deleted</span>
-                            </div>
-                          ) : (
-                            <p className="break-words font-medium leading-relaxed pb-3 pr-8 whitespace-pre-wrap">{msg.content}</p>
-                          )}
-                          
-                          {/* Time & Read Status (bottom right aligned) */}
-                          <div className="absolute bottom-1 right-2 flex items-center gap-1 select-none opacity-60">
-                            <span className="text-[8px] font-bold">
-                              {formattedTime}
+                        <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                          {/* Sender name in group */}
+                          {selectedChat.type === 'group' && !isMine && (
+                            <span
+                              onClick={() => onViewProfile && onViewProfile(msg.senderId)}
+                              className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 ml-1.5 mb-0.5 cursor-pointer hover:underline"
+                            >
+                              {senderName}
                             </span>
-                            {isMine && !msg.isDeleted && (
-                              msg.isRead ? (
-                                <CheckCheck size={12} className="text-blue-500" />
-                              ) : (
-                                <Check size={12} className="text-gray-400" />
-                              )
+                          )}
+
+                          {/* Message bubble */}
+                          <div
+                            className={`rounded-2xl px-3.5 py-1.5 shadow-sm text-sm relative border border-transparent select-none cursor-pointer active:scale-[0.99] transition-transform duration-100 ${
+                              isMine
+                                ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-gray-900 dark:text-[#e9edef] rounded-tr-none'
+                                : 'bg-white dark:bg-[#202c33] text-gray-800 dark:text-[#e9edef] rounded-tl-none'
+                            }`}
+                            onMouseDown={(e) => !msg.isDeleted && handleStartPress(e, msg)}
+                            onMouseUp={handleEndPress}
+                            onMouseLeave={handleCancelPress}
+                            onTouchStart={(e) => !msg.isDeleted && handleStartPress(e, msg)}
+                            onTouchEnd={handleEndPress}
+                            onTouchMove={handleCancelPress}
+                            onContextMenu={(e) => {
+                              if (!msg.isDeleted) { e.preventDefault(); setActiveMenuMessage(msg); }
+                            }}
+                            title={!msg.isDeleted ? 'Long press or right-click for options' : undefined}
+                          >
+                            {/* Reply quote strip */}
+                            {!msg.isDeleted && parsed.replyTo && (
+                              <div className={`mt-1 mb-1.5 pl-2.5 pr-2 py-1 rounded-lg border-l-4 ${
+                                isMine ? 'border-green-600 bg-green-200/50 dark:bg-green-900/30' : 'border-orange-400 bg-orange-50 dark:bg-orange-950/20'
+                              }`}>
+                                <p className="text-[9px] font-black text-orange-500 dark:text-orange-400 mb-0.5">
+                                  {parsed.replyTo.senderId === currentUserId ? 'You' : contacts.find(c => c.id?.toString() === parsed.replyTo.senderId?.toString())?.name || 'User'}
+                                </p>
+                                <p className="text-[10px] text-gray-600 dark:text-gray-300 truncate leading-tight">
+                                  {parsed.replyTo.text || '📎 Attachment'}
+                                </p>
+                              </div>
                             )}
+
+                            {/* Message content */}
+                            {msg.isDeleted ? (
+                              <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 italic pb-3 pr-8 select-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 shrink-0">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                                <span>This message was deleted</span>
+                              </div>
+                            ) : msg.isVoiceNote ? (
+                              <div className="flex items-center gap-3 pb-4 pr-8 w-52 sm:w-60 select-none">
+                                <button type="button" onClick={() => toast.success('Playing voice note...')}
+                                  className="w-8 h-8 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center shadow active:scale-95 transition-all cursor-pointer shrink-0">
+                                  <Play size={12} className="fill-white ml-0.5" />
+                                </button>
+                                <div className="flex-1 space-y-1">
+                                  <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full w-full overflow-hidden">
+                                    <div className="h-full bg-orange-500 w-1/3 rounded-full"></div>
+                                  </div>
+                                  <div className="flex justify-between items-center text-[9px] font-black text-gray-400">
+                                    <span>0:00 / 0:{msg.duration < 10 ? `0${msg.duration}` : msg.duration}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : msg.isFile ? (
+                              <div onClick={() => handleDownloadFile(msg.fileName)}
+                                className="flex items-center gap-3 pb-4 pr-8 select-none cursor-pointer hover:opacity-85 transition active:scale-95"
+                                title="Click to download file">
+                                <div className="p-2.5 bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 rounded-xl shrink-0">
+                                  <FileText size={18} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-bold truncate text-gray-900 dark:text-white leading-tight">{msg.fileName}</p>
+                                  <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase">{msg.fileSize || 'Unknown Size'}</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="break-words font-medium leading-relaxed pb-3 pr-8 whitespace-pre-wrap">{parsed.text || msg.content}</p>
+                            )}
+
+                            {/* Timestamp + read receipt */}
+                            <div className="absolute bottom-1 right-2 flex items-center gap-1 select-none opacity-60">
+                              <span className="text-[8px] font-bold">{formattedTime}</span>
+                              {isMine && !msg.isDeleted && (
+                                msg.isRead
+                                  ? <CheckCheck size={12} className="text-blue-500" />
+                                  : <Check size={12} className="text-gray-400" />
+                              )}
+                            </div>
                           </div>
+
+                          {/* Reaction capsules */}
+                          {reactionEntries.length > 0 && (
+                            <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                              {reactionEntries.map(([emoji, users]) => {
+                                const count = Array.isArray(users) ? users.length : 0;
+                                const reacted = Array.isArray(users) && users.includes(currentUserId?.toString());
+                                return (
+                                  <button key={emoji} onClick={() => handleToggleReaction(msg.id, emoji)}
+                                    className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-bold border transition-all active:scale-95 cursor-pointer ${
+                                      reacted
+                                        ? 'bg-orange-100 dark:bg-orange-900/40 border-orange-400 text-orange-700 dark:text-orange-300'
+                                        : 'bg-white dark:bg-[#2a3942] border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                                    }`}>
+                                    <span>{emoji}</span>
+                                    {count > 0 && <span className="text-[9px]">{count}</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1055,25 +1550,155 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   Only admins can send messages in this group
                 </div>
               ) : (
-                <form 
-                  onSubmit={handleSendMessage} 
-                  className="p-3 md:p-4 border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-[#202c33] flex items-center gap-2 flex-shrink-0 z-10"
-                >
-                  <input
-                    type="text"
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    placeholder="Type your message here..."
-                    className="flex-1 bg-white dark:bg-[#2a3942] text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-semibold transition"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!inputText.trim()}
-                    className="bg-orange-500 hover:bg-orange-600 disabled:opacity-45 text-white font-extrabold p-3 rounded-2xl transition flex items-center justify-center shadow-lg shadow-orange-500/15 cursor-pointer shrink-0"
+                <div className="border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-[#202c33] flex flex-col flex-shrink-0 z-10 p-2 md:p-3">
+                  
+                  {/* Selected File Preview */}
+                  {selectedFile && (
+                    <div className="mx-2 mb-2 p-2 bg-gray-50 dark:bg-[#111b21] border border-gray-100 dark:border-gray-800 rounded-xl flex items-center justify-between text-xs animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2 text-gray-700 dark:text-[#e9edef] font-bold">
+                        <FileText size={14} className="text-orange-500" />
+                        <span className="truncate max-w-[200px]">{selectedFile.name}</span>
+                        <span className="text-[10px] text-gray-400">({(selectedFile.size / 1024).toFixed(1)} KB)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFile(null)}
+                        className="text-gray-400 hover:text-red-500 transition cursor-pointer"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Reply Banner */}
+                  {replyingTo && (
+                    <div className="mx-2 mb-2 p-2.5 bg-orange-50 dark:bg-orange-950/20 border-l-4 border-orange-400 rounded-xl flex items-center justify-between gap-2 animate-in slide-in-from-bottom-2 duration-200">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-black text-orange-500 dark:text-orange-400 mb-0.5">
+                          Replying to {replyingTo.senderId === currentUserId ? 'yourself' : contacts.find(c => c.id?.toString() === replyingTo.senderId?.toString())?.name || 'User'}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-semibold">
+                          {parseMessageContent(replyingTo).text || '📎 Attachment'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setReplyingTo(null)}
+                        className="text-gray-400 hover:text-red-500 transition cursor-pointer shrink-0"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Emoji Quick Drawer */}
+                  {showEmojiPicker && (
+                    <div className="mx-2 mb-2 p-2 bg-white dark:bg-[#2a3942] border border-gray-150 dark:border-gray-700 rounded-xl flex items-center gap-2.5 flex-wrap shadow-lg animate-in slide-in-from-bottom-2 duration-200">
+                      {quickEmojis.map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => handleEmojiClick(emoji)}
+                          className="text-xl hover:scale-125 transition active:scale-95 p-1 cursor-pointer"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <form 
+                    onSubmit={handleSendMessage} 
+                    className="flex items-center gap-2"
                   >
-                    <Send size={18} />
-                  </button>
-                </form>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      onChange={handleFileChange} 
+                    />
+
+                    {/* Attachment button */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      title="Attach File"
+                      className="p-2.5 text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer shrink-0"
+                    >
+                      <Paperclip size={18} />
+                    </button>
+
+                    {/* Emoji button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      title="Choose Emoji"
+                      className="p-2.5 text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer shrink-0"
+                    >
+                      <Smile size={18} />
+                    </button>
+
+                    {/* Input field or Recording indicator */}
+                    {isRecording ? (
+                      <div className="flex-1 bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-400 rounded-2xl px-4 py-2.5 flex items-center justify-between text-xs font-black animate-pulse select-none">
+                        <span className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                          Recording voice note...
+                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono">{recordingSeconds}s</span>
+                          <button
+                            type="button"
+                            onClick={() => stopRecording(false)}
+                            className="text-gray-450 hover:text-red-500 transition cursor-pointer font-bold px-1.5 py-0.5 rounded-md"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={inputText}
+                        onChange={(e) => {
+                          setInputText(e.target.value);
+                          if (socketRef.current && selectedChat && selectedChat.type === 'direct') {
+                            socketRef.current.emit('typing', { targetId: selectedChat.id, isTyping: e.target.value.length > 0 });
+                          }
+                        }}
+                        placeholder="Type your message here..."
+                        className="flex-1 bg-white dark:bg-[#2a3942] text-gray-900 dark:text-[#e9edef] border border-gray-250 dark:border-gray-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-semibold transition"
+                      />
+                    )}
+
+                    {/* Send or Voice Record Action Button */}
+                    {isRecording ? (
+                      <button
+                        type="button"
+                        onClick={() => stopRecording(true)}
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold p-3 rounded-2xl transition flex items-center justify-center shadow-lg shadow-orange-500/15 cursor-pointer shrink-0"
+                      >
+                        <Send size={18} />
+                      </button>
+                    ) : (inputText.trim() || selectedFile) ? (
+                      <button
+                        type="submit"
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold p-3 rounded-2xl transition flex items-center justify-center shadow-lg shadow-orange-500/15 cursor-pointer shrink-0 animate-in zoom-in-50 duration-150"
+                      >
+                        <Send size={18} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={startRecording}
+                        title="Record Voice Note"
+                        className="p-3 text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-2xl transition cursor-pointer shrink-0"
+                      >
+                        <Mic size={18} />
+                      </button>
+                    )}
+                  </form>
+                </div>
               )}
             </div>
 
@@ -1576,11 +2201,49 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               {/* Message Content Preview */}
               <div className="bg-gray-50 dark:bg-[#182229] p-3 rounded-2xl border border-gray-100 dark:border-gray-800/80 mb-4 max-h-24 overflow-y-auto">
                 <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold break-words whitespace-pre-wrap leading-relaxed">
-                  {activeMenuMessage.content}
+                  {parseMessageContent(activeMenuMessage).text || activeMenuMessage.content}
                 </p>
               </div>
 
+              {/* Quick Emoji Reactions */}
+              {!activeMenuMessage.isDeleted && (
+                <div className="flex justify-around items-center bg-gray-50 dark:bg-[#182229] rounded-2xl py-2.5 px-3 mb-3">
+                  {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => {
+                    const reactions = parseMessageContent(activeMenuMessage).reactions || {};
+                    const users = reactions[emoji];
+                    const reacted = Array.isArray(users) && users.includes(currentUserId?.toString());
+                    return (
+                      <button
+                        key={emoji}
+                        onClick={() => {
+                          handleToggleReaction(activeMenuMessage.id, emoji);
+                          setActiveMenuMessage(null);
+                        }}
+                        className={`text-2xl active:scale-75 transition-transform cursor-pointer rounded-full p-1 ${reacted ? 'bg-orange-100 dark:bg-orange-900/40' : 'hover:bg-gray-200 dark:hover:bg-gray-700/40'}`}
+                        title={emoji}
+                      >
+                        {emoji}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               <div className="space-y-2">
+                {/* Reply Option */}
+                {!activeMenuMessage.isDeleted && (
+                  <button
+                    onClick={() => {
+                      setReplyingTo(activeMenuMessage);
+                      setActiveMenuMessage(null);
+                    }}
+                    className="w-full text-left py-3 px-4 rounded-xl text-gray-800 dark:text-gray-250 hover:bg-gray-100 dark:hover:bg-[#2a3942] transition font-extrabold text-sm flex items-center gap-3 cursor-pointer"
+                  >
+                    <CornerUpLeft size={16} className="text-orange-500 dark:text-orange-400" />
+                    <span>Reply</span>
+                  </button>
+                )}
+
                 {/* Copy Text Option */}
                 {!activeMenuMessage.isDeleted && (
                   <button
@@ -1642,6 +2305,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           </motion.div>
         )}
       </AnimatePresence>
+
     </div>
   );
 }

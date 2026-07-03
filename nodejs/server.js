@@ -105,6 +105,127 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Typing Indicator Signaling
+  socket.on('typing', (data) => {
+    if (!data || !data.targetId) return;
+    io.to(data.targetId.toString()).emit('userTyping', {
+      senderId: socket.userId,
+      isTyping: data.isTyping
+    });
+  });
+
+  // Read Receipts Signaling
+  socket.on('readReceipt', async (data) => {
+    if (!data || !data.senderId) return;
+    const receiverId = socket.userId;
+    try {
+      await datingPrisma.message.updateMany({
+        where: {
+          senderId: parseInt(data.senderId),
+          receiverId: parseInt(receiverId),
+          isRead: false
+        },
+        data: {
+          isRead: true
+        }
+      });
+      io.to(data.senderId.toString()).emit('messagesRead', {
+        readerId: receiverId
+      });
+    } catch (err) {
+      console.error('Error updating read receipt:', err);
+    }
+  });
+
+  // Message Reaction Signaling
+  socket.on('messageReaction', async (data) => {
+    const { messageId, isGroup, emoji } = data;
+    if (!messageId || !emoji) return;
+    const userId = socket.userId;
+    try {
+      let message;
+      if (isGroup) {
+        message = await datingPrisma.groupMessage.findUnique({
+          where: { id: parseInt(messageId) }
+        });
+      } else {
+        message = await datingPrisma.message.findUnique({
+          where: { id: parseInt(messageId) }
+        });
+      }
+
+      if (!message) return;
+
+      // Parse current content
+      let contentData = {};
+      try {
+        contentData = JSON.parse(message.content);
+        if (typeof contentData !== 'object' || contentData === null) {
+          contentData = { text: message.content };
+        }
+      } catch (e) {
+        contentData = { text: message.content };
+      }
+
+      if (!contentData.reactions) {
+        contentData.reactions = {};
+      }
+      if (!contentData.reactions[emoji]) {
+        contentData.reactions[emoji] = [];
+      }
+
+      const users = contentData.reactions[emoji];
+      const index = users.indexOf(userId);
+      if (index > -1) {
+        // Toggle reaction off
+        users.splice(index, 1);
+      } else {
+        // Add reaction
+        users.push(userId);
+      }
+
+      if (users.length === 0) {
+        delete contentData.reactions[emoji];
+      }
+
+      const updatedContent = JSON.stringify(contentData);
+
+      // Save to database
+      if (isGroup) {
+        await datingPrisma.groupMessage.update({
+          where: { id: parseInt(messageId) },
+          data: { content: updatedContent }
+        });
+        
+        // Broadcast to group room
+        io.to(`group-${message.groupId}`).emit('messageReactionUpdated', {
+          messageId,
+          isGroup: true,
+          reactions: contentData.reactions
+        });
+      } else {
+        await datingPrisma.message.update({
+          where: { id: parseInt(messageId) },
+          data: { content: updatedContent }
+        });
+
+        // Broadcast to both sender and receiver
+        io.to(message.senderId.toString()).emit('messageReactionUpdated', {
+          messageId,
+          isGroup: false,
+          reactions: contentData.reactions
+        });
+        io.to(message.receiverId.toString()).emit('messageReactionUpdated', {
+          messageId,
+          isGroup: false,
+          reactions: contentData.reactions
+        });
+      }
+    } catch (err) {
+      console.error('Error handling reaction:', err);
+    }
+  });
+
   socket.on('joinGroup', (groupId) => {
     if (!groupId) return;
     socket.join(`group-${groupId}`);

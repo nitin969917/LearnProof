@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { googleLogout } from '@react-oauth/google';
 import axios from "axios";
+import { initMatrixClient, disconnectMatrixClient } from "../utils/matrixClient";
 
 const AuthContext = createContext();
 
@@ -11,6 +12,7 @@ axios.interceptors.response.use(
     (error) => {
         if (error.response && error.response.status === 401) {
             localStorage.removeItem("google_token");
+            disconnectMatrixClient();
             // If they are on a dashboard/classroom route, redirect to home page to force re-login
             if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom")) {
                 sessionStorage.setItem("redirect_to", window.location.pathname + window.location.search);
@@ -25,9 +27,10 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [matrixClient, setMatrixClient] = useState(null);
 
     useEffect(() => {
-        const loadUser = () => {
+        const loadUser = async () => {
             const storedToken = localStorage.getItem("google_token");
             if (storedToken) {
                 try {
@@ -36,6 +39,8 @@ export const AuthProvider = ({ children }) => {
                     if (decoded.exp && decoded.exp < currentTime) {
                         console.warn("Stored token is expired, clearing...");
                         localStorage.removeItem("google_token");
+                        setMatrixClient(null);
+                        disconnectMatrixClient();
                         if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom")) {
                             sessionStorage.setItem("redirect_to", window.location.pathname + window.location.search);
                             window.location.href = "/";
@@ -49,9 +54,29 @@ export const AuthProvider = ({ children }) => {
                         picture: decoded.picture
                     });
                     setToken(storedToken);
+
+                    // Fetch profile to get Matrix credentials
+                    axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/profile/`, {
+                        idToken: storedToken
+                    }).then(res => {
+                        if (res.data && res.data.matrixCredentials) {
+                            setUser(prev => ({
+                                ...prev,
+                                matrixCredentials: res.data.matrixCredentials
+                            }));
+                            initMatrixClient(res.data.matrixCredentials).then(clientInstance => {
+                                setMatrixClient(clientInstance);
+                            });
+                        }
+                    }).catch(err => {
+                        console.error("Failed to fetch Matrix profile on load:", err);
+                    });
+
                 } catch (error) {
                     console.error("Invalid token:", error);
                     localStorage.removeItem("google_token");
+                    setMatrixClient(null);
+                    disconnectMatrixClient();
                 }
             }
             setLoading(false);
@@ -77,9 +102,15 @@ export const AuthProvider = ({ children }) => {
                 uid: decoded.uid || decoded.sub,
                 email: decoded.email,
                 name: decoded.name,
-                picture: decoded.picture
+                picture: decoded.picture,
+                matrixCredentials: res.data.matrixCredentials
             });
             setToken(sessionToken);
+
+            if (res.data.matrixCredentials) {
+                const clientInstance = await initMatrixClient(res.data.matrixCredentials);
+                setMatrixClient(clientInstance);
+            }
         } catch (err) {
             console.error("Login sync failed", err);
             // Fallback to local only if server is down
@@ -100,10 +131,12 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("google_token");
         setUser(null);
         setToken(null);
+        setMatrixClient(null);
+        disconnectMatrixClient();
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, token, loading, login, logout, matrixClient }}>
             {children}
         </AuthContext.Provider>
     );
