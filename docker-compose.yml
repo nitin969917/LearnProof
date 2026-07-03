@@ -69,6 +69,7 @@ services:
     restart: always
     environment:
       CONDUIT_SERVER_NAME: "learnproofai.com"
+      CONDUIT_DATABASE_BACKEND: "rocksdb"
       CONDUIT_DATABASE_PATH: "/var/lib/matrix-conduit/"
       CONDUIT_PORT: "8008"
       CONDUIT_REGISTRATION_SHARED_SECRET: "1^ZzuyvWeCevsTm1*fTJEJ4KhcTRtdvod*_5QPLK0BGn*Lsx#H"
