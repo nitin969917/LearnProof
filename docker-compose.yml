@@ -73,10 +73,9 @@ services:
       CONDUIT_PORT: "8008"
       CONDUIT_REGISTRATION_SHARED_SECRET: "1^ZzuyvWeCevsTm1*fTJEJ4KhcTRtdvod*_5QPLK0BGn*Lsx#H"
       CONDUIT_ALLOW_REGISTRATION: "false"
+      CONDUIT_CONFIG: ""
     volumes:
       - conduit_data:/var/lib/matrix-conduit/
-    ports:
-      - "8008:8008"
 
 volumes:
   postgres_data:
