@@ -14,6 +14,7 @@ const adminController = require('../controllers/admin.controller');
 const messageController = require('../controllers/message.controller');
 const fcmController = require('../controllers/fcm.controller');
 const livekitController = require('../controllers/livekit.controller');
+const metricsController = require('../controllers/metrics.controller');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -54,6 +55,10 @@ router.post('/save-fcm-token', authMiddleware, fcmController.saveFcmToken);
 router.get('/auth/admin-check', authMiddleware, isAdminMiddleware, (req, res) => {
     res.status(200).json({ isAdmin: true });
 });
+
+// Anonymous Push and Metrics
+router.post('/v1/devices/anonymous-token', fcmController.saveAnonymousFcmToken);
+router.post('/v1/metrics/app-launch', metricsController.logAppLaunch);
 
 // YouTube
 router.post('/import/', authMiddleware, youtubeController.importMetadata);

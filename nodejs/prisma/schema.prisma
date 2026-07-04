@@ -273,3 +273,23 @@ model NotificationTemplate {
   updated_at DateTime @updatedAt
 }
 
+model AnonymousDevice {
+  id         Int      @id @default(autoincrement())
+  token      String   @unique
+  deviceType String?  // 'web' or 'twa'
+  timezone   String   @default("UTC")
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([token])
+}
+
+model AppLaunchLog {
+  id        Int      @id @default(autoincrement())
+  deviceId  String
+  timestamp DateTime @default(now())
+
+  @@index([deviceId])
+  @@index([timestamp])
+}
+

@@ -55,13 +55,24 @@ const sendExplicitPush = async (req, res) => {
     }
 
     try {
-        let tokenRecords = [];
+        let tokens = [];
 
         if (isBroadcast) {
-            // Fetch all tokens
-            tokenRecords = await prisma.userFcmToken.findMany({
+            // Fetch all registered user tokens
+            const userTokens = await prisma.userFcmToken.findMany({
                 select: { token: true }
             });
+            // Fetch all anonymous device tokens
+            const anonymousTokens = await prisma.anonymousDevice.findMany({
+                select: { token: true }
+            });
+
+            // Combine them, ensuring uniqueness
+            const combinedTokens = new Set([
+                ...userTokens.map(r => r.token),
+                ...anonymousTokens.map(r => r.token)
+            ]);
+            tokens = Array.from(combinedTokens);
         } else {
             if (!receiverUid) {
                 return res.status(400).json({ error: 'Receiver UID is required for targeted push notifications' });
@@ -76,10 +87,8 @@ const sendExplicitPush = async (req, res) => {
                 return res.status(404).json({ error: 'Target user not found' });
             }
 
-            tokenRecords = targetUser.fcmTokens;
+            tokens = targetUser.fcmTokens.map(r => r.token);
         }
-
-        const tokens = tokenRecords.map(r => r.token);
 
         if (tokens.length === 0) {
             return res.status(200).json({ 
@@ -126,6 +135,9 @@ const sendExplicitPush = async (req, res) => {
             if (failedTokens.length > 0) {
                 console.log(`[Admin Push] Cleaning up ${failedTokens.length} stale tokens from database.`);
                 await prisma.userFcmToken.deleteMany({
+                    where: { token: { in: failedTokens } }
+                });
+                await prisma.anonymousDevice.deleteMany({
                     where: { token: { in: failedTokens } }
                 });
             }
@@ -201,9 +213,47 @@ const updateNotificationTemplate = async (req, res) => {
     }
 };
 
+/**
+ * Saves or updates an FCM token for an anonymous user (no authentication).
+ * Expects { token: string, deviceType?: string, timezone?: string } in body.
+ */
+const saveAnonymousFcmToken = async (req, res) => {
+    const { token, deviceType, timezone } = req.body;
+
+    if (!token) {
+        return res.status(400).json({ error: 'Token is required' });
+    }
+
+    try {
+        const anonymousDevice = await prisma.anonymousDevice.upsert({
+            where: { token },
+            update: {
+                deviceType: deviceType || 'web',
+                timezone: timezone || 'UTC',
+                updated_at: new Date()
+            },
+            create: {
+                token,
+                deviceType: deviceType || 'web',
+                timezone: timezone || 'UTC'
+            }
+        });
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Anonymous FCM token saved successfully', 
+            data: anonymousDevice 
+        });
+    } catch (error) {
+        console.error('Error saving anonymous FCM token:', error);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+};
+
 module.exports = {
     saveFcmToken,
     sendExplicitPush,
     getNotificationTemplates,
-    updateNotificationTemplate
+    updateNotificationTemplate,
+    saveAnonymousFcmToken
 };

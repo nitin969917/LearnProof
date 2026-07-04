@@ -4,6 +4,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoute from "./routes/AdminRoute";
 import { AuthProvider } from './context/AuthContext';
 import { ModalProvider } from './context/ModalContext';
+import { initializeLaunch } from './utils/launch';
 
 // Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
 const lazyWithRetry = (componentImport) => {
@@ -70,6 +71,8 @@ const PageLoader = () => (
 
 const App = () => {
     React.useEffect(() => {
+        initializeLaunch();
+
         const trackScreenTime = () => {
             if (document.visibilityState === 'visible') {
                 const d = new Date();

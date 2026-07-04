@@ -35,6 +35,26 @@ export const saveNativeFcmToken = async (token) => {
   }
 };
 
+export const saveAnonymousFcmToken = async (token) => {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+  try {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    // Detect PWA or TWA display modes
+    const isTWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  window.navigator.standalone === true || 
+                  document.referrer.includes('android-app://');
+
+    await axios.post(`${backendUrl}/api/v1/devices/anonymous-token`, {
+      token,
+      deviceType: isTWA ? 'twa' : 'web',
+      timezone
+    });
+    console.log("Anonymous FCM Token synchronized with backend database successfully.");
+  } catch (error) {
+    console.error("Failed to synchronize anonymous FCM token with backend:", error);
+  }
+};
+
 export const requestNotificationPermissionAndGetToken = async () => {
   // Check if we are running in the native mobile app and have a native token
   const nativeToken = localStorage.getItem('native_fcm_token');
@@ -88,12 +108,15 @@ export const requestNotificationPermissionAndGetToken = async () => {
     if (token) {
       console.log("Generated FCM Registration Token:", token);
 
-      // Save token to backend API
+      // Always save token anonymously
+      await saveAnonymousFcmToken(token);
+
+      // Save token to backend authenticated API if logged in
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
       const googleToken = localStorage.getItem('google_token');
       
       if (!googleToken) {
-        console.warn("User is not logged in. Skipping token sync with backend.");
+        console.warn("User is not logged in. Skipping authenticated token sync with backend.");
         return token;
       }
 
@@ -113,7 +136,7 @@ export const requestNotificationPermissionAndGetToken = async () => {
         }
       });
 
-      console.log("FCM Token synchronized with backend database successfully.");
+      console.log("Authenticated FCM Token synchronized with backend database successfully.");
       return token;
     } else {
       console.warn("FCM getToken resolved to null.");
@@ -185,6 +208,7 @@ if (typeof window !== 'undefined') {
     console.log("Received nativeFcmTokenReady event:", token);
     if (token) {
       localStorage.setItem('native_fcm_token', token);
+      await saveAnonymousFcmToken(token);
       await saveNativeFcmToken(token);
     }
   });
