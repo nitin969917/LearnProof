@@ -31,38 +31,62 @@ const DashboardHome = () => {
     useEffect(() => {
         let active = true;
 
-        const fetchLearnings = async () => {
-            try {
-                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/my-learnings/`, {
-                    idToken: token,
-                    page: 1,
-                    searchQuery: ""
-                });
-                if (active) {
-                    setPlaylists(res.data?.playlists || []);
-                    setVideos(res.data?.videos?.results || []);
+        const fetchLearnings = async (retries = 2) => {
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/my-learnings/`, {
+                        idToken: token,
+                        page: 1,
+                        searchQuery: ""
+                    });
+                    if (active) {
+                        setPlaylists(res.data?.playlists || []);
+                        setVideos(res.data?.videos?.results || []);
+                        setFetchFailed(false);
+                    }
+                    if (active) setLoadingLearnings(false);
+                    return; // Success, exit
+                } catch (err) {
+                    console.warn(`Dashboard learnings fetch attempt ${i + 1} failed:`, err);
+                    if (i === retries) {
+                        console.error("Dashboard learnings data fetch failed after retries", err);
+                        if (active) {
+                            setFetchFailed(true);
+                            setLoadingLearnings(false);
+                        }
+                    } else {
+                        // Wait 500ms before retrying
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
                 }
-            } catch (err) {
-                console.error("Dashboard learnings data fetch failed", err);
-                if (active) setFetchFailed(true);
-            } finally {
-                if (active) setLoadingLearnings(false);
             }
         };
 
-        const fetchContinueWatching = async () => {
-            try {
-                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/continue-watch/`, {
-                    idToken: token
-                });
-                if (active) {
-                    setContinueVideos(res.data?.videos || []);
+        const fetchContinueWatching = async (retries = 2) => {
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/continue-watch/`, {
+                        idToken: token
+                    });
+                    if (active) {
+                        setContinueVideos(res.data?.videos || []);
+                        setFetchFailed(false);
+                    }
+                    if (active) setLoadingContinue(false);
+                    return; // Success, exit
+                } catch (err) {
+                    console.warn(`Dashboard continue watch fetch attempt ${i + 1} failed:`, err);
+                    if (i === retries) {
+                        console.error("Dashboard continue watch fetch failed after retries", err);
+                        if (active) {
+                            setFetchFailed(true);
+                            setLoadingContinue(false);
+                        }
+                    } else {
+                        // Wait 500ms before retrying
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
                 }
-            } catch (err) {
-                console.error("Dashboard continue watch fetch failed", err);
-                if (active) setFetchFailed(true);
-            } finally {
-                if (active) setLoadingContinue(false);
             }
         };
 
