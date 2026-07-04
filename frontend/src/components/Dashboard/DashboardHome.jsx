@@ -173,7 +173,7 @@ const DashboardHome = () => {
                                 <div className="w-7 h-7 sm:w-10 sm:h-10 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center shrink-0 shadow-sm shadow-red-500/10 transition-transform duration-300 group-hover:scale-105">
                                     <Youtube size={16} className="sm:w-5 sm:h-5" />
                                 </div>
-                                <h3 className="text-[11px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Learning Hub</h3>
+                                <h3 className="text-[13px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Learning Hub</h3>
                             </div>
                             <div className="min-w-0 flex-1 w-full text-center sm:text-left">
                                 <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center sm:text-left w-full">
@@ -204,7 +204,7 @@ const DashboardHome = () => {
                                 <div className="w-7 h-7 sm:w-10 sm:h-10 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/10 transition-transform duration-300 group-hover:scale-105">
                                     <Globe size={16} className="sm:w-5 sm:h-5" />
                                 </div>
-                                <h3 className="text-[11px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Live Rooms</h3>
+                                <h3 className="text-[13px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Live Rooms</h3>
                             </div>
                             <div className="min-w-0 flex-1 w-full text-center sm:text-left">
                                 <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center sm:text-left w-full">
@@ -235,7 +235,7 @@ const DashboardHome = () => {
                                 <div className="w-7 h-7 sm:w-10 sm:h-10 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/10 transition-transform duration-300 group-hover:scale-105">
                                     <Users size={16} className="sm:w-5 sm:h-5" />
                                 </div>
-                                <h3 className="text-[11px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h3>
+                                <h3 className="text-[13px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h3>
                             </div>
                             <div className="min-w-0 flex-1 w-full text-center sm:text-left">
                                 <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center sm:text-left w-full">
