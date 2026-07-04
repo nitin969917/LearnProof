@@ -25,7 +25,7 @@ dating-dev.db-journal
 prisma/migrations/
 
 # Logs
-*.log
+*.log*
 logs/
 
 # IDE files
