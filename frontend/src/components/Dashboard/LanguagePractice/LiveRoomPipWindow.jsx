@@ -274,7 +274,7 @@ export default function LiveRoomPipWindow() {
       drag
       dragMomentum={false}
       dragElastic={0.05}
-      className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-[9999] w-64 h-[155px] bg-gray-950 border border-white/10 dark:border-white/5 rounded-2xl shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300 cursor-move touch-none"
+      className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-[9999] w-[180px] h-[290px] bg-gray-950 border border-white/10 dark:border-white/5 rounded-2xl shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300 cursor-move touch-none"
     >
       <LiveKitRoom
         serverUrl={pipRoom.serverUrl}
