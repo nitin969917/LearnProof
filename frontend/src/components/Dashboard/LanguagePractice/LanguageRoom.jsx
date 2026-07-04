@@ -1792,24 +1792,26 @@ export default function LanguageRoom() {
   }, [user, roomName, navigate]);
 
   // On mount/unmount logic for PIP
-  const pipValuesRef = useRef({ token, serverUrl, dbRoom, userIdentity });
+  const pipValuesRef = useRef({ token, serverUrl, dbRoom, userIdentity, isMicEnabled, isCamEnabled });
   useEffect(() => {
-    pipValuesRef.current = { token, serverUrl, dbRoom, userIdentity };
-  }, [token, serverUrl, dbRoom, userIdentity]);
+    pipValuesRef.current = { token, serverUrl, dbRoom, userIdentity, isMicEnabled, isCamEnabled };
+  }, [token, serverUrl, dbRoom, userIdentity, isMicEnabled, isCamEnabled]);
 
   useEffect(() => {
     // Clear PIP state if we return to the room
     useLiveRoomPipStore.getState().clearPipRoom();
 
     return () => {
-      const { token, serverUrl, dbRoom, userIdentity } = pipValuesRef.current;
+      const { token, serverUrl, dbRoom, userIdentity, isMicEnabled, isCamEnabled } = pipValuesRef.current;
       if (!hasExplicitlyLeft.current && token && serverUrl && dbRoom) {
         useLiveRoomPipStore.getState().setPipRoom({
           roomName,
           token,
           serverUrl,
           dbRoom,
-          userIdentity
+          userIdentity,
+          initialMicEnabled: isMicEnabled,
+          initialCamEnabled: isCamEnabled
         });
       }
     };

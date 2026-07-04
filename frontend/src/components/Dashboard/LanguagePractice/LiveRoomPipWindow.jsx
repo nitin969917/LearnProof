@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveRoomPipStore } from '../../../store/liveRoomPipStore';
-import { X, Maximize2, Mic, MicOff } from 'lucide-react';
+import { X, Maximize2, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -33,7 +33,8 @@ const getFilterCss = (filterName) => {
 function PipContent({ pipRoom, onMaximize, onClose }) {
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(!pipRoom.initialMicEnabled);
+  const [isCamOff, setIsCamOff] = useState(!pipRoom.initialCamEnabled);
   const [beautyFilter] = useState(() => {
     return localStorage.getItem('livekit_beauty_filter') || 'none';
   });
@@ -46,14 +47,34 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
     }
   }, [localParticipant, localParticipant?.isMicrophoneEnabled]);
 
+  // Sync camera state with LocalParticipant
+  useEffect(() => {
+    if (localParticipant) {
+      setIsCamOff(!localParticipant.isCameraEnabled);
+    }
+  }, [localParticipant, localParticipant?.isCameraEnabled]);
+
   const toggleMic = async () => {
     if (!localParticipant) return;
     try {
       const targetState = !localParticipant.isMicrophoneEnabled;
       await localParticipant.setMicrophoneEnabled(targetState);
       setIsMuted(!targetState);
+      localStorage.setItem(`livekit_mic_${pipRoom.roomName}`, targetState ? 'enabled' : 'disabled');
     } catch (err) {
       console.error('Failed to toggle mic in PiP:', err);
+    }
+  };
+
+  const toggleCam = async () => {
+    if (!localParticipant) return;
+    try {
+      const targetState = !localParticipant.isCameraEnabled;
+      await localParticipant.setCameraEnabled(targetState);
+      setIsCamOff(!targetState);
+      localStorage.setItem(`livekit_cam_${pipRoom.roomName}`, targetState ? 'enabled' : 'disabled');
+    } catch (err) {
+      console.error('Failed to toggle camera in PiP:', err);
     }
   };
 
@@ -150,10 +171,10 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
 
       {/* Footer controls */}
       {localParticipant?.permissions?.canPublish && (
-        <div className="p-3 z-10 flex justify-center bg-gradient-to-t from-black/80 to-transparent">
+        <div className="p-2 z-10 flex justify-center gap-2 bg-gradient-to-t from-black/85 to-transparent shrink-0">
           <button
             onClick={toggleMic}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black tracking-wider uppercase transition active:scale-95 cursor-pointer ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[9px] font-black tracking-wider uppercase transition active:scale-95 cursor-pointer ${
               isMuted 
                 ? 'bg-red-500 text-white hover:bg-red-600' 
                 : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
@@ -162,6 +183,20 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
             {isMuted ? <MicOff size={10} /> : <Mic size={10} />}
             <span>{isMuted ? 'Muted' : 'Mute'}</span>
           </button>
+
+          {pipRoom.dbRoom?.mediaType === 'video' && (
+            <button
+              onClick={toggleCam}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[9px] font-black tracking-wider uppercase transition active:scale-95 cursor-pointer ${
+                isCamOff 
+                  ? 'bg-red-500 text-white hover:bg-red-600' 
+                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
+              }`}
+            >
+              {isCamOff ? <VideoOff size={10} /> : <Video size={10} />}
+              <span>{isCamOff ? 'Cam Off' : 'Cam On'}</span>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -239,14 +274,14 @@ export default function LiveRoomPipWindow() {
       drag
       dragMomentum={false}
       dragElastic={0.05}
-      className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-[9999] w-56 h-48 bg-gray-950 border border-white/10 dark:border-white/5 rounded-2xl shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300 cursor-move touch-none"
+      className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-[9999] w-64 h-[155px] bg-gray-950 border border-white/10 dark:border-white/5 rounded-2xl shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300 cursor-move touch-none"
     >
       <LiveKitRoom
         serverUrl={pipRoom.serverUrl}
         token={pipRoom.token}
         connect={true}
-        video={pipRoom.dbRoom?.mediaType === 'video'}
-        audio={true}
+        video={pipRoom.dbRoom?.mediaType === 'video' && pipRoom.initialCamEnabled}
+        audio={pipRoom.initialMicEnabled}
         onDisconnected={clearPipRoom}
         style={{ height: '100%' }}
         data-lk-theme="default"
