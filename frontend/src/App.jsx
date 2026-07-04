@@ -9,17 +9,24 @@ import { initializeLaunch } from './utils/launch';
 // Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
 const lazyWithRetry = (componentImport) => {
     return lazy(async () => {
-        try {
-            return await componentImport();
-        } catch (error) {
-            console.error("Failed to load chunk, attempting to reload...", error);
-            const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
-            const now = Date.now();
-            if (!lastReload || now - parseInt(lastReload, 10) > 15000) {
-                sessionStorage.setItem('chunk_reload_timestamp', String(now));
-                window.location.reload();
+        const retries = 2;
+        for (let i = 0; i <= retries; i++) {
+            try {
+                return await componentImport();
+            } catch (error) {
+                console.error(`Failed to load chunk (attempt ${i + 1}/${retries + 1}):`, error);
+                if (i === retries) {
+                    const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
+                    const now = Date.now();
+                    if (!lastReload || now - parseInt(lastReload, 10) > 15000) {
+                        sessionStorage.setItem('chunk_reload_timestamp', String(now));
+                        window.location.reload();
+                    }
+                    throw error;
+                }
+                // Wait 300ms before retrying
+                await new Promise(resolve => setTimeout(resolve, 300));
             }
-            throw error;
         }
     });
 };
