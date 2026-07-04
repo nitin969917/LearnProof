@@ -21,6 +21,17 @@ const LoginPage = () => {
     });
 
     useEffect(() => {
+        // Expose native Google login callback for the Flutter wrapper
+        window.handleNativeGoogleLogin = (idToken) => {
+            console.log("Received native Google login token callback.");
+            handleLoginFlow(idToken);
+        };
+        return () => {
+            delete window.handleNativeGoogleLogin;
+        };
+    }, []);
+
+    useEffect(() => {
         // If already logged in, redirect to dashboard immediately
         if (!loading && user) {
             navigate("/dashboard");
@@ -67,6 +78,19 @@ const LoginPage = () => {
     };
 
     const handleManualGoogleLogin = () => {
+        const isFlutter = navigator.userAgent.includes('LearnProofApp') || !!window.GoogleSignInChannel;
+        
+        if (isFlutter) {
+            console.log("Triggering native Google Sign-In via channel...");
+            if (window.GoogleSignInChannel) {
+                window.GoogleSignInChannel.postMessage('signIn');
+            } else {
+                console.error("GoogleSignInChannel not found in window object.");
+                toast.error("Google Sign-In is unavailable in this app version.");
+            }
+            return;
+        }
+
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         // MUST redirect to window.location.origin to match the authorized redirect URIs in Google Cloud Console
         const redirectUri = window.location.origin;
