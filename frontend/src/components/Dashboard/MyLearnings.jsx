@@ -249,7 +249,7 @@ const MyLearnings = () => {
                         </div>
                         My Learning
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">Your curated digital library.</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">Your curated digital library. Track your progress, review saved courses, and build roadmaps.</p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
