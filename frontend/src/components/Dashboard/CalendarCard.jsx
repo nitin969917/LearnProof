@@ -128,110 +128,108 @@ const CalendarCard = () => {
             </div>
 
             <div className="p-4">
-                <div className="max-w-[280px] mx-auto sm:max-w-none w-full">
-                    {/* Calendar Controls */}
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-md font-semibold text-gray-700 dark:text-gray-200">
-                            {monthNames[currentMonth]} {currentYear}
-                        </h3>
-                        <div className="flex gap-2">
-                            <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-orange-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition">
-                                <ChevronLeft size={18} />
-                            </button>
-                            <button onClick={handleNextMonth} className="p-1 rounded-full hover:bg-orange-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition">
-                                <ChevronRight size={18} />
-                            </button>
-                        </div>
+                {/* Calendar Controls */}
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-md font-semibold text-gray-700 dark:text-gray-200">
+                        {monthNames[currentMonth]} {currentYear}
+                    </h3>
+                    <div className="flex gap-2">
+                        <button onClick={handlePrevMonth} className="p-1 rounded-full hover:bg-orange-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition">
+                            <ChevronLeft size={18} />
+                        </button>
+                        <button onClick={handleNextMonth} className="p-1 rounded-full hover:bg-orange-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition">
+                            <ChevronRight size={18} />
+                        </button>
                     </div>
+                </div>
 
-                    {/* Days of week header */}
-                    <div className="grid grid-cols-7 gap-1 text-center mb-2 w-full">
-                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                            <div key={day} className="text-[10px] sm:text-xs font-semibold text-gray-400 dark:text-gray-500">{day}</div>
-                        ))}
-                    </div>
+                {/* Days of week header */}
+                <div className="grid grid-cols-7 gap-1 text-center mb-2 w-full">
+                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
+                        <div key={day} className="text-[10px] sm:text-xs font-semibold text-gray-400 dark:text-gray-500">{day}</div>
+                    ))}
+                </div>
 
-                    {/* Calendar Grid */}
-                    <div className="grid grid-cols-7 gap-1 w-full">
-                        {blanks.map(b => (
-                            <div key={`blank-${b}`} className="aspect-square"></div>
-                        ))}
-                        {days.map(day => {
-                            const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                            const isToday =
-                                day === today.getDate() &&
-                                currentMonth === today.getMonth() &&
-                                currentYear === today.getFullYear();
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-1 w-full">
+                    {blanks.map(b => (
+                        <div key={`blank-${b}`} className="h-9 sm:h-10"></div>
+                    ))}
+                    {days.map(day => {
+                        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const isToday =
+                            day === today.getDate() &&
+                            currentMonth === today.getMonth() &&
+                            currentYear === today.getFullYear();
 
-                            const dayData = activityData[dateStr] || { activity_count: 0, activities: [] };
-                            const activityCount = dayData.activity_count;
-                            const dayActivities = dayData.activities || [];
+                        const dayData = activityData[dateStr] || { activity_count: 0, activities: [] };
+                        const activityCount = dayData.activity_count;
+                        const dayActivities = dayData.activities || [];
 
-                            // Determine color intensity based on activity count
-                            let bgColor = "bg-gray-55 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200";
-                            if (activityCount > 0) bgColor = "bg-orange-200 dark:bg-orange-950/40 hover:bg-orange-300 dark:hover:bg-orange-800/60 text-orange-900 dark:text-orange-200";
-                            if (activityCount >= 3) bgColor = "bg-orange-400 dark:bg-orange-500 hover:bg-orange-500 dark:hover:bg-orange-500 text-white";
-                            if (activityCount >= 6) bgColor = "bg-orange-600 dark:bg-orange-500 hover:bg-orange-700 dark:hover:bg-orange-400 text-white";
+                        // Determine color intensity based on activity count
+                        let bgColor = "bg-gray-55 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200";
+                        if (activityCount > 0) bgColor = "bg-orange-200 dark:bg-orange-950/40 hover:bg-orange-300 dark:hover:bg-orange-800/60 text-orange-900 dark:text-orange-200";
+                        if (activityCount >= 3) bgColor = "bg-orange-400 dark:bg-orange-500 hover:bg-orange-500 dark:hover:bg-orange-500 text-white";
+                        if (activityCount >= 6) bgColor = "bg-orange-600 dark:bg-orange-500 hover:bg-orange-700 dark:hover:bg-orange-400 text-white";
 
-                            const isActive = activeDate === dateStr;
+                        const isActive = activeDate === dateStr;
 
-                            return (
-                                <div
-                                    key={day}
-                                    className={`relative aspect-square flex items-center justify-center rounded-md text-xs sm:text-sm transition-colors cursor-pointer ${bgColor} ${isToday ? 'ring-2 ring-orange-500 ring-offset-1 font-bold' : ''}`}
-                                    onClick={(e) => {
-                                        e.stopPropagation(); // Prevent document click from closing it immediately
-                                        setActiveDate(isActive ? null : dateStr); // Toggle
-                                    }}
-                                >
-                                    {day}
+                        return (
+                            <div
+                                key={day}
+                                className={`relative h-9 sm:h-10 flex items-center justify-center rounded-md text-xs sm:text-sm transition-colors cursor-pointer ${bgColor} ${isToday ? 'ring-2 ring-orange-500 ring-offset-1 font-bold' : ''}`}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent document click from closing it immediately
+                                    setActiveDate(isActive ? null : dateStr); // Toggle
+                                }}
+                            >
+                                {day}
 
-                                    {isActive && (
-                                        <div
-                                            className="fixed left-4 right-4 top-1/2 -translate-y-1/2 sm:absolute sm:inset-auto sm:top-auto sm:bottom-full sm:left-1/2 sm:-translate-x-1/2 sm:mb-2 sm:w-72 bg-gray-900 text-white text-xs rounded-lg p-4 sm:p-3 shadow-2xl transition-all duration-200 z-[60] opacity-100 visible translate-y-0"
-                                            onClick={(e) => e.stopPropagation()} // Let user scroll/click inside without closing
-                                        >
-                                            {/* Mobile Backdrop - only visible when active on small screens */}
-                                            <div className="fixed inset-0 bg-black/40 -z-10 sm:hidden" onClick={() => setActiveDate(null)} />
-                                            <div className="font-semibold mb-2 text-orange-400 border-b border-gray-700 pb-1 flex justify-between items-center">
-                                                <span>{monthNames[currentMonth]} {day}, {currentYear}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-xs text-gray-300 my-2 font-semibold">
-                                                <span>⏱️ Screen Time:</span>
-                                                <span className="text-orange-400 font-bold">{formatSeconds(getScreenTimeForDate(dateStr))}</span>
-                                            </div>
-                                            {dayActivities.length > 0 ? (
-                                                <div className="mt-2.5">
-                                                    <div className="text-[10px] font-bold uppercase text-gray-400 mb-1.5 tracking-wider border-t border-gray-800 pt-2">Activities</div>
-                                                    <ul className="space-y-1.5 text-left max-h-36 overflow-y-auto custom-scrollbar">
-                                                        {dayActivities.map((act, idx) => (
-                                                            <li key={idx} className="flex items-start gap-1.5 leading-snug">
-                                                                <span className="text-orange-500 text-[10px] mt-[3px]">●</span>
-                                                                <span className="break-words text-gray-200">{act}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            ) : (
-                                                <div className="text-[10px] text-gray-500 italic mt-1 border-t border-gray-800 pt-2">No learning activity recorded.</div>
-                                            )}
-                                            <div className="absolute left-1/2 -bottom-1 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                {isActive && (
+                                    <div
+                                        className="fixed left-4 right-4 top-1/2 -translate-y-1/2 sm:absolute sm:inset-auto sm:top-auto sm:bottom-full sm:left-1/2 sm:-translate-x-1/2 sm:mb-2 sm:w-72 bg-gray-900 text-white text-xs rounded-lg p-4 sm:p-3 shadow-2xl transition-all duration-200 z-[60] opacity-100 visible translate-y-0"
+                                        onClick={(e) => e.stopPropagation()} // Let user scroll/click inside without closing
+                                    >
+                                        {/* Mobile Backdrop - only visible when active on small screens */}
+                                        <div className="fixed inset-0 bg-black/40 -z-10 sm:hidden" onClick={() => setActiveDate(null)} />
+                                        <div className="font-semibold mb-2 text-orange-400 border-b border-gray-700 pb-1 flex justify-between items-center">
+                                            <span>{monthNames[currentMonth]} {day}, {currentYear}</span>
                                         </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
+                                        <div className="flex items-center gap-1.5 text-xs text-gray-300 my-2 font-semibold">
+                                            <span>⏱️ Screen Time:</span>
+                                            <span className="text-orange-400 font-bold">{formatSeconds(getScreenTimeForDate(dateStr))}</span>
+                                        </div>
+                                        {dayActivities.length > 0 ? (
+                                            <div className="mt-2.5">
+                                                <div className="text-[10px] font-bold uppercase text-gray-400 mb-1.5 tracking-wider border-t border-gray-800 pt-2">Activities</div>
+                                                <ul className="space-y-1.5 text-left max-h-36 overflow-y-auto custom-scrollbar">
+                                                    {dayActivities.map((act, idx) => (
+                                                        <li key={idx} className="flex items-start gap-1.5 leading-snug">
+                                                            <span className="text-orange-500 text-[10px] mt-[3px]">●</span>
+                                                            <span className="break-words text-gray-200">{act}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ) : (
+                                            <div className="text-[10px] text-gray-500 italic mt-1 border-t border-gray-800 pt-2">No learning activity recorded.</div>
+                                        )}
+                                        <div className="absolute left-1/2 -bottom-1 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
 
-                    {/* Legend */}
-                    <div className="flex items-center gap-2 mt-3 text-[10px] text-gray-500 dark:text-gray-400 justify-end w-full">
-                        <span>Less</span>
-                        <div className="w-2.5 h-2.5 rounded-sm bg-gray-55 dark:bg-gray-700 border border-gray-100 dark:border-gray-600"></div>
-                        <div className="w-2.5 h-2.5 rounded-sm bg-orange-200 dark:bg-orange-95/40"></div>
-                        <div className="w-2.5 h-2.5 rounded-sm bg-orange-400 dark:bg-orange-550"></div>
-                        <div className="w-2.5 h-2.5 rounded-sm bg-orange-600 dark:bg-orange-500"></div>
-                        <span>More</span>
-                    </div>
+                {/* Legend */}
+                <div className="flex items-center gap-2 mt-3 text-[10px] text-gray-500 dark:text-gray-400 justify-end w-full">
+                    <span>Less</span>
+                    <div className="w-2.5 h-2.5 rounded-sm bg-gray-55 dark:bg-gray-700 border border-gray-100 dark:border-gray-600"></div>
+                    <div className="w-2.5 h-2.5 rounded-sm bg-orange-200 dark:bg-orange-95/40"></div>
+                    <div className="w-2.5 h-2.5 rounded-sm bg-orange-400 dark:bg-orange-555"></div>
+                    <div className="w-2.5 h-2.5 rounded-sm bg-orange-600 dark:bg-orange-500"></div>
+                    <span>More</span>
                 </div>
             </div>
         </div>

@@ -127,7 +127,7 @@ const PlaylistProgress = () => {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-[2rem] shadow-2xl"
+                className="relative overflow-hidden rounded-[2rem] shadow-lg border border-orange-100/10"
             >
                 {/* Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-orange-500 to-red-500" />
@@ -147,10 +147,10 @@ const PlaylistProgress = () => {
                         <img
                             src={playlist.thumbnail}
                             alt={playlist.name}
-                            className="w-full max-w-[180px] md:max-w-[300px] aspect-video object-cover rounded-2xl shadow-2xl border-2 md:border-4 border-white/20 ring-1 ring-white/10 flex-shrink-0"
+                            className="w-full max-w-[180px] md:max-w-[300px] aspect-video object-cover rounded-2xl shadow-md border-2 md:border-4 border-white/20 ring-1 ring-white/10 flex-shrink-0"
                         />
                     ) : (
-                        <div className="w-full max-w-[180px] md:max-w-[300px] aspect-video bg-white/10 rounded-2xl shadow-2xl border-2 md:border-4 border-white/20 flex items-center justify-center flex-shrink-0">
+                        <div className="w-full max-w-[180px] md:max-w-[300px] aspect-video bg-white/10 rounded-2xl shadow-md border-2 md:border-4 border-white/20 flex items-center justify-center flex-shrink-0">
                             <Play size={36} className="text-white/60" />
                         </div>
                     )}

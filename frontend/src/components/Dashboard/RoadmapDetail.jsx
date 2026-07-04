@@ -240,7 +240,7 @@ const RoadmapDetail = () => {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-[2rem] shadow-2xl"
+                className="relative overflow-hidden rounded-[2rem] shadow-lg border border-orange-100/10"
             >
                 {/* Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-orange-500 to-red-500" />
@@ -261,11 +261,11 @@ const RoadmapDetail = () => {
                             <img
                                 src={playlist.thumbnail}
                                 alt={playlist.name}
-                                className="w-full max-w-[200px] md:max-w-[320px] aspect-video object-cover rounded-2xl shadow-2xl border-2 md:border-4 border-white/20 ring-1 ring-white/10 flex-shrink-0 transition-transform duration-500 group-hover:scale-105"
+                                className="w-full max-w-[200px] md:max-w-[320px] aspect-video object-cover rounded-2xl shadow-md border-2 md:border-4 border-white/20 ring-1 ring-white/10 flex-shrink-0 transition-transform duration-500 group-hover:scale-105"
                             />
                         </div>
                     ) : (
-                        <div className="w-full max-w-[200px] md:max-w-[320px] aspect-video bg-white/10 rounded-2xl shadow-2xl border-2 md:border-4 border-white/20 flex items-center justify-center flex-shrink-0">
+                        <div className="w-full max-w-[200px] md:max-w-[320px] aspect-video bg-white/10 rounded-2xl shadow-md border-2 md:border-4 border-white/20 flex items-center justify-center flex-shrink-0">
                             <Play size={40} className="text-white/60 md:w-14 md:h-14" />
                         </div>
                     )}
@@ -298,23 +298,23 @@ const RoadmapDetail = () => {
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex flex-col sm:flex-row gap-2.5 md:gap-3 justify-center md:justify-start pt-2 md:pt-4">
+                        {/* Action Buttons — always side by side */}
+                        <div className="flex flex-row flex-wrap gap-2 justify-center md:justify-start pt-1">
                             {playlist.videos?.find(v => !v.is_completed) && (
                                 <button
                                     onClick={() => navigate(`/classroom/${playlist.videos.find(v => !v.is_completed).vid}`)}
-                                    className="flex items-center justify-center sm:justify-start gap-2 px-4 md:px-6 py-2.5 md:py-3 bg-white text-orange-600 rounded-2xl font-black text-xs md:text-sm hover:bg-orange-50 hover:shadow-xl transition-all active:scale-95 w-full sm:w-auto"
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-orange-600 rounded-full font-black text-xs hover:bg-orange-50 hover:shadow-lg transition-all active:scale-95 shadow-md"
                                 >
-                                    <Play size={16} className="fill-orange-600 md:w-[18px] md:h-[18px]" />
+                                    <Play size={13} className="fill-orange-600" />
                                     Continue Roadmap
                                 </button>
                             )}
 
                             <button
                                 onClick={() => setIsEditingGoal(!isEditingGoal)}
-                                className={`flex items-center justify-center sm:justify-start gap-2 px-4 md:px-6 py-2.5 md:py-3 ${isEditingGoal ? 'bg-orange-500 text-white' : 'bg-white/10 backdrop-blur-md text-white border border-white/20'} rounded-2xl font-black text-xs md:text-sm hover:bg-white/20 hover:shadow-xl transition-all active:scale-95 w-full sm:w-auto`}
+                                className={`inline-flex items-center gap-1.5 px-4 py-2 ${isEditingGoal ? 'bg-orange-500 text-white border border-orange-400' : 'bg-white/15 backdrop-blur-md text-white border border-white/25'} rounded-full font-black text-xs hover:bg-white/25 transition-all active:scale-95 shadow-md`}
                             >
-                                <Sparkles size={16} className={`${isEditingGoal ? 'text-white' : 'text-amber-300'} md:w-[18px] md:h-[18px]`} />
+                                <Sparkles size={13} className={isEditingGoal ? 'text-white' : 'text-amber-300'} />
                                 {isEditingGoal ? "Cancel Edit" : "Recalculate Roadmap"}
                             </button>
                         </div>
