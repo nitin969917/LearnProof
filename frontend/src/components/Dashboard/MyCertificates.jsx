@@ -16,24 +16,42 @@ const MyCertificates = () => {
 
   useEffect(() => {
     if (!token) return;
+    let active = true;
 
-    const fetchCertificates = async () => {
-      setLoading(true);
-      try {
-        const res = await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/api/certs/`,
-          { idToken: token }
-        );
-        setCerts(res.data || []); 
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to fetch certificates");
-      } finally {
-        setLoading(false);
+    const fetchCertificates = async (retries = 2) => {
+      for (let i = 0; i <= retries; i++) {
+        try {
+          const res = await axios.post(
+            `${import.meta.env.VITE_BACKEND_URL}/api/certs/`,
+            { idToken: token }
+          );
+          if (active) {
+            setCerts(res.data || []);
+            setLoading(false);
+          }
+          return; // Success, exit
+        } catch (err) {
+          console.warn(`MyCertificates fetch attempt ${i + 1} failed:`, err);
+          if (i === retries) {
+            console.error("Failed to fetch certificates after retries", err);
+            if (active) {
+              toast.error("Failed to fetch certificates");
+              setLoading(false);
+            }
+          } else {
+            // Wait 500ms before retrying
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
       }
     };
 
+    setLoading(true);
     fetchCertificates();
+
+    return () => {
+      active = false;
+    };
   }, [token]);
 
   if (loading) {

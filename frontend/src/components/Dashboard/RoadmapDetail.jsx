@@ -62,25 +62,45 @@ const RoadmapDetail = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchDetails = async () => {
+        let active = true;
+
+        const fetchDetails = async (retries = 2) => {
             if (!token || !pid) return;
-            try {
-                const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/playlist-detail/`, {
-                    idToken: token,
-                    pid: pid
-                });
-                
-                const { playlist: plData, videos } = response.data;
-                setPlaylist({ ...plData, videos: videos || [] });
-            } catch (error) {
-                console.error("Failed to fetch playlist details:", error);
-                toast.error("Failed to load roadmap details.");
-            } finally {
-                setLoading(false);
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/playlist-detail/`, {
+                        idToken: token,
+                        pid: pid
+                    });
+                    
+                    if (active) {
+                        const { playlist: plData, videos } = response.data;
+                        setPlaylist({ ...plData, videos: videos || [] });
+                        setLoading(false);
+                    }
+                    return; // Success, exit
+                } catch (error) {
+                    console.warn(`RoadmapDetail fetch attempt ${i + 1} failed:`, error);
+                    if (i === retries) {
+                        console.error("Failed to fetch playlist details after retries:", error);
+                        if (active) {
+                            toast.error("Failed to load roadmap details.");
+                            setLoading(false);
+                        }
+                    } else {
+                        // Wait 500ms before retrying
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
             }
         };
 
+        setLoading(true);
         fetchDetails();
+
+        return () => {
+            active = false;
+        };
     }, [token, pid]);
 
     const [isEditingGoal, setIsEditingGoal] = useState(false);

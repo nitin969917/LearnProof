@@ -23,31 +23,49 @@ const PlaylistProgress = () => {
     const ITEMS_PER_PAGE = 20;
 
     useEffect(() => {
-        const fetchPlaylistDetails = async () => {
-            try {
-                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/playlist-detail/`, {
-                    idToken: token,
-                    pid: playlistId
-                });
-                if (res.data) {
-                    setPlaylist(res.data.playlist);
-                    setVideos(res.data.videos);
-                    if (res.data.playlist.duration_goal) {
-                        setRoadmapDays(res.data.playlist.duration_goal.toString());
+        let active = true;
+
+        const fetchPlaylistDetails = async (retries = 2) => {
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/playlist-detail/`, {
+                        idToken: token,
+                        pid: playlistId
+                    });
+                    if (active && res.data) {
+                        setPlaylist(res.data.playlist);
+                        setVideos(res.data.videos);
+                        if (res.data.playlist.duration_goal) {
+                            setRoadmapDays(res.data.playlist.duration_goal.toString());
+                        }
+                        setLoading(false);
+                    }
+                    return; // Success, exit
+                } catch (err) {
+                    console.warn(`PlaylistProgress fetch attempt ${i + 1} failed:`, err);
+                    if (i === retries) {
+                        console.error("Failed to fetch playlist details after retries", err);
+                        if (active) {
+                            toast.error("Failed to load playlist.");
+                            navigate('/dashboard/library');
+                            setLoading(false);
+                        }
+                    } else {
+                        // Wait 500ms before retrying
+                        await new Promise(resolve => setTimeout(resolve, 500));
                     }
                 }
-            } catch (err) {
-                console.error("Failed to fetch playlist details", err);
-                toast.error("Failed to load playlist.");
-                navigate('/dashboard/library');
-            } finally {
-                setLoading(false);
             }
         };
 
         if (token && playlistId) {
+            setLoading(true);
             fetchPlaylistDetails();
         }
+
+        return () => {
+            active = false;
+        };
     }, [token, playlistId, navigate]);
 
     if (loading) {

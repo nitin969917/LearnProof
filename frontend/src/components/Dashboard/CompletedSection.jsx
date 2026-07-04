@@ -29,27 +29,47 @@ const CompletedSection = () => {
     };
 
     useEffect(() => {
-        const fetchCompleted = async () => {
-            try {
-                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/complete/`, {
-                    idToken: token,
-                });
+        let active = true;
 
-                if (res.data) {
-                    setVideos(res.data.videos || []);
-                    setPlaylists(res.data.playlists || []);
+        const fetchCompleted = async (retries = 2) => {
+            for (let i = 0; i <= retries; i++) {
+                try {
+                    const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/complete/`, {
+                        idToken: token,
+                    });
+
+                    if (active && res.data) {
+                        setVideos(res.data.videos || []);
+                        setPlaylists(res.data.playlists || []);
+                    }
+                    if (active) setLoading(false);
+                    return; // Success, exit
+                } catch (err) {
+                    console.warn(`CompletedSection fetch attempt ${i + 1} failed:`, err);
+                    if (i === retries) {
+                        console.error('Failed to load completed content after retries:', err);
+                        if (active) {
+                            if (err.response?.status !== 401) {
+                                toast.error("Failed to load completed content.");
+                            }
+                            setLoading(false);
+                        }
+                    } else {
+                        // Wait 500ms before retrying
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
                 }
-            } catch (err) {
-                if (err.response?.status !== 401) {
-                    toast.error("Failed to load completed content.");
-                }
-                console.error('Failed to load completed content:', err);
-            } finally {
-                setLoading(false);
             }
         };
 
-        if (token) fetchCompleted();
+        if (token) {
+            setLoading(true);
+            fetchCompleted();
+        }
+
+        return () => {
+            active = false;
+        };
     }, [token]);
 
     if (loading) {
