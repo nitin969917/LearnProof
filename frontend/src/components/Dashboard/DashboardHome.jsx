@@ -168,15 +168,15 @@ const DashboardHome = () => {
                         onClick={() => navigate((playlists.length === 0 && videos.length === 0) ? '/dashboard/explore' : '/dashboard/library')}
                     >
                         <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-2xl group-hover:bg-red-500/10 transition-all pointer-events-none" />
-                        <div className="flex flex-col items-center gap-2.5 flex-1 w-full min-w-0">
-                            <div className="flex flex-row items-center justify-center gap-1.5 sm:gap-3 w-full">
+                        <div className="flex flex-col items-center sm:items-start gap-2.5 flex-1 w-full min-w-0">
+                            <div className="flex flex-row items-center justify-center sm:justify-start gap-1.5 sm:gap-3 w-full">
                                 <div className="w-7 h-7 sm:w-10 sm:h-10 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center shrink-0 shadow-sm shadow-red-500/10 transition-transform duration-300 group-hover:scale-105">
                                     <Youtube size={16} className="sm:w-5 sm:h-5" />
                                 </div>
                                 <h3 className="text-[11px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Learning Hub</h3>
                             </div>
-                            <div className="min-w-0 flex-1 w-full text-center">
-                                <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center w-full">
+                            <div className="min-w-0 flex-1 w-full text-center sm:text-left">
+                                <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center sm:text-left w-full">
                                     Learn from YouTube videos, study AI notes, and view roadmaps.
                                 </p>
                             </div>
@@ -199,15 +199,15 @@ const DashboardHome = () => {
                         onClick={() => navigate('/dashboard/live-rooms')}
                     >
                         <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all pointer-events-none" />
-                        <div className="flex flex-col items-center gap-2.5 flex-1 w-full min-w-0">
-                            <div className="flex flex-row items-center justify-center gap-1.5 sm:gap-3 w-full">
+                        <div className="flex flex-col items-center sm:items-start gap-2.5 flex-1 w-full min-w-0">
+                            <div className="flex flex-row items-center justify-center sm:justify-start gap-1.5 sm:gap-3 w-full">
                                 <div className="w-7 h-7 sm:w-10 sm:h-10 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/10 transition-transform duration-300 group-hover:scale-105">
                                     <Globe size={16} className="sm:w-5 sm:h-5" />
                                 </div>
                                 <h3 className="text-[11px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Live Rooms</h3>
                             </div>
-                            <div className="min-w-0 flex-1 w-full text-center">
-                                <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center w-full">
+                            <div className="min-w-0 flex-1 w-full text-center sm:text-left">
+                                <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center sm:text-left w-full">
                                     Join audio/video study rooms and practice language in real-time.
                                 </p>
                             </div>
@@ -230,15 +230,15 @@ const DashboardHome = () => {
                         onClick={() => navigate('/dashboard/social')}
                     >
                         <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-all pointer-events-none" />
-                        <div className="flex flex-col items-center gap-2.5 flex-1 w-full min-w-0">
-                            <div className="flex flex-row items-center justify-center gap-1.5 sm:gap-3 w-full">
+                        <div className="flex flex-col items-center sm:items-start gap-2.5 flex-1 w-full min-w-0">
+                            <div className="flex flex-row items-center justify-center sm:justify-start gap-1.5 sm:gap-3 w-full">
                                 <div className="w-7 h-7 sm:w-10 sm:h-10 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/10 transition-transform duration-300 group-hover:scale-105">
                                     <Users size={16} className="sm:w-5 sm:h-5" />
                                 </div>
                                 <h3 className="text-[11px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h3>
                             </div>
-                            <div className="min-w-0 flex-1 w-full text-center">
-                                <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center w-full">
+                            <div className="min-w-0 flex-1 w-full text-center sm:text-left">
+                                <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center sm:text-left w-full">
                                     Connect with study partners, send messages, and share updates.
                                 </p>
                             </div>
@@ -254,13 +254,16 @@ const DashboardHome = () => {
                     </motion.div>
                 </div>
 
-                {/* Quick Resume Section (Desktop only) */}
-                <div className="hidden lg:block space-y-4 pt-6 border-t border-orange-100/50 dark:border-gray-700">
+                {/* Quick Resume Section */}
+                <div className="space-y-4 pt-6 border-t border-orange-100/50 dark:border-gray-700">
                     <div className="space-y-4">
                         <PlaylistSection data={playlists} loading={loadingLearnings} />
                         <VideosSection data={videos} loading={loadingLearnings} />
                         <ContinueWatching videos={continueVideos} loading={loadingContinue} />
-                        <CompletedSection />
+                        {/* Completed Section (Desktop only) */}
+                        <div className="hidden lg:block">
+                            <CompletedSection />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -274,14 +277,9 @@ const DashboardHome = () => {
                 <CalendarCard />
             </div>
 
-            {/* Quick Resume Section (Mobile only) */}
-            <div className="block lg:hidden w-full space-y-4 pt-6 border-t border-orange-100/50 dark:border-gray-700">
-                <div className="space-y-4">
-                    <PlaylistSection data={playlists} loading={loadingLearnings} />
-                    <VideosSection data={videos} loading={loadingLearnings} />
-                    <ContinueWatching videos={continueVideos} loading={loadingContinue} />
-                    <CompletedSection />
-                </div>
+            {/* Completed Section (Mobile only) */}
+            <div className="block lg:hidden w-full pt-6 border-t border-orange-100/50 dark:border-gray-700">
+                <CompletedSection />
             </div>
         </div>
     );
