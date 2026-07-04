@@ -254,8 +254,8 @@ const DashboardHome = () => {
                     </motion.div>
                 </div>
 
-                {/* Quick Resume Section */}
-                <div className="space-y-4 pt-6 border-t border-orange-100/50 dark:border-gray-700">
+                {/* Quick Resume Section (Desktop only) */}
+                <div className="hidden lg:block space-y-4 pt-6 border-t border-orange-100/50 dark:border-gray-700">
                     <div className="space-y-4">
                         <PlaylistSection data={playlists} loading={loadingLearnings} />
                         <VideosSection data={videos} loading={loadingLearnings} />
@@ -272,6 +272,16 @@ const DashboardHome = () => {
                     <DailyTasksCard />
                 </div>
                 <CalendarCard />
+            </div>
+
+            {/* Quick Resume Section (Mobile only) */}
+            <div className="block lg:hidden w-full space-y-4 pt-6 border-t border-orange-100/50 dark:border-gray-700">
+                <div className="space-y-4">
+                    <PlaylistSection data={playlists} loading={loadingLearnings} />
+                    <VideosSection data={videos} loading={loadingLearnings} />
+                    <ContinueWatching videos={continueVideos} loading={loadingContinue} />
+                    <CompletedSection />
+                </div>
             </div>
         </div>
     );

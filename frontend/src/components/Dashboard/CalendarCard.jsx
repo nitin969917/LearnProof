@@ -144,14 +144,14 @@ const CalendarCard = () => {
                 </div>
 
                 {/* Days of week header */}
-                <div className="grid grid-cols-7 gap-1 text-center mb-2">
+                <div className="grid grid-cols-7 gap-1 text-center mb-2 max-w-[280px] mx-auto sm:max-w-none">
                     {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                        <div key={day} className="text-xs font-medium text-gray-400 dark:text-gray-500">{day}</div>
+                        <div key={day} className="text-[10px] sm:text-xs font-semibold text-gray-400 dark:text-gray-500">{day}</div>
                     ))}
                 </div>
 
                 {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-1 max-w-[280px] mx-auto sm:max-w-none">
                     {blanks.map(b => (
                         <div key={`blank-${b}`} className="aspect-square"></div>
                     ))}
@@ -167,9 +167,9 @@ const CalendarCard = () => {
                         const dayActivities = dayData.activities || [];
 
                         // Determine color intensity based on activity count
-                        let bgColor = "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200";
+                        let bgColor = "bg-gray-55 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200";
                         if (activityCount > 0) bgColor = "bg-orange-200 dark:bg-orange-900/40 hover:bg-orange-300 dark:hover:bg-orange-800/60 text-orange-900 dark:text-orange-200";
-                        if (activityCount >= 3) bgColor = "bg-orange-400 dark:bg-orange-600 hover:bg-orange-500 dark:hover:bg-orange-500 text-white";
+                        if (activityCount >= 3) bgColor = "bg-orange-400 dark:bg-orange-500 hover:bg-orange-500 dark:hover:bg-orange-500 text-white";
                         if (activityCount >= 6) bgColor = "bg-orange-600 dark:bg-orange-500 hover:bg-orange-700 dark:hover:bg-orange-400 text-white";
 
                         const isActive = activeDate === dateStr;
@@ -177,7 +177,7 @@ const CalendarCard = () => {
                         return (
                             <div
                                 key={day}
-                                className={`relative aspect-square flex items-center justify-center rounded-md text-sm transition-colors cursor-pointer ${bgColor} ${isToday ? 'ring-2 ring-orange-500 ring-offset-1 font-bold' : ''}`}
+                                className={`relative aspect-square flex items-center justify-center rounded-md text-xs sm:text-sm transition-colors cursor-pointer ${bgColor} ${isToday ? 'ring-2 ring-orange-500 ring-offset-1 font-bold' : ''}`}
                                 onClick={(e) => {
                                     e.stopPropagation(); // Prevent document click from closing it immediately
                                     setActiveDate(isActive ? null : dateStr); // Toggle
@@ -223,12 +223,12 @@ const CalendarCard = () => {
                 </div>
 
                 {/* Legend */}
-                <div className="flex items-center gap-2 mt-2 text-xs text-gray-500 dark:text-gray-400 justify-end">
+                <div className="flex items-center gap-2 mt-3 text-[10px] text-gray-500 dark:text-gray-400 justify-end max-w-[280px] mx-auto sm:max-w-none">
                     <span>Less</span>
-                    <div className="w-3 h-3 rounded-sm bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600"></div>
-                    <div className="w-3 h-3 rounded-sm bg-orange-200 dark:bg-orange-900/40"></div>
-                    <div className="w-3 h-3 rounded-sm bg-orange-400 dark:bg-orange-600"></div>
-                    <div className="w-3 h-3 rounded-sm bg-orange-600 dark:bg-orange-500"></div>
+                    <div className="w-2.5 h-2.5 rounded-sm bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600"></div>
+                    <div className="w-2.5 h-2.5 rounded-sm bg-orange-200 dark:bg-orange-950/40"></div>
+                    <div className="w-2.5 h-2.5 rounded-sm bg-orange-400 dark:bg-orange-550"></div>
+                    <div className="w-2.5 h-2.5 rounded-sm bg-orange-600 dark:bg-orange-500"></div>
                     <span>More</span>
                 </div>
             </div>
