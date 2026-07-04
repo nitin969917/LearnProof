@@ -1792,18 +1792,24 @@ export default function LanguageRoom() {
   }, [user, roomName, navigate]);
 
   // On mount/unmount logic for PIP
-  const pipValuesRef = useRef({ token, serverUrl, dbRoom, userIdentity, isMicEnabled, isCamEnabled });
+  const pipValuesRef = useRef({ token, serverUrl, dbRoom, userIdentity });
   useEffect(() => {
-    pipValuesRef.current = { token, serverUrl, dbRoom, userIdentity, isMicEnabled, isCamEnabled };
-  }, [token, serverUrl, dbRoom, userIdentity, isMicEnabled, isCamEnabled]);
+    pipValuesRef.current = { token, serverUrl, dbRoom, userIdentity };
+  }, [token, serverUrl, dbRoom, userIdentity]);
 
   useEffect(() => {
     // Clear PIP state if we return to the room
     useLiveRoomPipStore.getState().clearPipRoom();
 
     return () => {
-      const { token, serverUrl, dbRoom, userIdentity, isMicEnabled, isCamEnabled } = pipValuesRef.current;
+      const { token, serverUrl, dbRoom, userIdentity } = pipValuesRef.current;
       if (!hasExplicitlyLeft.current && token && serverUrl && dbRoom) {
+        const savedMic = localStorage.getItem(`livekit_mic_${roomName}`);
+        const isMicEnabled = savedMic !== 'disabled';
+
+        const savedCam = localStorage.getItem(`livekit_cam_${roomName}`);
+        const isCamEnabled = savedCam === 'enabled';
+
         useLiveRoomPipStore.getState().setPipRoom({
           roomName,
           token,
