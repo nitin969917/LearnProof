@@ -14,7 +14,11 @@ const verifyFirebaseToken = async (idToken) => {
     try {
         const ticket = await client.verifyIdToken({
             idToken,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            audience: [
+                process.env.GOOGLE_CLIENT_ID,
+                '549492309059-6k98pip4c51rdsh69cls1s7ti2s8ci8n.apps.googleusercontent.com', // iOS Client ID
+                '549492309059-gnp3l12c78becf8v2svifc31f7g0epm7.apps.googleusercontent.com', // Android Client ID
+            ].filter(Boolean),
         });
         const payload = ticket.getPayload();
 

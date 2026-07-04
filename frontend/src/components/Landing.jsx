@@ -288,6 +288,18 @@ const LandingPage = () => {
     }, []);
 
     useEffect(() => {
+        const isFlutter = navigator.userAgent.includes('LearnProofApp') || !!window.GoogleSignInChannel;
+        if (isFlutter && !loading) {
+            if (user) {
+                const redirectTo = sessionStorage.getItem("redirect_to") || "/dashboard";
+                sessionStorage.removeItem("redirect_to");
+                navigate(redirectTo);
+            } else {
+                navigate('/login');
+            }
+            return;
+        }
+
         if (!loading && user) {
             if (location.pathname === '/') {
                 const redirectTo = sessionStorage.getItem("redirect_to") || "/dashboard";

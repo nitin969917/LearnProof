@@ -13,7 +13,8 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!user) {
-    return <Navigate to="/" replace />;
+    const isFlutter = navigator.userAgent.includes('LearnProofApp') || !!window.GoogleSignInChannel;
+    return <Navigate to={isFlutter ? "/login" : "/"} replace />;
   }
 
   return children;
