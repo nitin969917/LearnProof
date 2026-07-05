@@ -179,11 +179,11 @@ const LoginPage = () => {
                                 { text: "AI-Powered YouTube Course Learning", icon: <Youtube className="w-4 h-4 text-red-500" /> },
                                 { text: "Progress Tracking & Study Planner", icon: <TrendingUp className="w-4 h-4 text-blue-500" /> },
                                 { text: "Certificates & Achievements", icon: <Award className="w-4 h-4 text-orange-500" /> },
-                                { text: "Smart Notes & AI Intuition", icon: <Lightbulb className="w-4 h-4 text-yellow-500" /> },
                                 { text: "Interactive Speaking Rooms", icon: <MessageSquare className="w-4 h-4 text-emerald-500" /> },
+                                { text: "Smart Notes & AI Intuition", icon: <Lightbulb className="w-4 h-4 text-yellow-500" /> },
                                 { text: "AI Quiz & Roadmaps", icon: <Zap className="w-4 h-4 text-amber-500" /> }
                             ].map((feature, idx) => (
-                                <div key={idx} className="flex items-center justify-center gap-3">
+                                <div key={idx} className="flex items-center justify-center gap-2">
                                     <div className="shrink-0 w-5 h-5 flex items-center justify-center">{feature.icon}</div>
                                     <span className="text-xs text-gray-700 font-bold leading-tight">{feature.text}</span>
                                 </div>
