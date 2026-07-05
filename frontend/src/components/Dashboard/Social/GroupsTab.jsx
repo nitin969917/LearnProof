@@ -33,30 +33,25 @@ export default function GroupsTab({ currentUserId }) {
   useEffect(() => {
     fetchGroups();
     socketRef.current = getSocialSocket(currentUserId);
-
-    return () => {
-      // Clean up room listener
-      if (socketRef.current) {
-        socketRef.current.off('receiveGroupMessage');
-      }
-    };
   }, [currentUserId]);
 
   useEffect(() => {
+    const handleReceiveGroupMessage = (msg) => {
+      if (activeGroupId && msg.groupId === activeGroupId) {
+        setMessages((prev) => {
+          // Avoid duplicates
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+      }
+    };
+
     if (socketRef.current) {
-      socketRef.current.on('receiveGroupMessage', (msg) => {
-        if (activeGroupId && msg.groupId === activeGroupId) {
-          setMessages((prev) => {
-            // Avoid duplicates
-            if (prev.some((m) => m.id === msg.id)) return prev;
-            return [...prev, msg];
-          });
-        }
-      });
+      socketRef.current.on('receiveGroupMessage', handleReceiveGroupMessage);
     }
     return () => {
       if (socketRef.current) {
-        socketRef.current.off('receiveGroupMessage');
+        socketRef.current.off('receiveGroupMessage', handleReceiveGroupMessage);
       }
     };
   }, [activeGroupId]);

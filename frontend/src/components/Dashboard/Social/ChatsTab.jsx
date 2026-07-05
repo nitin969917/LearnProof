@@ -404,15 +404,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     socketRef.current = getSocialSocket(currentUserId);
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.off('receiveMessage');
-        socketRef.current.off('messageSent');
-        socketRef.current.off('messageError');
-        socketRef.current.off('receiveGroupMessage');
-        socketRef.current.off('incomingCall');
-        socketRef.current.off('callAccepted');
-        socketRef.current.off('callRejected');
-      }
       setActiveChatUser(null);
     };
   }, [currentUserId]);
