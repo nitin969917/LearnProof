@@ -120,9 +120,9 @@ const LoginPage = () => {
                     <motion.div 
                         animate={{ scale: [1, 1.05, 1] }}
                         transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                        className="h-16 flex items-center justify-center"
+                        className="h-32 sm:h-40 flex items-center justify-center"
                     >
-                        <img src="/LP_logo.png" alt="LearnProof" className="h-16 w-auto object-contain" />
+                        <img src="/LP_logo_login.png" alt="LearnProof" className="h-32 sm:h-40 w-auto object-contain" />
                     </motion.div>
                     <div className="text-center space-y-1.5">
                         <h2 className="text-lg font-black text-gray-900 tracking-tight uppercase">LearnProof AI</h2>
@@ -157,9 +157,9 @@ const LoginPage = () => {
                     {/* Brand Logo */}
                     <motion.div 
                         whileHover={{ scale: 1.02 }}
-                        className="h-20 flex items-center justify-center mb-4 cursor-pointer"
+                        className="h-40 sm:h-48 flex items-center justify-center mb-4 cursor-pointer"
                     >
-                        <img src="/LP_logo.png" alt="LearnProof" className="h-20 w-auto object-contain" />
+                        <img src="/LP_logo_login.png" alt="LearnProof" className="h-40 sm:h-48 w-auto object-contain" />
                     </motion.div>
 
                     <div className="text-center space-y-1 mb-3">
@@ -175,13 +175,13 @@ const LoginPage = () => {
                     <div className="bg-orange-50/40 rounded-2xl p-5 border border-orange-100/50 w-full space-y-3 mt-1 flex flex-col items-center">
                         <div className="space-y-3 w-full text-center">
                             {[
-                                { text: "AI-Powered YouTube Course Learning", icon: <Youtube className="w-4 h-4 text-red-500" /> },
-                                { text: "AI Quiz & Roadmaps", icon: <Zap className="w-4 h-4 text-amber-500" /> },
-                                { text: "Smart Notes & AI Intuition", icon: <Lightbulb className="w-4 h-4 text-yellow-500" /> },
-                                { text: "Progress Tracking & Study Planner", icon: <TrendingUp className="w-4 h-4 text-blue-500" /> },
                                 { text: "Social Learning & Real-Time Collaboration", icon: <Users className="w-4 h-4 text-indigo-500" /> },
+                                { text: "AI-Powered YouTube Course Learning", icon: <Youtube className="w-4 h-4 text-red-500" /> },
+                                { text: "Progress Tracking & Study Planner", icon: <TrendingUp className="w-4 h-4 text-blue-500" /> },
+                                { text: "Certificates & Achievements", icon: <Award className="w-4 h-4 text-orange-500" /> },
+                                { text: "Smart Notes & AI Intuition", icon: <Lightbulb className="w-4 h-4 text-yellow-500" /> },
                                 { text: "Interactive Speaking Rooms", icon: <MessageSquare className="w-4 h-4 text-emerald-500" /> },
-                                { text: "Certificates & Achievements", icon: <Award className="w-4 h-4 text-orange-500" /> }
+                                { text: "AI Quiz & Roadmaps", icon: <Zap className="w-4 h-4 text-amber-500" /> }
                             ].map((feature, idx) => (
                                 <div key={idx} className="flex items-center justify-center gap-3">
                                     <div className="shrink-0 w-5 h-5 flex items-center justify-center">{feature.icon}</div>
