@@ -1,8 +1,13 @@
 import { io } from 'socket.io-client';
 
 let socket = null;
+let currentSocketUserId = null;
 
 export const getSocialSocket = (userId) => {
+  if (userId) {
+    currentSocketUserId = userId.toString();
+  }
+
   if (!socket) {
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     // Use VITE_BACKEND_URL so WebSocket connects to the actual backend (api.learnproofai.com)
@@ -22,9 +27,9 @@ export const getSocialSocket = (userId) => {
 
     socket.on('connect', () => {
       console.log('Social socket connected:', socket.id);
-      // Re-join on reconnect to restore online status
-      if (userId) {
-        socket.emit('join', userId.toString());
+      // Re-join on reconnect to restore online status using the latest active user ID
+      if (currentSocketUserId) {
+        socket.emit('join', currentSocketUserId);
       }
     });
 
@@ -37,8 +42,8 @@ export const getSocialSocket = (userId) => {
     });
   }
 
-  if (userId) {
-    socket.emit('join', userId.toString());
+  if (currentSocketUserId && socket.connected) {
+    socket.emit('join', currentSocketUserId);
   }
 
   return socket;
@@ -48,5 +53,6 @@ export const disconnectSocialSocket = () => {
   if (socket) {
     socket.disconnect();
     socket = null;
+    currentSocketUserId = null;
   }
 };

@@ -317,6 +317,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const { unreadByContact, setActiveChatUser, clearUnreadForContact, incrementUnread } = useSocialMessageStore();
 
   const socketRef = useRef(null);
+  if (currentUserId && !socketRef.current) {
+    socketRef.current = getSocialSocket(currentUserId);
+  }
   const messagesEndRef = useRef(null);
   const selectedChatRef = useRef(null);
   const longPressTimer = useRef(null);

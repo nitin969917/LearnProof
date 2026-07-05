@@ -26,6 +26,9 @@ export default function GroupsTab({ currentUserId }) {
   const [copiedKey, setCopiedKey] = useState(false);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
+  if (currentUserId && !socketRef.current) {
+    socketRef.current = getSocialSocket(currentUserId);
+  }
 
   useEffect(() => {
     fetchGroups();
