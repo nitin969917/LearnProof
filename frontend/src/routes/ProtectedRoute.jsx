@@ -14,6 +14,9 @@ const ProtectedRoute = ({ children }) => {
 
   if (!user) {
     const isFlutter = navigator.userAgent.includes('LearnProofApp') || !!window.GoogleSignInChannel;
+    if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom")) {
+      sessionStorage.setItem("redirect_to", window.location.pathname + window.location.search);
+    }
     return <Navigate to={isFlutter ? "/login" : "/"} replace />;
   }
 
