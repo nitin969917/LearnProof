@@ -172,7 +172,7 @@ const LoginPage = () => {
                     </div>
 
                     {/* Features Checklist inside a nice styled inner card */}
-                    <div className="bg-orange-50/40 rounded-2xl px-3 sm:px-5 py-4 border border-orange-100/50 w-full space-y-3 mt-1 flex flex-col items-center">
+                    <div className="bg-orange-50/40 rounded-2xl px-6 py-4 border border-orange-100/50 w-fit space-y-3 mt-1 flex flex-col items-center">
                         <div className="space-y-3 w-full text-center">
                             {[
                                 { text: "Social Learning & Real-Time Collaboration", icon: <Users className="w-4 h-4 text-indigo-500" /> },
