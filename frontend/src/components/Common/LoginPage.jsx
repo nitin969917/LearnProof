@@ -164,7 +164,7 @@ const LoginPage = () => {
 
                     <div className="text-center space-y-1 mb-3">
                         <h2 className="text-2xl font-black text-gray-800 tracking-tight uppercase">
-                            Welcome Back
+                            Welcome
                         </h2>
                         <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
                             Sign in to your learning account
@@ -173,7 +173,7 @@ const LoginPage = () => {
 
                     {/* Features Checklist inside a nice styled inner card */}
                     <div className="bg-orange-50/40 rounded-2xl p-5 border border-orange-100/50 w-full space-y-3 mt-1 flex flex-col items-center">
-                        <div className="space-y-3 w-fit">
+                        <div className="space-y-3 w-full text-center">
                             {[
                                 { text: "AI-Powered YouTube Course Learning", icon: <Youtube className="w-4 h-4 text-red-500" /> },
                                 { text: "AI Quiz & Roadmaps", icon: <Zap className="w-4 h-4 text-amber-500" /> },
@@ -183,7 +183,7 @@ const LoginPage = () => {
                                 { text: "Interactive Speaking Rooms", icon: <MessageSquare className="w-4 h-4 text-emerald-500" /> },
                                 { text: "Certificates & Achievements", icon: <Award className="w-4 h-4 text-orange-500" /> }
                             ].map((feature, idx) => (
-                                <div key={idx} className="flex items-center gap-3.5">
+                                <div key={idx} className="flex items-center justify-center gap-3">
                                     <div className="shrink-0 w-5 h-5 flex items-center justify-center">{feature.icon}</div>
                                     <span className="text-xs text-gray-700 font-bold leading-tight">{feature.text}</span>
                                 </div>

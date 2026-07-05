@@ -528,7 +528,7 @@ const LandingPage = () => {
             <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-orange-100/50 py-1">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
                     <div className="flex items-center cursor-pointer py-0 my-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                        <img src="/LP_logo.png" alt="LearnProof" className="h-14 sm:h-15 w-auto object-contain my-0 py-0 block" />
+                        <img src="/LP_logo.png" alt="LearnProof" className="h-10 sm:h-11 w-auto object-contain my-0 py-0 block transform -translate-y-[1.5px]" />
                     </div>
 
                     <div className="hidden md:flex items-center gap-8 text-sm font-bold text-gray-600">
