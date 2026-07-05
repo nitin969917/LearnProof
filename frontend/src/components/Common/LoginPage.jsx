@@ -157,7 +157,7 @@ const LoginPage = () => {
                     {/* Brand Logo */}
                     <motion.div 
                         whileHover={{ scale: 1.02 }}
-                        className="h-40 sm:h-48 flex items-center justify-center mb-4 cursor-pointer"
+                        className="h-40 sm:h-48 flex items-center justify-center -mt-8 -mb-2 cursor-pointer"
                     >
                         <img src="/LP_logo_login.png" alt="LearnProof" className="h-40 sm:h-48 w-auto object-contain" />
                     </motion.div>
