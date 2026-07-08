@@ -104,7 +104,7 @@ const TopBar = ({ onMenuClick }) => {
                 {/* Right Side: Actions (Import & Inbox Group) */}
                 <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 pl-14 sm:pl-0 px-2 sm:px-4 min-w-0">
                     {/* Desktop Import Bar (sm and up) */}
-                    <div className="hidden sm:flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-4 py-2 gap-2 transition-all duration-200 shadow-sm">
+                    <div className="hidden sm:flex items-center flex-1 max-w-[300px] bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-3 py-1.5 gap-2 transition-all duration-200 shadow-sm">
                         <Youtube className="text-orange-500 shrink-0" size={20} />
                         <input
                             type="text"
@@ -124,7 +124,7 @@ const TopBar = ({ onMenuClick }) => {
                     </div>
 
                     {/* Mobile Import Bar (Refined Size & Same Text) */}
-                    <div className="flex sm:hidden flex-1 min-w-0 bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2.5 py-1.5 items-center gap-2 shadow-sm">
+                    <div className="flex sm:hidden flex-1 max-w-[170px] min-w-0 bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2 py-1 items-center gap-1.5 shadow-sm">
                        <input
                             type="text"
                             placeholder="Enter Youtube URL..."
@@ -136,7 +136,7 @@ const TopBar = ({ onMenuClick }) => {
                         <button 
                             onClick={handleImport} 
                             disabled={loading}
-                            className="bg-orange-600 text-white rounded-lg px-2.5 py-1.5 font-bold text-[10px] uppercase tracking-tight shrink-0 active:scale-90 transition-transform"
+                            className="bg-orange-600 text-white rounded-lg px-2 py-1 font-bold text-[10px] uppercase tracking-tight shrink-0 active:scale-90 transition-transform"
                         >
                             {loading ? "..." : "Import"}
                         </button>
@@ -149,6 +149,15 @@ const TopBar = ({ onMenuClick }) => {
                         title="Inbox"
                     >
                         <Inbox size={24} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
+                    </button>
+
+                    {/* Menu Toggle Action */}
+                    <button
+                        onClick={onMenuClick}
+                        className="p-2 sm:p-2.5 text-orange-505 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-lg sm:rounded-xl transition-all shadow-sm shrink-0 border border-orange-100 dark:border-gray-600 active:scale-95 flex items-center justify-center cursor-pointer"
+                        title="Menu"
+                    >
+                        <Menu size={24} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
                     </button>
                 </div>
             </div>

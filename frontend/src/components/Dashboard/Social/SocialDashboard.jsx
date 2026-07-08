@@ -237,7 +237,7 @@ export default function SocialDashboard() {
   };
 
   const tabs = [
-    { id: 'feed', name: 'Feed', icon: Home },
+    { id: 'feed', name: 'Feed', icon: MessageCircle },
     { id: 'discover', name: 'Discover', icon: Search },
     { id: 'friends', name: 'Friends', icon: Users },
     { 
@@ -305,13 +305,7 @@ export default function SocialDashboard() {
             </button>
           )}
 
-          <Link
-            to="/dashboard"
-            className="p-2 sm:p-2.5 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-950/70 transition-all border border-orange-100 dark:border-orange-900/50 rounded-xl active:scale-95 flex items-center justify-center shrink-0"
-            title="Exit Hub"
-          >
-            <ArrowLeft size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
-          </Link>
+          {/* Exit Link Removed */}
         </div>
       </div>
 
@@ -364,9 +358,24 @@ export default function SocialDashboard() {
         </div>
       </div>
 
-      {/* Floating Bottom Navigation Bar (matches design of main application BottomNav) */}
       <nav className={`fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[370px] xs:w-[415px] sm:w-[490px] md:w-[560px] max-w-[95vw] z-50 bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300 ${hideHeader ? 'hidden md:block' : 'block'}`}>
         <div className="flex items-stretch justify-around h-16 px-3.5 relative">
+          {/* Main App Home Button */}
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 no-underline touch-manipulation select-none outline-none focus:outline-none cursor-pointer"
+          >
+            <motion.div
+              whileTap={{ scale: 0.88 }}
+              className="flex flex-col items-center justify-center w-full h-full relative"
+            >
+              <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
+                <Home size={22} strokeWidth={2} />
+                <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">Home</span>
+              </div>
+            </motion.div>
+          </button>
+
           {tabs.map((tab, idx) => {
             const isActive = activeTab === tab.id || (tab.id === 'profile' && activeTab === 'profile' && selectedProfileId === socialUser.id);
             const Icon = tab.icon;
@@ -375,7 +384,7 @@ export default function SocialDashboard() {
               <Fragment key={tab.id}>
                 <button
                   onClick={() => handleTabChange(tab.id)}
-                  className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 no-underline touch-manipulation select-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 cursor-pointer"
+                  className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-555 no-underline touch-manipulation select-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 cursor-pointer"
                 >
                   <motion.div
                     whileTap={{ scale: 0.88 }}
@@ -427,23 +436,6 @@ export default function SocialDashboard() {
               </Fragment>
             );
           })}
-
-          {/* Menu Hamburger Button */}
-          <button
-            onClick={toggleSidebar}
-            className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-500 touch-manipulation select-none outline-none focus:outline-none cursor-pointer"
-          >
-            <motion.div
-              whileTap={{ scale: 0.88 }}
-              className="flex flex-col items-center justify-center w-full h-full relative"
-            >
-              <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
-                <Menu size={22} strokeWidth={2} />
-                <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">Menu</span>
-              </div>
-              <span className="sr-only">Menu</span>
-            </motion.div>
-          </button>
         </div>
       </nav>
 
