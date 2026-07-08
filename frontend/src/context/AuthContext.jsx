@@ -135,8 +135,18 @@ export const AuthProvider = ({ children }) => {
         disconnectMatrixClient();
     };
 
+    const updateUser = (data) => {
+        setUser(prev => {
+            if (!prev) return null;
+            return {
+                ...prev,
+                ...data
+            };
+        });
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, logout, matrixClient }}>
+        <AuthContext.Provider value={{ user, token, loading, login, logout, matrixClient, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
 import { User, Mail, GraduationCap, MapPin, Phone, Instagram, Facebook, Shield, Edit3, Save, UserPlus, UserCheck, Star, MessageSquare, Linkedin, Sparkles } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
+import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
+import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
+import toast from 'react-hot-toast';
+import { useAuth } from '../../../context/AuthContext.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
 
 export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, onSelectChatUser, onViewProfile }) {
+  const { updateUser } = useAuth();
   const isOwnProfile = !viewUserId || viewUserId === currentUserId;
   const targetId = isOwnProfile ? currentUserId : viewUserId;
 
@@ -47,14 +52,26 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
   const handleSave = async (e) => {
     e.preventDefault();
+    const toastId = toast.loading('Saving profile...');
     try {
       const response = await socialApi.put('/users/profile', formData);
       setProfile(response.data);
       setIsEditing(false);
-      alert('Profile updated successfully!');
+
+      // Sync name & picture with the global authentication context
+      if (updateUser && isOwnProfile) {
+        updateUser({
+          name: response.data.name,
+          picture: response.data.avatar
+        });
+      }
+
+      toast.dismiss(toastId);
+      toast.success('Profile updated successfully!');
     } catch (err) {
       console.error('Failed to update profile', err);
-      alert('Failed to update profile.');
+      toast.dismiss(toastId);
+      toast.error('Failed to update profile.');
     }
   };
 
