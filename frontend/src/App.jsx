@@ -43,7 +43,7 @@ const Classroom = lazyWithRetry(() => import('./components/Classroom'));
 const YouTubeExplorer = lazyWithRetry(() => import('./components/Dashboard/YouTubeExplorer'));
 const PlaylistProgress = lazyWithRetry(() => import('./components/Dashboard/PlaylistProgress'));
 const AIBenchmark = lazyWithRetry(() => import('./components/Dashboard/AIBenchmark'));
-const AskMyNotes = lazyWithRetry(() => import('./components/Dashboard/AskMyNotes'));
+const AskMyNotes = lazyWithRetry(() => import('./components/Dashboard/AskMyNotesComingSoon'));
 const RoadmapDetail = lazyWithRetry(() => import('./components/Dashboard/RoadmapDetail'));
 const SocialDashboard = lazyWithRetry(() => import('./components/Dashboard/Social/SocialDashboard'));
 const LanguageLearning = lazyWithRetry(() => import('./components/Dashboard/LanguagePractice/LanguageLearning'));
