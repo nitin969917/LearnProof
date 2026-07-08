@@ -262,19 +262,8 @@ const DashboardLayout = () => {
                             </div>
                         </div>
 
-                        {/* Right — exit arrow and Menu drawer toggle */}
+                        {/* Right — Menu drawer toggle */}
                         <div className="flex items-center gap-2 shrink-0 px-4 md:px-6">
-                            <button
-                                onClick={() => {
-                                    sessionStorage.removeItem('nav_source');
-                                    navigate('/dashboard/social');
-                                }}
-                                className="p-2 sm:p-2.5 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-950/70 transition-all border border-orange-100 dark:border-orange-900/50 rounded-xl active:scale-95 flex items-center justify-center shrink-0 cursor-pointer"
-                                title="Back to Social Hub"
-                            >
-                                <ArrowLeft size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
-                            </button>
-
                             <button
                                 onClick={toggleSidebar}
                                 className="p-2 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-xl transition-all border border-orange-100 dark:border-gray-700 active:scale-95 flex items-center justify-center cursor-pointer shrink-0"
