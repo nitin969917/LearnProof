@@ -1,13 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, BookOpen, Menu, Globe, Users, MessageSquare } from 'lucide-react';
+import { Home, Search, BookOpen, Quote, Menu, Globe, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const BottomNav = ({ onMenuClick }) => {
     const navItems = [
         { name: 'Home', icon: Home, path: '/dashboard' },
-        { name: 'Learn', icon: BookOpen, path: '/dashboard/library' },
-        { name: 'Ask Notes', icon: MessageSquare, path: '/dashboard/ask-my-notes' },
+        { name: 'Explore', icon: Search, path: '/dashboard/explore' },
+        { name: 'Library', icon: BookOpen, path: '/dashboard/library' },
+        { name: 'Quiz', icon: Quote, path: '/dashboard/quiz' },
         { name: 'Rooms', icon: Globe, path: '/dashboard/live-rooms' },
         { name: 'Social', icon: Users, path: '/dashboard/social' },
     ];
