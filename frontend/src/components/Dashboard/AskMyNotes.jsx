@@ -203,6 +203,9 @@ const cleanMermaidChart = (chartText) => {
             return line;
         }
 
+        // Convert invalid '--' connectors to valid '---' (undirected links)
+        line = line.replace(/(?<!-)\s*--\s*(?![->|])/g, ' --- ');
+
         // Apply numeric ID renaming
         line = renameIds(line);
         trimmed = line.trim();
