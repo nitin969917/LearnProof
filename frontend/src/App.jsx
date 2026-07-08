@@ -138,6 +138,7 @@ const App = () => {
                                 <Route path='goals' element={<DailyGoalsPage />} />
                                 <Route path='ai-benchmark' element={<AIBenchmark />} />
                                 <Route path='ask-my-notes' element={<AskMyNotes />} />
+                                <Route path='ask-my-notes/:subjectId' element={<AskMyNotes />} />
                                 <Route path='support' element={<Support />} />
                                 
                                 {/* Social / Social Dating Features */}

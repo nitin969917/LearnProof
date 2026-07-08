@@ -39,6 +39,7 @@ model UserProfile {
   readStatuses     MessageReadStatus[]
   fcmTokens        UserFcmToken[]
   sentNotifications SentNotification[]
+  workspaces        Workspace[]
 }
 
 model InboxMessage {
@@ -291,5 +292,123 @@ model AppLaunchLog {
 
   @@index([deviceId])
   @@index([timestamp])
+}
+
+// ==========================================
+// LEARNPROOF AI - WORKSPACE & KNOWLEDGE ENGINE
+// ==========================================
+
+model Workspace {
+  id            Int                    @id @default(autoincrement())
+  user          UserProfile            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  name          String
+  description   String?                @db.Text
+  difyDatasetId String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  sources       KnowledgeSource[]
+  notes         WorkspaceNote[]
+  flashcards    WorkspaceFlashcard[]
+  quizzes       WorkspaceQuiz[]
+  chatSessions  WorkspaceChatSession[]
+
+  @@index([userId])
+}
+
+model KnowledgeSource {
+  id             Int        @id @default(autoincrement())
+  workspace      Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId    Int
+  type           String     // 'PDF', 'DOCX', 'PPTX', 'TXT', 'MARKDOWN', 'YOUTUBE', 'WEBSITE'
+  name           String     // Display name (e.g. filename or web title)
+  fileUrl        String?    // File path or download URL (if uploaded)
+  sourceUrl      String?    // External website link or youtube link
+  status         String     @default("PENDING") // 'PENDING', 'PROCESSING', 'INDEXED', 'FAILED'
+  errorMessage   String?    @db.Text
+  metadata       String?    @db.Text // JSON string of specific file/video metadata
+  difyDocumentId String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([workspaceId])
+}
+
+model WorkspaceNote {
+  id          Int       @id @default(autoincrement())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId Int
+  title       String
+  content     String    @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId])
+}
+
+model WorkspaceFlashcard {
+  id          Int       @id @default(autoincrement())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId Int
+  question    String    @db.Text
+  answer      String    @db.Text
+  // Spaced Repetition parameters (SM-2)
+  interval    Int       @default(1) // In days
+  repetition  Int       @default(0) // Count of consecutive correct reviews
+  easeFactor  Float     @default(2.5)
+  nextReview  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([workspaceId])
+  @@index([nextReview])
+}
+
+model WorkspaceQuiz {
+  id          Int                    @id @default(autoincrement())
+  workspace   Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId Int
+  title       String
+  questions   String                 @db.Text // JSON string of questions/options/explanations
+  attempts    WorkspaceQuizAttempt[]
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@index([workspaceId])
+}
+
+model WorkspaceQuizAttempt {
+  id          Int           @id @default(autoincrement())
+  quiz        WorkspaceQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId      Int
+  score       Float
+  answers     String        @db.Text // JSON string of user selected answers
+  attemptedAt DateTime      @db.Timestamp() @default(now())
+
+  @@index([quizId])
+}
+
+model WorkspaceChatSession {
+  id          Int                    @id @default(autoincrement())
+  workspace   Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspaceId Int
+  title       String                 @default("New Chat")
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  messages    WorkspaceChatMessage[]
+
+  @@index([workspaceId])
+}
+
+model WorkspaceChatMessage {
+  id        Int                  @id @default(autoincrement())
+  session   WorkspaceChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId Int
+  role      String               // 'user' or 'assistant'
+  content   String               @db.Text
+  citations String?              @db.Text // JSON string of document citations
+  createdAt DateTime             @default(now())
+
+  @@index([sessionId])
 }
 

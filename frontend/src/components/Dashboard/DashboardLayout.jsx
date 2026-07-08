@@ -133,7 +133,8 @@ const DashboardLayout = () => {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
     const location = useLocation();
 
-    const isAskMyNotes = false;
+    const isAskMyNotes = location.pathname.startsWith('/dashboard/ask-my-notes');
+    const isInsideWorkspace = location.pathname.startsWith('/dashboard/ask-my-notes/') && location.pathname !== '/dashboard/ask-my-notes';
     const isSocialHub = location.pathname.startsWith('/dashboard/social');
     const isLiveRoom = location.pathname.includes('/dashboard/live-rooms/') && location.pathname !== '/dashboard/live-rooms';
     const isLiveRoomList = location.pathname === '/dashboard/live-rooms';
@@ -158,24 +159,28 @@ const DashboardLayout = () => {
         }
     }, [location.pathname, location.state, isSocialHub, isLiveRoom, isLiveRoomList]);
 
-    // Show social-context nav if on any live-rooms page and user came from Social Hub
     const showSocialBottomNav = (isLiveRoom || isLiveRoomList) && cameFromSocial;
+    const contentRef = useRef(null);
+
     const toggleSidebar = () => {
-        if (!isMobile) {
-            setIsSidebarExpanded(prev => {
-                const nextState = !prev;
-                localStorage.setItem('sidebarExpanded', String(nextState));
-                return nextState;
-            });
+        if (isMobile) {
+            // On mobile: toggle the slide-in drawer
+            setIsMobileSidebarOpen(prev => !prev);
         } else {
-            setIsMobileSidebarOpen(!isMobileSidebarOpen);
+            // On desktop: collapse/expand the sidebar
+            setIsSidebarExpanded(prev => {
+                const next = !prev;
+                localStorage.setItem('sidebarExpanded', next.toString());
+                return next;
+            });
         }
     };
 
-    const contentRef = useRef(null);
+    const handleResize = () => {
+        setIsMobile(window.innerWidth < 1024);
+    };
 
     useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 1024);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
@@ -198,7 +203,7 @@ const DashboardLayout = () => {
     }, [location.pathname]);
 
     return (
-        <div className="flex h-screen bg-orange-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 relative transition-colors duration-200 overflow-hidden">
+        <div className="flex h-screen bg-orange-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 relative transition-colors duration-200 overflow-hidden font-sans">
             {/* Sidebar Overlay for Mobile (triggered from Bottom Nav) */}
             {isMobileSidebarOpen && (
                 <div
@@ -208,7 +213,8 @@ const DashboardLayout = () => {
             )}
 
             {/* Sidebar (Desktop expands/collapses, Mobile via drawer) */}
-            {!isAskMyNotes && !isLiveRoom && (
+            {/* Sidebar (Desktop expands/collapses, Mobile via drawer) */}
+            {!isLiveRoom && (!isInsideWorkspace || !isMobile) && (
                 <aside
                     className={`fixed lg:static inset-y-0 left-0 z-[60] ${
                         isSidebarExpanded 
@@ -232,8 +238,8 @@ const DashboardLayout = () => {
             {/* Main content area */}
             <main className="flex-1 flex flex-col min-w-0">
                 {/* Top Bar */}
-                {/* Hidden when: ask-my-notes, social hub, inside a live room, or on live-rooms list coming from social */}
-                {!isAskMyNotes && !isSocialHub && !isLiveRoom && !showSocialBottomNav && <TopBar onMenuClick={toggleSidebar} />}
+                {/* Hidden when: social hub, inside a live room, or on live-rooms list coming from social */}
+                {!isSocialHub && !isLiveRoom && !showSocialBottomNav && (!isInsideWorkspace || !isMobile) && <TopBar onMenuClick={toggleSidebar} />}
 
                 {/* Social Hub-context header — mirrors SocialDashboard header and main TopBar logo position exactly. */}
                 {showSocialBottomNav && isLiveRoomList && (
@@ -280,9 +286,9 @@ const DashboardLayout = () => {
                 <div 
                     ref={contentRef}
                     className={`flex-1 ${
-                        isSocialHub 
+                        isSocialHub || isAskMyNotes
                             ? 'p-0 overflow-hidden' 
-                            : isAskMyNotes || isLiveRoom 
+                            : isLiveRoom 
                                 ? 'p-0 overflow-y-auto' 
                                 : 'p-4 sm:p-6 pb-24 lg:pb-6 overflow-y-auto'
                     }`}
@@ -293,7 +299,7 @@ const DashboardLayout = () => {
                 </div>
             </main>
 
-            {!isSocialHub && !isLiveRoom && !showSocialBottomNav && (
+            {!isSocialHub && !isLiveRoom && !showSocialBottomNav && !isInsideWorkspace && (
                 <BottomNav onMenuClick={toggleSidebar} />
             )}
 

@@ -39,8 +39,10 @@ logs/
 Thumbs.db
 
 # Media
-media/video_notes/
-media/certificates/
+**/media/video_notes/
+**/media/certificates/
+**/media/workspaces/
+*.pdf
 
 # Synapse Local
 synapse-local/

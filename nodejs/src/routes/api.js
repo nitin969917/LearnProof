@@ -131,6 +131,10 @@ router.get('/messages/users/', authMiddleware, isAdminMiddleware, messageControl
 const supportRoutes = require('./support.routes');
 router.use('/support', supportRoutes);
 
+// Workspaces
+const workspaceRoutes = require('./workspace.routes');
+router.use('/workspaces', workspaceRoutes);
+
 // LiveKit — Video Rooms
 router.get('/livekit/token', datingAuth, livekitController.getToken);
 router.get('/livekit/rooms', datingAuth, livekitController.getRooms);

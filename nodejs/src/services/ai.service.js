@@ -35,24 +35,38 @@ if (process.env.GCP_PROJECT_ID) {
  * Helper to call Gemini content generation using either Vertex AI (if configured) or Google AI Studio.
  */
 const generateGeminiContent = async (modelName, contents, config = {}) => {
-    const timeoutMs = config.timeout || 30000; // Default 30 seconds timeout
+    const timeoutMs = config.timeout || 10000; // 10 seconds timeout for faster Cerebras failover
     
     const callPromise = (async () => {
         if (vertexAIClient) {
             console.log(`[Gemini] Calling Vertex AI client with model: ${modelName}`);
-            
-            // Setup payload structure. In @google/genai, contents can be a string, a Part, or an array.
-            // Let's pass it directly as it is structured by caller (either string or array of parts).
-            const response = await vertexAIClient.models.generateContent({
-                model: modelName,
-                contents: contents,
-                config: {
-                    maxOutputTokens: config.maxOutputTokens || 8192,
-                    temperature: config.temperature,
-                    responseMimeType: config.responseMimeType
+            try {
+                const response = await vertexAIClient.models.generateContent({
+                    model: modelName,
+                    contents: contents,
+                    config: {
+                        maxOutputTokens: config.maxOutputTokens || 8192,
+                        temperature: config.temperature,
+                        responseMimeType: config.responseMimeType
+                    }
+                });
+                return response.text;
+            } catch (vertexErr) {
+                console.warn(`[Gemini] Vertex AI generateContent failed, falling back to Google AI Studio:`, vertexErr.message);
+                if (genAI) {
+                    const model = genAI.getGenerativeModel({
+                        model: modelName,
+                        generationConfig: {
+                            maxOutputTokens: config.maxOutputTokens || 8192,
+                            temperature: config.temperature,
+                            responseMimeType: config.responseMimeType
+                        }
+                    });
+                    const result = await model.generateContent(contents);
+                    return result.response.text();
                 }
-            });
-            return response.text;
+                throw vertexErr;
+            }
         } else {
             console.log(`[Gemini] Calling Google AI Studio client with model: ${modelName}`);
             const model = genAI.getGenerativeModel({
