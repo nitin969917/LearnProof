@@ -4,7 +4,7 @@ import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
 import SocialBottomNavBar from "./Social/SocialBottomNavBar";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Menu } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import { useAuth } from "../../context/AuthContext.jsx";
 import socialApi from "../../api/socialApi.js";
@@ -159,7 +159,7 @@ const DashboardLayout = () => {
         }
     }, [location.pathname, location.state, isSocialHub, isLiveRoom, isLiveRoomList]);
 
-    const showSocialBottomNav = (isLiveRoom || isLiveRoomList) && cameFromSocial;
+    const showSocialBottomNav = isLiveRoom || isLiveRoomList;
     const contentRef = useRef(null);
 
     const toggleSidebar = () => {
@@ -239,10 +239,8 @@ const DashboardLayout = () => {
             <main className="flex-1 flex flex-col min-w-0">
                 {/* Top Bar */}
                 {/* Hidden when: social hub, inside a live room, or on live-rooms list coming from social */}
-                {!isSocialHub && !isLiveRoom && !showSocialBottomNav && (!isInsideWorkspace || !isMobile) && <TopBar onMenuClick={toggleSidebar} />}
-
-                {/* Social Hub-context header — mirrors SocialDashboard header and main TopBar logo position exactly. */}
-                {showSocialBottomNav && isLiveRoomList && (
+                {!isSocialHub && !isLiveRoom && !showSocialBottomNav && (!isInsideWorkspace || !isMobile) && <TopBar onMenuClick={toggleSidebar} />}                {/* Social Hub-context header — mirrors SocialDashboard header and main TopBar logo position exactly. */}
+                {showSocialBottomNav && (
                     <div className="bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm flex items-stretch justify-between h-16 sm:h-20 shrink-0 w-full transition-colors duration-200 overflow-hidden">
                         {/* Left — flush-left logo identical to TopBar.jsx + SocialDashboard */}
                         <div className="flex items-stretch min-w-0">
@@ -259,13 +257,13 @@ const DashboardLayout = () => {
                                 <div className="border-l border-gray-200 dark:border-gray-700 h-8"></div>
                                 <div className="min-w-0">
                                     <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h1>
-                                    <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Live Rooms</p>
+                                    <p className="text-[9px] text-gray-400 dark:text-gray-550 uppercase tracking-widest font-black">Live Rooms</p>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Right — exit arrow matching Social Hub's ArrowLeft button */}
-                        <div className="flex items-center shrink-0 px-4 md:px-6">
+                        {/* Right — exit arrow and Menu drawer toggle */}
+                        <div className="flex items-center gap-2 shrink-0 px-4 md:px-6">
                             <button
                                 onClick={() => {
                                     sessionStorage.removeItem('nav_source');
@@ -275,6 +273,14 @@ const DashboardLayout = () => {
                                 title="Back to Social Hub"
                             >
                                 <ArrowLeft size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
+                            </button>
+
+                            <button
+                                onClick={toggleSidebar}
+                                className="p-2 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-xl transition-all border border-orange-100 dark:border-gray-700 active:scale-95 flex items-center justify-center cursor-pointer shrink-0"
+                                title="Menu"
+                            >
+                                <Menu size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
                             </button>
                         </div>
                     </div>
@@ -304,7 +310,7 @@ const DashboardLayout = () => {
             )}
 
             {/* Social Hub's bottom nav — shown on live-rooms pages when the user navigated from Social Hub */}
-            {showSocialBottomNav && !isLiveRoom && (
+            {showSocialBottomNav && (
                 <SocialBottomNavBar onMenuClick={toggleSidebar} />
             )}
 

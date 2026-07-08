@@ -293,7 +293,7 @@ export default function SocialDashboard() {
           </div>
         </div>
 
-        {/* Right Side: Actions (Exit Hub & Create Post) */}
+        {/* Right Side: Actions (Create Post & Menu) */}
         <div className="flex items-center gap-2 shrink-0 px-4 md:px-6">
           {activeTab === 'feed' && (
             <button
@@ -305,7 +305,14 @@ export default function SocialDashboard() {
             </button>
           )}
 
-          {/* Exit Link Removed */}
+          {/* Menu Drawer Toggle */}
+          <button
+            onClick={toggleSidebar}
+            className="p-2 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-xl transition-all border border-orange-100 dark:border-gray-700 active:scale-95 flex items-center justify-center cursor-pointer shrink-0"
+            title="Menu"
+          >
+            <Menu size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
+          </button>
         </div>
       </div>
 
