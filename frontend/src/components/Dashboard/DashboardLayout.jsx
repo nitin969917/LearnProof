@@ -4,7 +4,7 @@ import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
 import SocialBottomNavBar from "./Social/SocialBottomNavBar";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Menu } from "lucide-react";
+import { ArrowLeft, Menu, Plus } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import { useAuth } from "../../context/AuthContext.jsx";
 import socialApi from "../../api/socialApi.js";
@@ -44,6 +44,7 @@ class ErrorBoundary extends React.Component {
 const DashboardLayout = () => {
     const { user, isMatrixActive, matrixClient } = useAuth();
     const [socialUser, setSocialUser] = useState(null);
+    const [onHeaderAction, setOnHeaderAction] = useState(null);
 
     const initializeStatus = useSocialStatusStore((state) => state.initializeStatus);
     const fetchUnreadCounts = useSocialMessageStore((state) => state.fetchUnreadCounts);
@@ -262,15 +263,17 @@ const DashboardLayout = () => {
                             </div>
                         </div>
 
-                        {/* Right — Menu drawer toggle */}
+                        {/* Right — Create Room action button (if on rooms list) */}
                         <div className="flex items-center gap-2 shrink-0 px-4 md:px-6">
-                            <button
-                                onClick={toggleSidebar}
-                                className="p-2 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-xl transition-all border border-orange-100 dark:border-gray-700 active:scale-95 flex items-center justify-center cursor-pointer shrink-0"
-                                title="Menu"
-                            >
-                                <Menu size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
-                            </button>
+                            {onHeaderAction && isLiveRoomList && (
+                                <button
+                                    onClick={onHeaderAction}
+                                    className="p-2 sm:p-2.5 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer flex items-center justify-center border border-orange-600/10 shrink-0 animate-in fade-in zoom-in-95 duration-250"
+                                    title="Create Room"
+                                >
+                                    <Plus size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}
@@ -289,7 +292,7 @@ const DashboardLayout = () => {
                     }`}
                 >
                     <ErrorBoundary>
-                        <Outlet context={{ toggleSidebar }} />
+                        <Outlet context={{ toggleSidebar, setHeaderAction: setOnHeaderAction }} />
                     </ErrorBoundary>
                 </div>
             </main>

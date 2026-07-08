@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Mic, Globe, Plus, Users, Search, GraduationCap, Video, PhoneOff, Trash2, X } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { useAuth } from '../../../context/AuthContext.jsx';
@@ -7,6 +7,8 @@ import toast from 'react-hot-toast';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
 
 export default function LanguageLearning() {
+  const outletContext = useOutletContext();
+  const setHeaderAction = outletContext?.setHeaderAction;
   const [roomsList, setRoomsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -23,6 +25,16 @@ export default function LanguageLearning() {
     fetchRooms();
     fetchSocialUser();
   }, []);
+
+  useEffect(() => {
+    if (setHeaderAction) {
+      setHeaderAction(() => () => {
+        setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
+        setShowModal(true);
+      });
+      return () => setHeaderAction(null);
+    }
+  }, [setHeaderAction, activeTab]);
 
   useEffect(() => {
     // Listen to real-time room creation/deletion events from other users via socket
@@ -138,17 +150,6 @@ export default function LanguageLearning() {
         <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs">
           Join or start a live room to discuss, practice, or learn together with other members.
         </p>
-        {/* Floating + button top-right */}
-        <button
-          onClick={() => {
-            setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
-            setShowModal(true);
-          }}
-          className="absolute top-0 right-0 p-2.5 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer"
-          title="Create Room"
-        >
-          <Plus size={20} />
-        </button>
       </div>
 
       {/* ── DESKTOP header: icon+title left, badge+button right ── */}
