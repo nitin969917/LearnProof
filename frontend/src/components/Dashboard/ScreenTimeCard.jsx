@@ -90,13 +90,13 @@ export default function ScreenTimeCard() {
     const percentOfTarget = Math.min(100, Math.round((todayTime / dailyTargetSeconds) * 100));
 
     return (
-        <div className="glass-panel shadow-glow-orange rounded-3xl overflow-hidden transform transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-15px_rgba(249,115,22,0.18)] dark:hover:shadow-[0_20px_40px_-15px_rgba(249,115,22,0.3)] hover:border-orange-350 dark:hover:border-orange-500/50">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-orange-100 dark:border-gray-700 overflow-hidden transform transition-all duration-300 hover:shadow-md dark:shadow-gray-900/50">
             {/* Header */}
-            <div className="p-4 border-b border-orange-100/40 dark:border-white/5 bg-gradient-to-r from-orange-500/5 dark:from-orange-500/10 to-transparent">
+            <div className="p-3 sm:p-4 border-b border-orange-50 dark:border-gray-700 bg-gradient-to-r from-orange-50/50 dark:from-gray-800 to-white dark:to-gray-800">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
                         <Clock className="text-orange-500 w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                        <h2 className="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-100 truncate">Screen Time</h2>
+                        <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-100 truncate">Screen Time</h2>
                         <span className="relative flex h-2 w-2 shrink-0">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -112,7 +112,7 @@ export default function ScreenTimeCard() {
                         <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Today's Usage</p>
                         {formatTime(todayTime)}
                     </div>
-                    <div className="p-3 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/10 text-orange-500 rounded-2xl shadow-sm border border-orange-100/30 dark:border-orange-500/10 shrink-0">
+                    <div className="p-2 bg-orange-50 dark:bg-orange-950/30 text-orange-500 rounded-xl shrink-0">
                         <BarChart2 size={18} />
                     </div>
                 </div>

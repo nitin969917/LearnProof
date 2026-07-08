@@ -85,8 +85,8 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
     return (
         <div className={`flex flex-col transition-all duration-300 overflow-hidden ${
             isExpanded 
-                ? 'h-full w-full bg-white dark:bg-gray-900 border-r border-orange-100/50 dark:border-gray-800/80 shadow-[1px_0_10px_-5px_rgba(0,0,0,0.05)]' 
-                : 'h-[calc(100vh-2rem)] w-[70px] glass-panel rounded-[2.2rem] shadow-glow-orange my-4 mx-[10px]'
+                ? 'h-full w-full bg-white dark:bg-gray-800 border-r border-orange-100 dark:border-gray-700' 
+                : 'h-[calc(100vh-2rem)] w-[70px] bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-[2.2rem] shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] my-4 mx-[10px]'
         }`}>
             <div className={`flex-1 overflow-y-auto py-4 ${isExpanded ? 'px-3 sm:px-4 space-y-8' : 'px-1.5 space-y-5 scrollbar-none'}`}>
                 <div className={`flex items-center ${isExpanded ? 'justify-between' : 'justify-center'} px-2 mb-2`}>

@@ -107,23 +107,23 @@ const CalendarCard = () => {
 
     if (loading) {
         return (
-            <div className="glass-panel shadow-glow-orange rounded-3xl p-6 animate-pulse">
-                <div className="h-6 bg-gray-200 dark:bg-gray-750 rounded w-1/3 mb-6"></div>
-                <div className="h-48 bg-gray-150 dark:bg-gray-850 rounded"></div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-orange-100 dark:border-gray-700 p-6 animate-pulse">
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-6"></div>
+                <div className="h-48 bg-gray-100 dark:bg-gray-700 rounded"></div>
             </div>
         );
     }
 
     return (
-        <div className="glass-panel shadow-glow-orange rounded-3xl relative transform transition-all duration-300 hover:shadow-[0_20px_40px_-15px_rgba(249,115,22,0.15)] dark:hover:shadow-[0_20px_40px_-15px_rgba(249,115,22,0.25)] hover:border-orange-250 dark:hover:border-gray-650">
-            <div className="p-4 rounded-t-3xl border-b border-orange-100/40 dark:border-white/5 bg-gradient-to-r from-orange-500/5 dark:from-orange-500/10 to-transparent flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-orange-100 dark:border-gray-700 relative transform transition-all duration-300 hover:shadow-md dark:shadow-gray-900/50">
+            <div className="p-3 sm:p-4 rounded-t-xl border-b border-orange-50 dark:border-gray-700 bg-gradient-to-r from-orange-50/50 dark:from-gray-800 to-white dark:to-gray-800 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <CalendarIcon className="text-orange-500 w-5 h-5" />
-                    <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">Your Activity</h2>
+                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Your Activity</h2>
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-full shadow-sm">
                     <Flame size={16} className={streak > 0 ? "animate-pulse" : ""} />
-                    <span className="text-xs font-bold">{streak} {streak === 1 ? 'Day' : 'Days'} Streak</span>
+                    <span className="text-sm font-bold">{streak} {streak === 1 ? 'Day' : 'Days'} Streak</span>
                 </div>
             </div>
 
