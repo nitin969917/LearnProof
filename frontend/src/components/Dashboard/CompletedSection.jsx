@@ -98,12 +98,12 @@ const CompletedSection = () => {
     }
 
     return (
-        <div className="space-y-4 mb-2">
+        <div className="space-y-2 mb-2">
             {/* Completed Videos */}
             {videos.length > 0 && (
-                <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                        <Trophy size={20} className="text-orange-500" />
+                <div className="space-y-2">
+                    <h2 className="text-[14px] sm:text-base font-black text-gray-900 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
+                        <Trophy size={18} className="text-orange-500" />
                         Completed Videos
                     </h2>
                     <div className="relative group">
@@ -171,9 +171,9 @@ const CompletedSection = () => {
 
             {/* Completed Playlists */}
             {playlists.length > 0 && (
-                <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                        <Award size={20} className="text-orange-500" />
+                <div className="space-y-2">
+                    <h2 className="text-[14px] sm:text-base font-black text-gray-900 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
+                        <Award size={18} className="text-orange-500" />
                         Completed Playlists
                     </h2>
                     <div className="relative group">

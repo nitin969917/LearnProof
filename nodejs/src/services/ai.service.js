@@ -764,5 +764,7 @@ module.exports = {
     generateQuiz,
     generateIntuition,
     translateText,
-    benchmarkAllModels
+    benchmarkAllModels,
+    generateGeminiContent,
+    MODELS
 };

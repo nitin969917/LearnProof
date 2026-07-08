@@ -11,7 +11,7 @@ import PlaylistSection from "./PlaylistSection";
 import VideosSection from "./VideosSection";
 import DailyTasksCard from "./DailyTasksCard";
 import ScreenTimeCard from "./ScreenTimeCard";
-import { Sparkles, Compass, PlayCircle, Globe, Users, ArrowRight, Youtube } from "lucide-react";
+import { Sparkles, Compass, PlayCircle, Globe, Users, ArrowRight, Youtube, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 
 const DashboardHome = () => {
@@ -146,9 +146,9 @@ const DashboardHome = () => {
     return (
         <div className="flex flex-col lg:flex-row gap-6 lg:items-start animate-in fade-in duration-500">
             {/* Left column (Flexible) */}
-            <div className="flex-1 min-w-0 space-y-6">
+            <div className="flex-1 min-w-0 space-y-4 sm:space-y-5">
                 {/* Greeting banner */}
-                <div className="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm relative overflow-hidden transition-colors duration-200">
+                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm relative overflow-hidden transition-colors duration-200">
                     <div className="absolute top-0 right-0 w-36 h-36 bg-orange-500/5 rounded-full blur-3xl pointer-events-none" />
                     <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
                         Welcome back, {user?.name || "Learner"}! <span className="animate-bounce">👋</span>
@@ -159,24 +159,24 @@ const DashboardHome = () => {
                 </div>
 
                 {/* Hub Cards Grid */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
                     {/* Learning Hub Card */}
                     <motion.div
                         whileHover={{ y: -3, scale: 1.01 }}
                         whileTap={{ scale: 0.99 }}
-                        className="bg-white dark:bg-gray-800 p-2.5 sm:p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 transition-all cursor-pointer relative overflow-hidden group flex flex-col justify-between h-full min-h-[140px] sm:min-h-0"
+                        className="bg-white dark:bg-gray-800 p-3 sm:p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 transition-all cursor-pointer relative overflow-hidden group flex flex-col justify-between h-full min-h-[140px] sm:min-h-0"
                         onClick={() => navigate((playlists.length === 0 && videos.length === 0) ? '/dashboard/explore' : '/dashboard/library')}
                     >
                         <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full blur-2xl group-hover:bg-red-500/10 transition-all pointer-events-none" />
-                        <div className="flex flex-col items-center sm:items-start gap-2.5 flex-1 w-full min-w-0">
-                            <div className="flex flex-row items-center justify-center sm:justify-start gap-1.5 sm:gap-3 w-full">
+                        <div className="flex flex-col items-start gap-2 flex-1 w-full min-w-0">
+                            <div className="flex flex-row items-center justify-start gap-1.5 sm:gap-3 w-full">
                                 <div className="w-7 h-7 sm:w-10 sm:h-10 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center shrink-0 shadow-sm shadow-red-500/10 transition-transform duration-300 group-hover:scale-105">
                                     <Youtube size={16} className="sm:w-5 sm:h-5" />
                                 </div>
                                 <h3 className="text-[13px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Learning Hub</h3>
                             </div>
-                            <div className="min-w-0 flex-1 w-full text-center sm:text-left">
-                                <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center sm:text-left w-full">
+                            <div className="min-w-0 flex-1 w-full text-left">
+                                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-left w-full">
                                     Learn from YouTube videos, study AI notes, and view roadmaps.
                                 </p>
                             </div>
@@ -195,19 +195,19 @@ const DashboardHome = () => {
                     <motion.div
                         whileHover={{ y: -3, scale: 1.01 }}
                         whileTap={{ scale: 0.99 }}
-                        className="bg-white dark:bg-gray-800 p-2.5 sm:p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 transition-all cursor-pointer relative overflow-hidden group flex flex-col justify-between h-full min-h-[140px] sm:min-h-0"
+                        className="bg-white dark:bg-gray-800 p-3 sm:p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 transition-all cursor-pointer relative overflow-hidden group flex flex-col justify-between h-full min-h-[140px] sm:min-h-0"
                         onClick={() => navigate('/dashboard/live-rooms')}
                     >
                         <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all pointer-events-none" />
-                        <div className="flex flex-col items-center sm:items-start gap-2.5 flex-1 w-full min-w-0">
-                            <div className="flex flex-row items-center justify-center sm:justify-start gap-1.5 sm:gap-3 w-full">
+                        <div className="flex flex-col items-start gap-2 flex-1 w-full min-w-0">
+                            <div className="flex flex-row items-center justify-start gap-1.5 sm:gap-3 w-full">
                                 <div className="w-7 h-7 sm:w-10 sm:h-10 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/10 transition-transform duration-300 group-hover:scale-105">
                                     <Globe size={16} className="sm:w-5 sm:h-5" />
                                 </div>
                                 <h3 className="text-[13px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Live Rooms</h3>
                             </div>
-                            <div className="min-w-0 flex-1 w-full text-center sm:text-left">
-                                <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center sm:text-left w-full">
+                            <div className="min-w-0 flex-1 w-full text-left">
+                                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-left w-full">
                                     Join audio/video study rooms and practice language in real-time.
                                 </p>
                             </div>
@@ -226,19 +226,19 @@ const DashboardHome = () => {
                     <motion.div
                         whileHover={{ y: -3, scale: 1.01 }}
                         whileTap={{ scale: 0.99 }}
-                        className="bg-white dark:bg-gray-800 p-2.5 sm:p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 transition-all cursor-pointer relative overflow-hidden group flex flex-col justify-between h-full min-h-[140px] sm:min-h-0"
+                        className="bg-white dark:bg-gray-800 p-3 sm:p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 transition-all cursor-pointer relative overflow-hidden group flex flex-col justify-between h-full min-h-[140px] sm:min-h-0"
                         onClick={() => navigate('/dashboard/social')}
                     >
                         <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-all pointer-events-none" />
-                        <div className="flex flex-col items-center sm:items-start gap-2.5 flex-1 w-full min-w-0">
-                            <div className="flex flex-row items-center justify-center sm:justify-start gap-1.5 sm:gap-3 w-full">
+                        <div className="flex flex-col items-start gap-2 flex-1 w-full min-w-0">
+                            <div className="flex flex-row items-center justify-start gap-1.5 sm:gap-3 w-full">
                                 <div className="w-7 h-7 sm:w-10 sm:h-10 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/10 transition-transform duration-300 group-hover:scale-105">
                                     <Users size={16} className="sm:w-5 sm:h-5" />
                                 </div>
                                 <h3 className="text-[13px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h3>
                             </div>
-                            <div className="min-w-0 flex-1 w-full text-center sm:text-left">
-                                <p className="text-[10px] sm:text-sm text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-center sm:text-left w-full">
+                            <div className="min-w-0 flex-1 w-full text-left">
+                                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-left w-full">
                                     Connect with study partners, send messages, and share updates.
                                 </p>
                             </div>
@@ -252,11 +252,42 @@ const DashboardHome = () => {
                             </div>
                         </div>
                     </motion.div>
+
+                    {/* Ask My Notes Card */}
+                    <motion.div
+                        whileHover={{ y: -3, scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                        className="bg-white dark:bg-gray-800 p-3 sm:p-5 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 transition-all cursor-pointer relative overflow-hidden group flex flex-col justify-between h-full min-h-[140px] sm:min-h-0"
+                        onClick={() => navigate('/dashboard/ask-my-notes')}
+                    >
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/5 rounded-full blur-2xl group-hover:bg-orange-500/10 transition-all pointer-events-none" />
+                        <div className="flex flex-col items-start gap-2 flex-1 w-full min-w-0">
+                            <div className="flex flex-row items-center justify-start gap-1.5 sm:gap-3 w-full">
+                                <div className="w-7 h-7 sm:w-10 sm:h-10 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 rounded-lg flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/10 transition-transform duration-300 group-hover:scale-105">
+                                    <MessageSquare size={16} className="sm:w-5 sm:h-5" />
+                                </div>
+                                <h3 className="text-[13px] sm:text-base font-black text-gray-900 dark:text-white leading-tight">Ask My Notes</h3>
+                            </div>
+                            <div className="min-w-0 flex-1 w-full text-left">
+                                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-left w-full">
+                                    Chat with your PDFs, slides, and notes using LearnProof AI.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex flex-row items-center justify-between mt-2.5 sm:mt-5 pt-2 sm:pt-3 border-t border-orange-50 dark:border-gray-700/50 gap-1 shrink-0">
+                            <span className="text-[8px] sm:text-xs text-orange-600 dark:text-orange-400 font-extrabold bg-orange-100/60 dark:bg-orange-950/40 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full whitespace-nowrap text-center">
+                                Chat
+                            </span>
+                            <div className="w-5 h-5 sm:w-8 sm:h-8 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-sm shadow-orange-500/20 transition-all duration-300 group-hover:bg-orange-655 group-hover:scale-110">
+                                <ArrowRight size={10} className="sm:w-4 sm:h-4" />
+                            </div>
+                        </div>
+                    </motion.div>
                 </div>
 
                 {/* Quick Resume Section */}
-                <div className="space-y-4 pt-6 border-t border-orange-100/50 dark:border-gray-700">
-                    <div className="space-y-4">
+                <div className="space-y-3.5 pt-4.5 border-t border-orange-100/50 dark:border-gray-700">
+                    <div className="space-y-3">
                         <PlaylistSection data={playlists} loading={loadingLearnings} />
                         <VideosSection data={videos} loading={loadingLearnings} />
                         <ContinueWatching videos={continueVideos} loading={loadingContinue} />

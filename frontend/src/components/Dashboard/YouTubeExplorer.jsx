@@ -250,7 +250,7 @@ const YouTubeExplorer = () => {
                             <div className="pl-3 sm:pl-4 text-gray-400 group-focus-within:text-red-500 transition-colors">
                                 <Search size={20} className="sm:w-[22px] sm:h-[22px]" />
                             </div>
-                            <input
+                             <input
                                 type="text"
                                 placeholder="Search tutorials, courses..."
                                 value={query}
@@ -260,14 +260,14 @@ const YouTubeExplorer = () => {
                                 }}
                                 onKeyDown={handleKeyDown}
                                 onFocus={() => setShowSuggestions(true)}
-                                className="flex-1 bg-transparent border-none py-3 sm:py-4 px-2 sm:px-4 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-600 focus:ring-0 outline-none text-sm sm:text-base md:text-lg font-medium"
+                                className="flex-1 min-w-0 bg-transparent border-none py-3 sm:py-4 px-2 sm:px-4 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-600 focus:ring-0 outline-none text-sm sm:text-base md:text-lg font-medium"
                             />
                             
                             {/* Filters button */}
                             <button
                                 type="button"
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`p-3 mr-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 ${
+                                className={`p-2.5 mr-1 sm:mr-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 shrink-0 ${
                                     showFilters ? 'text-red-500 bg-red-50/50 dark:bg-red-950/20' : 'text-gray-450 hover:text-gray-600 dark:hover:text-gray-200'
                                 }`}
                                 title="Toggle Filters"
@@ -275,11 +275,11 @@ const YouTubeExplorer = () => {
                                 <SlidersHorizontal size={18} />
                                 <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">Filters</span>
                             </button>
-
+ 
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="bg-gray-900 dark:bg-red-600 hover:bg-gray-800 dark:hover:bg-red-700 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-[1.5rem] font-bold text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg disabled:opacity-50"
+                                className="bg-gray-900 dark:bg-red-600 hover:bg-gray-800 dark:hover:bg-red-700 text-white p-3 sm:px-8 sm:py-4 rounded-xl sm:rounded-[1.5rem] font-bold text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg disabled:opacity-50 shrink-0"
                             >
                                 {loading ? <Loader size={18} className="animate-spin" /> : (
                                     <>

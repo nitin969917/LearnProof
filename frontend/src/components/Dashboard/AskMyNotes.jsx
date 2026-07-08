@@ -1029,7 +1029,7 @@ const AskMyNotes = () => {
                 if (next.length > 0) {
                     next[next.length - 1] = {
                         ...next[next.length - 1],
-                        content: `Error: ${err.message || 'Failed to generate response. Ensure Dify is active.'}`
+                        content: `Error: ${err.message || 'Failed to generate response. Ensure LearnProof AI is active.'}`
                     };
                 }
                 return next;

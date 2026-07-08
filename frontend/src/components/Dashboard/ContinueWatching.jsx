@@ -56,7 +56,7 @@ const ContinueWatching = ({ videos: propVideos, loading: propLoading }) => {
 
     if (loading) {
         return (
-            <div className="space-y-4 mb-2">
+            <div className="space-y-2 mb-2">
                 <div className="flex items-center gap-2">
                     <div className="w-5 h-5 bg-gray-250 dark:bg-gray-700 rounded animate-pulse"></div>
                     <div className="h-6 w-44 bg-gray-255 dark:bg-gray-700 rounded animate-pulse"></div>
@@ -80,9 +80,9 @@ const ContinueWatching = ({ videos: propVideos, loading: propLoading }) => {
     }
 
     return (
-        <div className="space-y-4 mb-2">
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                <Zap size={20} className="text-orange-500" />
+        <div className="space-y-2 mb-2">
+            <h2 className="text-[14px] sm:text-base font-black text-gray-900 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
+                <Zap size={18} className="text-orange-500" />
                 Continue Watching
             </h2>
             <div className="relative group">
