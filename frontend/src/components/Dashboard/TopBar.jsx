@@ -81,7 +81,7 @@ const TopBar = ({ onMenuClick }) => {
 
     return (
         <>
-            <div className="flex items-stretch justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm sticky top-0 z-10 transition-colors duration-200 h-16 sm:h-20 w-full overflow-hidden">
+            <div className="flex items-stretch justify-between bg-white/80 dark:bg-gray-900/85 backdrop-blur-lg border-b border-orange-100/50 dark:border-gray-800/80 shadow-[0_2px_12px_-5px_rgba(0,0,0,0.05)] sticky top-0 z-10 transition-all duration-200 h-16 sm:h-20 w-full overflow-hidden">
                 {/* Left Side: Logo (Flush Left) */}
                 <div
                     onClick={() => navigate('/dashboard')}
@@ -104,12 +104,12 @@ const TopBar = ({ onMenuClick }) => {
                 {/* Right Side: Actions (Import & Inbox Group) */}
                 <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 pl-14 sm:pl-0 px-2 sm:px-4 min-w-0">
                     {/* Desktop Import Bar (sm and up) */}
-                    <div className="hidden sm:flex items-center flex-1 max-w-xl bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-4 py-2 gap-2 transition-all duration-200 shadow-sm">
-                        <Youtube className="text-orange-500 shrink-0" size={20} />
+                    <div className="hidden sm:flex items-center flex-1 max-w-xl bg-orange-50/50 dark:bg-gray-800/60 border border-orange-100 dark:border-gray-700 rounded-full px-4 py-1.5 gap-2 transition-all duration-200 shadow-inner focus-within:border-orange-350 dark:focus-within:border-orange-500/50 focus-within:ring-1 focus-within:ring-orange-500/20">
+                        <Youtube className="text-orange-500 shrink-0" size={18} />
                         <input
                             type="text"
                             placeholder="Enter Youtube URL..."
-                            className="w-full bg-transparent outline-none text-sm text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
+                            className="w-full bg-transparent outline-none text-sm text-gray-850 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleImport()}
@@ -117,18 +117,18 @@ const TopBar = ({ onMenuClick }) => {
                         <button
                             onClick={handleImport}
                             disabled={loading}
-                            className="text-white bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 rounded-lg text-sm font-bold uppercase tracking-wider hover:opacity-90 transition-all shrink-0"
+                            className="text-white bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider hover:opacity-95 shadow-sm shadow-orange-500/20 hover:shadow-orange-500/30 transition-all shrink-0 active:scale-95"
                         >
                             {loading ? "..." : "Import"}
                         </button>
                     </div>
 
                     {/* Mobile Import Bar (Refined Size & Same Text) */}
-                    <div className="flex sm:hidden flex-1 min-w-0 bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2.5 py-1.5 items-center gap-2 shadow-sm">
+                    <div className="flex sm:hidden flex-1 min-w-0 bg-orange-50/50 dark:bg-gray-800/60 border border-orange-100 dark:border-gray-700 rounded-full px-3 py-1.5 items-center gap-2 shadow-inner">
                        <input
                             type="text"
                             placeholder="Enter Youtube URL..."
-                            className="w-full bg-transparent outline-none text-[11px] text-gray-800 dark:text-gray-200 placeholder-gray-400"
+                            className="w-full bg-transparent outline-none text-[11px] text-gray-850 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleImport()}
@@ -136,7 +136,7 @@ const TopBar = ({ onMenuClick }) => {
                         <button 
                             onClick={handleImport} 
                             disabled={loading}
-                            className="bg-orange-600 text-white rounded-lg px-2.5 py-1.5 font-bold text-[10px] uppercase tracking-tight shrink-0 active:scale-90 transition-transform"
+                            className="bg-orange-600 text-white rounded-full px-3 py-1.5 font-bold text-[10px] uppercase tracking-tight shrink-0 active:scale-90 transition-transform"
                         >
                             {loading ? "..." : "Import"}
                         </button>

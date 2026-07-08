@@ -14,31 +14,35 @@ const BottomNav = ({ onMenuClick }) => {
     ];
 
     return (
-        <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[390px] xs:w-[440px] sm:w-[520px] md:w-[600px] max-w-[95vw] z-50 lg:hidden bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300">
-            <div className="flex items-stretch justify-around h-16 px-3.5 relative">
+        <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[395px] xs:w-[440px] sm:w-[520px] md:w-[600px] max-w-[96vw] z-50 lg:hidden glass-panel rounded-full shadow-glow-orange transition-all duration-300">
+            <div className="flex items-stretch justify-around h-16 px-4 relative">
                 {navItems.map((item) => (
                     <NavLink
                         key={item.name}
                         to={item.path}
                         end
-                        className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 no-underline touch-manipulation select-none outline-none border-none focus:outline-none focus:ring-0 focus:ring-transparent focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent active:outline-none"
+                        className="relative flex flex-col items-center justify-center flex-1 h-full py-1 text-gray-400 dark:text-gray-500 no-underline touch-manipulation select-none outline-none border-none focus:outline-none focus:ring-0 active:outline-none"
                     >
                         {({ isActive }) => (
                             <motion.div
-                                whileTap={{ scale: 0.88 }}
-                                className="flex flex-col items-center justify-center w-full h-full relative outline-none border-none focus:outline-none focus:ring-0 focus-visible:outline-none"
+                                whileTap={{ scale: 0.9 }}
+                                className="flex flex-col items-center justify-center w-full h-full relative"
                             >
-                                <div className={`transition-all duration-300 z-10 flex flex-col items-center justify-center ${isActive ? 'scale-110 text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
-                                    <item.icon 
-                                        size={22} 
-                                        strokeWidth={isActive ? 2.5 : 2} 
-                                        className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
+                                {isActive && (
+                                    <motion.div
+                                        layoutId="active-bottom-nav-indicator"
+                                        className="absolute w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500/15 to-amber-500/10 dark:from-orange-500/20 dark:to-amber-500/5 -z-0"
+                                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
                                     />
-                                    <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">{item.name}</span>
+                                )}
+                                <div className={`transition-all duration-300 z-10 flex flex-col items-center justify-center ${isActive ? 'scale-105 text-orange-600 dark:text-orange-450' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
+                                    <item.icon 
+                                        size={20} 
+                                        strokeWidth={isActive ? 2.5 : 2} 
+                                        className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.35)]' : ''}
+                                    />
+                                    <span className="text-[9px] font-bold mt-1 tracking-wide leading-none">{item.name}</span>
                                 </div>
-                                
-                                
-
                             </motion.div>
                         )}
                     </NavLink>
@@ -47,15 +51,15 @@ const BottomNav = ({ onMenuClick }) => {
                 {/* Menu Button */}
                 <button
                     onClick={onMenuClick}
-                    className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-500 touch-manipulation select-none hover:text-orange-500 dark:hover:text-orange-400 border-none outline-none focus:outline-none focus:ring-0 focus:ring-transparent focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent active:outline-none"
+                    className="relative flex flex-col items-center justify-center flex-1 h-full py-1 text-gray-400 dark:text-gray-550 touch-manipulation select-none hover:text-orange-500 dark:hover:text-orange-400 border-none outline-none focus:outline-none focus:ring-0 active:outline-none"
                 >
                     <motion.div
-                        whileTap={{ scale: 0.88 }}
-                        className="flex flex-col items-center justify-center w-full h-full outline-none border-none"
+                        whileTap={{ scale: 0.9 }}
+                        className="flex flex-col items-center justify-center w-full h-full"
                     >
                         <div className="scale-100 transition-all duration-300 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400">
-                            <Menu size={22} strokeWidth={2} />
-                            <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">Menu</span>
+                            <Menu size={20} strokeWidth={2} />
+                            <span className="text-[9px] font-bold mt-1 tracking-wide leading-none">Menu</span>
                         </div>
                     </motion.div>
                 </button>
