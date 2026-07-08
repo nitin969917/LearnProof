@@ -18,7 +18,6 @@ export default function SocialBottomNavBar() {
     { id: 'discover', icon: Search,       label: 'Discover' },
     { id: 'friends',  icon: Users,        label: 'Friends' },
     { id: 'chat',     icon: MessageSquare,label: 'Chats', badge: totalUnreadCount > 0 ? totalUnreadCount : null },
-    { id: 'profile',  icon: User,         label: 'Profile' },
   ];
 
   const goToTab = (tabId) => {

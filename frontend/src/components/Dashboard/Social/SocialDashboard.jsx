@@ -246,7 +246,6 @@ export default function SocialDashboard() {
       icon: MessageSquare,
       badge: totalUnreadCount > 0 ? totalUnreadCount : null
     },
-    { id: 'profile', name: 'Profile', icon: User },
   ];
 
   if (!socialUser) {
@@ -293,8 +292,8 @@ export default function SocialDashboard() {
           </div>
         </div>
 
-        {/* Right Side: Actions (Create Post) */}
-        <div className="flex items-center gap-2 shrink-0 px-4 md:px-6">
+        {/* Right Side: Actions (Create Post & Profile) */}
+        <div className="flex items-center gap-2.5 shrink-0 px-4 md:px-6">
           {activeTab === 'feed' && (
             <button
               onClick={() => setShowCreatePostModal(true)}
@@ -304,6 +303,25 @@ export default function SocialDashboard() {
               <Plus size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
             </button>
           )}
+
+          {/* Profile Action Button */}
+          <button
+            onClick={() => handleTabChange('profile')}
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border active:scale-95 transition-all cursor-pointer flex items-center justify-center shrink-0 ${
+              activeTab === 'profile'
+                ? 'border-orange-500 ring-2 ring-orange-500/20'
+                : 'border-orange-100 dark:border-gray-700'
+            }`}
+            title="My Profile"
+          >
+            {socialUser.avatar ? (
+              <img src={socialUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-orange-105 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold text-sm">
+                {socialUser.name?.[0]?.toUpperCase() || 'U'}
+              </div>
+            )}
+          </button>
         </div>
       </div>
 

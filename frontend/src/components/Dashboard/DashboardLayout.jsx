@@ -263,8 +263,8 @@ const DashboardLayout = () => {
                             </div>
                         </div>
 
-                        {/* Right — Create Room action button (if on rooms list) */}
-                        <div className="flex items-center gap-2 shrink-0 px-4 md:px-6">
+                        {/* Right — Create Room action button (if on rooms list) & Profile button */}
+                        <div className="flex items-center gap-2.5 shrink-0 px-4 md:px-6">
                             {onHeaderAction && isLiveRoomList && (
                                 <button
                                     onClick={onHeaderAction}
@@ -274,6 +274,24 @@ const DashboardLayout = () => {
                                     <Plus size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
                                 </button>
                             )}
+
+                            {/* Profile Action Button */}
+                            <button
+                                onClick={() => {
+                                    localStorage.setItem('social_active_tab', 'profile');
+                                    navigate('/dashboard/social?tab=profile');
+                                }}
+                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-orange-100 dark:border-gray-750 active:scale-95 transition-all cursor-pointer flex items-center justify-center shrink-0"
+                                title="My Profile"
+                            >
+                                {socialUser?.avatar ? (
+                                    <img src={socialUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full bg-orange-100 dark:bg-orange-950/40 text-orange-655 dark:text-orange-400 flex items-center justify-center font-bold text-sm">
+                                        {socialUser?.name?.[0]?.toUpperCase() || 'U'}
+                                    </div>
+                                )}
+                            </button>
                         </div>
                     </div>
                 )}
