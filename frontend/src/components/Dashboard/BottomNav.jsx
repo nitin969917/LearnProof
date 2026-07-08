@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Search, BookOpen, Quote, Globe, Users, MessageSquare } from 'lucide-react';
+import { Home, Search, BookOpen, Quote, Globe, Users, MessageSquare, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const BottomNav = () => {
@@ -9,7 +9,7 @@ const BottomNav = () => {
     // Determine navigation context based on active route
     const isHome = location.pathname === '/dashboard';
 
-    // Core tabs list matching dynamic layout request
+    // Core tabs list: Appended Profile icon to ensure both modes contain 6 icons
     const navItems = isHome
         ? [
             { name: 'Home', icon: Home, path: '/dashboard' },
@@ -17,6 +17,7 @@ const BottomNav = () => {
             { name: 'Social', icon: Users, path: '/dashboard/social' },
             { name: 'Rooms', icon: Globe, path: '/dashboard/live-rooms' },
             { name: 'Ask Notes', icon: MessageSquare, path: '/dashboard/ask-my-notes' },
+            { name: 'Profile', icon: User, path: '/dashboard/social?tab=profile' },
           ]
         : [
             { name: 'Home', icon: Home, path: '/dashboard' },
@@ -24,6 +25,7 @@ const BottomNav = () => {
             { name: 'Library', icon: BookOpen, path: '/dashboard/library' },
             { name: 'Quiz', icon: Quote, path: '/dashboard/quiz' },
             { name: 'Ask Notes', icon: MessageSquare, path: '/dashboard/ask-my-notes' },
+            { name: 'Profile', icon: User, path: '/dashboard/social?tab=profile' },
           ];
 
     return (
@@ -34,7 +36,7 @@ const BottomNav = () => {
                         key={item.name}
                         to={item.path}
                         end={item.path === '/dashboard'}
-                        className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 no-underline touch-manipulation select-none outline-none border-none focus:outline-none focus:ring-0 focus:ring-transparent focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent active:outline-none"
+                        className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-555 no-underline touch-manipulation select-none outline-none border-none focus:outline-none focus:ring-0 focus:ring-transparent focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent active:outline-none"
                     >
                         {({ isActive }) => (
                             <motion.div
