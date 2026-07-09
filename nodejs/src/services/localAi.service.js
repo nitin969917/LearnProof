@@ -161,14 +161,34 @@ const parseLocalFile = async (filePath, ext) => {
 
 /**
  * Helper to fetch and assemble indexed document context for a workspace
+ * Utilises keyword-based paragraph retrieval (RAG) to ensure small prompt size and fast response times
  */
-const getWorkspaceContext = async (workspaceId) => {
+const getWorkspaceContext = async (workspaceId, query = '') => {
     const sources = await prisma.knowledgeSource.findMany({
         where: { workspaceId: parseInt(workspaceId), status: 'INDEXED' }
     });
 
     let context = '';
     const citations = [];
+
+    const cleanQuery = (query || '').toLowerCase().trim();
+    
+    // Stop words to filter out from query
+    const stopWords = new Set([
+        'the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+        'in', 'on', 'at', 'to', 'for', 'with', 'by', 'about', 'against', 'between', 'into', 'through',
+        'during', 'before', 'after', 'above', 'below', 'from', 'up', 'down', 'of', 'for', 'with',
+        'how', 'what', 'why', 'where', 'when', 'who', 'which', 'whom', 'this', 'that', 'these', 'those',
+        'describe', 'explain', 'show', 'tell', 'find', 'give', 'list', 'please', 'you', 'me', 'my', 'our'
+    ]);
+
+    // Tokenize query into keywords
+    const keywords = cleanQuery
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .filter(word => word.length > 2 && !stopWords.has(word));
+
+    const allParagraphs = [];
 
     sources.forEach(src => {
         let text = '';
@@ -181,14 +201,99 @@ const getWorkspaceContext = async (workspaceId) => {
             console.error(`Failed to parse metadata for source: ${src.id}`, e);
         }
 
-        if (text) {
-            context += `--- DOCUMENT: ${src.name} ---\n${text}\n\n`;
-            citations.push({
-                document_name: src.name,
-                score: 1.0
+        if (!text) return;
+
+        // Split text into paragraphs
+        const paragraphs = text.split(/\r?\n\s*\r?\n/)
+            .map(p => p.trim())
+            .filter(p => p.length > 50);
+
+        paragraphs.forEach((p, idx) => {
+            allParagraphs.push({
+                docName: src.name,
+                text: p,
+                index: idx
             });
-        }
+        });
     });
+
+    // Score paragraphs based on keyword frequency
+    const scoredParagraphs = allParagraphs.map(p => {
+        let score = 0;
+        const pLower = p.text.toLowerCase();
+
+        keywords.forEach(keyword => {
+            const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+            const matches = pLower.match(regex);
+            if (matches) {
+                score += Math.min(matches.length, 3) * 2;
+            }
+            if (pLower.includes(keyword) && !pLower.match(new RegExp(`\\b${keyword}\\b`))) {
+                score += 1;
+            }
+        });
+
+        return { ...p, score };
+    });
+
+    // Sort by score descending
+    const rankedParagraphs = scoredParagraphs
+        .filter(p => p.score > 0 || keywords.length === 0)
+        .sort((a, b) => b.score - a.score);
+
+    // Take top paragraphs up to 16,000 characters limit
+    let totalLength = 0;
+    const maxLength = 16000;
+    const selectedParagraphs = [];
+    const citedDocNames = new Set();
+
+    for (const p of rankedParagraphs) {
+        if (totalLength + p.text.length > maxLength) {
+            if (selectedParagraphs.length >= 4) break;
+        }
+        selectedParagraphs.push(p);
+        totalLength += p.text.length;
+        citedDocNames.add(p.docName);
+    }
+
+    // Group selected paragraphs by document name
+    const docsGroup = {};
+    selectedParagraphs.forEach(p => {
+        if (!docsGroup[p.docName]) docsGroup[p.docName] = [];
+        docsGroup[p.docName].push(p.text);
+    });
+
+    Object.keys(docsGroup).forEach(docName => {
+        context += `--- DOCUMENT: ${docName} (Relevant Excerpts) ---\n`;
+        context += docsGroup[docName].join('\n\n[...]\n\n');
+        context += '\n\n';
+        citations.push({
+            document_name: docName,
+            score: 1.0
+        });
+    });
+
+    // Fallback: If no paragraphs match keywords, get default beginning of each document
+    if (context === '' && sources.length > 0) {
+        sources.forEach(src => {
+            let text = '';
+            try {
+                if (src.metadata) {
+                    const meta = JSON.parse(src.metadata);
+                    text = meta.extractedText || '';
+                }
+            } catch (e) {}
+
+            if (text) {
+                const defaultExcerpt = text.substring(0, 3000);
+                context += `--- DOCUMENT: ${src.name} (Beginning) ---\n${defaultExcerpt}\n\n`;
+                citations.push({
+                    document_name: src.name,
+                    score: 1.0
+                });
+            }
+        });
+    }
 
     return { context, citations };
 };
@@ -198,7 +303,7 @@ const getWorkspaceContext = async (workspaceId) => {
  */
 const streamChat = async (workspaceId, query, userId, chatHistory = [], onToken, onComplete, onError) => {
     try {
-        const { context, citations } = await getWorkspaceContext(workspaceId);
+        const { context, citations } = await getWorkspaceContext(workspaceId, query);
 
         // Format conversation history so the AI understands previous context
         const historyBlock = chatHistory.length > 0
