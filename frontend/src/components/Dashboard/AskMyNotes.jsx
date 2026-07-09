@@ -166,8 +166,8 @@ const cleanMermaidChart = (chartText) => {
 
     // ── Fix 1b: Unquoted chained arrow-label syntax (e.g. A --- label --> B) ─
     text = text.replace(
-        /([A-Za-z0-9_]+(?:\[[^\]]*\]|\([^\)]*\)|\{\{[^\}]*\}\}|\{[^\}]*\}|\[\([^\)]*\)\]|\[\[[^\]]*\]\]|\(\[[^\]]*\]\))?)\s*--+\s*([^|"\n]+?)\s*--+>\s*([A-Za-z0-9_]+(?:\[[^\]]*\]|\([^\)]*\)|\{\{[^\}]*\}\}|\{[^\}]*\}|\[\([^\)]*\)\]|\[\[[^\]]*\]\]|\(\[[^\]]*\]\))?)/g,
-        '$1 -->|$2| $3'
+        /([A-Za-z0-9_]+(?:\[[^\]]*\]|\([^\)]*\)|\{\{[^\}]*\}\}|\{[^\}]*\}|\[\([^\)]*\)\]|\[\[[^\]]*\]\]|\(\[[^\]]*\]\))?)\s*--+\s*(.+?)\s*--+>\s*([A-Za-z0-9_]+(?:\[[^\]]*\]|\([^\)]*\)|\{\{[^\}]*\}\}|\{[^\}]*\}|\[\([^\)]*\)\]|\[\[[^\]]*\]\]|\(\[[^\]]*\]\))?)/g,
+        '$1 -->|"$2"| $3'
     );
 
     // ── Fix 2: Quote arrow labels that contain special characters or text ───
@@ -183,7 +183,7 @@ const cleanMermaidChart = (chartText) => {
     // We temporarily extract |"labelText"| or |labelText| from the text
     // so that shapeRegex does not match brackets or parentheses inside link labels
     const linkLabels = [];
-    let tempText = text.replace(/\|([^|\n]+)\|/g, (match) => {
+    let tempText = text.replace(/\|("[^"\n]*"|[^|\n]*)\|/g, (match) => {
         linkLabels.push(match);
         return ` §LINKLABEL_${linkLabels.length - 1}§`;
     });
