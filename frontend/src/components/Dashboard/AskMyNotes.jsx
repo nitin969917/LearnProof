@@ -160,13 +160,13 @@ const cleanMermaidChart = (chartText) => {
     // AI sometimes writes: A --> "label" --> B  (invalid)
     // Fix to:              A -->|label| B        (valid)
     text = text.replace(
-        /([A-Za-z0-9_"'\(\)\[\]]+)\s*--+>?\s*"([^"]+)"\s*--+>\s*([A-Za-z0-9_"'\(\)\[\]]+)/g,
+        /([A-Za-z0-9_]+(?:\[[^\]]*\]|\([^\)]*\)|\{\{[^\}]*\}\}|\{[^\}]*\}|\[\([^\)]*\)\]|\[\[[^\]]*\]\]|\(\[[^\]]*\]\))?)\s*--+>?\s*"([^"]+)"\s*--+>\s*([A-Za-z0-9_]+(?:\[[^\]]*\]|\([^\)]*\)|\{\{[^\}]*\}\}|\{[^\}]*\}|\[\([^\)]*\)\]|\[\[[^\]]*\]\]|\(\[[^\]]*\]\))?)/g,
         '$1 -->|$2| $3'
     );
 
     // ── Fix 1b: Unquoted chained arrow-label syntax (e.g. A --- label --> B) ─
     text = text.replace(
-        /([A-Za-z0-9_"'\(\)\[\]]+)\s*--+\s*([^|"\n]+?)\s*--+>\s*([A-Za-z0-9_"'\(\)\[\]]+)/g,
+        /([A-Za-z0-9_]+(?:\[[^\]]*\]|\([^\)]*\)|\{\{[^\}]*\}\}|\{[^\}]*\}|\[\([^\)]*\)\]|\[\[[^\]]*\]\]|\(\[[^\]]*\]\))?)\s*--+\s*([^|"\n]+?)\s*--+>\s*([A-Za-z0-9_]+(?:\[[^\]]*\]|\([^\)]*\)|\{\{[^\}]*\}\}|\{[^\}]*\}|\[\([^\)]*\)\]|\[\[[^\]]*\]\]|\(\[[^\]]*\]\))?)/g,
         '$1 -->|$2| $3'
     );
 
@@ -179,12 +179,21 @@ const cleanMermaidChart = (chartText) => {
     const hasIdPrefix = /\bid\d+\b/.test(text);
     const prefix = hasIdPrefix ? 'id' : 'n';
 
+    // ── Temporarily Extract Link Labels ────────────────────────────────────
+    // We temporarily extract |"labelText"| or |labelText| from the text
+    // so that shapeRegex does not match brackets or parentheses inside link labels
+    const linkLabels = [];
+    let tempText = text.replace(/\|([^|\n]+)\|/g, (match) => {
+        linkLabels.push(match);
+        return ` §LINKLABEL_${linkLabels.length - 1}§`;
+    });
+
     // ── Temporarily Extract Shape Containers / Labels ────────────────────────
     // We use a non-word character delimiter like ' §LABEL_idx§' to preserve word boundaries
     const labels = [];
     const shapeRegex = /(\(\(.*?\)\)|\(\[.*?\]\)|\[\[.*?\]\]|\[\(.*?\)\]|\[.*?\]|\(.*?\)|\{.*?\})/g;
     
-    let tempText = text.replace(shapeRegex, (match) => {
+    tempText = tempText.replace(shapeRegex, (match) => {
         labels.push(match);
         return ` §LABEL_${labels.length - 1}§`;
     });
@@ -298,6 +307,11 @@ const cleanMermaidChart = (chartText) => {
     result = result.replace(/\s*§LABEL_(\d+)§/g, (match, index) => {
         const rawLabel = labels[parseInt(index)];
         return sanitizeMermaidLabel(rawLabel);
+    });
+
+    // Restore the link labels
+    result = result.replace(/\s*§LINKLABEL_(\d+)§/g, (match, index) => {
+        return linkLabels[parseInt(index)];
     });
 
     result = result.replace(/\n{3,}/g, '\n\n').trim();
