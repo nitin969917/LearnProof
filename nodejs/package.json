@@ -6,6 +6,7 @@
     "scripts": {
         "start": "node server.js",
         "dev": "nodemon server.js",
+        "tunnel": "ssh -i ~/.ssh/ssh-key-2026-03-25.key -N -L 8090:localhost:8090 ubuntu@80.225.218.46",
         "build": "npx prisma generate --schema=prisma/schema.prisma && npx prisma generate --schema=prisma/dating.prisma",
         "postinstall": "npx prisma generate --schema=prisma/schema.prisma && npx prisma generate --schema=prisma/dating.prisma",
         "prisma:generate": "npx prisma generate --schema=prisma/schema.prisma && npx prisma generate --schema=prisma/dating.prisma",
