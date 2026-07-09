@@ -44,6 +44,7 @@ const YouTubeExplorer = lazyWithRetry(() => import('./components/Dashboard/YouTu
 const PlaylistProgress = lazyWithRetry(() => import('./components/Dashboard/PlaylistProgress'));
 const AIBenchmark = lazyWithRetry(() => import('./components/Dashboard/AIBenchmark'));
 const AskMyNotes = lazyWithRetry(() => import('./components/Dashboard/AskMyNotesComingSoon'));
+const AskMyNotesOriginal = lazyWithRetry(() => import('./components/Dashboard/AskMyNotes'));
 const RoadmapDetail = lazyWithRetry(() => import('./components/Dashboard/RoadmapDetail'));
 const SocialDashboard = lazyWithRetry(() => import('./components/Dashboard/Social/SocialDashboard'));
 const LanguageLearning = lazyWithRetry(() => import('./components/Dashboard/LanguagePractice/LanguageLearning'));
@@ -139,6 +140,8 @@ const App = () => {
                                 <Route path='ai-benchmark' element={<AIBenchmark />} />
                                 <Route path='ask-my-notes' element={<AskMyNotes />} />
                                 <Route path='ask-my-notes/:subjectId' element={<AskMyNotes />} />
+                                <Route path='ask-my-notes-dev' element={<AskMyNotesOriginal />} />
+                                <Route path='ask-my-notes-dev/:subjectId' element={<AskMyNotesOriginal />} />
                                 <Route path='support' element={<Support />} />
                                 
                                 {/* Social / Social Dating Features */}
