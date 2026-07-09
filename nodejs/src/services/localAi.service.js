@@ -62,9 +62,32 @@ const parseLocalFile = async (filePath, ext) => {
         }
 
         if (normalizedExt === '.pdf') {
-            console.log(`[Local AI Service] Starting multimodal PDF parse with Gemini Vision for: ${filePath}`);
-            
-            const prompt = `Analyze this PDF document page-by-page. For each page:
+            console.log(`[Local AI Service] Parsing PDF: ${filePath}`);
+            let text = '';
+            let isDigital = false;
+
+            // Try fast local digital text extraction first
+            try {
+                console.log('[Local AI Service] Attempting fast digital text extraction with pdf-parse...');
+                const parsedData = await pdf(dataBuffer);
+                text = parsedData.text || '';
+                
+                // If it extracted a reasonable amount of text (e.g. > 100 characters total),
+                // we treat it as a successful soft-copy parse and skip expensive multimodal OCR.
+                if (text.trim().length > 100) {
+                    console.log(`[Local AI Service] Fast digital parse successful. Extracted ${text.length} characters.`);
+                    isDigital = true;
+                } else {
+                    console.log('[Local AI Service] Digital parse extracted very little text. Likely a scanned/image-only PDF.');
+                }
+            } catch (basicErr) {
+                console.warn('[Local AI Service] Basic pdf-parse failed:', basicErr.message);
+            }
+
+            // If it's not a soft copy, fall back to the premium multimodal/OCR parse
+            if (!isDigital) {
+                console.log(`[Local AI Service] Starting multimodal PDF parse with Gemini Vision for: ${filePath}`);
+                const prompt = `Analyze this PDF document page-by-page. For each page:
 1. Extract all text, headings, sections, tables, and math equations/formulas.
 2. Visually scan the page. If there are any diagrams, charts, flowcharts, graphs, venn diagrams, matrices, tables, illustrations, or images:
    - Identify the visual component.
@@ -73,15 +96,36 @@ const parseLocalFile = async (filePath, ext) => {
      [Diagram Description: ...detailed description...]
 3. Preserve the layout structure and chronological flow of the document. Use markdown.`;
 
-            let text = '';
-            let ocrSuccess = false;
+                let ocrSuccess = false;
 
-            if (vertexAIClient) {
-                try {
-                    console.log('[Local AI Service] Attempting multimodal parse with Vertex AI...');
-                    const response = await vertexAIClient.models.generateContent({
-                        model: 'gemini-2.5-flash',
-                        contents: [
+                if (vertexAIClient) {
+                    try {
+                        console.log('[Local AI Service] Attempting multimodal parse with Vertex AI...');
+                        const response = await vertexAIClient.models.generateContent({
+                            model: 'gemini-2.5-flash',
+                            contents: [
+                                {
+                                    inlineData: {
+                                        mimeType: 'application/pdf',
+                                        data: dataBuffer.toString('base64')
+                                    }
+                                },
+                                prompt
+                            ]
+                        });
+                        text = response.text || '';
+                        ocrSuccess = true;
+                        console.log(`[Local AI Service] Vertex AI multimodal parse complete. Extracted ${text.length} characters.`);
+                    } catch (vertexErr) {
+                        console.warn('[Local AI Service] Vertex AI multimodal parse failed, falling back to Google AI Studio:', vertexErr.message);
+                    }
+                }
+                
+                if (!ocrSuccess && genAI) {
+                    try {
+                        console.log('[Local AI Service] Attempting multimodal parse with Google AI Studio...');
+                        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+                        const result = await model.generateContent([
                             {
                                 inlineData: {
                                     mimeType: 'application/pdf',
@@ -89,47 +133,16 @@ const parseLocalFile = async (filePath, ext) => {
                                 }
                             },
                             prompt
-                        ]
-                    });
-                    text = response.text || '';
-                    ocrSuccess = true;
-                    console.log(`[Local AI Service] Vertex AI multimodal parse complete. Extracted ${text.length} characters.`);
-                } catch (vertexErr) {
-                    console.warn('[Local AI Service] Vertex AI multimodal parse failed, falling back to Google AI Studio:', vertexErr.message);
+                        ]);
+                        text = result.response.text() || '';
+                        ocrSuccess = true;
+                        console.log(`[Local AI Service] Google AI Studio multimodal parse complete. Extracted ${text.length} characters.`);
+                    } catch (studioErr) {
+                        console.error('[Local AI Service] Google AI Studio multimodal parse failed too:', studioErr.message);
+                    }
                 }
-            }
-            
-            if (!ocrSuccess && genAI) {
-                try {
-                    console.log('[Local AI Service] Attempting multimodal parse with Google AI Studio...');
-                    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-                    const result = await model.generateContent([
-                        {
-                            inlineData: {
-                                mimeType: 'application/pdf',
-                                // Note: In @google/generative-ai SDK, inlineData expects base64 string
-                                data: dataBuffer.toString('base64')
-                            }
-                        },
-                        prompt
-                    ]);
-                    text = result.response.text() || '';
-                    ocrSuccess = true;
-                    console.log(`[Local AI Service] Google AI Studio multimodal parse complete. Extracted ${text.length} characters.`);
-                } catch (studioErr) {
-                    console.error('[Local AI Service] Google AI Studio multimodal parse failed too:', studioErr.message);
-                }
-            }
-            
-            // Final fallback: If both vision OCR configurations fail, try basic digital text extraction
-            if (!ocrSuccess) {
-                console.warn('[Local AI Service] Multimodal parse failed. Falling back to basic digital text extraction...');
-                try {
-                    const data = await pdf(dataBuffer);
-                    text = data.text || '';
-                    ocrSuccess = true;
-                } catch (basicErr) {
-                    console.error('[Local AI Service] Basic text extraction failed too:', basicErr.message);
+
+                if (!ocrSuccess) {
                     throw new Error('All PDF parsing options failed.');
                 }
             }
