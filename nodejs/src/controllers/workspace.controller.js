@@ -510,6 +510,53 @@ const deleteNote = async (req, res) => {
     }
 };
 
+/**
+ * Preview / stream a document directly in the browser
+ */
+const previewSource = async (req, res) => {
+    const { id, sourceId } = req.params;
+    const userId = req.user.id;
+
+    try {
+        const workspace = await prisma.workspace.findFirst({
+            where: { id: parseInt(id), userId }
+        });
+
+        if (!workspace) {
+            return res.status(404).json({ error: 'Workspace not found' });
+        }
+
+        const source = await prisma.knowledgeSource.findFirst({
+            where: { id: parseInt(sourceId), workspaceId: workspace.id }
+        });
+
+        if (!source) {
+            return res.status(404).json({ error: 'Source document not found' });
+        }
+
+        if (!source.fileUrl || !fs.existsSync(source.fileUrl)) {
+            return res.status(404).json({ error: 'Source file not found on disk' });
+        }
+
+        // Determine content-type
+        const ext = path.extname(source.fileUrl).toLowerCase();
+        let contentType = 'application/octet-stream';
+        if (ext === '.pdf') contentType = 'application/pdf';
+        else if (ext === '.txt') contentType = 'text/plain';
+        else if (ext === '.md') contentType = 'text/markdown';
+        else if (ext === '.csv') contentType = 'text/csv';
+        else if (ext === '.docx') contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        else if (ext === '.pptx') contentType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `inline; filename="${source.name}"`);
+        res.sendFile(path.resolve(source.fileUrl));
+    } catch (error) {
+        console.error('Error previewing document:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 module.exports = {
     createWorkspace,
     getWorkspaces,
@@ -517,6 +564,7 @@ module.exports = {
     deleteWorkspace,
     uploadSource,
     deleteSource,
+    previewSource,
     getNotes,
     createNote,
     updateNote,

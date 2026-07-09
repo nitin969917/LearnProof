@@ -3,7 +3,7 @@ import {
     ArrowLeft, Sparkles, Plus, Trash2, Loader2, Upload, X,
     CheckCircle2, AlertTriangle, Send, FileText, BrainCircuit,
     BookOpen, HelpCircle, RefreshCw, Layers, Save, Check, Play,
-    Mic, MicOff
+    Mic, MicOff, Download
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -667,6 +667,7 @@ const AskMyNotes = () => {
     const [sources, setSources] = useState([]);
     const [loadingSources, setLoadingSources] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
+    const [previewSource, setPreviewSource] = useState(null);
 
     // Chat State
     const [chats, setChats] = useState([]);
@@ -1993,10 +1994,14 @@ const AskMyNotes = () => {
                                             key={src.id}
                                             className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-gray-800 rounded-2xl flex items-center justify-between gap-2 group hover:border-orange-200 dark:hover:border-orange-950 transition-colors"
                                         >
-                                            <div className="flex items-center gap-2 min-w-0">
+                                            <div 
+                                                onClick={() => setPreviewSource(src)}
+                                                className="flex items-center gap-2 min-w-0 cursor-pointer flex-1"
+                                                title="Click to preview document"
+                                            >
                                                 <FileText size={16} className="text-orange-500 shrink-0" />
                                                 <div className="min-w-0">
-                                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-300 truncate" title={src.name}>
+                                                    <p className="text-xs font-bold text-slate-800 dark:text-slate-300 group-hover:text-orange-500 truncate" title={src.name}>
                                                         {src.name}
                                                     </p>
 
@@ -2283,10 +2288,14 @@ const AskMyNotes = () => {
                                                     key={src.id}
                                                     className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-gray-800 rounded-2xl flex items-center justify-between gap-2 group hover:border-orange-200 dark:hover:border-orange-950 transition-colors"
                                                 >
-                                                    <div className="flex items-center gap-2 min-w-0">
+                                                    <div 
+                                                        onClick={() => setPreviewSource(src)}
+                                                        className="flex items-center gap-2 min-w-0 cursor-pointer flex-1"
+                                                        title="Click to preview document"
+                                                    >
                                                         <FileText size={16} className="text-orange-500 shrink-0" />
                                                         <div className="min-w-0">
-                                                            <p className="text-xs font-bold text-slate-800 dark:text-slate-300 truncate w-40" title={src.name}>
+                                                            <p className="text-xs font-bold text-slate-800 dark:text-slate-300 group-hover:text-orange-500 truncate w-40" title={src.name}>
                                                                 {src.name}
                                                             </p>
                                                             <span className="mt-1 flex items-center gap-1">
@@ -2359,6 +2368,107 @@ const AskMyNotes = () => {
                         </motion.div>
                     </div>
                 )}
+            </AnimatePresence>
+
+            {/* Immersive Document Preview Modal */}
+            <AnimatePresence>
+                {previewSource && (() => {
+                    const previewUrl = `/api/workspaces/${subjectId}/sources/${previewSource.id}/preview`;
+                    const isPdf = previewSource.type?.toUpperCase() === 'PDF';
+                    const isText = ['TXT', 'MD', 'CSV'].includes(previewSource.type?.toUpperCase());
+                    
+                    return (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setPreviewSource(null)}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            />
+
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                transition={{ type: "spring", duration: 0.4 }}
+                                className="bg-white dark:bg-gray-900 border border-slate-100 dark:border-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col z-10 relative overflow-hidden"
+                            >
+                                {/* Modal Header */}
+                                <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-gray-800 flex items-center justify-between shrink-0 bg-slate-50/50 dark:bg-slate-900/30">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <FileText className="text-orange-500 shrink-0" size={20} />
+                                        <div className="min-w-0">
+                                            <h3 className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 truncate" title={previewSource.name}>
+                                                {previewSource.name}
+                                            </h3>
+                                            <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                                                Type: {previewSource.type} &bull; Status: {previewSource.status}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <a
+                                            href={previewUrl}
+                                            download={previewSource.name}
+                                            className="px-3.5 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-[10px] sm:text-xs uppercase tracking-wider transition-all active:scale-[0.98] cursor-pointer flex items-center gap-1.5 shadow-md shadow-orange-500/10"
+                                        >
+                                            <Download size={14} />
+                                            Download
+                                        </a>
+                                        <button
+                                            onClick={() => setPreviewSource(null)}
+                                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl transition-all cursor-pointer"
+                                        >
+                                            <X size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Modal Body (Preview Area) */}
+                                <div className="flex-1 p-4 bg-slate-50 dark:bg-gray-950 overflow-hidden relative flex flex-col justify-center items-center">
+                                    {isPdf ? (
+                                        <object
+                                            data={previewUrl}
+                                            type="application/pdf"
+                                            className="w-full h-full border border-slate-200/50 dark:border-gray-800 rounded-2xl bg-white"
+                                        >
+                                            <iframe
+                                                src={previewUrl}
+                                                className="w-full h-full border border-slate-200/50 dark:border-gray-800 rounded-2xl bg-white"
+                                                title="PDF Preview"
+                                            />
+                                        </object>
+                                    ) : isText ? (
+                                        <iframe
+                                            src={previewUrl}
+                                            className="w-full h-full border border-slate-200/50 dark:border-gray-800 rounded-2xl bg-white dark:bg-gray-900 p-4 text-xs font-mono text-slate-750 dark:text-slate-300"
+                                            title="Text Preview"
+                                        />
+                                    ) : (
+                                        <div className="text-center p-8 bg-white dark:bg-gray-900 border border-slate-200/50 dark:border-gray-800 rounded-2xl shadow-sm max-w-sm">
+                                            <AlertTriangle size={32} className="text-orange-400 mx-auto mb-2" />
+                                            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
+                                                No Inline Preview Available
+                                            </h4>
+                                            <p className="text-[10px] text-slate-400 leading-relaxed mb-4">
+                                                This file type ({previewSource.type}) cannot be previewed directly in the browser. 
+                                                Please download the file to view its contents.
+                                            </p>
+                                            <a
+                                                href={previewUrl}
+                                                download={previewSource.name}
+                                                className="inline-flex items-center gap-1 px-4 py-2 bg-slate-100 hover:bg-slate-250 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-350 rounded-xl font-bold text-xs uppercase tracking-wider cursor-pointer"
+                                            >
+                                                <Download size={14} /> Download File
+                                            </a>
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </div>
+                    );
+                })()}
             </AnimatePresence>
         </div>
     );

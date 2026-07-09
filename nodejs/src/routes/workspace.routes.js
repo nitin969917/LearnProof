@@ -65,6 +65,7 @@ router.delete('/:id', authMiddleware, workspaceController.deleteWorkspace);
 // Knowledge Source Ingestion Routing
 router.post('/:id/sources', authMiddleware, upload.single('file'), workspaceController.uploadSource);
 router.delete('/:id/sources/:sourceId', authMiddleware, workspaceController.deleteSource);
+router.get('/:id/sources/:sourceId/preview', authMiddleware, workspaceController.previewSource);
 
 // Notes Routing
 router.get('/:id/notes', authMiddleware, workspaceController.getNotes);
