@@ -91,6 +91,57 @@ const useVoiceInput = (onResult) => {
     return { isListening, isSupported, startListening, stopListening };
 };
 
+const sanitizeMermaidLabel = (label) => {
+    let prefix = '';
+    let suffix = '';
+    let inner = '';
+
+    if (label.startsWith('((') && label.endsWith('))')) {
+        prefix = '((';
+        suffix = '))';
+        inner = label.substring(2, label.length - 2);
+    } else if (label.startsWith('([') && label.endsWith('])')) {
+        prefix = '([';
+        suffix = '])';
+        inner = label.substring(2, label.length - 2);
+    } else if (label.startsWith('[[') && label.endsWith(']]')) {
+        prefix = '[[';
+        suffix = ']]';
+        inner = label.substring(2, label.length - 2);
+    } else if (label.startsWith('[(') && label.endsWith(')]')) {
+        prefix = '[(';
+        suffix = ')]';
+        inner = label.substring(2, label.length - 2);
+    } else if (label.startsWith('[') && label.endsWith(']')) {
+        prefix = '[';
+        suffix = ']';
+        inner = label.substring(1, label.length - 1);
+    } else if (label.startsWith('(') && label.endsWith(')')) {
+        prefix = '(';
+        suffix = ')';
+        inner = label.substring(1, label.length - 1);
+    } else if (label.startsWith('{') && label.endsWith('}')) {
+        prefix = '{';
+        suffix = '}';
+        inner = label.substring(1, label.length - 1);
+    } else {
+        return label;
+    }
+
+    inner = inner.trim();
+    if (inner.startsWith('"') && inner.endsWith('"')) {
+        return label;
+    }
+
+    const needsQuoting = /[\(\)\[\]\{\}\|=\-><:;,\*\&\^\%\$\#\@\!\?]/.test(inner);
+    if (needsQuoting) {
+        const escapedInner = inner.replace(/"/g, '\\"');
+        return `${prefix}"${escapedInner}"${suffix}`;
+    }
+
+    return label;
+};
+
 const cleanMermaidChart = (chartText) => {
     if (!chartText) return '';
 
@@ -110,6 +161,12 @@ const cleanMermaidChart = (chartText) => {
     // Fix to:              A -->|label| B        (valid)
     text = text.replace(
         /([A-Za-z0-9_"'\(\)\[\]]+)\s*--+>?\s*"([^"]+)"\s*--+>\s*([A-Za-z0-9_"'\(\)\[\]]+)/g,
+        '$1 -->|$2| $3'
+    );
+
+    // ── Fix 1b: Unquoted chained arrow-label syntax (e.g. A --- label --> B) ─
+    text = text.replace(
+        /([A-Za-z0-9_"'\(\)\[\]]+)\s*--+\s*([^|"\n]+?)\s*--+>\s*([A-Za-z0-9_"'\(\)\[\]]+)/g,
         '$1 -->|$2| $3'
     );
 
@@ -237,9 +294,10 @@ const cleanMermaidChart = (chartText) => {
     // Reconstruct the text with renamed IDs and original labels
     let result = processedLines.join('\n');
     
-    // Restore the original shape containers / labels from placeholders
+    // Restore and sanitize the original shape containers / labels from placeholders
     result = result.replace(/\s*§LABEL_(\d+)§/g, (match, index) => {
-        return labels[parseInt(index)];
+        const rawLabel = labels[parseInt(index)];
+        return sanitizeMermaidLabel(rawLabel);
     });
 
     result = result.replace(/\n{3,}/g, '\n\n').trim();
