@@ -608,13 +608,13 @@ const AskMyNotes = () => {
             return <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mb-2 last:mb-0">{children}</p>;
         },
         ul({ children }) {
-            return <ul className="list-disc list-inside space-y-0.5 my-2 text-xs md:text-sm text-slate-700 dark:text-slate-300">{children}</ul>;
+            return <ul className="list-disc list-outside pl-5 space-y-1.5 my-2 text-xs md:text-sm text-slate-700 dark:text-slate-300">{children}</ul>;
         },
         ol({ children }) {
-            return <ol className="list-decimal list-inside space-y-0.5 my-2 text-xs md:text-sm text-slate-700 dark:text-slate-300">{children}</ol>;
+            return <ol className="list-decimal list-outside pl-5 space-y-1.5 my-2 text-xs md:text-sm text-slate-700 dark:text-slate-300">{children}</ol>;
         },
         li({ children }) {
-            return <li className="leading-relaxed">{children}</li>;
+            return <li className="leading-relaxed [&>p]:inline">{children}</li>;
         },
         hr() {
             return <hr className="my-3 border-slate-100 dark:border-gray-800" />;
