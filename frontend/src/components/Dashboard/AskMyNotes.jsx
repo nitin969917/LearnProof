@@ -2373,7 +2373,9 @@ const AskMyNotes = () => {
             {/* Immersive Document Preview Modal */}
             <AnimatePresence>
                 {previewSource && (() => {
-                    const previewUrl = `/api/workspaces/${subjectId}/sources/${previewSource.id}/preview`;
+                    const token = localStorage.getItem('google_token') || '';
+                    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+                    const previewUrl = `${backendUrl}/api/workspaces/${subjectId}/sources/${previewSource.id}/preview?idToken=${encodeURIComponent(token)}`;
                     const isPdf = previewSource.type?.toUpperCase() === 'PDF';
                     const isText = ['TXT', 'MD', 'CSV'].includes(previewSource.type?.toUpperCase());
                     
