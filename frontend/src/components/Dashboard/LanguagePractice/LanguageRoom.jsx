@@ -1964,7 +1964,7 @@ export default function LanguageRoom() {
         room={roomInstance || undefined}
         serverUrl={isConnected ? undefined : serverUrl}
         token={isConnected ? undefined : token}
-        connect={!isConnected}
+        connect={true}
         video={isConnected ? undefined : dbRoom?.mediaType === 'video'}
         audio={isConnected ? undefined : true}
         onDisconnected={handleLeaveRoom}
