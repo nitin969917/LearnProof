@@ -101,7 +101,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   };
 
   return (
-    <div className="flex flex-col gap-6 sm:gap-10 max-w-4xl mx-auto py-2 sm:py-4">
+    <div className="flex flex-col gap-6 sm:gap-10 w-full mx-auto py-2 sm:py-4">
       {/* ── YOUTUBE EXPLORER STYLE TOP BANNER ── */}
       <div className="flex flex-col items-center text-center gap-4 sm:gap-6 max-w-2xl mx-auto mt-2 sm:mt-4">
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">

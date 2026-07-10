@@ -118,7 +118,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   }
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-6">
+    <div className="w-full mx-auto flex flex-col gap-6">
       {isEditing ? (
         <>
           {/* Profile Header Card */}

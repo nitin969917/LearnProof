@@ -130,7 +130,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full mx-auto">
         {/* Pending Requests */}
         <div className="lg:col-span-4 flex flex-col gap-5">
           <div className="flex items-center gap-2 text-gray-800 dark:text-white mb-2">
