@@ -513,7 +513,7 @@ const Quiz = () => {
                 </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-8 sm:space-y-10">
 
                 {/* ── Section 1: Completed Playlists ────────────────────── */}
                 <section className="space-y-2.5">
@@ -606,7 +606,7 @@ const Quiz = () => {
                 </section>
 
                 {/* ── Section 2: Attempt History ────────────────────────── */}
-                <section className="space-y-2.5">
+                <section className="space-y-3.5 pt-4 sm:pt-6">
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5 text-orange-500" />
@@ -623,7 +623,7 @@ const Quiz = () => {
                             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">No quiz attempts yet. Take your first test!</p>
                         </div>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             {history.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(hist => (
                                 <motion.div
                                     key={hist.id}
