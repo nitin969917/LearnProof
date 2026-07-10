@@ -1369,7 +1369,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         {/* Left: Brand + Separator + Room Name */}
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Logo — same position in both Social Hub and Main App headers */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div 
+            className="flex items-center gap-2 shrink-0 cursor-pointer hover:opacity-80 transition-opacity" 
+            onClick={() => navigate('/dashboard')}
+          >
             <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-500 shrink-0">
               <Globe size={18} />
             </div>

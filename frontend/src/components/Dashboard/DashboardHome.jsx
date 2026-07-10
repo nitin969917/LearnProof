@@ -245,7 +245,7 @@ const DashboardHome = () => {
                         </div>
                         <div className="flex flex-row items-center justify-between mt-2.5 sm:mt-5 pt-2 sm:pt-3 border-t border-emerald-50 dark:border-gray-700/50 gap-1 shrink-0">
                             <span className="text-[8px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-extrabold bg-emerald-100/60 dark:bg-emerald-950/40 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full whitespace-nowrap text-center">
-                                Interact
+                                Connect
                             </span>
                             <div className="w-5 h-5 sm:w-8 sm:h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-sm shadow-emerald-500/20 transition-all duration-300 group-hover:bg-orange-655 group-hover:scale-110">
                                 <ArrowRight size={10} className="sm:w-4 sm:h-4" />
