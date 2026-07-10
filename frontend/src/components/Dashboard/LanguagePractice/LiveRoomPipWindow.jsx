@@ -288,6 +288,7 @@ export default function LiveRoomPipWindow() {
           clearRoomInstance();
           clearPipRoom();
         }}
+        disconnectOnUnmount={false}
         style={{ height: '100%' }}
         data-lk-theme="default"
       >

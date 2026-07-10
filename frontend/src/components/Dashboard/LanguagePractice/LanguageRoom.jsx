@@ -1968,6 +1968,7 @@ export default function LanguageRoom() {
         video={isConnected ? undefined : dbRoom?.mediaType === 'video'}
         audio={isConnected ? undefined : true}
         onDisconnected={handleLeaveRoom}
+        disconnectOnUnmount={false}
         style={{ height: '100%' }}
         data-lk-theme="default"
       >
