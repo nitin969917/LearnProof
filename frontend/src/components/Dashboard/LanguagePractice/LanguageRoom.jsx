@@ -100,6 +100,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     }
   }, []);
 
+  // Mobile screen responsiveness tracking
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Session Time
   const [sessionSeconds, setSessionSeconds] = useState(0);
 
@@ -1009,7 +1017,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     );
   };
 
-  const isChatHidable = stageSpeakers.length > 4;
+  const isChatHidable = isMobile && stageSpeakers.length > 4;
 
   const renderChatPanel = () => {
     return (
