@@ -417,17 +417,17 @@ const Quiz = () => {
                                         {selectedHistoryQuiz.passed ? "Certification Earned" : "Attempt Failed"}
                                     </span>
                                 </div>
-                                <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white leading-tight">
+                                <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-snug">
                                     {selectedHistoryQuiz.video ? selectedHistoryQuiz.video.name : selectedHistoryQuiz.playlist?.name}
                                 </h2>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-2 font-medium">
-                                    <Clock size={14} />
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 flex items-center gap-2 font-medium">
+                                    <Clock size={12} />
                                     Attempted on {new Date(selectedHistoryQuiz.attempted_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
                                 </p>
                             </div>
-                            <div className="text-center sm:text-right bg-white dark:bg-gray-900 p-5 sm:p-6 rounded-3xl shadow-inner border border-orange-100 dark:border-gray-800 min-w-[140px]">
-                                <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-2">Final Score</p>
-                                <p className={`text-4xl font-black ${selectedHistoryQuiz.passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            <div className="text-center sm:text-right bg-white dark:bg-gray-900 p-4 sm:p-5 rounded-2xl shadow-inner border border-orange-100 dark:border-gray-800 min-w-[110px]">
+                                <p className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">Score</p>
+                                <p className={`text-2xl font-black ${selectedHistoryQuiz.passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                     {selectedHistoryQuiz.score}%
                                 </p>
                             </div>
@@ -445,7 +445,7 @@ const Quiz = () => {
                                             <span className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black text-xs">
                                                 {idx + 1}
                                             </span>
-                                            <p className="text-lg font-bold text-gray-800 dark:text-white leading-relaxed">
+                                            <p className="text-sm sm:text-base font-bold text-gray-800 dark:text-white leading-relaxed">
                                                 {q.question}
                                             </p>
                                         </div>
@@ -478,8 +478,8 @@ const Quiz = () => {
                                                 }
 
                                                 return (
-                                                    <div key={optIdx} className={`p-4 rounded-xl border-2 flex items-center justify-between transition-all ${borderStyle} ${bgStyle}`}>
-                                                        <span className={`text-sm ${textStyle}`}>{opt}</span>
+                                                    <div key={optIdx} className={`p-3 px-4 rounded-xl border-2 flex items-center justify-between transition-all ${borderStyle} ${bgStyle}`}>
+                                                        <span className={`text-xs sm:text-sm font-medium ${textStyle}`}>{opt}</span>
                                                         <div className="flex items-center gap-2">
                                                             {isSelected && <span className="text-[10px] font-black uppercase tracking-tighter opacity-70">Your Answer</span>}
                                                             {!isSelected && isActualAnswer && <span className="text-[10px] font-black uppercase tracking-tighter opacity-70">Correct Answer</span>}
