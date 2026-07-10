@@ -156,27 +156,25 @@ const Support = () => {
 
     if (isDashboardView) {
         return (
-            <div className="max-w-[1600px] mx-auto p-4 sm:p-8 lg:p-12 select-none selection:bg-orange-200 dark:bg-gray-900 transition-colors duration-300">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12">
-                    <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-                        <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white flex flex-col sm:flex-row items-center gap-4">
-                            <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20 text-white">
-                                <LifeBuoy size={32} />
-                            </div>
-                            Help & Support
-                        </h2>
-                        <p className="text-gray-550 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 space-y-6 select-none selection:bg-orange-200 dark:bg-gray-900 transition-colors duration-300">
+                {/* ── Compact Header ───────────────────────────────────── */}
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
+                        <LifeBuoy size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Help & Support</h1>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
                             Student Assistance Center - Raise tickets and view support history.
                         </p>
                     </div>
                 </div>
 
                 {/* Main Content Area */}
-                <div className="space-y-8">
+                <div className="space-y-6">
                     {/* Navigation Tabs */}
-                    <div className="flex justify-between items-center border-b border-orange-100 dark:border-gray-800 pb-4">
-                        <div className="flex p-1 bg-orange-50 dark:bg-gray-800 border border-orange-100/50 dark:border-gray-700 rounded-2xl">
+                    <div className="flex justify-between items-center border-b border-orange-100 dark:border-gray-805 pb-4">
+                        <div className="flex p-1 bg-orange-50 dark:bg-gray-850 border border-orange-100/50 dark:border-gray-750/50 rounded-xl w-72 sm:w-80">
                             {tabs.map((tab) => {
                                 const Icon = tab.icon;
                                 const isActive = view === tab.id || (tab.id === 'history' && view === 'detail');
@@ -184,14 +182,21 @@ const Support = () => {
                                     <button
                                         key={tab.id}
                                         onClick={() => setView(tab.id)}
-                                        className={`relative flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 border-0 ${
-                                            isActive 
-                                            ? "text-white bg-orange-500 shadow-md shadow-orange-500/10" 
-                                            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-250 bg-transparent cursor-pointer"
+                                        className={`relative flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex-1 ${
+                                            isActive
+                                                ? "text-white"
+                                                : "text-gray-550 dark:text-slate-400 hover:text-gray-750 dark:hover:text-slate-200"
                                         }`}
                                     >
-                                        <Icon size={16} />
-                                        <span>{tab.label}</span>
+                                        {isActive && (
+                                            <motion.div
+                                                layoutId="activeTabSupport"
+                                                className="absolute inset-0 bg-orange-500 rounded-lg shadow-lg shadow-orange-500/20"
+                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                            />
+                                        )}
+                                        <Icon size={13} className="relative z-10" />
+                                        <span className="relative z-10">{tab.label}</span>
                                     </button>
                                 );
                             })}
