@@ -419,7 +419,7 @@ const MyLearnings = () => {
                                             onClick={() => navigate(`/dashboard/playlist/${pl.pid}`)}
                                         >
                                             {/* Stacked Thumbnail Effect */}
-                                            <div className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
+                                            <div className="relative aspect-video overflow-hidden border-b border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.05]">
                                                 {thumbnail ? (
                                                     <img
                                                         src={thumbnail}
@@ -539,7 +539,7 @@ const MyLearnings = () => {
                                                     </div>
                                                     
                                                     <h3 
-                                                        className="font-bold text-gray-900 dark:text-white text-sm mb-0.5 line-clamp-1 group-hover/card:text-orange-500 transition-colors"
+                                                        className="font-bold text-gray-900 dark:text-white mb-1 line-clamp-2 group-hover/card:text-orange-500 transition-colors"
                                                         onClick={() => navigate(`/dashboard/roadmap/${pl.pid}`)}
                                                     >
                                                         {pl.name}
