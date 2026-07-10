@@ -51,7 +51,7 @@ const Inbox = () => {
 
     if (loading) {
         return (
-            <div className="px-3 sm:px-6 lg:px-8 pt-3 max-w-7xl mx-auto space-y-2">
+            <div className="px-3 sm:px-6 lg:px-8 pt-3 w-full mx-auto space-y-2">
                 {Array.from({ length: 5 }).map((_, i) => (
                     <div key={i} className="h-16 bg-white dark:bg-gray-800 rounded-2xl animate-pulse border border-gray-100 dark:border-gray-700" />
                 ))}
@@ -60,7 +60,7 @@ const Inbox = () => {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
+        <div className="w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
             {/* ── Compact Mobile Header ─────────────────────────────────── */}
             <div className="flex items-center gap-2.5 mb-4">
                 <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">

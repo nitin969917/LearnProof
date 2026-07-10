@@ -156,7 +156,7 @@ const Support = () => {
 
     if (isDashboardView) {
         return (
-            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 space-y-6 select-none selection:bg-orange-200 dark:bg-gray-900 transition-colors duration-300">
+            <div className="w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 space-y-6 select-none selection:bg-orange-200 dark:bg-gray-900 transition-colors duration-300">
                 {/* ── Compact Header ───────────────────────────────────── */}
                 <div className="flex items-center gap-2.5">
                     <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">

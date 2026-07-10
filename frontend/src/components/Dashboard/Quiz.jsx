@@ -495,7 +495,7 @@ const Quiz = () => {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
+        <div className="w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
 
             {/* ── Compact Mobile Header ─────────────────────────────────── */}
             <div className="flex items-center gap-2.5 mb-6">

@@ -132,7 +132,7 @@ export default function LanguageLearning() {
   const totalRoomsCount = audioRoomsCount + videoRoomsCount;
 
   return (
-    <div className="flex flex-col gap-4 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
+    <div className="flex flex-col gap-4 w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
 
       {/* ── Compact Mobile Header ──────────────────────────────── */}
       <div className="flex items-center gap-2.5">
