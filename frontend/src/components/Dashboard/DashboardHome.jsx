@@ -208,13 +208,13 @@ const DashboardHome = () => {
                             </div>
                             <div className="min-w-0 flex-1 w-full text-left">
                                 <p className="text-[10px] sm:text-xs text-gray-500 dark:text-slate-400 font-medium leading-tight sm:leading-relaxed text-left w-full">
-                                    Join audio/video study rooms and practice language in real-time.
+                                    Join audio/video study rooms and connect with others in real-time.
                                 </p>
                             </div>
                         </div>
                         <div className="flex flex-row items-center justify-between mt-2.5 sm:mt-5 pt-2 sm:pt-3 border-t border-blue-50 dark:border-gray-700/50 gap-1 shrink-0">
                             <span className="text-[8px] sm:text-xs text-blue-600 dark:text-blue-400 font-extrabold bg-blue-100/60 dark:bg-blue-950/40 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-full whitespace-nowrap text-center">
-                                Practice
+                                Connect
                             </span>
                             <div className="w-5 h-5 sm:w-8 sm:h-8 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-sm shadow-blue-500/20 transition-all duration-300 group-hover:bg-orange-655 group-hover:scale-110">
                                 <ArrowRight size={10} className="sm:w-4 sm:h-4" />

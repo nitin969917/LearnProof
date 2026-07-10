@@ -1370,7 +1370,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Logo — same position in both Social Hub and Main App headers */}
           <div className="flex items-center gap-2 shrink-0">
-            <img src="/LP_M_logo.png" alt="LearnProof" className="w-8 h-8 object-contain shrink-0" />
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-500 shrink-0">
+              <Globe size={18} />
+            </div>
             {fromSocial ? (
               <div className="flex flex-col justify-center">
                 <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest leading-none">Social Hub</span>

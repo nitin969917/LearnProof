@@ -142,7 +142,7 @@ export default function LanguageLearning() {
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Live Rooms</h1>
           <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-            {totalRoomsCount > 0 ? `${totalRoomsCount} active rooms` : "Practice languages in real-time"}
+            {totalRoomsCount > 0 ? `${totalRoomsCount} active rooms` : "Connect with others in real-time"}
           </p>
         </div>
         <button
@@ -206,7 +206,7 @@ export default function LanguageLearning() {
                         {activeTab === 'video' ? <Video size={32} className="animate-pulse" /> : <Mic size={32} className="animate-pulse" />}
                     </div>
                     <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">No active {activeTab} rooms</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-405 mb-6 leading-relaxed">Be the first to start a live {activeTab} room session today to discuss, practice, or learn together!</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-405 mb-6 leading-relaxed">Be the first to start a live {activeTab} room session today to discuss, connect, or learn together!</p>
                     <button 
                       onClick={() => {
                         setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
@@ -403,7 +403,7 @@ export default function LanguageLearning() {
                   type="text" 
                   value={newRoom.topic}
                   onChange={(e) => setNewRoom({...newRoom, topic: e.target.value})}
-                  placeholder="e.g. Practice daily conversations" 
+                  placeholder="e.g. Discuss daily topics" 
                   className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium"
                 />
               </div>
@@ -451,18 +451,14 @@ export default function LanguageLearning() {
             >
               <X size={18} />
             </button>
-
             {/* Centered Icon */}
             <div className="w-14 h-14 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
               <PhoneOff size={26} className="text-red-500" />
             </div>
 
-            {/* Centered Title */}
-            <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">End Practice Session?</h3>
-
-            {/* Centered Message */}
+            <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">End Live Session?</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
-              Are you sure you want to end this practice session for everyone? This action cannot be undone.
+              Are you sure you want to end this session for everyone? This action cannot be undone.
             </p>
 
             {/* Buttons in One Row */}
