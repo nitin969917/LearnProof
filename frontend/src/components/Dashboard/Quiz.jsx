@@ -410,27 +410,22 @@ const Quiz = () => {
                         className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-orange-100 dark:border-gray-700 overflow-hidden"
                     >
                         {/* Summary Header */}
-                        <div className="p-6 sm:p-10 border-b border-orange-100 dark:border-gray-700 bg-orange-50/30 dark:bg-gray-900/40 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${selectedHistoryQuiz.passed ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                                        {selectedHistoryQuiz.passed ? "Certification Earned" : "Attempt Failed"}
-                                    </span>
-                                </div>
-                                <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-snug">
-                                    {selectedHistoryQuiz.video ? selectedHistoryQuiz.video.name : selectedHistoryQuiz.playlist?.name}
-                                </h2>
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 flex items-center gap-2 font-medium">
-                                    <Clock size={12} />
-                                    Attempted on {new Date(selectedHistoryQuiz.attempted_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
-                                </p>
+                        <div className="p-6 sm:p-8 border-b border-orange-100 dark:border-gray-700 bg-orange-50/30 dark:bg-gray-900/40">
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${selectedHistoryQuiz.passed ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                    {selectedHistoryQuiz.passed ? "Certification Earned" : "Attempt Failed"}
+                                </span>
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${selectedHistoryQuiz.passed ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
+                                    Score: {selectedHistoryQuiz.score}%
+                                </span>
                             </div>
-                            <div className="text-center sm:text-right bg-white dark:bg-gray-900 p-4 sm:p-5 rounded-2xl shadow-inner border border-orange-100 dark:border-gray-800 min-w-[110px]">
-                                <p className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">Score</p>
-                                <p className={`text-2xl font-black ${selectedHistoryQuiz.passed ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                    {selectedHistoryQuiz.score}%
-                                </p>
-                            </div>
+                            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-snug">
+                                {selectedHistoryQuiz.video ? selectedHistoryQuiz.video.name : selectedHistoryQuiz.playlist?.name}
+                            </h2>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 flex items-center gap-2 font-medium">
+                                <Clock size={12} />
+                                Attempted on {new Date(selectedHistoryQuiz.attempted_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                            </p>
                         </div>
 
                         {/* Question Breakdown */}
