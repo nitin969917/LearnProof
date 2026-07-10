@@ -4,6 +4,7 @@ import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
 import toast from 'react-hot-toast';
 import { useLiveRoomPipStore } from '../../../store/liveRoomPipStore';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import {
   LiveKitRoom,
@@ -254,6 +255,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Chat refs and states
   const [chatInput, setChatInput] = useState('');
   const chatTimelineRef = useRef(null);
+  const [showChatDrawer, setShowChatDrawer] = useState(false);
 
   // Video tracks for video rooms
   const tracks = useTracks(
@@ -1007,6 +1009,108 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     );
   };
 
+  const isChatHidable = stageSpeakers.length > 4;
+
+  const renderChatPanel = () => {
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 h-full relative">
+        {/* Chat header */}
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-white/5 flex items-center justify-between shrink-0 bg-white/80 dark:bg-gray-900/80">
+          <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+            <div className="w-5 h-5 rounded-lg bg-orange-500/20 flex items-center justify-center">
+              <Send size={10} className="text-orange-400" />
+            </div>
+            Live Chat
+          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-gray-500">{uniqueParticipants.length} in room</span>
+            {isChatHidable && (
+              <button
+                onClick={() => setShowChatDrawer(false)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer flex items-center justify-center"
+                title="Close chat"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
+          {timelineItems.map((item) => {
+            if (item.type === 'system') {
+              return (
+                <div key={item.id} className="flex justify-center my-2">
+                  <div className="px-4 py-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-2xl text-[10px] font-semibold text-gray-600 dark:text-gray-400 text-center max-w-xs leading-relaxed">
+                    {item.text}
+                  </div>
+                </div>
+              );
+            }
+            const isMe = item.from?.identity === localParticipant?.identity;
+            return (
+              <div key={item.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end`}>
+                {!isMe && (
+                  <div className={`w-7 h-7 rounded-full bg-gradient-to-tr ${getGradient(item.from?.identity || '')} flex items-center justify-center text-white font-black text-[10px] uppercase shrink-0 border border-white/10`}>
+                    {item.from?.name?.[0] || 'U'}
+                  </div>
+                )}
+                <div className={`flex flex-col gap-0.5 max-w-[200px] ${isMe ? 'items-end' : 'items-start'}`}>
+                  {!isMe && (
+                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-wide px-1">
+                      {item.from?.name || 'User'}
+                    </span>
+                  )}
+                  <div className={`px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
+                    isMe
+                      ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-br-md shadow-orange-500/20'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-md border border-gray-200 dark:border-white/5'
+                  }`}>
+                    {item.text}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={chatTimelineRef} />
+        </div>
+
+        {/* Quick replies */}
+        <div className="px-3 py-2 flex gap-2 overflow-x-auto shrink-0 border-t border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-gray-900/50 hide-scrollbar">
+          {["Hey! 👋", "What's the topic?", "I'm new here 😊"].map((text) => (
+            <button
+              key={text}
+              onClick={() => handleQuickSend(text)}
+              className="px-3 py-1.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-orange-500/50 hover:bg-orange-500/10 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 text-[10px] font-bold rounded-full transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+
+        {/* Chat Input */}
+        <div className="p-3 border-t border-gray-200 dark:border-white/5 bg-white dark:bg-gray-900 shrink-0">
+          <form onSubmit={handleSendChat} className="flex gap-2 mb-2">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-xs border border-gray-200 dark:border-white/8 rounded-2xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 font-medium placeholder:text-gray-400 dark:placeholder:text-gray-500 transition"
+            />
+            <button
+              type="submit"
+              className="p-2.5 bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 rounded-2xl text-white transition cursor-pointer flex items-center justify-center shrink-0 shadow-lg shadow-orange-500/25 active:scale-95"
+            >
+              <Send size={14} />
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col h-screen w-full bg-orange-50 dark:bg-gray-950 font-sans text-gray-900 dark:text-white overflow-hidden relative">
       
@@ -1413,184 +1517,142 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           )}
         </div>
 
-        {/* ══ RIGHT: Chat Panel ══ */}
-        <div className="flex-1 lg:w-[340px] lg:max-w-[380px] lg:shrink-0 flex flex-col overflow-hidden bg-white dark:bg-gray-900 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-white/5 relative">
-
-          {/* Chat header */}
-          <div className="px-4 py-3 border-b border-gray-200 dark:border-white/5 flex items-center justify-between shrink-0 bg-white/80 dark:bg-gray-900/80">
-            <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <div className="w-5 h-5 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                <Send size={10} className="text-orange-400" />
-              </div>
-              Live Chat
-            </span>
-            <span className="text-[10px] font-bold text-gray-500">{uniqueParticipants.length} in room</span>
+        {/* ══ RIGHT: Chat Panel (only if NOT hidable) ══ */}
+        {!isChatHidable && (
+          <div className="flex-1 lg:w-[340px] lg:max-w-[380px] lg:shrink-0 flex flex-col overflow-hidden bg-white dark:bg-gray-900 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-white/5 relative">
+            {renderChatPanel()}
           </div>
+        )}
+      </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
-            {timelineItems.map((item) => {
-              if (item.type === 'system') {
-                return (
-                  <div key={item.id} className="flex justify-center my-2">
-                    <div className="px-4 py-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-2xl text-[10px] font-semibold text-gray-600 dark:text-gray-400 text-center max-w-xs leading-relaxed">
-                      {item.text}
-                    </div>
-                  </div>
-                );
-              }
-              const isMe = item.from?.identity === localParticipant?.identity;
-              return (
-                <div key={item.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end`}>
-                  {!isMe && (
-                    <div className={`w-7 h-7 rounded-full bg-gradient-to-tr ${getGradient(item.from?.identity || '')} flex items-center justify-center text-white font-black text-[10px] uppercase shrink-0 border border-white/10`}>
-                      {item.from?.name?.[0] || 'U'}
-                    </div>
-                  )}
-                  <div className={`flex flex-col gap-0.5 max-w-[200px] ${isMe ? 'items-end' : 'items-start'}`}>
-                    {!isMe && (
-                      <span className="text-[9px] font-black text-gray-500 uppercase tracking-wide px-1">
-                        {item.from?.name || 'User'}
-                      </span>
-                    )}
-                    <div className={`px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
-                      isMe
-                        ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-br-md shadow-orange-500/20'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-md border border-gray-200 dark:border-white/5'
-                    }`}>
-                      {item.text}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            <div ref={chatTimelineRef} />
-          </div>
-
-          {/* Quick replies */}
-          <div className="px-3 py-2 flex gap-2 overflow-x-auto shrink-0 border-t border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-gray-900/50 hide-scrollbar">
-            {["Hey! 👋", "What's the topic?", "I'm new here 😊"].map((text) => (
+      {/* ── Bottom Controls Bar ── */}
+      <div className="border-t border-gray-200 dark:border-white/5 bg-white dark:bg-gray-900 px-4 py-3.5 shrink-0 flex items-center justify-between z-30">
+        {/* Left: Media Controls */}
+        <div className="flex items-center gap-1.5">
+          {canPublish ? (
+            <>
               <button
-                key={text}
-                onClick={() => handleQuickSend(text)}
-                className="px-3 py-1.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-orange-500/50 hover:bg-orange-500/10 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 text-[10px] font-bold rounded-full transition-all cursor-pointer shrink-0 active:scale-95"
+                onClick={toggleMic}
+                title={isMicEnabled ? 'Mute' : 'Unmute'}
+                className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
+                  isMicEnabled
+                    ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
+                    : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
+                }`}
               >
-                {text}
+                {isMicEnabled ? <Mic size={20} /> : <MicOff size={20} />}
               </button>
-            ))}
-          </div>
 
-          {/* Chat Input */}
-          <div className="p-3 border-t border-gray-200 dark:border-white/5 bg-white dark:bg-gray-900 shrink-0">
-            <form onSubmit={handleSendChat} className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-xs border border-gray-200 dark:border-white/8 rounded-2xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 font-medium placeholder:text-gray-400 dark:placeholder:text-gray-500 transition"
-              />
-              <button
-                type="submit"
-                className="p-2.5 bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 rounded-2xl text-white transition cursor-pointer flex items-center justify-center shrink-0 shadow-lg shadow-orange-500/25 active:scale-95"
-              >
-                <Send size={14} />
-              </button>
-            </form>
-
-            {/* Controls Bar */}
-            <div className="flex items-center justify-between">
-
-              {/* Left: Media Controls */}
-              <div className="flex items-center gap-1.5">
-                {canPublish ? (
-                  <>
-                    <button
-                      onClick={toggleMic}
-                      title={isMicEnabled ? 'Mute' : 'Unmute'}
-                      className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
-                        isMicEnabled
-                          ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
-                          : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
-                      }`}
-                    >
-                      {isMicEnabled ? <Mic size={20} /> : <MicOff size={20} />}
-                    </button>
-
-                    {isVideoRoom && (
-                      <button
-                        onClick={toggleCam}
-                        title={isCamEnabled ? 'Camera Off' : 'Camera On'}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
-                          isCamEnabled
-                            ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
-                            : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
-                        }`}
-                      >
-                        {isCamEnabled ? <Video size={20} /> : <VideoOff size={20} />}
-                      </button>
-                    )}
-
-                    {!isHost && (
-                      <button
-                        onClick={handleLeaveStage}
-                        title="Step down from stage"
-                        className="p-3 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
-                      >
-                        <ChevronsDown size={20} />
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  /* Listener: Request / Withdraw stage button */
-                  <button
-                    onClick={hasRequested ? handleWithdrawRequest : handleRequestToSpeak}
-                    title={hasRequested ? 'Withdraw Stage Request' : 'Request to Speak'}
-                    className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
-                      hasRequested
-                        ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
-                        : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
-                    }`}
-                  >
-                    <Hand size={20} className={hasRequested ? 'animate-pulse' : ''} />
-                  </button>
-                )}
-              </div>
-
-              {/* Right: Settings and Participants */}
-              <div className="flex items-center gap-1.5">
+              {isVideoRoom && (
                 <button
-                  onClick={() => setShowSettingsModal(true)}
-                  title="Room Settings"
-                  className="p-3 rounded-xl border transition-all cursor-pointer bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40 active:scale-95"
-                >
-                  <Settings size={20} />
-                </button>
-
-                <button
-                  onClick={() => setShowParticipants(prev => !prev)}
-                  title="Participants"
-                  className={`p-3 rounded-xl border transition-all cursor-pointer relative active:scale-95 ${
-                    showParticipants
-                      ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
-                      : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
+                  onClick={toggleCam}
+                  title={isCamEnabled ? 'Camera Off' : 'Camera On'}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
+                    isCamEnabled
+                      ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
+                      : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
                   }`}
                 >
-                  <Users size={20} />
-                  <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-gray-900 shadow">
-                    {uniqueParticipants.length}
-                  </span>
-                  {isHost && speakRequests.length > 0 && (
-                    <span className="absolute -bottom-1 -left-1 flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500 border border-white dark:border-gray-900" />
-                    </span>
-                  )}
+                  {isCamEnabled ? <Video size={20} /> : <VideoOff size={20} />}
                 </button>
-              </div>
-            </div>
-          </div>
+              )}
+
+              {!isHost && (
+                <button
+                  onClick={handleLeaveStage}
+                  title="Step down from stage"
+                  className="p-3 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
+                >
+                  <ChevronsDown size={20} />
+                </button>
+              )}
+            </>
+          ) : (
+            /* Listener: Request / Withdraw stage button */
+            <button
+              onClick={hasRequested ? handleWithdrawRequest : handleRequestToSpeak}
+              title={hasRequested ? 'Withdraw Stage Request' : 'Request to Speak'}
+              className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
+                hasRequested
+                  ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
+                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
+              }`}
+            >
+              <Hand size={20} className={hasRequested ? 'animate-pulse' : ''} />
+            </button>
+          )}
         </div>
+
+        {/* Right: Settings, Chat Toggle and Participants */}
+        <div className="flex items-center gap-1.5">
+          {isChatHidable && (
+            <button
+              onClick={() => setShowChatDrawer(prev => !prev)}
+              title="Live Chat"
+              className={`p-3 rounded-xl border transition-all cursor-pointer relative active:scale-95 ${
+                showChatDrawer
+                  ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
+                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
+              }`}
+            >
+              <Send size={20} />
+            </button>
+          )}
+
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            title="Room Settings"
+            className="p-3 rounded-xl border transition-all cursor-pointer bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40 active:scale-95"
+          >
+            <Settings size={20} />
+          </button>
+
+          <button
+            onClick={() => setShowParticipants(prev => !prev)}
+            title="Participants"
+            className={`p-3 rounded-xl border transition-all cursor-pointer relative active:scale-95 ${
+              showParticipants
+                ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
+                : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
+            }`}
+          >
+            <Users size={20} />
+            <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-gray-900 shadow">
+              {uniqueParticipants.length}
+            </span>
+            {isHost && speakRequests.length > 0 && (
+              <span className="absolute -bottom-1 -left-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500 border border-white dark:border-gray-900" />
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Hidable Chat Sliding Drawer */}
+      <AnimatePresence>
+        {isChatHidable && showChatDrawer && (
+          <div className="fixed inset-0 z-40 flex justify-end">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowChatDrawer(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
+            />
+            <motion.div
+              initial={{ x: 380 }}
+              animate={{ x: 0 }}
+              exit={{ x: 380 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="relative w-80 sm:w-[340px] bg-white dark:bg-gray-900 h-full flex flex-col shadow-2xl z-50 border-l border-gray-200 dark:border-white/5 overflow-hidden"
+            >
+              {renderChatPanel()}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
         {/* ── Participants Drawer ── */}
         {showParticipants && (
@@ -1729,7 +1791,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }
