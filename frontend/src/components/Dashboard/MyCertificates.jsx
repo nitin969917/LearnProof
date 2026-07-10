@@ -88,10 +88,10 @@ const MyCertificates = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
 
       {/* ── Compact Mobile Header ─────────────────────────────────── */}
-      <div className="flex items-center gap-2.5 mb-4">
+      <div className="flex items-center gap-2.5 mb-6">
         <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
           <ShieldCheck size={18} />
         </div>
@@ -103,8 +103,8 @@ const MyCertificates = () => {
         </div>
       </div>
 
-      {/* ── Certificates List ───────────────────────────────────── */}
-      <div className="space-y-3">
+      {/* ── Certificates Grid ───────────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
         {certs.map((cert, index) => (
           <motion.div
             key={cert.id || index}

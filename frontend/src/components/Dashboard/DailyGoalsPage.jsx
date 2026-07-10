@@ -143,7 +143,7 @@ const DailyGoalsPage = () => {
         .slice(0, 5); // show last 5 days
 
     return (
-        <div className="max-w-2xl mx-auto space-y-4 pb-28 px-3 sm:px-4 pt-3">
+        <div className="max-w-5xl mx-auto space-y-4 pb-28 px-3 sm:px-6 lg:px-8 pt-3">
             {/* ── Compact Mobile Header ───────────────────────────────── */}
             <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">

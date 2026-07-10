@@ -239,7 +239,7 @@ const MyLearnings = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28 space-y-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 space-y-6">
             {/* ── Compact Mobile Header ───────────────────────────────── */}
             <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
@@ -303,7 +303,7 @@ const MyLearnings = () => {
                 transition={{ duration: 0.4 }}
             >
                 {activeTab === "videos" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                         {videos.length === 0 ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
                                 <Video className="w-12 h-12 text-gray-300 dark:text-gray-650 mx-auto mb-2" />
@@ -385,7 +385,7 @@ const MyLearnings = () => {
                 )}
 
                 {activeTab === "playlists" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                         {playlists.length === 0 ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
                                 <Library className="w-12 h-12 text-gray-300 dark:text-gray-650 mx-auto mb-2" />
@@ -490,7 +490,7 @@ const MyLearnings = () => {
                 )}
 
                 {activeTab === "roadmap" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                         {playlists.length === 0 ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
                                 <Sparkles className="w-12 h-12 text-gray-300 dark:text-gray-650 mx-auto mb-2" />

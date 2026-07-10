@@ -76,7 +76,7 @@ const AIBenchmark = () => {
     };
 
     return (
-        <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28">
+        <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
             {/* ── Compact Mobile Header + Form ────────────────────── */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm mb-4 overflow-hidden">
                 <div className="p-3.5 border-b border-gray-100 dark:border-gray-700">

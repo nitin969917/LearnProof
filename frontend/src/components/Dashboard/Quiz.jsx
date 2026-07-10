@@ -500,10 +500,10 @@ const Quiz = () => {
     }
 
     return (
-        <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
 
             {/* ── Compact Mobile Header ─────────────────────────────────── */}
-            <div className="flex items-center gap-2.5 mb-4">
+            <div className="flex items-center gap-2.5 mb-6">
                 <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
                     <Award size={18} />
                 </div>
@@ -513,11 +513,11 @@ const Quiz = () => {
                 </div>
             </div>
 
-            <div className="space-y-5">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
                 {/* ── Section 1: Completed Playlists ────────────────────── */}
-                <section>
-                    <div className="flex items-center justify-between mb-2.5">
+                <section className="lg:col-span-7 xl:col-span-8">
+                    <div className="flex items-center justify-between mb-3">
                         <h2 className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
                             <Library className="w-3.5 h-3.5 text-orange-500" />
                             Completed Playlists
@@ -606,8 +606,8 @@ const Quiz = () => {
                 </section>
 
                 {/* ── Section 2: Attempt History ────────────────────────── */}
-                <section>
-                    <div className="flex items-center justify-between mb-2.5">
+                <section className="lg:col-span-5 xl:col-span-4">
+                    <div className="flex items-center justify-between mb-3">
                         <h2 className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5 text-orange-500" />
                             Attempt History

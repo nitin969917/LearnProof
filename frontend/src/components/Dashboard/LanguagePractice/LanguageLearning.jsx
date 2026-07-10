@@ -132,7 +132,7 @@ export default function LanguageLearning() {
   const totalRoomsCount = audioRoomsCount + videoRoomsCount;
 
   return (
-    <div className="flex flex-col gap-4 max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28">
+    <div className="flex flex-col gap-4 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
 
       {/* ── Compact Mobile Header ──────────────────────────────── */}
       <div className="flex items-center gap-2.5">
@@ -195,7 +195,7 @@ export default function LanguageLearning() {
           <span className="text-sm font-semibold">Loading live rooms...</span>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-6">
           {(Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === activeTab).length === 0 ? (
              <div className="col-span-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl text-center py-16 px-6 text-gray-500 dark:text-gray-400 shadow-sm relative overflow-hidden">
                 {/* Decorative glow blob */}
