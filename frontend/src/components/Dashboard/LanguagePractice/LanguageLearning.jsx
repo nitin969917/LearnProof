@@ -131,17 +131,18 @@ export default function LanguageLearning() {
   const videoRoomsCount = (Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === 'video').length;
   const totalRoomsCount = audioRoomsCount + videoRoomsCount;
 
+  return (
     <div className="flex flex-col gap-4 max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28">
 
       {/* ── Compact Mobile Header ──────────────────────────────── */}
       <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-600 shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-650 shrink-0">
           <Globe size={18} />
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Live Rooms</h1>
           <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-            {totalRoomsCount > 0 ? `${totalRoomsCount} rooms active` : 'Join or start a live room'}
+            {totalRoomsCount > 0 ? `${totalRoomsCount} active rooms` : "Practice languages in real-time"}
           </p>
         </div>
         <button
@@ -151,8 +152,8 @@ export default function LanguageLearning() {
           }}
           className="flex items-center gap-1.5 px-3 py-2 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer font-bold text-xs shrink-0"
         >
-          <Plus size={15} />
-          <span className="hidden xs:inline">Create</span>
+          <Plus size={14} />
+          <span>Create</span>
         </button>
       </div>
 
@@ -194,24 +195,21 @@ export default function LanguageLearning() {
           <span className="text-sm font-semibold">Loading live rooms...</span>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-3">
           {(Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === activeTab).length === 0 ? (
-             <div className="col-span-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl text-center py-16 px-6 text-gray-500 dark:text-gray-400 shadow-sm relative overflow-hidden">
-                {/* Decorative glow blob */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                
+             <div className="bg-white dark:bg-gray-800 border border-gray-105 dark:border-gray-700 rounded-2xl text-center py-12 px-6 text-gray-500 dark:text-gray-400 shadow-sm relative overflow-hidden">
                 <div className="relative z-10 max-w-sm mx-auto">
-                    <div className="w-16 h-16 bg-orange-50 dark:bg-orange-950/30 rounded-2xl flex items-center justify-center text-orange-500 mx-auto mb-5 shadow-sm border border-orange-100/50 dark:border-orange-500/10">
-                        {activeTab === 'video' ? <Video size={32} className="animate-pulse" /> : <Mic size={32} className="animate-pulse" />}
+                    <div className="w-12 h-12 bg-orange-50 dark:bg-orange-950/30 rounded-xl flex items-center justify-center text-orange-500 mx-auto mb-4">
+                        {activeTab === 'video' ? <Video size={24} className="animate-pulse" /> : <Mic size={24} className="animate-pulse" />}
                     </div>
-                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">No active {activeTab} rooms</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-405 mb-6 leading-relaxed">Be the first to start a live {activeTab} room session today to discuss, practice, or learn together!</p>
+                    <h3 className="text-sm font-black text-gray-900 dark:text-white mb-1.5">No active {activeTab} rooms</h3>
+                    <p className="text-xs text-gray-405 dark:text-gray-500 mb-4 max-w-[240px] mx-auto leading-relaxed">Be the first to start a live {activeTab} room session to discuss and learn together!</p>
                     <button 
                       onClick={() => {
                         setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
                         setShowModal(true);
                       }}
-                      className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                      className="px-5 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
                     >
                       Create a Room
                     </button>
@@ -221,74 +219,62 @@ export default function LanguageLearning() {
             (Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === activeTab).map(room => (
               <div 
                 key={room.id} 
-                className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl border border-gray-100 dark:border-gray-700 p-3 sm:p-5 md:p-6 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col justify-between aspect-square relative group hover:-translate-y-1 duration-300"
+                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-3 shadow-sm hover:shadow-md hover:border-orange-300 transition-all cursor-pointer flex items-center justify-between gap-3 relative group"
                 onClick={() => navigate(`/dashboard/live-rooms/${room.roomName}`)}
               >
-                {/* Decorative background blur blob */}
-                <div className="absolute -top-10 -right-10 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-all duration-300 pointer-events-none"></div>
-
-                {/* Top bar: Language badge and End room button */}
-                <div className="flex justify-between items-center gap-1.5 z-10 w-full">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="bg-orange-100/60 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-wider truncate">
-                      {room.language}
-                    </span>
-                    {room.isFriendsOnly && (
-                      <span className="bg-orange-500/10 text-orange-500 p-1 rounded-full shrink-0" title="Friends Only Room">
-                        <Users size={10} className="sm:size-[12px] shrink-0" />
-                      </span>
-                    )}
-                  </div>
-                  {socialUser && socialUser.id?.toString() === room.creatorId?.toString() && (
-                    <button 
-                      onClick={(e) => handleDeleteRoom(e, room.id)}
-                      className="text-[9px] sm:text-xs font-bold text-red-500 hover:bg-red-500/10 dark:hover:bg-red-950/40 px-1.5 py-0.5 sm:px-2.5 sm:py-1 rounded-lg transition-all z-20 cursor-pointer"
-                    >
-                      End
-                    </button>
+                {/* Left: Icon Container */}
+                <div className={`w-11 h-11 bg-gradient-to-tr ${
+                  room.mediaType === 'video'
+                    ? 'from-blue-500/10 to-indigo-500/10 text-blue-600 dark:text-blue-400 border border-blue-200/50'
+                    : 'from-orange-500/10 to-amber-500/10 text-orange-600 dark:text-orange-400 border border-orange-200/50'
+                } rounded-xl flex items-center justify-center shrink-0`}>
+                  {room.mediaType === 'video' ? (
+                    <Video size={18} className="animate-pulse" />
+                  ) : (
+                    <Mic size={18} className="animate-pulse" />
                   )}
                 </div>
 
-                {/* Middle: Centered Icon + Room Title & Topic */}
-                <div className="flex flex-col items-center justify-center text-center my-auto px-1 z-10">
-                  <div className={`w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-tr ${
-                    room.mediaType === 'video'
-                      ? 'from-blue-500 to-indigo-500 shadow-blue-500/20'
-                      : 'from-orange-500 to-amber-500 shadow-orange-500/20'
-                  } rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg mb-2 sm:mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    {room.mediaType === 'video' ? (
-                      <Video size={18} className="sm:size-[24px] animate-pulse" />
-                    ) : (
-                      <Mic size={18} className="sm:size-[24px] animate-pulse" />
+                {/* Center: Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded-full shrink-0">
+                      {room.language}
+                    </span>
+                    {room.isFriendsOnly && (
+                      <span className="text-[9px] font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-full shrink-0">
+                        Friends Only
+                      </span>
                     )}
+                    <span className="text-[9px] font-bold text-gray-405 dark:text-slate-500 truncate">
+                      by {room.creator.name.split(' ')[0]}
+                    </span>
                   </div>
-                  <h3 className="font-black text-gray-900 dark:text-white text-sm sm:text-base md:text-lg leading-snug line-clamp-1 px-0.5 uppercase tracking-wide">
+                  <h3 className="font-bold text-gray-900 dark:text-white text-xs line-clamp-1 leading-snug">
                     {room.roomName.replace(/-\d+$/, '').split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                   </h3>
-                  <p className="text-gray-450 dark:text-gray-500 text-[10px] sm:text-xs font-bold mt-1.5 leading-tight line-clamp-2 px-1">
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 line-clamp-1 mt-0.5 font-medium">
                     {room.topic}
                   </p>
                 </div>
-                
-                {/* Bottom: Creator and Join button */}
-                <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700/60 pt-3 sm:pt-4 z-10">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <img 
-                      src={room.creator.profilePicture || '/default-avatar.png'} 
-                      alt={room.creator.name}
-                      className="w-5 h-5 sm:w-8 sm:h-8 rounded-full object-cover bg-gray-150 dark:bg-gray-755 flex-shrink-0 border border-white dark:border-gray-800 shadow-sm" 
-                    />
-                    <span className="text-[10px] sm:text-xs font-black text-gray-655 dark:text-gray-400 truncate max-w-[45px] sm:max-w-[80px]">
-                      {room.creator.name.split(' ')[0]}
-                    </span>
-                  </div>
-                  <button className={`px-2.5 py-1 sm:px-4 sm:py-2 bg-gradient-to-r ${
+
+                {/* Right: Join Button / End Button */}
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <button className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all text-white ${
                     room.mediaType === 'video'
-                      ? 'from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 shadow-blue-500/10 group-hover:shadow-blue-500/20'
-                      : 'from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-orange-500/10 group-hover:shadow-orange-500/20'
-                  } text-white text-[9px] sm:text-xs font-black rounded-lg sm:rounded-xl transition-all shadow-md shadow-orange-500/10 group-hover:shadow-orange-500/20`}>
+                      ? 'bg-blue-500 hover:bg-blue-600 shadow-sm shadow-blue-500/10'
+                      : 'bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/10'
+                  }`}>
                     Join
                   </button>
+                  {socialUser && socialUser.id?.toString() === room.creatorId?.toString() && (
+                    <button 
+                      onClick={(e) => handleDeleteRoom(e, room.id)}
+                      className="text-[9px] font-black uppercase tracking-wider text-red-500 hover:underline z-20 cursor-pointer"
+                    >
+                      End Room
+                    </button>
+                  )}
                 </div>
               </div>
             ))
