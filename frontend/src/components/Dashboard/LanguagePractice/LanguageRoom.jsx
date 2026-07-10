@@ -1418,7 +1418,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
 
         {/* ══ LEFT: Stage Area ══ */}
-        <div className="h-[48vh] lg:h-full lg:flex-1 shrink-0 relative overflow-hidden bg-orange-50 dark:bg-gray-950">
+        <div className={`${
+          isChatHidable ? 'h-full flex-1' : 'h-[48vh] lg:h-full lg:flex-1'
+        } shrink-0 relative overflow-hidden bg-orange-50 dark:bg-gray-950`}>
 
           {/* Ambient gradient bg */}
           <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pointer-events-none" />
