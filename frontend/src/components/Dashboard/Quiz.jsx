@@ -503,13 +503,13 @@ const Quiz = () => {
         <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28">
 
             {/* ── Compact Mobile Header ─────────────────────────────────── */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
+                    <Award size={18} />
+                </div>
                 <div>
                     <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Quiz Center</h1>
                     <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Test your knowledge & earn certificates</p>
-                </div>
-                <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shadow-md shadow-orange-500/25">
-                    <Award className="text-white" size={18} />
                 </div>
             </div>
 
@@ -533,67 +533,74 @@ const Quiz = () => {
                             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">No playlists ready for quizzes yet.</p>
                         </div>
                     ) : (
-                        <div className="space-y-2.5">
-                            {playlists.map(pl => (
-                                <motion.div
-                                    key={pl.pid}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className={`bg-white dark:bg-gray-800 rounded-2xl border overflow-hidden transition-all duration-200 ${
-                                        pl.is_eligible
-                                            ? 'border-orange-100 dark:border-gray-700 shadow-sm active:scale-[0.99]'
-                                            : 'border-gray-100 dark:border-gray-700/50'
-                                    }`}
-                                >
-                                    <div className="p-3.5 sm:p-4">
-                                        <div className="flex items-start justify-between gap-3 mb-3">
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="font-bold text-gray-800 dark:text-white text-sm leading-snug line-clamp-2">{pl.name}</h3>
-                                                <div className="flex items-center gap-2 mt-1.5">
-                                                    {pl.is_eligible ? (
-                                                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full">
-                                                            <CheckCircle size={9} /> Ready
-                                                        </span>
-                                                    ) : (
-                                                        <span className="inline-flex items-center gap-1 text-[10px] font-black text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-700/50 px-2 py-0.5 rounded-full">
-                                                            <Lock size={9} /> Locked
-                                                        </span>
-                                                    )}
-                                                    <span className="text-[10px] text-orange-500 dark:text-orange-400 font-black">
-                                                        {pl.passed_video_quizzes} / {pl.total_videos} passed
-                                                    </span>
+                        <div className="relative -mx-3 sm:-mx-4">
+                            {/* Horizontal Scroll Container */}
+                            <div
+                                ref={playlistScrollRef}
+                                className="flex overflow-x-auto gap-3 pb-3 px-3 sm:px-4 snap-x snap-mandatory hide-scrollbar"
+                            >
+                                {playlists.map(pl => (
+                                    <motion.div
+                                        key={pl.pid}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="flex-shrink-0 w-[260px] snap-start"
+                                    >
+                                        <div className={`h-full bg-white dark:bg-gray-800 rounded-2xl border overflow-hidden transition-all duration-200 ${
+                                            pl.is_eligible
+                                                ? 'border-orange-100 dark:border-gray-700 shadow-sm'
+                                                : 'border-gray-100 dark:border-gray-700/50'
+                                        }`}>
+                                            <div className="p-3.5">
+                                                <div className="flex items-start justify-between gap-2 mb-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="font-bold text-gray-800 dark:text-white text-sm leading-snug line-clamp-2">{pl.name}</h3>
+                                                        <div className="flex items-center gap-2 mt-1.5">
+                                                            {pl.is_eligible ? (
+                                                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full">
+                                                                    <CheckCircle size={9} /> Ready
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-700/50 px-2 py-0.5 rounded-full">
+                                                                    <Lock size={9} /> Locked
+                                                                </span>
+                                                            )}
+                                                            <span className="text-[10px] text-orange-500 dark:text-orange-400 font-black">
+                                                                {pl.passed_video_quizzes}/{pl.total_videos}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        disabled={!pl.is_eligible}
+                                                        onClick={() => handleStartQuiz("playlist", pl.pid)}
+                                                        className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs transition-all ${
+                                                            pl.is_eligible
+                                                                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 hover:bg-orange-600 active:scale-95'
+                                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                                        }`}
+                                                    >
+                                                        {pl.is_eligible ? "Start" : "Unlock"}
+                                                        <ChevronRight size={12} />
+                                                    </button>
+                                                </div>
+                                                {/* Progress bar */}
+                                                <div className="h-1.5 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
+                                                    <motion.div
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${pl.total_videos > 0 ? (pl.passed_video_quizzes / pl.total_videos) * 100 : 0}%` }}
+                                                        transition={{ duration: 0.6, ease: "easeOut" }}
+                                                        className={`h-full rounded-full ${
+                                                            pl.total_videos > 0 && pl.passed_video_quizzes === pl.total_videos
+                                                                ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                                                                : 'bg-gradient-to-r from-orange-400 to-amber-500'
+                                                        }`}
+                                                    />
                                                 </div>
                                             </div>
-                                            <button
-                                                disabled={!pl.is_eligible}
-                                                onClick={() => handleStartQuiz("playlist", pl.pid)}
-                                                className={`shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-xs transition-all ${
-                                                    pl.is_eligible
-                                                        ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 hover:bg-orange-600 active:scale-95'
-                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                                                }`}
-                                            >
-                                                {pl.is_eligible ? "Start" : "Unlock"}
-                                                <ChevronRight size={13} />
-                                            </button>
                                         </div>
-
-                                        {/* Progress bar */}
-                                        <div className="h-1.5 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
-                                            <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${pl.total_videos > 0 ? (pl.passed_video_quizzes / pl.total_videos) * 100 : 0}%` }}
-                                                transition={{ duration: 0.6, ease: "easeOut" }}
-                                                className={`h-full rounded-full ${
-                                                    pl.total_videos > 0 && pl.passed_video_quizzes === pl.total_videos
-                                                        ? 'bg-gradient-to-r from-green-400 to-emerald-500'
-                                                        : 'bg-gradient-to-r from-orange-400 to-amber-500'
-                                                }`}
-                                            />
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))}
+                                    </motion.div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </section>

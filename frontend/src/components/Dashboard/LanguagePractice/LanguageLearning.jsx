@@ -131,91 +131,60 @@ export default function LanguageLearning() {
   const videoRoomsCount = (Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === 'video').length;
   const totalRoomsCount = audioRoomsCount + videoRoomsCount;
 
-  return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="flex flex-col gap-4 max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28">
 
-      {/* ── MOBILE header: centered stacked (icon → title → subtitle → + button) ── */}
-      <div className="flex flex-col items-center text-center gap-3 sm:hidden relative">
-        <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20 w-fit">
-          <Globe className="text-white" size={32} />
+      {/* ── Compact Mobile Header ──────────────────────────────── */}
+      <div className="flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-600 shrink-0">
+          <Globe size={18} />
         </div>
-        <h1 className="text-3xl font-black text-gray-900 dark:text-white leading-tight">
-          Live Rooms
-        </h1>
-        {totalRoomsCount > 0 && (
-          <span className="text-xs px-2.5 py-1 bg-orange-500/10 border border-orange-500/20 text-orange-500 rounded-full font-black">
-            {totalRoomsCount} Active
-          </span>
-        )}
-        <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs">
-          Join or start a live room to discuss, practice, or learn together with other members.
-        </p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Live Rooms</h1>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
+            {totalRoomsCount > 0 ? `${totalRoomsCount} rooms active` : 'Join or start a live room'}
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
+            setShowModal(true);
+          }}
+          className="flex items-center gap-1.5 px-3 py-2 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer font-bold text-xs shrink-0"
+        >
+          <Plus size={15} />
+          <span className="hidden xs:inline">Create</span>
+        </button>
       </div>
 
-      {/* ── DESKTOP header: icon+title left, badge+button right ── */}
-      <div className="hidden sm:flex sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20 shrink-0">
-            <Globe className="text-white" size={32} />
-          </div>
-          <div>
-            <h1 className="text-4xl font-black text-gray-900 dark:text-white leading-tight">
-              Live Rooms
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1 text-base max-w-xl">
-              Join or start a live room to discuss, practice, or learn together.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          {totalRoomsCount > 0 && (
-            <span className="text-xs px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 text-orange-500 rounded-full font-black">
-              {totalRoomsCount} Active
-            </span>
-          )}
-          <button
-            onClick={() => {
-              setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
-              setShowModal(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer font-bold text-sm"
-            title="Create Room"
-          >
-            <Plus size={18} />
-            <span>Create Room</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs Selector — centered on mobile, left-aligned on desktop */}
-      <div className="flex justify-center sm:justify-start border-b border-gray-200 dark:border-gray-800 gap-0 sm:gap-6">
+      {/* Tabs Selector */}
+      <div className="flex border-b border-gray-200 dark:border-gray-800">
         <button
           onClick={() => {
             setActiveTab('audio');
             localStorage.setItem('languageRoomsTab', 'audio');
           }}
-          className={`flex-1 sm:flex-none pb-3 text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
+          className={`flex-1 pb-2.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-all cursor-pointer ${
             activeTab === 'audio'
               ? 'border-orange-500 text-orange-500'
               : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
           }`}
         >
-          <Mic size={16} />
-          <span>Audio Rooms ({audioRoomsCount})</span>
+          <Mic size={13} />
+          <span>Audio ({audioRoomsCount})</span>
         </button>
         <button
           onClick={() => {
             setActiveTab('video');
             localStorage.setItem('languageRoomsTab', 'video');
           }}
-          className={`flex-1 sm:flex-none pb-3 text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 border-b-2 transition-all cursor-pointer ${
+          className={`flex-1 pb-2.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-all cursor-pointer ${
             activeTab === 'video'
               ? 'border-orange-500 text-orange-500'
               : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
           }`}
         >
-          <Video size={16} />
-          <span>Video Rooms ({videoRoomsCount})</span>
+          <Video size={13} />
+          <span>Video ({videoRoomsCount})</span>
         </button>
       </div>
 
@@ -225,7 +194,7 @@ export default function LanguageLearning() {
           <span className="text-sm font-semibold">Loading live rooms...</span>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {(Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === activeTab).length === 0 ? (
              <div className="col-span-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl text-center py-16 px-6 text-gray-500 dark:text-gray-400 shadow-sm relative overflow-hidden">
                 {/* Decorative glow blob */}

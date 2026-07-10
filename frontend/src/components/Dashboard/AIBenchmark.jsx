@@ -76,49 +76,50 @@ const AIBenchmark = () => {
     };
 
     return (
-        <div className="max-w-6xl mx-auto p-4 md:p-6">
-            <div className="mb-8 bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-indigo-100 dark:border-indigo-900/30">
-                <div className="flex items-center gap-3 mb-6">
-                    <Brain className="w-8 h-8 text-indigo-600" />
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI Model Multi-Benchmark</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Compare intuition generation across all available models side-by-side.</p>
+        <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28">
+            {/* ── Compact Mobile Header + Form ────────────────────── */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm mb-4 overflow-hidden">
+                <div className="p-3.5 border-b border-gray-100 dark:border-gray-700">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 shrink-0">
+                            <Brain size={18} />
+                        </div>
+                        <div>
+                            <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">AI Benchmark</h1>
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Compare models side-by-side</p>
+                        </div>
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Video Title</label>
-                            <input
-                                type="text"
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
-                                placeholder="e.g. Master React in 10 Minutes"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                            />
-                        </div>
-                        <div className="flex items-end">
-                            <button
-                                onClick={runBenchmark}
-                                disabled={loading || !title || !description}
-                                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 dark:shadow-none h-[50px]"
-                            >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                                {loading ? "Processing All Models..." : "Run Multi-Model Benchmark"}
-                            </button>
-                        </div>
+                <div className="p-3.5 space-y-3">
+                    <div>
+                        <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">Video Title</label>
+                        <input
+                            type="text"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                            placeholder="e.g. Master React in 10 Minutes"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                        />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Video Description</label>
+                        <label className="block text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">Video Description</label>
                         <textarea
-                            rows="4"
-                            className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                            placeholder="Paste the full video description here for context..."
+                            rows="3"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 resize-none"
+                            placeholder="Paste the full video description here..."
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                         />
                     </div>
+                    <button
+                        onClick={runBenchmark}
+                        disabled={loading || !title || !description}
+                        className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:opacity-60 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-sm"
+                    >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                        {loading ? "Processing All Models..." : "Run Multi-Model Benchmark"}
+                    </button>
                 </div>
             </div>
 

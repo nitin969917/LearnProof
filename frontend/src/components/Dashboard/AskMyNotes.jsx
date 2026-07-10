@@ -1714,31 +1714,21 @@ const AskMyNotes = () => {
             <div className="flex-1 flex flex-col bg-orange-50/50 dark:bg-gray-950 p-4 sm:p-8 lg:p-12 pb-32 sm:pb-36 h-full overflow-y-auto">
                 <div className="max-w-[1600px] mx-auto w-full space-y-12 py-6">
 
-                    {/* Premium Header Section */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-orange-200/40 dark:border-gray-800">
-                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-                            <div className="p-3.5 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/25 flex items-center justify-center shrink-0">
-                                <BrainCircuit className="text-white" size={32} />
-                            </div>
-                            <div>
-                                <div className="flex items-center justify-center sm:justify-start gap-2 text-orange-600 dark:text-orange-400 font-bold uppercase tracking-widest text-[9px] mb-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></div>
-                                    Learning Operating System
-                                </div>
-                                <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
-                                    Ask My Notes
-                                </h1>
-                                <p className="text-gray-500 dark:text-gray-400 mt-2 text-xs sm:text-sm max-w-2xl leading-relaxed">
-                                    Upload course documents, textbooks, or syllabus sheets to generate AI summaries, customized quizzes, and visual study cards.
-                                </p>
-                            </div>
+                    {/* ── Compact Mobile Header ────────────────────────────── */}
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
+                            <BrainCircuit size={18} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Ask My Notes</h1>
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Upload notes, get AI summaries & quizzes</p>
                         </div>
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="w-fit self-center bg-orange-500 hover:bg-orange-600 text-white rounded-xl py-2 px-4 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 hover:shadow-md hover:shadow-orange-500/10 active:scale-[0.98] transition-all shrink-0 cursor-pointer mt-3 sm:mt-0"
+                            className="flex items-center gap-1.5 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider active:scale-95 transition-all shrink-0 cursor-pointer"
                         >
                             <Plus size={14} />
-                            Create Subject
+                            <span className="hidden xs:inline">Create</span>
                         </button>
                     </div>
 

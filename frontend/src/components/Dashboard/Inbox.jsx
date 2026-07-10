@@ -62,8 +62,11 @@ const Inbox = () => {
     return (
         <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28">
             {/* ── Compact Mobile Header ─────────────────────────────────── */}
-            <div className="flex items-center justify-between mb-4">
-                <div>
+            <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
+                    <Mail size={18} />
+                </div>
+                <div className="flex-1">
                     <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Your Inbox</h1>
                     <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Updates and personalized insights</p>
                 </div>

@@ -238,63 +238,60 @@ const MyLearnings = () => {
         }
     };
 
-    return (
-        <div className="max-w-[1600px] mx-auto p-4 sm:p-8 lg:p-12 space-y-12">
-            {/* Header Section */}
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 sm:gap-8">
-                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-                    <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white flex flex-col sm:flex-row items-center gap-4">
-                        <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20">
-                            <BookOpen className="text-white" size={32} />
-                        </div>
-                        My Learning
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">Your curated digital library. Track your progress, review saved courses, and build roadmaps.</p>
+        <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28 space-y-4">
+            {/* ── Compact Mobile Header ───────────────────────────────── */}
+            <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
+                    <BookOpen size={18} />
                 </div>
+                <div className="flex-1 min-w-0">
+                    <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">My Learning</h1>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Your curated library & roadmaps</p>
+                </div>
+            </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
-                    {/* Search Bar */}
-                    <div className="relative w-full sm:w-[300px] group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={18} />
-                        <input
-                            type="text"
-                            placeholder={`Search ${activeTab}...`}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 rounded-2xl pl-12 pr-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
-                        />
-                    </div>
-                    
-                    {/* Tab Switcher */}
-                    <div className="flex p-1.5 bg-gray-100 dark:bg-gray-800 rounded-[1.25rem] w-full sm:w-auto overflow-x-auto hide-scrollbar">
-                        {tabs.map((tab) => {
-                            const Icon = tab.icon;
-                            return (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => {
-                                        setActiveTab(tab.id);
-                                        setSearchQuery("");
-                                    }}
-                                    className={`relative flex items-center justify-center gap-1.5 px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs lg:text-sm font-black uppercase tracking-wider sm:tracking-widest transition-all duration-300 flex-1 sm:flex-none ${
-                                        activeTab === tab.id 
-                                        ? "text-white" 
+            {/* ── Search + Tab Bar ────────────────────────────────── */}
+            <div className="space-y-2">
+                {/* Search */}
+                <div className="relative group">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={15} />
+                    <input
+                        type="text"
+                        placeholder={`Search ${activeTab}...`}
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                    />
+                </div>
+                {/* Tab Switcher */}
+                <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-x-auto hide-scrollbar gap-0.5">
+                    {tabs.map((tab) => {
+                        const Icon = tab.icon;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => {
+                                    setActiveTab(tab.id);
+                                    setSearchQuery("");
+                                }}
+                                className={`relative flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex-1 ${
+                                    activeTab === tab.id
+                                        ? "text-white"
                                         : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
-                                    }`}
-                                >
-                                    {activeTab === tab.id && (
-                                        <motion.div
-                                            layoutId="activeTabLibrary"
-                                            className="absolute inset-0 bg-orange-500 rounded-xl shadow-lg shadow-orange-500/20"
-                                            transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                        />
-                                    )}
-                                    <Icon size={16} className="relative z-10" />
-                                    <span className="relative z-10">{tab.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                                }`}
+                            >
+                                {activeTab === tab.id && (
+                                    <motion.div
+                                        layoutId="activeTabLibrary"
+                                        className="absolute inset-0 bg-orange-500 rounded-lg shadow-lg shadow-orange-500/20"
+                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                    />
+                                )}
+                                <Icon size={13} className="relative z-10" />
+                                <span className="relative z-10">{tab.label}</span>
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 

@@ -145,13 +145,13 @@ const DailyGoalsPage = () => {
     return (
         <div className="max-w-2xl mx-auto space-y-4 pb-28 px-3 sm:px-4 pt-3">
             {/* ── Compact Mobile Header ───────────────────────────────── */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
+                    <Target size={18} />
+                </div>
                 <div>
                     <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Daily Goals</h1>
                     <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Track and manage your daily targets</p>
-                </div>
-                <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500">
-                    <Target size={18} />
                 </div>
             </div>
 
