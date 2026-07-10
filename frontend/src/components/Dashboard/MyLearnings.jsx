@@ -316,7 +316,7 @@ const MyLearnings = () => {
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: index * 0.05 }}
-                                    className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative p-3.5"
+                                    className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative"
                                 >
                                     {/* Delete Overlay */}
                                     <button
@@ -333,7 +333,7 @@ const MyLearnings = () => {
                                         className="cursor-pointer flex flex-col h-full"
                                         onClick={() => navigate(`/classroom/${video.vid}`)}
                                     >
-                                        <div className="aspect-video bg-gray-105 dark:bg-gray-700/50 relative flex items-center justify-center overflow-hidden rounded-xl shadow-sm border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
+                                        <div className="aspect-video bg-gray-105 dark:bg-gray-700/50 relative flex items-center justify-center overflow-hidden border-b border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.05]">
                                             <img
                                                 src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
                                                 alt={video.name}
@@ -351,7 +351,7 @@ const MyLearnings = () => {
                                             )}
                                         </div>
 
-                                        <div className="pt-3.5 flex flex-col flex-1">
+                                        <div className="p-4 pt-3 flex flex-col flex-1">
                                             <div className="flex items-center gap-1.5 mb-2">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
                                                 <span className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Video Lesson</span>
@@ -404,7 +404,7 @@ const MyLearnings = () => {
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ delay: index * 0.05 }}
-                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative p-3.5"
+                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative"
                                     >
                                         <button
                                             onClick={(e) => {
@@ -445,7 +445,7 @@ const MyLearnings = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="pt-3.5 flex flex-col flex-1">
+                                            <div className="p-4 pt-3 flex flex-col flex-1">
                                                 <div className="flex items-center gap-1.5 mb-2">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
                                                     <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Mastery Path</span>
@@ -512,7 +512,7 @@ const MyLearnings = () => {
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         transition={{ delay: index * 0.05 }}
-                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative p-3.5"
+                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative"
                                     >
                                         <div className="absolute top-3 right-3 z-20 pointer-events-none opacity-10 group-hover/card:opacity-20 group-hover/card:scale-125 transition-all duration-700">
                                             <Sparkles size={48} className="text-orange-500" />
