@@ -677,7 +677,7 @@ const Quiz = () => {
 
                             {/* Pagination */}
                             {history.length > itemsPerPage && (
-                                <div className="flex items-center justify-center gap-1.5 pt-2">
+                                <div className="md:col-span-2 flex items-center justify-center gap-1.5 pt-4 mt-2">
                                     <button
                                         disabled={currentPage === 1}
                                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
