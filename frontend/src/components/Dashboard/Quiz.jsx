@@ -498,7 +498,7 @@ const Quiz = () => {
         <div className="w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
 
             {/* ── Compact Mobile Header ─────────────────────────────────── */}
-            <div className="flex items-center gap-2.5 mb-6">
+            <div className="flex items-center gap-2.5 mb-8 sm:mb-10">
                 <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
                     <Award size={18} />
                 </div>
@@ -618,7 +618,7 @@ const Quiz = () => {
                             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">No quiz attempts yet. Take your first test!</p>
                         </div>
                     ) : (
-                        <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {history.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(hist => (
                                 <motion.div
                                     key={hist.id}
