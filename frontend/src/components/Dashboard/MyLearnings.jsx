@@ -265,7 +265,7 @@ const MyLearnings = () => {
                     />
                 </div>
                 {/* Tab Switcher */}
-                <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-x-auto hide-scrollbar gap-0.5">
+                <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-x-auto hide-scrollbar gap-0.5 max-w-md">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
                         return (

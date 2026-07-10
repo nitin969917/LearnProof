@@ -158,7 +158,7 @@ export default function LanguageLearning() {
       </div>
 
       {/* Tabs Selector */}
-      <div className="flex border-b border-gray-200 dark:border-gray-800">
+      <div className="flex border-b border-gray-200 dark:border-gray-800 max-w-md">
         <button
           onClick={() => {
             setActiveTab('audio');

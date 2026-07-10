@@ -249,7 +249,7 @@ const Support = () => {
                                             <button 
                                                 type="submit" 
                                                 disabled={isSubmitting} 
-                                                className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl uppercase tracking-widest shadow-lg shadow-orange-500/20 flex items-center justify-center gap-3 active:scale-95 transition-all text-xs border-0 cursor-pointer"
+                                                className="w-full sm:w-fit sm:px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl uppercase tracking-widest shadow-lg shadow-orange-500/20 flex items-center justify-center gap-3 active:scale-95 transition-all text-xs border-0 cursor-pointer"
                                             >
                                                 {isSubmitting ? <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" /> : <><Send size={18} /> Open Ticket</>}
                                             </button>
@@ -405,7 +405,7 @@ const Support = () => {
                                 <p className="text-sm font-black text-gray-900 dark:text-white mb-4 break-all">hello@learnproofai.com</p>
                                 <a 
                                     href="mailto:hello@learnproofai.com" 
-                                    className="block w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-lg uppercase text-[10px] tracking-widest active:scale-95 transition-all shadow-md shadow-orange-500/10 no-underline cursor-pointer"
+                                    className="inline-block w-fit px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-lg uppercase text-[10px] tracking-widest active:scale-95 transition-all shadow-md shadow-orange-500/10 no-underline cursor-pointer"
                                 >
                                     Compose Message
                                 </a>
@@ -595,7 +595,7 @@ const Support = () => {
                                                     <button 
                                                         type="submit" 
                                                         disabled={isSubmitting} 
-                                                        className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl uppercase tracking-widest shadow-lg shadow-orange-500/20 flex items-center justify-center gap-3 active:scale-95 transition-all text-xs border-0 cursor-pointer"
+                                                        className="w-full sm:w-fit sm:px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl uppercase tracking-widest shadow-lg shadow-orange-500/20 flex items-center justify-center gap-3 active:scale-95 transition-all text-xs border-0 cursor-pointer"
                                                     >
                                                         {isSubmitting ? <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" /> : <><Send size={18} /> Open Ticket</>}
                                                     </button>
@@ -751,7 +751,7 @@ const Support = () => {
                                         <p className="text-sm font-black text-gray-900 dark:text-white mb-4 break-all">hello@learnproofai.com</p>
                                         <a 
                                             href="mailto:hello@learnproofai.com" 
-                                            className="block w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-lg uppercase text-[10px] tracking-widest active:scale-95 transition-all shadow-md shadow-orange-500/10 no-underline cursor-pointer"
+                                            className="inline-block w-fit px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-lg uppercase text-[10px] tracking-widest active:scale-95 transition-all shadow-md shadow-orange-500/10 no-underline cursor-pointer"
                                         >
                                             Compose Message
                                         </a>
