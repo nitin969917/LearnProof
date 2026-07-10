@@ -104,7 +104,7 @@ const MyCertificates = () => {
       </div>
 
       {/* ── Certificates Grid ───────────────────────────────────── */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-4 sm:gap-6">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(380px,1fr))] gap-4 sm:gap-6">
         {certs.map((cert, index) => (
           <motion.div
             key={cert.id || index}
