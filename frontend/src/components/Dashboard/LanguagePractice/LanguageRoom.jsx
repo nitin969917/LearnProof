@@ -1862,6 +1862,19 @@ export default function LanguageRoom() {
           adaptiveStream: true,
           dynacast: true,
         });
+
+        await r.connect(res.data.serverUrl, res.data.token);
+
+        const isVideo = roomInfo?.mediaType === 'video';
+        try {
+          if (isVideo) {
+            await r.localParticipant.setCameraEnabled(true);
+          }
+          await r.localParticipant.setMicrophoneEnabled(true);
+        } catch (pubErr) {
+          console.error('Failed to publish initial tracks in manual connect:', pubErr);
+        }
+
         setRoomInstance(r);
       } catch (err) {
         console.error('Failed to get LiveKit token:', err);
