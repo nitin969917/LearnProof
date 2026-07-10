@@ -194,16 +194,7 @@ const MyLearnings = () => {
         return schedule;
     };
 
-    if (loading) {
-        return (
-            <div className="h-screen flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-gray-500 dark:text-slate-400 font-bold tracking-widest uppercase text-xs">Syncing your library...</p>
-                </div>
-            </div>
-        );
-    }
+
 
     const tabs = [
         { id: "playlists", label: "Playlists", icon: Library },
@@ -302,7 +293,14 @@ const MyLearnings = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
             >
-                {activeTab === "videos" && (
+                {loading ? (
+                    <div className="w-full flex items-center justify-center py-20 min-h-[40vh]">
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                            <p className="text-gray-500 dark:text-slate-400 font-bold tracking-widest uppercase text-xs">Syncing your library...</p>
+                        </div>
+                    </div>
+                ) : activeTab === "videos" && (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6">
                         {videos.length === 0 ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
@@ -384,7 +382,7 @@ const MyLearnings = () => {
                     </div>
                 )}
 
-                {activeTab === "playlists" && (
+                {!loading && activeTab === "playlists" && (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6">
                         {playlists.length === 0 ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
@@ -489,7 +487,7 @@ const MyLearnings = () => {
                     </div>
                 )}
 
-                {activeTab === "roadmap" && (
+                {!loading && activeTab === "roadmap" && (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6">
                         {playlists.length === 0 ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">

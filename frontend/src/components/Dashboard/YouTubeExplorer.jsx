@@ -471,7 +471,7 @@ const YouTubeExplorer = () => {
             <div className="relative group shadow-2xl rounded-3xl sm:rounded-[2rem]">
                 <div className="relative bg-white dark:bg-gray-800 rounded-3xl sm:rounded-[2rem] p-5 md:p-6 lg:p-7 border border-gray-100 dark:border-gray-700">
                     <div className="flex flex-col xl:flex-row items-center justify-between gap-6">
-                        <div className="space-y-1 text-center xl:text-left w-full xl:w-auto">
+                        <div className="space-y-1 text-center xl:text-left w-full xl:w-1/3 shrink-0">
                             <div className="flex items-center justify-center xl:justify-start gap-2 text-orange-600 dark:text-orange-400">
                                 <Sparkles size={20} className="animate-pulse" />
                                 <span className="text-[10px] font-black uppercase tracking-[0.3em]">AI Personalization</span>
@@ -480,8 +480,8 @@ const YouTubeExplorer = () => {
                             <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">Describe your goal and let our AI curate the perfect curriculum.</p>
                         </div>
 
-                        <form onSubmit={handleGetRecommendations} className="w-full xl:w-auto flex flex-col xl:flex-row items-center gap-4">
-                            <div className="w-full xl:w-64 relative">
+                        <form onSubmit={handleGetRecommendations} className="w-full xl:w-2/3 flex flex-col sm:flex-row items-center gap-4">
+                            <div className="w-full sm:flex-1 relative">
                                 <input
                                     type="text"
                                     placeholder="I want to learn..."
@@ -490,7 +490,7 @@ const YouTubeExplorer = () => {
                                     className="w-full bg-gray-50 dark:bg-gray-700/50 border-none py-3.5 px-5 rounded-[1.25rem] text-sm font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all"
                                 />
                             </div>
-                            <div className="w-full xl:w-48 relative">
+                            <div className="w-full sm:w-48 relative shrink-0">
                                 <select
                                     value={recommendLanguage}
                                     onChange={(e) => setRecommendLanguage(e.target.value)}
@@ -518,7 +518,7 @@ const YouTubeExplorer = () => {
                             <button
                                 type="submit"
                                 disabled={recommendLoading}
-                                className="w-full xl:w-auto bg-gradient-to-br from-orange-500 to-red-600 hover:shadow-lg hover:shadow-orange-500/25 text-white px-8 py-3.5 rounded-[1.25rem] font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                                className="w-full sm:w-auto shrink-0 bg-gradient-to-br from-orange-500 to-red-600 hover:shadow-lg hover:shadow-orange-500/25 text-white px-8 py-3.5 rounded-[1.25rem] font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                             >
                                 {recommendLoading ? <Loader size={16} className="animate-spin" /> : <Sparkles size={16} />}
                                 Generate
