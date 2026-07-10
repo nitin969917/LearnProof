@@ -241,7 +241,7 @@ const DashboardLayout = () => {
                 {/* Top Bar */}
                 {/* Hidden when: social hub, inside a live room, or on live-rooms list coming from social */}
                 {!isSocialHub && !isLiveRoom && !showSocialBottomNav && (!isInsideWorkspace || !isMobile) && <TopBar onMenuClick={toggleSidebar} />}                {/* Social Hub-context header — mirrors SocialDashboard header and main TopBar logo position exactly. */}
-                {showSocialBottomNav && (
+                {showSocialBottomNav && !isLiveRoom && (
                     <div className="bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm flex items-stretch justify-between h-16 sm:h-20 shrink-0 w-full transition-colors duration-200 overflow-hidden">
                         {/* Left — flush-left logo identical to TopBar.jsx + SocialDashboard */}
                         <div className="flex items-stretch min-w-0">
@@ -320,7 +320,7 @@ const DashboardLayout = () => {
             )}
 
             {/* Social Hub's bottom nav — shown on live-rooms pages when the user navigated from Social Hub */}
-            {showSocialBottomNav && (
+            {showSocialBottomNav && !isLiveRoom && (
                 <SocialBottomNavBar onMenuClick={toggleSidebar} />
             )}
 
