@@ -513,10 +513,10 @@ const Quiz = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="space-y-6">
 
                 {/* ── Section 1: Completed Playlists ────────────────────── */}
-                <section className="lg:col-span-7 xl:col-span-8">
+                <section className="space-y-2.5">
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
                             <Library className="w-3.5 h-3.5 text-orange-500" />
@@ -606,7 +606,7 @@ const Quiz = () => {
                 </section>
 
                 {/* ── Section 2: Attempt History ────────────────────────── */}
-                <section className="lg:col-span-5 xl:col-span-4">
+                <section className="space-y-2.5">
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5 text-orange-500" />

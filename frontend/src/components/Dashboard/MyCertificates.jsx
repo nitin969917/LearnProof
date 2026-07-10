@@ -113,16 +113,14 @@ const MyCertificates = () => {
             transition={{ duration: 0.3, delay: index * 0.06 }}
             className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-sm"
           >
-            {/* Certificate Preview Strip */}
-            <div className="bg-gradient-to-br from-gray-50 to-orange-50/40 dark:from-gray-900 dark:to-gray-800 px-4 py-3 overflow-hidden">
-              <div className="transform scale-[0.62] origin-top-left w-[161%]">
-                <CertificatePreview
-                  userName={user?.name}
-                  courseName={cert.title}
-                  date={cert.issued_at ? new Date(cert.issued_at).toLocaleDateString() : 'N/A'}
-                  certId={cert.id}
-                />
-              </div>
+            {/* Certificate Preview */}
+            <div className="bg-gradient-to-br from-gray-50 to-orange-50/40 dark:from-gray-900 dark:to-gray-800 p-3">
+              <CertificatePreview
+                userName={user?.name}
+                courseName={cert.title}
+                date={cert.issued_at ? new Date(cert.issued_at).toLocaleDateString() : 'N/A'}
+                certId={cert.id}
+              />
             </div>
 
             {/* Card Info Row */}
