@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 
 
-import { Track } from 'livekit-client';
+import { Track, Room } from 'livekit-client';
 
 // ─── Loading Spinner ────────────────────────────────────────────────────────
 const RoomLoadingSpinner = () => (
@@ -1812,15 +1812,21 @@ export default function LanguageRoom() {
   const { user } = useAuth();
   const hasExplicitlyLeft = useRef(false);
 
-  const [token, setToken] = useState('');
-  const [serverUrl, setServerUrl] = useState('');
-  const [loading, setLoading] = useState(true);
+  const { roomInstance, setRoomInstance, clearRoomInstance } = useLiveRoomPipStore();
+
+  const initialPipRoom = useLiveRoomPipStore.getState().pipRoom;
+  const isRestoring = initialPipRoom && initialPipRoom.roomName === roomName && roomInstance && roomInstance.state === 'connected';
+
+  const [token, setToken] = useState(isRestoring ? initialPipRoom.token : '');
+  const [serverUrl, setServerUrl] = useState(isRestoring ? initialPipRoom.serverUrl : '');
+  const [loading, setLoading] = useState(!isRestoring);
   const [error, setError] = useState(null);
-  const [dbRoom, setDbRoom] = useState(null);
-  const [userIdentity, setUserIdentity] = useState(null);
+  const [dbRoom, setDbRoom] = useState(isRestoring ? initialPipRoom.dbRoom : null);
+  const [userIdentity, setUserIdentity] = useState(isRestoring ? initialPipRoom.userIdentity : null);
 
   useEffect(() => {
     if (!user) return;
+    if (isRestoring) return;
 
     const fetchTokenAndRoom = async () => {
       try {
@@ -1851,6 +1857,12 @@ export default function LanguageRoom() {
         setToken(res.data.token);
         setServerUrl(res.data.serverUrl);
         setUserIdentity(res.data.identity);
+
+        const r = new Room({
+          adaptiveStream: true,
+          dynacast: true,
+        });
+        setRoomInstance(r);
       } catch (err) {
         console.error('Failed to get LiveKit token:', err);
         setError(err.response?.data?.error || 'Failed to connect to room. The room might be full or inactive.');
@@ -1896,6 +1908,13 @@ export default function LanguageRoom() {
 
   const handleLeaveRoom = useCallback(async () => {
     hasExplicitlyLeft.current = true; // User explicitly left the room
+    const activeRoom = useLiveRoomPipStore.getState().roomInstance;
+    if (activeRoom) {
+      activeRoom.disconnect();
+    }
+    useLiveRoomPipStore.getState().clearRoomInstance();
+    useLiveRoomPipStore.getState().clearPipRoom();
+
     try {
       localStorage.removeItem(`livekit_stage_${roomName}`);
       localStorage.removeItem(`livekit_mic_${roomName}`);
@@ -1924,14 +1943,17 @@ export default function LanguageRoom() {
     return <RoomError error={error} onBack={() => navigate(backPath)} />;
   }
 
+  const isConnected = roomInstance && roomInstance.state === 'connected';
+
   return (
     <div className="w-full h-full">
       <LiveKitRoom
-        serverUrl={serverUrl}
-        token={token}
-        connect={true}
-        video={dbRoom?.mediaType === 'video'}
-        audio={true}
+        room={roomInstance || undefined}
+        serverUrl={isConnected ? undefined : serverUrl}
+        token={isConnected ? undefined : token}
+        connect={!isConnected}
+        video={isConnected ? undefined : dbRoom?.mediaType === 'video'}
+        audio={isConnected ? undefined : true}
         onDisconnected={handleLeaveRoom}
         style={{ height: '100%' }}
         data-lk-theme="default"

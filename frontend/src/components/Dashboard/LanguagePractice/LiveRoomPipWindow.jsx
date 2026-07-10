@@ -205,7 +205,7 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
 
 export default function LiveRoomPipWindow() {
   const navigate = useNavigate();
-  const { pipRoom, clearPipRoom } = useLiveRoomPipStore();
+  const { pipRoom, clearPipRoom, roomInstance, clearRoomInstance } = useLiveRoomPipStore();
 
   useEffect(() => {
     if (!pipRoom) return;
@@ -251,9 +251,14 @@ export default function LiveRoomPipWindow() {
     // Navigate back to the full room page
     navigate(`/dashboard/live-rooms/${pipRoom.roomName}`);
     clearPipRoom();
+    // Do NOT clear or disconnect roomInstance here so LanguageRoom can reuse it instantly!
   };
 
   const handleClose = async () => {
+    if (roomInstance) {
+      roomInstance.disconnect();
+    }
+    clearRoomInstance();
     try {
       const isHost = pipRoom.dbRoom && pipRoom.userIdentity && pipRoom.dbRoom.creatorId?.toString() === pipRoom.userIdentity;
       if (isHost) {
@@ -277,12 +282,12 @@ export default function LiveRoomPipWindow() {
       className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-[9999] w-[180px] h-[290px] bg-gray-950 border border-white/10 dark:border-white/5 rounded-2xl shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300 cursor-move touch-none"
     >
       <LiveKitRoom
-        serverUrl={pipRoom.serverUrl}
-        token={pipRoom.token}
-        connect={true}
-        video={pipRoom.dbRoom?.mediaType === 'video' && pipRoom.initialCamEnabled}
-        audio={pipRoom.initialMicEnabled}
-        onDisconnected={clearPipRoom}
+        room={roomInstance || undefined}
+        onDisconnected={() => {
+          if (roomInstance) roomInstance.disconnect();
+          clearRoomInstance();
+          clearPipRoom();
+        }}
         style={{ height: '100%' }}
         data-lk-theme="default"
       >
