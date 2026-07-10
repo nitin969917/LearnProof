@@ -133,7 +133,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
               searchType === 'students'
                 ? 'bg-white dark:bg-gray-800 text-orange-500 dark:text-orange-400 shadow-sm'
-                : 'text-gray-500 hover:text-gray-850 dark:text-gray-400'
+                : 'text-gray-500 hover:text-gray-800 dark:text-gray-400'
             }`}
           >
             <Users size={14} />
@@ -147,7 +147,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
               searchType === 'groups'
                 ? 'bg-white dark:bg-gray-800 text-orange-500 dark:text-orange-400 shadow-sm'
-                : 'text-gray-500 hover:text-gray-850 dark:text-gray-400'
+                : 'text-gray-500 hover:text-gray-800 dark:text-gray-400'
             }`}
           >
             <MessageSquare size={14} />
@@ -225,7 +225,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                     </div>
                     
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-extrabold text-gray-850 dark:text-gray-100 group-hover:text-orange-500 transition-colors text-base truncate">{student.name}</h3>
+                      <h3 className="font-extrabold text-gray-800 dark:text-gray-100 group-hover:text-orange-500 transition-colors text-base truncate">{student.name}</h3>
                       {student.department && (
                         <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs mt-1 truncate font-semibold">
                           <GraduationCap size={13} className="text-orange-400 shrink-0" />
@@ -279,7 +279,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                     
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className="font-black text-gray-850 dark:text-gray-100 text-base truncate">{group.name}</h3>
+                        <h3 className="font-black text-gray-800 dark:text-gray-100 text-base truncate">{group.name}</h3>
                         {group.isPrivate ? (
                           <span className="flex items-center gap-0.5 text-[9px] text-red-500 bg-red-50 dark:bg-red-950/20 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
                             <Lock size={8} /> Private

@@ -231,7 +231,7 @@ const DailyGoalsPage = () => {
                                     exit={{ opacity: 0, x: -20 }}
                                     className={`group flex items-center justify-between p-3 rounded-xl border transition-all duration-200 cursor-pointer ${
                                         task.completed
-                                            ? 'bg-gray-50/70 dark:bg-gray-700/20 border-gray-100/50 dark:border-gray-750 text-gray-400 dark:text-gray-500'
+                                            ? 'bg-gray-50/70 dark:bg-gray-700/20 border-gray-100/50 dark:border-gray-700 text-gray-400 dark:text-gray-500'
                                             : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-orange-200 dark:hover:border-orange-500/50 hover:shadow-sm text-gray-700 dark:text-gray-200'
                                     }`}
                                     onClick={() => toggleTask(task.id)}
@@ -276,7 +276,7 @@ const DailyGoalsPage = () => {
                         <p className="text-xs text-center py-4 text-gray-400 dark:text-gray-500">History will record here as you complete days!</p>
                     ) : (
                         sortedHistoryDays.map(([dateKey, dayData]) => (
-                            <div key={dateKey} className="flex items-center justify-between gap-4 p-2.5 rounded-xl bg-orange-50/20 dark:bg-gray-900/30 border border-orange-100/10 dark:border-gray-750">
+                            <div key={dateKey} className="flex items-center justify-between gap-4 p-2.5 rounded-xl bg-orange-50/20 dark:bg-gray-900/30 border border-orange-100/10 dark:border-gray-700">
                                 <div className="min-w-0">
                                     <p className="text-xs font-bold text-gray-700 dark:text-gray-300 truncate">{dayData.dateLabel}</p>
                                     <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500">{dayData.completed}/{dayData.total} Goals Completed</p>

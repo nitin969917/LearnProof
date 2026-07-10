@@ -1796,7 +1796,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                                   className="w-9 h-9 rounded-full object-cover bg-gray-200 border border-gray-155 dark:border-gray-700" 
                                 />
                                 <div className="min-w-0">
-                                  <span className="text-xs font-black text-gray-850 dark:text-gray-200 truncate block">
+                                  <span className="text-xs font-black text-gray-800 dark:text-gray-200 truncate block">
                                     {u.name} {isMe && <span className="text-orange-500 font-bold">(You)</span>}
                                   </span>
                                   {isMemberAdmin && (

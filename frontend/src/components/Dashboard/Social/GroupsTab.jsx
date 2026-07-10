@@ -330,7 +330,7 @@ export default function GroupsTab({ currentUserId }) {
 
               <div className="flex items-center gap-2">
                 {activeGroup.entryKey && (
-                  <div className="hidden sm:flex items-center gap-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-750 px-2.5 py-1 rounded-xl">
+                  <div className="hidden sm:flex items-center gap-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-2.5 py-1 rounded-xl">
                     <span className="text-[10px] font-bold text-gray-400 font-sans">Entry Key:</span>
                     <code className="text-xs font-mono font-bold text-orange-500">{activeGroup.entryKey}</code>
                     <button
@@ -429,7 +429,7 @@ export default function GroupsTab({ currentUserId }) {
       {/* Create Group Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[600] p-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-750 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-scale-up">
+          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-scale-up">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Create Discussion Group</h3>
             <form onSubmit={handleCreateGroup} className="space-y-4">
               <div>
@@ -496,7 +496,7 @@ export default function GroupsTab({ currentUserId }) {
                     <button
                       type="button"
                       onClick={generateRandomKey}
-                      className="px-4 py-2.5 bg-gray-100 dark:bg-gray-750 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl hover:bg-gray-200 transition"
+                      className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl hover:bg-gray-200 transition"
                     >
                       Generate Key
                     </button>
@@ -508,7 +508,7 @@ export default function GroupsTab({ currentUserId }) {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-650 rounded-xl text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-750 transition"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-650 rounded-xl text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                 >
                   Cancel
                 </button>
@@ -527,7 +527,7 @@ export default function GroupsTab({ currentUserId }) {
       {/* Join Private Group Modal */}
       {showJoinModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[600] p-4 animate-fade-in">
-          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-750 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-scale-up">
+          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-scale-up">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
               <Lock size={18} className="text-red-500" />
               <span>Private Group Join</span>
@@ -560,7 +560,7 @@ export default function GroupsTab({ currentUserId }) {
                     setShowJoinModal(null);
                     setJoinKey('');
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-650 rounded-xl text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-750 transition"
+                  className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-650 rounded-xl text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                 >
                   Cancel
                 </button>

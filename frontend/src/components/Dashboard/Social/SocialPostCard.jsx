@@ -225,7 +225,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
         )}
         
         {post.image && (
-          <div className="mt-3 overflow-hidden rounded-xl border border-gray-100 dark:border-gray-750 bg-gray-50 dark:bg-gray-900/30 flex justify-center items-center">
+          <div className="mt-3 overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 flex justify-center items-center">
             <img 
               src={post.image} 
               alt="Post content" 
@@ -237,7 +237,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-6 border-t border-gray-100 dark:border-gray-750 pt-3">
+      <div className="flex items-center gap-6 border-t border-gray-100 dark:border-gray-700 pt-3">
         <button 
           onClick={handleLike}
           className={`flex items-center gap-1.5 font-semibold text-xs md:text-sm transition-colors ${
@@ -279,7 +279,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
 
       {/* Comments section */}
       {showComments && (
-        <div className="mt-4 border-t border-gray-100 dark:border-gray-750 pt-4">
+        <div className="mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
           <form onSubmit={handleCommentSubmit} className="flex gap-2 mb-4">
             <input 
               type="text" 
@@ -307,7 +307,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
                 const isCommentAuthor = currentUserId === comment.authorId;
                 const canDelete = isCommentAuthor || isAuthor; // comment author or post author
                 return (
-                  <div key={comment.id} className="flex gap-3 text-xs md:text-sm items-start bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded-xl border border-gray-100/50 dark:border-gray-750/30">
+                  <div key={comment.id} className="flex gap-3 text-xs md:text-sm items-start bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded-xl border border-gray-100/50 dark:border-gray-700/30">
                     <div 
                       onClick={() => onViewProfile(comment.author.id)}
                       className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 cursor-pointer"

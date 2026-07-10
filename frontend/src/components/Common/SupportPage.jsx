@@ -174,7 +174,7 @@ const Support = () => {
                 <div className="space-y-6">
                     {/* Navigation Tabs */}
                     <div className="flex justify-between items-center border-b border-orange-100 dark:border-gray-800 pb-4">
-                        <div className="flex p-1 bg-orange-50 dark:bg-gray-850 border border-orange-100/50 dark:border-gray-750/50 rounded-xl w-72 sm:w-80">
+                        <div className="flex p-1 bg-orange-50 dark:bg-gray-800 border border-orange-100/50 dark:border-gray-700/50 rounded-xl w-72 sm:w-80">
                             {tabs.map((tab) => {
                                 const Icon = tab.icon;
                                 const isActive = view === tab.id || (tab.id === 'history' && view === 'detail');
@@ -185,7 +185,7 @@ const Support = () => {
                                         className={`relative flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex-1 ${
                                             isActive
                                                 ? "text-white"
-                                                : "text-gray-550 dark:text-slate-400 hover:text-gray-750 dark:hover:text-slate-200"
+                                                : "text-gray-550 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
                                         }`}
                                     >
                                         {isActive && (
@@ -278,7 +278,7 @@ const Support = () => {
                                         {loading && filteredTickets.length === 0 ? (
                                             <div className="text-center py-10"><div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
                                         ) : filteredTickets.length === 0 ? (
-                                            <div className="text-center py-12 text-gray-400 dark:text-gray-500 font-semibold text-sm bg-white dark:bg-gray-850 bg-opacity-75 dark:bg-opacity-75 backdrop-blur-xl rounded-3xl border border-orange-100 dark:border-gray-700 shadow-sm">No support tickets found.</div>
+                                            <div className="text-center py-12 text-gray-400 dark:text-gray-500 font-semibold text-sm bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 backdrop-blur-xl rounded-3xl border border-orange-100 dark:border-gray-700 shadow-sm">No support tickets found.</div>
                                         ) : (
                                             filteredTickets.map(ticket => (
                                                 <div 

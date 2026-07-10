@@ -338,7 +338,7 @@ export default function LanguageLearning() {
                     className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       newRoom.mediaType === 'audio'
                         ? 'border-orange-500 bg-orange-500/5 text-orange-500'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
                     <Mic size={14} />
@@ -350,7 +350,7 @@ export default function LanguageLearning() {
                     className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       newRoom.mediaType === 'video'
                         ? 'border-orange-500 bg-orange-500/5 text-orange-500'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
                     <Video size={14} />
@@ -368,7 +368,7 @@ export default function LanguageLearning() {
                     className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       !newRoom.isFriendsOnly
                         ? 'border-orange-500 bg-orange-500/5 text-orange-500'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
                     <Globe size={14} />
@@ -380,7 +380,7 @@ export default function LanguageLearning() {
                     className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       newRoom.isFriendsOnly
                         ? 'border-orange-500 bg-orange-500/5 text-orange-500'
-                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-750'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
                     <Users size={14} />
@@ -405,7 +405,7 @@ export default function LanguageLearning() {
                   type="button" 
                   disabled={creating}
                   onClick={() => setShowModal(false)} 
-                  className="flex-1 px-4 py-2.5 border border-gray-205 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-350 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-750 transition cursor-pointer disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 border border-gray-205 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-350 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>

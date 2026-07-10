@@ -284,7 +284,7 @@ const DashboardLayout = () => {
                                     localStorage.setItem('social_active_tab', 'profile');
                                     navigate('/dashboard/social?tab=profile');
                                 }}
-                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-orange-100 dark:border-gray-750 active:scale-95 transition-all cursor-pointer flex items-center justify-center shrink-0"
+                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-orange-100 dark:border-gray-700 active:scale-95 transition-all cursor-pointer flex items-center justify-center shrink-0"
                                 title="My Profile"
                             >
                                 {socialUser?.avatar ? (

@@ -178,7 +178,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     type="text" 
                     value={formData.name || ''} 
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="w-full bg-white dark:bg-gray-850 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
+                    className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                     required 
                   />
                 </div>
@@ -188,7 +188,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     type="text" 
                     value={formData.collegeName || ''} 
                     onChange={(e) => setFormData({...formData, collegeName: e.target.value})}
-                    className="w-full bg-white dark:bg-gray-850 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
+                    className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-2xl">
@@ -197,7 +197,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     type="text" 
                     value={formData.department || ''} 
                     onChange={(e) => setFormData({...formData, department: e.target.value})}
-                    className="w-full bg-white dark:bg-gray-850 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
+                    className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-2xl">
@@ -206,7 +206,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     type="text" 
                     value={formData.yearOfStudy || ''} 
                     onChange={(e) => setFormData({...formData, yearOfStudy: e.target.value})}
-                    className="w-full bg-white dark:bg-gray-850 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
+                    className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   />
                 </div>
               </div>
@@ -233,7 +233,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     }
                   }}
                   rows={3}
-                  className="w-full bg-white dark:bg-gray-850 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold resize-none"
+                  className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold resize-none"
                 />
               </div>
 
@@ -519,7 +519,7 @@ function SocialFieldEdit({ label, valueKey, visibilityKey, formData, setFormData
   return (
     <div className="flex flex-col gap-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-2xl">
       <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{label}</label>
-      <div className="relative flex items-center bg-white dark:bg-gray-850 border border-gray-200/80 dark:border-gray-700/80 rounded-xl focus-within:ring-2 focus-within:ring-orange-500 focus-within:border-transparent transition-all overflow-hidden px-1">
+      <div className="relative flex items-center bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 rounded-xl focus-within:ring-2 focus-within:ring-orange-500 focus-within:border-transparent transition-all overflow-hidden px-1">
         <input 
           type="text" 
           value={formData[valueKey] || ''} 

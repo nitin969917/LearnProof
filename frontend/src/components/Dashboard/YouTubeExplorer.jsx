@@ -347,7 +347,7 @@ const YouTubeExplorer = () => {
                                                     className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider ${
                                                         filters.type === t 
                                                             ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
-                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-750 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
                                                     }`}
                                                 >
                                                     {t === 'all' ? 'All' : t + 's'}
@@ -372,7 +372,7 @@ const YouTubeExplorer = () => {
                                                     className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider ${
                                                         filters.sortBy === s.id 
                                                             ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
-                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-750 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
                                                     }`}
                                                 >
                                                     {s.label}
@@ -401,7 +401,7 @@ const YouTubeExplorer = () => {
                                                     className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider disabled:opacity-40 disabled:hover:bg-gray-50 ${
                                                         filters.duration === d.id && filters.type !== 'playlist'
                                                             ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
-                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-750 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
                                                     }`}
                                                 >
                                                     {d.label}
