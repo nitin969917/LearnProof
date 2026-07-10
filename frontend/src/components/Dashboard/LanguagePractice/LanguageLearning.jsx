@@ -136,7 +136,7 @@ export default function LanguageLearning() {
 
       {/* ── Compact Mobile Header ──────────────────────────────── */}
       <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-650 shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
           <Globe size={18} />
         </div>
         <div className="flex-1 min-w-0">
