@@ -214,12 +214,6 @@ const DashboardLayout = () => {
             )}
 
             {/* Sidebar (Desktop expands/collapses, Mobile via drawer) */}
-            {!isMobile && (
-                <ConfirmModal
-                    isOpen={isProfileModalOpen}
-                    onClose={() => setIsProfileModalOpen(false)}
-                />
-            )}
 
             {/* Sidebar (Desktop expands/collapses, Mobile via drawer) */}
             {(!isLiveRoom || !isMobile) && (!isInsideWorkspace || !isMobile) && (
