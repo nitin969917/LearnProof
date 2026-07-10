@@ -637,7 +637,7 @@ const YouTubeExplorer = () => {
                             {/* Close button at top-right */}
                             <button
                                 onClick={handleCancel}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-250 transition-colors p-1"
+                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1"
                             >
                                 <X size={18} />
                             </button>

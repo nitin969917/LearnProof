@@ -336,7 +336,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {isOwnProfile ? (
               <button 
                 onClick={() => setIsEditing(true)}
-                className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-250 hover:bg-gray-100 dark:hover:bg-gray-700/80 font-bold text-xs transition"
+                className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/80 font-bold text-xs transition"
               >
                 <Edit3 size={13} />
                 <span>Edit Profile</span>
@@ -347,7 +347,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                   onClick={handleFriendAction}
                   className={`flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg font-bold text-xs transition ${
                     profile.isFriend 
-                      ? 'border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-250 hover:bg-gray-100' 
+                      ? 'border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100' 
                       : profile.hasPendingRequest 
                         ? 'border border-orange-200 dark:border-orange-950 bg-orange-50/50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100/50' 
                         : 'bg-orange-500 hover:bg-orange-600 text-white shadow shadow-orange-500/10'
@@ -457,7 +457,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                                   {field.value}
                                 </a>
                               ) : (
-                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-250 truncate max-w-[90px]" title={field.value}>{field.value}</span>
+                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[90px]" title={field.value}>{field.value}</span>
                               )
                             ) : (
                               <span className="text-[10px] font-bold text-gray-400 dark:text-gray-600">Not Set</span>

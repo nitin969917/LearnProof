@@ -58,7 +58,7 @@ const ContinueWatching = ({ videos: propVideos, loading: propLoading }) => {
         return (
             <div className="space-y-2 mb-2">
                 <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 bg-gray-250 dark:bg-gray-700 rounded animate-pulse"></div>
+                    <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                     <div className="h-6 w-44 bg-gray-255 dark:bg-gray-700 rounded animate-pulse"></div>
                 </div>
                 <div className="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory hide-scrollbar">

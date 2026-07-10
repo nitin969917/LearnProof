@@ -440,7 +440,7 @@ export default function GroupsTab({ currentUserId }) {
                   placeholder="e.g. JavaScript Wizards"
                   value={newGroup.name}
                   onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-250 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-orange-500 text-sm font-medium"
+                  className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-orange-500 text-sm font-medium"
                 />
               </div>
 
@@ -451,7 +451,7 @@ export default function GroupsTab({ currentUserId }) {
                   placeholder="e.g. Chat and discuss modern JavaScript frameworks"
                   value={newGroup.description}
                   onChange={(e) => setNewGroup({ ...newGroup, description: e.target.value })}
-                  className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-250 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-orange-500 text-sm font-medium"
+                  className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-orange-500 text-sm font-medium"
                 />
               </div>
 
@@ -491,7 +491,7 @@ export default function GroupsTab({ currentUserId }) {
                       placeholder="e.g. SECURE123"
                       value={newGroup.entryKey}
                       onChange={(e) => setNewGroup({ ...newGroup, entryKey: e.target.value })}
-                      className="flex-1 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-250 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-orange-500 text-sm font-mono font-bold"
+                      className="flex-1 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-orange-500 text-sm font-mono font-bold"
                     />
                     <button
                       type="button"
@@ -549,7 +549,7 @@ export default function GroupsTab({ currentUserId }) {
                   placeholder="Enter Entry Key"
                   value={joinKey}
                   onChange={(e) => setJoinKey(e.target.value)}
-                  className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-250 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-orange-500 text-sm text-center font-mono font-bold tracking-wider"
+                  className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-1 focus:ring-orange-500 text-sm text-center font-mono font-bold tracking-wider"
                 />
               </div>
 

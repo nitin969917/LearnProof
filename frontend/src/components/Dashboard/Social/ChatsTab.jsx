@@ -1661,7 +1661,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           }
                         }}
                         placeholder="Type your message here..."
-                        className="flex-1 bg-white dark:bg-[#2a3942] text-gray-900 dark:text-[#e9edef] border border-gray-250 dark:border-gray-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-semibold transition"
+                        className="flex-1 bg-white dark:bg-[#2a3942] text-gray-900 dark:text-[#e9edef] border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-semibold transition"
                       />
                     )}
 
@@ -2231,7 +2231,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setReplyingTo(activeMenuMessage);
                       setActiveMenuMessage(null);
                     }}
-                    className="w-full text-left py-3 px-4 rounded-xl text-gray-800 dark:text-gray-250 hover:bg-gray-100 dark:hover:bg-[#2a3942] transition font-extrabold text-sm flex items-center gap-3 cursor-pointer"
+                    className="w-full text-left py-3 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#2a3942] transition font-extrabold text-sm flex items-center gap-3 cursor-pointer"
                   >
                     <CornerUpLeft size={16} className="text-orange-500 dark:text-orange-400" />
                     <span>Reply</span>
@@ -2247,7 +2247,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setShowCopyToast(true);
                       setTimeout(() => setShowCopyToast(false), 2000);
                     }}
-                    className="w-full text-left py-3 px-4 rounded-xl text-gray-800 dark:text-gray-250 hover:bg-gray-100 dark:hover:bg-[#2a3942] transition font-extrabold text-sm flex items-center gap-3 cursor-pointer"
+                    className="w-full text-left py-3 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#2a3942] transition font-extrabold text-sm flex items-center gap-3 cursor-pointer"
                   >
                     <Copy size={16} className="text-gray-450 dark:text-gray-500" />
                     <span>Copy Text</span>

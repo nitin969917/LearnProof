@@ -173,7 +173,7 @@ const Support = () => {
                 {/* Main Content Area */}
                 <div className="space-y-6">
                     {/* Navigation Tabs */}
-                    <div className="flex justify-between items-center border-b border-orange-100 dark:border-gray-805 pb-4">
+                    <div className="flex justify-between items-center border-b border-orange-100 dark:border-gray-800 pb-4">
                         <div className="flex p-1 bg-orange-50 dark:bg-gray-850 border border-orange-100/50 dark:border-gray-750/50 rounded-xl w-72 sm:w-80">
                             {tabs.map((tab) => {
                                 const Icon = tab.icon;
@@ -213,7 +213,7 @@ const Support = () => {
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -10 }}
-                                        className="bg-white dark:bg-gray-805 bg-opacity-75 dark:bg-opacity-75 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-orange-100 dark:border-gray-700 shadow-sm relative overflow-hidden"
+                                        className="bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-orange-100 dark:border-gray-700 shadow-sm relative overflow-hidden"
                                     >
                                         <div className="mb-6">
                                             <div className="flex items-center gap-2 mb-2 text-orange-500">

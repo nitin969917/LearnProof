@@ -26,15 +26,7 @@ export default function LanguageLearning() {
     fetchSocialUser();
   }, []);
 
-  useEffect(() => {
-    if (setHeaderAction) {
-      setHeaderAction(() => () => {
-        setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
-        setShowModal(true);
-      });
-      return () => setHeaderAction(null);
-    }
-  }, [setHeaderAction, activeTab]);
+
 
   useEffect(() => {
     // Listen to real-time room creation/deletion events from other users via socket
@@ -447,7 +439,7 @@ export default function LanguageLearning() {
                 setShowConfirmModal(false);
                 setRoomToDelete(null);
               }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-250 transition-colors p-1"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1"
             >
               <X size={18} />
             </button>

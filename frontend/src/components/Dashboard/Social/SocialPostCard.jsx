@@ -198,7 +198,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
                <select 
                   value={editedVisibility}
                   onChange={(e) => setEditedVisibility(e.target.value)}
-                  className="bg-gray-50 dark:bg-gray-900 border border-gray-250 dark:border-gray-700 rounded-xl text-xs text-gray-700 dark:text-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer font-medium"
+                  className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-700 dark:text-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer font-medium"
                >
                   <option value="public">🌐 Public</option>
                   <option value="friends">👥 Friends</option>
