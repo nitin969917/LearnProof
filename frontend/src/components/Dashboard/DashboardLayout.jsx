@@ -13,6 +13,9 @@ import { useSocialMessageStore } from "../../store/socialMessageStore.js";
 import { getSocialSocket } from "../../utils/socialSocket.js";
 import { requestNotificationPermissionAndGetToken } from "../../utils/fcm.js";
 import LiveRoomPipWindow from "./LanguagePractice/LiveRoomPipWindow";
+import { useLiveRoomPipStore } from "../../store/liveRoomPipStore";
+import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import "@livekit/components-styles";
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -43,6 +46,7 @@ class ErrorBoundary extends React.Component {
 
 const DashboardLayout = () => {
     const { user, isMatrixActive, matrixClient } = useAuth();
+    const { activeRoom, clearActiveRoom, showPip } = useLiveRoomPipStore();
     const [socialUser, setSocialUser] = useState(null);
     const [onHeaderAction, setOnHeaderAction] = useState(null);
 
@@ -203,7 +207,7 @@ const DashboardLayout = () => {
         }
     }, [location.pathname]);
 
-    return (
+    const layoutContent = (
         <div className="flex h-screen bg-orange-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 relative transition-colors duration-200 overflow-hidden font-sans">
             {/* Sidebar Overlay for Mobile (triggered from Bottom Nav) */}
             {isMobileSidebarOpen && (
@@ -212,8 +216,6 @@ const DashboardLayout = () => {
                     onClick={() => setIsMobileSidebarOpen(false)}
                 />
             )}
-
-            {/* Sidebar (Desktop expands/collapses, Mobile via drawer) */}
 
             {/* Sidebar (Desktop expands/collapses, Mobile via drawer) */}
             {(!isLiveRoom || !isMobile) && (!isInsideWorkspace || !isMobile) && (
@@ -326,7 +328,7 @@ const DashboardLayout = () => {
             )}
 
             {/* Floating Live Room Picture-in-Picture Window */}
-            {!isLiveRoom && <LiveRoomPipWindow />}
+            {showPip && <LiveRoomPipWindow />}
 
             <ProfileModal
                 isOpen={isProfileModalOpen}
@@ -334,6 +336,24 @@ const DashboardLayout = () => {
             />
         </div>
     );
+
+    if (activeRoom) {
+        return (
+            <LiveKitRoom
+                serverUrl={activeRoom.serverUrl}
+                token={activeRoom.token}
+                connect={true}
+                video={activeRoom.dbRoom?.mediaType === 'video'}
+                audio={true}
+                onDisconnected={clearActiveRoom}
+            >
+                <RoomAudioRenderer />
+                {layoutContent}
+            </LiveKitRoom>
+        );
+    }
+
+    return layoutContent;
 };
 
 export default DashboardLayout;

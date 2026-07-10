@@ -1,11 +1,10 @@
 import { create } from 'zustand';
 
 export const useLiveRoomPipStore = create((set) => ({
-  pipRoom: null, // { roomName, token, serverUrl, dbRoom, userIdentity }
-  roomInstance: null, // Singleton Room connection object
+  activeRoom: null, // { roomName, token, serverUrl, dbRoom, userIdentity }
+  showPip: false,   // whether to show the PiP floating window
 
-  setPipRoom: (room) => set({ pipRoom: room }),
-  clearPipRoom: () => set({ pipRoom: null }),
-  setRoomInstance: (instance) => set({ roomInstance: instance }),
-  clearRoomInstance: () => set({ roomInstance: null }),
+  setActiveRoom: (room) => set({ activeRoom: room }),
+  clearActiveRoom: () => set({ activeRoom: null, showPip: false }),
+  setShowPip: (show) => set({ showPip: show }),
 }));

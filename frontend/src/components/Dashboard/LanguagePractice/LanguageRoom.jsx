@@ -1812,17 +1812,15 @@ export default function LanguageRoom() {
   const { user } = useAuth();
   const hasExplicitlyLeft = useRef(false);
 
-  const { roomInstance, setRoomInstance, clearRoomInstance } = useLiveRoomPipStore();
+  const { activeRoom, setActiveRoom, clearActiveRoom } = useLiveRoomPipStore();
+  const isRestoring = activeRoom && activeRoom.roomName === roomName;
 
-  const initialPipRoom = useLiveRoomPipStore.getState().pipRoom;
-  const isRestoring = initialPipRoom && initialPipRoom.roomName === roomName && roomInstance && roomInstance.state === 'connected';
-
-  const [token, setToken] = useState(isRestoring ? initialPipRoom.token : '');
-  const [serverUrl, setServerUrl] = useState(isRestoring ? initialPipRoom.serverUrl : '');
+  const [token, setToken] = useState(isRestoring ? activeRoom.token : '');
+  const [serverUrl, setServerUrl] = useState(isRestoring ? activeRoom.serverUrl : '');
   const [loading, setLoading] = useState(!isRestoring);
   const [error, setError] = useState(null);
-  const [dbRoom, setDbRoom] = useState(isRestoring ? initialPipRoom.dbRoom : null);
-  const [userIdentity, setUserIdentity] = useState(isRestoring ? initialPipRoom.userIdentity : null);
+  const [dbRoom, setDbRoom] = useState(isRestoring ? activeRoom.dbRoom : null);
+  const [userIdentity, setUserIdentity] = useState(isRestoring ? activeRoom.userIdentity : null);
 
   useEffect(() => {
     if (!user) return;
@@ -1858,11 +1856,13 @@ export default function LanguageRoom() {
         setServerUrl(res.data.serverUrl);
         setUserIdentity(res.data.identity);
 
-        const r = new Room({
-          adaptiveStream: true,
-          dynacast: true,
+        setActiveRoom({
+          roomName,
+          token: res.data.token,
+          serverUrl: res.data.serverUrl,
+          dbRoom: roomInfo,
+          userIdentity: res.data.identity,
         });
-        setRoomInstance(r);
       } catch (err) {
         console.error('Failed to get LiveKit token:', err);
         setError(err.response?.data?.error || 'Failed to connect to room. The room might be full or inactive.');
@@ -1874,46 +1874,20 @@ export default function LanguageRoom() {
     fetchTokenAndRoom();
   }, [user, roomName, navigate]);
 
-  // On mount/unmount logic for PIP
-  const pipValuesRef = useRef({ token, serverUrl, dbRoom, userIdentity });
   useEffect(() => {
-    pipValuesRef.current = { token, serverUrl, dbRoom, userIdentity };
-  }, [token, serverUrl, dbRoom, userIdentity]);
-
-  useEffect(() => {
-    // Clear PIP state if we return to the room
-    useLiveRoomPipStore.getState().clearPipRoom();
+    // Hide PiP when returning to the room page
+    useLiveRoomPipStore.getState().setShowPip(false);
 
     return () => {
-      const { token, serverUrl, dbRoom, userIdentity } = pipValuesRef.current;
-      if (!hasExplicitlyLeft.current && token && serverUrl && dbRoom) {
-        const savedMic = localStorage.getItem(`livekit_mic_${roomName}`);
-        const isMicEnabled = savedMic !== 'disabled';
-
-        const savedCam = localStorage.getItem(`livekit_cam_${roomName}`);
-        const isCamEnabled = savedCam === 'enabled';
-
-        useLiveRoomPipStore.getState().setPipRoom({
-          roomName,
-          token,
-          serverUrl,
-          dbRoom,
-          userIdentity,
-          initialMicEnabled: isMicEnabled,
-          initialCamEnabled: isCamEnabled
-        });
+      if (!hasExplicitlyLeft.current && useLiveRoomPipStore.getState().activeRoom) {
+        useLiveRoomPipStore.getState().setShowPip(true);
       }
     };
   }, [roomName]);
 
   const handleLeaveRoom = useCallback(async () => {
     hasExplicitlyLeft.current = true; // User explicitly left the room
-    const activeRoom = useLiveRoomPipStore.getState().roomInstance;
-    if (activeRoom) {
-      activeRoom.disconnect();
-    }
-    useLiveRoomPipStore.getState().clearRoomInstance();
-    useLiveRoomPipStore.getState().clearPipRoom();
+    useLiveRoomPipStore.getState().clearActiveRoom();
 
     try {
       localStorage.removeItem(`livekit_stage_${roomName}`);
@@ -1936,38 +1910,22 @@ export default function LanguageRoom() {
   }, [roomName, navigate, dbRoom, userIdentity]);
 
   if (!user) return null;
-  if (loading) return <RoomLoadingSpinner />;
+  if (loading || !activeRoom) return <RoomLoadingSpinner />;
   if (error) {
     const navSrc = sessionStorage.getItem('nav_source');
     const backPath = navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms';
     return <RoomError error={error} onBack={() => navigate(backPath)} />;
   }
 
-  const isConnected = roomInstance && roomInstance.state === 'connected';
-
   return (
     <div className="w-full h-full">
-      <LiveKitRoom
-        room={roomInstance || undefined}
-        serverUrl={isConnected ? undefined : serverUrl}
-        token={isConnected ? undefined : token}
-        connect={true}
-        video={isConnected ? undefined : dbRoom?.mediaType === 'video'}
-        audio={isConnected ? undefined : true}
-        onDisconnected={handleLeaveRoom}
-        disconnectOnUnmount={false}
-        style={{ height: '100%' }}
-        data-lk-theme="default"
-      >
-        <RoomAudioRenderer />
-        <CustomLanguageRoomContent
-          roomName={roomName}
-          handleLeaveRoom={handleLeaveRoom}
-          user={user}
-          dbRoom={dbRoom}
-          userIdentity={userIdentity}
-        />
-      </LiveKitRoom>
+      <CustomLanguageRoomContent
+        roomName={roomName}
+        handleLeaveRoom={handleLeaveRoom}
+        user={user}
+        dbRoom={dbRoom}
+        userIdentity={userIdentity}
+      />
     </div>
   );
 }

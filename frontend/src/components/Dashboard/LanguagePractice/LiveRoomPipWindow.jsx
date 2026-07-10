@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveRoomPipStore } from '../../../store/liveRoomPipStore';
 import { X, Maximize2, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 import {
-  LiveKitRoom,
-  RoomAudioRenderer,
   useParticipants,
   useLocalParticipant,
   VideoTrack,
@@ -33,12 +31,16 @@ const getFilterCss = (filterName) => {
 function PipContent({ pipRoom, onMaximize, onClose }) {
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
-  const [isMuted, setIsMuted] = useState(!pipRoom.initialMicEnabled);
-  const [isCamOff, setIsCamOff] = useState(!pipRoom.initialCamEnabled);
+  
+  const savedMic = localStorage.getItem(`livekit_mic_${pipRoom.roomName}`);
+  const [isMuted, setIsMuted] = useState(savedMic === 'disabled');
+
+  const savedCam = localStorage.getItem(`livekit_cam_${pipRoom.roomName}`);
+  const [isCamOff, setIsCamOff] = useState(savedCam !== 'enabled');
+
   const [beautyFilter] = useState(() => {
     return localStorage.getItem('livekit_beauty_filter') || 'none';
   });
-
 
   // Sync mic state with LocalParticipant
   useEffect(() => {
@@ -88,18 +90,23 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
     || (localParticipant?.isSpeaking ? localParticipant : null)
     || speakers[0];
 
-  // Fetch all camera tracks reactive to participants using useTracks hook
+  // Fetch all camera tracks (both local and remote)
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: false }
-    ],
-    { onlySubscribed: true }
+    ]
   );
 
   // Find active speaker's video track reference
   const activeSpeakerTrackRef = activeSpeaker 
     ? tracks.find(t => t.participant?.identity === activeSpeaker.identity)
     : null;
+
+  const isVideoAvailable = activeSpeakerTrackRef && (
+    activeSpeaker.identity === localParticipant?.identity 
+      ? localParticipant?.isCameraEnabled 
+      : activeSpeakerTrackRef.publication?.isSubscribed
+  );
 
   return (
     <div className="w-full h-full flex flex-col justify-between text-white select-none relative">
@@ -111,7 +118,7 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
       `}</style>
 
       {/* Video Background (if video is available) */}
-      {pipRoom.dbRoom?.mediaType === 'video' && activeSpeakerTrackRef?.publication?.isSubscribed && (
+      {pipRoom.dbRoom?.mediaType === 'video' && isVideoAvailable && (
         <div className="absolute inset-0 z-0 bg-black pointer-events-none">
           <VideoTrack
             trackRef={activeSpeakerTrackRef}
@@ -151,7 +158,7 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
 
       {/* Body: Speaker info (shows avatar / active speaker status) */}
       <div className="flex-1 flex flex-col items-center justify-center p-3 z-10 text-center pointer-events-none">
-        {(!activeSpeakerTrackRef || !activeSpeakerTrackRef.publication?.isSubscribed) && (
+        {!isVideoAvailable && (
           <div className="relative">
             {/* Pulsing avatar border if speaking */}
             <div className={`w-12 h-12 rounded-full bg-orange-500/10 border-2 flex items-center justify-center transition-all ${
@@ -205,18 +212,18 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
 
 export default function LiveRoomPipWindow() {
   const navigate = useNavigate();
-  const { pipRoom, clearPipRoom, roomInstance, clearRoomInstance } = useLiveRoomPipStore();
+  const { activeRoom, clearActiveRoom, setShowPip } = useLiveRoomPipStore();
 
   useEffect(() => {
-    if (!pipRoom) return;
+    if (!activeRoom) return;
 
-    const isHost = pipRoom.dbRoom && pipRoom.userIdentity && pipRoom.dbRoom.creatorId?.toString() === pipRoom.userIdentity;
+    const isHost = activeRoom.dbRoom && activeRoom.userIdentity && activeRoom.dbRoom.creatorId?.toString() === activeRoom.userIdentity;
     if (!isHost) return;
 
     const handleUnload = () => {
       const token = localStorage.getItem('google_token');
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-      const roomName = pipRoom.roomName;
+      const roomName = activeRoom.roomName;
       
       // Delete database room record
       const dbUrl = `${backendUrl}/api/language-rooms/by-name/${roomName}`;
@@ -243,35 +250,29 @@ export default function LiveRoomPipWindow() {
 
     window.addEventListener('beforeunload', handleUnload);
     return () => window.removeEventListener('beforeunload', handleUnload);
-  }, [pipRoom]);
+  }, [activeRoom]);
 
-  if (!pipRoom) return null;
+  if (!activeRoom) return null;
 
   const handleMaximize = () => {
-    // Navigate back to the full room page
-    navigate(`/dashboard/live-rooms/${pipRoom.roomName}`);
-    clearPipRoom();
-    // Do NOT clear or disconnect roomInstance here so LanguageRoom can reuse it instantly!
+    navigate(`/dashboard/live-rooms/${activeRoom.roomName}`);
+    setShowPip(false);
   };
 
   const handleClose = async () => {
-    if (roomInstance) {
-      roomInstance.disconnect();
-    }
-    clearRoomInstance();
+    clearActiveRoom();
     try {
-      const isHost = pipRoom.dbRoom && pipRoom.userIdentity && pipRoom.dbRoom.creatorId?.toString() === pipRoom.userIdentity;
+      const isHost = activeRoom.dbRoom && activeRoom.userIdentity && activeRoom.dbRoom.creatorId?.toString() === activeRoom.userIdentity;
       if (isHost) {
         // If host, end the room completely for everyone
         await Promise.allSettled([
-          socialApi.delete(`/language-rooms/by-name/${pipRoom.roomName}`),
-          socialApi.delete(`/livekit/rooms/${pipRoom.roomName}`),
+          socialApi.delete(`/language-rooms/by-name/${activeRoom.roomName}`),
+          socialApi.delete(`/livekit/rooms/${activeRoom.roomName}`),
         ]);
       }
     } catch (err) {
       // Ignore cleanup errors
     }
-    clearPipRoom();
   };
 
   return (
@@ -281,24 +282,11 @@ export default function LiveRoomPipWindow() {
       dragElastic={0.05}
       className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-[9999] w-[180px] h-[290px] bg-gray-950 border border-white/10 dark:border-white/5 rounded-2xl shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300 cursor-move touch-none"
     >
-      <LiveKitRoom
-        room={roomInstance || undefined}
-        onDisconnected={() => {
-          if (roomInstance) roomInstance.disconnect();
-          clearRoomInstance();
-          clearPipRoom();
-        }}
-        disconnectOnUnmount={false}
-        style={{ height: '100%' }}
-        data-lk-theme="default"
-      >
-        <RoomAudioRenderer />
-        <PipContent 
-          pipRoom={pipRoom} 
-          onMaximize={handleMaximize} 
-          onClose={handleClose} 
-        />
-      </LiveKitRoom>
+      <PipContent 
+        pipRoom={activeRoom} 
+        onMaximize={handleMaximize} 
+        onClose={handleClose} 
+      />
     </motion.div>
   );
 }
