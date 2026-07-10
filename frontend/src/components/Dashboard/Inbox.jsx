@@ -51,48 +51,43 @@ const Inbox = () => {
 
     if (loading) {
         return (
-            <div className="p-6 max-w-4xl mx-auto space-y-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-24 bg-white dark:bg-gray-800 rounded-2xl animate-pulse border border-gray-100 dark:border-gray-700" />
+            <div className="px-3 sm:px-4 pt-3 max-w-2xl mx-auto space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-16 bg-white dark:bg-gray-800 rounded-2xl animate-pulse border border-gray-100 dark:border-gray-700" />
                 ))}
             </div>
         );
     }
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto min-h-[80vh]">
-            {/* Header */}
-            <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-                    <h1 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white flex flex-col sm:flex-row items-center gap-4">
-                        <div className="p-3 bg-orange-500 rounded-2xl shadow-lg shadow-orange-500/20">
-                            <Mail className="text-white" size={32} />
-                        </div>
-                        Your Inbox
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-4 text-sm sm:text-lg max-w-xl">Keep up with the latest updates and personalized insights.</p>
+        <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-3 pb-28">
+            {/* ── Compact Mobile Header ─────────────────────────────────── */}
+            <div className="flex items-center justify-between mb-4">
+                <div>
+                    <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Your Inbox</h1>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Updates and personalized insights</p>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm shrink-0">
-                    <span className="w-2 h-2 bg-orange-500 rounded-full" />
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                        {messages.filter(m => !m.isRead).length} Unread
+                <div className="flex items-center gap-1.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-500/20 px-2.5 py-1.5 rounded-xl">
+                    <span className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
+                    <span className="text-xs font-black text-orange-600 dark:text-orange-400">
+                        {messages.filter(m => !m.isRead).length} unread
                     </span>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                 {/* Message List */}
-                <div className={`${selectedMessage ? 'hidden lg:block lg:col-span-5' : 'lg:col-span-12'} space-y-3`}>
+                <div className={`${selectedMessage ? 'hidden lg:block lg:col-span-5' : 'lg:col-span-12'} space-y-2`}>
                     {messages.length === 0 ? (
-                        <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-[2.5rem] border border-dashed border-gray-200 dark:border-gray-700">
-                            <div className="w-20 h-20 bg-gray-50 dark:bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300 dark:text-gray-700">
-                                <InboxIcon size={40} />
+                        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                            <div className="w-12 h-12 bg-gray-50 dark:bg-gray-900 rounded-xl flex items-center justify-center mx-auto mb-3 text-gray-300 dark:text-gray-700">
+                                <InboxIcon size={22} />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">Your inbox is empty</h3>
-                            <p className="text-gray-500 dark:text-gray-400 max-w-xs mx-auto mt-2">Check back later for important updates and notifications.</p>
+                            <h3 className="text-sm font-black text-gray-800 dark:text-gray-200">Your inbox is empty</h3>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mx-auto mt-1 mb-4 max-w-[220px]">Check back later for important updates and notifications.</p>
                             <button 
                                 onClick={() => navigate('/dashboard')}
-                                className="mt-6 px-6 py-2 bg-orange-500 text-white rounded-xl font-black text-sm hover:bg-orange-600 transition-colors"
+                                className="px-5 py-2 bg-orange-500 text-white rounded-xl font-bold text-xs hover:bg-orange-600 transition-colors active:scale-95"
                             >
                                 Start Learning
                             </button>
@@ -106,40 +101,35 @@ const Inbox = () => {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     onClick={() => openMessage(msg)}
-                                    className={`group p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+                                    className={`group p-3 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
                                         selectedMessage?.id === msg.id
                                             ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-500/30'
-                                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-orange-200 dark:hover:border-orange-500/30 hover:shadow-md'
+                                            : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-orange-200 dark:hover:border-orange-500/30'
                                     }`}
                                 >
                                     {!msg.isRead && (
-                                        <div className="absolute top-0 left-0 w-1 h-full bg-orange-500 shadow-[2px_0_10px_rgba(249,115,22,0.4)]" />
+                                        <div className="absolute top-0 left-0 w-[3px] h-full bg-orange-500" />
                                     )}
-                                    <div className="flex items-start gap-4">
+                                    <div className="flex items-center gap-3">
                                         <div className="flex-shrink-0">
-                                            <div className={`p-3 rounded-xl ${!msg.isRead ? 'bg-orange-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'} transition-colors`}>
-                                                <Bell size={20} />
+                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${!msg.isRead ? 'bg-orange-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'} transition-colors`}>
+                                                <Bell size={14} />
                                             </div>
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between gap-2 mb-1">
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                                                    {msg.isBroadcast ? 'Platform Announcement' : 'Direct Message'}
-                                                </span>
-                                                <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <h3 className={`font-bold text-xs truncate ${!msg.isRead ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                    {msg.subject}
+                                                </h3>
+                                                <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 shrink-0">
                                                     {new Date(msg.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                                                 </span>
                                             </div>
-                                            <h3 className={`font-bold truncate ${!msg.isRead ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
-                                                {msg.subject}
-                                            </h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1 mt-1 font-medium">
+                                            <p className="text-[11px] text-gray-400 dark:text-gray-500 line-clamp-1 mt-0.5">
                                                 {msg.message}
                                             </p>
                                         </div>
-                                        <div className="hidden sm:block">
-                                            <ChevronRight size={18} className={`transition-transform group-hover:translate-x-1 ${selectedMessage?.id === msg.id ? 'text-orange-500' : 'text-gray-300 dark:text-gray-600'}`} />
-                                        </div>
+                                        <ChevronRight size={13} className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${selectedMessage?.id === msg.id ? 'text-orange-500' : 'text-gray-300 dark:text-gray-600'}`} />
                                     </div>
                                 </motion.div>
                             ))}
@@ -154,7 +144,7 @@ const Inbox = () => {
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 10 }}
-                            className="lg:col-span-7 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden flex flex-col h-fit sticky top-24"
+                            className="lg:col-span-7 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col h-fit lg:sticky lg:top-24"
                         >
                             {/* Formal Detail Header */}
                             <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800">
@@ -171,39 +161,35 @@ const Inbox = () => {
                                 </div>
                             </div>
 
-                            <div className="p-6 md:p-10 space-y-6">
-                                {/* Compact Formal Header */}
-                                <div className="pb-6 border-b border-gray-100 dark:border-gray-700">
-                                    <h2 className="text-2xl font-black text-gray-900 dark:text-white leading-tight mb-4">
+                            <div className="p-4 sm:p-6 space-y-4">
+                                {/* Subject + sender */}
+                                <div className="pb-4 border-b border-gray-100 dark:border-gray-700">
+                                    <h2 className="text-sm font-black text-gray-900 dark:text-white leading-snug mb-2">
                                         {selectedMessage.subject}
                                     </h2>
-                                    
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white">
-                                            <User size={16} strokeWidth={2.5} />
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-lg bg-orange-500 flex items-center justify-center text-white">
+                                            <User size={12} strokeWidth={2.5} />
                                         </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white">LearnProof Support</p>
-                                            <span className="hidden sm:block text-gray-300">•</span>
-                                            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500">Official Communication</p>
-                                        </div>
+                                        <p className="text-xs font-bold text-gray-700 dark:text-gray-300">LearnProof Support</p>
+                                        <span className="text-gray-300">•</span>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500">Official</p>
                                     </div>
                                 </div>
 
-                                {/* Message Content - Formal Typography */}
-                                <div className="text-gray-700 dark:text-gray-300 leading-relaxed text-base whitespace-pre-wrap font-medium py-4">
+                                {/* Message Content */}
+                                <div className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm whitespace-pre-wrap">
                                     {selectedMessage.message}
                                 </div>
 
-                                {/* Formal Footer */}
-                                <div className="pt-8 flex items-center justify-between">
+                                {/* Footer */}
+                                <div className="pt-3 flex items-center justify-between border-t border-gray-100 dark:border-gray-700">
                                     <button 
                                         onClick={() => setSelectedMessage(null)}
-                                        className="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all"
+                                        className="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center gap-1.5 hover:gap-2 transition-all"
                                     >
-                                        Close Message <ArrowRight size={14} />
+                                        Close <ArrowRight size={12} />
                                     </button>
-                                    
                                     <div className="flex items-center gap-1.5 opacity-50">
                                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
                                         <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">System Verified</span>

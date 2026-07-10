@@ -143,33 +143,31 @@ const DailyGoalsPage = () => {
         .slice(0, 5); // show last 5 days
 
     return (
-        <div className="max-w-2xl mx-auto space-y-6 pb-24 px-4 sm:px-0">
-            {/* Header (No Back Icon) */}
-            <div className="flex items-center gap-3 py-2">
-                <div className="p-2.5 bg-orange-500/10 rounded-2xl border border-orange-500/20 text-orange-500 shrink-0">
-                    <Target size={28} />
-                </div>
+        <div className="max-w-2xl mx-auto space-y-4 pb-28 px-3 sm:px-4 pt-3">
+            {/* ── Compact Mobile Header ───────────────────────────────── */}
+            <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
-                        Daily Goals
-                    </h1>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Track and manage your daily targets</p>
+                    <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Daily Goals</h1>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Track and manage your daily targets</p>
+                </div>
+                <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500">
+                    <Target size={18} />
                 </div>
             </div>
 
             {/* Statistics Row */}
-            <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm flex flex-col justify-between transition-all hover:border-orange-200">
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Total</span>
-                    <span className="text-2xl font-black text-gray-800 dark:text-white mt-1">{tasks.length}</span>
+            <div className="grid grid-cols-3 gap-2">
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block">Total</span>
+                    <span className="text-xl font-black text-gray-800 dark:text-white mt-0.5 block">{tasks.length}</span>
                 </div>
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm flex flex-col justify-between transition-all hover:border-green-200">
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Completed</span>
-                    <span className="text-2xl font-black text-green-600 dark:text-green-400 mt-1">{completedCount}</span>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-green-100 dark:border-gray-700 shadow-sm">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block">Done</span>
+                    <span className="text-xl font-black text-green-600 dark:text-green-400 mt-0.5 block">{completedCount}</span>
                 </div>
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm flex flex-col justify-between transition-all hover:border-orange-200">
-                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Pending</span>
-                    <span className="text-2xl font-black text-orange-500 mt-1">{pendingCount}</span>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm">
+                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider block">Left</span>
+                    <span className="text-xl font-black text-orange-500 mt-0.5 block">{pendingCount}</span>
                 </div>
             </div>
 
