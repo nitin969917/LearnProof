@@ -303,9 +303,9 @@ const MyLearnings = () => {
                 transition={{ duration: 0.4 }}
             >
                 {activeTab === "videos" && (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {videos.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
+                            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
                                 <Video className="w-12 h-12 text-gray-300 dark:text-gray-650 mx-auto mb-2" />
                                 <p className="text-xs text-gray-405 dark:text-gray-500 font-medium">No videos in your library yet.</p>
                             </div>
@@ -313,63 +313,68 @@ const MyLearnings = () => {
                             videos.map((video, index) => (
                                 <motion.div
                                     key={video.vid}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.04 }}
-                                    className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:border-orange-300 transition-all overflow-hidden relative p-3 flex gap-3 cursor-pointer"
-                                    onClick={() => navigate(`/classroom/${video.vid}`)}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative p-3.5"
                                 >
-                                    {/* Left Side: Thumbnail */}
-                                    <div className="w-24 aspect-video bg-gray-105 dark:bg-gray-700/50 relative flex items-center justify-center overflow-hidden rounded-xl shrink-0 border border-gray-100 dark:border-gray-700/50">
-                                        <img
-                                            src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
-                                            alt={video.name}
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity">
-                                            <Play size={16} className="text-white fill-white" />
-                                        </div>
-                                        {video.is_completed && (
-                                            <div className="absolute top-1 left-1 bg-green-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider shadow">
-                                                Done
-                                            </div>
-                                        )}
-                                    </div>
+                                    {/* Delete Overlay */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleVideoDelete(video.vid);
+                                        }}
+                                        className="absolute top-3 right-3 z-20 p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all duration-300 backdrop-blur-md opacity-100 shadow-sm border border-red-500/10"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
 
-                                    {/* Right Side: Details */}
-                                    <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-1.5 mb-1">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.4)]"></div>
-                                                    <span className="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Video Lesson</span>
+                                    <div 
+                                        className="cursor-pointer flex flex-col h-full"
+                                        onClick={() => navigate(`/classroom/${video.vid}`)}
+                                    >
+                                        <div className="aspect-video bg-gray-105 dark:bg-gray-700/50 relative flex items-center justify-center overflow-hidden rounded-xl shadow-sm border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
+                                            <img
+                                                src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
+                                                alt={video.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                                    <Play size={24} className="text-white fill-white ml-1" />
                                                 </div>
-                                                <h3 className="font-bold text-gray-900 dark:text-white text-xs line-clamp-2 leading-snug group-hover/card:text-orange-500 transition-colors">
-                                                    {video.name}
-                                                </h3>
                                             </div>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleVideoDelete(video.vid);
-                                                }}
-                                                className="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg transition-all shrink-0 border border-red-500/10"
-                                            >
-                                                <Trash2 size={12} />
-                                            </button>
+                                            {video.is_completed && (
+                                                <div className="absolute top-3 left-3 bg-green-500 text-white text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shadow-md shadow-green-500/20 z-10">
+                                                    Achieved
+                                                </div>
+                                            )}
                                         </div>
 
-                                        <div className="mt-2">
-                                            <div className="flex items-center justify-between text-[9px] mb-1 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
-                                                <span>Progress</span>
-                                                <span className="text-orange-600 dark:text-orange-400">{Math.round(video.watch_progress || 0)}%</span>
+                                        <div className="pt-3.5 flex flex-col flex-1">
+                                            <div className="flex items-center gap-1.5 mb-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
+                                                <span className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Video Lesson</span>
                                             </div>
-                                            <div className="w-full bg-gray-100 dark:bg-gray-700/50 rounded-full h-1 overflow-hidden">
-                                                <motion.div
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${Math.round(video.watch_progress || 0)}%` }}
-                                                    className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full"
-                                                />
+                                            
+                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover/card:text-orange-500 dark:group-hover/card:text-orange-400 text-sm mb-1.5 line-clamp-2 transition-colors duration-300 leading-snug flex-1">
+                                                {video.name}
+                                            </h3>
+
+                                            <div className="mt-auto space-y-4">
+                                                <div className="pt-3 border-t border-gray-50 dark:border-slate-800/80">
+                                                    <div className="flex items-center justify-between text-[10px] mb-1 font-black uppercase tracking-widest text-gray-405 dark:text-slate-500">
+                                                        <span>Progress</span>
+                                                        <span className="text-orange-600 dark:text-orange-400 group-hover/card:text-orange-500 transition-colors">{Math.round(video.watch_progress || 0)}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${Math.round(video.watch_progress || 0)}%` }}
+                                                            className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.3)] transition-all duration-1000"
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -380,9 +385,9 @@ const MyLearnings = () => {
                 )}
 
                 {activeTab === "playlists" && (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {playlists.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
+                            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
                                 <Library className="w-12 h-12 text-gray-300 dark:text-gray-650 mx-auto mb-2" />
                                 <p className="text-xs text-gray-405 dark:text-gray-500 font-medium">No playlists found.</p>
                             </div>
@@ -396,63 +401,84 @@ const MyLearnings = () => {
                                 return (
                                     <motion.div
                                         key={pl.pid}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: index * 0.04 }}
-                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:border-orange-300 transition-all overflow-hidden relative p-3 flex gap-3 cursor-pointer"
-                                        onClick={() => navigate(`/dashboard/playlist/${pl.pid}`)}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: index * 0.05 }}
+                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative p-3.5"
                                     >
-                                        {/* Left Side: Thumbnail */}
-                                        <div className="w-24 aspect-video bg-gray-105 dark:bg-gray-700/50 relative flex items-center justify-center overflow-hidden rounded-xl shrink-0 border border-gray-100 dark:border-gray-700/50">
-                                            {thumbnail ? (
-                                                <img src={thumbnail} alt={pl.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <Library size={24} className="text-orange-200" />
-                                            )}
-                                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity">
-                                                <Play size={16} className="text-white fill-white" />
-                                            </div>
-                                            <div className="absolute bottom-1 right-1 bg-black/75 backdrop-blur-sm text-white text-[8px] font-black px-1.5 py-0.5 rounded">
-                                                {totalVideos} Lessons
-                                            </div>
-                                        </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handlePlaylistDelete(pl, pl.pid);
+                                            }}
+                                            className="absolute top-3 right-3 z-20 p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all duration-300 backdrop-blur-md opacity-100 shadow-sm border border-red-500/10"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
 
-                                        {/* Right Side: Details */}
-                                        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                                            <div className="flex items-start justify-between gap-2">
-                                                <div className="min-w-0">
-                                                    <div className="flex items-center gap-1.5 mb-1">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)]"></div>
-                                                        <span className="text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Mastery Path</span>
-                                                    </div>
-                                                    <h3 className="font-bold text-gray-900 dark:text-white text-xs line-clamp-2 leading-snug group-hover/card:text-orange-500 transition-colors">
-                                                        {pl.name}
-                                                    </h3>
-                                                </div>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handlePlaylistDelete(pl, pl.pid);
-                                                    }}
-                                                    className="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg transition-all shrink-0 border border-red-500/10"
-                                                >
-                                                    <Trash2 size={12} />
-                                                </button>
-                                            </div>
-
-                                            <div className="mt-2">
-                                                <div className="flex items-center justify-between text-[9px] mb-1 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
-                                                    <span className="text-[8px] font-bold text-orange-700 dark:text-orange-400 uppercase tracking-wider">
-                                                        {completedVideos}/{totalVideos} COMPLETED
-                                                    </span>
-                                                    <span className="text-orange-600 dark:text-orange-400">{percentComplete}%</span>
-                                                </div>
-                                                <div className="w-full bg-gray-100 dark:bg-gray-700/50 rounded-full h-1 overflow-hidden">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${percentComplete}%` }}
-                                                        className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full"
+                                        <div
+                                            className="cursor-pointer flex flex-col h-full"
+                                            onClick={() => navigate(`/dashboard/playlist/${pl.pid}`)}
+                                        >
+                                            {/* Stacked Thumbnail Effect */}
+                                            <div className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
+                                                {thumbnail ? (
+                                                    <img
+                                                        src={thumbnail}
+                                                        alt={pl.name}
+                                                        className="w-full h-full object-cover"
                                                     />
+                                                ) : (
+                                                    <div className="w-full h-full bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center">
+                                                        <Library size={44} className="text-orange-200 dark:text-slate-700" />
+                                                    </div>
+                                                )}
+                                                
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                                        <Play size={24} className="text-white fill-white ml-1" />
+                                                    </div>
+                                                </div>
+
+                                                <div className="absolute bottom-3 right-3 bg-black/75 backdrop-blur-sm text-white text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-wider border border-white/5">
+                                                    {totalVideos} Lessons
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-3.5 flex flex-col flex-1">
+                                                <div className="flex items-center gap-1.5 mb-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+                                                    <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Mastery Path</span>
+                                                </div>
+
+                                                <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-3 line-clamp-2 group-hover/card:text-orange-500 transition-colors duration-300 leading-snug flex-1">
+                                                    {pl.name}
+                                                </h3>
+
+                                                <div className="mt-auto">
+                                                    <div className="flex items-center justify-between text-[10px] mb-1 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
+                                                        <span>Progress</span>
+                                                        <span className="text-orange-600 dark:text-orange-400 group-hover/card:font-bold transition-all">{percentComplete}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${percentComplete}%` }}
+                                                            className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.3)] transition-all duration-1000"
+                                                        />
+                                                    </div>
+                                                    
+                                                    <div className="mt-3.5 flex items-center justify-between">
+                                                        <div className="flex items-center gap-1.5 bg-orange-50 dark:bg-orange-500/10 px-2.5 py-1 rounded-lg border border-orange-100 dark:border-orange-500/20">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)] animate-pulse"></div>
+                                                            <span className="text-[9px] font-black text-orange-700 dark:text-orange-400 uppercase tracking-wider whitespace-nowrap">
+                                                                {completedVideos} / {totalVideos} COMPLETED
+                                                            </span>
+                                                        </div>
+                                                        <button className="text-[9px] font-black uppercase tracking-wider text-orange-500 flex items-center gap-0.5 group-hover/card:gap-1.5 transition-all">
+                                                            Resume <ChevronRight size={12} />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -464,9 +490,9 @@ const MyLearnings = () => {
                 )}
 
                 {activeTab === "roadmap" && (
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {playlists.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
+                            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
                                 <Sparkles className="w-12 h-12 text-gray-300 dark:text-gray-650 mx-auto mb-2" />
                                 <p className="text-xs text-gray-405 dark:text-gray-500 font-medium">No roadmaps set up yet.</p>
                             </div>
@@ -483,48 +509,75 @@ const MyLearnings = () => {
                                 return (
                                     <motion.div
                                         key={`roadmap-${pl.pid}`}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: index * 0.04 }}
-                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:border-orange-300 transition-all overflow-hidden relative p-3 flex gap-3 cursor-pointer"
-                                        onClick={() => navigate(`/dashboard/roadmap/${pl.pid}`)}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: index * 0.05 }}
+                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative p-3.5"
                                     >
-                                        {/* Left Side: Thumbnail */}
-                                        <div className="w-24 aspect-video bg-gray-105 dark:bg-gray-700/50 relative flex items-center justify-center overflow-hidden rounded-xl shrink-0 border border-gray-100 dark:border-gray-700/50">
-                                            <img src={thumbnail} alt={pl.name} className="w-full h-full object-cover" />
-                                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity">
-                                                <Sparkles size={16} className="text-white fill-white" />
-                                            </div>
+                                        <div className="absolute top-3 right-3 z-20 pointer-events-none opacity-10 group-hover/card:opacity-20 group-hover/card:scale-125 transition-all duration-700">
+                                            <Sparkles size={48} className="text-orange-500" />
                                         </div>
 
-                                        {/* Right Side: Details */}
-                                        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                                            <div>
-                                                <div className="flex items-center gap-1.5 mb-1">
-                                                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_6px_rgba(249,115,22,0.4)]"></div>
-                                                    <span className="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Active Roadmap</span>
+                                        <div className="cursor-pointer flex flex-col h-full">
+                                            {/* Thumbnail Section */}
+                                            <div 
+                                                className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]"
+                                                onClick={() => navigate(`/dashboard/roadmap/${pl.pid}`)}
+                                            >
+                                                <img src={thumbnail} alt={pl.name} className="w-full h-full object-cover" />
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                                        <Sparkles size={20} className="text-white fill-white" />
+                                                    </div>
                                                 </div>
-                                                <h3 className="font-bold text-gray-900 dark:text-white text-xs line-clamp-1 leading-snug group-hover/card:text-orange-500 transition-colors">
-                                                    {pl.name}
-                                                </h3>
-                                                {currentGoal && (
-                                                    <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 mt-0.5">
-                                                        Goal: {currentGoal} Days • Pacing: {videosPerDay} Daily
-                                                    </p>
-                                                )}
                                             </div>
 
-                                            <div className="mt-2">
-                                                <div className="flex items-center justify-between text-[9px] mb-1 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
-                                                    <span>Mastery Progress</span>
-                                                    <span className="text-orange-600 dark:text-orange-400">{percentComplete}%</span>
+                                            {/* Info Section */}
+                                            <div className="pt-3.5 flex flex-col flex-1 space-y-3">
+                                                <div>
+                                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-505 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
+                                                        <span className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Active Roadmap</span>
+                                                    </div>
+                                                    
+                                                    <h3 
+                                                        className="font-bold text-gray-900 dark:text-white text-sm mb-0.5 line-clamp-1 group-hover/card:text-orange-500 transition-colors"
+                                                        onClick={() => navigate(`/dashboard/roadmap/${pl.pid}`)}
+                                                    >
+                                                        {pl.name}
+                                                    </h3>
+                                                    <span className="text-[9px] font-bold text-gray-405 dark:text-slate-500 uppercase tracking-wider">{totalVideos} Lessons Total</span>
                                                 </div>
-                                                <div className="w-full bg-gray-100 dark:bg-gray-700/50 rounded-full h-1 overflow-hidden">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${percentComplete}%` }}
-                                                        className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full"
-                                                    />
+
+                                                {currentGoal ? (
+                                                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-slate-500 bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded-xl border border-gray-100 dark:border-gray-700/50">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-orange-500 text-[8px]">Goal</span>
+                                                            <span className="text-xs text-gray-900 dark:text-white capitalize">{currentGoal} Days</span>
+                                                        </div>
+                                                        <div className="flex flex-col items-end">
+                                                            <span className="text-orange-500 text-[8px]">Pacing</span>
+                                                            <span className="text-xs text-gray-900 dark:text-white capitalize">{videosPerDay} Daily</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-center text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-slate-500 bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded-xl border border-gray-100 dark:border-gray-700/50">
+                                                        <span>Study Goal Not Set</span>
+                                                    </div>
+                                                )}
+
+                                                <div className="mt-auto pt-1.5">
+                                                    <div className="flex items-center justify-between text-[10px] mb-1 font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
+                                                        <span>Mastery</span>
+                                                        <span className="text-orange-600 dark:text-orange-400 font-bold">{percentComplete}%</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
+                                                        <motion.div
+                                                            initial={{ width: 0 }}
+                                                            animate={{ width: `${percentComplete}%` }}
+                                                            className="h-full bg-gradient-to-r from-orange-500 to-amber-400 shadow-[0_0_8px_rgba(249,115,22,0.3)] transition-all duration-1000"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
