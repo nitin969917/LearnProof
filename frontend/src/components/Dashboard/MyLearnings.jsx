@@ -519,7 +519,7 @@ const MyLearnings = () => {
                                         <div className="cursor-pointer flex flex-col h-full">
                                             {/* Thumbnail Section */}
                                             <div 
-                                                className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]"
+                                                className="relative aspect-video overflow-hidden border-b border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.05]"
                                                 onClick={() => navigate(`/dashboard/roadmap/${pl.pid}`)}
                                             >
                                                 <img src={thumbnail} alt={pl.name} className="w-full h-full object-cover" />
@@ -531,7 +531,7 @@ const MyLearnings = () => {
                                             </div>
 
                                             {/* Info Section */}
-                                            <div className="pt-3.5 flex flex-col flex-1 space-y-3">
+                                            <div className="p-4 pt-3 flex flex-col flex-1 space-y-3">
                                                 <div>
                                                     <div className="flex items-center gap-1.5 mb-1.5">
                                                         <div className="w-1.5 h-1.5 rounded-full bg-orange-505 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
