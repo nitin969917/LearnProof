@@ -209,6 +209,29 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200/80 dark:border-gray-700/80 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-semibold"
                   />
                 </div>
+                
+                <div className="flex flex-col gap-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-2xl">
+                  <div className="flex justify-between items-center mb-0.5">
+                    <label className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Email Visibility</label>
+                    <select
+                      value={formData.emailVisibility || 'private'}
+                      onChange={(e) => setFormData({...formData, emailVisibility: e.target.value})}
+                      className="bg-transparent text-[10px] font-bold text-orange-500 dark:text-orange-400 outline-none cursor-pointer uppercase tracking-wider"
+                    >
+                      <option value="public" className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white">Public</option>
+                      <option value="friends" className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white">Friends</option>
+                      <option value="close_friends" className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white">Close Friends</option>
+                      <option value="private" className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white">Only Me</option>
+                    </select>
+                  </div>
+                  <input 
+                    type="text" 
+                    value={formData.email || ''} 
+                    disabled
+                    className="w-full bg-gray-100 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-gray-700/50 rounded-xl px-3.5 py-2.5 focus:outline-none text-sm font-semibold cursor-not-allowed opacity-70"
+                    title="Email cannot be changed here"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-1.5 p-3.5 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-2xl">
@@ -424,10 +447,20 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Year of Study</span>
                       <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{profile.yearOfStudy || 'Not Set'}</span>
                     </div>
-                    <div className="bg-gray-50/50 dark:bg-gray-900/35 border border-gray-100 dark:border-gray-800 rounded-xl p-3 flex flex-col justify-center min-w-0">
-                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Email</span>
-                      <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate" title={profile.email}>{profile.email || 'Not Set'}</span>
-                    </div>
+                    {(() => {
+                      const vis = profile.emailVisibility || 'private';
+                      const canSee = isOwnProfile || 
+                                     vis === 'public' || 
+                                     (vis === 'friends' && profile.isFriend) || 
+                                     (vis === 'close_friends' && profile.isCloseFriend);
+                      if (!canSee) return null;
+                      return (
+                        <div className="bg-gray-50/50 dark:bg-gray-900/35 border border-gray-100 dark:border-gray-800 rounded-xl p-3 flex flex-col justify-center min-w-0">
+                          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Email</span>
+                          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate" title={profile.email}>{profile.email || 'Not Set'}</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 

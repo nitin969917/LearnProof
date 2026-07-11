@@ -31,8 +31,10 @@ export default function SocialDashboard() {
 
   const [selectedProfileId, setSelectedProfileId] = useState(() => {
     const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
     const profileIdParam = params.get('profileId');
     if (profileIdParam) return parseInt(profileIdParam, 10);
+    if (tabParam === 'profile') return null;
     const saved = localStorage.getItem('social_selected_profile_id');
     return saved ? parseInt(saved, 10) : null;
   });
@@ -123,6 +125,9 @@ export default function SocialDashboard() {
 
     if (tabParam) {
       setActiveTab(tabParam);
+      if (tabParam === 'profile' && !profileIdParam) {
+        setSelectedProfileId(null);
+      }
     }
     if (profileIdParam) {
       setSelectedProfileId(parseInt(profileIdParam, 10));

@@ -187,7 +187,7 @@ export default function LanguageLearning() {
           <span className="text-sm font-semibold">Loading live rooms...</span>
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3 sm:gap-6">
           {(Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === activeTab).length === 0 ? (
              <div className="col-span-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl text-center py-16 px-6 text-gray-500 dark:text-gray-400 shadow-sm relative overflow-hidden">
                 {/* Decorative glow blob */}
@@ -244,16 +244,24 @@ export default function LanguageLearning() {
 
                 {/* Middle: Centered Icon + Room Title & Topic */}
                 <div className="flex flex-col items-center justify-center text-center my-auto px-1 z-10">
-                  <div className={`w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-tr ${
+                  <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-[14px] sm:rounded-2xl p-0.5 bg-gradient-to-tr ${
                     room.mediaType === 'video'
                       ? 'from-blue-500 to-indigo-500 shadow-blue-500/20'
                       : 'from-orange-500 to-amber-500 shadow-orange-500/20'
-                  } rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg mb-2 sm:mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                    {room.mediaType === 'video' ? (
-                      <Video size={18} className="sm:size-[24px] animate-pulse" />
-                    ) : (
-                      <Mic size={18} className="sm:size-[24px] animate-pulse" />
-                    )}
+                  } shadow-lg mb-2 sm:mb-4 group-hover:scale-105 transition-transform duration-300 relative shrink-0`}>
+                    <img 
+                      src={room.creator.profilePicture || '/default-avatar.png'} 
+                      alt={room.creator.name}
+                      onError={(e) => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
+                      className="w-full h-full object-cover rounded-[12px] sm:rounded-xl bg-white dark:bg-gray-800"
+                    />
+                    <div className="absolute -bottom-1.5 -right-1.5 bg-white dark:bg-gray-800 rounded-full p-1 shadow-sm border border-gray-100 dark:border-gray-700">
+                      {room.mediaType === 'video' ? (
+                        <Video size={10} className="sm:size-[14px] text-blue-500" />
+                      ) : (
+                        <Mic size={10} className="sm:size-[14px] text-orange-500" />
+                      )}
+                    </div>
                   </div>
                   <h3 className="font-black text-gray-900 dark:text-white text-xs sm:text-sm md:text-base leading-snug line-clamp-1 px-0.5 uppercase tracking-wide">
                     {room.roomName.replace(/-\d+$/, '').split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
@@ -266,12 +274,7 @@ export default function LanguageLearning() {
                 {/* Bottom: Creator and Join button */}
                 <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700/60 pt-3 sm:pt-4 z-10">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <img 
-                      src={room.creator.profilePicture || '/default-avatar.png'} 
-                      alt={room.creator.name}
-                      className="w-5 h-5 sm:w-8 sm:h-8 rounded-full object-cover bg-gray-150 dark:bg-gray-755 flex-shrink-0 border border-white dark:border-gray-800 shadow-sm" 
-                    />
-                    <span className="text-[10px] sm:text-xs font-black text-gray-655 dark:text-gray-400 truncate max-w-[45px] sm:max-w-[80px]">
+                    <span className="text-[10px] sm:text-xs font-black text-gray-500 dark:text-gray-400 truncate max-w-[65px] sm:max-w-[100px]">
                       {room.creator.name.split(' ')[0]}
                     </span>
                   </div>

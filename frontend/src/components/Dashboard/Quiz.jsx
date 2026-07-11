@@ -3,7 +3,7 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
-import { Play, CheckCircle, Circle, ArrowLeft, Clock, Sparkles, BookOpen, AlertCircle, X, Trophy, Lock, Award, ChevronLeft, ChevronRight, Video, Library, Trash2 } from 'lucide-react';
+import { Play, CheckCircle, Circle, ArrowLeft, Clock, Sparkles, BookOpen, AlertCircle, X, Trophy, Lock, Award, ChevronLeft, ChevronRight, Video, Library, Trash2, Search } from 'lucide-react';
 import { useModal } from "../../context/ModalContext";
 import { useQuizStore } from "../../store/quizStore.js";
 
@@ -19,6 +19,9 @@ const Quiz = () => {
     const addAttempt = useQuizStore(state => state.addAttempt);
     const deleteAttempt = useQuizStore(state => state.deleteAttempt);
     const setPlaylists = useQuizStore(state => state.setPlaylists);
+
+    const [searchQuery, setSearchQuery] = useState("");
+    const filteredPlaylists = playlists.filter(pl => pl.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const [videos, setVideos] = useState([]);
     const [selectedHistoryQuiz, setSelectedHistoryQuiz] = useState(null);
@@ -512,17 +515,28 @@ const Quiz = () => {
 
                 {/* ── Section 1: Completed Playlists ────────────────────── */}
                 <section className="space-y-2.5">
+                    <div className="relative mb-4">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search completed playlists..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all dark:text-white"
+                        />
+                    </div>
+
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
                             <Library className="w-3.5 h-3.5 text-orange-500" />
                             Completed Playlists
                         </h2>
                         <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
-                            {playlists.length} total
+                            {filteredPlaylists.length} total
                         </span>
                     </div>
 
-                    {playlists.length === 0 ? (
+                    {filteredPlaylists.length === 0 ? (
                         <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center border border-gray-100 dark:border-gray-700">
                             <BookOpen className="w-8 h-8 text-gray-200 dark:text-gray-600 mx-auto mb-2" />
                             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">No playlists ready for quizzes yet.</p>
@@ -534,7 +548,7 @@ const Quiz = () => {
                                 ref={playlistScrollRef}
                                 className="flex overflow-x-auto gap-3 pb-3 px-3 sm:px-4 snap-x snap-mandatory hide-scrollbar"
                             >
-                                {playlists.map(pl => (
+                                {filteredPlaylists.map(pl => (
                                     <motion.div
                                         key={pl.pid}
                                         initial={{ opacity: 0, scale: 0.95 }}

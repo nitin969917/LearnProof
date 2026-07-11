@@ -79,12 +79,19 @@ const getFilterCss = (filterName) => {
 };
 
 // ─── Custom Inner Content (Has access to LiveKit context) ───────────────────
-function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, userIdentity }) {
+function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, userIdentity, isRestoring }) {
 
   const room = useRoomContext();
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
-  const { send, chatMessages } = useChat();
+  const { send, chatMessages: rawChatMessages } = useChat();
+  const chatHistory = useLiveRoomPipStore(state => state.chatHistory);
+  const syncChatHistory = useLiveRoomPipStore(state => state.syncChatHistory);
+
+  useEffect(() => {
+    syncChatHistory(rawChatMessages);
+  }, [rawChatMessages, syncChatHistory]);
+
   const navigate = useNavigate();
   // Keep a ref to navigate so data handler closure never goes stale
   const navigateRef = useRef(navigate);
@@ -108,15 +115,23 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Quick Replies State
+  const [showQuickReplies, setShowQuickReplies] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setShowQuickReplies(false), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Session Time
-  const [sessionSeconds, setSessionSeconds] = useState(0);
+  const sessionSeconds = useLiveRoomPipStore(state => state.sessionSeconds);
+  const setSessionSeconds = useLiveRoomPipStore(state => state.setSessionSeconds);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setSessionSeconds(prev => prev + 1);
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [setSessionSeconds]);
 
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
@@ -147,7 +162,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const canPublishRef = useRef(canPublish);
   useEffect(() => { canPublishRef.current = canPublish; }, [canPublish]);
 
-  const [prevCanPublish, setPrevCanPublish] = useState(false);
+  const prevCanPublish = useRef(false);
 
   // Invitation Modal
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -252,7 +267,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const participantsPanelRef = useRef(null);
 
   // Unified Timeline for Chat + Entrance notices
-  const [systemEvents, setSystemEvents] = useState([]);
+  const systemEvents = useLiveRoomPipStore(state => state.systemEvents);
+  const setSystemEvents = useLiveRoomPipStore(state => state.setSystemEvents);
 
   // States for Translation / Subtitles
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -306,22 +322,22 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     if (localParticipant && !hasInitializedState.current) {
       const currentCanPublish = localParticipant.permissions?.canPublish ?? false;
       if (currentCanPublish) {
-        const savedMic = localStorage.getItem(`livekit_mic_${roomName}`);
-        const targetMic = savedMic !== 'disabled';
-        localParticipant.setMicrophoneEnabled(targetMic).catch(() => {});
-        setIsMicEnabled(targetMic);
-
-        if (isVideoRoom) {
-          const savedCam = localStorage.getItem(`livekit_cam_${roomName}`);
-          const targetCam = savedCam === 'enabled';
-          localParticipant.setCameraEnabled(targetCam).catch(() => {});
-          setIsCamEnabled(targetCam);
+        if (!isRestoring) {
+          const savedMic = localStorage.getItem(`livekit_mic_${roomName}`);
+          const targetMic = savedMic !== 'disabled';
+          localParticipant.setMicrophoneEnabled(targetMic).catch(() => {});
+          
+          if (isVideoRoom) {
+            const savedCam = localStorage.getItem(`livekit_cam_${roomName}`);
+            const targetCam = savedCam === 'enabled';
+            localParticipant.setCameraEnabled(targetCam).catch(() => {});
+          }
         }
       }
-      setPrevCanPublish(currentCanPublish);
+      prevCanPublish.current = currentCanPublish;
       hasInitializedState.current = true;
     }
-  }, [localParticipant, roomName, isVideoRoom]);
+  }, [localParticipant, roomName, isVideoRoom, isRestoring]);
 
   // ── Sync permissions changes from server (promote/demote) ─────────────────
   useEffect(() => {
@@ -330,7 +346,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     setIsCamEnabled(localParticipant.isCameraEnabled);
 
     const currentCanPublish = localParticipant.permissions?.canPublish ?? false;
-    if (hasInitializedState.current && currentCanPublish !== prevCanPublish) {
+    if (hasInitializedState.current && currentCanPublish !== prevCanPublish.current) {
       if (currentCanPublish) {
         setHasRequested(false);
         localParticipant.setMicrophoneEnabled(true).catch(() => {});
@@ -347,14 +363,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         localStorage.removeItem(`livekit_mic_${roomName}`);
         localStorage.removeItem(`livekit_cam_${roomName}`);
       }
-      setPrevCanPublish(currentCanPublish);
+      prevCanPublish.current = currentCanPublish;
     }
   }, [
     localParticipant,
     localParticipant?.isMicrophoneEnabled,
     localParticipant?.isCameraEnabled,
     localParticipant?.permissions?.canPublish,
-    prevCanPublish,
     roomName,
   ]);
 
@@ -388,19 +403,21 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // ── System welcome + join notice ───────────────────────────────────────────
   useEffect(() => {
-    setSystemEvents([
-      {
-        id: 'welcome-notice',
-        time: new Date(),
-        text: 'Welcome to the Live! Please be respectful to others, and avoid content related to violence, abuse, politics, discrimination, drugs, religion. Thank you for maintaining a safe and inclusive learning environment.'
-      },
-      {
-        id: 'self-join',
-        time: new Date(Date.now() + 50),
-        text: 'You entered the room'
-      }
-    ]);
-  }, []);
+    if (systemEvents.length === 0) {
+      setSystemEvents([
+        {
+          id: 'welcome-notice',
+          time: new Date(),
+          text: 'Welcome to the Live! Please be respectful to others, and avoid content related to violence, abuse, politics, discrimination, drugs, religion. Thank you for maintaining a safe and inclusive learning environment.'
+        },
+        {
+          id: 'self-join',
+          time: new Date(Date.now() + 50),
+          text: 'You entered the room'
+        }
+      ]);
+    }
+  }, [systemEvents.length, setSystemEvents]);
 
   // ── Participant joined notice ──────────────────────────────────────────────
   useEffect(() => {
@@ -494,10 +511,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // ── Combine and sort chat messages + system events ─────────────────────────
   const timelineItems = [
-    ...chatMessages.map(m => ({
+    ...chatHistory.map(m => ({
       type: 'chat',
-      id: m.id || m.sentAt?.getTime() || Date.now(),
-      time: m.sentAt || new Date(),
+      id: m.id || m.timestamp || Date.now(),
+      time: new Date(m.timestamp || m.sentAt || Date.now()),
       from: m.from,
       text: m.message
     })),
@@ -511,7 +528,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // ── Auto scroll chat ───────────────────────────────────────────────────────
   useEffect(() => {
-    chatTimelineRef.current?.scrollIntoView({ behavior: 'smooth' });
+    chatTimelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [timelineItems]);
 
   // ── Leave/End room ─────────────────────────────────────────────────────────
@@ -1023,15 +1040,15 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     return (
       <div className="flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 h-full relative">
         {/* Chat header */}
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-white/5 flex items-center justify-between shrink-0 bg-white/80 dark:bg-gray-900/80">
+        <div className="px-3 py-2 border-b border-gray-200 dark:border-white/5 flex items-center justify-between shrink-0 bg-white/80 dark:bg-gray-900/80">
           <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
             <div className="w-5 h-5 rounded-lg bg-orange-500/20 flex items-center justify-center">
               <Send size={10} className="text-orange-400" />
             </div>
             Live Chat
           </span>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-gray-500">{uniqueParticipants.length} in room</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-gray-500">{uniqueParticipants.length}</span>
             {isChatHidable && (
               <button
                 onClick={() => setShowChatDrawer(false)}
@@ -1045,7 +1062,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-2 space-y-2 scroll-smooth">
           {timelineItems.map((item) => {
             if (item.type === 'system') {
               return (
@@ -1058,21 +1075,25 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             }
             const isMe = item.from?.identity === localParticipant?.identity;
             return (
-              <div key={item.id} className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'} items-end`}>
-                {!isMe && (
-                  <div className={`w-7 h-7 rounded-full bg-gradient-to-tr ${getGradient(item.from?.identity || '')} flex items-center justify-center text-white font-black text-[10px] uppercase shrink-0 border border-white/10`}>
-                    {item.from?.name?.[0] || 'U'}
-                  </div>
-                )}
-                <div className={`flex flex-col gap-0.5 max-w-[200px] ${isMe ? 'items-end' : 'items-start'}`}>
-                  {!isMe && (
-                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-wide px-1">
-                      {item.from?.name || 'User'}
-                    </span>
-                  )}
-                  <div className={`px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
+              <div key={item.id} className="flex gap-2 flex-row items-end">
+                <div 
+                  onClick={() => navigate(`/dashboard/social?tab=profile&profileId=${item.from?.identity}`)}
+                  className={`w-7 h-7 rounded-full bg-gradient-to-tr ${getGradient(item.from?.identity || '')} flex items-center justify-center text-white font-black text-[10px] uppercase shrink-0 border border-white/10 cursor-pointer hover:scale-105 transition-all`}
+                  title="View Profile"
+                >
+                  {item.from?.name?.[0] || 'U'}
+                </div>
+                <div className="flex flex-col gap-0.5 max-w-[200px] items-start">
+                  <span 
+                    onClick={() => navigate(`/dashboard/social?tab=profile&profileId=${item.from?.identity}`)}
+                    className="text-[9px] font-black text-gray-500 uppercase tracking-wide px-1 cursor-pointer hover:text-orange-500 transition-colors"
+                    title="View Profile"
+                  >
+                    {item.from?.name || 'User'}
+                  </span>
+                  <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
                     isMe
-                      ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-br-md shadow-orange-500/20'
+                      ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-bl-md shadow-orange-500/20'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-md border border-gray-200 dark:border-white/5'
                   }`}>
                     {item.text}
@@ -1085,34 +1106,80 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         </div>
 
         {/* Quick replies */}
-        <div className="px-3 py-2 flex gap-2 overflow-x-auto shrink-0 border-t border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-gray-900/50 hide-scrollbar">
-          {["Hey! 👋", "What's the topic?", "I'm new here 😊"].map((text) => (
-            <button
-              key={text}
-              onClick={() => handleQuickSend(text)}
-              className="px-3 py-1.5 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-orange-500/50 hover:bg-orange-500/10 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 text-[10px] font-bold rounded-full transition-all cursor-pointer shrink-0 active:scale-95"
-            >
-              {text}
-            </button>
-          ))}
-        </div>
+        {showQuickReplies && (
+          <div className="px-2 py-1.5 flex gap-2 overflow-x-auto shrink-0 border-t border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-gray-900/50 hide-scrollbar">
+            {["Hey! 👋", "What's the topic?", "I'm new here 😊"].map((text) => (
+              <button
+                key={text}
+                onClick={() => handleQuickSend(text)}
+                className="px-2.5 py-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-orange-500/50 hover:bg-orange-500/10 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 text-[10px] font-bold rounded-full transition-all cursor-pointer shrink-0 active:scale-95"
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Chat Input */}
-        <div className="p-3 border-t border-gray-200 dark:border-white/5 bg-white dark:bg-gray-900 shrink-0">
-          <form onSubmit={handleSendChat} className="flex gap-2 mb-2">
+        <div className="p-2 border-t border-gray-200 dark:border-white/5 bg-white dark:bg-gray-900 shrink-0">
+          <form onSubmit={handleSendChat} className="flex gap-1.5 items-center w-full">
             <input
               type="text"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-xs border border-gray-200 dark:border-white/8 rounded-2xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 font-medium placeholder:text-gray-400 dark:placeholder:text-gray-500 transition"
+              placeholder="Type message..."
+              className="flex-1 min-w-0 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-[11px] border border-gray-200 dark:border-white/8 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 font-medium placeholder:text-gray-400 dark:placeholder:text-gray-500 transition"
             />
-            <button
-              type="submit"
-              className="p-2.5 bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 rounded-2xl text-white transition cursor-pointer flex items-center justify-center shrink-0 shadow-lg shadow-orange-500/25 active:scale-95"
-            >
-              <Send size={14} />
-            </button>
+            
+            <div className="flex items-center gap-1 shrink-0">
+              {/* Send Button */}
+              <button type="submit" className="p-2.5 bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 rounded-xl text-white transition cursor-pointer flex items-center justify-center shrink-0 shadow-md shadow-orange-500/25 active:scale-95 ml-0.5">
+                <Send size={14} />
+              </button>
+
+              {canPublish ? (
+                <>
+                  {/* Stage Icon */}
+                  {!isHost && (
+                    <button type="button" onClick={handleLeaveStage} title="Step down from stage" className="p-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95">
+                      <ChevronsDown size={14} />
+                    </button>
+                  )}
+                  {/* Camera */}
+                  {isVideoRoom && (
+                    <button type="button" onClick={toggleCam} title={isCamEnabled ? 'Camera Off' : 'Camera On'} className={`p-2 rounded-xl border transition-all cursor-pointer active:scale-95 ${isCamEnabled ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20' : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'}`}>
+                      {isCamEnabled ? <Video size={14} /> : <VideoOff size={14} />}
+                    </button>
+                  )}
+                  {/* Mic */}
+                  <button type="button" onClick={toggleMic} title={isMicEnabled ? 'Mute' : 'Unmute'} className={`p-2 rounded-xl border transition-all cursor-pointer active:scale-95 ${isMicEnabled ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20' : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'}`}>
+                    {isMicEnabled ? <Mic size={14} /> : <MicOff size={14} />}
+                  </button>
+                </>
+              ) : (
+                /* Stage Request Icon */
+                <button type="button" onClick={hasRequested ? handleWithdrawRequest : handleRequestToSpeak} title={hasRequested ? 'Withdraw Stage Request' : 'Request to Speak'} className={`p-2 rounded-xl border transition-all cursor-pointer active:scale-95 ${hasRequested ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20' : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40'}`}>
+                  <Hand size={14} className={hasRequested ? 'animate-pulse' : ''} />
+                </button>
+              )}
+
+              <button type="button" onClick={() => setShowSettingsModal(true)} title="Room Settings" className="p-2 rounded-xl border transition-all cursor-pointer bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40 active:scale-95 hidden sm:flex">
+                <Settings size={14} />
+              </button>
+              
+              <button type="button" onClick={() => setShowParticipants(prev => !prev)} title="Participants" className={`p-2 rounded-xl border transition-all cursor-pointer relative active:scale-95 ${showParticipants ? 'bg-orange-500/15 border-orange-500/50 text-orange-400' : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40'}`}>
+                <Users size={14} />
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[7px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center border border-white dark:border-gray-900 shadow">
+                  {uniqueParticipants.length}
+                </span>
+                {isHost && speakRequests.length > 0 && (
+                  <span className="absolute -bottom-1 -left-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500 border border-white dark:border-gray-900" />
+                  </span>
+                )}
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -1373,9 +1440,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             className="flex items-center gap-2 shrink-0 cursor-pointer hover:opacity-80 transition-opacity" 
             onClick={() => navigate('/dashboard')}
           >
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-500 shrink-0">
-              <Globe size={18} />
-            </div>
+            <img src="/LP_M_logo.png" alt="LearnProof" className="w-8 h-8 object-contain shrink-0 rounded-xl" />
             {fromSocial ? (
               <div className="flex flex-col justify-center">
                 <span className="text-[10px] font-black text-orange-500 uppercase tracking-widest leading-none">Social Hub</span>
@@ -1530,6 +1595,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
               )}
             </div>
           )}
+
         </div>
 
         {/* ══ RIGHT: Chat Panel (only if NOT hidable) ══ */}
@@ -1538,111 +1604,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             {renderChatPanel()}
           </div>
         )}
-      </div>
-
-      {/* ── Bottom Controls Bar ── */}
-      <div className="border-t border-gray-200 dark:border-white/5 bg-white dark:bg-gray-900 px-4 py-3.5 shrink-0 flex items-center justify-between z-30">
-        {/* Left: Media Controls */}
-        <div className="flex items-center gap-1.5">
-          {canPublish ? (
-            <>
-              <button
-                onClick={toggleMic}
-                title={isMicEnabled ? 'Mute' : 'Unmute'}
-                className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
-                  isMicEnabled
-                    ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
-                    : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
-                }`}
-              >
-                {isMicEnabled ? <Mic size={20} /> : <MicOff size={20} />}
-              </button>
-
-              {isVideoRoom && (
-                <button
-                  onClick={toggleCam}
-                  title={isCamEnabled ? 'Camera Off' : 'Camera On'}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
-                    isCamEnabled
-                      ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
-                      : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
-                  }`}
-                >
-                  {isCamEnabled ? <Video size={20} /> : <VideoOff size={20} />}
-                </button>
-              )}
-
-              {!isHost && (
-                <button
-                  onClick={handleLeaveStage}
-                  title="Step down from stage"
-                  className="p-3 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95"
-                >
-                  <ChevronsDown size={20} />
-                </button>
-              )}
-            </>
-          ) : (
-            /* Listener: Request / Withdraw stage button */
-            <button
-              onClick={hasRequested ? handleWithdrawRequest : handleRequestToSpeak}
-              title={hasRequested ? 'Withdraw Stage Request' : 'Request to Speak'}
-              className={`p-3 rounded-xl border transition-all cursor-pointer active:scale-95 ${
-                hasRequested
-                  ? 'bg-orange-500 border-orange-600 text-white shadow-md shadow-orange-500/30'
-                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
-              }`}
-            >
-              <Hand size={20} className={hasRequested ? 'animate-pulse' : ''} />
-            </button>
-          )}
-        </div>
-
-        {/* Right: Settings, Chat Toggle and Participants */}
-        <div className="flex items-center gap-1.5">
-          {isChatHidable && (
-            <button
-              onClick={() => setShowChatDrawer(prev => !prev)}
-              title="Live Chat"
-              className={`p-3 rounded-xl border transition-all cursor-pointer relative active:scale-95 ${
-                showChatDrawer
-                  ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
-                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
-              }`}
-            >
-              <Send size={20} />
-            </button>
-          )}
-
-          <button
-            onClick={() => setShowSettingsModal(true)}
-            title="Room Settings"
-            className="p-3 rounded-xl border transition-all cursor-pointer bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40 active:scale-95"
-          >
-            <Settings size={20} />
-          </button>
-
-          <button
-            onClick={() => setShowParticipants(prev => !prev)}
-            title="Participants"
-            className={`p-3 rounded-xl border transition-all cursor-pointer relative active:scale-95 ${
-              showParticipants
-                ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
-                : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-500/40'
-            }`}
-          >
-            <Users size={20} />
-            <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white dark:border-gray-900 shadow">
-              {uniqueParticipants.length}
-            </span>
-            {isHost && speakRequests.length > 0 && (
-              <span className="absolute -bottom-1 -left-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500 border border-white dark:border-gray-900" />
-              </span>
-            )}
-          </button>
-        </div>
       </div>
 
       {/* Hidable Chat Sliding Drawer */}
@@ -1930,6 +1891,7 @@ export default function LanguageRoom() {
         user={user}
         dbRoom={dbRoom}
         userIdentity={userIdentity}
+        isRestoring={isRestoring}
       />
     </div>
   );
