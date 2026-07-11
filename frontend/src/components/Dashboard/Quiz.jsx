@@ -511,20 +511,24 @@ const Quiz = () => {
                 </div>
             </div>
 
-            <div className="space-y-8 sm:space-y-10">
+            {/* ── Search Bar ────────────────────────────────── */}
+            <div className="space-y-2 mb-6">
+                <div className="relative group">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={15} />
+                    <input
+                        type="text"
+                        placeholder="Search completed playlists..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 dark:text-white"
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-6 sm:space-y-8">
 
                 {/* ── Section 1: Completed Playlists ────────────────────── */}
                 <section className="space-y-2.5">
-                    <div className="relative mb-4">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search completed playlists..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all dark:text-white"
-                        />
-                    </div>
 
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
