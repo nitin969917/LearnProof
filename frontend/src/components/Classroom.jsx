@@ -997,17 +997,12 @@ const Classroom = () => {
                   {/* Intuition Tab */}
                   {activeTab === 'intuition' && (
                     <div className="prose max-w-none bg-indigo-50/50 dark:bg-indigo-900/20 p-4 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-indigo-200 dark:border-indigo-800">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg">
-                            <Sparkles className="text-indigo-600 dark:text-indigo-400" size={24} />
+                      <div className="flex flex-row items-center justify-between gap-2 mb-3 pb-3 border-b border-indigo-200 dark:border-indigo-800">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-md">
+                            <Sparkles className="text-indigo-600 dark:text-indigo-400" size={16} />
                           </div>
-                          <div>
-                            <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-100 m-0">AI Intuition</h3>
-                            <p className="text-sm text-indigo-600/80 dark:text-indigo-400/80 m-0 mt-1">
-                              {modelName ? `Powered by ${modelName}` : "Powered by AI"} · Concepts explained simply
-                            </p>
-                          </div>
+                          <h3 className="text-base font-bold text-indigo-900 dark:text-indigo-100 m-0">AI Notes</h3>
                         </div>
 
                         {/* Language Picker Dropdown */}
@@ -1016,7 +1011,7 @@ const Classroom = () => {
                             disabled={loadingIntuition}
                             onChange={(e) => fetchIntuition(e.target.value)}
                             value={selectedLanguage}
-                            className="appearance-none px-4 py-2 pr-10 rounded-xl text-[11px] font-black uppercase tracking-widest bg-white dark:bg-slate-800 border-2 border-indigo-100 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer shadow-sm transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
+                            className="appearance-none px-3 py-1 pr-8 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/20 cursor-pointer shadow-sm transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
                           >
                             <option value="" disabled>Select Language</option>
                             {INDIAN_LANGS.map((lang) => (
@@ -1025,8 +1020,8 @@ const Classroom = () => {
                               </option>
                             ))}
                           </select>
-                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
-                            <ChevronRight size={14} className="rotate-90" />
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
+                            <ChevronRight size={12} className="rotate-90" />
                           </div>
                         </div>
                       </div>
