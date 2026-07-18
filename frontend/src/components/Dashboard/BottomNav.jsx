@@ -21,8 +21,8 @@ const BottomNav = () => {
           ]
         : [
             { name: 'Home', icon: Home, path: '/dashboard' },
-            { name: 'Explore', icon: Search, path: '/dashboard/explore' },
-            { name: 'Library', icon: BookOpen, path: '/dashboard/library' },
+            { name: 'Library', icon: BookOpen, path: '/dashboard/library' }, // Aligned with Learning
+            { name: 'Explore', icon: Search, path: '/dashboard/explore' },   // Shifted to index 2
             { name: 'Quiz', icon: Quote, path: '/dashboard/quiz' },
             { name: 'Ask Notes', icon: MessageSquare, path: '/dashboard/ask-my-notes' },
             { name: 'Profile', icon: User, path: '/dashboard/social?tab=profile' },

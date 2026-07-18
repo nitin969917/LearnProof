@@ -432,8 +432,8 @@ export default function SocialDashboard() {
                   </motion.div>
                 </button>
 
-                {/* Live Rooms Globe icon next to Chats (idx === 3) */}
-                {idx === 3 && (
+                {/* Live Rooms Globe icon next to Discover (idx === 1) */}
+                {idx === 1 && (
                   <button
                     onClick={() => {
                       // Store nav_source so DashboardLayout shows Social Hub bottom nav on live-rooms pages

@@ -81,7 +81,7 @@ export default function SocialBottomNavBar() {
               </button>
 
               {/* Live Rooms Globe icon — active when on live-rooms page */}
-              {idx === 3 && (
+              {idx === 1 && (
                 <button
                   onClick={() => {
                     sessionStorage.setItem('nav_source', 'social');
