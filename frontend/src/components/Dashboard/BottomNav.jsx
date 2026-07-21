@@ -6,6 +6,10 @@ import { motion } from 'framer-motion';
 const BottomNav = () => {
     const location = useLocation();
 
+    if (location.pathname.startsWith('/dashboard/ask-my-notes')) {
+        return null;
+    }
+
     // Determine navigation context based on active route
     const isHome = location.pathname === '/dashboard';
 
