@@ -6,7 +6,9 @@ import { motion } from 'framer-motion';
 const BottomNav = () => {
     const location = useLocation();
 
-    if (location.pathname.startsWith('/dashboard/ask-my-notes')) {
+    // Hide BottomNav inside the Ask My Notes chat canvas (when a subject ID is present)
+    const isAskMyNotesSubject = location.pathname.match(/\/dashboard\/ask-my-notes(?:-dev)?\/[^/]+/);
+    if (isAskMyNotesSubject) {
         return null;
     }
 

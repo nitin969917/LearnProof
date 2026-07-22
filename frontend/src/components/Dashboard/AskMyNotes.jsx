@@ -3,7 +3,7 @@ import {
     ArrowLeft, Sparkles, Plus, Trash2, Loader2, Upload, X,
     CheckCircle2, AlertTriangle, Send, FileText, BrainCircuit,
     BookOpen, HelpCircle, RefreshCw, Layers, Save, Check, Play,
-    Mic, MicOff, Download
+    Mic, MicOff, Download, GraduationCap
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -825,7 +825,8 @@ const AskMyNotes = () => {
         setActiveWorkspace(workspace);
         localStorage.setItem('active_workspace_id', workspace.id);
         if (shouldNavigate) {
-            navigate(`/dashboard/ask-my-notes/${workspace.id}`);
+            const basePath = location.pathname.includes('-dev') ? '/dashboard/ask-my-notes-dev' : '/dashboard/ask-my-notes';
+            navigate(`${basePath}/${workspace.id}`);
         }
         setSources([]);
         setChats([]);
@@ -1711,24 +1712,23 @@ const AskMyNotes = () => {
     // VIEW 1: WORKSPACE HUB
     if (!activeWorkspace) {
         return (
-            <div className="flex-1 flex flex-col bg-orange-50/50 dark:bg-gray-950 p-4 sm:p-8 lg:p-12 pb-32 sm:pb-36 h-full overflow-y-auto">
-                <div className="max-w-[1600px] mx-auto w-full space-y-12 py-6">
+            <div className="w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 space-y-6">
 
                     {/* ── Compact Mobile Header ────────────────────────────── */}
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex flex-row items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
                             <BrainCircuit size={18} />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Ask My Notes</h1>
-                            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Upload notes, get AI summaries & quizzes</p>
+                            <h1 className="text-base sm:text-lg font-black text-gray-900 dark:text-white tracking-tight truncate">Ask My Notes</h1>
+                            <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 leading-tight line-clamp-2 xs:line-clamp-1">Chat with your notes, ask questions & get AI answers</p>
                         </div>
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider active:scale-95 transition-all shrink-0 cursor-pointer"
+                            className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-2 sm:py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider shadow-md shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
                         >
-                            <Plus size={14} />
-                            <span className="hidden xs:inline">Create</span>
+                            <Plus size={14} className="stroke-[2.5] sm:w-4 sm:h-4" />
+                            <span>Create</span>
                         </button>
                     </div>
 
@@ -1740,44 +1740,91 @@ const AskMyNotes = () => {
                                 <Loader2 className="animate-spin text-orange-500" size={32} />
                             </div>
                         ) : workspaces.length === 0 ? (
-                            <div className="text-center py-20 bg-white dark:bg-gray-800 border border-dashed border-orange-200 dark:border-gray-700 rounded-3xl p-6">
-                                <BrainCircuit className="mx-auto text-orange-200 dark:text-gray-700 mb-4 animate-pulse" size={48} />
-                                <h3 className="font-bold text-slate-700 dark:text-slate-300">No subjects yet</h3>
-                                <p className="text-xs text-slate-400 mt-1">Create your first isolated learning subject to start uploading documents.</p>
+                            <div className="flex flex-col items-center justify-center py-6 sm:py-12 px-3 sm:px-8 bg-white dark:bg-gray-900 border border-orange-100 dark:border-gray-800 rounded-3xl sm:rounded-[32px] max-w-4xl mx-auto shadow-sm">
+                                <div className="text-center mb-5 sm:mb-10">
+                                    <div className="inline-flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 bg-orange-50 dark:bg-orange-500/10 text-orange-500 rounded-full mb-2 sm:mb-4 ring-4 sm:ring-8 ring-orange-50/50 dark:ring-orange-500/5">
+                                        <GraduationCap className="w-5 h-5 sm:w-8 sm:h-8" />
+                                    </div>
+                                    <h3 className="text-lg sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Your AI Study Companion</h3>
+                                    <p className="text-[11px] sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 sm:mt-3 max-w-lg mx-auto leading-relaxed px-2">
+                                        Upload your lecture notes, PDFs, or textbooks and instantly ask questions to get precise answers from your materials.
+                                    </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-6 mb-6 sm:mb-10 w-full max-w-3xl">
+                                    {/* Step 1 */}
+                                    <div className="flex flex-row md:flex-col items-center md:text-center p-3 sm:p-6 bg-orange-50/50 dark:bg-gray-800/50 rounded-2xl border border-orange-100/50 dark:border-gray-700/50 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors gap-3 sm:gap-4">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-orange-500 font-black text-sm sm:text-lg shadow-sm">1</div>
+                                        <div className="text-left md:text-center">
+                                            <h4 className="font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-2 text-sm sm:text-base">Create a Subject</h4>
+                                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight">Organize your workspace by creating a subject for your exams.</p>
+                                        </div>
+                                    </div>
+                                    {/* Step 2 */}
+                                    <div className="flex flex-row md:flex-col items-center md:text-center p-3 sm:p-6 bg-orange-50/50 dark:bg-gray-800/50 rounded-2xl border border-orange-100/50 dark:border-gray-700/50 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors gap-3 sm:gap-4">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-orange-500 font-black text-sm sm:text-lg shadow-sm">2</div>
+                                        <div className="text-left md:text-center">
+                                            <h4 className="font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-2 text-sm sm:text-base">Upload Material</h4>
+                                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight">Drop in your PDFs, lecture slides, or type out notes to feed AI.</p>
+                                        </div>
+                                    </div>
+                                    {/* Step 3 */}
+                                    <div className="flex flex-row md:flex-col items-center md:text-center p-3 sm:p-6 bg-orange-50/50 dark:bg-gray-800/50 rounded-2xl border border-orange-100/50 dark:border-gray-700/50 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors gap-3 sm:gap-4">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-orange-500 font-black text-sm sm:text-lg shadow-sm">3</div>
+                                        <div className="text-left md:text-center">
+                                            <h4 className="font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-2 text-sm sm:text-base">Ask & Learn</h4>
+                                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight">Chat with your documents to get instant answers, summaries, and quizzes.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => setIsCreateModalOpen(true)}
+                                    className="w-auto flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider shadow-lg shadow-orange-500/25 active:scale-95 transition-all cursor-pointer group mx-auto"
+                                >
+                                    <Plus size={16} className="sm:w-[18px] sm:h-[18px] stroke-[3] group-hover:rotate-90 transition-transform duration-300" />
+                                    <span>Start Learning Now</span>
+                                </button>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5 sm:gap-6">
                                 {workspaces.map((ws) => (
                                     <div
                                         key={ws.id}
                                         onClick={() => handleSelectWorkspace(ws)}
-                                        className="group/card bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-2xl p-4 sm:p-6 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                                        className="group/card bg-gradient-to-br from-white to-orange-50/40 dark:from-gray-800 dark:to-gray-900 border border-orange-100/50 dark:border-gray-700/60 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(249,115,22,0.12)] hover:border-orange-300 dark:hover:border-orange-500/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden"
                                     >
                                         {/* Orange glow accent on hover */}
-                                        <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-orange-500 to-amber-400 transform -translate-x-full group-hover/card:translate-x-0 transition-transform duration-300"></div>
+                                        <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-gradient-to-b from-orange-500 to-amber-400 transform -translate-x-full group-hover/card:translate-x-0 transition-transform duration-300"></div>
 
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
-                                                <span className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Active Subject</span>
-                                            </div>
-                                            <h3 className="font-bold text-gray-900 dark:text-white text-base sm:text-lg pr-6 group-hover/card:text-orange-500 transition-colors duration-300">
-                                                {ws.name}
-                                            </h3>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                                                {ws.description || "No description provided."}
-                                            </p>
+                                        <div className="absolute top-2 right-2 z-0 pointer-events-none opacity-5 group-hover/card:opacity-10 group-hover/card:scale-110 group-hover/card:rotate-12 transition-all duration-700">
+                                            <BrainCircuit className="w-12 h-12 sm:w-20 sm:h-20 text-orange-500" />
                                         </div>
 
-                                        <div className="flex items-center justify-between border-t border-gray-50 dark:border-gray-700/40 mt-4 sm:mt-6 pt-3 sm:pt-4">
-                                            <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">
+                                        <div className="space-y-3 sm:space-y-4 relative z-10">
+                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-100/80 dark:bg-orange-500/20 rounded-lg w-fit border border-orange-200/50 dark:border-orange-500/20">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)] animate-pulse"></div>
+                                                <span className="text-[9px] sm:text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Active Subject</span>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-extrabold text-gray-900 dark:text-white text-base sm:text-xl pr-6 group-hover/card:text-orange-600 dark:group-hover/card:text-orange-400 transition-colors duration-300 leading-tight">
+                                                    {ws.name}
+                                                </h3>
+                                                <p className="text-[11px] sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mt-1 sm:mt-1.5">
+                                                    {ws.description || "No description provided."}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between border-t border-orange-100/60 dark:border-gray-700/40 mt-4 sm:mt-6 pt-3 sm:pt-4 relative z-10">
+                                            <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
                                                 Created: {new Date(ws.createdAt).toLocaleDateString()}
                                             </span>
                                             <button
                                                 onClick={(e) => handleDeleteWorkspace(ws.id, e)}
-                                                className="p-1.5 sm:p-2 bg-red-500/5 hover:bg-red-50 text-red-500 hover:text-white rounded-xl transition-all duration-300 border border-red-500/5"
+                                                className="p-1.5 sm:p-2.5 bg-red-500/5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 rounded-lg sm:rounded-xl transition-all duration-300 border border-transparent hover:border-red-200 dark:hover:border-red-900/50 z-20"
                                             >
-                                                <Trash2 size={14} className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                <Trash2 size={14} className="sm:w-4 sm:h-4" />
                                             </button>
                                         </div>
                                     </div>
@@ -1857,7 +1904,17 @@ const AskMyNotes = () => {
                             </div>
                         )}
                     </AnimatePresence>
-                </div>
+
+                    {/* Custom Confirmation Modal */}
+                    <ConfirmModal
+                        isOpen={confirmModal.isOpen}
+                        title={confirmModal.title}
+                        message={confirmModal.message}
+                        confirmText={confirmModal.confirmText}
+                        type={confirmModal.type}
+                        onConfirm={confirmModal.onConfirm}
+                        onCancel={confirmModal.onCancel}
+                    />
             </div>
         );
     }

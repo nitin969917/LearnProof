@@ -139,7 +139,7 @@ const DashboardLayout = () => {
     const location = useLocation();
 
     const isAskMyNotes = location.pathname.startsWith('/dashboard/ask-my-notes');
-    const isInsideWorkspace = location.pathname.startsWith('/dashboard/ask-my-notes/') && location.pathname !== '/dashboard/ask-my-notes';
+    const isInsideWorkspace = location.pathname.match(/\/dashboard\/ask-my-notes(?:-dev)?\/[^/]+/);
     const isSocialHub = location.pathname.startsWith('/dashboard/social');
     const isLiveRoom = location.pathname.includes('/dashboard/live-rooms/') && location.pathname !== '/dashboard/live-rooms';
     const isLiveRoomList = location.pathname === '/dashboard/live-rooms';
@@ -208,7 +208,7 @@ const DashboardLayout = () => {
     }, [location.pathname]);
 
     const layoutContent = (
-        <div className="flex h-screen bg-orange-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 relative transition-colors duration-200 overflow-hidden font-sans">
+        <div className="flex h-[100dvh] bg-orange-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 relative transition-colors duration-200 overflow-hidden font-sans">
             {/* Sidebar Overlay for Mobile (triggered from Bottom Nav) */}
             {isMobileSidebarOpen && (
                 <div
@@ -305,7 +305,7 @@ const DashboardLayout = () => {
                 <div 
                     ref={contentRef}
                     className={`flex-1 ${
-                        isSocialHub || isAskMyNotes
+                        isSocialHub || isInsideWorkspace
                             ? 'p-0 overflow-hidden' 
                             : isLiveRoom 
                                 ? 'p-0 overflow-y-auto' 
