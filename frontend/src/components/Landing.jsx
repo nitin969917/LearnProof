@@ -526,20 +526,21 @@ const LandingPage = () => {
         <div className="min-h-screen bg-orange-50 relative overflow-hidden selection:bg-orange-200 pt-16 md:pt-18">
             {/* Header / Sticky Glassmorphism Navbar */}
             <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-orange-100/50 py-1">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-                    <div className="flex items-center cursor-pointer py-0 my-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                        <img src="/LP_logo.png" alt="LearnProof" className="h-10 sm:h-11 w-auto object-contain my-0 py-0 block transform -translate-y-[1.5px]" />
+                <div className="w-full px-4 sm:px-8 lg:px-12 flex items-center justify-between">
+                    <div className="flex shrink-0 items-center cursor-pointer py-0 my-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                        <img src="/LP_logo.png" alt="LearnProof" className="h-10 sm:h-14 w-auto object-contain my-0 py-0 block transform -translate-y-[1.5px]" />
                     </div>
 
-                    <div className="hidden md:flex items-center gap-8 text-sm font-bold text-gray-600">
-                        <button onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">About</button>
-                        <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">Features</button>
-                        <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">How It Works</button>
-                        <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">FAQs</button>
-                        <button onClick={() => document.getElementById('download')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">Downloads</button>
-                    </div>
+                    <div className="flex items-center gap-4 sm:gap-6">
+                        <div className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-bold text-gray-600 mr-2 lg:mr-4">
+                            <button onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">About</button>
+                            <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">Features</button>
+                            <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">How It Works</button>
+                            <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">FAQs</button>
+                            <button onClick={() => document.getElementById('download')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">Downloads</button>
+                        </div>
 
-                    <div className="flex items-center gap-2 sm:gap-4">
+                        <div className="flex items-center gap-2 sm:gap-4">
                         <button 
                             onClick={handleManualGoogleLogin}
                             className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors hidden md:block"
@@ -562,6 +563,7 @@ const LandingPage = () => {
                         >
                             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                         </button>
+                    </div>
                     </div>
                 </div>
 
