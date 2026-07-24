@@ -1046,8 +1046,6 @@ const getLanguageRooms = async (req, res) => {
   try {
     const cached = await cacheService.get(cacheKey);
     if (cached) {
-      // Refresh in background to keep data fresh without blocking current response
-      refreshRoomsInBackground(userId, cacheKey).catch(() => {});
       return res.json(cached);
     }
 
