@@ -23,12 +23,16 @@ const PORT = process.env.PORT || 8000;
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ['http://localhost:5173', 'https://learnproofai.com', 'https://www.learnproofai.com'],
+    origin: (origin, callback) => {
+      // Allow all origins (web browsers, deployed domains, mobile apps, TWAs, etc.)
+      callback(null, true);
+    },
     methods: ['GET', 'POST'],
     credentials: true,
   },
   transports: ['websocket', 'polling'],
 });
+
 
 app.set('io', io);
 

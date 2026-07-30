@@ -10,19 +10,20 @@ export const getSocialSocket = (userId) => {
 
   if (!socket) {
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    // Use VITE_BACKEND_URL so WebSocket connects to the actual backend (api.learnproofai.com)
-    // NOT to learnproofai.com (Cloudflare Pages) which doesn't support WebSocket proxying
-    const backendUrl = isLocalhost
+    let backendUrl = isLocalhost
       ? `http://${window.location.hostname}:8000`
       : (import.meta.env.VITE_BACKEND_URL || `${window.location.protocol}//${window.location.host}`);
-    const socketUrl = backendUrl;
 
-    socket = io(socketUrl, {
+    // Remove any trailing slash or /api suffix so Socket.io connects to root domain /socket.io
+    backendUrl = backendUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+
+    socket = io(backendUrl, {
       transports: ['websocket', 'polling'],
       withCredentials: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 20,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
 
     socket.on('connect', () => {
