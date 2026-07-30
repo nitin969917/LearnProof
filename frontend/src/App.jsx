@@ -9,24 +9,18 @@ import { initializeLaunch } from './utils/launch';
 // Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
 const lazyWithRetry = (componentImport) => {
     return lazy(async () => {
-        const retries = 2;
-        for (let i = 0; i <= retries; i++) {
-            try {
-                return await componentImport();
-            } catch (error) {
-                console.error(`Failed to load chunk (attempt ${i + 1}/${retries + 1}):`, error);
-                if (i === retries) {
-                    const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
-                    const now = Date.now();
-                    if (!lastReload || now - parseInt(lastReload, 10) > 15000) {
-                        sessionStorage.setItem('chunk_reload_timestamp', String(now));
-                        window.location.reload();
-                    }
-                    throw error;
-                }
-                // Wait 300ms before retrying
-                await new Promise(resolve => setTimeout(resolve, 300));
+        try {
+            return await componentImport();
+        } catch (error) {
+            console.warn('Failed to load dynamic chunk asset (likely post-deployment chunk mismatch), reloading page for fresh assets...', error);
+            const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
+            const now = Date.now();
+            if (!lastReload || now - parseInt(lastReload, 10) > 8000) {
+                sessionStorage.setItem('chunk_reload_timestamp', String(now));
+                window.location.reload();
             }
+            // Return dummy empty component to prevent fatal error overlay while browser reloads
+            return { default: () => null };
         }
     });
 };

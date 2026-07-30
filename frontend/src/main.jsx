@@ -8,7 +8,31 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+// Automatically reload the page if Vite preload/chunk fetch fails after new deployment
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault();
+  const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
+  const now = Date.now();
+  if (!lastReload || now - parseInt(lastReload, 10) > 8000) {
+    sessionStorage.setItem('chunk_reload_timestamp', String(now));
+    window.location.reload();
+  }
+});
+
 window.addEventListener('error', (event) => {
+  const errMsg = event.message || event.error?.message || '';
+  // If it's a dynamic import failure (stale deployment chunk), auto-reload page cleanly without showing fatal overlay
+  if (errMsg.includes('Failed to fetch dynamically imported module') || errMsg.includes('Importing a module script failed') || errMsg.includes('error loading dynamically imported module')) {
+    event.preventDefault();
+    const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
+    const now = Date.now();
+    if (!lastReload || now - parseInt(lastReload, 10) > 8000) {
+      sessionStorage.setItem('chunk_reload_timestamp', String(now));
+      window.location.reload();
+    }
+    return;
+  }
+
   console.error("Global Frontend Error:", event.error);
   // Avoid multiple overlays
   if (document.getElementById('fatal-error-overlay')) return;
