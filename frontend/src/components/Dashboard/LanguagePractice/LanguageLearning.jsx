@@ -4,6 +4,7 @@ import { Mic, Globe, Plus, Users, Search, GraduationCap, Video, PhoneOff, Trash2
 import socialApi from '../../../api/socialApi.js';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import toast from 'react-hot-toast';
+import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
 
 export default function LanguageLearning() {
@@ -19,14 +20,16 @@ export default function LanguageLearning() {
   const [roomToDelete, setRoomToDelete] = useState(null);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [socialUser, setSocialUser] = useState(null);
+  
+  const socialUser = useSocialFeedStore(state => state.socialUser);
+  const fetchSocialUser = useSocialFeedStore(state => state.fetchSocialUser);
 
   useEffect(() => {
     fetchRooms();
-    fetchSocialUser();
-  }, []);
-
-
+    if (user && !socialUser) {
+      fetchSocialUser();
+    }
+  }, [user, socialUser, fetchSocialUser]);
 
   useEffect(() => {
     // Listen to real-time room creation/deletion events from other users via socket
@@ -35,6 +38,7 @@ export default function LanguageLearning() {
       try {
         socket = getSocialSocket(socialUser.id);
         if (socket) {
+          console.log('[Socket] Subscribing to ROOMS_UPDATED for user:', socialUser.id);
           socket.on('ROOMS_UPDATED', fetchRooms);
         }
       } catch (err) {
@@ -47,19 +51,11 @@ export default function LanguageLearning() {
     return () => {
       clearInterval(pollInterval);
       if (socket) {
+        console.log('[Socket] Unsubscribing from ROOMS_UPDATED');
         socket.off('ROOMS_UPDATED', fetchRooms);
       }
     };
   }, [socialUser]);
-
-  const fetchSocialUser = async () => {
-    try {
-      const response = await socialApi.get('/users/me');
-      setSocialUser(response.data);
-    } catch (err) {
-      console.error('Failed to get social user in language view', err);
-    }
-  };
 
   const fetchRooms = async () => {
     try {

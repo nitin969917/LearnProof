@@ -1,8 +1,9 @@
 import { Fragment } from 'react';
-import { Home, Search, Users, MessageSquare, User, Globe, MessageCircle } from 'lucide-react';
+import { Search, Users, MessageSquare, User, Globe, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
+import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 
 /**
  * SocialBottomNavBar
@@ -12,17 +13,25 @@ import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
 export default function SocialBottomNavBar() {
   const navigate = useNavigate();
   const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
+  const socialUser = useSocialFeedStore((state) => state.socialUser);
+  const pendingFriendCount = useSocialFeedStore((state) => state.pendingFriendCount);
+  const clearPendingFriendCount = useSocialFeedStore((state) => state.clearPendingFriendCount);
 
   const tabs = [
     { id: 'feed',     icon: MessageCircle,label: 'Feed' },
     { id: 'discover', icon: Search,       label: 'Discover' },
-    { id: 'friends',  icon: Users,        label: 'Friends' },
+    { id: 'friends',  icon: Users,        label: 'Friends', badge: pendingFriendCount > 0 ? pendingFriendCount : null },
     { id: 'chat',     icon: MessageSquare,label: 'Chats', badge: totalUnreadCount > 0 ? totalUnreadCount : null },
+    { id: 'profile',  icon: User,         label: 'Profile' }
   ];
 
   const goToTab = (tabId) => {
     // Clear social source so back navigation is clean
     sessionStorage.setItem('nav_source', 'social');
+    // Clear friends badge when navigating to friends tab
+    if (tabId === 'friends') {
+      clearPendingFriendCount();
+    }
     // Navigate back to social with the correct tab pre-selected
     localStorage.setItem('social_active_tab', tabId);
     navigate('/dashboard/social', { state: { from: 'social' } });
@@ -33,27 +42,8 @@ export default function SocialBottomNavBar() {
   };
 
   return (
-    <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[390px] xs:w-[440px] sm:w-[520px] md:w-[600px] max-w-[95vw] z-50 lg:hidden bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300">
+    <nav className="absolute bottom-5 left-1/2 -translate-x-1/2 w-[390px] xs:w-[440px] sm:w-[520px] md:w-[600px] max-w-[95vw] z-50 bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300">
       <div className="flex items-stretch justify-around h-16 px-3.5 relative">
-        {/* Main App Home Button */}
-        <button
-          onClick={() => {
-            sessionStorage.removeItem('nav_source');
-            navigate('/dashboard');
-          }}
-          className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 touch-manipulation select-none outline-none focus:outline-none cursor-pointer"
-        >
-          <motion.div
-            whileTap={{ scale: 0.88 }}
-            className="flex flex-col items-center justify-center w-full h-full relative"
-          >
-            <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
-              <Home size={22} strokeWidth={2} />
-              <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">Home</span>
-            </div>
-          </motion.div>
-        </button>
-
         {tabs.map((tab, idx) => {
           const Icon = tab.icon;
 
@@ -68,7 +58,19 @@ export default function SocialBottomNavBar() {
                   className="flex flex-col items-center justify-center w-full h-full relative"
                 >
                   <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
-                    <Icon size={22} strokeWidth={2} />
+                    {tab.id === 'profile' ? (
+                      <div className="w-[22px] h-[22px] rounded-full overflow-hidden border border-gray-300 dark:border-gray-600 transition-all">
+                        {socialUser?.avatar ? (
+                          <img src={socialUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-orange-100 dark:bg-orange-950/40 text-orange-655 dark:text-orange-400 flex items-center justify-center font-bold text-[10px]">
+                            {socialUser?.name?.[0]?.toUpperCase() || 'U'}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <Icon size={22} strokeWidth={2} />
+                    )}
                     <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">{tab.label}</span>
                   </div>
                   <span className="sr-only">{tab.label}</span>
@@ -93,7 +95,7 @@ export default function SocialBottomNavBar() {
                     whileTap={{ scale: 0.88 }}
                     className="flex flex-col items-center justify-center w-full h-full relative"
                   >
-                    <div className={`transition-all duration-300 flex flex-col items-center justify-center ${isLiveRoomsActive() ? 'scale-110 text-orange-600 dark:text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
+                    <div className={`transition-all duration-300 flex flex-col items-center justify-center ${isLiveRoomsActive() ? 'scale-110 text-orange-600 dark:text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : 'text-gray-400 dark:text-gray-550 hover:text-orange-500 dark:hover:text-orange-400'}`}>
                       <Globe size={22} strokeWidth={isLiveRoomsActive() ? 2.5 : 2} />
                       <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">Rooms</span>
                     </div>

@@ -5,10 +5,12 @@ import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../../context/AuthContext.jsx';
+import { useModal } from '../../../context/ModalContext.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
 
 export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, onSelectChatUser, onViewProfile }) {
   const { updateUser } = useAuth();
+  const { confirm } = useModal();
   const isOwnProfile = !viewUserId || viewUserId === currentUserId;
   const targetId = isOwnProfile ? currentUserId : viewUserId;
 
@@ -80,23 +82,65 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     try {
       if (profile.hasPendingRequest) {
         if (profile.isRequestSender) {
-          // Cancel/Remove pending request
+          // Cancel outgoing request — optimistically show "not connected"
+          setProfile(prev => ({ ...prev, hasPendingRequest: false, isRequestSender: false }));
           await socialApi.post('/social/remove-friendship', { targetUserId: profile.id });
         } else {
-          // Accept pending request from this user
+          // Accept incoming request — optimistically show "Connected"
+          setProfile(prev => ({ ...prev, hasPendingRequest: false, isRequestSender: false, isFriend: true }));
           await socialApi.post('/social/accept-friendship', { targetUserId: profile.id });
         }
       } else if (profile.isFriend) {
-        // Unfriend
-        if (!window.confirm(`Remove ${profile.name} from your connections?`)) return;
+        // Unfriend — use the app's shared styled confirm modal
+        const confirmed = await confirm({
+          title: 'Remove Connection?',
+          message: `You'll remove ${profile.name} from your connections. They won't be notified.`,
+          confirmText: 'Remove',
+          cancelText: 'Cancel',
+          type: 'danger',
+        });
+        if (!confirmed) return;
+        // Optimistic: show as "not connected" immediately
+        setProfile(prev => ({ ...prev, isFriend: false, isMyCloseFriend: false }));
         await socialApi.post('/social/remove-friendship', { targetUserId: profile.id });
       } else {
-        // Send request
+        // Send request — optimistically show "Pending"
+        setProfile(prev => ({ ...prev, hasPendingRequest: true, isRequestSender: true }));
         await socialApi.post('/social/friend-request', { receiverId: profile.id });
       }
+      // Sync with server state in background
       fetchProfile();
     } catch (err) {
       console.error('Friend action failed', err);
+      // Revert on error
+      fetchProfile();
+    }
+  };
+
+  const handleToggleCloseFriend = async () => {
+    if (!profile) return;
+    const isClose = !!profile.isMyCloseFriend;
+    
+    // Optimistic update
+    setProfile(prev => ({
+      ...prev,
+      isMyCloseFriend: !isClose
+    }));
+
+    try {
+      await socialApi.post('/social/toggle-close-friend', { friendId: profile.id });
+      // Sync global store so friends list gets refreshed too!
+      const storeState = useSocialFeedStore.getState();
+      if (typeof storeState.fetchFriends === 'function') {
+        storeState.fetchFriends();
+      }
+    } catch (err) {
+      console.error('Failed to toggle close friend from profile:', err);
+      // Revert on error
+      setProfile(prev => ({
+        ...prev,
+        isMyCloseFriend: isClose
+      }));
     }
   };
 
@@ -385,13 +429,26 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                   )}
                 </button>
                 {profile.isFriend && (
-                  <button 
-                    onClick={() => onSelectChatUser(profile)}
-                    className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow shadow-orange-500/10 transition"
-                  >
-                    <MessageSquare size={13} />
-                    <span>Message</span>
-                  </button>
+                  <>
+                    <button 
+                      onClick={() => onSelectChatUser(profile)}
+                      className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow shadow-orange-500/10 transition"
+                    >
+                      <MessageSquare size={13} />
+                      <span>Message</span>
+                    </button>
+                    <button 
+                      onClick={handleToggleCloseFriend}
+                      title={profile.isMyCloseFriend ? "Remove from Close Friends" : "Add to Close Friends"}
+                      className={`flex items-center justify-center h-8 w-8 rounded-lg border transition ${
+                        profile.isMyCloseFriend 
+                          ? 'border-amber-200 bg-amber-50 dark:bg-amber-950/30 text-amber-500 dark:text-amber-400 hover:bg-amber-100' 
+                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <Star size={14} className={profile.isMyCloseFriend ? "fill-amber-500 text-amber-500" : ""} />
+                    </button>
+                  </>
                 )}
               </div>
             )}

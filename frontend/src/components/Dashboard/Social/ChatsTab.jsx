@@ -314,7 +314,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   }, [showGroupDetails]);
 
   const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
-  const { unreadByContact, setActiveChatUser, clearUnreadForContact, incrementUnread } = useSocialMessageStore();
+  const { unreadByContact, setActiveChatUser, clearUnreadForContact } = useSocialMessageStore();
 
   const socketRef = useRef(null);
   if (currentUserId && !socketRef.current) {
@@ -427,8 +427,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
             if (prev.some(m => m.id === event.getId())) return prev;
             return [...prev, formatMatrixEvent(event)];
           });
-        } else {
-          incrementUnread(senderId);
         }
       } else if (active && active.type === 'direct') {
         setMessages((prev) => {
@@ -511,9 +509,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         setMessages((prev) => [...prev, message]);
         clearUnreadForContact(message.senderId);
         socketRef.current?.emit('readReceipt', { senderId: message.senderId });
-        socialApi.get(`/messages/${message.senderId}`).catch(err => console.error(err));
-      } else {
-        incrementUnread(message.senderId);
       }
 
       setLastMessages((prev) => ({
@@ -1022,13 +1017,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
   return (
     <div 
-      className="bg-white dark:bg-[#111b21] md:rounded-3xl md:border md:border-orange-100 dark:md:border-gray-700 md:shadow-xl overflow-hidden flex flex-1 w-full h-full min-h-0"
+      className="bg-white dark:bg-gray-900 md:rounded-3xl md:border md:border-orange-100 dark:md:border-gray-700 md:shadow-xl overflow-hidden flex flex-1 w-full h-full min-h-0"
     >
       {/* ── SIDEBAR CONVERSATION LIST ── */}
       <div 
         className={`${
           selectedChat ? 'hidden md:flex' : 'flex'
-        } flex-col w-full md:w-[350px] lg:w-[380px] shrink-0 border-r border-gray-100 dark:border-gray-700 bg-white dark:bg-[#111b21]`}
+        } flex-col w-full md:w-[350px] lg:w-[380px] shrink-0 border-r border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900`}
       >
         {/* Sidebar Header */}
         <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 flex-shrink-0">
@@ -1217,13 +1212,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       <div 
         className={`${
           selectedChat ? 'flex' : 'hidden md:flex'
-        } flex-1 flex-row h-full min-h-0 bg-white dark:bg-[#111b21] relative`}
+        } flex-1 flex-row h-full min-h-0 bg-white dark:bg-gray-900 relative`}
       >
         {selectedChat ? (
           <>
             <div className="flex-1 flex flex-col h-full min-h-0 relative border-r border-gray-100 dark:border-gray-700/50">
               {/* Header */}
-              <div className="p-3 md:p-4 border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-[#202c33] flex items-center justify-between flex-shrink-0 z-10">
+              <div className="p-3 md:p-4 border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0 z-10">
                 <div 
                   onClick={() => {
                     if (selectedChat.type === 'group') {
@@ -1293,7 +1288,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   {selectedChat.type === 'group' && (
                     <>
                       {selectedChat.entryKey && (
-                        <div className="hidden sm:flex items-center gap-1.5 bg-white dark:bg-[#111b21] border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 rounded-xl">
+                        <div className="hidden sm:flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 rounded-xl">
                           <span className="text-[9px] font-black text-gray-400 uppercase">Entry Key:</span>
                           <code className="text-xs font-mono font-bold text-orange-500">{selectedChat.entryKey}</code>
                           <button
@@ -1330,9 +1325,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
               {/* WhatsApp Wallpaper Chat Area */}
               <div 
-                className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#efeae2] dark:bg-[#0b141a] relative"
+                className="flex-1 overflow-y-auto p-4 space-y-3 bg-white dark:bg-gray-900 relative"
               >
-                <div className="absolute inset-0 bg-black/[0.02] dark:bg-black/[0.15] pointer-events-none"></div>
+
 
                 {messages.map((msg, index) => {
                   const isMine = msg.senderId === currentUserId;
@@ -1419,7 +1414,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                             className={`rounded-2xl px-3.5 py-1.5 shadow-sm text-sm relative border border-transparent select-none cursor-pointer active:scale-[0.99] transition-transform duration-100 ${
                               isMine
                                 ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-gray-900 dark:text-[#e9edef] rounded-tr-none'
-                                : 'bg-white dark:bg-[#202c33] text-gray-800 dark:text-[#e9edef] rounded-tl-none'
+                                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-[#e9edef] rounded-tl-none'
                             }`}
                             onMouseDown={(e) => !msg.isDeleted && handleStartPress(e, msg)}
                             onMouseUp={handleEndPress}
@@ -1434,7 +1429,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           >
                             {/* Reply quote strip */}
                             {!msg.isDeleted && parsed.replyTo && (
-                              <div className={`mt-1 mb-1.5 pl-2.5 pr-2 py-1 rounded-lg border-l-4 ${
+                              <div className={`mt-1 mb-1.5 pl-2.5 pr-2 py-1 rounded-lg border-l-4 border-y-0 border-r-0 ${
                                 isMine ? 'border-green-600 bg-green-200/50 dark:bg-green-900/30' : 'border-orange-400 bg-orange-50 dark:bg-orange-950/20'
                               }`}>
                                 <p className="text-[9px] font-black text-orange-500 dark:text-orange-400 mb-0.5">
@@ -1540,15 +1535,15 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
               {/* Input Bottom Bar / Blocked message */}
               {selectedChat.type === 'group' && selectedChat.onlyAdminsCanPost && selectedChat.creatorId !== currentUserId ? (
-                <div className="p-4 border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-[#182229] text-center text-xs font-black text-gray-550 dark:text-gray-400 select-none">
+                <div className="p-4 border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 text-center text-xs font-black text-gray-550 dark:text-gray-400 select-none">
                   Only admins can send messages in this group
                 </div>
               ) : (
-                <div className="border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-[#202c33] flex flex-col flex-shrink-0 z-10 p-2 md:p-3">
+                <div className="border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 z-10 p-2 md:p-3">
                   
                   {/* Selected File Preview */}
                   {selectedFile && (
-                    <div className="mx-2 mb-2 p-2 bg-gray-50 dark:bg-[#111b21] border border-gray-100 dark:border-gray-800 rounded-xl flex items-center justify-between text-xs animate-in fade-in duration-200">
+                    <div className="mx-2 mb-2 p-2 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-xl flex items-center justify-between text-xs animate-in fade-in duration-200">
                       <div className="flex items-center gap-2 text-gray-700 dark:text-[#e9edef] font-bold">
                         <FileText size={14} className="text-orange-500" />
                         <span className="truncate max-w-[200px]">{selectedFile.name}</span>
@@ -1698,9 +1693,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
             {/* Group Details Sliding Panel */}
             {showGroupDetails && (
-              <div className="w-full md:w-[320px] lg:w-[350px] shrink-0 h-full bg-white dark:bg-[#111b21] border-l border-gray-100 dark:border-gray-700/50 flex flex-col z-20 absolute md:static inset-y-0 right-0 shadow-xl md:shadow-none animate-in slide-in-from-right duration-300">
+              <div className="w-full md:w-[320px] lg:w-[350px] shrink-0 h-full bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-700/50 flex flex-col z-20 absolute md:static inset-y-0 right-0 shadow-xl md:shadow-none animate-in slide-in-from-right duration-300">
                 {/* Header */}
-                <div className="p-4 border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-[#202c33] flex items-center justify-between flex-shrink-0">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0">
                   <h3 className="font-black text-gray-900 dark:text-white text-base">Group Info</h3>
                   <button 
                     onClick={() => setShowGroupDetails(false)}
@@ -1730,7 +1725,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     </div>
 
                     {/* Description */}
-                    <div className="bg-gray-50 dark:bg-[#202c33] p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                    <div className="bg-gray-50 dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
                       <span className="text-[10px] font-black text-gray-400 dark:text-gray-550 uppercase tracking-widest block mb-1">Description</span>
                       <p className="text-xs text-gray-700 dark:text-gray-300 font-bold leading-relaxed whitespace-pre-wrap">
                         {groupDetails.description || 'No description provided.'}
@@ -1738,7 +1733,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     </div>
 
                     {/* Group Settings */}
-                    <div className="bg-gray-50 dark:bg-[#202c33] p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-3">
+                    <div className="bg-gray-50 dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-3">
                       <span className="text-[10px] font-black text-gray-400 dark:text-gray-550 uppercase tracking-widest block">Group Settings</span>
                       
                       <div className="flex items-center justify-between gap-3">

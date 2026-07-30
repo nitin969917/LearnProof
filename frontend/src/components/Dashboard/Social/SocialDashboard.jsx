@@ -19,7 +19,10 @@ export default function SocialDashboard() {
   const location = useLocation();
   const outletContext = useOutletContext();
   const toggleSidebar = outletContext?.toggleSidebar || (() => {});
-  const [socialUser, setSocialUser] = useState(null);
+  const socialUser = useSocialFeedStore((state) => state.socialUser);
+  const fetchSocialUser = useSocialFeedStore((state) => state.fetchSocialUser);
+  const pendingFriendCount = useSocialFeedStore((state) => state.pendingFriendCount);
+  const clearPendingFriendCount = useSocialFeedStore((state) => state.clearPendingFriendCount);
 
   // Initialize state variables from URL query parameters (or fall back to localStorage/defaults)
   const [activeTab, setActiveTab] = useState(() => {
@@ -172,18 +175,10 @@ export default function SocialDashboard() {
   const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
 
   useEffect(() => {
-    const fetchSocialUser = async () => {
-      try {
-        const response = await socialApi.get('/users/me');
-        setSocialUser(response.data);
-      } catch (err) {
-        console.error('Failed to sync social user', err);
-      }
-    };
     if (user) {
       fetchSocialUser();
     }
-  }, [user]);
+  }, [user, fetchSocialUser]);
 
   const addPostLocally = useSocialFeedStore(state => state.addPostLocally);
 
@@ -238,19 +233,23 @@ export default function SocialDashboard() {
     if (tabId === 'profile') {
       setSelectedProfileId(socialUser?.id || null);
     }
+    if (tabId === 'friends') {
+      clearPendingFriendCount();
+    }
     setActiveTab(tabId);
   };
 
   const tabs = [
     { id: 'feed', name: 'Feed', icon: MessageCircle },
     { id: 'discover', name: 'Discover', icon: Search },
-    { id: 'friends', name: 'Friends', icon: Users },
+    { id: 'friends', name: 'Friends', icon: Users, badge: pendingFriendCount > 0 ? pendingFriendCount : null },
     { 
       id: 'chat', 
       name: 'Chats', 
       icon: MessageSquare,
       badge: totalUnreadCount > 0 ? totalUnreadCount : null
     },
+    { id: 'profile', name: 'Profile', icon: User }
   ];
 
   if (!socialUser) {
@@ -337,27 +336,27 @@ export default function SocialDashboard() {
 
           {/* Tab Panels */}
           <div className={`w-full ${hideHeader ? 'h-full' : ''}`}>
-            {activeTab === 'feed' && (
+            <div className={activeTab === 'feed' ? 'block' : 'hidden'}>
               <FeedTab 
                 currentUserId={socialUser.id} 
                 onViewProfile={viewUserProfile} 
                 onSelectChatUser={startDirectChat} 
                 postCreatedTrigger={postCreatedTrigger}
               />
-            )}
-            {activeTab === 'discover' && (
+            </div>
+            <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
               <DiscoverTab 
                 onViewProfile={viewUserProfile} 
                 onSelectChatUser={startDirectChat}
               />
-            )}
-            {activeTab === 'friends' && (
+            </div>
+            <div className={activeTab === 'friends' ? 'block' : 'hidden'}>
               <FriendsTab 
                 onViewProfile={viewUserProfile} 
                 onSelectChatUser={startDirectChat} 
               />
-            )}
-            {activeTab === 'chat' && (
+            </div>
+            <div className={activeTab === 'chat' ? 'h-full block' : 'hidden'}>
               <ChatsTab 
                 currentUserId={socialUser.id}
                 selectedContact={selectedChatContact}
@@ -365,8 +364,8 @@ export default function SocialDashboard() {
                 onToggleHeader={setHideHeader}
                 onViewProfile={viewUserProfile}
               />
-            )}
-            {activeTab === 'profile' && (
+            </div>
+            <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
               <ProfileTab 
                 currentUserId={socialUser.id}
                 viewUserId={selectedProfileId}
@@ -374,29 +373,12 @@ export default function SocialDashboard() {
                 onSelectChatUser={startDirectChat}
                 onViewProfile={viewUserProfile}
               />
-            )}
+            </div>
           </div>
         </div>
       </div>
-
-      <nav className={`fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[390px] xs:w-[440px] sm:w-[520px] md:w-[600px] max-w-[95vw] z-50 bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300 ${hideHeader ? 'hidden md:block' : 'block'}`}>
+      <nav className={`absolute bottom-5 left-1/2 -translate-x-1/2 w-[390px] xs:w-[440px] sm:w-[520px] md:w-[600px] max-w-[95vw] z-50 bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300 ${hideHeader ? 'hidden md:block' : 'block'}`}>
         <div className="flex items-stretch justify-around h-16 px-3.5 relative">
-          {/* Main App Home Button */}
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 no-underline touch-manipulation select-none outline-none focus:outline-none cursor-pointer"
-          >
-            <motion.div
-              whileTap={{ scale: 0.88 }}
-              className="flex flex-col items-center justify-center w-full h-full relative"
-            >
-              <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
-                <Home size={22} strokeWidth={2} />
-                <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">Home</span>
-              </div>
-            </motion.div>
-          </button>
-
           {tabs.map((tab, idx) => {
             const isActive = activeTab === tab.id || (tab.id === 'profile' && activeTab === 'profile' && selectedProfileId === socialUser.id);
             const Icon = tab.icon;
@@ -412,11 +394,23 @@ export default function SocialDashboard() {
                     className="flex flex-col items-center justify-center w-full h-full relative"
                   >
                     <div className={`transition-all duration-300 z-10 flex flex-col items-center justify-center ${isActive ? 'scale-110 text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
-                      <Icon 
-                        size={22} 
-                        strokeWidth={isActive ? 2.5 : 2} 
-                        className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
-                      />
+                      {tab.id === 'profile' ? (
+                        <div className={`w-[22px] h-[22px] rounded-full overflow-hidden border transition-all ${isActive ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-gray-300 dark:border-gray-600'}`}>
+                          {socialUser.avatar ? (
+                            <img src={socialUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold text-[10px]">
+                              {socialUser.name?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <Icon 
+                          size={22} 
+                          strokeWidth={isActive ? 2.5 : 2} 
+                          className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
+                        />
+                      )}
                       <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">{tab.name}</span>
                     </div>
 
@@ -427,8 +421,6 @@ export default function SocialDashboard() {
                         {tab.badge}
                       </span>
                     )}
-                    
-
                   </motion.div>
                 </button>
 

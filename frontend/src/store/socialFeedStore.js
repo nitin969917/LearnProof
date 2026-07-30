@@ -5,23 +5,80 @@ export const useSocialFeedStore = create((set, get) => ({
   posts: [],
   friends: [],
   closeFriends: [],
+  socialUser: null,
   loadingPosts: false,
   loadingFriends: false,
+  loadingSocialUser: false,
   hasLoadedOnce: false,
   hasLoadedFriends: false,
+  feedPage: 0,
+  hasMorePosts: true,
+  // Pending friend request badge count
+  pendingFriendCount: 0,
 
-  fetchPosts: async (force = false) => {
+  fetchPendingFriendCount: async () => {
+    try {
+      const response = await socialApi.get('/social/friend-requests/count');
+      set({ pendingFriendCount: response.data?.count || 0 });
+    } catch (err) {
+      console.error('Failed to fetch pending friend count', err);
+    }
+  },
+
+  incrementPendingFriendCount: () => {
+    set((state) => ({ pendingFriendCount: state.pendingFriendCount + 1 }));
+  },
+
+  clearPendingFriendCount: () => {
+    set({ pendingFriendCount: 0 });
+  },
+
+  fetchSocialUser: async (force = false) => {
+    if (get().socialUser && !force) return;
+    set({ loadingSocialUser: true });
+    try {
+      const response = await socialApi.get('/users/me');
+      set({ 
+        socialUser: response.data,
+        loadingSocialUser: false 
+      });
+    } catch (err) {
+      console.error('Failed to fetch social user', err);
+      set({ loadingSocialUser: false });
+    }
+  },
+
+  fetchPosts: async (force = false, isRefresh = false) => {
+    if (isRefresh) {
+      set({ feedPage: 0, hasMorePosts: true });
+    }
+    const currentPage = isRefresh ? 0 : get().feedPage;
+    const isMore = get().hasMorePosts;
+    if (!isMore && !isRefresh) return;
+
     const postsExist = get().posts.length > 0;
-    if (!postsExist || force) {
+    if (!postsExist || force || isRefresh) {
       set({ loadingPosts: true });
     }
     
     try {
-      const response = await socialApi.get('/posts/feed');
-      set({ 
-        posts: Array.isArray(response.data) ? response.data : [],
-        loadingPosts: false,
-        hasLoadedOnce: true
+      const limit = 10;
+      const response = await socialApi.get(`/posts/feed?limit=${limit}&page=${currentPage}`);
+      const fetchedPosts = Array.isArray(response.data) ? response.data : [];
+      
+      set((state) => {
+        const nextPosts = isRefresh ? fetchedPosts : [...state.posts, ...fetchedPosts];
+        // Deduplicate posts
+        const uniquePosts = nextPosts.filter((post, index, self) => 
+          self.findIndex(p => p.id === post.id) === index
+        );
+        return {
+          posts: uniquePosts,
+          loadingPosts: false,
+          hasLoadedOnce: true,
+          feedPage: currentPage + 1,
+          hasMorePosts: fetchedPosts.length === limit,
+        };
       });
     } catch (err) {
       console.error('Failed to fetch posts', err);

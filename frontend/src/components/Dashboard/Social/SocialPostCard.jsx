@@ -99,19 +99,46 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
     setShowComments(!showComments);
   };
 
+  const socialUser = useSocialFeedStore(state => state.socialUser);
+
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
 
+    const commentText = newComment.trim();
+    setNewComment('');
+
+    const tempId = `temp-${Date.now()}`;
+    const optimisticComment = {
+      id: tempId,
+      content: commentText,
+      postId: post.id,
+      authorId: currentUserId,
+      createdAt: new Date().toISOString(),
+      author: {
+        id: currentUserId,
+        name: socialUser?.name || 'You',
+        profilePicture: socialUser?.profilePicture || null
+      },
+      isOptimistic: true
+    };
+
+    // Optimistically update
+    setComments(prev => [...prev, optimisticComment]);
+    setCommentsCount(prev => prev + 1);
+
     try {
       const res = await socialApi.post(`/posts/${post.id}/comments`, {
-        content: newComment
+        content: commentText
       });
-      setNewComment('');
-      setComments([...comments, res.data]);
-      setCommentsCount(prev => prev + 1);
+      // Replace optimistic comment with real database comment
+      setComments(prev => prev.map(c => c.id === tempId ? res.data : c));
     } catch (err) {
       console.error('Failed to submit comment', err);
+      // Revert on failure
+      setComments(prev => prev.filter(c => c.id !== tempId));
+      setCommentsCount(prev => Math.max(0, prev - 1));
+      setNewComment(commentText); // Restore input value
     }
   };
 
@@ -305,12 +332,12 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
             <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
               {comments.map((comment) => {
                 const isCommentAuthor = currentUserId === comment.authorId;
-                const canDelete = isCommentAuthor || isAuthor; // comment author or post author
+                const canDelete = (isCommentAuthor || isAuthor) && !comment.isOptimistic; // comment author or post author, disable if optimistic
                 return (
-                  <div key={comment.id} className="flex gap-3 text-xs md:text-sm items-start bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded-xl border border-gray-100/50 dark:border-gray-700/30">
+                  <div key={comment.id} className={`flex gap-3 text-xs md:text-sm items-start bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded-xl border border-gray-100/50 dark:border-gray-700/30 transition-opacity duration-200 ${comment.isOptimistic ? 'opacity-65' : ''}`}>
                     <div 
-                      onClick={() => onViewProfile(comment.author.id)}
-                      className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 cursor-pointer"
+                      onClick={() => !comment.isOptimistic && onViewProfile(comment.author.id)}
+                      className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ${comment.isOptimistic ? 'cursor-default' : 'cursor-pointer'}`}
                     >
                       {comment.author.profilePicture ? (
                         <img src={comment.author.profilePicture} alt={comment.author.name} className="w-full h-full object-cover" loading="lazy" />
@@ -323,13 +350,13 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span 
-                          onClick={() => onViewProfile(comment.author.id)}
-                          className="font-bold text-gray-900 dark:text-white hover:text-orange-500 cursor-pointer transition-colors"
+                          onClick={() => !comment.isOptimistic && onViewProfile(comment.author.id)}
+                          className={`font-bold text-gray-900 dark:text-white transition-colors ${comment.isOptimistic ? 'cursor-default' : 'hover:text-orange-500 cursor-pointer'}`}
                         >
                           {comment.author.name}
                         </span>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500">
-                          {new Date(comment.createdAt).toLocaleDateString()}
+                        <span className="text-[10px] text-gray-400 dark:text-gray-550">
+                          {comment.isOptimistic ? 'Posting...' : new Date(comment.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                       <p className="text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap">{comment.content}</p>

@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Clock, UserCheck, Check, X, Star, MessageSquare, UserX, AlertTriangle } from 'lucide-react';
+import { Clock, UserCheck, Check, X, Star, MessageSquare, UserX } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
+import { useModal } from '../../../context/ModalContext.jsx';
 
 export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   const friends = useSocialFeedStore(state => state.friends);
-  const pending = useSocialFeedStore(state => state.friends); // will recalculate below
   const fetchFriends = useSocialFeedStore(state => state.fetchFriends);
   const loadingFriends = useSocialFeedStore(state => state.loadingFriends);
   const hasLoadedFriends = useSocialFeedStore(state => state.hasLoadedFriends);
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
+  const { confirm } = useModal();
 
   // Local pending state (friendships endpoint returns both friends + pending)
   const [pendingRequests, setPendingRequests] = useState([]);
-  const [confirmModal, setConfirmModal] = useState(null);
 
   // Fetch and sync pending requests (lightweight separate call)
   const syncPending = async () => {
@@ -48,29 +48,53 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   };
 
   const handleAccept = async (requestId) => {
+    // Optimistic: remove from pending list immediately so UI updates instantly
+    setPendingRequests(prev => prev.filter(r => r.id !== requestId));
     try {
       await socialApi.post(`/social/friend-request/${requestId}/accept`);
-      fetchFriends();
+      // Force-refresh to sync store with the newly accepted friend
+      fetchFriends(true);
       syncPending();
     } catch (err) {
       console.error('Failed to accept request', err);
+      // Revert on error
+      syncPending();
     }
   };
 
-  const confirmRemove = (userId, name, avatar, action) => {
-    setConfirmModal({ userId, name, avatar, action });
-  };
-
-  const handleConfirmedAction = async () => {
-    if (!confirmModal) return;
-    const { userId } = confirmModal;
-    setConfirmModal(null);
+  const handleRemoveFriend = async (userId, name) => {
+    const confirmed = await confirm({
+      title: 'Remove Connection?',
+      message: `You'll remove ${name} from your connections. They won't be notified.`,
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      type: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await socialApi.post('/social/remove-friendship', { targetUserId: userId });
       fetchFriends();
       syncPending();
     } catch (err) {
       console.error('Failed to remove friendship', err);
+    }
+  };
+
+  const handleIgnoreRequest = async (senderId, name) => {
+    const confirmed = await confirm({
+      title: 'Ignore Request?',
+      message: `Ignore the connection request from ${name}?`,
+      confirmText: 'Ignore',
+      cancelText: 'Cancel',
+      type: 'warning',
+    });
+    if (!confirmed) return;
+    try {
+      await socialApi.post('/social/remove-friendship', { targetUserId: senderId });
+      fetchFriends();
+      syncPending();
+    } catch (err) {
+      console.error('Failed to ignore request', err);
     }
   };
 
@@ -86,49 +110,6 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
 
   return (
     <>
-      {/* ── Confirmation Modal ── */}
-      {confirmModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[300] p-4">
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-xs w-full p-6 shadow-2xl text-center">
-            {/* Avatar */}
-            <div className="w-16 h-16 rounded-full overflow-hidden mx-auto mb-3 border-2 border-orange-100 dark:border-orange-900/40">
-              {confirmModal.avatar ? (
-                <img src={confirmModal.avatar} alt={confirmModal.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-xl">
-                  {confirmModal.name?.[0]?.toUpperCase() || '?'}
-                </div>
-              )}
-            </div>
-            <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-3">
-              <UserX size={22} className="text-red-500" />
-            </div>
-            <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">
-              {confirmModal.action === 'remove' ? 'Remove Connection?' : 'Ignore Request?'}
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-5 leading-relaxed">
-              {confirmModal.action === 'remove'
-                ? <>You'll remove <span className="font-extrabold text-gray-800 dark:text-white">{confirmModal.name}</span> from your connections. They won't be notified.</>
-                : <>Ignore the connection request from <span className="font-extrabold text-gray-800 dark:text-white">{confirmModal.name}</span>?</>
-              }
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmModal(null)}
-                className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-bold text-xs transition cursor-pointer active:scale-95"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmedAction}
-                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-red-500/20 transition cursor-pointer active:scale-95"
-              >
-                {confirmModal.action === 'remove' ? 'Remove' : 'Ignore'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full mx-auto">
         {/* Pending Requests */}
@@ -164,7 +145,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                     <Check size={16} />
                   </button>
                   <button 
-                    onClick={() => confirmRemove(req.sender.id, req.sender.name, req.sender.profilePicture, 'reject')} 
+                    onClick={() => handleIgnoreRequest(req.sender.id, req.sender.name)} 
                     className="p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-500 rounded-full transition active:scale-95 cursor-pointer"
                     title="Ignore Request"
                   >
@@ -237,7 +218,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                     </button>
 
                     <button 
-                      onClick={() => confirmRemove(friend.id, friend.name, friend.profilePicture, 'remove')}
+                      onClick={() => handleRemoveFriend(friend.id, friend.name)}
                       className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition active:scale-95 cursor-pointer"
                       title="Remove Connection"
                     >

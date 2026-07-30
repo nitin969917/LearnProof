@@ -108,9 +108,14 @@ const createPost = async (req, res) => {
         // Emit to friends based on visibility
         let targetIds = [];
         if (post.visibility === 'close_friends') {
-          targetIds = friendships
-            .filter(f => f.isCloseFriend)
-            .map(f => f.senderId === authorId ? f.receiverId : f.senderId);
+          const myCloseFriends = await datingPrisma.closeFriendRequest.findMany({
+            where: {
+              senderId: authorId,
+              status: 'accepted'
+            },
+            select: { receiverId: true }
+          });
+          targetIds = myCloseFriends.map(cf => cf.receiverId);
         } else {
           // public or friends
           targetIds = friendIds;
@@ -134,11 +139,12 @@ const createPost = async (req, res) => {
 
 const getFeed = async (req, res) => {
   const userId = req.user.id;
-  const limit = parseInt(req.query.limit) || 20;
+  const limit = parseInt(req.query.limit) || 10;
+  const page = parseInt(req.query.page) || 0;
   const targetAuthorId = req.query.authorId ? parseInt(req.query.authorId, 10) : null;
 
   try {
-    const cacheKey = `user:feed:${userId}:${limit}:${targetAuthorId || 'all'}`;
+    const cacheKey = `user:feed:${userId}:${limit}:${page}:${targetAuthorId || 'all'}`;
     const cached = await cacheService.get(cacheKey);
     if (cached) {
       return res.json(cached);
@@ -157,10 +163,15 @@ const getFeed = async (req, res) => {
 
     const friendIds = friendships.map(f => f.senderId === userId ? f.receiverId : f.senderId);
     
-    // Identify close friends
-    const closeFriendIds = friendships
-      .filter(f => f.isCloseFriend)
-      .map(f => f.senderId === userId ? f.receiverId : f.senderId);
+    // Identify close friends: those who have marked current user as close friend
+    const closeFriendRecords = await datingPrisma.closeFriendRequest.findMany({
+      where: {
+        receiverId: userId,
+        status: 'accepted'
+      },
+      select: { senderId: true }
+    });
+    const closeFriendIds = closeFriendRecords.map(cf => cf.senderId);
 
     const whereClause = {
       OR: [
@@ -189,6 +200,7 @@ const getFeed = async (req, res) => {
     const posts = await datingPrisma.post.findMany({
       where: whereClause,
       take: limit,
+      skip: page * limit,
       include: {
         author: {
           select: {
@@ -340,8 +352,9 @@ const getProfile = async (req, res) => {
 
     if (!profileUser) return res.status(404).json({ error: 'User not found' });
 
-    let isFriend = false;
+     let isFriend = false;
     let isCloseFriend = false;
+    let isMyCloseFriend = false;
     let hasPendingRequest = false;
     let isRequestSender = false;
     if (currentUserId !== profileUser.id) {
@@ -356,9 +369,28 @@ const getProfile = async (req, res) => {
 
       if (friendship) {
         isFriend = friendship.status === 'accepted';
-        isCloseFriend = friendship.isCloseFriend;
         hasPendingRequest = friendship.status === 'pending';
         isRequestSender = friendship.senderId === currentUserId;
+
+        // Check if profile owner has marked viewer as close friend
+        const closeFriendRecord = await datingPrisma.closeFriendRequest.findFirst({
+          where: {
+            senderId: profileUser.id,
+            receiverId: currentUserId,
+            status: 'accepted'
+          }
+        });
+        isCloseFriend = !!closeFriendRecord;
+
+        // Check if viewer has marked profile owner as close friend
+        const myCloseFriendRecord = await datingPrisma.closeFriendRequest.findFirst({
+          where: {
+            senderId: currentUserId,
+            receiverId: profileUser.id,
+            status: 'accepted'
+          }
+        });
+        isMyCloseFriend = !!myCloseFriendRecord;
       }
     }
 
@@ -386,6 +418,7 @@ const getProfile = async (req, res) => {
       ...profileUser,
       isFriend,
       isCloseFriend,
+      isMyCloseFriend,
       hasPendingRequest,
       isRequestSender,
       password: null,
@@ -497,13 +530,36 @@ const sendFriendRequest = async (req, res) => {
         receiverId: parseInt(receiverId),
         status: 'pending',
       },
+      include: {
+        sender: {
+          select: { id: true, name: true, profilePicture: true }
+        }
+      }
     });
+
+    // Bust the receiver's friendships cache so they see the new pending request immediately
+    await cacheService.del(`user:friendships:${parseInt(receiverId)}`);
+
+    // Notify receiver via WebSocket so their Friends badge updates in real-time
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(receiverId.toString()).emit('FRIEND_REQUEST_RECEIVED', {
+          requestId: friendship.id,
+          sender: friendship.sender,
+        });
+      }
+    } catch (wsErr) {
+      console.error('Failed to emit FRIEND_REQUEST_RECEIVED:', wsErr);
+    }
+
     res.json(friendship);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Request already exists or failed' });
   }
 };
+
 
 const acceptFriendRequest = async (req, res) => {
   const { requestId } = req.params;
@@ -584,6 +640,15 @@ const removeFriendship = async (req, res) => {
       where: { id: friendship.id },
     });
 
+    await datingPrisma.closeFriendRequest.deleteMany({
+      where: {
+        OR: [
+          { senderId: userId, receiverId: parseInt(targetUserId) },
+          { senderId: parseInt(targetUserId), receiverId: userId }
+        ]
+      }
+    });
+
     await invalidateFeedCache();
     await invalidateRoomsCache();
     await invalidateFriendshipsCache();
@@ -612,16 +677,35 @@ const toggleCloseFriend = async (req, res) => {
 
     if (!friendship) return res.status(404).json({ error: 'Accepted friendship not found' });
 
-    const updated = await datingPrisma.friendship.update({
-      where: { id: friendship.id },
-      data: { isCloseFriend: !friendship.isCloseFriend },
+    const existingCloseFriend = await datingPrisma.closeFriendRequest.findFirst({
+      where: {
+        senderId: userId,
+        receiverId: parseInt(friendId),
+        status: 'accepted'
+      }
     });
+
+    let isCloseFriend = false;
+    if (existingCloseFriend) {
+      await datingPrisma.closeFriendRequest.delete({
+        where: { id: existingCloseFriend.id }
+      });
+    } else {
+      await datingPrisma.closeFriendRequest.create({
+        data: {
+          senderId: userId,
+          receiverId: parseInt(friendId),
+          status: 'accepted'
+        }
+      });
+      isCloseFriend = true;
+    }
 
     await invalidateFeedCache();
     await invalidateRoomsCache();
     await invalidateFriendshipsCache();
     await invalidateProfileCache();
-    res.json(updated);
+    res.json({ isCloseFriend });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to toggle close friend status' });
@@ -690,12 +774,21 @@ const getFriendships = async (req, res) => {
       }
     }
 
+    const myCloseFriends = await datingPrisma.closeFriendRequest.findMany({
+      where: {
+        senderId: userId,
+        status: 'accepted'
+      },
+      select: { receiverId: true }
+    });
+    const myCloseFriendIds = new Set(myCloseFriends.map(cf => cf.receiverId));
+
     // Build friends list — zero additional queries
     const friends = acceptedFriendships.map(f => {
       const friend = f.senderId === userId ? f.receiver : f.sender;
       return {
         ...friend,
-        isCloseFriend: f.isCloseFriend,
+        isCloseFriend: myCloseFriendIds.has(friend.id),
         friendshipId: f.id,
         lastMessage: lastMessageMap.get(friend.id) || null,
       };
@@ -715,6 +808,22 @@ const getFriendships = async (req, res) => {
 
 
 
+
+const getPendingFriendCount = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const count = await datingPrisma.friendship.count({
+      where: {
+        receiverId: userId,
+        status: 'pending',
+      }
+    });
+    res.json({ count });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch pending count' });
+  }
+};
 
 // ==========================================
 // MESSAGE CONTROLLERS
@@ -785,6 +894,7 @@ const getUnreadCounts = async (req, res) => {
       where: {
         receiverId: userId,
         isRead: false,
+        isDeleted: false,
       },
       _count: {
         senderId: true,
@@ -1725,8 +1835,17 @@ const getPost = async (req, res) => {
         return res.status(403).json({ error: 'You are not authorized to view this post' });
       }
 
-      if (post.visibility === 'close_friends' && !friendship.isCloseFriend) {
-        return res.status(403).json({ error: 'You are not authorized to view this post' });
+      if (post.visibility === 'close_friends') {
+        const isAuthorCloseFriend = await datingPrisma.closeFriendRequest.findFirst({
+          where: {
+            senderId: post.authorId,
+            receiverId: userId,
+            status: 'accepted'
+          }
+        });
+        if (!isAuthorCloseFriend) {
+          return res.status(403).json({ error: 'You are not authorized to view this post' });
+        }
       }
     }
 
@@ -1817,6 +1936,7 @@ module.exports = {
   removeFriendship,
   toggleCloseFriend,
   getFriendships,
+  getPendingFriendCount,
   getMessages,
   getUnreadCounts,
   createLanguageRoom,

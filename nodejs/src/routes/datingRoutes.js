@@ -16,6 +16,7 @@ const {
   removeFriendship,
   toggleCloseFriend,
   getFriendships,
+  getPendingFriendCount,
   getMessages,
   getUnreadCounts,
   createLanguageRoom,
@@ -66,6 +67,7 @@ router.post('/social/accept-friendship', datingAuth, acceptFriendship);
 router.post('/social/remove-friendship', datingAuth, removeFriendship);
 router.post('/social/toggle-close-friend', datingAuth, toggleCloseFriend);
 router.get('/social/friendships', datingAuth, getFriendships);
+router.get('/social/friend-requests/count', datingAuth, getPendingFriendCount);
 
 // Direct message history
 router.get('/messages/unread-counts', datingAuth, getUnreadCounts);

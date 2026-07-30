@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
@@ -11,15 +11,18 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
   const fetchPosts = useSocialFeedStore(state => state.fetchPosts);
   const fetchFriends = useSocialFeedStore(state => state.fetchFriends);
   const loadingPosts = useSocialFeedStore(state => state.loadingPosts);
+  const hasMorePosts = useSocialFeedStore(state => state.hasMorePosts);
   
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
   const onlineFriends = friends.filter(friend => 
     onlineUserIds.some(id => id.toString() === friend.id.toString())
   );
 
+  const loaderRef = useRef(null);
+
   useEffect(() => {
     if (postCreatedTrigger > 0) {
-      fetchPosts(true);
+      fetchPosts(true, true);
     }
   }, [postCreatedTrigger]);
 
@@ -28,6 +31,29 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
     fetchPosts();
     fetchFriends();
   }, []);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      const target = entries[0];
+      if (target.isIntersecting && hasMorePosts && !loadingPosts) {
+        fetchPosts(false);
+      }
+    }, {
+      root: null,
+      rootMargin: '200px',
+      threshold: 0.1
+    });
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [hasMorePosts, loadingPosts, fetchPosts]);
 
 
   return (
@@ -58,27 +84,43 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
 
         {/* Posts Feed */}
         <div className="flex flex-col gap-6">
-          {loadingPosts ? (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-500 dark:text-gray-400 flex flex-col items-center justify-center min-h-[200px]">
+          {posts.length === 0 && loadingPosts ? (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-550 dark:text-gray-400 flex flex-col items-center justify-center min-h-[200px]">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 font-medium">Loading feed...</p>
+              <p className="text-sm text-gray-550 dark:text-gray-400 mt-3 font-medium">Loading feed...</p>
             </div>
           ) : posts.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-500 dark:text-gray-400">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-550 dark:text-gray-400">
                <Sparkles size={40} className="mx-auto mb-3 text-orange-400 opacity-60 animate-pulse" />
                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">Your feed is quiet</h3>
                <p className="text-sm">Be the first to share a moment with the community!</p>
             </div>
           ) : (
-            posts.map((post) => (
-              <SocialPostCard 
-                key={post.id} 
-                post={post} 
-                onLike={fetchPosts} 
-                currentUserId={currentUserId}
-                onViewProfile={onViewProfile}
-              />
-            ))
+            <>
+              {posts.map((post) => (
+                <SocialPostCard 
+                  key={post.id} 
+                  post={post} 
+                  onLike={fetchPosts} 
+                  currentUserId={currentUserId}
+                  onViewProfile={onViewProfile}
+                />
+              ))}
+
+              {/* Infinite scroll loader element */}
+              {hasMorePosts && (
+                <div ref={loaderRef} className="py-6 text-center flex flex-col items-center justify-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-bold">Loading more posts...</p>
+                </div>
+              )}
+
+              {!hasMorePosts && (
+                <div className="py-8 text-center text-xs font-black text-gray-400 select-none">
+                  You've caught up! No more posts to load.
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

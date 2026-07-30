@@ -2,16 +2,26 @@ const admin = require('firebase-admin');
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const crypto = require('crypto');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const JWT_SECRET = process.env.JWT_SECRET || 'learnproof_default_secret_9988';
+const prisma = require('../lib/prisma');
+const cacheService = require('../services/cache.service');
 
 /**
  * Verifies Google ID Token. Mimics Django's verify_firebase_token.
  */
 const verifyFirebaseToken = async (idToken) => {
     try {
+        const tokenHash = crypto.createHash('sha256').update(idToken).digest('hex');
+        const cacheKey = `auth:google:token:${tokenHash}`;
+        const cachedPayload = await cacheService.get(cacheKey);
+        if (cachedPayload) {
+            return cachedPayload;
+        }
+
         const ticket = await client.verifyIdToken({
             idToken,
             audience: [
@@ -27,15 +37,15 @@ const verifyFirebaseToken = async (idToken) => {
         // Map 'sub' to 'uid' to match existing expectations
         payload.uid = payload.sub;
 
+        // Cache the verified token payload for 15 minutes (900 seconds)
+        await cacheService.set(cacheKey, payload, 900);
+
         return payload;
     } catch (error) {
         console.error('Token verification error:', error);
         throw new Error('Invalid Google Token');
     }
 };
-
-const prisma = require('../lib/prisma');
-const cacheService = require('../services/cache.service');
 
 /**
  * Express Middleware for Auth

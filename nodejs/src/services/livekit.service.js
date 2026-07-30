@@ -67,7 +67,10 @@ async function listRooms() {
   }
 
   try {
-    const rooms = await roomService.listRooms();
+    const rooms = await Promise.race([
+      roomService.listRooms(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('LiveKit connection timeout')), 1200))
+    ]);
     cachedRooms = rooms;
     lastCacheTime = Date.now();
     return rooms;
@@ -76,7 +79,8 @@ async function listRooms() {
       console.warn("Failed to fetch rooms from LiveKit, returning cached fallback:", err.message);
       return cachedRooms;
     }
-    throw err;
+    console.error("LiveKit listRooms error:", err.message);
+    return [];
   }
 }
 

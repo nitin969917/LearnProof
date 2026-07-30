@@ -4,6 +4,7 @@ import { Home, BookOpen, Award, LogOut, Quote, Search, Moon, Sun, X, MessageSqua
 import { useAuth } from '../../context/AuthContext';
 import { useModal } from '../../context/ModalContext';
 import { useSocialMessageStore } from '../../store/socialMessageStore';
+import { useSocialFeedStore } from '../../store/socialFeedStore';
 import { motion } from 'framer-motion';
 
 const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) => {
@@ -12,6 +13,8 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
     const navigate = useNavigate();
     const [isDarkMode, setIsDarkMode] = useState(false);
     const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
+    const pendingFriendCount = useSocialFeedStore((state) => state.pendingFriendCount);
+    const totalSocialCount = totalUnreadCount + pendingFriendCount;
 
     // Initialize dark mode from localStorage or system preference
     useEffect(() => {
@@ -179,9 +182,9 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                                             strokeWidth: isActive ? 2.5 : 2,
                                                             className: isActive && !isExpanded ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''
                                                         })}
-                                                        {item.name === 'Social Hub' && totalUnreadCount > 0 && (
+                                                        {item.name === 'Social Hub' && totalSocialCount > 0 && (
                                                             <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-white dark:border-gray-800 z-20 animate-pulse">
-                                                                {totalUnreadCount}
+                                                                {totalSocialCount > 99 ? '99+' : totalSocialCount}
                                                             </span>
                                                         )}
                                                     </div>

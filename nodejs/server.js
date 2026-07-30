@@ -35,6 +35,7 @@ app.set('io', io);
 // Mount Socket.io handler
 const datingPrisma = require('./src/utils/datingPrisma');
 const { sendPushNotification } = require('./src/utils/pushNotifier');
+const cacheService = require('./src/services/cache.service');
 const userSockets = new Map(); // userId -> Set of socketIds
 
 io.on('connection', (socket) => {
@@ -52,20 +53,11 @@ io.on('connection', (socket) => {
     }
     userSockets.get(userIdStr).add(socket.id);
     
-    // Send back online list to the joining user only
+    // Send back online list of ALL online users to the joining user
     socket.emit('getOnlineUsers', Array.from(userSockets.keys()));
 
-    // Notify only this user's friends (not ALL connected sockets)
-    try {
-      const friendships = await datingPrisma.friendship.findMany({
-        where: { status: 'accepted', OR: [{ senderId: parseInt(userIdStr) }, { receiverId: parseInt(userIdStr) }] },
-        select: { senderId: true, receiverId: true }
-      });
-      friendships.forEach(f => {
-        const friendId = f.senderId === parseInt(userIdStr) ? f.receiverId : f.senderId;
-        io.to(friendId.toString()).emit('userStatus', { userId: userIdStr, online: true });
-      });
-    } catch (e) { /* non-critical */ }
+    // Broadcast to ALL sockets that this user is online
+    io.emit('userStatus', { userId: userIdStr, online: true });
   });
 
   socket.on('sendMessage', async (data) => {
@@ -78,6 +70,14 @@ io.on('connection', (socket) => {
           content: message.content,
         }
       });
+
+      // Invalidate receiver's unread cache immediately
+      try {
+        await cacheService.del(`user:unread:${receiverId}`);
+      } catch (err) {
+        console.error('Failed to invalidate unread cache on sendMessage:', err);
+      }
+
       // Emit to receiver
       io.to(receiverId.toString()).emit('receiveMessage', savedMessage);
       // Emit confirmation back to sender so their message is DB-synced
@@ -129,6 +129,14 @@ io.on('connection', (socket) => {
           isRead: true
         }
       });
+
+      // Invalidate unread cache for the user receiving read receipt (marking read)
+      try {
+        await cacheService.del(`user:unread:${receiverId}`);
+      } catch (err) {
+        console.error('Failed to invalidate unread cache on readReceipt:', err);
+      }
+
       io.to(data.senderId.toString()).emit('messagesRead', {
         readerId: receiverId
       });
@@ -254,17 +262,8 @@ io.on('connection', (socket) => {
       sockets.delete(socket.id);
       if (sockets.size === 0) {
         userSockets.delete(userIdStr);
-        // Notify only friends — not ALL connected users
-        try {
-          const friendships = await datingPrisma.friendship.findMany({
-            where: { status: 'accepted', OR: [{ senderId: parseInt(userIdStr) }, { receiverId: parseInt(userIdStr) }] },
-            select: { senderId: true, receiverId: true }
-          });
-          friendships.forEach(f => {
-            const friendId = f.senderId === parseInt(userIdStr) ? f.receiverId : f.senderId;
-            io.to(friendId.toString()).emit('userStatus', { userId: userIdStr, online: false });
-          });
-        } catch (e) { /* non-critical */ }
+        // Broadcast to ALL sockets that this user is offline
+        io.emit('userStatus', { userId: userIdStr, online: false });
       }
     }
   });

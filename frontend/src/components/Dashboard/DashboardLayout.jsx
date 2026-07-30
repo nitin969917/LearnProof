@@ -11,6 +11,7 @@ import socialApi from "../../api/socialApi.js";
 import { useSocialStatusStore } from "../../store/socialStatusStore.js";
 import { useSocialMessageStore } from "../../store/socialMessageStore.js";
 import { getSocialSocket } from "../../utils/socialSocket.js";
+import { useSocialFeedStore } from "../../store/socialFeedStore.js";
 import { requestNotificationPermissionAndGetToken } from "../../utils/fcm.js";
 import LiveRoomPipWindow from "./LanguagePractice/LiveRoomPipWindow";
 import { useLiveRoomPipStore } from "../../store/liveRoomPipStore";
@@ -47,7 +48,10 @@ class ErrorBoundary extends React.Component {
 const DashboardLayout = () => {
     const { user, isMatrixActive, matrixClient } = useAuth();
     const { activeRoom, clearActiveRoom, showPip } = useLiveRoomPipStore();
-    const [socialUser, setSocialUser] = useState(null);
+    const socialUser = useSocialFeedStore((state) => state.socialUser);
+    const fetchSocialUser = useSocialFeedStore((state) => state.fetchSocialUser);
+    const fetchPendingFriendCount = useSocialFeedStore((state) => state.fetchPendingFriendCount);
+    const incrementPendingFriendCount = useSocialFeedStore((state) => state.incrementPendingFriendCount);
     const [onHeaderAction, setOnHeaderAction] = useState(null);
 
     const initializeStatus = useSocialStatusStore((state) => state.initializeStatus);
@@ -61,18 +65,10 @@ const DashboardLayout = () => {
     }, [activeChatUserId]);
 
     useEffect(() => {
-        const fetchSocialUser = async () => {
-            try {
-                const response = await socialApi.get('/users/me');
-                setSocialUser(response.data);
-            } catch (err) {
-                console.error('Failed to sync social user', err);
-            }
-        };
         if (user) {
             fetchSocialUser();
         }
-    }, [user]);
+    }, [user, fetchSocialUser]);
 
     // Request notification permission and save token on dashboard mount
     useEffect(() => {
@@ -87,6 +83,7 @@ const DashboardLayout = () => {
         if (socialUser) {
             initializeStatus(socialUser.id);
             fetchUnreadCounts();
+            fetchPendingFriendCount();
 
             if (isMatrixActive && matrixClient) {
                 const getLocalIdFromMatrixUserId = (matrixUserId) => {
@@ -127,6 +124,19 @@ const DashboardLayout = () => {
             }
         }
     }, [socialUser, isMatrixActive, matrixClient]);
+
+    // Listen for incoming friend requests to update Friends tab badge in real-time
+    useEffect(() => {
+        if (!socialUser) return;
+        const socket = getSocialSocket(socialUser.id);
+        const handleFriendRequest = () => {
+            incrementPendingFriendCount();
+        };
+        socket.on('FRIEND_REQUEST_RECEIVED', handleFriendRequest);
+        return () => {
+            socket.off('FRIEND_REQUEST_RECEIVED', handleFriendRequest);
+        };
+    }, [socialUser]);
 
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -240,7 +250,7 @@ const DashboardLayout = () => {
             )}
 
             {/* Main content area */}
-            <main className="flex-1 flex flex-col min-w-0">
+             <main className="flex-1 flex flex-col min-w-0 relative">
                 {/* Top Bar */}
                 {/* Hidden when: social hub, inside a live room, or on live-rooms list coming from social */}
                 {!isSocialHub && !isLiveRoom && !showSocialBottomNav && (!isInsideWorkspace || !isMobile) && <TopBar onMenuClick={toggleSidebar} />}                {/* Social Hub-context header — mirrors SocialDashboard header and main TopBar logo position exactly. */}
@@ -316,15 +326,14 @@ const DashboardLayout = () => {
                         <Outlet context={{ toggleSidebar, setHeaderAction: setOnHeaderAction }} />
                     </ErrorBoundary>
                 </div>
+                {/* Social Hub's bottom nav — shown on live-rooms pages when the user navigated from Social Hub */}
+                {showSocialBottomNav && !isLiveRoom && (
+                    <SocialBottomNavBar onMenuClick={toggleSidebar} />
+                )}
             </main>
 
             {!isSocialHub && !isLiveRoom && !showSocialBottomNav && !isInsideWorkspace && (
                 <BottomNav onMenuClick={toggleSidebar} />
-            )}
-
-            {/* Social Hub's bottom nav — shown on live-rooms pages when the user navigated from Social Hub */}
-            {showSocialBottomNav && !isLiveRoom && (
-                <SocialBottomNavBar onMenuClick={toggleSidebar} />
             )}
 
             {/* Floating Live Room Picture-in-Picture Window */}
