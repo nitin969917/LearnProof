@@ -3,6 +3,7 @@ import { Search, Compass, GraduationCap, MapPin, ArrowRight, UserCheck, Check, U
 import { motion, AnimatePresence } from 'framer-motion';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 
 export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const [searchType, setSearchType] = useState('students'); // 'students' or 'groups'
@@ -216,13 +217,12 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                     onClick={() => onViewProfile(student.id)}
                     className="bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-800/40 rounded-3xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer flex gap-4 items-center group relative overflow-hidden"
                   >
-                    <div className="w-14 h-14 rounded-2xl overflow-hidden flex-shrink-0 bg-orange-100 dark:bg-orange-950/30 flex items-center justify-center text-orange-600 dark:text-orange-400 font-black text-xl border border-orange-200/20">
-                      {student.profilePicture ? (
-                        <img src={student.profilePicture} alt={student.name} className="w-full h-full object-cover" />
-                      ) : (
-                        student.name?.[0]?.toUpperCase() || '?'
-                      )}
-                    </div>
+                    <UserAvatar 
+                      src={student.profilePicture} 
+                      name={student.name} 
+                      className="w-14 h-14 rounded-2xl" 
+                      textClassName="text-xl"
+                    />
                     
                     <div className="min-w-0 flex-1">
                       <h3 className="font-extrabold text-gray-800 dark:text-gray-100 group-hover:text-orange-500 transition-colors text-base truncate">{student.name}</h3>

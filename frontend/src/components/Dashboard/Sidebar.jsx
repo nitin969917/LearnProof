@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useModal } from '../../context/ModalContext';
 import { useSocialMessageStore } from '../../store/socialMessageStore';
 import { useSocialFeedStore } from '../../store/socialFeedStore';
+import UserAvatar from '../Common/UserAvatar.jsx';
 import { motion } from 'framer-motion';
 
 const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) => {
@@ -215,13 +216,12 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                         onClick={onProfileClick}
                         className={`flex items-center ${isExpanded ? 'gap-3 px-4 py-3 border border-orange-100 dark:border-gray-700 bg-orange-50 dark:bg-gray-800' : 'justify-center'} rounded-xl cursor-pointer hover:bg-orange-100 dark:hover:bg-gray-700 hover:shadow-sm transition-all`}
                     >
-                        {user.picture ? (
-                            <img src={user.picture} alt="Profile" className={`${isExpanded ? 'w-10 h-10' : 'w-10 h-10'} rounded-full shadow-sm`} />
-                        ) : (
-                            <div className={`${isExpanded ? 'w-10 h-10' : 'w-10 h-10'} rounded-full bg-orange-200 flex items-center justify-center text-orange-700 font-bold shadow-sm text-sm`}>
-                                {user.name?.charAt(0) || 'U'}
-                            </div>
-                        )}
+                        <UserAvatar 
+                            src={user.picture} 
+                            name={user.name} 
+                            className="w-10 h-10 rounded-full shadow-sm" 
+                            textClassName="text-sm font-bold"
+                        />
                         {isExpanded && (
                             <div className="overflow-hidden">
                                 <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{user.name || 'User'}</p>

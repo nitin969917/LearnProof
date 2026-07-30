@@ -4,6 +4,7 @@ import socialApi from '../../../api/socialApi.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import { useModal } from '../../../context/ModalContext.jsx';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 
 export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   const friends = useSocialFeedStore(state => state.friends);
@@ -129,7 +130,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                   onClick={() => onViewProfile(req.sender.id)}
                   className="flex items-center gap-3 cursor-pointer min-w-0 flex-1"
                 >
-                  <img src={req.sender.profilePicture || '/default-avatar.png'} alt={req.sender.name} className="w-10 h-10 rounded-full object-cover bg-gray-100" />
+                  <UserAvatar src={req.sender.profilePicture} name={req.sender.name} className="w-10 h-10 rounded-full" />
                   <div className="min-w-0">
                     <p className="font-bold text-sm text-gray-800 dark:text-gray-100 truncate">{req.sender.name}</p>
                     <p className="text-[10px] text-gray-400 dark:text-gray-500">wants to connect</p>
@@ -183,9 +184,9 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                     className="flex items-center gap-3.5 cursor-pointer min-w-0 flex-1"
                   >
                     <div className="relative flex-shrink-0">
-                      <img src={friend.profilePicture || '/default-avatar.png'} alt={friend.name} className="w-12 h-12 rounded-full object-cover bg-gray-100" />
+                      <UserAvatar src={friend.profilePicture} name={friend.name} className="w-12 h-12 rounded-full" />
                       {isFriendOnline && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-10"></div>
                       )}
                     </div>
                     <div className="min-w-0">

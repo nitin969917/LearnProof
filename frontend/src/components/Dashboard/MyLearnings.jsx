@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-hot-toast";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Play, Library, Video, Search, Trash2, Plus, Clock, ChevronRight, Sparkles, BookOpen, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Play, Library, Video, Search, Trash2, Plus, Clock, ChevronRight, Sparkles, BookOpen, ArrowLeft, CheckCircle, Compass } from 'lucide-react';
 import { useModal } from "../../context/ModalContext";
 
 function useDebouncedValue(value, delay = 500) {
@@ -300,89 +300,122 @@ const MyLearnings = () => {
                             <p className="text-gray-500 dark:text-slate-400 font-bold tracking-widest uppercase text-xs">Syncing your library...</p>
                         </div>
                     </div>
-                ) : activeTab === "videos" && (
-                    <div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6">
-                        {videos.length === 0 ? (
-                            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
-                                <Video className="w-12 h-12 text-gray-300 dark:text-gray-650 mx-auto mb-2" />
-                                <p className="text-xs text-gray-405 dark:text-gray-500 font-medium">No videos in your library yet.</p>
-                            </div>
-                        ) : (
-                            videos.map((video, index) => (
-                                <motion.div
-                                    key={video.vid}
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: index * 0.05 }}
-                                    className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative"
-                                >
-                                    {/* Delete Overlay */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleVideoDelete(video.vid);
-                                        }}
-                                        className="absolute top-3 right-3 z-20 p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all duration-300 backdrop-blur-md opacity-100 shadow-sm border border-red-500/10"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                ) : !searchQuery && videos.length === 0 && playlists.length === 0 ? (
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 p-8 md:p-12 text-center shadow-xl shadow-orange-500/5 flex flex-col items-center justify-center max-w-2xl mx-auto my-6 relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 w-60 h-60 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                        <div className="absolute bottom-0 left-0 w-60 h-60 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
-                                    <div 
-                                        className="cursor-pointer flex flex-col h-full"
-                                        onClick={() => navigate(`/classroom/${video.vid}`)}
-                                    >
-                                        <div className="aspect-video bg-gray-105 dark:bg-gray-700/50 relative flex items-center justify-center overflow-hidden border-b border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.05]">
-                                            <img
-                                                src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
-                                                alt={video.name}
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
-                                                    <Play size={24} className="text-white fill-white ml-1" />
-                                                </div>
-                                            </div>
-                                            {video.is_completed && (
-                                                <div className="absolute top-3 left-3 bg-green-500 text-white text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shadow-md shadow-green-500/20 z-10">
-                                                    Achieved
-                                                </div>
-                                            )}
-                                        </div>
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 mb-5">
+                            <Compass size={32} className="drop-shadow-md" />
+                        </div>
 
-                                        <div className="p-4 pt-3 flex flex-col flex-1">
-                                            <div className="flex items-center gap-1.5 mb-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
-                                                <span className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Video Lesson</span>
-                                            </div>
-                                            
-                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover/card:text-orange-500 dark:group-hover/card:text-orange-400 text-sm mb-1.5 line-clamp-2 transition-colors duration-300 leading-snug flex-1">
-                                                {video.name}
-                                            </h3>
+                        <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-2">
+                            Your Library is Empty
+                        </h2>
 
-                                            <div className="mt-auto space-y-4">
-                                                <div className="pt-3 border-t border-gray-50 dark:border-slate-800/80">
-                                                    <div className="flex items-center justify-between text-[10px] mb-1 font-black uppercase tracking-widest text-gray-405 dark:text-slate-500">
-                                                        <span>Progress</span>
-                                                        <span className="text-orange-600 dark:text-orange-400 group-hover/card:text-orange-500 transition-colors">{Math.round(video.watch_progress || 0)}%</span>
-                                                    </div>
-                                                    <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
-                                                        <motion.div
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${Math.round(video.watch_progress || 0)}%` }}
-                                                            className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.3)] transition-all duration-1000"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                        <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 max-w-md mb-6 leading-relaxed">
+                            You haven't enrolled in any video lessons or learning roadmaps yet. Explore our catalog to discover topics and start building your knowledge!
+                        </p>
+
+                        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <button
+                                onClick={() => navigate('/dashboard/explore')}
+                                className="px-8 py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/20 hover:shadow-orange-500/35 hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-2"
+                            >
+                                <Search size={16} />
+                                <span>Explore Content</span>
+                            </button>
+                        </div>
+                    </motion.div>
+                ) : (
+                    <>
+                        {activeTab === "videos" && (
+                            <div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6">
+                                {videos.length === 0 ? (
+                                    <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
+                                        <Video className="w-12 h-12 text-gray-300 dark:text-gray-650 mx-auto mb-2" />
+                                        <p className="text-xs text-gray-405 dark:text-gray-500 font-medium">No videos in your library yet.</p>
                                     </div>
-                                </motion.div>
-                            ))
-                        )}
-                    </div>
-                )}
+                                ) : (
+                                    videos.map((video, index) => (
+                                        <motion.div
+                                            key={video.vid}
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            transition={{ delay: index * 0.05 }}
+                                            className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative"
+                                        >
+                                            {/* Delete Overlay */}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleVideoDelete(video.vid);
+                                                }}
+                                                className="absolute top-3 right-3 z-20 p-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all duration-300 backdrop-blur-md opacity-100 shadow-sm border border-red-500/10"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
 
-                {!loading && activeTab === "playlists" && (
+                                            <div 
+                                                className="cursor-pointer flex flex-col h-full"
+                                                onClick={() => navigate(`/classroom/${video.vid}`)}
+                                            >
+                                                <div className="aspect-video bg-gray-105 dark:bg-gray-700/50 relative flex items-center justify-center overflow-hidden border-b border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.05]">
+                                                    <img
+                                                        src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
+                                                        alt={video.name}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                                        <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                                            <Play size={24} className="text-white fill-white ml-1" />
+                                                        </div>
+                                                    </div>
+                                                    {video.is_completed && (
+                                                        <div className="absolute top-3 left-3 bg-green-500 text-white text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider shadow-md shadow-green-500/20 z-10">
+                                                            Achieved
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="p-4 pt-3 flex flex-col flex-1">
+                                                    <div className="flex items-center gap-1.5 mb-2">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
+                                                        <span className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Video Lesson</span>
+                                                    </div>
+                                                    
+                                                    <h3 className="font-bold text-gray-900 dark:text-white group-hover/card:text-orange-500 dark:group-hover/card:text-orange-400 text-sm mb-1.5 line-clamp-2 transition-colors duration-300 leading-snug flex-1">
+                                                        {video.name}
+                                                    </h3>
+
+                                                    <div className="mt-auto space-y-4">
+                                                        <div className="pt-3 border-t border-gray-50 dark:border-slate-800/80">
+                                                            <div className="flex items-center justify-between text-[10px] mb-1 font-black uppercase tracking-widest text-gray-405 dark:text-slate-500">
+                                                                <span>Progress</span>
+                                                                <span className="text-orange-600 dark:text-orange-400 group-hover/card:text-orange-500 transition-colors">{Math.round(video.watch_progress || 0)}%</span>
+                                                            </div>
+                                                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
+                                                                <motion.div
+                                                                    initial={{ width: 0 }}
+                                                                    animate={{ width: `${Math.round(video.watch_progress || 0)}%` }}
+                                                                    className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full shadow-[0_0_10px_rgba(249,115,22,0.3)] transition-all duration-1000"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === "playlists" && (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6">
                         {playlists.length === 0 ? (
                             <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
@@ -584,6 +617,8 @@ const MyLearnings = () => {
                             })
                         )}
                     </div>
+                )}
+                    </>
                 )}
             </motion.div>
 

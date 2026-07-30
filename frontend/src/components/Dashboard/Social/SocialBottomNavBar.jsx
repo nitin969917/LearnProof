@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 
 /**
  * SocialBottomNavBar
@@ -67,13 +68,12 @@ export default function SocialBottomNavBar() {
                   <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
                     {tab.id === 'profile' ? (
                       <div className="w-[22px] h-[22px] rounded-full overflow-hidden border border-gray-300 dark:border-gray-600 transition-all">
-                        {socialUser?.avatar ? (
-                          <img src={socialUser.avatar} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full bg-orange-100 dark:bg-orange-950/40 text-orange-655 dark:text-orange-400 flex items-center justify-center font-bold text-[10px]">
-                            {socialUser?.name?.[0]?.toUpperCase() || 'U'}
-                          </div>
-                        )}
+                        <UserAvatar 
+                          src={socialUser?.avatar} 
+                          name={socialUser?.name} 
+                          className="w-full h-full rounded-full" 
+                          textClassName="text-[10px] font-bold"
+                        />
                       </div>
                     ) : (
                       <Icon size={22} strokeWidth={2} />
@@ -90,7 +90,7 @@ export default function SocialBottomNavBar() {
               </button>
 
               {/* Live Rooms Globe icon — active when on live-rooms page */}
-              {idx === 1 && (
+              {idx === 2 && (
                 <button
                   onClick={() => {
                     sessionStorage.setItem('nav_source', 'social');

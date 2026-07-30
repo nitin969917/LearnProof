@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Star, Trash2, Edit3, X, Check } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { useModal } from '../../../context/ModalContext';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 
 export default function SocialPostCard({ post, onLike, currentUserId, onViewProfile }) {
@@ -160,15 +161,12 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
           onClick={() => onViewProfile(post.author.id)}
           className="flex items-center gap-3 cursor-pointer"
         >
-          <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
-            {post.author.profilePicture ? (
-              <img src={post.author.profilePicture} alt={post.author.name} className="w-full h-full object-cover" loading="lazy" />
-            ) : (
-              <div className="w-full h-full bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-lg">
-                {post.author.name?.[0]?.toUpperCase() || '?'}
-              </div>
-            )}
-          </div>
+          <UserAvatar 
+            src={post.author.profilePicture} 
+            name={post.author.name} 
+            className="w-12 h-12 rounded-full"
+            textClassName="text-lg"
+          />
           <div>
             <h4 className="font-bold text-gray-900 dark:text-white hover:text-orange-500 transition-colors">{post.author.name}</h4>
             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs">
@@ -335,18 +333,12 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
                 const canDelete = (isCommentAuthor || isAuthor) && !comment.isOptimistic; // comment author or post author, disable if optimistic
                 return (
                   <div key={comment.id} className={`flex gap-3 text-xs md:text-sm items-start bg-gray-50/50 dark:bg-gray-900/30 p-2.5 rounded-xl border border-gray-100/50 dark:border-gray-700/30 transition-opacity duration-200 ${comment.isOptimistic ? 'opacity-65' : ''}`}>
-                    <div 
-                      onClick={() => !comment.isOptimistic && onViewProfile(comment.author.id)}
-                      className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ${comment.isOptimistic ? 'cursor-default' : 'cursor-pointer'}`}
-                    >
-                      {comment.author.profilePicture ? (
-                        <img src={comment.author.profilePicture} alt={comment.author.name} className="w-full h-full object-cover" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold">
-                          {comment.author.name?.[0]?.toUpperCase() || '?'}
-                        </div>
-                      )}
-                    </div>
+                    <UserAvatar 
+                      src={comment.author.profilePicture} 
+                      name={comment.author.name} 
+                      className={`w-8 h-8 rounded-full ${comment.isOptimistic ? 'cursor-default' : 'cursor-pointer'}`}
+                      textClassName="text-xs"
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span 

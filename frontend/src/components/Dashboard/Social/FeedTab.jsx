@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
 
 export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser, postCreatedTrigger }) {
@@ -66,8 +67,8 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
             {onlineFriends.map(friend => (
               <div key={friend.id} className="flex flex-col items-center gap-1 flex-shrink-0" onClick={() => onViewProfile(friend.id)}>
                 <div className="relative cursor-pointer">
-                  <img src={friend.profilePicture || '/default-avatar.png'} alt={friend.name} className="w-11 h-11 rounded-full object-cover bg-gray-100 dark:bg-gray-700 border-2 border-white dark:border-gray-800" loading="lazy" />
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                  <UserAvatar src={friend.profilePicture} name={friend.name} className="w-11 h-11 rounded-full border-2 border-white dark:border-gray-800" />
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-10"></div>
                 </div>
                 <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 max-w-[48px] truncate">{friend.name.split(' ')[0]}</span>
               </div>
@@ -140,9 +141,9 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
                            className="flex items-center gap-3 cursor-pointer min-w-0 flex-1"
                         >
                            <div className="relative flex-shrink-0">
-                              <img src={friend.profilePicture || '/default-avatar.png'} alt={friend.name} className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-gray-700" loading="lazy" />
+                              <UserAvatar src={friend.profilePicture} name={friend.name} className="w-10 h-10 rounded-full" />
                               {isFriendOnline && (
-                                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-10"></div>
                               )}
                            </div>
                            <div className="min-w-0">
@@ -186,9 +187,9 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
                              onClick={() => onViewProfile(friend.id)}
                              className="relative flex-shrink-0 cursor-pointer"
                           >
-                             <img src={friend.profilePicture || '/default-avatar.png'} alt={friend.name} className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-gray-700" loading="lazy" />
+                             <UserAvatar src={friend.profilePicture} name={friend.name} className="w-10 h-10 rounded-full" />
                              {isFriendOnline && (
-                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-10"></div>
                              )}
                           </div>
                           <div className="min-w-0">

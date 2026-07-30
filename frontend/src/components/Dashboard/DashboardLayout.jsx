@@ -13,6 +13,7 @@ import { useSocialMessageStore } from "../../store/socialMessageStore.js";
 import { getSocialSocket } from "../../utils/socialSocket.js";
 import { useSocialFeedStore } from "../../store/socialFeedStore.js";
 import { requestNotificationPermissionAndGetToken } from "../../utils/fcm.js";
+import UserAvatar from "../Common/UserAvatar.jsx";
 import LiveRoomPipWindow from "./LanguagePractice/LiveRoomPipWindow";
 import { useLiveRoomPipStore } from "../../store/liveRoomPipStore";
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
@@ -297,13 +298,12 @@ const DashboardLayout = () => {
                                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-orange-100 dark:border-gray-700 active:scale-95 transition-all cursor-pointer flex items-center justify-center shrink-0"
                                 title="My Profile"
                             >
-                                {socialUser?.avatar ? (
-                                    <img src={socialUser.avatar} alt="Profile" className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full bg-orange-100 dark:bg-orange-950/40 text-orange-655 dark:text-orange-400 flex items-center justify-center font-bold text-sm">
-                                        {socialUser?.name?.[0]?.toUpperCase() || 'U'}
-                                    </div>
-                                )}
+                                <UserAvatar 
+                                    src={socialUser?.avatar} 
+                                    name={socialUser?.name} 
+                                    className="w-full h-full rounded-full" 
+                                    textClassName="text-sm font-bold"
+                                />
                             </button>
                         </div>
                     </div>

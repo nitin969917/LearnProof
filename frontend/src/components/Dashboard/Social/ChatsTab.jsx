@@ -16,6 +16,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { getMatrixClient } from '../../../utils/matrixClient';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 
 export default function ChatsTab({ currentUserId, selectedContact, onClearSelectedContact, onToggleHeader, onViewProfile }) {
   const { confirm } = useModal();
@@ -1127,10 +1128,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     {/* Avatar */}
                     <div className="relative shrink-0 select-none">
                       {chat.type === 'direct' ? (
-                        <img 
-                          src={chat.profilePicture || '/default-avatar.png'} 
-                          alt={chat.name} 
-                          className="w-11 h-11 rounded-full object-cover bg-gray-200 border border-gray-100 dark:border-gray-700" 
+                        <UserAvatar 
+                          src={chat.profilePicture} 
+                          name={chat.name} 
+                          className="w-11 h-11 rounded-full border border-gray-100 dark:border-gray-700" 
                         />
                       ) : (
                         <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-sm text-white shadow-sm bg-gradient-to-tr ${
@@ -1240,10 +1241,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
                   {/* Avatar */}
                   {selectedChat.type === 'direct' ? (
-                    <img 
-                      src={selectedChat.profilePicture || '/default-avatar.png'} 
-                      alt={selectedChat.name} 
-                      className="w-10 h-10 rounded-full object-cover shrink-0 bg-gray-200 border border-gray-200/50 dark:border-gray-700" 
+                    <UserAvatar 
+                      src={selectedChat.profilePicture} 
+                      name={selectedChat.name} 
+                      className="w-10 h-10 rounded-full border border-gray-200/50 dark:border-gray-700 shrink-0" 
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm text-white bg-gradient-to-tr from-emerald-400 to-teal-500 shrink-0 shadow-sm">

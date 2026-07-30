@@ -11,6 +11,7 @@ import ProfileTab from './ProfileTab.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 import { motion } from 'framer-motion';
 
 export default function SocialDashboard() {
@@ -318,13 +319,12 @@ export default function SocialDashboard() {
             }`}
             title="My Profile"
           >
-            {socialUser.avatar ? (
-              <img src={socialUser.avatar} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-orange-105 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold text-sm">
-                {socialUser.name?.[0]?.toUpperCase() || 'U'}
-              </div>
-            )}
+            <UserAvatar 
+              src={socialUser.avatar} 
+              name={socialUser.name} 
+              className="w-full h-full rounded-full" 
+              textClassName="text-sm font-bold"
+            />
           </button>
         </div>
       </div>
@@ -398,13 +398,12 @@ export default function SocialDashboard() {
                     <div className={`transition-all duration-300 z-10 flex flex-col items-center justify-center ${isActive ? 'scale-110 text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
                       {tab.id === 'profile' ? (
                         <div className={`w-[22px] h-[22px] rounded-full overflow-hidden border transition-all ${isActive ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-gray-300 dark:border-gray-600'}`}>
-                          {socialUser.avatar ? (
-                            <img src={socialUser.avatar} alt="Profile" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold text-[10px]">
-                              {socialUser.name?.[0]?.toUpperCase() || 'U'}
-                            </div>
-                          )}
+                          <UserAvatar 
+                            src={socialUser.avatar} 
+                            name={socialUser.name} 
+                            className="w-full h-full rounded-full" 
+                            textClassName="text-[10px] font-bold"
+                          />
                         </div>
                       ) : (
                         <Icon 
@@ -426,8 +425,8 @@ export default function SocialDashboard() {
                   </motion.div>
                 </button>
 
-                {/* Live Rooms Globe icon next to Discover (idx === 1) */}
-                {idx === 1 && (
+                {/* Live Rooms Globe icon next to Discover (idx === 2) */}
+                {idx === 2 && (
                   <button
                     onClick={() => {
                       // Store nav_source so DashboardLayout shows Social Hub bottom nav on live-rooms pages

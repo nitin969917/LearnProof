@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import { useModal } from '../../../context/ModalContext.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 
 export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, onSelectChatUser, onViewProfile }) {
   const { updateUser } = useAuth();
@@ -169,13 +170,12 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 md:p-6 shadow-sm flex flex-col gap-4">
             <div className="flex gap-4 md:gap-6 items-start">
               {/* Avatar */}
-              <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-3xl md:text-4xl shadow border-2 border-orange-50 dark:border-orange-950/20">
-                {profile.profilePicture ? (
-                  <img src={profile.profilePicture} alt={profile.name} className="w-full h-full object-cover" />
-                ) : (
-                  profile.name?.[0]?.toUpperCase() || '?'
-                )}
-              </div>
+              <UserAvatar 
+                src={profile.profilePicture} 
+                name={profile.name} 
+                className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-orange-50 dark:border-orange-950/20 shadow"
+                textClassName="text-3xl md:text-4xl"
+              />
 
               {/* Info */}
               <div className="flex-1 text-left min-w-0">
@@ -368,13 +368,12 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 md:p-6 shadow-sm flex flex-col gap-4">
           <div className="flex gap-4 md:gap-6 items-start">
             {/* Avatar */}
-            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 dark:bg-orange-950 flex items-center justify-center text-orange-600 dark:text-orange-400 font-bold text-3xl md:text-4xl shadow border-2 border-orange-50 dark:border-orange-950/20">
-              {profile.profilePicture ? (
-                <img src={profile.profilePicture} alt={profile.name} className="w-full h-full object-cover" />
-              ) : (
-                profile.name?.[0]?.toUpperCase() || '?'
-              )}
-            </div>
+            <UserAvatar 
+              src={profile.profilePicture} 
+              name={profile.name} 
+              className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-orange-50 dark:border-orange-950/20 shadow"
+              textClassName="text-3xl md:text-4xl"
+            />
 
             {/* Info */}
             <div className="flex-1 text-left min-w-0">
