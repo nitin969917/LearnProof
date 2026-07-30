@@ -230,6 +230,10 @@ export default function SocialDashboard() {
   };
 
   const handleTabChange = (tabId) => {
+    if (tabId === 'home') {
+      navigate('/dashboard');
+      return;
+    }
     if (tabId === 'profile') {
       setSelectedProfileId(socialUser?.id || null);
     }
@@ -240,16 +244,12 @@ export default function SocialDashboard() {
   };
 
   const tabs = [
-    { id: 'feed', name: 'Feed', icon: MessageCircle },
-    { id: 'discover', name: 'Discover', icon: Search },
+    { id: 'home',    name: 'Home',    icon: Home,          mobileOnly: true },
+    { id: 'feed',    name: 'Feed',    icon: MessageCircle },
+    { id: 'discover',name: 'Discover',icon: Search },
     { id: 'friends', name: 'Friends', icon: Users, badge: pendingFriendCount > 0 ? pendingFriendCount : null },
-    { 
-      id: 'chat', 
-      name: 'Chats', 
-      icon: MessageSquare,
-      badge: totalUnreadCount > 0 ? totalUnreadCount : null
-    },
-    { id: 'profile', name: 'Profile', icon: User }
+    { id: 'chat',    name: 'Chats',   icon: MessageSquare, badge: totalUnreadCount > 0 ? totalUnreadCount : null },
+    { id: 'profile', name: 'Profile', icon: User,          desktopOnly: true },
   ];
 
   if (!socialUser) {
@@ -385,9 +385,11 @@ export default function SocialDashboard() {
 
             return (
               <Fragment key={tab.id}>
-                <button
+              <button
                   onClick={() => handleTabChange(tab.id)}
-                  className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-555 no-underline touch-manipulation select-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 cursor-pointer"
+                  className={`relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-555 no-underline touch-manipulation select-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 cursor-pointer ${
+                    tab.mobileOnly ? 'lg:hidden' : tab.desktopOnly ? 'hidden lg:flex' : ''
+                  }`}
                 >
                   <motion.div
                     whileTap={{ scale: 0.88 }}

@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { Search, Users, MessageSquare, User, Globe, MessageCircle } from 'lucide-react';
+import { Home, Search, Users, MessageSquare, User, Globe, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
@@ -18,14 +18,19 @@ export default function SocialBottomNavBar() {
   const clearPendingFriendCount = useSocialFeedStore((state) => state.clearPendingFriendCount);
 
   const tabs = [
+    { id: 'home',     icon: Home,         label: 'Home',    mobileOnly: true },
     { id: 'feed',     icon: MessageCircle,label: 'Feed' },
     { id: 'discover', icon: Search,       label: 'Discover' },
     { id: 'friends',  icon: Users,        label: 'Friends', badge: pendingFriendCount > 0 ? pendingFriendCount : null },
-    { id: 'chat',     icon: MessageSquare,label: 'Chats', badge: totalUnreadCount > 0 ? totalUnreadCount : null },
-    { id: 'profile',  icon: User,         label: 'Profile' }
+    { id: 'chat',     icon: MessageSquare,label: 'Chats',   badge: totalUnreadCount > 0 ? totalUnreadCount : null },
+    { id: 'profile',  icon: User,         label: 'Profile', desktopOnly: true },
   ];
 
   const goToTab = (tabId) => {
+    if (tabId === 'home') {
+      navigate('/dashboard');
+      return;
+    }
     // Clear social source so back navigation is clean
     sessionStorage.setItem('nav_source', 'social');
     // Clear friends badge when navigating to friends tab
@@ -51,7 +56,9 @@ export default function SocialBottomNavBar() {
             <Fragment key={tab.id}>
               <button
                 onClick={() => goToTab(tab.id)}
-                className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 touch-manipulation select-none outline-none focus:outline-none cursor-pointer"
+                className={`relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 touch-manipulation select-none outline-none focus:outline-none cursor-pointer ${
+                  tab.mobileOnly ? 'lg:hidden' : tab.desktopOnly ? 'hidden lg:flex' : ''
+                }`}
               >
                 <motion.div
                   whileTap={{ scale: 0.88 }}
