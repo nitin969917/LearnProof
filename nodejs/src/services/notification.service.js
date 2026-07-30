@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const prisma = require('../lib/prisma');
 const admin = require('../lib/firebaseAdmin');
+const redis = require('../lib/redis');
 
 /**
  * Helper to retrieve local date-time parts in a given timezone.
@@ -82,6 +83,26 @@ const getStartOfDayInUTC = (timeZone, referenceDate = new Date()) => {
 const sendDailyNotifications = async () => {
     console.log('[Notification Cron] Running checks for daily notifications...');
     
+    // Acquire a distributed lock to prevent multiple PM2 instances from running the cron simultaneously.
+    // The lock is set to expire after 60 seconds (1 minute), which is enough for the cron job to complete.
+    // Since the cron runs every 5 minutes, this prevents other instances from running during the same 5-minute interval.
+    try {
+        const lockKey = 'cron:send_daily_notifications:lock';
+        const acquired = await redis.set(lockKey, 'locked', 'NX', 'EX', 60);
+        if (acquired !== 'OK') {
+            console.log('[Notification Cron] Another instance has already acquired the lock. Skipping execution on this instance.');
+            return;
+        }
+    } catch (lockError) {
+        console.error('[Notification Cron] Redis lock acquisition failed:', lockError.message);
+        // Fallback: If Redis is unavailable, use PM2 instance ID to restrict execution to instance 0.
+        // This prevents duplicate notifications in cluster mode even if Redis is down.
+        if (process.env.NODE_APP_INSTANCE && process.env.NODE_APP_INSTANCE !== '0') {
+            console.log(`[Notification Cron] Redis is down/unavailable and this is PM2 instance ${process.env.NODE_APP_INSTANCE}. Skipping execution.`);
+            return;
+        }
+    }
+
     try {
         // Query enabled template configurations from the database
         const templates = await prisma.notificationTemplate.findMany({
