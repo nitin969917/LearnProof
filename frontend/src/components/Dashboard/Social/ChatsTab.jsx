@@ -24,6 +24,12 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const navigate = useNavigate();
   const isMatrixActive = !!(user?.matrixCredentials && matrixClient);
 
+  // Zustand stores for online status and unread counters
+  const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
+  const unreadByContact = useSocialMessageStore((state) => state.unreadByContact);
+  const clearUnreadForContact = useSocialMessageStore((state) => state.clearUnreadForContact);
+  const setActiveChatUser = useSocialMessageStore((state) => state.setActiveChatUser);
+
   // Use shared Zustand stores for instant loading (no spinner on re-open)
   const storeFriends = useSocialFeedStore(state => state.friends);
   const fetchStoreFriends = useSocialFeedStore(state => state.fetchFriends);
@@ -313,9 +319,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       fetchGroupDetails(selectedChat.id);
     }
   }, [showGroupDetails]);
-
-  const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
-  const { unreadByContact, setActiveChatUser, clearUnreadForContact } = useSocialMessageStore();
 
   const socketRef = useRef(null);
   if (currentUserId && !socketRef.current) {

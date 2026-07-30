@@ -91,58 +91,59 @@ export default function SocialDashboard() {
     }
   }, []);
 
-  // Update URL parameters dynamically to maintain reload persistency
-  useEffect(() => {
-    const url = new URL(window.location);
-    url.searchParams.set('tab', activeTab);
-    
-    if (activeTab === 'profile' && selectedProfileId) {
-      url.searchParams.set('profileId', selectedProfileId);
-    } else {
-      url.searchParams.delete('profileId');
-    }
-    
-    if (activeTab === 'chat' && selectedChatContact) {
-      url.searchParams.set('chatId', selectedChatContact.id);
-      url.searchParams.set('chatType', selectedChatContact.type);
-    } else {
-      url.searchParams.delete('chatId');
-      url.searchParams.delete('chatType');
-    }
-    
-    // Check if we also have 'post' search parameter to preserve it if it exists
-    const postParam = new URLSearchParams(window.location.search).get('post');
-    if (postParam) {
-      url.searchParams.set('post', postParam);
-    }
-    
-    window.history.replaceState({}, '', url);
-  }, [activeTab, selectedProfileId, selectedChatContact]);
+  // Helper to push history entry on tab / profile / chat navigation so Back button works step-by-step
+  const updateSocialUrl = (tab, pId = null, chatContact = null) => {
+    const params = new URLSearchParams();
+    params.set('tab', tab);
 
-  // Handle URL parameters sync when location.search changes (e.g. deep links or back navigation)
+    if (tab === 'profile' && pId) {
+      params.set('profileId', pId);
+    }
+    if (tab === 'chat' && chatContact && chatContact.id) {
+      params.set('chatId', chatContact.id);
+      params.set('chatType', chatContact.type || 'direct');
+    }
+
+    const postParam = new URLSearchParams(location.search).get('post');
+    if (postParam) {
+      params.set('post', postParam);
+    }
+
+    const targetSearch = `?${params.toString()}`;
+    if (location.search !== targetSearch) {
+      navigate(`/dashboard/social${targetSearch}`);
+    }
+  };
+
+  // Handle URL parameters sync when location.search changes (e.g. back/forward navigation or link clicks)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const tabParam = params.get('tab');
+    const tabParam = params.get('tab') || 'feed';
     const profileIdParam = params.get('profileId');
     const chatIdParam = params.get('chatId');
     const chatTypeParam = params.get('chatType');
 
-    if (tabParam) {
-      setActiveTab(tabParam);
-      if (tabParam === 'profile' && !profileIdParam) {
-        setSelectedProfileId(null);
+    setActiveTab(tabParam);
+
+    if (tabParam === 'profile') {
+      if (profileIdParam) {
+        setSelectedProfileId(parseInt(profileIdParam, 10));
+      } else {
+        setSelectedProfileId(socialUser?.id || null);
       }
+    } else {
+      setSelectedProfileId(null);
     }
-    if (profileIdParam) {
-      setSelectedProfileId(parseInt(profileIdParam, 10));
-    }
-    if (chatIdParam && chatTypeParam) {
+
+    if (tabParam === 'chat' && chatIdParam && chatTypeParam) {
       setSelectedChatContact({
         id: parseInt(chatIdParam, 10),
         type: chatTypeParam
       });
+    } else {
+      setSelectedChatContact(null);
     }
-  }, [location.search]);
+  }, [location.search, socialUser?.id]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -221,13 +222,11 @@ export default function SocialDashboard() {
   };
 
   const viewUserProfile = (userId) => {
-    setSelectedProfileId(userId);
-    setActiveTab('profile');
+    updateSocialUrl('profile', userId, null);
   };
 
   const startDirectChat = (contact) => {
-    setSelectedChatContact(contact);
-    setActiveTab('chat');
+    updateSocialUrl('chat', null, contact);
   };
 
   const handleTabChange = (tabId) => {
@@ -235,13 +234,11 @@ export default function SocialDashboard() {
       navigate('/dashboard');
       return;
     }
-    if (tabId === 'profile') {
-      setSelectedProfileId(socialUser?.id || null);
-    }
     if (tabId === 'friends') {
       clearPendingFriendCount();
     }
-    setActiveTab(tabId);
+    const targetProfileId = tabId === 'profile' ? (socialUser?.id || null) : null;
+    updateSocialUrl(tabId, targetProfileId, null);
   };
 
   const tabs = [

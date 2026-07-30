@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, GraduationCap, MapPin, Phone, Instagram, Facebook, Shield, Edit3, Save, UserPlus, UserCheck, Star, MessageSquare, Linkedin, Sparkles } from 'lucide-react';
+import { User, Mail, GraduationCap, MapPin, Phone, Instagram, Facebook, Shield, Edit3, Save, UserPlus, UserCheck, Star, MessageSquare, Linkedin, Sparkles, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
@@ -11,6 +12,7 @@ import UserAvatar from '../../Common/UserAvatar.jsx';
 
 export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, onSelectChatUser, onViewProfile }) {
   const { updateUser } = useAuth();
+  const navigate = useNavigate();
   const { confirm } = useModal();
   const isOwnProfile = !viewUserId || viewUserId === currentUserId;
   const targetId = isOwnProfile ? currentUserId : viewUserId;
@@ -364,8 +366,17 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           </div>
         </>
       ) : (
-        /* Unified View Mode Card *        /* Unified View Mode Card */
+        /* Unified View Mode Card */
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 md:p-6 shadow-sm flex flex-col gap-4">
+          {!isOwnProfile && (
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors w-fit cursor-pointer -mb-1"
+            >
+              <ArrowLeft size={16} />
+              <span>Back</span>
+            </button>
+          )}
           <div className="flex gap-4 md:gap-6 items-start">
             {/* Avatar */}
             <UserAvatar 
