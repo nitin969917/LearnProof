@@ -5,6 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useSocialMessageStore } from '../../store/socialMessageStore';
+import { useSocialFeedStore } from '../../store/socialFeedStore';
 
 const TopBar = ({ onMenuClick }) => {
     const [url, setUrl] = useState('');
@@ -12,6 +14,10 @@ const TopBar = ({ onMenuClick }) => {
     const [importData, setImportData] = useState(null);
     const { token } = useAuth();
     const navigate = useNavigate();
+
+    const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
+    const pendingFriendCount = useSocialFeedStore((state) => state.pendingFriendCount);
+    const totalSocialCount = totalUnreadCount + pendingFriendCount;
 
     const handleImport = async () => {
         if (!url.trim()) {
@@ -154,10 +160,15 @@ const TopBar = ({ onMenuClick }) => {
                     {/* Menu Toggle Action */}
                     <button
                         onClick={onMenuClick}
-                        className="p-2 sm:p-2.5 text-orange-505 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-lg sm:rounded-xl transition-all shadow-sm shrink-0 border border-orange-100 dark:border-gray-600 active:scale-95 flex items-center justify-center cursor-pointer"
+                        className="relative p-2 sm:p-2.5 text-orange-505 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-lg sm:rounded-xl transition-all shadow-sm shrink-0 border border-orange-100 dark:border-gray-600 active:scale-95 flex items-center justify-center cursor-pointer"
                         title="Menu"
                     >
                         <Menu size={24} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
+                        {totalSocialCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[8px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-white dark:border-gray-800 z-20 animate-pulse">
+                                {totalSocialCount > 99 ? '99+' : totalSocialCount}
+                            </span>
+                        )}
                     </button>
                 </div>
             </div>

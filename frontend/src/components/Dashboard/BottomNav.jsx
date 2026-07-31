@@ -2,9 +2,14 @@ import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, Search, BookOpen, Quote, Globe, Users, MessageSquare, User } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useSocialMessageStore } from '../../store/socialMessageStore';
+import { useSocialFeedStore } from '../../store/socialFeedStore';
 
 const BottomNav = () => {
     const location = useLocation();
+    const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
+    const pendingFriendCount = useSocialFeedStore((state) => state.pendingFriendCount);
+    const totalSocialCount = totalUnreadCount + pendingFriendCount;
 
     // Hide BottomNav inside the Ask My Notes chat canvas (when a subject ID is present)
     const isAskMyNotesSubject = location.pathname.match(/\/dashboard\/ask-my-notes(?:-dev)?\/[^/]+/);
@@ -20,18 +25,18 @@ const BottomNav = () => {
         ? [
             { name: 'Home', icon: Home, path: '/dashboard' },
             { name: 'Learning', icon: BookOpen, path: '/dashboard/library' },
-            { name: 'Social', icon: Users, path: '/dashboard/social' },
+            { name: 'Social', icon: Users, path: '/dashboard/social', badge: totalSocialCount > 0 ? totalSocialCount : null },
             { name: 'Rooms', icon: Globe, path: '/dashboard/live-rooms' },
             { name: 'Ask Notes', icon: MessageSquare, path: '/dashboard/ask-my-notes' },
-            { name: 'Profile', icon: User, path: '/dashboard/social?tab=profile' },
+            { name: 'Profile', icon: User, path: '/dashboard/social/profile', badge: totalUnreadCount > 0 ? totalUnreadCount : null },
           ]
         : [
             { name: 'Home', icon: Home, path: '/dashboard' },
-            { name: 'Library', icon: BookOpen, path: '/dashboard/library' }, // Aligned with Learning
-            { name: 'Explore', icon: Search, path: '/dashboard/explore' },   // Shifted to index 2
+            { name: 'Library', icon: BookOpen, path: '/dashboard/library' },
+            { name: 'Explore', icon: Search, path: '/dashboard/explore' },
             { name: 'Quiz', icon: Quote, path: '/dashboard/quiz' },
             { name: 'Ask Notes', icon: MessageSquare, path: '/dashboard/ask-my-notes' },
-            { name: 'Profile', icon: User, path: '/dashboard/social?tab=profile' },
+            { name: 'Social', icon: Users, path: '/dashboard/social', badge: totalSocialCount > 0 ? totalSocialCount : null },
           ];
 
     return (
@@ -57,6 +62,11 @@ const BottomNav = () => {
                                     />
                                     <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">{item.name}</span>
                                 </div>
+                                {item.badge && (
+                                    <span className="absolute top-0.5 right-2 text-[9px] font-black rounded-full min-w-[15px] h-[15px] px-1 flex items-center justify-center bg-orange-500 text-white shadow-md z-20">
+                                        {item.badge > 99 ? '99+' : item.badge}
+                                    </span>
+                                )}
                             </motion.div>
                         )}
                     </NavLink>
