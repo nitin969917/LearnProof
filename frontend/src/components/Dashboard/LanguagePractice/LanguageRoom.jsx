@@ -101,7 +101,22 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const navigateBack = useCallback(() => {
     const src = sessionStorage.getItem('nav_source');
     if (src === 'social') {
-      navigateRef.current('/dashboard/social');
+      const savedTab = localStorage.getItem('social_active_tab') || 'chat';
+      const savedProfileId = localStorage.getItem('social_selected_profile_id');
+      const savedChat = localStorage.getItem('social_selected_chat_contact');
+
+      let targetPath = `/dashboard/social?tab=${savedTab}`;
+      if (savedTab === 'profile' && savedProfileId) {
+        targetPath += `&profileId=${savedProfileId}`;
+      } else if (savedTab === 'chat' && savedChat) {
+        try {
+          const parsed = JSON.parse(savedChat);
+          if (parsed && parsed.id && parsed.type) {
+            targetPath += `&chatId=${parsed.id}&chatType=${parsed.type}`;
+          }
+        } catch (e) {}
+      }
+      navigateRef.current(targetPath);
     } else {
       navigateRef.current('/dashboard/live-rooms');
     }
@@ -909,7 +924,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     if (!userId) return;
     localStorage.setItem('social_selected_profile_id', userId);
     localStorage.setItem('social_active_tab', 'profile');
-    navigate('/dashboard/social');
+    navigate(`/dashboard/social?tab=profile&profileId=${userId}`);
   };
 
   // ── Chat send ──────────────────────────────────────────────────────────────

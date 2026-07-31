@@ -32,15 +32,35 @@ export default function SocialBottomNavBar() {
       navigate('/dashboard');
       return;
     }
-    // Clear social source so back navigation is clean
     sessionStorage.setItem('nav_source', 'social');
-    // Clear friends badge when navigating to friends tab
     if (tabId === 'friends') {
       clearPendingFriendCount();
     }
-    // Navigate back to social with the correct tab pre-selected
     localStorage.setItem('social_active_tab', tabId);
-    navigate('/dashboard/social', { state: { from: 'social' } });
+
+    if (tabId === 'chat') {
+      const savedChat = localStorage.getItem('social_selected_chat_contact');
+      try {
+        if (savedChat) {
+          const parsed = JSON.parse(savedChat);
+          if (parsed && parsed.id && parsed.type) {
+            navigate(`/dashboard/social/chats/${parsed.type}/${parsed.id}`);
+            return;
+          }
+        }
+      } catch (e) {}
+      navigate('/dashboard/social/chats');
+      return;
+    }
+
+    if (tabId === 'profile') {
+      const savedPId = localStorage.getItem('social_selected_profile_id');
+      if (savedPId) navigate(`/dashboard/social/profile/${savedPId}`);
+      else navigate('/dashboard/social/profile');
+      return;
+    }
+
+    navigate(`/dashboard/social/${tabId}`);
   };
 
   const isLiveRoomsActive = () => {

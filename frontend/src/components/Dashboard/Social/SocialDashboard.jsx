@@ -91,59 +91,74 @@ export default function SocialDashboard() {
     }
   }, []);
 
-  // Helper to push history entry on tab / profile / chat navigation so Back button works step-by-step
-  const updateSocialUrl = (tab, pId = null, chatContact = null) => {
-    const params = new URLSearchParams();
-    params.set('tab', tab);
-
-    if (tab === 'profile' && pId) {
-      params.set('profileId', pId);
-    }
-    if (tab === 'chat' && chatContact && chatContact.id) {
-      params.set('chatId', chatContact.id);
-      params.set('chatType', chatContact.type || 'direct');
-    }
-
-    const postParam = new URLSearchParams(location.search).get('post');
-    if (postParam) {
-      params.set('post', postParam);
-    }
-
-    const targetSearch = `?${params.toString()}`;
-    if (location.search !== targetSearch) {
-      navigate(`/dashboard/social${targetSearch}`);
-    }
-  };
-
-  // Handle URL parameters sync when location.search changes (e.g. back/forward navigation or link clicks)
+  // Synchronize route paths (e.g. /dashboard/social/feed, /dashboard/social/chats/direct/5, /dashboard/social/profile/12)
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const tabParam = params.get('tab') || 'feed';
-    const profileIdParam = params.get('profileId');
-    const chatIdParam = params.get('chatId');
-    const chatTypeParam = params.get('chatType');
+    const searchParams = new URLSearchParams(location.search);
+    const queryTab = searchParams.get('tab');
+    const queryProfileId = searchParams.get('profileId');
+    const queryChatId = searchParams.get('chatId');
+    const queryChatType = searchParams.get('chatType');
 
-    setActiveTab(tabParam);
+    // Legacy query parameter redirect support to dedicated sub-routes
+    if (queryTab) {
+      if (queryTab === 'profile' && queryProfileId) {
+        navigate(`/dashboard/social/profile/${queryProfileId}`, { replace: true });
+        return;
+      }
+      if (queryTab === 'chat' && queryChatId && queryChatType) {
+        navigate(`/dashboard/social/chats/${queryChatType}/${queryChatId}`, { replace: true });
+        return;
+      }
+      navigate(`/dashboard/social/${queryTab}`, { replace: true });
+      return;
+    }
 
-    if (tabParam === 'profile') {
-      if (profileIdParam) {
-        setSelectedProfileId(parseInt(profileIdParam, 10));
+    const pathSegments = location.pathname.split('/').filter(Boolean);
+    const subRoute = pathSegments[2] || localStorage.getItem('social_active_tab') || 'feed';
+
+    if (subRoute === 'discover') {
+      setActiveTab('discover');
+      setSelectedProfileId(null);
+      setSelectedChatContact(null);
+    } else if (subRoute === 'friends') {
+      setActiveTab('friends');
+      setSelectedProfileId(null);
+      setSelectedChatContact(null);
+    } else if (subRoute === 'chats') {
+      setActiveTab('chat');
+      setSelectedProfileId(null);
+      const chatType = pathSegments[3];
+      const chatId = pathSegments[4];
+      if (chatType && chatId) {
+        setSelectedChatContact({ id: parseInt(chatId, 10), type: chatType });
       } else {
-        setSelectedProfileId(socialUser?.id || null);
+        const savedChat = localStorage.getItem('social_selected_chat_contact');
+        try {
+          if (savedChat) {
+            setSelectedChatContact(JSON.parse(savedChat));
+          } else {
+            setSelectedChatContact(null);
+          }
+        } catch {
+          setSelectedChatContact(null);
+        }
+      }
+    } else if (subRoute === 'profile') {
+      setActiveTab('profile');
+      setSelectedChatContact(null);
+      const profileId = pathSegments[3];
+      if (profileId) {
+        setSelectedProfileId(parseInt(profileId, 10));
+      } else {
+        const savedPId = localStorage.getItem('social_selected_profile_id');
+        setSelectedProfileId(savedPId ? parseInt(savedPId, 10) : (socialUser?.id || null));
       }
     } else {
+      setActiveTab('feed');
       setSelectedProfileId(null);
-    }
-
-    if (tabParam === 'chat' && chatIdParam && chatTypeParam) {
-      setSelectedChatContact({
-        id: parseInt(chatIdParam, 10),
-        type: chatTypeParam
-      });
-    } else {
       setSelectedChatContact(null);
     }
-  }, [location.search, socialUser?.id]);
+  }, [location.pathname, location.search, socialUser?.id]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -222,11 +237,21 @@ export default function SocialDashboard() {
   };
 
   const viewUserProfile = (userId) => {
-    updateSocialUrl('profile', userId, null);
+    if (userId) {
+      localStorage.setItem('social_selected_profile_id', userId);
+      navigate(`/dashboard/social/profile/${userId}`);
+    } else {
+      navigate('/dashboard/social/profile');
+    }
   };
 
   const startDirectChat = (contact) => {
-    updateSocialUrl('chat', null, contact);
+    if (contact && contact.id) {
+      localStorage.setItem('social_selected_chat_contact', JSON.stringify(contact));
+      navigate(`/dashboard/social/chats/${contact.type || 'direct'}/${contact.id}`);
+    } else {
+      navigate('/dashboard/social/chats');
+    }
   };
 
   const handleTabChange = (tabId) => {
@@ -236,9 +261,37 @@ export default function SocialDashboard() {
     }
     if (tabId === 'friends') {
       clearPendingFriendCount();
+      navigate('/dashboard/social/friends');
+      return;
     }
-    const targetProfileId = tabId === 'profile' ? (socialUser?.id || null) : null;
-    updateSocialUrl(tabId, targetProfileId, null);
+    if (tabId === 'feed') {
+      navigate('/dashboard/social/feed');
+      return;
+    }
+    if (tabId === 'discover') {
+      navigate('/dashboard/social/discover');
+      return;
+    }
+    if (tabId === 'chat') {
+      const savedChat = localStorage.getItem('social_selected_chat_contact');
+      try {
+        if (savedChat) {
+          const parsed = JSON.parse(savedChat);
+          if (parsed && parsed.id && parsed.type) {
+            navigate(`/dashboard/social/chats/${parsed.type}/${parsed.id}`);
+            return;
+          }
+        }
+      } catch (e) {}
+      navigate('/dashboard/social/chats');
+      return;
+    }
+    if (tabId === 'profile') {
+      const pId = socialUser?.id;
+      if (pId) navigate(`/dashboard/social/profile/${pId}`);
+      else navigate('/dashboard/social/profile');
+      return;
+    }
   };
 
   const tabs = [

@@ -138,8 +138,8 @@ const App = () => {
                                 <Route path='ask-my-notes-dev/:subjectId' element={<AskMyNotesOriginal />} />
                                 <Route path='support' element={<Support />} />
                                 
-                                {/* Social / Social Dating Features */}
-                                <Route path='social' element={<SocialDashboard />} />
+                                {/* Social / Social Hub Features */}
+                                <Route path='social/*' element={<SocialDashboard />} />
                                 
                                 {/* Live Rooms Features */}
                                 <Route path='live-rooms' element={<LanguageLearning />} />
