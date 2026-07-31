@@ -15,14 +15,19 @@ const handleAssetChunkError = (errorMsg) => {
     msg.includes('Failed to fetch dynamically imported module') || 
     msg.includes('Importing a module script failed') || 
     msg.includes('error loading dynamically imported module') ||
+    msg.includes('Failed to load module script') ||
+    msg.includes('Strict MIME type checking') ||
+    msg.includes('text/html') ||
     msg.includes("reading 'default'") ||
     msg.includes("properties of undefined") ||
-    msg.includes("Unexpected token '<'")
+    msg.includes("Unexpected token '<'") ||
+    msg.includes("Stale chunk") ||
+    msg.includes("stale chunk")
   ) {
-    console.warn('Post-deployment chunk mismatch detected. Auto-refreshing page for fresh assets...');
+    console.warn('Post-deployment chunk mismatch detected. Auto-refreshing page for fresh assets...', msg);
     const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
     const now = Date.now();
-    if (!lastReload || now - parseInt(lastReload, 10) > 4000) {
+    if (!lastReload || now - parseInt(lastReload, 10) > 3000) {
       sessionStorage.setItem('chunk_reload_timestamp', String(now));
       window.location.reload();
     }

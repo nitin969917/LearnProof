@@ -19,7 +19,7 @@ const lazyWithRetry = (componentImport) => {
             console.warn('Failed to load dynamic chunk asset (likely post-deployment chunk mismatch), reloading page for fresh assets...', error);
             const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
             const now = Date.now();
-            if (!lastReload || now - parseInt(lastReload, 10) > 5000) {
+            if (!lastReload || now - parseInt(lastReload, 10) > 3000) {
                 sessionStorage.setItem('chunk_reload_timestamp', String(now));
                 window.location.reload();
             }
