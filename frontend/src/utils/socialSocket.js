@@ -18,7 +18,7 @@ export const getSocialSocket = (userId) => {
     backendUrl = backendUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
 
     socket = io(backendUrl, {
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       withCredentials: true,
       reconnection: true,
       reconnectionAttempts: 50,
