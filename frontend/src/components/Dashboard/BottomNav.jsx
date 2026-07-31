@@ -28,7 +28,7 @@ const BottomNav = () => {
             { name: 'Social', icon: Users, path: '/dashboard/social', badge: totalSocialCount > 0 ? totalSocialCount : null },
             { name: 'Rooms', icon: Globe, path: '/dashboard/live-rooms' },
             { name: 'Ask Notes', icon: MessageSquare, path: '/dashboard/ask-my-notes' },
-            { name: 'Profile', icon: User, path: '/dashboard/social/profile', badge: totalUnreadCount > 0 ? totalUnreadCount : null },
+            { name: 'Profile', icon: User, path: '/dashboard/social/profile' },
           ]
         : [
             { name: 'Home', icon: Home, path: '/dashboard' },
