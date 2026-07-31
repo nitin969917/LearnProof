@@ -140,8 +140,12 @@ const DashboardLayout = () => {
                 // Listen for message events globally to increment notification counters if chat not open
                 const socket = getSocialSocket(socialUser.id);
                 const handleGlobalMessage = (message) => {
-                    if (message.senderId.toString() !== activeChatUserIdRef.current?.toString()) {
-                        incrementUnread(message.senderId);
+                    if (message && message.senderId) {
+                        const senderStr = message.senderId.toString();
+                        const activeStr = activeChatUserIdRef.current ? activeChatUserIdRef.current.toString() : null;
+                        if (senderStr !== activeStr) {
+                            incrementUnread(senderStr);
+                        }
                     }
                 };
 

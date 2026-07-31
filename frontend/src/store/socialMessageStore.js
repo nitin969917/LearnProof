@@ -24,10 +24,12 @@ export const useSocialMessageStore = create((set, get) => ({
   },
 
   incrementUnread: (senderId) => {
-    console.log('Incrementing unread for:', senderId);
+    if (!senderId) return;
+    const senderIdStr = senderId.toString();
+    console.log('Incrementing unread for:', senderIdStr);
     set((state) => {
       const newByContact = { ...state.unreadByContact };
-      newByContact[senderId] = (newByContact[senderId] || 0) + 1;
+      newByContact[senderIdStr] = (newByContact[senderIdStr] || 0) + 1;
       return {
         totalUnreadCount: state.totalUnreadCount + 1,
         unreadByContact: newByContact
@@ -36,11 +38,14 @@ export const useSocialMessageStore = create((set, get) => ({
   },
 
   clearUnreadForContact: (contactId) => {
+    if (!contactId) return;
+    const contactIdStr = contactId.toString();
     set((state) => {
-      const contactUnread = state.unreadByContact[contactId] || 0;
+      const contactUnread = state.unreadByContact[contactIdStr] || state.unreadByContact[contactId] || 0;
       if (contactUnread === 0) return state;
       
       const newByContact = { ...state.unreadByContact };
+      delete newByContact[contactIdStr];
       delete newByContact[contactId];
       
       return {

@@ -18,17 +18,16 @@ export const getSocialSocket = (userId) => {
     backendUrl = backendUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
 
     socket = io(backendUrl, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       withCredentials: true,
       reconnection: true,
-      reconnectionAttempts: 20,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 50,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 3000,
     });
 
     socket.on('connect', () => {
       console.log('Social socket connected:', socket.id);
-      // Re-join on reconnect to restore online status using the latest active user ID
       if (currentSocketUserId) {
         socket.emit('join', currentSocketUserId);
       }

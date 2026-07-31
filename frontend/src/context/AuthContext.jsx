@@ -3,6 +3,7 @@ import { jwtDecode } from "jwt-decode";
 import { googleLogout } from '@react-oauth/google';
 import axios from "axios";
 import { initMatrixClient, disconnectMatrixClient } from "../utils/matrixClient";
+import { disconnectSocialSocket } from "../utils/socialSocket";
 
 const AuthContext = createContext();
 
@@ -129,10 +130,12 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         googleLogout();
         localStorage.removeItem("google_token");
+        localStorage.removeItem("learnproof_social_user");
         setUser(null);
         setToken(null);
         setMatrixClient(null);
         disconnectMatrixClient();
+        disconnectSocialSocket();
     };
 
     const updateUser = (data) => {

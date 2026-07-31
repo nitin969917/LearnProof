@@ -5,7 +5,14 @@ export const useSocialFeedStore = create((set, get) => ({
   posts: [],
   friends: [],
   closeFriends: [],
-  socialUser: null,
+  socialUser: (() => {
+    try {
+      const saved = localStorage.getItem('learnproof_social_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })(),
   loadingPosts: false,
   loadingFriends: false,
   loadingSocialUser: false,
@@ -42,6 +49,9 @@ export const useSocialFeedStore = create((set, get) => ({
         socialUser: response.data,
         loadingSocialUser: false 
       });
+      try {
+        localStorage.setItem('learnproof_social_user', JSON.stringify(response.data));
+      } catch (e) {}
     } catch (err) {
       console.error('Failed to fetch social user', err);
       set({ loadingSocialUser: false });
