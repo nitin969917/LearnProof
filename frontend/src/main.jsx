@@ -21,12 +21,18 @@ window.addEventListener('vite:preloadError', (event) => {
 
 window.addEventListener('error', (event) => {
   const errMsg = event.message || event.error?.message || '';
-  // If it's a dynamic import failure (stale deployment chunk), auto-reload page cleanly without showing fatal overlay
-  if (errMsg.includes('Failed to fetch dynamically imported module') || errMsg.includes('Importing a module script failed') || errMsg.includes('error loading dynamically imported module')) {
+  // If it's a dynamic import failure or stale deployment chunk mismatch, auto-reload page cleanly without showing fatal overlay
+  if (
+    errMsg.includes('Failed to fetch dynamically imported module') || 
+    errMsg.includes('Importing a module script failed') || 
+    errMsg.includes('error loading dynamically imported module') ||
+    errMsg.includes("reading 'default'") ||
+    errMsg.includes("properties of undefined")
+  ) {
     event.preventDefault();
     const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
     const now = Date.now();
-    if (!lastReload || now - parseInt(lastReload, 10) > 8000) {
+    if (!lastReload || now - parseInt(lastReload, 10) > 5000) {
       sessionStorage.setItem('chunk_reload_timestamp', String(now));
       window.location.reload();
     }

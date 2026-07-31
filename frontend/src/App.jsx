@@ -10,12 +10,16 @@ import { initializeLaunch } from './utils/launch';
 const lazyWithRetry = (componentImport) => {
     return lazy(async () => {
         try {
-            return await componentImport();
+            const module = await componentImport();
+            if (module && (module.default || typeof module === 'function')) {
+                return module;
+            }
+            throw new Error("Stale chunk module default export is undefined");
         } catch (error) {
             console.warn('Failed to load dynamic chunk asset (likely post-deployment chunk mismatch), reloading page for fresh assets...', error);
             const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
             const now = Date.now();
-            if (!lastReload || now - parseInt(lastReload, 10) > 8000) {
+            if (!lastReload || now - parseInt(lastReload, 10) > 5000) {
                 sessionStorage.setItem('chunk_reload_timestamp', String(now));
                 window.location.reload();
             }
