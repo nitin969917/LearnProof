@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, Download, Laptop, Monitor, AlertCircle, Smartphone, Linkedin, Menu, X } from 'lucide-react';
+import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, ChevronLeft, ChevronRight, Download, Laptop, Monitor, AlertCircle, Smartphone, Linkedin, Menu, X } from 'lucide-react';
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import UserAvatar from './Common/UserAvatar.jsx';
 
 const faqs = [
     {
@@ -29,6 +30,152 @@ const faqs = [
         a: "Our proprietary AI engine analyzes the video content and descriptions to extract key insights, creating contextually accurate summaries and challenging quizzes tailored to the specific material."
     }
 ];
+
+const teamMembers = [
+  {
+    name: "Nitin Gaikwad",
+    role: "Founder & Lead Developer",
+    avatar: "https://unavatar.io/linkedin/nitin9699",
+    bio: "Nitin is the creator and lead developer of LearnProof AI, building AI-powered study tools for lifelong learners.",
+    linkedin: "https://www.linkedin.com/in/nitin9699"
+  },
+  {
+    name: "Avishkar Kakade",
+    role: "Co-Founder",
+    avatar: "https://unavatar.io/linkedin/avishkar-kakade-16536124b",
+    bio: "Avishkar is the Co-Founder of LearnProof AI, driving strategic vision, growth, and community partnerships.",
+    linkedin: "https://www.linkedin.com/in/avishkar-kakade-16536124b/"
+  }
+];
+
+const TeamLeadershipCarousel = () => {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (isPaused) return;
+    const timer = setInterval(() => {
+      setActiveIdx((prev) => (prev + 1) % teamMembers.length);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [isPaused]);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, x: 35 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.7 }}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      className="lg:col-span-5 flex flex-col justify-between bg-gradient-to-br from-white via-orange-50/10 to-orange-50/30 backdrop-blur-md border border-orange-100 dark:border-gray-700 rounded-3xl p-6 sm:p-8 shadow-lg shadow-orange-100/50 hover:shadow-xl transition-all duration-300 relative overflow-hidden group min-h-[440px]"
+    >
+      {/* Decorative background circle */}
+      <div className="absolute -top-10 -right-10 w-40 h-40 bg-orange-100/50 rounded-full blur-2xl group-hover:bg-orange-200/50 transition-all duration-500" />
+      
+      <div className="relative z-10 flex flex-col h-full justify-between gap-6">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-orange-100 text-orange-600 text-xs sm:text-sm font-bold border border-orange-200">
+              <Users size={14} /> Our Team
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setActiveIdx((prev) => (prev - 1 + teamMembers.length) % teamMembers.length)}
+                className="p-1.5 rounded-xl bg-orange-50 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-gray-700 text-orange-600 dark:text-orange-400 transition cursor-pointer border border-orange-100 dark:border-gray-700"
+                title="Previous Leader"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                onClick={() => setActiveIdx((prev) => (prev + 1) % teamMembers.length)}
+                className="p-1.5 rounded-xl bg-orange-50 dark:bg-gray-800 hover:bg-orange-100 dark:hover:bg-gray-700 text-orange-600 dark:text-orange-400 transition cursor-pointer border border-orange-100 dark:border-gray-700"
+                title="Next Leader"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white leading-tight mb-2">
+            Team & <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">Leadership</span>
+          </h2>
+          <p className="text-gray-500 text-xs sm:text-sm mb-4 leading-relaxed">
+            Meet the leadership driving LearnProof AI's vision and platform growth.
+          </p>
+        </div>
+
+        {/* Auto-Swapping Horizontal Member Card */}
+        <div className="relative overflow-hidden min-h-[200px]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeIdx}
+              initial={{ opacity: 0, x: 25 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -25 }}
+              transition={{ duration: 0.35, ease: "easeInOut" }}
+              className="bg-white/90 dark:bg-gray-800/90 border border-orange-100 dark:border-gray-700 rounded-2xl p-5 shadow-md flex flex-col justify-between"
+            >
+              <div className="flex items-center gap-4 mb-3">
+                <UserAvatar 
+                  src={teamMembers[activeIdx].avatar} 
+                  name={teamMembers[activeIdx].name} 
+                  className="w-16 h-16 rounded-2xl border-2 border-orange-500/20 shadow-md shadow-orange-200 shrink-0"
+                  textClassName="text-xl font-black"
+                />
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate">
+                    {teamMembers[activeIdx].name}
+                  </h3>
+                  <p className="text-xs font-bold text-orange-600 dark:text-orange-400">
+                    {teamMembers[activeIdx].role}
+                  </p>
+                </div>
+              </div>
+              <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm leading-relaxed mb-4 min-h-[42px]">
+                {teamMembers[activeIdx].bio}
+              </p>
+              <div>
+                <a 
+                  href={teamMembers[activeIdx].linkedin} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[#0a66c2] hover:bg-[#004182] text-white rounded-xl font-bold text-xs shadow-sm hover:shadow transition-all duration-300 transform hover:-translate-y-0.5"
+                >
+                  <Linkedin size={14} fill="currentColor" />
+                  <span>LinkedIn Profile</span>
+                </a>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Footer & Carousel Pagination Dots */}
+        <div>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            {teamMembers.map((member, idx) => (
+              <button
+                key={member.name}
+                onClick={() => setActiveIdx(idx)}
+                className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                  idx === activeIdx 
+                    ? 'w-7 bg-orange-500 shadow-sm shadow-orange-300' 
+                    : 'w-2.5 bg-orange-200 hover:bg-orange-300'
+                }`}
+                title={member.name}
+              />
+            ))}
+          </div>
+
+          <div className="pt-4 border-t border-orange-100/80 dark:border-gray-700">
+            <p className="text-xs text-gray-400 leading-relaxed text-center sm:text-left">
+              Interested in collaborating or joining the team? Contact us at <a href="mailto:founder@learnproofai.com" className="text-orange-500 hover:underline font-semibold">founder@learnproofai.com</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const FAQSection = () => {
     const [openIndex, setOpenIndex] = useState(null);
@@ -1344,76 +1491,8 @@ const LandingPage = () => {
                             </div>
                         </motion.div>
 
-                        {/* Team Section (5 cols on large screens) */}
-                        <motion.div 
-                            initial={{ opacity: 0, x: 35 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.7 }}
-                            className="lg:col-span-5 flex flex-col justify-between bg-gradient-to-br from-white to-orange-50/20 backdrop-blur-md border border-orange-100 rounded-3xl p-8 sm:p-10 shadow-lg shadow-orange-100/50 hover:shadow-xl transition-all duration-300 relative overflow-hidden group"
-                        >
-                            {/* Decorative background circle */}
-                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-orange-100/50 rounded-full blur-2xl group-hover:bg-orange-200/50 transition-all duration-500" />
-                            
-                            <div className="relative z-10">
-                                <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-orange-100 text-orange-600 text-sm font-bold mb-6 border border-orange-200">
-                                    <Users size={14} /> Our Team
-                                </span>
-                                <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight mb-4">
-                                    Team & <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">Leadership</span>
-                                </h2>
-                                <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                                    LearnProof AI is currently being developed independently as a founder-led startup.
-                                </p>
-                                
-                                {/* Founder Card (Nitin Gaikwad) */}
-                                <div className="bg-white/80 border border-orange-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <img 
-                                            src="https://unavatar.io/linkedin/nitin9699" 
-                                            alt="Nitin Gaikwad" 
-                                            className="w-20 h-20 rounded-2xl object-cover border-2 border-orange-500/20 shadow-lg shadow-orange-200"
-                                            onError={(e) => {
-                                                e.target.style.display = 'none';
-                                                const fallback = document.getElementById('avatar-fallback');
-                                                if (fallback) fallback.style.display = 'flex';
-                                            }}
-                                        />
-                                        <div 
-                                            id="avatar-fallback"
-                                            style={{ display: 'none' }}
-                                            className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-orange-200"
-                                        >
-                                            NG
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-bold text-gray-900">Nitin Gaikwad</h3>
-                                            <p className="text-xs font-semibold text-orange-600">Founder & Lead Developer</p>
-                                        </div>
-                                    </div>
-                                    <p className="text-gray-600 text-xs sm:text-sm leading-relaxed mb-4">
-                                        Nitin is the creator and lead developer of LearnProof AI, building AI-powered study tools for lifelong learners.
-                                    </p>
-                                    
-                                    {/* LinkedIn CTA Button */}
-                                    <a 
-                                        href="https://www.linkedin.com/in/nitin9699" 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2.5 px-4 py-2.5 bg-[#0a66c2] hover:bg-[#004182] text-white rounded-xl font-bold text-xs shadow-sm hover:shadow transition-all duration-300 transform hover:-translate-y-0.5"
-                                    >
-                                        <Linkedin size={14} fill="currentColor" />
-                                        <span>LinkedIn Profile</span>
-                                    </a>
-                                </div>
-                            </div>
-
-                            <div className="relative z-10 pt-6 mt-6 border-t border-orange-100/80">
-                                <p className="text-xs text-gray-400 leading-relaxed">
-                                    Interested in collaborating or joining the team? Contact us at <a href="mailto:founder@learnproofai.com" className="text-orange-500 hover:underline">founder@learnproofai.com</a>.
-                                </p>
-                            </div>
-                        </motion.div>
+                        {/* Team Section (5 cols on large screens) - Horizontal Auto-Swapping Carousel */}
+                        <TeamLeadershipCarousel />
 
                     </div>
                 </div>
