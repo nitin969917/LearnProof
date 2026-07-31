@@ -108,7 +108,7 @@ const DashboardLayout = () => {
     }, [user]);
 
     useEffect(() => {
-        if (socialUser) {
+        if (socialUser && socialUser.id) {
             initializeStatus(socialUser.id);
             fetchUnreadCounts();
             fetchPendingFriendCount();
@@ -159,7 +159,7 @@ const DashboardLayout = () => {
 
     // Listen for incoming friend requests to update Friends tab badge in real-time
     useEffect(() => {
-        if (!socialUser) return;
+        if (!socialUser || !socialUser.id) return;
         const socket = getSocialSocket(socialUser.id);
         const handleFriendRequest = () => {
             incrementPendingFriendCount();

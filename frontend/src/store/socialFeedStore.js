@@ -8,7 +8,9 @@ export const useSocialFeedStore = create((set, get) => ({
   socialUser: (() => {
     try {
       const saved = localStorage.getItem('learnproof_social_user');
-      return saved ? JSON.parse(saved) : null;
+      if (!saved || saved === 'undefined' || saved === 'null') return null;
+      const parsed = JSON.parse(saved);
+      return parsed && typeof parsed === 'object' && parsed.id ? parsed : null;
     } catch {
       return null;
     }
@@ -45,13 +47,17 @@ export const useSocialFeedStore = create((set, get) => ({
     set({ loadingSocialUser: true });
     try {
       const response = await socialApi.get('/users/me');
-      set({ 
-        socialUser: response.data,
-        loadingSocialUser: false 
-      });
-      try {
-        localStorage.setItem('learnproof_social_user', JSON.stringify(response.data));
-      } catch (e) {}
+      if (response.data && response.data.id) {
+        set({ 
+          socialUser: response.data,
+          loadingSocialUser: false 
+        });
+        try {
+          localStorage.setItem('learnproof_social_user', JSON.stringify(response.data));
+        } catch (e) {}
+      } else {
+        set({ loadingSocialUser: false });
+      }
     } catch (err) {
       console.error('Failed to fetch social user', err);
       set({ loadingSocialUser: false });
