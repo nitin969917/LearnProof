@@ -31,14 +31,41 @@ class ErrorBoundary extends React.Component {
 
     componentDidCatch(error, errorInfo) {
         console.error("Dashboard caught an error:", error, errorInfo);
+        const msg = String(error?.message || error || '');
+        if (
+            msg.includes('Failed to fetch dynamically imported module') ||
+            msg.includes('Importing a module script failed') ||
+            msg.includes('error loading dynamically imported module') ||
+            msg.includes("reading 'default'") ||
+            msg.includes("properties of undefined") ||
+            msg.includes("Unexpected token '<'")
+        ) {
+            const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
+            const now = Date.now();
+            if (!lastReload || now - parseInt(lastReload, 10) > 4000) {
+                sessionStorage.setItem('chunk_reload_timestamp', String(now));
+                window.location.reload();
+            }
+        }
     }
 
     render() {
         if (this.state.hasError) {
             return (
-                <div className="p-8 m-8 bg-red-50 border border-red-200 rounded-lg text-red-900">
-                    <h2 className="text-xl font-bold mb-4">Dashboard Crashed</h2>
-                    <pre className="whitespace-pre-wrap overflow-auto max-h-96 text-sm">{this.state.error?.toString()}</pre>
+                <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
+                    <div className="w-16 h-16 rounded-2xl bg-orange-100 dark:bg-orange-950/40 text-orange-600 flex items-center justify-center mb-4 shadow-md">
+                        <RefreshCw className="w-8 h-8 animate-spin" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Updating Dashboard...</h2>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm max-w-md mb-6">
+                        A new update was deployed. We're refreshing your session to load the latest features.
+                    </p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-sm rounded-xl shadow-md transition-all cursor-pointer"
+                    >
+                        Reload Page
+                    </button>
                 </div>
             );
         }
