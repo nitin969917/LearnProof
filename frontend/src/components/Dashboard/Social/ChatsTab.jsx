@@ -15,13 +15,14 @@ import { useModal } from '../../../context/ModalContext';
 import { useAuth } from '../../../context/AuthContext';
 import { getMatrixClient } from '../../../utils/matrixClient';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 
 export default function ChatsTab({ currentUserId, selectedContact, onClearSelectedContact, onToggleHeader, onViewProfile }) {
   const { confirm } = useModal();
   const { user, matrixClient } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const isMatrixActive = !!(user?.matrixCredentials && matrixClient);
 
   // Zustand stores for online status and unread counters
@@ -622,11 +623,38 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   // Sync if opened via shortcut from other tabs (Feed, Friends, etc.)
   useEffect(() => {
     if (selectedContact) {
-      const found = contacts.find((c) => c.id === selectedContact.id) || selectedContact;
-      setSelectedChat({ ...found, type: selectedContact.type || 'direct' });
+      navigate(`/dashboard/social/chats/${selectedContact.type || 'direct'}/${selectedContact.id}`);
       onClearSelectedContact();
     }
-  }, [selectedContact, contacts]);
+  }, [selectedContact]);
+
+  // Sync selectedChat state with URL routing to allow proper back navigation support
+  useEffect(() => {
+    const pathSegments = location.pathname.split('/').filter(Boolean);
+    const subRoute = pathSegments[2];
+    
+    if (subRoute === 'chats') {
+      const chatType = pathSegments[3];
+      const chatIdStr = pathSegments[4];
+      
+      if (chatType && chatIdStr) {
+        const chatId = parseInt(chatIdStr, 10);
+        if (!selectedChat || selectedChat.id !== chatId || selectedChat.type !== chatType) {
+          const found = contacts.find(c => c.id === chatId) || groups.find(g => g.id === chatId);
+          if (found) {
+            setSelectedChat({ ...found, type: chatType });
+            localStorage.setItem('social_selected_chat_contact', JSON.stringify({ id: chatId, type: chatType }));
+          } else {
+            setSelectedChat({ id: chatId, type: chatType });
+          }
+        }
+      } else {
+        if (selectedChat) {
+          setSelectedChat(null);
+        }
+      }
+    }
+  }, [location.pathname, contacts, groups, selectedChat]);
 
   // Handle conversation selection change
   useEffect(() => {
@@ -923,7 +951,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       setShowCreateGroupModal(false);
       setNewGroupData({ name: '', description: '', isPrivate: false, entryKey: '' });
       await fetchData(); // refresh list
-      setSelectedChat({ ...created, type: 'group' });
+      navigate(`/dashboard/social/chats/group/${created.id}`);
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.error || 'Failed to create group');
@@ -940,7 +968,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       setShowJoinGroupModal(null);
       setJoinKey('');
       await fetchData(); // refresh
-      setSelectedChat({ ...group, type: 'group', isJoined: true });
+      navigate(`/dashboard/social/chats/group/${group.id}`);
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.error || 'Failed to join group');
@@ -957,7 +985,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     if (!confirmed) return;
     try {
       await socialApi.post('/groups/leave', { groupId });
-      setSelectedChat(null);
+      navigate('/dashboard/social/chats');
       await fetchData();
     } catch (err) {
       console.error(err);
@@ -1121,7 +1149,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                 return (
                   <div
                     key={`${chat.type}-${chat.id}`}
-                    onClick={() => setSelectedChat(chat)}
+                    onClick={() => navigate(`/dashboard/social/chats/${chat.type}/${chat.id}`)}
                     className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer border transition ${
                       isSelected
                         ? 'bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/10'
@@ -1235,7 +1263,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedChat(null);
+                      localStorage.removeItem('social_selected_chat_contact');
+                      navigate('/dashboard/social/chats');
                     }}
                     className="md:hidden p-1.5 rounded-xl text-gray-550 hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer mr-1"
                   >
@@ -2068,7 +2097,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     <div
                       key={friend.id}
                       onClick={() => {
-                        setSelectedChat({ ...friend, type: 'direct' });
+                        navigate(`/dashboard/social/chats/direct/${friend.id}`);
                         setShowNewDirectChatModal(false);
                         setDirectChatSearch('');
                       }}

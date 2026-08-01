@@ -7,6 +7,8 @@ const morgan = require('morgan');
 const compression = require('compression');
 const http = require('http');
 const { Server } = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
+const Redis = require('ioredis');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
@@ -21,6 +23,14 @@ const PORT = process.env.PORT || 8000;
 
 // Create HTTP server
 const server = http.createServer(app);
+
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const pubClient = new Redis(redisUrl);
+const subClient = pubClient.duplicate();
+
+pubClient.on('error', (err) => console.error('Socket.io Redis PubClient Error:', err.message));
+subClient.on('error', (err) => console.error('Socket.io Redis SubClient Error:', err.message));
+
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
@@ -33,6 +43,8 @@ const io = new Server(server, {
   transports: ['websocket', 'polling'],
 });
 
+io.adapter(createAdapter(pubClient, subClient));
+
 
 app.set('io', io);
 
@@ -40,7 +52,37 @@ app.set('io', io);
 const datingPrisma = require('./src/utils/datingPrisma');
 const { sendPushNotification } = require('./src/utils/pushNotifier');
 const cacheService = require('./src/services/cache.service');
-const userSockets = new Map(); // userId -> Set of socketIds
+const redis = require('./src/lib/redis');
+
+const workerId = process.env.NODE_APP_INSTANCE || 'standalone';
+console.log(`[Socket.io] Initializing worker ${workerId}`);
+
+const cleanupWorkerSockets = async () => {
+  try {
+    const workerSocketsKey = `worker:sockets:${workerId}`;
+    const entries = await redis.smembers(workerSocketsKey);
+    console.log(`[Socket.io] Cleaning up ${entries.length} stale sockets for worker ${workerId}`);
+    
+    for (const entry of entries) {
+      const [userIdStr, socketId] = entry.split(':');
+      const socketSetKey = `user:sockets:${userIdStr}`;
+      
+      await redis.srem(socketSetKey, socketId);
+      const activeCount = await redis.scard(socketSetKey);
+      if (activeCount === 0) {
+        await redis.srem('online_users', userIdStr);
+        await redis.del(socketSetKey);
+        io.emit('userStatus', { userId: userIdStr, online: false });
+      }
+    }
+    await redis.del(workerSocketsKey);
+  } catch (err) {
+    console.error(`[Socket.io] Error during worker socket cleanup:`, err);
+  }
+};
+
+// Run stale socket cleanup on worker startup
+cleanupWorkerSockets();
 
 io.on('connection', (socket) => {
   console.log('Social Socket connected:', socket.id);
@@ -52,16 +94,27 @@ io.on('connection', (socket) => {
     socket.userId = userIdStr;
     socket.join(userIdStr);
     
-    if (!userSockets.has(userIdStr)) {
-      userSockets.set(userIdStr, new Set());
-    }
-    userSockets.get(userIdStr).add(socket.id);
+    const socketSetKey = `user:sockets:${userIdStr}`;
+    const workerSocketsKey = `worker:sockets:${workerId}`;
     
-    // Send back online list of ALL online users to the joining user
-    socket.emit('getOnlineUsers', Array.from(userSockets.keys()));
-
-    // Broadcast to ALL sockets that this user is online
-    io.emit('userStatus', { userId: userIdStr, online: true });
+    try {
+      await redis.sadd(socketSetKey, socket.id);
+      await redis.expire(socketSetKey, 86400); // 24h expiration fallback
+      
+      await redis.sadd(workerSocketsKey, `${userIdStr}:${socket.id}`);
+      await redis.expire(workerSocketsKey, 86400);
+      
+      const isNewOnline = await redis.sadd('online_users', userIdStr);
+      
+      const onlineUsers = await redis.smembers('online_users');
+      socket.emit('getOnlineUsers', onlineUsers);
+      
+      if (isNewOnline === 1) {
+        io.emit('userStatus', { userId: userIdStr, online: true });
+      }
+    } catch (err) {
+      console.error('[Socket.io] Error in join handler:', err);
+    }
   });
 
   socket.on('sendMessage', async (data) => {
@@ -261,13 +314,22 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', async () => {
     const userIdStr = socket.userId;
-    if (userIdStr && userSockets.has(userIdStr)) {
-      const sockets = userSockets.get(userIdStr);
-      sockets.delete(socket.id);
-      if (sockets.size === 0) {
-        userSockets.delete(userIdStr);
-        // Broadcast to ALL sockets that this user is offline
-        io.emit('userStatus', { userId: userIdStr, online: false });
+    if (userIdStr) {
+      const socketSetKey = `user:sockets:${userIdStr}`;
+      const workerSocketsKey = `worker:sockets:${workerId}`;
+      
+      try {
+        await redis.srem(socketSetKey, socket.id);
+        await redis.srem(workerSocketsKey, `${userIdStr}:${socket.id}`);
+        
+        const activeCount = await redis.scard(socketSetKey);
+        if (activeCount === 0) {
+          await redis.srem('online_users', userIdStr);
+          await redis.del(socketSetKey);
+          io.emit('userStatus', { userId: userIdStr, online: false });
+        }
+      } catch (err) {
+        console.error('[Socket.io] Error in disconnect handler:', err);
       }
     }
   });

@@ -132,16 +132,7 @@ export default function SocialDashboard() {
       if (chatType && chatId) {
         setSelectedChatContact({ id: parseInt(chatId, 10), type: chatType });
       } else {
-        const savedChat = localStorage.getItem('social_selected_chat_contact');
-        try {
-          if (savedChat) {
-            setSelectedChatContact(JSON.parse(savedChat));
-          } else {
-            setSelectedChatContact(null);
-          }
-        } catch {
-          setSelectedChatContact(null);
-        }
+        setSelectedChatContact(null);
       }
     } else if (subRoute === 'profile') {
       setActiveTab('profile');
