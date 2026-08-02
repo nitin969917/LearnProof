@@ -711,13 +711,21 @@ const Classroom = () => {
 
   const handlePlayerStateChange = async (event) => {
     // YT.PlayerState.PLAYING is 1
-    if (event.data === 1 && !hasSeeked && video?.watch_progress > 0 && video?.watch_progress < 98) {
-      setHasSeeked(true);
-      const duration = await event.target.getDuration();
-      if (duration > 0) {
-        const seekSeconds = (video.watch_progress / 100) * duration;
-        event.target.seekTo(seekSeconds);
-        setLastSavedProgress(video.watch_progress);
+    if (event.data === 1) {
+      if (!hasSeeked && video?.watch_progress > 0 && video?.watch_progress < 98) {
+        setHasSeeked(true);
+        const duration = await event.target.getDuration();
+        if (duration > 0) {
+          const seekSeconds = (video.watch_progress / 100) * duration;
+          event.target.seekTo(seekSeconds);
+          setLastSavedProgress(video.watch_progress);
+        }
+      }
+      
+      // Auto-restore playback speed
+      const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+      if (savedSpeed !== 1) {
+        event.target.setPlaybackRate(savedSpeed);
       }
     }
   };
@@ -832,8 +840,21 @@ const Classroom = () => {
               }}
               className="absolute top-0 left-0 w-full h-full"
               containerClassName="w-full h-full absolute inset-0"
-              onReady={(e) => { setPlayer(e.target); setPlayerError(false); }}
+              onReady={(e) => {
+                setPlayer(e.target);
+                setPlayerError(false);
+                // Auto-restore playback speed
+                const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+                if (savedSpeed !== 1) {
+                  e.target.setPlaybackRate(savedSpeed);
+                }
+              }}
               onStateChange={handlePlayerStateChange}
+              onPlaybackRateChange={(e) => {
+                const newRate = e.data;
+                console.log("Playback speed changed to:", newRate);
+                localStorage.setItem('learnproof_playback_speed', newRate.toString());
+              }}
               onError={() => setPlayerError(true)}
             />
             {/* Fallback overlay when YouTube blocks embedding */}
