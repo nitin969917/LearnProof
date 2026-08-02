@@ -91,7 +91,7 @@ const markVideoCompleted = async (req, res) => {
         await cacheService.del(`user:profile:${uid}`);
         await cacheService.del(`user:continue:${user.id}`);
         await cacheService.del(`user:completed:${user.id}`);
-        await cacheService.del(`classroom:v1:${user.id}:${videoId}`);
+        await cacheService.delByPattern(`classroom:v1:${user.id}:*`);
         if (video.playlist?.pid) {
             await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
         }
@@ -140,7 +140,7 @@ const unmarkVideoCompleted = async (req, res) => {
             await cacheService.del(`user:profile:${uid}`);
             await cacheService.del(`user:continue:${user.id}`);
             await cacheService.del(`user:completed:${user.id}`);
-            await cacheService.del(`classroom:v1:${user.id}:${videoId}`);
+            await cacheService.delByPattern(`classroom:v1:${user.id}:*`);
             if (video.playlist?.pid) {
                 await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
             }
@@ -176,7 +176,7 @@ const updateProgress = async (req, res) => {
             
             // Invalidate continue watching cache
             await cacheService.del(`user:continue:${user.id}`);
-            await cacheService.del(`classroom:v1:${user.id}:${videoId}`);
+            await cacheService.delByPattern(`classroom:v1:${user.id}:*`);
             await cacheService.delByPattern(`user:learnings:${user.id}:*`);
             await cacheService.del(`user:quiz-list:${user.id}`);
         }

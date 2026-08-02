@@ -588,6 +588,18 @@ const Classroom = () => {
     }
   };
 
+  const updatePlaylistVideoState = (vid, updates) => {
+    setPlaylist(prev => {
+      if (!prev || !prev.videos) return prev;
+      return {
+        ...prev,
+        videos: prev.videos.map(v => 
+          v.vid === vid ? { ...v, ...updates } : v
+        )
+      };
+    });
+  };
+
   const markAsCompleted = async () => {
     if (!video) return;
     setMarking(true);
@@ -600,6 +612,7 @@ const Classroom = () => {
       toast.success("Marked as completed", { id: loader });
       setVideo({ ...video, watch_progress: 100, is_completed: true });
       setLiveProgress(100);
+      updatePlaylistVideoState(video.vid, { watch_progress: 100, is_completed: true });
     } catch (err) {
       console.error(err);
       toast.error("Failed to mark as completed", { id: loader });
@@ -620,6 +633,7 @@ const Classroom = () => {
       toast.success("Unmarked", { id: loader });
       setVideo({ ...video, watch_progress: 0, is_completed: false });
       setLiveProgress(0);
+      updatePlaylistVideoState(video.vid, { watch_progress: 0, is_completed: false });
     } catch (err) {
       console.error(err);
       toast.error("Failed to unmark", { id: loader });
@@ -654,6 +668,7 @@ const Classroom = () => {
                   videoId: video.vid,
                 });
                 setVideo(prev => ({ ...prev, watch_progress: 100, is_completed: true }));
+                updatePlaylistVideoState(video.vid, { watch_progress: 100, is_completed: true });
               } else {
                 // Just update partial progress
                 await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/update-progress/`, {
@@ -662,6 +677,7 @@ const Classroom = () => {
                   progress: percentage
                 });
                 setVideo(prev => ({ ...prev, watch_progress: percentage }));
+                updatePlaylistVideoState(video.vid, { watch_progress: percentage });
               }
             }
           }
