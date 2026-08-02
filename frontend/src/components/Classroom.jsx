@@ -698,9 +698,10 @@ const Classroom = () => {
 
             setLiveProgress(percentage);
 
-            // Auto-trigger next overlay 5.5 seconds before the end to cover/hide YouTube annotations
-            if (duration - currentTime <= 5.5 && nextVideo && !showNextOverlay && !hasCancelledOverlay) {
-              console.log("Auto-triggering next overlay 5.5 seconds before end");
+            // Auto-trigger next overlay to block YouTube annotations (which can start up to 20s before the end)
+            const triggerOffset = duration > 60 ? 20 : (duration * 0.1);
+            if (duration - currentTime <= triggerOffset && nextVideo && !showNextOverlay && !hasCancelledOverlay) {
+              console.log(`Auto-triggering next overlay ${triggerOffset}s before end to block annotations`);
               setShowNextOverlay(true);
             }
 
