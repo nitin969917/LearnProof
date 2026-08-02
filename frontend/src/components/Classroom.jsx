@@ -172,6 +172,7 @@ const Classroom = () => {
   const [playerError, setPlayerError] = useState(false);
   const [liveProgress, setLiveProgress] = useState(0);
   const [hasSeeked, setHasSeeked] = useState(false);
+  const [showNextOverlay, setShowNextOverlay] = useState(false);
 
   // Track continuous progress to avoid spamming the backend
   const [lastSavedProgress, setLastSavedProgress] = useState(0);
@@ -467,6 +468,7 @@ const Classroom = () => {
       setQuizHistory([]);
       setSelectedHistoryQuiz(null);
       setPlayerError(false); // Reset player error on video change
+      setShowNextOverlay(false); // Reset next video overlay
       fetchClassroom();
       fetchDiscussionData();
     }
@@ -770,6 +772,11 @@ const Classroom = () => {
     );
   }
 
+  const currentIdx = playlist?.videos ? playlist.videos.findIndex(v => v.vid === video.vid) : -1;
+  const nextVideo = (playlist?.videos && currentIdx !== -1 && currentIdx < playlist.videos.length - 1)
+    ? playlist.videos[currentIdx + 1]
+    : null;
+
   return (
     <div className="flex flex-col lg:flex-row min-h-screen lg:min-h-0 lg:h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       {/* Main Content */}
@@ -855,6 +862,10 @@ const Classroom = () => {
                 console.log("Playback speed changed to:", newRate);
                 localStorage.setItem('learnproof_playback_speed', newRate.toString());
               }}
+              onEnd={() => {
+                console.log("Video ended, triggering next overlay");
+                setShowNextOverlay(true);
+              }}
               onError={() => setPlayerError(true)}
             />
             {/* Fallback overlay when YouTube blocks embedding */}
@@ -876,6 +887,51 @@ const Classroom = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" /></svg>
                   Watch on YouTube
                 </a>
+              </div>
+            )}
+
+            {/* Custom Next Video recommendation overlay */}
+            {showNextOverlay && nextVideo && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md text-white text-center p-4 transition-all duration-300 animate-fade-in">
+                <div className="max-w-md w-full bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-orange-400">
+                    Next Lesson Up
+                  </div>
+                  
+                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg group">
+                    <img 
+                      src={`https://img.youtube.com/vi/${nextVideo.vid}/hqdefault.jpg`} 
+                      alt={nextVideo.name} 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
+                      <div className="w-12 h-12 bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center transition-all transform hover:scale-110 shadow-lg cursor-pointer" onClick={() => { setShowNextOverlay(false); navigate(`/classroom/${nextVideo.vid}`); }}>
+                        <Play size={18} className="text-white fill-white ml-1" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center px-2">
+                    <h4 className="text-sm font-bold text-gray-100 line-clamp-2 leading-snug">
+                      {nextVideo.name}
+                    </h4>
+                  </div>
+
+                  <div className="flex gap-3 w-full mt-2">
+                    <button 
+                      onClick={() => setShowNextOverlay(false)} 
+                      className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all"
+                    >
+                      Replay / Cancel
+                    </button>
+                    <button 
+                      onClick={() => { setShowNextOverlay(false); navigate(`/classroom/${nextVideo.vid}`); }}
+                      className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-orange-500/25"
+                    >
+                      Play Next
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
