@@ -934,13 +934,14 @@ const Classroom = () => {
 
             {/* Custom Next Video recommendation overlay */}
             {showNextOverlay && nextVideo && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/45 text-white text-center p-4 transition-all duration-300 animate-fade-in">
-                <div className="max-w-md w-full bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-orange-400">
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/45 text-white text-center p-2 sm:p-4 transition-all duration-300 animate-fade-in">
+                <div className="max-w-[90%] w-[320px] sm:max-w-md bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl flex flex-col items-center gap-2 sm:gap-4">
+                  <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-orange-400">
                     Next Lesson Up
                   </div>
                   
-                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg group">
+                  {/* Thumbnail is hidden on mobile to avoid overflow inside portrait player aspect-ratio */}
+                  <div className="hidden sm:block relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg group">
                     <img 
                       src={`https://img.youtube.com/vi/${nextVideo.vid}/hqdefault.jpg`} 
                       alt={nextVideo.name} 
@@ -953,25 +954,25 @@ const Classroom = () => {
                     </div>
                   </div>
 
-                  <div className="text-center px-2">
-                    <h4 className="text-sm font-bold text-gray-100 line-clamp-2 leading-snug">
+                  <div className="text-center px-1 sm:px-2">
+                    <h4 className="text-xs sm:text-sm font-bold text-gray-100 line-clamp-1 sm:line-clamp-2 leading-snug">
                       {nextVideo.name}
                     </h4>
                   </div>
 
-                  <div className="flex gap-3 w-full mt-2">
+                  <div className="flex gap-2 sm:gap-3 w-full mt-1 sm:mt-2">
                     <button 
                       onClick={() => {
                         setShowNextOverlay(false);
                         setHasCancelledOverlay(true);
                       }} 
-                      className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all"
+                      className="flex-1 py-2 sm:py-3 bg-white/10 hover:bg-white/20 text-white font-black text-[9px] sm:text-[10px] uppercase tracking-widest rounded-lg sm:rounded-xl transition-all"
                     >
-                      Replay / Cancel
+                      Cancel
                     </button>
                     <button 
                       onClick={() => { setShowNextOverlay(false); navigate(`/classroom/${nextVideo.vid}`); }}
-                      className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-orange-500/25"
+                      className="flex-1 py-2 sm:py-3 bg-orange-500 hover:bg-orange-600 text-white font-black text-[9px] sm:text-[10px] uppercase tracking-widest rounded-lg sm:rounded-xl transition-all shadow-lg shadow-orange-500/25"
                     >
                       Play Next
                     </button>
