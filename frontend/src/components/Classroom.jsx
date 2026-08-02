@@ -698,6 +698,12 @@ const Classroom = () => {
 
             setLiveProgress(percentage);
 
+            // Auto-trigger next overlay 5.5 seconds before the end to cover/hide YouTube annotations
+            if (duration - currentTime <= 5.5 && nextVideo && !showNextOverlay && !hasCancelledOverlay) {
+              console.log("Auto-triggering next overlay 5.5 seconds before end");
+              setShowNextOverlay(true);
+            }
+
             // Only save to backend every 2% changes or if it reached >95%
             if (percentage > lastSavedProgress + 2 || (percentage > 95 && lastSavedProgress <= 95)) {
               console.log("Saving progress to backend:", percentage);
@@ -726,7 +732,7 @@ const Classroom = () => {
         } catch (err) {
           // Ignore player errors during unmounts/loading
         }
-      }, 3000); // Check every 3 seconds
+      }, 1000); // Check every 1 second
     }
 
     // POLICY COMPLIANCE: Pause video if tab is hidden (No background playback)
