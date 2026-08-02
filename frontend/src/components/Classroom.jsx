@@ -173,6 +173,7 @@ const Classroom = () => {
   const [liveProgress, setLiveProgress] = useState(0);
   const [hasSeeked, setHasSeeked] = useState(false);
   const [showNextOverlay, setShowNextOverlay] = useState(false);
+  const [hasCancelledOverlay, setHasCancelledOverlay] = useState(false);
 
   // Track continuous progress to avoid spamming the backend
   const [lastSavedProgress, setLastSavedProgress] = useState(0);
@@ -187,10 +188,17 @@ const Classroom = () => {
   const [savingNote, setSavingNote] = useState(false);
   const latestProgressRef = useRef(0);
   const activeVideoRef = useRef(null); // Ref for auto-scrolling
+  const playerContainerRef = useRef(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Playlist Pagination State
   const [playlistPage, setPlaylistPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
+
+  const currentIdx = playlist?.videos && video ? playlist.videos.findIndex(v => v.vid === video.vid) : -1;
+  const nextVideo = (playlist?.videos && currentIdx !== -1 && currentIdx < playlist.videos.length - 1)
+    ? playlist.videos[currentIdx + 1]
+    : null;
 
   // Lock document scroll on desktop so the browser page-level scrollbar is hidden.
   // On mobile (< 1024px) we allow natural page scrolling.
@@ -219,6 +227,37 @@ const Classroom = () => {
       window.removeEventListener('resize', lockScroll);
     };
   }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  const handleFullscreenToggle = () => {
+    const container = playerContainerRef.current;
+    if (!container) return;
+
+    if (!document.fullscreenElement) {
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+  };
 
   useEffect(() => {
     latestProgressRef.current = liveProgress;
@@ -469,6 +508,7 @@ const Classroom = () => {
       setSelectedHistoryQuiz(null);
       setPlayerError(false); // Reset player error on video change
       setShowNextOverlay(false); // Reset next video overlay
+      setHasCancelledOverlay(false); // Reset next video cancel state
       fetchClassroom();
       fetchDiscussionData();
     }
@@ -709,7 +749,7 @@ const Classroom = () => {
         }).catch(() => { });
       }
     };
-  }, [player, video, lastSavedProgress, token]);
+  }, [player, video, lastSavedProgress, token, nextVideo, showNextOverlay, hasCancelledOverlay]);
 
   const handlePlayerStateChange = async (event) => {
     // YT.PlayerState.PLAYING is 1
@@ -772,11 +812,6 @@ const Classroom = () => {
     );
   }
 
-  const currentIdx = playlist?.videos ? playlist.videos.findIndex(v => v.vid === video.vid) : -1;
-  const nextVideo = (playlist?.videos && currentIdx !== -1 && currentIdx < playlist.videos.length - 1)
-    ? playlist.videos[currentIdx + 1]
-    : null;
-
   return (
     <div className="flex flex-col lg:flex-row min-h-screen lg:min-h-0 lg:h-screen bg-white dark:bg-gray-900 transition-colors duration-200">
       {/* Main Content */}
@@ -831,7 +866,7 @@ const Classroom = () => {
 
         <div className="flex flex-col flex-1 lg:overflow-y-auto w-full max-w-full bg-white dark:bg-gray-900 transition-colors duration-200">
           {/* Enhanced Video Player */}
-          <div className="bg-black relative shadow-2xl aspect-video w-full flex items-center justify-center shrink-0">
+          <div ref={playerContainerRef} className="bg-black relative shadow-2xl aspect-video w-full flex items-center justify-center shrink-0">
             <YouTube
               key={video.vid}
               videoId={video.vid}
@@ -863,11 +898,18 @@ const Classroom = () => {
                 localStorage.setItem('learnproof_playback_speed', newRate.toString());
               }}
               onEnd={() => {
-                console.log("Video ended, triggering next overlay");
-                setShowNextOverlay(true);
+                if (nextVideo) {
+                  console.log("Video ended, triggering next overlay");
+                  setShowNextOverlay(true);
+                  // Exit native iframe fullscreen so overlay is visible
+                  if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {});
+                  }
+                }
               }}
               onError={() => setPlayerError(true)}
             />
+
             {/* Fallback overlay when YouTube blocks embedding */}
             {playerError && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-6 bg-gray-950 text-white text-center px-6">
@@ -892,7 +934,7 @@ const Classroom = () => {
 
             {/* Custom Next Video recommendation overlay */}
             {showNextOverlay && nextVideo && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md text-white text-center p-4 transition-all duration-300 animate-fade-in">
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/45 text-white text-center p-4 transition-all duration-300 animate-fade-in">
                 <div className="max-w-md w-full bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col items-center gap-4">
                   <div className="text-[10px] font-black uppercase tracking-widest text-orange-400">
                     Next Lesson Up
@@ -919,7 +961,10 @@ const Classroom = () => {
 
                   <div className="flex gap-3 w-full mt-2">
                     <button 
-                      onClick={() => setShowNextOverlay(false)} 
+                      onClick={() => {
+                        setShowNextOverlay(false);
+                        setHasCancelledOverlay(true);
+                      }} 
                       className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition-all"
                     >
                       Replay / Cancel
