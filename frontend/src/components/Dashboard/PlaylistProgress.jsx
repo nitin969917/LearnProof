@@ -92,7 +92,7 @@ const PlaylistProgress = () => {
     const completedVideos = videos.filter(v => v.is_completed).length;
     const quizzesPassed = videos.filter(v => v.passed_quiz).length;
     const percentComplete = totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0;
-    const overallProgress = totalVideos > 0 ? Math.round(((completedVideos + quizzesPassed) / (totalVideos * 2)) * 100) : 0;
+    const overallProgress = percentComplete;
 
     const totalPages = Math.ceil(totalVideos / ITEMS_PER_PAGE);
     const paginatedVideos = videos.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
