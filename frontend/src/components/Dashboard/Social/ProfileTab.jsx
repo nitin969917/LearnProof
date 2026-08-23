@@ -17,6 +17,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const { confirm } = useModal();
   const isOwnProfile = !viewUserId || viewUserId === currentUserId;
   const targetId = isOwnProfile ? currentUserId : viewUserId;
+  const isMobileOrApp = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || navigator.userAgent.includes('LearnProofApp');
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -703,8 +704,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                             {field.value && field.link && (
                               <a 
                                 href={field.link}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                target={isMobileOrApp ? "_self" : "_blank"}
+                                rel={isMobileOrApp ? undefined : "noopener noreferrer"}
                                 className="text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border border-current hover:bg-current hover:text-white transition cursor-pointer"
                               >
                                 Visit
