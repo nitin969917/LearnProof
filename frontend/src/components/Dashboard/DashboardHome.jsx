@@ -173,7 +173,7 @@ const DashboardHome = () => {
 
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 lg:items-start max-w-[1360px] mx-auto px-4 md:px-8 py-6 pb-24 md:pb-8 animate-in fade-in duration-500">
+        <div className="flex flex-col lg:flex-row gap-6 lg:items-start max-w-[1360px] mx-auto px-0 md:px-8 py-6 pb-24 md:pb-8 animate-in fade-in duration-500">
             {/* Left column (Flexible) */}
             <div className="flex-1 min-w-0 space-y-6">
                 {/* 1. GREETING BANNER CARD */}
@@ -323,7 +323,7 @@ const DashboardHome = () => {
                                 <div className="p-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-500">
                                     <BookOpen size={18} />
                                 </div>
-                                <h2 className="text-[13px] sm:text-sm font-black text-gray-955 dark:text-white uppercase tracking-wider">
+                                <h2 className="text-sm sm:text-base font-black text-gray-955 dark:text-white uppercase tracking-wider">
                                     Continue Learning
                                 </h2>
                             </div>
@@ -346,15 +346,15 @@ const DashboardHome = () => {
                                     <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
                                         <GraduationCap size={20} />
                                     </div>
-                                    <h3 className="text-xs font-black text-gray-955 dark:text-white mt-3.5">
+                                    <h3 className="text-[13px] font-black text-gray-955 dark:text-white mt-3.5">
                                         Learning Hub
                                     </h3>
-                                    <p className="text-[10px] text-gray-400 dark:text-slate-400 font-bold mt-2 leading-snug line-clamp-3 min-h-[48px]">
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold mt-2 leading-snug line-clamp-3 min-h-[48px]">
                                         Learn from YouTube videos, study notes, and roadmap.
                                     </p>
                                 </div>
                                 <div className="flex items-center justify-between mt-4">
-                                    <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 bg-orange-50/60 dark:bg-orange-950/40 px-2 py-0.5 rounded-full">
+                                    <span className="text-xs font-black text-orange-600 dark:text-orange-400 bg-orange-50/60 dark:bg-orange-950/40 px-2 py-0.5 rounded-full">
                                         {playlists.length + videos.length > 0 ? `${playlists.length + videos.length} Courses` : "8 Courses"}
                                     </span>
                                     <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-md shrink-0">
@@ -372,15 +372,15 @@ const DashboardHome = () => {
                                     <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-505 flex items-center justify-center shrink-0">
                                         <Video size={20} />
                                     </div>
-                                    <h3 className="text-xs font-black text-gray-955 dark:text-white mt-3.5">
+                                    <h3 className="text-[13px] font-black text-gray-955 dark:text-white mt-3.5">
                                         Live Rooms
                                     </h3>
-                                    <p className="text-[10px] text-gray-400 dark:text-slate-400 font-bold mt-2 leading-snug line-clamp-3 min-h-[48px]">
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold mt-2 leading-snug line-clamp-3 min-h-[48px]">
                                         Join audio/video study rooms and interact with others in real-time.
                                     </p>
                                 </div>
                                 <div className="flex items-center justify-between mt-4">
-                                    <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
+                                    <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
                                         Join Now
                                     </span>
                                     <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-md shrink-0">
@@ -398,7 +398,7 @@ const DashboardHome = () => {
                             <div className="p-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500">
                                 <Users size={18} />
                             </div>
-                            <h2 className="text-[13px] sm:text-sm font-black text-gray-955 dark:text-white uppercase tracking-wider">
+                            <h2 className="text-sm sm:text-base font-black text-gray-955 dark:text-white uppercase tracking-wider">
                                 Connect & Collaborate
                             </h2>
                         </div>
@@ -413,10 +413,10 @@ const DashboardHome = () => {
                                     <Users size={22} />
                                 </div>
                                 <div className="min-w-0">
-                                    <h3 className="text-xs font-black text-gray-955 dark:text-white leading-tight">
+                                    <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">
                                         Social Hub
                                     </h3>
-                                    <p className="text-[10px] text-gray-400 dark:text-slate-400 font-bold mt-1 leading-snug line-clamp-2">
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold mt-1 leading-snug line-clamp-2">
                                         Interact with study partners, send messages, and share updates.
                                     </p>
                                 </div>
@@ -426,7 +426,7 @@ const DashboardHome = () => {
                                     e.stopPropagation();
                                     navigate('/dashboard/social');
                                 }}
-                                className="px-4 py-2 bg-emerald-500 text-white text-[10px] font-black rounded-full shadow-md flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-transform"
+                                className="px-4 py-2 bg-emerald-500 text-white text-xs font-black rounded-full shadow-md flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-transform"
                             >
                                 Connect <ArrowRight size={10} />
                             </button>
