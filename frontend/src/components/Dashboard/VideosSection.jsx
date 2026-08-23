@@ -44,8 +44,8 @@ const VideosSection = ({ data: videos = [], loading = true }) => {
     }
 
     return (
-        <div className="space-y-2 mb-2">
-            <h2 className="text-[14px] sm:text-base font-black text-gray-900 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
+        <div className="space-y-2">
+            <h2 className="text-sm sm:text-base font-black text-gray-900 dark:text-white flex items-center gap-1.5">
                 <Video size={18} className="text-orange-500" />
                 Your Individual Lessons
             </h2>

@@ -52,9 +52,25 @@ const DashboardHome = () => {
         }
     };
 
-    const handleShare = () => {
-        navigator.clipboard.writeText(window.location.origin);
-        toast.success("Share link copied! Send it to your friends.");
+    const handleShare = async () => {
+        const shareData = {
+            title: 'LearnProof AI',
+            text: 'Join me on LearnProof AI — the smartest way to learn from YouTube videos and study notes!',
+            url: window.location.origin,
+        };
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    navigator.clipboard.writeText(window.location.origin);
+                    toast.success('Link copied to clipboard!');
+                }
+            }
+        } else {
+            navigator.clipboard.writeText(window.location.origin);
+            toast.success('Link copied to clipboard!');
+        }
     };
 
     useEffect(() => {
@@ -173,12 +189,12 @@ const DashboardHome = () => {
 
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 lg:items-start max-w-[1360px] mx-auto px-0 md:px-8 py-6 pb-24 md:pb-8 animate-in fade-in duration-500">
+        <div className="flex flex-col lg:flex-row gap-6 lg:items-start max-w-[1360px] mx-auto px-0 md:px-8 py-3 lg:py-6 pb-24 md:pb-8 animate-in fade-in duration-500">
             {/* Left column (Flexible) */}
-            <div className="flex-1 min-w-0 space-y-6">
+            <div className="flex-1 min-w-0 space-y-4">
                 {/* 1. GREETING BANNER CARD */}
-                <div className="bg-gradient-to-br from-[#FFF5F2] to-[#FFF9F6] dark:from-gray-800 dark:to-gray-900 p-4 sm:p-5 rounded-2xl border border-orange-100/50 dark:border-gray-700 shadow-sm relative overflow-hidden transition-all duration-200 flex flex-row items-center justify-between gap-4">
-                    <div className="flex-1 space-y-0.5 text-left min-w-0 pr-2">
+                <div className="bg-gradient-to-br from-[#FFF5F2] to-[#FFF9F6] dark:from-gray-800 dark:to-gray-900 rounded-2xl border border-orange-200 dark:border-gray-700 shadow-sm relative overflow-hidden transition-all duration-200 flex flex-row items-end justify-between">
+                    <div className="flex-1 space-y-0.5 text-left min-w-0 p-4 sm:p-5">
                         <span className="text-[11px] sm:text-xs font-bold text-gray-500/80 dark:text-slate-400">Welcome back,</span>
                         <h1 className="text-sm sm:text-2xl font-black text-orange-500 leading-tight mt-0.5 sm:mt-1">
                             {user?.name || "Learner"}! 👋
@@ -187,11 +203,11 @@ const DashboardHome = () => {
                             Select a path to continue your learning journey or interact with other students.
                         </p>
                     </div>
-                    <div className="w-[80px] sm:w-[130px] shrink-0 relative z-10">
+                    <div className="w-[100px] sm:w-[140px] shrink-0 self-end">
                         <img 
                             src="/waving_student.png" 
                             alt="Welcome Illustration" 
-                            className="w-full h-auto object-contain" 
+                            className="w-full h-auto object-contain block" 
                         />
                     </div>
                 </div>
@@ -343,8 +359,8 @@ const DashboardHome = () => {
                                 className="bg-gradient-to-b from-[#FFFDFB] to-[#FFF9F5] dark:from-gray-800 dark:to-gray-900 border border-orange-100/50 dark:border-gray-750 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
                             >
                                 <div>
-                                    <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
-                                        <GraduationCap size={20} />
+                                    <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
+                                        <GraduationCap size={24} />
                                     </div>
                                     <h3 className="text-[13px] font-black text-gray-955 dark:text-white mt-3.5">
                                         Learning Hub
@@ -369,8 +385,8 @@ const DashboardHome = () => {
                                 className="bg-gradient-to-b from-[#F9FBFF] to-[#F1F6FF] dark:from-gray-800 dark:to-gray-900 border border-blue-100/50 dark:border-gray-750 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
                             >
                                 <div>
-                                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-505 flex items-center justify-center shrink-0">
-                                        <Video size={20} />
+                                    <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0">
+                                        <Video size={24} />
                                     </div>
                                     <h3 className="text-[13px] font-black text-gray-955 dark:text-white mt-3.5">
                                         Live Rooms
@@ -409,8 +425,8 @@ const DashboardHome = () => {
                             className="bg-gradient-to-r from-[#F4FBF7] to-[#EBF9F1] dark:from-gray-800/40 dark:to-gray-900 border border-emerald-100/50 dark:border-gray-750 p-4 rounded-2xl flex flex-row items-center justify-between gap-4 shadow-sm active:scale-98 transition-all group cursor-pointer"
                         >
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-[#1f2c24] text-emerald-500 flex items-center justify-center shrink-0">
-                                    <Users size={22} />
+                                <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-[#1f2c24] text-emerald-500 flex items-center justify-center shrink-0">
+                                    <Users size={26} />
                                 </div>
                                 <div className="min-w-0">
                                     <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">
@@ -434,25 +450,25 @@ const DashboardHome = () => {
                     </div>
                 </div>
                 {/* 4. SHARE CARD SECTION */}
-                <div className="bg-[#FFFBF7] dark:bg-gray-800/40 rounded-2xl border border-orange-100/50 dark:border-gray-700/50 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm hover:shadow-md transition-all">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl bg-orange-100/50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/10">
-                            <Share2 size={20} />
+                <div className="bg-[#FFFBF7] dark:bg-gray-800/40 rounded-2xl border border-orange-200 dark:border-gray-700/50 p-3 flex flex-row items-center justify-between gap-3 shadow-sm hover:shadow-md transition-all">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-orange-100/70 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
+                            <Share2 size={18} />
                         </div>
-                        <div>
-                            <h3 className="font-black text-gray-900 dark:text-white text-sm sm:text-base">
+                        <div className="min-w-0">
+                            <h3 className="font-black text-gray-900 dark:text-white text-xs sm:text-sm leading-tight">
                                 Share LearnProof AI
                             </h3>
-                            <p className="text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-0.5">
+                            <p className="text-[10px] sm:text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-0.5 line-clamp-1">
                                 Invite your friends and learn together.
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={handleShare}
-                        className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-orange-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-orange-50/20 text-orange-600 dark:text-orange-400 font-black text-xs transition cursor-pointer shadow-sm"
+                        className="shrink-0 px-4 py-2 rounded-full bg-orange-500 hover:bg-orange-600 text-white font-black text-xs transition-all cursor-pointer shadow-sm shadow-orange-500/20 active:scale-95 flex items-center gap-1.5"
                     >
-                        Share Now
+                        <Share2 size={12} /> Share
                     </button>
                 </div>
 
@@ -544,7 +560,7 @@ const DashboardHome = () => {
                 )}
 
                 {/* 6. INDIVIDUAL VIDEOS & QUICK RESUME SECTION */}
-                <div className="space-y-4 pt-4 border-t border-orange-100/30 dark:border-gray-700/50">
+                <div className="space-y-4">
                     <VideosSection data={videos} loading={loadingLearnings} />
                     <ContinueWatching videos={continueVideos} loading={loadingContinue} />
                 </div>
@@ -563,7 +579,7 @@ const DashboardHome = () => {
             </div>
 
             {/* Completed Videos List (Mobile only) */}
-            <div className="block lg:hidden w-full pt-6 border-t border-orange-100/50 dark:border-gray-700">
+            <div className="block lg:hidden w-full">
                 <CompletedSection />
             </div>
         </div> );
