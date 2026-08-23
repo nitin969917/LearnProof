@@ -180,7 +180,7 @@ const DashboardHome = () => {
                 <div className="bg-gradient-to-br from-[#FFF5F2] to-[#FFF9F6] dark:from-gray-800 dark:to-gray-900 p-4 sm:p-5 rounded-2xl border border-orange-100/50 dark:border-gray-700 shadow-sm relative overflow-hidden transition-all duration-200 flex flex-row items-center justify-between gap-4">
                     <div className="flex-1 space-y-0.5 text-left min-w-0 pr-2">
                         <span className="text-[11px] sm:text-xs font-bold text-gray-500/80 dark:text-slate-400">Welcome back,</span>
-                        <h1 className="text-sm sm:text-2xl font-black text-orange-555 leading-tight mt-0.5 sm:mt-1">
+                        <h1 className="text-sm sm:text-2xl font-black text-orange-500 leading-tight mt-0.5 sm:mt-1">
                             {user?.name || "Learner"}! 👋
                         </h1>
                         <p className="text-[10px] sm:text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-1 max-w-xl leading-snug">
@@ -460,15 +460,15 @@ const DashboardHome = () => {
                 {playlists.length > 0 && (
                     <div className="space-y-4 relative group">
                         <div className="flex justify-between items-center">
-                            <h2 className="text-[13px] sm:text-sm font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                            <h2 className="text-sm sm:text-base font-black text-gray-900 dark:text-white flex items-center gap-2">
                                 <Library size={18} className="text-orange-500" />
                                 <span>Your Playlists</span>
                             </h2>
                             <button
                                 onClick={() => navigate('/dashboard/library')}
-                                className="px-4 py-1.5 rounded-full border border-orange-200/60 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-orange-50/20 text-orange-600 dark:text-orange-400 text-xs font-black flex items-center gap-1 transition-all cursor-pointer shadow-sm"
+                                className="px-3.5 py-1 rounded-full border border-orange-100 dark:border-gray-700 bg-white dark:bg-gray-800 text-orange-500 dark:text-orange-400 text-xs font-bold flex items-center gap-1 hover:bg-orange-50/20 active:scale-95 transition-all cursor-pointer shadow-sm"
                             >
-                                View all <ArrowRight size={12} />
+                                View all <ArrowRight size={10} />
                             </button>
                         </div>
 

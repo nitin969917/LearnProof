@@ -80,10 +80,10 @@ const ContinueWatching = ({ videos: propVideos, loading: propLoading }) => {
     }
 
     return (
-        <div className="space-y-2 mb-2">
-            <h2 className="text-[14px] sm:text-base font-black text-gray-900 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
+        <div className="space-y-4">
+            <h2 className="text-sm sm:text-base font-black text-gray-900 dark:text-white flex items-center gap-2">
                 <Zap size={18} className="text-orange-500" />
-                Continue Watching
+                <span>Continue Watching</span>
             </h2>
             <div className="relative group">
                 <button
