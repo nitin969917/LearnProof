@@ -1504,24 +1504,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       </button>
                     </>
                   )}
-                  {selectedChat.type === 'direct' && (
-                    <>
-                      <button
-                        onClick={() => initiateCall('audio')}
-                        className="p-2 text-gray-555 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer"
-                        title="Start Audio Call"
-                      >
-                        <Phone size={18} />
-                      </button>
-                      <button
-                        onClick={() => initiateCall('video')}
-                        className="p-2 text-gray-555 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer"
-                        title="Start Video Call"
-                      >
-                        <VideoIcon size={18} />
-                      </button>
-                    </>
-                  )}
                   <button 
                     onClick={() => {
                       if (selectedChat.type === 'group') {
