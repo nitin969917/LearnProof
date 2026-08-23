@@ -662,7 +662,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         isFriendsOnly: true
       };
 
-      const roomRes = await socialApi.post('/dating/language-rooms', roomPayload);
+      const roomRes = await socialApi.post('/language-rooms', roomPayload);
       const createdRoom = roomRes.data;
 
       // 2. Send direct chat message with call metadata
