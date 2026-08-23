@@ -416,40 +416,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     }
   };
 
-  // ── System welcome + join notice ───────────────────────────────────────────
-  useEffect(() => {
-    if (systemEvents.length === 0) {
-      setSystemEvents([
-        {
-          id: 'welcome-notice',
-          time: new Date(),
-          text: 'Welcome to the Live! Please be respectful to others, and avoid content related to violence, abuse, politics, discrimination, drugs, religion. Thank you for maintaining a safe and inclusive learning environment.'
-        },
-        {
-          id: 'self-join',
-          time: new Date(Date.now() + 50),
-          text: 'You entered the room'
-        }
-      ]);
-    }
-  }, [systemEvents.length, setSystemEvents]);
 
-  // ── Participant joined notice ──────────────────────────────────────────────
-  useEffect(() => {
-    if (!room) return;
-    const handleConnected = (p) => {
-      setSystemEvents(prev => [
-        ...prev,
-        {
-          id: `join-${p.identity}-${Date.now()}`,
-          time: new Date(),
-          text: `🎉 ${p.name || 'A user'} entered the room`
-        }
-      ]);
-    };
-    room.on('participantConnected', handleConnected);
-    return () => room.off('participantConnected', handleConnected);
-  }, [room]);
 
   // ── Host disconnected auto-end room listener ──────────────────────────────
   useEffect(() => {
@@ -1137,64 +1104,18 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
         {/* Chat Input */}
         <div className="p-2 border-t border-gray-200 dark:border-white/5 bg-white dark:bg-gray-900 shrink-0">
-          <form onSubmit={handleSendChat} className="flex gap-1.5 items-center w-full">
+          <form onSubmit={handleSendChat} className="flex gap-2 items-center w-full">
             <input
               type="text"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               placeholder="Type message..."
-              className="flex-1 min-w-0 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-[11px] border border-gray-200 dark:border-white/8 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 font-medium placeholder:text-gray-400 dark:placeholder:text-gray-500 transition"
+              className="flex-1 min-w-0 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white text-xs border border-gray-200 dark:border-white/8 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/50 font-semibold placeholder:text-gray-400 dark:placeholder:text-gray-500 transition"
             />
-            
-            <div className="flex items-center gap-1 shrink-0">
-              {/* Send Button */}
-              <button type="submit" className="p-2.5 bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 rounded-xl text-white transition cursor-pointer flex items-center justify-center shrink-0 shadow-md shadow-orange-500/25 active:scale-95 ml-0.5">
-                <Send size={14} />
-              </button>
-
-              {canPublish ? (
-                <>
-                  {/* Stage Icon */}
-                  {!isHost && (
-                    <button type="button" onClick={handleLeaveStage} title="Step down from stage" className="p-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95">
-                      <ChevronsDown size={14} />
-                    </button>
-                  )}
-                  {/* Camera */}
-                  {isVideoRoom && (
-                    <button type="button" onClick={toggleCam} title={isCamEnabled ? 'Camera Off' : 'Camera On'} className={`p-2 rounded-xl border transition-all cursor-pointer active:scale-95 ${isCamEnabled ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20' : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'}`}>
-                      {isCamEnabled ? <Video size={14} /> : <VideoOff size={14} />}
-                    </button>
-                  )}
-                  {/* Mic */}
-                  <button type="button" onClick={toggleMic} title={isMicEnabled ? 'Mute' : 'Unmute'} className={`p-2 rounded-xl border transition-all cursor-pointer active:scale-95 ${isMicEnabled ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20' : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'}`}>
-                    {isMicEnabled ? <Mic size={14} /> : <MicOff size={14} />}
-                  </button>
-                </>
-              ) : (
-                /* Stage Request Icon */
-                <button type="button" onClick={hasRequested ? handleWithdrawRequest : handleRequestToSpeak} title={hasRequested ? 'Withdraw Stage Request' : 'Request to Speak'} className={`p-2 rounded-xl border transition-all cursor-pointer active:scale-95 ${hasRequested ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20' : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40'}`}>
-                  <Hand size={14} className={hasRequested ? 'animate-pulse' : ''} />
-                </button>
-              )}
-
-              <button type="button" onClick={() => setShowSettingsModal(true)} title="Room Settings" className="p-2 rounded-xl border transition-all cursor-pointer bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40 active:scale-95 hidden sm:flex">
-                <Settings size={14} />
-              </button>
-              
-              <button type="button" onClick={() => setShowParticipants(prev => !prev)} title="Participants" className={`p-2 rounded-xl border transition-all cursor-pointer relative active:scale-95 ${showParticipants ? 'bg-orange-500/15 border-orange-500/50 text-orange-400' : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40'}`}>
-                <Users size={14} />
-                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[7px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center border border-white dark:border-gray-900 shadow">
-                  {uniqueParticipants.length}
-                </span>
-                {isHost && speakRequests.length > 0 && (
-                  <span className="absolute -bottom-1 -left-1 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500 border border-white dark:border-gray-900" />
-                  </span>
-                )}
-              </button>
-            </div>
+            {/* Send Button */}
+            <button type="submit" className="p-2.5 bg-gradient-to-br from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 rounded-xl text-white transition cursor-pointer flex items-center justify-center shrink-0 shadow-md shadow-orange-500/25 active:scale-95">
+              <Send size={14} />
+            </button>
           </form>
         </div>
       </div>
@@ -1610,121 +1531,16 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
               )}
             </div>
           )}
-          {/* Floating Controls Overlay (only when chat is hidable) */}
+          {/* Floating Chat Drawer Toggle (only when chat is hidable) */}
           {isChatHidable && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl border border-gray-250/60 dark:border-white/10 flex items-center gap-3 z-30 pointer-events-auto">
-              
-              {/* Toggle Chat button */}
-              <button
-                type="button"
-                onClick={() => setShowChatDrawer(prev => !prev)}
-                title={showChatDrawer ? "Hide Chat" : "Show Chat"}
-                className={`p-2.5 rounded-xl border transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0 ${
-                  showChatDrawer
-                    ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20'
-                    : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-500 hover:border-orange-500/40'
-                }`}
-              >
-                <MessageSquare size={15} />
-              </button>
-
-              {/* Separator line */}
-              <div className="w-px h-5 bg-gray-200 dark:bg-white/10 shrink-0" />
-
-              {canPublish ? (
-                <>
-                  {/* Step down from stage button */}
-                  {!isHost && (
-                    <button
-                      type="button"
-                      onClick={handleLeaveStage}
-                      title="Step down from stage"
-                      className="p-2.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0"
-                    >
-                      <ChevronsDown size={15} />
-                    </button>
-                  )}
-
-                  {/* Toggle Camera button */}
-                  {isVideoRoom && (
-                    <button
-                      type="button"
-                      onClick={toggleCam}
-                      title={isCamEnabled ? 'Camera Off' : 'Camera On'}
-                      className={`p-2.5 rounded-xl border transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0 ${
-                        isCamEnabled
-                          ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20'
-                          : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
-                      }`}
-                    >
-                      {isCamEnabled ? <Video size={15} /> : <VideoOff size={15} />}
-                    </button>
-                  )}
-
-                  {/* Toggle Mic button */}
-                  <button
-                    type="button"
-                    onClick={toggleMic}
-                    title={isMicEnabled ? 'Mute' : 'Unmute'}
-                    className={`p-2.5 rounded-xl border transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0 ${
-                      isMicEnabled
-                        ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20'
-                        : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
-                    }`}
-                  >
-                    {isMicEnabled ? <Mic size={15} /> : <MicOff size={15} />}
-                  </button>
-                </>
-              ) : (
-                /* Request to speak button */
-                <button
-                  type="button"
-                  onClick={hasRequested ? handleWithdrawRequest : handleRequestToSpeak}
-                  title={hasRequested ? 'Withdraw Stage Request' : 'Request to Speak'}
-                  className={`p-2.5 rounded-xl border transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0 ${
-                    hasRequested
-                      ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20'
-                      : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40'
-                  }`}
-                >
-                  <Hand size={15} className={hasRequested ? 'animate-pulse' : ''} />
-                </button>
-              )}
-
-              {/* Settings button */}
-              <button
-                type="button"
-                onClick={() => setShowSettingsModal(true)}
-                title="Room Settings"
-                className="p-2.5 rounded-xl border transition-all cursor-pointer bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40 active:scale-95 flex items-center justify-center shrink-0"
-              >
-                <Settings size={15} />
-              </button>
-
-              {/* Show Participants button */}
-              <button
-                type="button"
-                onClick={() => setShowParticipants(prev => !prev)}
-                title="Participants"
-                className={`p-2.5 rounded-xl border transition-all cursor-pointer relative active:scale-95 flex items-center justify-center shrink-0 ${
-                  showParticipants
-                    ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
-                    : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40'
-                }`}
-              >
-                <Users size={15} />
-                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[7px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center border border-white dark:border-gray-900 shadow">
-                  {uniqueParticipants.length}
-                </span>
-                {isHost && speakRequests.length > 0 && (
-                  <span className="absolute -bottom-1 -left-1 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500 border border-white dark:border-gray-900" />
-                  </span>
-                )}
-              </button>
-
-            </div>
+            <button
+              type="button"
+              onClick={() => setShowChatDrawer(prev => !prev)}
+              className="absolute bottom-4 right-4 bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-full shadow-lg z-30 cursor-pointer active:scale-95 transition-all flex items-center justify-center"
+              title="Open Chat"
+            >
+              <MessageSquare size={18} />
+            </button>
           )}
 
         </div>
@@ -1735,6 +1551,113 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             {renderChatPanel()}
           </div>
         )}
+      </div>
+
+      {/* Collapsible Participants Info Card (only when chat is hidable on mobile view) */}
+      {isChatHidable && (
+        <div 
+          onClick={() => setShowParticipants(prev => !prev)}
+          className="mx-4 mb-3 mt-1.5 p-3.5 bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.99] transition-all relative z-20"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
+              <Users size={16} />
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-xs font-black text-gray-900 dark:text-white leading-tight">
+                {uniqueParticipants.length} Participants
+              </span>
+              <span className="text-[10px] font-bold text-gray-450 dark:text-slate-450 mt-0.5">
+                {stageSpeakers.length} Speakers · {listeners.length} Listeners
+              </span>
+            </div>
+          </div>
+          <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showParticipants ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      )}
+
+      {/* ── Global Bottom Controls Bar ── */}
+      <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-white/5 py-3.5 px-4 flex items-center justify-around z-30 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+        {/* Mute button */}
+        <div 
+          onClick={toggleMic}
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+        >
+          <div className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+            isMicEnabled 
+              ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/10' 
+              : 'bg-red-50 dark:bg-red-950/20 text-red-500'
+          }`}>
+            {isMicEnabled ? <Mic size={18} /> : <MicOff size={18} />}
+          </div>
+          <span className="text-[9.5px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            {isMicEnabled ? 'Mute' : 'Unmute'}
+          </span>
+        </div>
+
+        {/* Video button (if video room) */}
+        {isVideoRoom && (
+          <div 
+            onClick={toggleCam}
+            className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+          >
+            <div className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+              isCamEnabled 
+                ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-500' 
+                : 'bg-gray-50 dark:bg-gray-800 text-gray-400'
+            }`}>
+              {isCamEnabled ? <Video size={18} /> : <VideoOff size={18} />}
+            </div>
+            <span className="text-[9.5px] font-black uppercase tracking-wider text-gray-550 dark:text-gray-400">
+              {isCamEnabled ? 'Stop Video' : 'Start Video'}
+            </span>
+          </div>
+        )}
+
+        {/* Participants button */}
+        <div 
+          onClick={() => setShowParticipants(prev => !prev)}
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+        >
+          <div className="w-12 h-10 rounded-xl bg-green-50 dark:bg-green-950/20 text-green-500 flex items-center justify-center transition-all">
+            <Users size={18} />
+          </div>
+          <span className="text-[9.5px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            Participants
+          </span>
+        </div>
+
+        {/* Stage Request / Hand button */}
+        <div 
+          onClick={canPublish ? (!isHost ? handleLeaveStage : undefined) : (hasRequested ? handleWithdrawRequest : handleRequestToSpeak)}
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+        >
+          <div className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+            canPublish 
+              ? 'bg-red-50 dark:bg-red-950/20 text-red-500' 
+              : (hasRequested ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'bg-purple-50 dark:bg-purple-950/20 text-purple-500')
+          }`}>
+            {canPublish ? <ChevronsDown size={18} /> : <Hand size={18} className={hasRequested ? 'animate-pulse' : ''} />}
+          </div>
+          <span className="text-[9.5px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            {canPublish ? (isHost ? 'On Stage' : 'Leave Stage') : (hasRequested ? 'Withdraw' : 'Raise Hand')}
+          </span>
+        </div>
+
+        {/* More Options / Settings button */}
+        <div 
+          onClick={() => setShowSettingsModal(true)}
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+        >
+          <div className="w-12 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center transition-all">
+            <Settings size={18} />
+          </div>
+          <span className="text-[9.5px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            More
+          </span>
+        </div>
       </div>
 
       {/* Hidable Chat Sliding Drawer */}
