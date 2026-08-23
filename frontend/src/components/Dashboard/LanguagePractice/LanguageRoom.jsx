@@ -294,7 +294,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Chat refs and states
   const [chatInput, setChatInput] = useState('');
   const chatTimelineRef = useRef(null);
-  const [showChatDrawer, setShowChatDrawer] = useState(false);
+  const [showChatPanel, setShowChatPanel] = useState(window.innerWidth >= 1024);
 
   // Video tracks for video rooms
   const tracks = useTracks(
@@ -665,6 +665,21 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // ── Host: Approve a speak request (from participants panel) ────────────────
   const handlePromoteSpeaker = async (identity, pName) => {
+    // Stage limit check (max 6 speakers)
+    const currentSpeakersCount = uniqueParticipants.filter(p => {
+      if (!p) return false;
+      const pCanPublish = p.permissions?.canPublish;
+      const isCreator = dbRoom && dbRoom.creatorId?.toString() === p.identity;
+      return pCanPublish || isCreator;
+    }).length;
+
+    if (currentSpeakersCount >= 6) {
+      toast.error('The stage is full! Maximum of 6 speakers allowed.', {
+        style: { background: '#ef4444', color: '#fff', fontWeight: '700' }
+      });
+      return;
+    }
+
     try {
       await socialApi.post(`/livekit/rooms/${roomName}/participants/${identity}/promote`);
       setSpeakRequests(prev => prev.filter(r => r.identity !== identity));
@@ -1031,15 +1046,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           </span>
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] font-bold text-gray-500">{uniqueParticipants.length}</span>
-            {isChatHidable && (
-              <button
-                onClick={() => setShowChatDrawer(false)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer flex items-center justify-center"
-                title="Close chat"
-              >
-                <X size={14} />
-              </button>
-            )}
+            <button
+              onClick={() => setShowChatPanel(false)}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer flex items-center justify-center"
+              title="Close chat"
+            >
+              <X size={14} />
+            </button>
           </div>
         </div>
 
@@ -1520,7 +1533,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                         key={p.identity}
                         className="flex flex-col items-center gap-1 group"
                       >
-                        <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${getGradient(p.identity)} flex items-center justify-center text-white font-black text-xs uppercase shadow-sm border border-white/10 group-hover:scale-105 transition-all`}>
+                        <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${getGradient(p.identity)} flex items-center justify-center text-white font-black text-xs shadow-sm border border-white/10 group-hover:scale-105 transition-all`}>
                           {p.name ? p.name[0] : 'U'}
                         </div>
                         <span className="text-[8px] font-bold text-gray-500 truncate max-w-[40px] text-center">{p.name?.split(' ')[0] || 'User'}</span>
@@ -1531,22 +1544,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
               )}
             </div>
           )}
-          {/* Floating Chat Drawer Toggle (only when chat is hidable) */}
-          {isChatHidable && (
-            <button
-              type="button"
-              onClick={() => setShowChatDrawer(prev => !prev)}
-              className="absolute bottom-4 right-4 bg-orange-500 hover:bg-orange-600 text-white p-3 rounded-full shadow-lg z-30 cursor-pointer active:scale-95 transition-all flex items-center justify-center"
-              title="Open Chat"
-            >
-              <MessageSquare size={18} />
-            </button>
-          )}
-
         </div>
 
         {/* ══ RIGHT: Chat Panel (only if NOT hidable) ══ */}
-        {!isChatHidable && (
+        {!isChatHidable && showChatPanel && (
           <div className="flex-1 lg:w-[340px] lg:max-w-[380px] lg:shrink-0 flex flex-col overflow-hidden bg-white dark:bg-gray-900 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-white/5 relative">
             {renderChatPanel()}
           </div>
@@ -1592,7 +1593,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           }`}>
             {isMicEnabled ? <Mic size={18} /> : <MicOff size={18} />}
           </div>
-          <span className="text-[9.5px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <span className="text-[10px] font-black tracking-wide text-gray-650 dark:text-gray-400">
             {isMicEnabled ? 'Mute' : 'Unmute'}
           </span>
         </div>
@@ -1610,11 +1611,28 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             }`}>
               {isCamEnabled ? <Video size={18} /> : <VideoOff size={18} />}
             </div>
-            <span className="text-[9.5px] font-black uppercase tracking-wider text-gray-550 dark:text-gray-400">
+            <span className="text-[10px] font-black tracking-wide text-gray-650 dark:text-gray-400">
               {isCamEnabled ? 'Stop Video' : 'Start Video'}
             </span>
           </div>
         )}
+
+        {/* Chat button */}
+        <div 
+          onClick={() => setShowChatPanel(prev => !prev)}
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+        >
+          <div className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+            showChatPanel 
+              ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/10' 
+              : 'bg-orange-50 dark:bg-orange-950/20 text-orange-500'
+          }`}>
+            <MessageSquare size={18} />
+          </div>
+          <span className="text-[10px] font-black tracking-wide text-gray-650 dark:text-gray-400">
+            Chat
+          </span>
+        </div>
 
         {/* Participants button */}
         <div 
@@ -1624,7 +1642,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           <div className="w-12 h-10 rounded-xl bg-green-50 dark:bg-green-950/20 text-green-500 flex items-center justify-center transition-all">
             <Users size={18} />
           </div>
-          <span className="text-[9.5px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <span className="text-[10px] font-black tracking-wide text-gray-655 dark:text-gray-400">
             Participants
           </span>
         </div>
@@ -1641,7 +1659,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           }`}>
             {canPublish ? <ChevronsDown size={18} /> : <Hand size={18} className={hasRequested ? 'animate-pulse' : ''} />}
           </div>
-          <span className="text-[9.5px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <span className="text-[10px] font-black tracking-wide text-gray-655 dark:text-gray-400">
             {canPublish ? (isHost ? 'On Stage' : 'Leave Stage') : (hasRequested ? 'Withdraw' : 'Raise Hand')}
           </span>
         </div>
@@ -1654,7 +1672,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           <div className="w-12 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center transition-all">
             <Settings size={18} />
           </div>
-          <span className="text-[9.5px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          <span className="text-[10px] font-black tracking-wide text-gray-655 dark:text-gray-400">
             More
           </span>
         </div>
@@ -1662,13 +1680,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
       {/* Hidable Chat Sliding Drawer */}
       <AnimatePresence>
-        {isChatHidable && showChatDrawer && (
+        {isChatHidable && showChatPanel && (
           <div className="fixed inset-0 z-40 flex justify-end">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowChatDrawer(false)}
+              onClick={() => setShowChatPanel(false)}
               className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
             />
             <motion.div
