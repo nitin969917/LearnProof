@@ -1555,10 +1555,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
               </div>
             </div>
           ) : (
-            <div className="relative w-full h-full flex flex-col p-4 gap-4 overflow-y-auto">
-
+            <div className="relative w-full h-full flex flex-col p-2 bg-orange-50 dark:bg-gray-950 overflow-hidden gap-3">
               {/* Stage Label */}
-              <div className="flex items-center gap-2 shrink-0 z-10">
+              <div className="flex items-center gap-2 shrink-0 z-10 px-2 pt-1">
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-500/10 border border-orange-500/20 rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400">On Stage</span>
@@ -1568,20 +1567,25 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
               {/* Speaker Tiles */}
               <div className="flex-1 min-h-0">
-                <div className={`grid ${getGridClassName(stageSpeakers.length)} w-full h-full gap-3`}>
-                  {stageSpeakers.map((p, i) =>
-                    renderSpeakerTile(p, getTileSpan(i, stageSpeakers.length))
-                  )}
+                <div className={`grid ${getGridClassName(stageSpeakers.length)} w-full h-full gap-2`}>
+                  {stageSpeakers.map((p, i) => (
+                    <div
+                      key={p.identity}
+                      className={`${getTileSpan(i, stageSpeakers.length)} h-full w-full`}
+                    >
+                      {renderSpeakerTile(p, 'h-full w-full')}
+                    </div>
+                  ))}
                 </div>
               </div>
 
               {/* Audience Strip */}
               {listeners.length > 0 && (
-                <div className="shrink-0 border-t border-gray-200 dark:border-white/5 pt-3">
-                  <span className="text-[9px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2 block">
+                <div className="shrink-0 border-t border-gray-200 dark:border-white/5 pt-2.5 px-2 pb-1">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5 block">
                     Listening · {listeners.length}
                   </span>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 max-h-[64px] overflow-y-auto">
                     {listeners.map((p) => (
                       <div
                         key={p.identity}
