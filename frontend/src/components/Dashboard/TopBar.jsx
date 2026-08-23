@@ -158,7 +158,7 @@ const TopBar = ({ onMenuClick }) => {
                     {/* Bell Notification Action */}
                     <button
                         onClick={() => navigate('/dashboard/inbox')}
-                        className="relative p-2 text-gray-600 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-slate-700/50 rounded-xl transition-all cursor-pointer shrink-0 border border-orange-100 dark:border-gray-600 active:scale-95 bg-orange-50/20"
+                        className="relative p-2 text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-700/50 rounded-xl transition-all cursor-pointer shrink-0 active:scale-95"
                         title="Inbox"
                     >
                         <Bell size={20} />
@@ -167,10 +167,10 @@ const TopBar = ({ onMenuClick }) => {
                         )}
                     </button>
 
-                    {/* Menu Toggle Action */}
+                    {/* Menu Toggle Action - only on mobile/tablet where sidebar is hidden */}
                     <button
                         onClick={onMenuClick}
-                        className="relative p-2.5 text-gray-700 bg-white dark:bg-slate-750 hover:bg-orange-50 dark:hover:bg-slate-600 rounded-2xl transition-all shadow-sm shrink-0 border border-gray-100 dark:border-gray-600 active:scale-95 flex items-center justify-center cursor-pointer"
+                        className="relative p-2.5 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 rounded-xl transition-all shrink-0 active:scale-95 flex items-center justify-center cursor-pointer lg:hidden"
                         title="Menu"
                     >
                         <Menu size={20} />

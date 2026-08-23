@@ -193,17 +193,17 @@ const DashboardHome = () => {
             {/* Left column (Flexible) */}
             <div className="flex-1 min-w-0 space-y-4">
                 {/* 1. GREETING BANNER CARD */}
-                <div className="bg-gradient-to-br from-[#FFF5F2] to-[#FFF9F6] dark:from-gray-800 dark:to-gray-900 rounded-2xl border border-orange-200 dark:border-gray-700 shadow-sm relative overflow-hidden transition-all duration-200 flex flex-row items-end justify-between">
-                    <div className="flex-1 space-y-0.5 text-left min-w-0 p-4 sm:p-5">
-                        <span className="text-[11px] sm:text-xs font-bold text-gray-500/80 dark:text-slate-400">Welcome back,</span>
-                        <h1 className="text-sm sm:text-2xl font-black text-orange-500 leading-tight mt-0.5 sm:mt-1">
+                <div className="bg-gradient-to-br from-[#FFF5F2] to-[#FFF9F6] dark:from-gray-800 dark:to-gray-900 rounded-2xl border border-orange-200 dark:border-gray-700 shadow-sm relative overflow-hidden transition-all duration-200 flex flex-row items-end justify-between min-h-[110px]">
+                    <div className="flex-1 space-y-1 text-left min-w-0 p-4 sm:p-5 self-center">
+                        <span className="text-xs sm:text-sm font-bold text-gray-500/80 dark:text-slate-400">Welcome back,</span>
+                        <h1 className="text-base sm:text-2xl font-black text-orange-500 leading-tight">
                             {user?.name || "Learner"}! 👋
                         </h1>
-                        <p className="text-[10px] sm:text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-1 max-w-xl leading-snug">
+                        <p className="text-[11px] sm:text-xs text-gray-500/80 dark:text-slate-400 font-semibold leading-snug max-w-[200px] sm:max-w-xl">
                             Select a path to continue your learning journey or interact with other students.
                         </p>
                     </div>
-                    <div className="w-[100px] sm:w-[140px] shrink-0 self-end">
+                    <div className="w-[110px] sm:w-[150px] shrink-0 self-end">
                         <img 
                             src="/waving_student.png" 
                             alt="Welcome Illustration" 
@@ -359,13 +359,15 @@ const DashboardHome = () => {
                                 className="bg-gradient-to-b from-[#FFFDFB] to-[#FFF9F5] dark:from-gray-800 dark:to-gray-900 border border-orange-100/50 dark:border-gray-750 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
                             >
                                 <div>
-                                    <div className="w-12 h-12 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
-                                        <GraduationCap size={24} />
+                                    <div className="flex items-center gap-2.5 mb-2">
+                                        <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
+                                            <GraduationCap size={22} />
+                                        </div>
+                                        <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">
+                                            Learning Hub
+                                        </h3>
                                     </div>
-                                    <h3 className="text-[13px] font-black text-gray-955 dark:text-white mt-3.5">
-                                        Learning Hub
-                                    </h3>
-                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold mt-2 leading-snug line-clamp-3 min-h-[48px]">
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold leading-snug line-clamp-3 min-h-[48px]">
                                         Learn from YouTube videos, study notes, and roadmap.
                                     </p>
                                 </div>
@@ -385,13 +387,15 @@ const DashboardHome = () => {
                                 className="bg-gradient-to-b from-[#F9FBFF] to-[#F1F6FF] dark:from-gray-800 dark:to-gray-900 border border-blue-100/50 dark:border-gray-750 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
                             >
                                 <div>
-                                    <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0">
-                                        <Video size={24} />
+                                    <div className="flex items-center gap-2.5 mb-2">
+                                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0">
+                                            <Video size={22} />
+                                        </div>
+                                        <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">
+                                            Live Rooms
+                                        </h3>
                                     </div>
-                                    <h3 className="text-[13px] font-black text-gray-955 dark:text-white mt-3.5">
-                                        Live Rooms
-                                    </h3>
-                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold mt-2 leading-snug line-clamp-3 min-h-[48px]">
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold leading-snug line-clamp-3 min-h-[48px]">
                                         Join audio/video study rooms and interact with others in real-time.
                                     </p>
                                 </div>
@@ -573,8 +577,10 @@ const DashboardHome = () => {
 
             {/* Right column (Fixed width on large screens, flex-col layout) */}
             <div className="w-full lg:w-[310px] shrink-0 flex flex-col gap-4">
-                <ScreenTimeCard />
-                <DailyTasksCard />
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+                    <ScreenTimeCard />
+                    <DailyTasksCard />
+                </div>
                 <CalendarCard />
             </div>
 

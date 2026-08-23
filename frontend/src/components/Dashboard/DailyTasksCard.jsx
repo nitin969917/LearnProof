@@ -29,7 +29,7 @@ const DailyTasksCard = () => {
     return (
         <div 
             onClick={() => navigate('/dashboard/goals')}
-            className="bg-white dark:bg-gray-800 rounded-[2rem] shadow-sm border border-orange-100 dark:border-gray-700 overflow-hidden cursor-pointer transform transition-all duration-300 hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 group flex flex-col justify-between h-full min-h-[160px]"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-orange-100 dark:border-gray-700 overflow-hidden cursor-pointer transform transition-all duration-300 hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 group flex flex-col justify-between h-full min-h-[160px]"
         >
             {/* Header */}
             <div className="p-3 border-b border-orange-50 dark:border-gray-700 bg-gradient-to-r from-orange-50/50 dark:from-gray-800 to-white dark:to-gray-800">

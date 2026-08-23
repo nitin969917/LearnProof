@@ -350,7 +350,7 @@ const DashboardLayout = () => {
                             ? 'p-0 overflow-hidden' 
                             : isLiveRoom 
                                 ? 'p-0 overflow-y-auto' 
-                                : 'p-4 sm:p-6 pb-24 lg:pb-6 overflow-y-auto'
+                                : 'p-4 sm:p-4 pb-24 lg:pb-6 overflow-y-auto hide-scrollbar'
                     }`}
                 >
                     <ErrorBoundary>

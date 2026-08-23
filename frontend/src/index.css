@@ -57,6 +57,16 @@
 .hide-scrollbar::-webkit-scrollbar {
     display: none;
 }
+
+/* Hide all scrollbars globally */
+* {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+    display: none;
+}
 /* Safe area padding utilities */
 .pb-safe-area-inset-bottom {
     padding-bottom: env(safe-area-inset-bottom) !important;

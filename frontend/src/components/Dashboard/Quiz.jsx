@@ -557,11 +557,11 @@ const Quiz = () => {
                                 {filteredPlaylists.map((pl, plIdx) => {
                                     // Soft color gradient mapping for subject card cards
                                     const themes = [
-                                        { bg: "from-[#fff6f2]/90 to-white", border: "border-[#feebe3] dark:border-[#3d2722]/40", iconColor: "text-orange-500" },
-                                        { bg: "from-[#f6f5ff]/90 to-white", border: "border-[#e8e6ff] dark:border-[#252643]/40", iconColor: "text-[#4f46e5]" },
-                                        { bg: "from-[#f2faf6]/90 to-white", border: "border-[#e0f4ea] dark:border-[#1c3a2f]/40", iconColor: "text-[#059669]" },
-                                        { bg: "from-[#fffaf0]/90 to-white", border: "border-[#fef0d5] dark:border-[#3e3423]/40", iconColor: "text-amber-500" },
-                                        { bg: "from-[#f2f9fe]/90 to-white", border: "border-[#e0f1fe] dark:border-[#1a3147]/40", iconColor: "text-sky-500" }
+                                        { bg: "from-[#fff6f2]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#feebe3] dark:border-gray-700", iconColor: "text-orange-500" },
+                                        { bg: "from-[#f6f5ff]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#e8e6ff] dark:border-gray-700", iconColor: "text-[#4f46e5]" },
+                                        { bg: "from-[#f2faf6]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#e0f4ea] dark:border-gray-700", iconColor: "text-[#059669]" },
+                                        { bg: "from-[#fffaf0]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#fef0d5] dark:border-gray-700", iconColor: "text-amber-500" },
+                                        { bg: "from-[#f2f9fe]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#e0f1fe] dark:border-gray-700", iconColor: "text-sky-500" }
                                     ];
                                     const theme = themes[plIdx % themes.length];
 
@@ -573,9 +573,9 @@ const Quiz = () => {
                                             className="flex-shrink-0 w-[240px] snap-start"
                                         >
                                             <div className={`h-full bg-gradient-to-br ${
-                                                pl.is_eligible ? theme.bg : 'from-[#fafafa] to-white dark:from-gray-850 dark:to-gray-800'
+                                                pl.is_eligible ? theme.bg : 'from-[#fafafa] to-white dark:from-gray-800 dark:to-gray-800'
                                             } rounded-2xl border ${
-                                                pl.is_eligible ? theme.border : 'border-gray-100 dark:border-gray-700/50'
+                                                pl.is_eligible ? theme.border : 'border-gray-100 dark:border-gray-700'
                                             } overflow-hidden shadow-sm hover:shadow-md transition-all duration-300`}>
                                                 
                                                 <div className="p-4 flex flex-col justify-between h-[155px]">
@@ -667,11 +667,11 @@ const Quiz = () => {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                             {history.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(hist => {
-                                // SVG Circular Score indicator calculations
-                                const radius = 16;
-                                const strokeWidth = 3.5;
+                                const radius = 20;
+                                const strokeWidth = 3;
                                 const circumference = 2 * Math.PI * radius;
                                 const strokeDashoffset = circumference - (hist.score / 100) * circumference;
+                                const displayScore = hist.score % 1 === 0 ? hist.score : parseFloat(hist.score.toFixed(1));
 
                                 return (
                                     <motion.div
@@ -701,18 +701,18 @@ const Quiz = () => {
                                         </div>
 
                                         {/* Premium Circular Progress Score Chart */}
-                                        <div className="relative w-11 h-11 flex items-center justify-center shrink-0 select-none">
-                                            <svg className="w-full h-full transform -rotate-90">
+                                        <div className="relative w-14 h-14 flex items-center justify-center shrink-0 select-none">
+                                            <svg viewBox="0 0 56 56" className="w-full h-full transform -rotate-90">
                                                 <circle
-                                                    cx="22"
-                                                    cy="22"
+                                                    cx="28"
+                                                    cy="28"
                                                     r={radius}
-                                                    className="stroke-slate-100 dark:stroke-gray-700/50 fill-transparent"
+                                                    className="stroke-slate-100 dark:stroke-gray-700 fill-transparent"
                                                     strokeWidth={strokeWidth}
                                                 />
                                                 <circle
-                                                    cx="22"
-                                                    cy="22"
+                                                    cx="28"
+                                                    cy="28"
                                                     r={radius}
                                                     className={`${
                                                         hist.passed
@@ -725,8 +725,8 @@ const Quiz = () => {
                                                     strokeLinecap="round"
                                                 />
                                             </svg>
-                                            <span className="absolute text-[9px] font-black text-slate-800 dark:text-white">
-                                                {hist.score}%
+                                            <span className="absolute text-[9px] font-black text-slate-700 dark:text-gray-200 leading-none text-center">
+                                                {displayScore}%
                                             </span>
                                         </div>
 
