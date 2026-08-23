@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, GraduationCap, MapPin, Phone, Instagram, Facebook, Shield, Edit3, Save, UserPlus, UserCheck, Star, MessageSquare, Linkedin, Sparkles, ArrowLeft } from 'lucide-react';
+import { User, Mail, GraduationCap, MapPin, Phone, Instagram, Facebook, Shield, Edit3, Save, UserPlus, UserCheck, Star, MessageSquare, Linkedin, Sparkles, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
@@ -9,6 +9,7 @@ import { useAuth } from '../../../context/AuthContext.jsx';
 import { useModal } from '../../../context/ModalContext.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
 import UserAvatar from '../../Common/UserAvatar.jsx';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, onSelectChatUser, onViewProfile }) {
   const { updateUser } = useAuth();
@@ -23,6 +24,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const [postsLoading, setPostsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
+  const [expandedSection, setExpandedSection] = useState(null); // 'academics', 'contact', 'social', or null
 
   useEffect(() => {
     fetchProfile();
@@ -366,8 +368,9 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           </div>
         </>
       ) : (
-        /* Unified View Mode Card */
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 md:p-6 shadow-sm flex flex-col gap-4">
+        <>
+          {/* Unified View Mode Card */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 md:p-6 shadow-sm flex flex-col gap-4 animate-in fade-in duration-300">
           {!isOwnProfile && (
             <button
               onClick={() => navigate(-1)}
@@ -378,42 +381,49 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             </button>
           )}
           <div className="flex gap-4 md:gap-6 items-start">
-            {/* Avatar */}
-            <UserAvatar 
-              src={profile.profilePicture} 
-              name={profile.name} 
-              className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-orange-50 dark:border-orange-950/20 shadow"
-              textClassName="text-3xl md:text-4xl"
-            />
+            {/* Avatar container with green online dot */}
+            <div className="relative shrink-0 select-none">
+              <UserAvatar 
+                src={profile.profilePicture} 
+                name={profile.name} 
+                className="w-20 h-20 md:w-24 md:h-24 rounded-full border-2 border-white dark:border-gray-800 shadow"
+                textClassName="text-3xl md:text-4xl"
+              />
+              <div className="absolute bottom-1.5 right-1.5 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full shadow-sm animate-pulse" />
+            </div>
 
-            {/* Info */}
+            {/* Info details */}
             <div className="flex-1 text-left min-w-0">
               <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">{profile.name}</h2>
-              <div className="flex flex-wrap gap-2 mt-1 mb-1.5">
+              <div className="flex flex-col gap-1.5 mt-2 mb-2">
                 {profile.collegeName && (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-2.5 py-0.5 rounded-full">
-                    <MapPin size={10} /> {profile.collegeName}
+                  <span className="flex items-center gap-1.5 text-[11px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50/65 dark:bg-orange-950/30 px-3 py-1 rounded-full border border-orange-100/50 dark:border-orange-500/10 w-fit">
+                    <MapPin size={11} className="text-orange-500" />
+                    <span>{profile.collegeName}</span>
                   </span>
                 )}
                 {profile.department && (
-                  <span className="flex items-center gap-1 text-[11px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-2.5 py-0.5 rounded-full">
-                    <GraduationCap size={10} /> {profile.department} {profile.yearOfStudy ? `• Year ${profile.yearOfStudy}` : ''}
+                  <span className="flex items-center gap-1.5 text-[11px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50/65 dark:bg-orange-950/30 px-3 py-1 rounded-full border border-orange-100/50 dark:border-orange-500/10 w-fit">
+                    <GraduationCap size={11} className="text-orange-500" />
+                    <span>{profile.department} {profile.yearOfStudy ? `• ${profile.yearOfStudy} Year` : ''}</span>
                   </span>
                 )}
               </div>
-              <div className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5">
-                {profile._count?.posts || 0} Posts
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{profile.bio || 'This user has not set a bio yet.'}</p>
+              <p className="text-gray-550 dark:text-gray-400 text-xs font-semibold mt-1 mb-1 leading-relaxed">{profile.bio || 'Co-founder learnproofai'}</p>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 w-fit mt-1">
+          {/* Action Row containing stats & Edit Profile / Connect */}
+          <div className="flex items-center justify-between gap-4 mt-3 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex flex-col text-left">
+              <span className="text-xl font-extrabold text-gray-900 dark:text-white leading-none">{profile._count?.posts || 0}</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-550 font-bold uppercase tracking-wider mt-1">Posts</span>
+            </div>
+
             {isOwnProfile ? (
               <button 
                 onClick={() => setIsEditing(true)}
-                className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/80 font-bold text-xs transition"
+                className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-2xl border border-orange-200 dark:border-orange-500/20 text-orange-500 hover:bg-orange-500 hover:text-white transition font-extrabold text-xs cursor-pointer shadow-sm shadow-orange-500/5"
               >
                 <Edit3 size={13} />
                 <span>Edit Profile</span>
@@ -422,9 +432,9 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               <div className="flex gap-2">
                 <button 
                   onClick={handleFriendAction}
-                  className={`flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg font-bold text-xs transition ${
+                  className={`flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-2xl font-black text-xs transition cursor-pointer ${
                     profile.isFriend 
-                      ? 'border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100' 
+                      ? 'border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-850 text-gray-800 dark:text-gray-200 hover:bg-gray-100' 
                       : profile.hasPendingRequest 
                         ? 'border border-orange-200 dark:border-orange-950 bg-orange-50/50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 hover:bg-orange-100/50' 
                         : 'bg-orange-500 hover:bg-orange-600 text-white shadow shadow-orange-500/10'
@@ -442,7 +452,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                   <>
                     <button 
                       onClick={() => onSelectChatUser(profile)}
-                      className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow shadow-orange-500/10 transition"
+                      className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs shadow shadow-orange-500/10 transition cursor-pointer"
                     >
                       <MessageSquare size={13} />
                       <span>Message</span>
@@ -450,10 +460,10 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     <button 
                       onClick={handleToggleCloseFriend}
                       title={profile.isMyCloseFriend ? "Remove from Close Friends" : "Add to Close Friends"}
-                      className={`flex items-center justify-center h-8 w-8 rounded-lg border transition ${
+                      className={`flex items-center justify-center h-10 w-10 rounded-2xl border transition cursor-pointer ${
                         profile.isMyCloseFriend 
                           ? 'border-amber-200 bg-amber-50 dark:bg-amber-950/30 text-amber-500 dark:text-amber-400 hover:bg-amber-100' 
-                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-850 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
                       <Star size={14} className={profile.isMyCloseFriend ? "fill-amber-500 text-amber-500" : ""} />
@@ -463,56 +473,56 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               </div>
             )}
           </div>
+        </div>
 
-          <div className="border-t border-gray-100 dark:border-gray-700/40 w-full" />
+        {/* Collapsible Accordion Sections */}
+        <div className="flex flex-col gap-4 w-full">
+          
+          {/* Card 1: Academics */}
+          <div 
+            onClick={() => setExpandedSection(expandedSection === 'academics' ? null : 'academics')}
+            className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-5 shadow-sm hover:shadow transition-all duration-300 cursor-pointer flex flex-col gap-4 group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 text-left">
+                <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 text-orange-500 flex items-center justify-center shrink-0 border border-orange-100/50 dark:border-orange-500/10">
+                  <GraduationCap size={20} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm sm:text-base">Academics</h3>
+                  <p className="text-gray-405 dark:text-gray-500 text-xs mt-0.5 font-bold leading-normal">College, Major, Year of Study</p>
+                </div>
+              </div>
+              <ChevronRight 
+                size={18} 
+                className={`text-orange-500 transition-transform duration-300 shrink-0 ${
+                  expandedSection === 'academics' ? 'rotate-90' : ''
+                }`} 
+              />
+            </div>
 
-          {(() => {
-            const getSocialLink = (label, val) => {
-              if (!val) return null;
-              if (val.startsWith('http://') || val.startsWith('https://')) return val;
-              switch (label.toLowerCase()) {
-                case 'instagram':
-                  return `https://instagram.com/${val.replace('@', '')}`;
-                case 'snapchat':
-                  return `https://snapchat.com/add/${val}`;
-                case 'whatsapp':
-                  return `https://wa.me/${val.replace(/[^0-9]/g, '')}`;
-                case 'facebook':
-                  return `https://facebook.com/${val}`;
-                case 'linkedin':
-                  return `https://linkedin.com/in/${val}`;
-                default:
-                  return null;
-              }
-            };
-
-            const socialFields = [
-              { label: 'Phone', value: profile.phoneNumber, icon: <Phone size={14} className="text-orange-500" /> },
-              { label: 'WhatsApp', value: profile.whatsappNumber, icon: <MessageSquare size={14} className="text-orange-500" />, link: getSocialLink('whatsapp', profile.whatsappNumber) },
-              { label: 'Instagram', value: profile.instagramHandle, icon: <Instagram size={14} className="text-orange-500" />, link: getSocialLink('instagram', profile.instagramHandle) },
-              { label: 'Snapchat', value: profile.snapchatUsername, icon: <User size={14} className="text-orange-500" />, link: getSocialLink('snapchat', profile.snapchatUsername) },
-              { label: 'Facebook', value: profile.facebookUrl, icon: <Facebook size={14} className="text-orange-500" />, link: getSocialLink('facebook', profile.facebookUrl) },
-              { label: 'LinkedIn', value: profile.linkedinUrl, icon: <Linkedin size={14} className="text-orange-500" />, link: getSocialLink('linkedin', profile.linkedinUrl) }
-            ];
-
-            const hasAnyVisibleSocial = isOwnProfile || socialFields.some(f => f.value);
-
-            return (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Academic Information</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-50/50 dark:bg-gray-900/35 border border-gray-100 dark:border-gray-800 rounded-xl p-3 flex flex-col justify-center min-w-0">
-                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">College</span>
-                      <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate" title={profile.collegeName}>{profile.collegeName || 'Not Set'}</span>
+            <AnimatePresence>
+              {expandedSection === 'academics' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="overflow-hidden border-t border-gray-50 dark:border-gray-850 pt-4 cursor-default"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                    <div className="bg-gray-50/50 dark:bg-gray-950 border border-gray-100/50 dark:border-gray-850 rounded-2xl p-4 flex flex-col justify-center min-w-0">
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">College</span>
+                      <span className="text-xs sm:text-sm font-extrabold text-gray-850 dark:text-gray-200 truncate" title={profile.collegeName}>{profile.collegeName || 'Not Set'}</span>
                     </div>
-                    <div className="bg-gray-50/50 dark:bg-gray-900/35 border border-gray-100 dark:border-gray-800 rounded-xl p-3 flex flex-col justify-center min-w-0">
-                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Major/Dept</span>
-                      <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate" title={profile.department}>{profile.department || 'Not Set'}</span>
+                    <div className="bg-gray-50/50 dark:bg-gray-950 border border-gray-100/50 dark:border-gray-850 rounded-2xl p-4 flex flex-col justify-center min-w-0">
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Major / Department</span>
+                      <span className="text-xs sm:text-sm font-extrabold text-gray-850 dark:text-gray-200 truncate" title={profile.department}>{profile.department || 'Not Set'}</span>
                     </div>
-                    <div className="bg-gray-50/50 dark:bg-gray-900/35 border border-gray-100 dark:border-gray-800 rounded-xl p-3 flex flex-col justify-center min-w-0">
-                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Year of Study</span>
-                      <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate">{profile.yearOfStudy || 'Not Set'}</span>
+                    <div className="bg-gray-50/50 dark:bg-gray-950 border border-gray-100/50 dark:border-gray-850 rounded-2xl p-4 flex flex-col justify-center min-w-0">
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Year of Study</span>
+                      <span className="text-xs sm:text-sm font-extrabold text-gray-850 dark:text-gray-200 truncate">{profile.yearOfStudy || 'Not Set'}</span>
                     </div>
                     {(() => {
                       const vis = profile.emailVisibility || 'private';
@@ -522,61 +532,196 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                                      (vis === 'close_friends' && profile.isCloseFriend);
                       if (!canSee) return null;
                       return (
-                        <div className="bg-gray-50/50 dark:bg-gray-900/35 border border-gray-100 dark:border-gray-800 rounded-xl p-3 flex flex-col justify-center min-w-0">
-                          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Email</span>
-                          <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate" title={profile.email}>{profile.email || 'Not Set'}</span>
+                        <div className="bg-gray-50/50 dark:bg-gray-950 border border-gray-100/50 dark:border-gray-850 rounded-2xl p-4 flex flex-col justify-center min-w-0">
+                          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Email Address</span>
+                          <span className="text-xs sm:text-sm font-extrabold text-gray-855 dark:text-gray-200 truncate" title={profile.email}>{profile.email || 'Not Set'}</span>
                         </div>
                       );
                     })()}
                   </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Card 2: Contact */}
+          <div 
+            onClick={() => setExpandedSection(expandedSection === 'contact' ? null : 'contact')}
+            className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-5 shadow-sm hover:shadow transition-all duration-300 cursor-pointer flex flex-col gap-4 group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 text-left">
+                <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 text-orange-500 flex items-center justify-center shrink-0 border border-orange-100/50 dark:border-orange-500/10">
+                  <User size={20} />
                 </div>
-
-                <div>
-                  <h3 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">Contact & Social Links</h3>
-                  {hasAnyVisibleSocial ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      {socialFields.map((field) => {
-                        const hasValue = !!field.value;
-                        if (!isOwnProfile && !hasValue) return null;
-
-                        return (
-                          <div key={field.label} className="flex items-center justify-between p-3 bg-gray-50/30 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800 rounded-xl min-w-0">
-                            <span className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                              {field.icon}
-                              <span>{field.label}</span>
-                            </span>
-                            {hasValue ? (
-                              field.link ? (
-                                <a 
-                                  href={field.link} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="text-xs font-bold text-orange-500 hover:text-orange-600 hover:underline transition truncate max-w-[90px]"
-                                  title={field.value}
-                                >
-                                  {field.value}
-                                </a>
-                              ) : (
-                                <span className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[90px]" title={field.value}>{field.value}</span>
-                              )
-                            ) : (
-                              <span className="text-[10px] font-bold text-gray-400 dark:text-gray-600">Not Set</span>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6 bg-gray-50/30 dark:bg-gray-900/10 rounded-xl border border-dashed border-gray-200 dark:border-gray-800 p-4">
-                      <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">No contact links shared publicly.</span>
-                    </div>
-                  )}
+                <div className="min-w-0">
+                  <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm sm:text-base">Contact</h3>
+                  <p className="text-gray-405 dark:text-gray-500 text-xs mt-0.5 font-bold leading-normal">Phone, Email</p>
                 </div>
               </div>
-            );
-          })()}
+              <ChevronRight 
+                size={18} 
+                className={`text-orange-500 transition-transform duration-300 shrink-0 ${
+                  expandedSection === 'contact' ? 'rotate-90' : ''
+                }`} 
+              />
+            </div>
+
+            <AnimatePresence>
+              {expandedSection === 'contact' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="overflow-hidden border-t border-gray-50 dark:border-gray-855 pt-4 cursor-default"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                    <div className="bg-gray-50/50 dark:bg-gray-950 border border-gray-100/50 dark:border-gray-850 rounded-2xl p-4 flex items-center justify-between min-w-0">
+                      <div className="min-w-0 flex flex-col">
+                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Phone</span>
+                        <span className="text-xs sm:text-sm font-extrabold text-gray-850 dark:text-gray-200 truncate">{profile.phoneNumber || 'Not Set'}</span>
+                      </div>
+                      {profile.phoneNumber && (
+                        <a 
+                          href={`tel:${profile.phoneNumber}`}
+                          className="p-2 rounded-xl bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition"
+                        >
+                          <Phone size={14} />
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="bg-gray-50/50 dark:bg-gray-955 border border-gray-100/50 dark:border-gray-850 rounded-2xl p-4 flex items-center justify-between min-w-0">
+                      <div className="min-w-0 flex flex-col">
+                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-550 uppercase tracking-wider mb-1">Email</span>
+                        <span className="text-xs sm:text-sm font-extrabold text-gray-855 dark:text-gray-200 truncate" title={profile.email}>{profile.email || 'Not Set'}</span>
+                      </div>
+                      {profile.email && (
+                        <a 
+                          href={`mailto:${profile.email}`}
+                          className="p-2 rounded-xl bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition"
+                        >
+                          <Mail size={14} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Card 3: Social Links */}
+          <div 
+            onClick={() => setExpandedSection(expandedSection === 'social' ? null : 'social')}
+            className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-5 shadow-sm hover:shadow transition-all duration-300 cursor-pointer flex flex-col gap-4 group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 text-left">
+                <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 text-orange-500 flex items-center justify-center shrink-0 border border-orange-100/50 dark:border-orange-500/10">
+                  <Star size={20} />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm sm:text-base">Social Links</h3>
+                  <p className="text-gray-405 dark:text-gray-500 text-xs mt-0.5 font-bold leading-normal">Instagram, WhatsApp, LinkedIn & more</p>
+                </div>
+              </div>
+              <ChevronRight 
+                size={18} 
+                className={`text-orange-500 transition-transform duration-300 shrink-0 ${
+                  expandedSection === 'social' ? 'rotate-90' : ''
+                }`} 
+              />
+            </div>
+
+            <AnimatePresence>
+              {expandedSection === 'social' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="overflow-hidden border-t border-gray-50 dark:border-gray-855 pt-4 cursor-default"
+                >
+                  {(() => {
+                    const getSocialLink = (label, val) => {
+                      if (!val) return null;
+                      if (val.startsWith('http://') || val.startsWith('https://')) return val;
+                      switch (label.toLowerCase()) {
+                        case 'instagram':
+                          return `https://instagram.com/${val.replace('@', '')}`;
+                        case 'snapchat':
+                          return `https://snapchat.com/add/${val}`;
+                        case 'whatsapp':
+                          return `https://wa.me/${val.replace(/[^0-9]/g, '')}`;
+                        case 'facebook':
+                          return `https://facebook.com/${val}`;
+                        case 'linkedin':
+                          return `https://linkedin.com/in/${val}`;
+                        default:
+                          return null;
+                      }
+                    };
+
+                    const socialFields = [
+                      { label: 'Instagram', value: profile.instagramHandle, icon: <Instagram size={15} />, link: getSocialLink('instagram', profile.instagramHandle), colorClass: 'border-pink-500/20 hover:bg-pink-500/5 text-pink-650 dark:text-pink-400 bg-pink-500/5' },
+                      { label: 'LinkedIn', value: profile.linkedinUrl, icon: <Linkedin size={15} />, link: getSocialLink('linkedin', profile.linkedinUrl), colorClass: 'border-blue-500/20 hover:bg-blue-500/5 text-blue-650 dark:text-blue-400 bg-blue-500/5' },
+                      { label: 'WhatsApp', value: profile.whatsappNumber, icon: <MessageSquare size={15} />, link: getSocialLink('whatsapp', profile.whatsappNumber), colorClass: 'border-green-500/20 hover:bg-green-500/5 text-green-650 dark:text-green-400 bg-green-500/5' },
+                      { label: 'Facebook', value: profile.facebookUrl, icon: <Facebook size={15} />, link: getSocialLink('facebook', profile.facebookUrl), colorClass: 'border-indigo-500/20 hover:bg-indigo-500/5 text-indigo-650 dark:text-indigo-400 bg-indigo-500/5' },
+                      { label: 'Snapchat', value: profile.snapchatUsername, icon: <User size={15} />, link: getSocialLink('snapchat', profile.snapchatUsername), colorClass: 'border-amber-400/20 hover:bg-amber-400/5 text-amber-600 dark:text-amber-400 bg-amber-400/5' }
+                    ];
+
+                    const visibleFields = isOwnProfile ? socialFields : socialFields.filter(f => f.value);
+
+                    if (visibleFields.length === 0) {
+                      return (
+                        <div className="text-center py-6 bg-gray-50/30 dark:bg-gray-900/10 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 p-4">
+                          <span className="text-xs text-gray-400 dark:text-gray-550 font-semibold">No social links shared publicly.</span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {visibleFields.map((field) => (
+                          <div 
+                            key={field.label}
+                            className={`flex items-center justify-between p-4 bg-white dark:bg-gray-950 border rounded-2xl ${field.colorClass}`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="shrink-0">{field.icon}</span>
+                              <div className="flex flex-col text-left min-w-0">
+                                <span className="text-[10px] font-bold opacity-60 uppercase tracking-wider">{field.label}</span>
+                                <span className="text-xs sm:text-sm font-extrabold truncate" title={field.value || 'Not Set'}>
+                                  {field.value || 'Not Set'}
+                                </span>
+                              </div>
+                            </div>
+                            {field.value && field.link && (
+                              <a 
+                                href={field.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl border border-current hover:bg-current hover:text-white transition cursor-pointer"
+                              >
+                                Visit
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
-      )}
+      </>
+    )}
 
       {/* User's Posts Feed */}
       <div className="mt-4">
