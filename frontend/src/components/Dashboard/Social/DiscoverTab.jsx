@@ -325,181 +325,180 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
             )}
           </form>
 
+      {/* ── RESULTS SECTION ── */}
+      {isSearching && (
+        <div className="flex flex-col gap-4">
+          {loading && (
+            <div className="text-center py-16 text-gray-500">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent mx-auto mb-3"></div>
+              <span className="text-sm font-bold text-gray-400">
+                {searchType === 'students' ? 'Searching community members...' : 'Loading community groups...'}
+              </span>
+            </div>
+          )}
+
+          {/* --- STUDENTS SEARCH RESULTS --- */}
+          {!loading && searchType === 'students' && results.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-black text-gray-400 dark:text-gray-550 uppercase tracking-wider">
+                Search Results ({results.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {results.map((student) => {
+                  const isSent = sentRequests.includes(student.id);
+                  return (
+                    <div 
+                      key={student.id} 
+                      onClick={() => onViewProfile(student.id)}
+                      className="bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-800/40 rounded-3xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer flex gap-4 items-center group relative overflow-hidden"
+                    >
+                      <UserAvatar 
+                        src={student.profilePicture} 
+                        name={student.name} 
+                        className="w-14 h-14 rounded-2xl" 
+                        textClassName="text-xl"
+                      />
+                      
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-extrabold text-gray-800 dark:text-gray-100 group-hover:text-orange-500 transition-colors text-base truncate">{student.name}</h3>
+                        {student.department && (
+                          <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs mt-1 truncate font-semibold">
+                            <GraduationCap size={13} className="text-orange-400 shrink-0" />
+                            <span>{student.department}</span>
+                          </div>
+                        )}
+                        {student.collegeName && (
+                          <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs mt-0.5 truncate font-semibold">
+                            <MapPin size={13} className="text-orange-400 shrink-0" />
+                            <span>{student.collegeName}</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {(() => {
+                        const fState = getFriendshipState(student);
+                        return (
+                          <button
+                            onClick={(e) => handleConnect(e, student.id)}
+                            disabled={fState.isConnected || fState.isPending}
+                            className={`z-10 p-2.5 rounded-2xl transition-all cursor-pointer ${
+                              fState.isConnected
+                                ? 'bg-indigo-50 bg-opacity-20 text-indigo-650 dark:text-indigo-400 border border-indigo-200/25'
+                                : fState.isPending 
+                                  ? 'bg-green-50 bg-opacity-20 text-green-600 dark:text-green-400 border border-green-200/25' 
+                                  : 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white border border-transparent'
+                            }`}
+                            title={fState.label}
+                          >
+                            {fState.icon}
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* --- GROUPS SEARCH RESULTS --- */}
+          {!loading && searchType === 'groups' && filteredGroups.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <h3 className="text-sm font-black text-gray-400 dark:text-gray-550 uppercase tracking-wider">
+                Discussion Groups ({filteredGroups.length})
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredGroups.map((group) => {
+                  const initials = getGroupInitials(group.name);
+                  return (
+                    <div 
+                      key={group.id} 
+                      className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-4.5 shadow-sm flex gap-4 items-start relative overflow-hidden"
+                    >
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base text-white bg-gradient-to-tr from-emerald-400 to-teal-500 shrink-0 shadow-sm mt-1">
+                        {initials}
+                      </div>
+                      
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h3 className="font-black text-gray-800 dark:text-gray-100 text-base truncate">{group.name}</h3>
+                          {group.isPrivate ? (
+                            <span className="flex items-center gap-0.5 text-[9px] text-red-500 bg-red-50 dark:bg-red-950/20 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
+                              <Lock size={8} /> Private
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-0.5 text-[9px] text-green-600 bg-green-50 dark:bg-green-950/20 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
+                              <Unlock size={8} /> Public
+                            </span>
+                          )}
+                        </div>
+                        
+                        <p className="text-xs text-gray-400 dark:text-gray-505 font-bold mt-0.5">
+                          {group.memberCount} members
+                        </p>
+                        
+                        <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mt-2 line-clamp-2 leading-relaxed">
+                          {group.description || 'No description provided.'}
+                        </p>
+
+                        <div className="flex gap-2 mt-4">
+                          {group.isJoined ? (
+                            <>
+                              <span className="flex items-center gap-1 text-[10px] text-green-600 bg-green-50 dark:bg-green-950/20 px-3 py-1.5 rounded-xl font-black uppercase tracking-wider">
+                                <Check size={12} strokeWidth={3} /> Joined
+                              </span>
+                              <button
+                                onClick={() => onSelectChatUser && onSelectChatUser({ ...group, type: 'group' })}
+                                className="flex items-center gap-1 text-[10px] text-orange-500 hover:text-white hover:bg-orange-500 border border-orange-500 bg-transparent px-3.5 py-1.5 rounded-xl font-black uppercase tracking-wider transition cursor-pointer"
+                              >
+                                <MessageSquareMore size={12} /> Open Chat
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                if (group.isPrivate) {
+                                  setShowJoinGroupModal(group);
+                                } else {
+                                  handleJoinGroup(group);
+                                }
+                              }}
+                              className="text-[10px] bg-orange-500 hover:bg-orange-600 text-white font-black px-4 py-2 rounded-xl transition shadow-md shadow-orange-500/10 cursor-pointer uppercase tracking-wider"
+                            >
+                              Join Group
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Empty results message */}
+          {!loading && (
+            (searchType === 'students' && query && results.length === 0) ||
+            (searchType === 'groups' && filteredGroups.length === 0)
+          ) && (
+            <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-12 text-center text-gray-500 dark:text-gray-400 shadow-sm max-w-md mx-auto mt-4">
+               <div className="w-12 h-12 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-550 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                 <Search size={22} />
+               </div>
+               <p className="font-extrabold text-sm mb-1 text-gray-800 dark:text-gray-200">
+                 {searchType === 'students' ? 'No users found' : 'No groups found'}
+               </p>
+               <p className="text-xs text-gray-400 dark:text-gray-550 font-bold leading-relaxed">
+                 {searchType === 'students' 
+                   ? 'Try searching for another name, major, college, or location keyword.'
+                   : 'Try searching for another group name or keyword.'
+                 }
+               </p>
+            </div>
+          )}
         </div>
       )}
-
-      {/* ── RESULTS SECTION ── */}
-      <div className="flex flex-col gap-4">
-        {loading && (
-          <div className="text-center py-16 text-gray-500">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent mx-auto mb-3"></div>
-            <span className="text-sm font-bold text-gray-400">
-              {searchType === 'students' ? 'Searching community members...' : 'Loading community groups...'}
-            </span>
-          </div>
-        )}
-
-        {/* --- STUDENTS SEARCH RESULTS --- */}
-        {!loading && searchType === 'students' && results.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-black text-gray-400 dark:text-gray-550 uppercase tracking-wider">
-              Search Results ({results.length})
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {results.map((student) => {
-                const isSent = sentRequests.includes(student.id);
-                return (
-                  <div 
-                    key={student.id} 
-                    onClick={() => onViewProfile(student.id)}
-                    className="bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-800/40 rounded-3xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer flex gap-4 items-center group relative overflow-hidden"
-                  >
-                    <UserAvatar 
-                      src={student.profilePicture} 
-                      name={student.name} 
-                      className="w-14 h-14 rounded-2xl" 
-                      textClassName="text-xl"
-                    />
-                    
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-extrabold text-gray-800 dark:text-gray-100 group-hover:text-orange-500 transition-colors text-base truncate">{student.name}</h3>
-                      {student.department && (
-                        <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs mt-1 truncate font-semibold">
-                          <GraduationCap size={13} className="text-orange-400 shrink-0" />
-                          <span>{student.department}</span>
-                        </div>
-                      )}
-                      {student.collegeName && (
-                        <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs mt-0.5 truncate font-semibold">
-                          <MapPin size={13} className="text-orange-400 shrink-0" />
-                          <span>{student.collegeName}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {(() => {
-                      const fState = getFriendshipState(student);
-                      return (
-                        <button
-                          onClick={(e) => handleConnect(e, student.id)}
-                          disabled={fState.isConnected || fState.isPending}
-                          className={`z-10 p-2.5 rounded-2xl transition-all cursor-pointer ${
-                            fState.isConnected
-                              ? 'bg-indigo-50 bg-opacity-20 text-indigo-650 dark:text-indigo-400 border border-indigo-200/25'
-                              : fState.isPending 
-                                ? 'bg-green-50 bg-opacity-20 text-green-600 dark:text-green-400 border border-green-200/25' 
-                                : 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white border border-transparent'
-                          }`}
-                          title={fState.label}
-                        >
-                          {fState.icon}
-                        </button>
-                      );
-                    })()}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* --- GROUPS SEARCH RESULTS --- */}
-        {!loading && searchType === 'groups' && filteredGroups.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-black text-gray-400 dark:text-gray-550 uppercase tracking-wider">
-              Discussion Groups ({filteredGroups.length})
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredGroups.map((group) => {
-                const initials = getGroupInitials(group.name);
-                return (
-                  <div 
-                    key={group.id} 
-                    className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-4.5 shadow-sm flex gap-4 items-start relative overflow-hidden"
-                  >
-                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base text-white bg-gradient-to-tr from-emerald-400 to-teal-500 shrink-0 shadow-sm mt-1">
-                      {initials}
-                    </div>
-                    
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className="font-black text-gray-800 dark:text-gray-100 text-base truncate">{group.name}</h3>
-                        {group.isPrivate ? (
-                          <span className="flex items-center gap-0.5 text-[9px] text-red-500 bg-red-50 dark:bg-red-950/20 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
-                            <Lock size={8} /> Private
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-0.5 text-[9px] text-green-600 bg-green-50 dark:bg-green-950/20 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
-                            <Unlock size={8} /> Public
-                          </span>
-                        )}
-                      </div>
-                      
-                      <p className="text-xs text-gray-400 dark:text-gray-505 font-bold mt-0.5">
-                        {group.memberCount} members
-                      </p>
-                      
-                      <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mt-2 line-clamp-2 leading-relaxed">
-                        {group.description || 'No description provided.'}
-                      </p>
-
-                      <div className="flex gap-2 mt-4">
-                        {group.isJoined ? (
-                          <>
-                            <span className="flex items-center gap-1 text-[10px] text-green-600 bg-green-50 dark:bg-green-950/20 px-3 py-1.5 rounded-xl font-black uppercase tracking-wider">
-                              <Check size={12} strokeWidth={3} /> Joined
-                            </span>
-                            <button
-                              onClick={() => onSelectChatUser && onSelectChatUser({ ...group, type: 'group' })}
-                              className="flex items-center gap-1 text-[10px] text-orange-500 hover:text-white hover:bg-orange-500 border border-orange-500 bg-transparent px-3.5 py-1.5 rounded-xl font-black uppercase tracking-wider transition cursor-pointer"
-                            >
-                              <MessageSquareMore size={12} /> Open Chat
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              if (group.isPrivate) {
-                                setShowJoinGroupModal(group);
-                              } else {
-                                handleJoinGroup(group);
-                              }
-                            }}
-                            className="text-[10px] bg-orange-500 hover:bg-orange-600 text-white font-black px-4 py-2 rounded-xl transition shadow-md shadow-orange-500/10 cursor-pointer uppercase tracking-wider"
-                          >
-                            Join Group
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Empty results message */}
-        {!loading && (
-          (searchType === 'students' && query && results.length === 0) ||
-          (searchType === 'groups' && filteredGroups.length === 0)
-        ) && (
-          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-12 text-center text-gray-500 dark:text-gray-400 shadow-sm max-w-md mx-auto mt-4">
-             <div className="w-12 h-12 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 rounded-2xl flex items-center justify-center mx-auto mb-3">
-               <Search size={22} />
-             </div>
-             <p className="font-extrabold text-sm mb-1 text-gray-800 dark:text-gray-200">
-               {searchType === 'students' ? 'No users found' : 'No groups found'}
-             </p>
-             <p className="text-xs text-gray-400 dark:text-gray-500 font-bold leading-relaxed">
-               {searchType === 'students' 
-                 ? 'Try searching for another name, major, college, or location keyword.'
-                 : 'Try searching for another group name or keyword.'
-               }
-             </p>
-          </div>
-        )}
-      </div>
 
       {/* Join Private Group Modal */}
       <AnimatePresence>
