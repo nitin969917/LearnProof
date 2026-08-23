@@ -324,6 +324,8 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
               </button>
             )}
           </form>
+        </div>
+      )}
 
       {/* ── RESULTS SECTION ── */}
       {isSearching && (
