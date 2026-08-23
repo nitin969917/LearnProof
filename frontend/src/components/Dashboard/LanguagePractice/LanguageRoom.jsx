@@ -1928,8 +1928,8 @@ export default function LanguageRoom() {
       try {
         let roomInfo = null;
         try {
-          const roomsRes = await socialApi.get('/language-rooms/');
-          roomInfo = roomsRes.data.find(r => r.roomName === roomName);
+          const roomRes = await socialApi.get(`/language-rooms/by-name/${roomName}`);
+          roomInfo = roomRes.data;
           if (roomInfo) setDbRoom(roomInfo);
         } catch (roomErr) {
           console.error('Failed to resolve room from database:', roomErr);

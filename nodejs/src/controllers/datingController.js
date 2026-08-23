@@ -542,33 +542,64 @@ const searchUsers = async (req, res) => {
 const sendFriendRequest = async (req, res) => {
   const { receiverId } = req.body;
   const senderId = req.user.id;
+  const rId = parseInt(receiverId);
 
-  if (senderId === parseInt(receiverId)) {
+  if (senderId === rId) {
     return res.status(400).json({ error: 'Cannot send request to yourself' });
   }
 
   try {
-    const friendship = await datingPrisma.friendship.create({
-      data: {
-        senderId,
-        receiverId: parseInt(receiverId),
-        status: 'pending',
-      },
-      include: {
-        sender: {
-          select: { id: true, name: true, profilePicture: true }
-        }
+    // 1. Check if a record already exists in either direction
+    const existing = await datingPrisma.friendship.findFirst({
+      where: {
+        OR: [
+          { senderId, receiverId: rId },
+          { senderId: rId, receiverId: senderId }
+        ]
       }
     });
 
-    // Bust the receiver's friendships cache so they see the new pending request immediately
-    await cacheService.del(`user:friendships:${parseInt(receiverId)}`);
+    let friendship;
+    if (existing) {
+      // If it exists, update it to pending with current user as sender
+      friendship = await datingPrisma.friendship.update({
+        where: { id: existing.id },
+        data: {
+          senderId,
+          receiverId: rId,
+          status: 'pending'
+        },
+        include: {
+          sender: {
+            select: { id: true, name: true, profilePicture: true }
+          }
+        }
+      });
+    } else {
+      // Otherwise, create a new record
+      friendship = await datingPrisma.friendship.create({
+        data: {
+          senderId,
+          receiverId: rId,
+          status: 'pending',
+        },
+        include: {
+          sender: {
+            select: { id: true, name: true, profilePicture: true }
+          }
+        }
+      });
+    }
+
+    // Bust cache so the changes are reflected in real-time
+    await invalidateFriendshipsCache();
+    await invalidateProfileCache();
 
     // Notify receiver via WebSocket so their Friends badge updates in real-time
     try {
       const io = req.app.get('io');
       if (io) {
-        io.to(receiverId.toString()).emit('FRIEND_REQUEST_RECEIVED', {
+        io.to(rId.toString()).emit('FRIEND_REQUEST_RECEIVED', {
           requestId: friendship.id,
           sender: friendship.sender,
         });
@@ -580,7 +611,7 @@ const sendFriendRequest = async (req, res) => {
     res.json(friendship);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Request already exists or failed' });
+    res.status(500).json({ error: 'Failed to send friend request' });
   }
 };
 
@@ -1252,6 +1283,42 @@ const getLanguageRooms = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch rooms' });
+  }
+};
+
+const getLanguageRoomByName = async (req, res) => {
+  const { roomName } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const room = await datingPrisma.languageRoom.findUnique({
+      where: { roomName },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+      },
+    });
+
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+
+    if (roomName.startsWith('privatecall-')) {
+      const parts = roomName.split('-');
+      const callerId = parseInt(parts[2], 10);
+      const receiverId = parseInt(parts[3], 10);
+      if (userId !== room.creatorId && userId !== callerId && userId !== receiverId) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+    }
+
+    res.json(room);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -1972,6 +2039,7 @@ module.exports = {
   deleteLanguageRoom,
   deleteLanguageRoomByName,
   getLanguageRooms,
+  getLanguageRoomByName,
   createGroup,
   joinGroup,
   leaveGroup,

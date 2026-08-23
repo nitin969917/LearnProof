@@ -23,6 +23,7 @@ const {
   deleteLanguageRoom,
   deleteLanguageRoomByName,
   getLanguageRooms,
+  getLanguageRoomByName,
   createGroup,
   joinGroup,
   leaveGroup,
@@ -78,6 +79,7 @@ router.post('/language-rooms', datingAuth, createLanguageRoom);
 router.delete('/language-rooms/:id', datingAuth, deleteLanguageRoom);
 router.delete('/language-rooms/by-name/:roomName', datingAuth, deleteLanguageRoomByName);
 router.get('/language-rooms', datingAuth, getLanguageRooms);
+router.get('/language-rooms/by-name/:roomName', datingAuth, getLanguageRoomByName);
 
 // Group Discussion routes
 router.get('/groups', datingAuth, getGroups);
