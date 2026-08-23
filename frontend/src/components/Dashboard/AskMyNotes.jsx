@@ -703,6 +703,8 @@ const AskMyNotes = () => {
     const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
     const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
     const [isGeneratingCards, setIsGeneratingCards] = useState(false);
+    const [knowledgeMap, setKnowledgeMap] = useState([]);
+    const [isGeneratingMap, setIsGeneratingMap] = useState(false);
 
     // Save notes indicator
     const [isSavingNote, setIsSavingNote] = useState(false);
@@ -848,10 +850,12 @@ const AskMyNotes = () => {
         fetchNotes(workspace.id);
         fetchQuizzes(workspace.id);
         fetchFlashcards(workspace.id);
+        fetchKnowledgeMap(workspace.id);
     };
 
     const handleBackToWorkspaces = () => {
         setActiveWorkspace(null);
+        setKnowledgeMap([]);
         localStorage.removeItem('active_workspace_id');
         localStorage.removeItem('active_chat_id');
         localStorage.removeItem('study_tab');
@@ -1266,6 +1270,56 @@ const AskMyNotes = () => {
         }
     };
 
+    const fetchKnowledgeMap = async (wsId) => {
+        try {
+            const response = await socialApi.get(`/workspaces/${wsId}/knowledge-map`);
+            setKnowledgeMap(response.data.knowledgeMap || []);
+        } catch (err) {
+            console.error('Failed to load knowledge map:', err);
+        }
+    };
+
+    const handleGenerateKnowledgeMap = async () => {
+        if (!activeWorkspace) return;
+        setIsGeneratingMap(true);
+        const toastId = toast.loading("Analyzing workspace content and mapping key concepts...");
+        try {
+            const response = await socialApi.post(`/workspaces/${activeWorkspace.id}/knowledge-map/generate`);
+            setKnowledgeMap(response.data.knowledgeMap || []);
+            toast.success("Knowledge Map generated successfully!", { id: toastId });
+        } catch (err) {
+            console.error("Failed to generate knowledge map:", err);
+            toast.error("Failed to map concepts.", { id: toastId });
+        } finally {
+            setIsGeneratingMap(false);
+        }
+    };
+
+    const handleGenerateTopicQuiz = async (topicName) => {
+        if (sources.length === 0) {
+            toast.error('Upload documents first to generate a quiz!');
+            return;
+        }
+        setIsGeneratingQuiz(true);
+        const id = toast.loading(`Assembling custom test on "${topicName}"...`);
+        try {
+            await socialApi.post(`/workspaces/${activeWorkspace.id}/tools/quiz`, { 
+                count: 5, 
+                format: 'MCQ',
+                topic: topicName 
+            });
+            toast.success('Quiz generated successfully!', { id });
+
+            // Redirect to dedicated quiz dashboard
+            navigate(`/dashboard/ask-my-notes-dev/${activeWorkspace.id}/quiz`);
+        } catch (err) {
+            console.error('Quiz generation error:', err);
+            toast.error(err.response?.data?.error || 'Failed to generate quiz.', { id });
+        } finally {
+            setIsGeneratingQuiz(false);
+        }
+    };
+
     const handleStartQuiz = (quiz) => {
         setActiveQuiz(quiz);
         setQuizAnswers({});
@@ -1279,7 +1333,7 @@ const AskMyNotes = () => {
         }));
     };
 
-    const handleSubmitQuiz = () => {
+    const handleSubmitQuiz = async () => {
         if (!activeQuiz) return;
         const questions = JSON.parse(activeQuiz.questions);
         let correctCount = 0;
@@ -1297,6 +1351,18 @@ const AskMyNotes = () => {
             total: questions.length
         });
         toast.success(`Quiz Completed! Score: ${correctCount}/${questions.length}`);
+
+        try {
+            await socialApi.post(`/workspaces/${activeWorkspace.id}/quizzes/${activeQuiz.id}/attempts`, {
+                score,
+                answers: quizAnswers
+            });
+            // Reload quizzes to populate attempts history
+            const details = await socialApi.get(`/workspaces/${activeWorkspace.id}`);
+            setQuizzes(details.data.workspace.quizzes || []);
+        } catch (err) {
+            console.error('Failed to submit quiz attempt:', err);
+        }
     };
 
     // ==========================================
@@ -1349,14 +1415,8 @@ const AskMyNotes = () => {
             await socialApi.post(`/workspaces/${activeWorkspace.id}/tools/quiz`, { count: 5, format: 'MCQ' });
             toast.success('Quiz generated successfully!', { id });
 
-            // Reload quizzes
-            const details = await socialApi.get(`/workspaces/${activeWorkspace.id}`);
-            const updatedQuizzes = details.data.workspace.quizzes || [];
-            setQuizzes(updatedQuizzes);
-            setStudyTab('quiz');
-            if (updatedQuizzes.length > 0) {
-                handleStartQuiz(updatedQuizzes[0]);
-            }
+            // Redirect to dedicated quiz dashboard
+            navigate(`/dashboard/ask-my-notes-dev/${activeWorkspace.id}/quiz`);
         } catch (err) {
             console.error('Quiz generation error:', err);
             toast.error(err.response?.data?.error || 'Failed to generate quiz.', { id });
@@ -1413,7 +1473,13 @@ const AskMyNotes = () => {
                     {['notes', 'quiz', 'flashcards'].map(tab => (
                         <button
                             key={tab}
-                            onClick={() => setStudyTab(tab)}
+                            onClick={() => {
+                                if (tab === 'quiz') {
+                                    navigate(`/dashboard/ask-my-notes-dev/${activeWorkspace.id}/quiz`);
+                                } else {
+                                    setStudyTab(tab);
+                                }
+                            }}
                             className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${studyTab === tab
                                     ? 'bg-white dark:bg-slate-800 text-orange-600 dark:text-orange-400 shadow-sm border border-slate-100 dark:border-gray-700/50'
                                     : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
@@ -1475,137 +1541,18 @@ const AskMyNotes = () => {
 
                 {/* TAB B: QUIZ PANEL */}
                 {studyTab === 'quiz' && (
-                    <div className="flex-1 flex flex-col overflow-y-auto p-4 space-y-4">
-                        <div className="flex justify-between items-center shrink-0">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                Subject Quizzes
-                            </span>
-                        </div>
-
-                        {quizzes.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                                <HelpCircle className="text-orange-200 dark:text-gray-700 mb-3 animate-pulse" size={36} />
-                                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
-                                    No quizzes generated yet. Generate a smart AI quiz from your notes and study materials to test your knowledge!
-                                </p>
-                                <button
-                                    onClick={triggerGenerateQuiz}
-                                    disabled={isGeneratingQuiz || sources.length === 0}
-                                    className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
-                                >
-                                    {isGeneratingQuiz ? <Loader2 size={14} className="animate-spin inline mr-1" /> : null}
-                                    Generate Quiz
-                                </button>
-                            </div>
-                        ) : activeQuiz ? (
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <button
-                                        onClick={() => { setActiveQuiz(null); setQuizResult(null); }}
-                                        className="text-xs font-bold text-orange-500 flex items-center gap-1"
-                                    >
-                                        <ArrowLeft size={14} /> Back
-                                    </button>
-                                    <span className="text-[10px] font-black text-slate-400 uppercase">
-                                        Active Quiz
-                                    </span>
-                                </div>
-
-                                <div className="space-y-4">
-                                    {(() => {
-                                        const parsedQuestions = typeof activeQuiz.questions === 'string'
-                                            ? JSON.parse(activeQuiz.questions)
-                                            : (activeQuiz.questions || []);
-                                        return (
-                                            <>
-                                                <div className="space-y-4">
-                                                    {parsedQuestions.map((q, qIdx) => (
-                                                        <div key={qIdx} className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-gray-800 p-4 rounded-2xl space-y-3">
-                                                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                                                                {qIdx + 1}. {q.questionText || q.question || q.text}
-                                                            </p>
-                                                            <div className="space-y-1.5">
-                                                                {(q.options || q.choices || []).map((opt, oIdx) => {
-                                                                    const isSelected = quizAnswers[qIdx] === oIdx;
-                                                                    const isCorrect = (q.correctOption !== undefined ? q.correctOption === oIdx : (q.correctAnswer === oIdx || q.answer === oIdx));
-                                                                    const showResults = quizResult !== null;
-
-                                                                    let optionStyle = "border-slate-100 dark:border-gray-800 bg-white dark:bg-gray-800";
-                                                                    if (showResults) {
-                                                                        if (isCorrect) {
-                                                                            optionStyle = "border-green-300 dark:border-green-950 bg-green-500/10 text-green-700 dark:text-green-400";
-                                                                        } else if (isSelected) {
-                                                                            optionStyle = "border-red-300 dark:border-red-950 bg-red-500/10 text-red-700 dark:text-red-400";
-                                                                        }
-                                                                    } else if (isSelected) {
-                                                                        optionStyle = "border-orange-300 dark:border-orange-850 bg-orange-500/10 text-orange-600 dark:text-orange-400";
-                                                                    }
-
-                                                                    return (
-                                                                        <button
-                                                                            key={oIdx}
-                                                                            disabled={showResults}
-                                                                            onClick={() => handleQuizOptionSelect(qIdx, oIdx)}
-                                                                            className={`w-full text-left p-3 border rounded-xl text-xs transition-all flex items-center justify-between ${optionStyle}`}
-                                                                        >
-                                                                            <span>{opt}</span>
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                            {quizResult && q.explanation && (
-                                                                <p className="text-[10px] text-slate-400 leading-relaxed mt-2 bg-white dark:bg-gray-900 p-2 rounded-lg border border-dashed border-slate-100 dark:border-gray-800">
-                                                                    {q.explanation}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-
-                                                {!quizResult ? (
-                                                    <button
-                                                        onClick={handleSubmitQuiz}
-                                                        className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:shadow-lg transition-all"
-                                                    >
-                                                        Submit Answers
-                                                    </button>
-                                                ) : (
-                                                    <div className="bg-orange-500/5 border border-orange-200 dark:border-orange-950 p-4 rounded-2xl text-center space-y-2">
-                                                        <p className="text-xs font-black text-slate-400 uppercase tracking-wider">Score Result</p>
-                                                        <p className="text-3xl font-black text-orange-500">{quizResult.score} / {parsedQuestions.length}</p>
-                                                        <p className="text-[10px] text-slate-500 leading-relaxed">
-                                                            {quizResult.score === parsedQuestions.length ? "Perfect! You master this subject!" : "Review the explanations above to learn from incorrect options."}
-                                                        </p>
-                                                        <button
-                                                            onClick={() => { setActiveQuiz(null); setQuizResult(null); }}
-                                                            className="w-full py-2 bg-orange-500 text-white rounded-xl text-xs font-bold uppercase"
-                                                        >
-                                                            Take another quiz
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </>
-                                        );
-                                    })()}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                {quizzes.map((q) => (
-                                    <div
-                                        key={q.id}
-                                        onClick={() => handleStartQuiz(q)}
-                                        className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-gray-800 rounded-xl hover:border-orange-300 dark:hover:border-orange-900/50 transition-colors cursor-pointer flex items-center justify-between"
-                                    >
-                                        <div>
-                                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{q.title}</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">{q.questions?.length || 0} Questions</p>
-                                        </div>
-                                        <Play size={14} className="text-orange-500" />
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                    <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4">
+                        <HelpCircle className="text-orange-500 animate-bounce" size={42} />
+                        <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">Dedicated Quiz Mode</h4>
+                        <p className="text-[11px] text-slate-500 max-w-[200px] leading-relaxed">
+                            Quizzes and the interactive Knowledge Map are now hosted on their own dedicated study dashboard.
+                        </p>
+                        <button
+                            onClick={() => navigate(`/dashboard/ask-my-notes-dev/${activeWorkspace.id}/quiz`)}
+                            className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm"
+                        >
+                            Open Quiz Dashboard
+                        </button>
                     </div>
                 )}
 

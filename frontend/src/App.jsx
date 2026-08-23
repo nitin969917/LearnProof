@@ -43,6 +43,7 @@ const PlaylistProgress = lazyWithRetry(() => import('./components/Dashboard/Play
 const AIBenchmark = lazyWithRetry(() => import('./components/Dashboard/AIBenchmark'));
 const AskMyNotes = lazyWithRetry(() => import('./components/Dashboard/AskMyNotesComingSoon'));
 const AskMyNotesOriginal = lazyWithRetry(() => import('./components/Dashboard/AskMyNotes'));
+const WorkspaceQuizPage = lazyWithRetry(() => import('./components/Dashboard/WorkspaceQuizPage'));
 const RoadmapDetail = lazyWithRetry(() => import('./components/Dashboard/RoadmapDetail'));
 const SocialDashboard = lazyWithRetry(() => import('./components/Dashboard/Social/SocialDashboard'));
 const LanguageLearning = lazyWithRetry(() => import('./components/Dashboard/LanguagePractice/LanguageLearning'));
@@ -140,6 +141,7 @@ const App = () => {
                                 <Route path='ask-my-notes/:subjectId' element={<AskMyNotes />} />
                                 <Route path='ask-my-notes-dev' element={<AskMyNotesOriginal />} />
                                 <Route path='ask-my-notes-dev/:subjectId' element={<AskMyNotesOriginal />} />
+                                <Route path='ask-my-notes-dev/:subjectId/quiz' element={<WorkspaceQuizPage />} />
                                 <Route path='support' element={<Support />} />
                                 
                                 {/* Social / Social Hub Features */}

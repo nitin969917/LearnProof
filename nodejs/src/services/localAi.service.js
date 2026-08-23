@@ -475,13 +475,15 @@ ${context}`;
 /**
  * Generate interactive Quiz using Vertex AI / Gemini (structured JSON)
  */
-const generateQuiz = async (workspaceId, count, format) => {
-    const { context } = await getWorkspaceContext(workspaceId);
+const generateQuiz = async (workspaceId, count, format, topic, difficulty) => {
+    const { context } = await getWorkspaceContext(workspaceId, topic);
     if (!context) {
         throw new Error('No indexed documents found in this workspace.');
     }
 
-    const systemPrompt = `Generate a quiz containing exactly ${count} multiple choice questions (MCQs) in valid JSON format based on the following context.
+    const topicInstruction = topic ? ` focusing specifically on the topic: "${topic}"` : '';
+    const difficultyInstruction = difficulty ? ` and ensure the difficulty level of the questions is "${difficulty}"` : '';
+    const systemPrompt = `Generate a quiz containing exactly ${count} multiple choice questions (MCQs) in valid JSON format based on the following context${topicInstruction}${difficultyInstruction}.
 Format the output as a raw JSON array of objects. Do not include markdown code block wrappers (like \`\`\`json or \`\`\`).
 Each object MUST have the following structure:
 {
@@ -596,10 +598,74 @@ ${context}`;
     return cardsText;
 };
 
+/**
+ * Generate a hierarchical Knowledge Map/topic list from workspace materials
+ */
+const generateKnowledgeMap = async (workspaceId) => {
+    const { context } = await getWorkspaceContext(workspaceId);
+    if (!context) {
+        throw new Error('No indexed documents found in this workspace.');
+    }
+
+    const systemPrompt = `Analyze the provided learning documents context and extract a comprehensive, structured knowledge map of EXACTLY 4 to 5 core, high-level topics covered. 
+Each topic should represent a major chapter, theme, or concept unit from the materials, and all detailed 20+ smaller concepts must be categorized as subtopics under these 4-5 main topics so that the map covers the entire context while remaining clean, structured, and easy to navigate.
+Format the output as a valid JSON array of objects. Do not include markdown code block wrappers (like \`\`\`json or \`\`\`).
+Each object in the array MUST follow this exact structure:
+{
+  "topic": "Name of the topic",
+  "description": "Brief 1-2 sentence description explaining the topic based on the context",
+  "subtopics": ["Subtopic 1", "Subtopic 2", "Subtopic 3"]
+}
+
+Context:
+${context}`;
+
+    let mapText = '';
+    let success = false;
+    if (vertexAIClient) {
+        try {
+            console.log('[Local AI Service] Attempting generateKnowledgeMap with Vertex AI...');
+            const result = await vertexAIClient.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: systemPrompt,
+                config: {
+                    responseMimeType: 'application/json'
+                }
+            });
+            mapText = result.text;
+            success = true;
+        } catch (vertexErr) {
+            console.warn('[Local AI Service] Vertex AI generateKnowledgeMap failed, falling back to Google AI Studio:', vertexErr.message);
+        }
+    }
+    
+    if (!success && genAI) {
+        try {
+            console.log('[Local AI Service] Attempting generateKnowledgeMap with Google AI Studio...');
+            const model = genAI.getGenerativeModel({ 
+                model: 'gemini-2.5-flash',
+                generationConfig: { responseMimeType: 'application/json' }
+            });
+            const result = await model.generateContent(systemPrompt);
+            mapText = result.response.text();
+            success = true;
+        } catch (studioErr) {
+            console.error('[Local AI Service] Google AI Studio generateKnowledgeMap failed:', studioErr.message);
+            throw studioErr;
+        }
+    }
+    
+    if (!success) {
+        throw new Error('Neither Vertex AI nor Gemini API Studio client was able to generate knowledge map.');
+    }
+    return mapText;
+};
+
 module.exports = {
     parseLocalFile,
     streamChat,
     generateSummary,
     generateQuiz,
-    generateFlashcards
+    generateFlashcards,
+    generateKnowledgeMap
 };

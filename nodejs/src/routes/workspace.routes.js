@@ -84,4 +84,11 @@ router.post('/:id/tools/summary', authMiddleware, workspaceToolsController.gener
 router.post('/:id/tools/quiz', authMiddleware, workspaceToolsController.generateQuiz);
 router.post('/:id/tools/flashcards', authMiddleware, workspaceToolsController.generateFlashcards);
 
+// Knowledge Map Routing
+router.get('/:id/knowledge-map', authMiddleware, workspaceToolsController.getOrGenerateKnowledgeMap);
+router.post('/:id/knowledge-map/generate', authMiddleware, workspaceToolsController.regenerateKnowledgeMap);
+
+// Quiz Attempts Routing
+router.post('/:id/quizzes/:quizId/attempts', authMiddleware, workspaceToolsController.submitQuizAttempt);
+
 module.exports = router;

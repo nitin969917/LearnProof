@@ -97,6 +97,11 @@ const getWorkspaceDetails = async (req, res) => {
                     orderBy: { updatedAt: 'desc' }
                 },
                 quizzes: {
+                    include: {
+                        attempts: {
+                            orderBy: { attemptedAt: 'desc' }
+                        }
+                    },
                     orderBy: { createdAt: 'desc' }
                 },
                 flashcards: {

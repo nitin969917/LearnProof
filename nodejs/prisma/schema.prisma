@@ -305,6 +305,7 @@ model Workspace {
   name          String
   description   String?                @db.Text
   difyDatasetId String?
+  knowledgeMap  String?                @db.Text
   createdAt     DateTime               @default(now())
   updatedAt     DateTime               @updatedAt
   sources       KnowledgeSource[]
