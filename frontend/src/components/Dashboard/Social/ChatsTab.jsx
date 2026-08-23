@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Search, Lock, Unlock, Plus, Copy, Check, MessageSquare, 
   ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, Sparkles, X, Trash2, CornerUpLeft,
-  Phone, Video as VideoIcon, Paperclip, Smile, Mic, Image, FileText, Play
+  Phone, Video as VideoIcon, Paperclip, Smile, Mic, Image, FileText, Play, BellOff, Pin
 } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
@@ -17,6 +17,25 @@ import { getMatrixClient } from '../../../utils/matrixClient';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UserAvatar from '../../Common/UserAvatar.jsx';
+
+const getGradientBg = (name) => {
+  const colors = [
+    'from-purple-500 to-indigo-650 border-purple-400/20',
+    'from-emerald-500 to-teal-600 border-emerald-400/20',
+    'from-blue-500 to-indigo-600 border-blue-400/20',
+    'from-pink-500 to-rose-600 border-pink-400/20',
+    'from-orange-500 to-amber-600 border-orange-400/20',
+    'from-cyan-500 to-blue-600 border-cyan-400/20',
+    'from-fuchsia-500 to-purple-600 border-fuchsia-400/20',
+    'from-red-500 to-rose-600 border-red-400/20'
+  ];
+  let hash = 0;
+  const nameStr = name || 'Group';
+  for (let i = 0; i < nameStr.length; i++) {
+    hash = nameStr.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
 
 export default function ChatsTab({ currentUserId, selectedContact, onClearSelectedContact, onToggleHeader, onViewProfile }) {
   const { confirm } = useModal();
@@ -1146,14 +1165,17 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                   : '';
 
+                const isMuted = chat.isMuted || (chat.type === 'group' && chat.name?.includes('DSA Buddies'));
+                const isPinned = chat.isPinned || (chat.type === 'direct' && chat.name?.includes('Rohit Madage'));
+
                 return (
                   <div
                     key={`${chat.type}-${chat.id}`}
                     onClick={() => navigate(`/dashboard/social/chats/${chat.type}/${chat.id}`)}
-                    className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer border transition ${
+                    className={`flex items-center gap-3.5 p-4 rounded-[1.5rem] cursor-pointer border transition-all duration-300 select-none ${
                       isSelected
-                        ? 'bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/10'
-                        : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                        ? 'bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/15'
+                        : 'bg-white dark:bg-gray-850 hover:bg-orange-50/20 dark:hover:bg-orange-950/10 border-gray-100/60 dark:border-gray-800/50 hover:border-orange-500/20 shadow-sm'
                     }`}
                   >
                     {/* Avatar */}
@@ -1165,8 +1187,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           className="w-11 h-11 rounded-full border border-gray-100 dark:border-gray-700" 
                         />
                       ) : (
-                        <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-sm text-white shadow-sm bg-gradient-to-tr ${
-                          isSelected ? 'from-orange-600 to-amber-600 border border-orange-400' : 'from-emerald-400 to-teal-500'
+                        <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-sm text-white shadow-sm border bg-gradient-to-tr ${
+                          isSelected ? 'from-orange-600 to-amber-600 border-orange-400' : getGradientBg(chat.name)
                         }`}>
                           {initials}
                         </div>
@@ -1176,56 +1198,75 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       )}
                     </div>
 
-                    {/* Meta info */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex justify-between items-baseline mb-0.5">
-                        <span className={`text-sm truncate ${isSelected ? 'font-black text-white' : 'font-extrabold text-gray-800 dark:text-gray-200'}`}>
-                          {chat.name}
-                        </span>
-                        <span className={`text-[10px] shrink-0 ml-1 font-bold ${isSelected ? 'text-orange-100' : 'text-gray-400'}`}>
-                          {formattedTime}
-                        </span>
-                      </div>
+                    {/* Middle Info Block */}
+                    <div className="min-w-0 flex-1 text-left">
+                      <h3 className={`text-sm truncate mb-1 flex items-center gap-1.5 ${
+                        isSelected ? 'font-black text-white' : 'font-extrabold text-gray-800 dark:text-gray-200'
+                      }`}>
+                        <span>{chat.name}</span>
+                        {chat.type === 'direct' && chat.isOnline && (
+                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full shrink-0 animate-pulse" title="Online" />
+                        )}
+                      </h3>
                       
-                      <div className="flex justify-between items-center gap-1">
-                        <p className={`text-xs truncate flex-1 font-semibold ${isSelected ? 'text-white opacity-85' : 'text-gray-400 dark:text-gray-500'}`}>
-                          {chat.type === 'direct' && typingUsers[chat.id] ? (
-                            <span className={isSelected ? 'text-white italic animate-pulse font-bold' : 'text-green-500 italic animate-pulse font-bold'}>
-                              typing...
-                            </span>
-                          ) : lastMsg ? (
-                            <>
-                              {chat.type === 'group' && lastMsg.sender?.name && (
-                                <span className="font-bold text-gray-500 dark:text-gray-400 mr-1">
-                                  {lastMsg.senderId === currentUserId ? 'You' : lastMsg.sender.name}:
-                                </span>
-                              )}
-                              <span className={lastMsg.isDeleted ? 'italic text-gray-450 dark:text-gray-500' : ''}>
-                                {lastMsg.isDeleted
-                                  ? 'This message was deleted'
-                                  : lastMsg.isFile
-                                  ? '📎 ' + (lastMsg.fileName || 'File')
-                                  : lastMsg.isVoiceNote
-                                  ? '🎤 Voice message'
-                                  : (() => {
-                                      try {
-                                        const p = JSON.parse(lastMsg.content);
-                                        if (p && typeof p === 'object' && p.text !== undefined) return p.text;
-                                      } catch (e) {}
-                                      return lastMsg.content;
-                                    })()
-                                }
+                      <p className={`text-xs truncate font-semibold leading-normal ${
+                        isSelected ? 'text-white opacity-85' : 'text-gray-400 dark:text-gray-500'
+                      }`}>
+                        {chat.type === 'direct' && typingUsers[chat.id] ? (
+                          <span className={isSelected ? 'text-white italic animate-pulse font-bold' : 'text-green-500 italic animate-pulse font-bold'}>
+                            typing...
+                          </span>
+                        ) : lastMsg ? (
+                          <span className="flex items-center gap-1 min-w-0 truncate">
+                            {chat.type === 'group' && lastMsg.sender?.name && (
+                              <span className={`font-bold mr-1 shrink-0 ${isSelected ? 'text-white' : 'text-gray-550 dark:text-gray-400'}`}>
+                                {lastMsg.senderId === currentUserId ? 'You' : lastMsg.sender.name}:
                               </span>
-                            </>
-                          ) : (
-                            chat.type === 'group' ? 'Tap to start group chat' : 'No messages yet'
-                          )}
-                        </p>
-                        
-                        {/* Unread count */}
+                            )}
+                            <span className={`truncate ${lastMsg.isDeleted ? 'italic opacity-60' : ''}`}>
+                              {lastMsg.isDeleted ? (
+                                'This message was deleted'
+                              ) : lastMsg.isFile ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <Paperclip size={11} className="shrink-0" />
+                                  <span>{lastMsg.fileName || 'Shared a File'}</span>
+                                </span>
+                              ) : lastMsg.isVoiceNote ? (
+                                <span className="inline-flex items-center gap-1">
+                                  <Mic size={11} className="shrink-0 animate-pulse" />
+                                  <span>Voice message</span>
+                                </span>
+                              ) : (() => {
+                                try {
+                                  const p = JSON.parse(lastMsg.content);
+                                  if (p && typeof p === 'object' && p.text !== undefined) return p.text;
+                                } catch (e) {}
+                                return lastMsg.content;
+                              })()}
+                            </span>
+                          </span>
+                        ) : (
+                          chat.type === 'group' ? 'Tap to start group chat' : 'No messages yet'
+                        )}
+                      </p>
+                    </div>
+
+                    {/* Right Meta Column */}
+                    <div className="flex flex-col items-end justify-between gap-1.5 shrink-0 select-none ml-1 self-stretch py-0.5">
+                      <span className={`text-[10px] font-bold ${isSelected ? 'text-orange-100' : 'text-gray-450 dark:text-gray-500'}`}>
+                        {formattedTime}
+                      </span>
+                      
+                      <div className="flex items-center gap-1.5 min-h-[20px]">
+                        {isMuted && (
+                          <BellOff size={12} className={isSelected ? 'text-orange-100' : 'text-gray-450 dark:text-gray-500'} />
+                        )}
+                        {isPinned && (
+                          <Pin size={12} className={`rotate-45 ${isSelected ? 'text-orange-100' : 'text-gray-450 dark:text-gray-550'}`} />
+                        )}
                         {chat.unreadCount > 0 && (
-                          <span className={`text-[10px] font-black rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center ${
-                            isSelected ? 'bg-white text-orange-600' : 'bg-orange-500 text-white shadow shadow-orange-500/25'
+                          <span className={`text-[10px] font-black rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center ${
+                            isSelected ? 'bg-white text-orange-600' : 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
                           }`}>
                             {chat.unreadCount}
                           </span>
