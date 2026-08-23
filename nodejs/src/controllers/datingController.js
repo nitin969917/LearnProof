@@ -1208,6 +1208,11 @@ const getLanguageRooms = async (req, res) => {
 
     const rooms = await datingPrisma.languageRoom.findMany({
       where: {
+        NOT: {
+          roomName: {
+            startsWith: 'privatecall-'
+          }
+        },
         OR: [
           { isFriendsOnly: false },
           { creatorId: userId },

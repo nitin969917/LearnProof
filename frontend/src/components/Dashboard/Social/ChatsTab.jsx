@@ -91,7 +91,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     if (!msg || !msg.content) return { text: "" };
     try {
       const data = JSON.parse(msg.content);
-      if (data && typeof data === 'object' && ('text' in data || 'replyTo' in data || 'reactions' in data)) {
+      if (data && typeof data === 'object' && ('text' in data || 'replyTo' in data || 'reactions' in data || 'type' in data)) {
         return data;
       }
     } catch (e) {}
@@ -646,6 +646,110 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       onClearSelectedContact();
     }
   }, [selectedContact]);
+
+
+
+  const initiateCall = async (mediaType) => {
+    try {
+      // 1. Create a private language room record
+      const roomPayload = {
+        roomName: `privatecall-direct-${currentUserId}-${selectedChat.id}-${mediaType}`,
+        topic: `Private ${mediaType === 'video' ? 'Video' : 'Audio'} Call`,
+        language: 'English',
+        roomType: '1-on-1',
+        mediaType: mediaType,
+        maxParticipants: 2,
+        isFriendsOnly: true
+      };
+
+      const roomRes = await socialApi.post('/dating/language-rooms', roomPayload);
+      const createdRoom = roomRes.data;
+
+      // 2. Send direct chat message with call metadata
+      const callMessageContent = JSON.stringify({
+        type: 'call',
+        action: 'initiated',
+        roomName: createdRoom.roomName,
+        mediaType: mediaType
+      });
+
+      const payload = {
+        content: callMessageContent
+      };
+      
+      let newMessage;
+      if (isMatrixActive) {
+        const roomId = await getOrCreateMatrixRoom(selectedChat.id);
+        const event = await matrixClient.sendMessage(roomId, {
+          msgtype: 'm.text',
+          body: callMessageContent
+        });
+        newMessage = {
+          id: event.event_id,
+          senderId: currentUserId,
+          content: callMessageContent,
+          createdAt: new Date().toISOString()
+        };
+      } else {
+        const response = await socialApi.post(`/messages/direct/${selectedChat.id}`, payload);
+        newMessage = response.data;
+        if (socketRef.current) {
+          socketRef.current.emit('sendMessage', newMessage);
+        }
+      }
+
+      setMessages((prev) => [...prev, newMessage]);
+      setInputText('');
+
+      // 3. Launch LiveKit call session
+      navigate(`/dashboard/live-rooms/${createdRoom.roomName}`);
+    } catch (err) {
+      console.error('Failed to initiate call:', err);
+      toast.error('Could not initiate call. Please try again.');
+    }
+  };
+
+  const handleDeclineCall = async (msg) => {
+    try {
+      const parsed = parseMessageContent(msg);
+      if (!parsed) return;
+
+      const declineMsg = {
+        content: JSON.stringify({
+          type: 'call',
+          action: 'declined',
+          roomName: parsed.roomName,
+          mediaType: parsed.mediaType
+        })
+      };
+      
+      let newMessage;
+      if (isMatrixActive) {
+        const roomId = await getOrCreateMatrixRoom(selectedChat.id);
+        const event = await matrixClient.sendMessage(roomId, {
+          msgtype: 'm.text',
+          body: declineMsg.content
+        });
+        newMessage = {
+          id: event.event_id,
+          senderId: currentUserId,
+          content: declineMsg.content,
+          createdAt: new Date().toISOString()
+        };
+      } else {
+        const response = await socialApi.post(`/messages/direct/${selectedChat.id}`, declineMsg);
+        newMessage = response.data;
+        if (socketRef.current) {
+          socketRef.current.emit('sendMessage', newMessage);
+        }
+      }
+      
+      setMessages((prev) => [...prev, newMessage]);
+      toast.success('Call declined');
+    } catch (err) {
+      console.error('Failed to decline call:', err);
+    }
+  };
 
   // Sync selectedChat state with URL routing to allow proper back navigation support
   useEffect(() => {
@@ -1239,7 +1343,12 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                               ) : (() => {
                                 try {
                                   const p = JSON.parse(lastMsg.content);
-                                  if (p && typeof p === 'object' && p.text !== undefined) return p.text;
+                                  if (p && typeof p === 'object') {
+                                    if (p.type === 'call') {
+                                      return p.mediaType === 'video' ? '📹 Video Call' : '📞 Audio Call';
+                                    }
+                                    if (p.text !== undefined) return p.text;
+                                  }
                                 } catch (e) {}
                                 return lastMsg.content;
                               })()}
@@ -1380,6 +1489,24 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                         className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition cursor-pointer"
                       >
                         <LogOut size={18} />
+                      </button>
+                    </>
+                  )}
+                  {selectedChat.type === 'direct' && (
+                    <>
+                      <button
+                        onClick={() => initiateCall('audio')}
+                        className="p-2 text-gray-555 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer"
+                        title="Start Audio Call"
+                      >
+                        <Phone size={18} />
+                      </button>
+                      <button
+                        onClick={() => initiateCall('video')}
+                        className="p-2 text-gray-555 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer"
+                        title="Start Video Call"
+                      >
+                        <VideoIcon size={18} />
                       </button>
                     </>
                   )}
@@ -1550,8 +1677,42 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                                   <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase">{msg.fileSize || 'Unknown Size'}</span>
                                 </div>
                               </div>
+                            ) : parsed && parsed.type === 'call' ? (
+                              <div className="flex flex-col gap-2 pb-3 pr-4 select-none w-52 sm:w-60">
+                                <div className="flex items-center gap-2.5">
+                                  <div className={`p-2.5 rounded-xl shrink-0 ${isMine ? 'bg-[#128c7e]/20 text-[#128c7e] dark:text-[#00a884]' : 'bg-orange-500/10 text-orange-500'}`}>
+                                    {parsed.mediaType === 'video' ? <VideoIcon size={18} /> : <Phone size={18} />}
+                                  </div>
+                                  <div className="flex-1 min-w-0 text-left">
+                                    <h4 className="text-xs font-black leading-tight">
+                                      {parsed.mediaType === 'video' ? 'Video Call' : 'Audio Call'}
+                                    </h4>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5 block">
+                                      {parsed.action === 'declined' ? 'Call Declined' : isMine ? 'Outgoing Call' : 'Incoming Call'}
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                {/* Call Actions */}
+                                {!isMine && parsed.action === 'initiated' && (
+                                  <div className="flex gap-2 mt-2 w-full">
+                                    <button
+                                      onClick={() => navigate(`/dashboard/live-rooms/${parsed.roomName}`)}
+                                      className="flex-1 py-1.5 px-3 rounded-lg bg-green-500 hover:bg-green-600 text-white font-black text-[10px] uppercase tracking-wider text-center cursor-pointer shadow-sm shadow-green-500/10 transition"
+                                    >
+                                      Join Call
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeclineCall(msg)}
+                                      className="py-1.5 px-3 rounded-lg bg-red-500 hover:bg-red-600 text-white font-black text-[10px] uppercase tracking-wider text-center cursor-pointer shadow-sm shadow-red-500/10 transition"
+                                    >
+                                      Decline
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             ) : (
-                              <p className="break-words font-medium leading-relaxed pb-3 pr-8 whitespace-pre-wrap">{parsed.text || msg.content}</p>
+                              <p className="break-words font-medium leading-relaxed pb-3 pr-8 whitespace-pre-wrap">{parsed?.text || msg.content}</p>
                             )}
 
                             {/* Timestamp + read receipt */}
@@ -1674,92 +1835,26 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     onSubmit={handleSendMessage} 
                     className="flex items-center gap-2"
                   >
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
-                      onChange={handleFileChange} 
+                    <input
+                      type="text"
+                      value={inputText}
+                      onChange={(e) => {
+                        setInputText(e.target.value);
+                        if (socketRef.current && selectedChat && selectedChat.type === 'direct') {
+                          socketRef.current.emit('typing', { targetId: selectedChat.id, isTyping: e.target.value.length > 0 });
+                        }
+                      }}
+                      placeholder="Type your message here..."
+                      className="flex-1 bg-white dark:bg-[#2a3942] text-gray-900 dark:text-[#e9edef] border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-semibold transition"
                     />
 
-                    {/* Attachment button */}
                     <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      title="Attach File"
-                      className="p-2.5 text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer shrink-0"
+                      type="submit"
+                      disabled={!inputText.trim()}
+                      className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-orange-500 text-white font-extrabold p-3 rounded-2xl transition flex items-center justify-center shadow-lg shadow-orange-500/15 cursor-pointer shrink-0"
                     >
-                      <Paperclip size={18} />
+                      <Send size={18} />
                     </button>
-
-                    {/* Emoji button */}
-                    <button
-                      type="button"
-                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                      title="Choose Emoji"
-                      className="p-2.5 text-gray-400 hover:text-orange-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition cursor-pointer shrink-0"
-                    >
-                      <Smile size={18} />
-                    </button>
-
-                    {/* Input field or Recording indicator */}
-                    {isRecording ? (
-                      <div className="flex-1 bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-400 rounded-2xl px-4 py-2.5 flex items-center justify-between text-xs font-black animate-pulse select-none">
-                        <span className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-                          Recording voice note...
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <span className="font-mono">{recordingSeconds}s</span>
-                          <button
-                            type="button"
-                            onClick={() => stopRecording(false)}
-                            className="text-gray-450 hover:text-red-500 transition cursor-pointer font-bold px-1.5 py-0.5 rounded-md"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={inputText}
-                        onChange={(e) => {
-                          setInputText(e.target.value);
-                          if (socketRef.current && selectedChat && selectedChat.type === 'direct') {
-                            socketRef.current.emit('typing', { targetId: selectedChat.id, isTyping: e.target.value.length > 0 });
-                          }
-                        }}
-                        placeholder="Type your message here..."
-                        className="flex-1 bg-white dark:bg-[#2a3942] text-gray-900 dark:text-[#e9edef] border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-semibold transition"
-                      />
-                    )}
-
-                    {/* Send or Voice Record Action Button */}
-                    {isRecording ? (
-                      <button
-                        type="button"
-                        onClick={() => stopRecording(true)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold p-3 rounded-2xl transition flex items-center justify-center shadow-lg shadow-orange-500/15 cursor-pointer shrink-0"
-                      >
-                        <Send size={18} />
-                      </button>
-                    ) : (inputText.trim() || selectedFile) ? (
-                      <button
-                        type="submit"
-                        className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold p-3 rounded-2xl transition flex items-center justify-center shadow-lg shadow-orange-500/15 cursor-pointer shrink-0 animate-in zoom-in-50 duration-150"
-                      >
-                        <Send size={18} />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={startRecording}
-                        title="Record Voice Note"
-                        className="p-3 text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-800 rounded-2xl transition cursor-pointer shrink-0"
-                      >
-                        <Mic size={18} />
-                      </button>
-                    )}
                   </form>
                 </div>
               )}
