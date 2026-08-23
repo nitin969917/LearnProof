@@ -202,15 +202,46 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     if (!identity) return;
     setSpeakRequests(prev => {
       if (prev.some(r => r.identity === identity)) return prev;
-      toast(`🎤 ${name || 'Someone'} wants to speak!`, {
-        duration: 6000,
-        style: { background: '#f97316', color: '#fff', fontWeight: '700' },
+      
+      toast((t) => (
+        <div className="flex flex-col gap-2 p-1 text-left">
+          <span className="font-bold text-white text-xs leading-relaxed">
+            🎤 {name || 'Someone'} wants to speak!
+          </span>
+          <div className="flex gap-2 justify-end mt-1.5">
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                if (handlePromoteSpeakerRef.current) {
+                  handlePromoteSpeakerRef.current(identity, name || 'User');
+                }
+              }}
+              className="px-3 py-1 bg-white hover:bg-orange-50 text-orange-600 font-extrabold text-[10px] rounded-lg transition active:scale-95 cursor-pointer shadow-sm border-none"
+            >
+              Approve
+            </button>
+            <button
+              onClick={async () => {
+                toast.dismiss(t.id);
+                setSpeakRequests(prev => prev.filter(r => r.identity !== identity));
+                try {
+                  await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`);
+                } catch (_) {}
+              }}
+              className="px-3 py-1 bg-orange-700/40 hover:bg-orange-700/60 text-orange-100 font-bold text-[10px] rounded-lg transition active:scale-95 cursor-pointer border-none"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ), {
+        duration: 9000,
+        style: { background: '#f97316', color: '#fff', padding: '10px 14px', minWidth: '240px', borderRadius: '14px' },
       });
+
       return [...prev, { identity, name: name || 'User' }];
     });
-    // Do NOT auto-open participants panel — host can open it manually
-    // setShowParticipants(true); ← removed: was causing panel to pop open unexpectedly
-  }, []);
+  }, [roomName]);
 
 
   // Media states
@@ -946,7 +977,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   const getGridClassName = (count) => {
     if (count <= 1) return 'grid-cols-1 h-full';
-    if (count === 2) return 'grid-cols-2 grid-rows-1 h-full';
+    if (count === 2) {
+      return showChatPanel ? 'grid-cols-2 grid-rows-1 h-full' : 'grid-cols-1 grid-rows-2 h-full';
+    }
     if (count === 3) return 'grid-cols-2 grid-rows-2 h-full'; // host spans 2 rows
     if (count === 4) return 'grid-cols-2 grid-rows-2 h-full';
     return 'grid-cols-2 grid-rows-3 h-full'; // 5–6 people
@@ -1446,7 +1479,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
         {/* ══ LEFT: Stage Area ══ */}
         <div className={`${
-          isChatHidable ? 'h-full flex-1' : 'h-[48vh] lg:h-full lg:flex-1'
+          showChatPanel ? (isChatHidable ? 'h-full flex-1' : 'h-[48vh] lg:h-full lg:flex-1') : 'h-full flex-1'
         } shrink-0 relative overflow-hidden bg-orange-50 dark:bg-gray-950`}>
 
           {/* Ambient gradient bg */}
