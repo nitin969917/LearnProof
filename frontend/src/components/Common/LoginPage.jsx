@@ -228,7 +228,7 @@ const LoginPage = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#fff7f4] via-[#ffffff] to-[#fffbf9] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-y-auto flex flex-col justify-between p-4 sm:p-6 selection:bg-orange-200 select-none">
+        <div className="h-[100dvh] bg-gradient-to-br from-[#fff7f4] via-[#ffffff] to-[#fffbf9] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden flex flex-col justify-between p-4 sm:p-6 selection:bg-orange-200 select-none">
             
             {/* Mesh dot grid background overlay matching mockup */}
             <div className="absolute inset-0 z-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }} />
@@ -238,14 +238,14 @@ const LoginPage = () => {
                 <div className="absolute top-[-10%] left-[-20%] w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] bg-gradient-to-br from-orange-200/40 via-rose-100/20 to-transparent rounded-full blur-[80px]" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[300px] sm:w-[450px] h-[300px] sm:h-[450px] bg-gradient-to-tr from-amber-200/30 to-transparent rounded-full blur-[90px]" />
             </div>
-
+ 
             {/* Main Centered Box Container Wrapper */}
-            <div className="flex-1 flex items-center justify-center relative z-10 py-6 sm:py-10 w-full">
+            <div className="flex-1 flex items-center justify-center relative z-10 py-4 sm:py-10 w-full">
                 <motion.div 
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, ease: "easeOut" }}
-                    className="w-full max-w-sm bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-orange-100/70 dark:border-gray-800 rounded-[2.5rem] px-5 py-7 sm:p-8 shadow-[0_20px_50px_rgba(249,115,22,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center space-y-7 relative"
+                    className="w-full max-w-sm bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-orange-100/70 dark:border-gray-800 rounded-[2.5rem] px-5 py-5 sm:p-8 shadow-[0_20px_50px_rgba(249,115,22,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center space-y-5 sm:space-y-6 relative"
                 >
                     {/* Logo & Headline Swoop Lines */}
                     <div className="relative w-full flex flex-col items-center text-center">

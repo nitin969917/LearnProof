@@ -504,7 +504,31 @@ const searchUsers = async (req, res) => {
       take: 10,
     });
 
-    res.json(users);
+    // Query friendships involving the current user and found users to return connection state
+    const userIds = users.map(u => u.id);
+    const friendships = await datingPrisma.friendship.findMany({
+      where: {
+        OR: [
+          { senderId: userId, receiverId: { in: userIds } },
+          { senderId: { in: userIds }, receiverId: userId }
+        ]
+      }
+    });
+
+    const usersWithFriendship = users.map(u => {
+      const friendship = friendships.find(f => 
+        (f.senderId === userId && f.receiverId === u.id) ||
+        (f.senderId === u.id && f.receiverId === userId)
+      );
+
+      return {
+        ...u,
+        friendshipStatus: friendship ? friendship.status : null,
+        isFriendshipSender: friendship ? friendship.senderId === userId : false,
+      };
+    });
+
+    res.json(usersWithFriendship);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });

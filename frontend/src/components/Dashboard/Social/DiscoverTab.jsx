@@ -11,6 +11,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sentRequests, setSentRequests] = useState([]);
+  const [hasSearched, setHasSearched] = useState(false);
   const searchInputRef = useRef(null);
 
   // Groups from shared store (pre-fetched by GroupsTab/ChatsTab)
@@ -37,24 +38,11 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
     }
   }, [searchType]);
 
-  // Auto-search for students after 450ms typing delay
-  useEffect(() => {
-    if (searchType !== 'students') return;
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
-    const delayDebounce = setTimeout(() => {
-      handleSearch();
-    }, 450);
-
-    return () => clearTimeout(delayDebounce);
-  }, [query, searchType]);
-
   const handleSearch = async (searchQuery = query) => {
     if (searchType !== 'students') return;
     if (!searchQuery.trim()) return;
     setLoading(true);
+    setHasSearched(true);
     try {
       const response = await socialApi.get(`/users/search?q=${encodeURIComponent(searchQuery)}`);
       setResults(response.data);
@@ -98,11 +86,32 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
     (g.description && g.description.toLowerCase().includes(query.toLowerCase()))
   );
 
+  const getFriendshipState = (student) => {
+    const isSent = sentRequests.includes(student.id);
+    if (isSent) {
+      return { isConnected: false, isPending: true, label: "Request Sent", icon: <Check size={16} /> };
+    }
+    
+    if (student.friendshipStatus === 'accepted') {
+      return { isConnected: true, isPending: false, label: "Connected", icon: <UserCheck size={16} /> };
+    }
+    
+    if (student.friendshipStatus === 'pending') {
+      if (student.isFriendshipSender) {
+        return { isConnected: false, isPending: true, label: "Request Sent", icon: <Check size={16} /> };
+      } else {
+        return { isConnected: false, isPending: true, label: "Incoming Request", icon: <Check size={16} /> };
+      }
+    }
+    
+    return { isConnected: false, isPending: false, label: "Connect", icon: <UserPlus size={16} /> };
+  };
+
   const getGroupInitials = (name) => {
     return name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'GP';
   };
 
-  const isSearching = query.trim() || results.length > 0 || (searchType === 'groups' && hasLoadedGroups);
+  const isSearching = (searchType === 'students' ? hasSearched : (hasSearched || (searchType === 'groups' && hasLoadedGroups)));
 
   return (
     <div className="flex flex-col gap-5 sm:gap-6 w-full max-w-md mx-auto py-2 sm:py-4 px-3 sm:px-0">
@@ -166,8 +175,8 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
             {query && (
               <button 
                 type="button"
-                onClick={() => { setQuery(''); setResults([]); }}
-                className="px-2 text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer shrink-0"
+                onClick={() => { setQuery(''); setResults([]); setHasSearched(false); }}
+                className="px-2 text-gray-400 hover:text-gray-655 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer shrink-0"
               >
                 Clear
               </button>
@@ -188,32 +197,34 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                 fetchStoreGroups();
               }
             }}
-            className="bg-white dark:bg-gray-900 hover:bg-orange-50/5 dark:hover:bg-gray-800/20 rounded-3xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow transition-all duration-300 cursor-pointer flex items-center justify-between group"
+            className="bg-white dark:bg-gray-900 hover:bg-orange-50/5 dark:hover:bg-gray-800/20 rounded-3xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow transition-all duration-300 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group"
           >
-            <div className="flex items-center gap-4 text-left">
+            <div className="flex items-center gap-4 text-left min-w-0 flex-1">
               <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 text-orange-500 flex items-center justify-center shrink-0 border border-orange-100/50 dark:border-orange-500/10">
                 <Users size={20} />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
                   Build your <span className="text-orange-500">network</span>
                 </h3>
                 <p className="text-gray-405 dark:text-gray-500 text-xs mt-0.5 font-bold leading-normal">Explore the community and make meaningful connections.</p>
               </div>
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSearchType('groups');
-                if (!hasLoadedGroups) {
-                  fetchStoreGroups();
-                }
-              }}
-              className="text-[10px] sm:text-xs border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white font-extrabold px-3.5 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 shrink-0"
-            >
-              <span>Start Exploring</span>
-              <ChevronRight size={12} strokeWidth={3} />
-            </button>
+            <div className="flex sm:justify-end w-full sm:w-auto pl-16 sm:pl-0">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSearchType('groups');
+                  if (!hasLoadedGroups) {
+                    fetchStoreGroups();
+                  }
+                }}
+                className="text-[10px] sm:text-xs border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white font-extrabold px-3.5 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 shrink-0 w-fit"
+              >
+                <span>Start Exploring</span>
+                <ChevronRight size={12} strokeWidth={3} />
+              </button>
+            </div>
           </div>
 
         </div>
@@ -230,6 +241,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                 setQuery('');
                 setResults([]);
                 setSearchType('students');
+                setHasSearched(false);
               }}
               className="flex items-center gap-1.5 text-[11px] font-extrabold text-gray-550 hover:text-orange-500 dark:text-gray-400 dark:hover:text-orange-400 transition cursor-pointer bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3.5 py-2 rounded-xl"
             >
@@ -243,6 +255,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                   setSearchType('students');
                   setQuery('');
                   setResults([]);
+                  setHasSearched(false);
                 }}
                 className={`px-3 py-1 rounded-lg text-[10px] font-black transition cursor-pointer ${
                   searchType === 'students'
@@ -290,8 +303,14 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
             {query && (
               <button 
                 type="button"
-                onClick={() => { setQuery(''); if (searchType === 'students') setResults([]); }}
-                className="px-2 text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer shrink-0"
+                onClick={() => { 
+                  setQuery(''); 
+                  if (searchType === 'students') {
+                    setResults([]); 
+                    setHasSearched(false);
+                  }
+                }}
+                className="px-2 text-gray-400 hover:text-gray-655 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer shrink-0"
               >
                 Clear
               </button>
@@ -358,18 +377,25 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                       )}
                     </div>
                     
-                    <button
-                      onClick={(e) => handleConnect(e, student.id)}
-                      disabled={isSent}
-                      className={`z-10 p-2.5 rounded-2xl transition-all cursor-pointer ${
-                        isSent 
-                          ? 'bg-green-50 bg-opacity-20 text-green-600 dark:text-green-400 border border-green-200/25' 
-                          : 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white border border-transparent'
-                      }`}
-                      title={isSent ? "Request Sent" : "Connect"}
-                    >
-                      {isSent ? <Check size={16} /> : <UserPlus size={16} />}
-                    </button>
+                    {(() => {
+                      const fState = getFriendshipState(student);
+                      return (
+                        <button
+                          onClick={(e) => handleConnect(e, student.id)}
+                          disabled={fState.isConnected || fState.isPending}
+                          className={`z-10 p-2.5 rounded-2xl transition-all cursor-pointer ${
+                            fState.isConnected
+                              ? 'bg-indigo-50 bg-opacity-20 text-indigo-650 dark:text-indigo-400 border border-indigo-200/25'
+                              : fState.isPending 
+                                ? 'bg-green-50 bg-opacity-20 text-green-600 dark:text-green-400 border border-green-200/25' 
+                                : 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white border border-transparent'
+                          }`}
+                          title={fState.label}
+                        >
+                          {fState.icon}
+                        </button>
+                      );
+                    })()}
                   </div>
                 );
               })}
