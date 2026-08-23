@@ -230,7 +230,7 @@ const MyLearnings = () => {
     };
 
     return (
-        <div className="w-full space-y-6 pt-3">
+        <div className="w-full max-w-[1360px] mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 space-y-6">
             {/* ── Compact Mobile Header ───────────────────────────────── */}
             <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">

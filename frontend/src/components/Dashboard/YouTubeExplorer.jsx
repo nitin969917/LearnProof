@@ -226,7 +226,7 @@ const YouTubeExplorer = () => {
     }
 
     return (
-        <div className="w-full space-y-8 md:space-y-10">
+        <div className="max-w-[1360px] mx-auto px-4 sm:px-8 lg:px-12 space-y-8 md:space-y-10 pb-20">
             {/* Header & Search */}
             <div className="flex flex-col items-center text-center space-y-8 pt-7 pb-6 md:pt-10 md:pb-8">
                 <motion.div

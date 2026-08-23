@@ -498,7 +498,7 @@ const Quiz = () => {
     }
 
     return (
-        <div className="w-full relative z-10 selection:bg-orange-100 select-none">
+        <div className="w-full max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-28 relative z-10 selection:bg-orange-100 select-none">
             
             {/* Dotted mesh grid overlay matching dashboard style */}
             <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }} />

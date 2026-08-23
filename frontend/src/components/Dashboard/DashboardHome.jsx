@@ -173,7 +173,7 @@ const DashboardHome = () => {
 
 
     return (
-        <div className="flex flex-col lg:flex-row gap-6 lg:items-start animate-in fade-in duration-500">
+        <div className="flex flex-col lg:flex-row gap-6 lg:items-start max-w-[1360px] mx-auto px-4 md:px-8 py-6 pb-24 md:pb-8 animate-in fade-in duration-500">
             {/* Left column (Flexible) */}
             <div className="flex-1 min-w-0 space-y-6">
                 {/* 1. GREETING BANNER CARD */}
@@ -195,9 +195,8 @@ const DashboardHome = () => {
                         />
                     </div>
                 </div>
-
                 {/* 2. SERVICES/FEATURES GRID */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Learning Hub Card */}
                     <div
                         onClick={() => navigate((playlists.length === 0 && videos.length === 0) ? '/dashboard/explore' : '/dashboard/library')}
@@ -236,7 +235,7 @@ const DashboardHome = () => {
                     >
                         <div>
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-505 flex items-center justify-center shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-555 flex items-center justify-center shrink-0">
                                     <Video size={16} />
                                 </div>
                                 <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
@@ -260,7 +259,7 @@ const DashboardHome = () => {
                     {/* Social Hub Card */}
                     <div
                         onClick={() => navigate('/dashboard/social')}
-                        className="bg-white dark:bg-gray-800 rounded-[2rem] border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                        className="col-span-2 lg:col-span-1 bg-white dark:bg-gray-800 rounded-[2rem] border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
                     >
                         <div>
                             <div className="flex items-center gap-3">
@@ -288,7 +287,7 @@ const DashboardHome = () => {
                     {/* Ask My Notes Card */}
                     <div
                         onClick={() => navigate('/dashboard/ask-my-notes')}
-                        className="bg-white dark:bg-gray-800 rounded-[2rem] border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                        className="hidden lg:flex bg-white dark:bg-gray-800 rounded-[2rem] border border-orange-100/40 dark:border-gray-700 p-5 flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
                     >
                         <div>
                             <div className="flex items-center gap-3">
@@ -303,7 +302,7 @@ const DashboardHome = () => {
                                 Chat with your PDFs, slides, and notes using LearnProof AI.
                             </p>
                         </div>
-                        <div className="flex items-center justify-between mt-4">
+                        <div className="flex items-center justify-between mt-4 flex-row">
                             <span className="text-[10px] font-black text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-3 py-1 rounded-full">
                                 Chat
                             </span>
