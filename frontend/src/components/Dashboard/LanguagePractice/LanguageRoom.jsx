@@ -21,7 +21,7 @@ import '@livekit/components-styles';
 
 import {
   Mic, MicOff, Video, VideoOff,
-  PhoneOff, Users, Globe,
+  PhoneOff, Users, Globe, MessageSquare,
   Volume2, Send, UserX, UserPlus, UserMinus,
   Check, X, Hand, LogOut, ChevronsDown, Settings, Languages, Sparkles, Camera
 } from 'lucide-react';
@@ -1608,6 +1608,122 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                   </div>
                 </div>
               )}
+            </div>
+          )}
+          {/* Floating Controls Overlay (only when chat is hidable) */}
+          {isChatHidable && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl border border-gray-250/60 dark:border-white/10 flex items-center gap-3 z-30 pointer-events-auto">
+              
+              {/* Toggle Chat button */}
+              <button
+                type="button"
+                onClick={() => setShowChatDrawer(prev => !prev)}
+                title={showChatDrawer ? "Hide Chat" : "Show Chat"}
+                className={`p-2.5 rounded-xl border transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0 ${
+                  showChatDrawer
+                    ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20'
+                    : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-500 hover:border-orange-500/40'
+                }`}
+              >
+                <MessageSquare size={15} />
+              </button>
+
+              {/* Separator line */}
+              <div className="w-px h-5 bg-gray-200 dark:bg-white/10 shrink-0" />
+
+              {canPublish ? (
+                <>
+                  {/* Step down from stage button */}
+                  {!isHost && (
+                    <button
+                      type="button"
+                      onClick={handleLeaveStage}
+                      title="Step down from stage"
+                      className="p-2.5 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/20 rounded-xl transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0"
+                    >
+                      <ChevronsDown size={15} />
+                    </button>
+                  )}
+
+                  {/* Toggle Camera button */}
+                  {isVideoRoom && (
+                    <button
+                      type="button"
+                      onClick={toggleCam}
+                      title={isCamEnabled ? 'Camera Off' : 'Camera On'}
+                      className={`p-2.5 rounded-xl border transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0 ${
+                        isCamEnabled
+                          ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20'
+                          : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
+                      }`}
+                    >
+                      {isCamEnabled ? <Video size={15} /> : <VideoOff size={15} />}
+                    </button>
+                  )}
+
+                  {/* Toggle Mic button */}
+                  <button
+                    type="button"
+                    onClick={toggleMic}
+                    title={isMicEnabled ? 'Mute' : 'Unmute'}
+                    className={`p-2.5 rounded-xl border transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0 ${
+                      isMicEnabled
+                        ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20'
+                        : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/40'
+                    }`}
+                  >
+                    {isMicEnabled ? <Mic size={15} /> : <MicOff size={15} />}
+                  </button>
+                </>
+              ) : (
+                /* Request to speak button */
+                <button
+                  type="button"
+                  onClick={hasRequested ? handleWithdrawRequest : handleRequestToSpeak}
+                  title={hasRequested ? 'Withdraw Stage Request' : 'Request to Speak'}
+                  className={`p-2.5 rounded-xl border transition-all cursor-pointer active:scale-95 flex items-center justify-center shrink-0 ${
+                    hasRequested
+                      ? 'bg-orange-500 border-orange-600 text-white shadow-sm shadow-orange-500/20'
+                      : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40'
+                  }`}
+                >
+                  <Hand size={15} className={hasRequested ? 'animate-pulse' : ''} />
+                </button>
+              )}
+
+              {/* Settings button */}
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(true)}
+                title="Room Settings"
+                className="p-2.5 rounded-xl border transition-all cursor-pointer bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40 active:scale-95 flex items-center justify-center shrink-0"
+              >
+                <Settings size={15} />
+              </button>
+
+              {/* Show Participants button */}
+              <button
+                type="button"
+                onClick={() => setShowParticipants(prev => !prev)}
+                title="Participants"
+                className={`p-2.5 rounded-xl border transition-all cursor-pointer relative active:scale-95 flex items-center justify-center shrink-0 ${
+                  showParticipants
+                    ? 'bg-orange-500/15 border-orange-500/50 text-orange-400'
+                    : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:text-orange-600 hover:border-orange-500/40'
+                }`}
+              >
+                <Users size={15} />
+                <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[7px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center border border-white dark:border-gray-900 shadow">
+                  {uniqueParticipants.length}
+                </span>
+                {isHost && speakRequests.length > 0 && (
+                  <span className="absolute -bottom-1 -left-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500 border border-white dark:border-gray-900" />
+                  </span>
+                )}
+              </button>
+
             </div>
           )}
 
