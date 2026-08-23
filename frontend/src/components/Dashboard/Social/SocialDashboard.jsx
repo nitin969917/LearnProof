@@ -376,7 +376,7 @@ export default function SocialDashboard() {
 
 
           {/* Tab Panels */}
-          <div className={`w-full ${hideHeader ? 'h-full' : ''}`}>
+          <div className={`w-full ${(hideHeader || activeTab === 'chat') ? 'h-full' : ''}`}>
             <div className={activeTab === 'feed' ? 'block' : 'hidden'}>
               <FeedTab 
                 currentUserId={socialUser.id} 
