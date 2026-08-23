@@ -691,11 +691,17 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           createdAt: new Date().toISOString()
         };
       } else {
-        const response = await socialApi.post(`/messages/direct/${selectedChat.id}`, payload);
-        newMessage = response.data;
-        if (socketRef.current) {
-          socketRef.current.emit('sendMessage', newMessage);
-        }
+        newMessage = {
+          senderId: currentUserId,
+          receiverId: selectedChat.id,
+          content: callMessageContent,
+          createdAt: new Date().toISOString()
+        };
+
+        socketRef.current?.emit('sendMessage', {
+          receiverId: selectedChat.id.toString(),
+          message: newMessage,
+        });
       }
 
       setMessages((prev) => [...prev, newMessage]);
@@ -737,11 +743,17 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           createdAt: new Date().toISOString()
         };
       } else {
-        const response = await socialApi.post(`/messages/direct/${selectedChat.id}`, declineMsg);
-        newMessage = response.data;
-        if (socketRef.current) {
-          socketRef.current.emit('sendMessage', newMessage);
-        }
+        newMessage = {
+          senderId: currentUserId,
+          receiverId: selectedChat.id,
+          content: declineMsg.content,
+          createdAt: new Date().toISOString()
+        };
+
+        socketRef.current?.emit('sendMessage', {
+          receiverId: selectedChat.id.toString(),
+          message: newMessage,
+        });
       }
       
       setMessages((prev) => [...prev, newMessage]);
