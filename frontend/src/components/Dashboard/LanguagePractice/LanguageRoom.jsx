@@ -1707,18 +1707,20 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
         {/* Stage Request / Hand button */}
         <div 
-          onClick={canPublish ? (!isHost ? handleLeaveStage : undefined) : (hasRequested ? handleWithdrawRequest : handleRequestToSpeak)}
+          onClick={isHost ? () => setShowParticipants(prev => !prev) : (canPublish ? handleLeaveStage : (hasRequested ? handleWithdrawRequest : handleRequestToSpeak))}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
         >
           <div className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
-            canPublish 
-              ? 'bg-red-50 dark:bg-red-950/20 text-red-500' 
-              : (hasRequested ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'bg-purple-50 dark:bg-purple-950/20 text-purple-500')
+            isHost
+              ? 'bg-purple-50 dark:bg-purple-950/20 text-purple-500'
+              : (canPublish 
+                  ? 'bg-red-50 dark:bg-red-950/20 text-red-500' 
+                  : (hasRequested ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'bg-purple-50 dark:bg-purple-950/20 text-purple-500'))
           }`}>
-            {canPublish ? <ChevronsDown size={18} /> : <Hand size={18} className={hasRequested ? 'animate-pulse' : ''} />}
+            {isHost ? <UserPlus size={18} /> : (canPublish ? <ChevronsDown size={18} /> : <Hand size={18} className={hasRequested ? 'animate-pulse' : ''} />)}
           </div>
           <span className="text-[10px] font-black tracking-wide text-gray-655 dark:text-gray-400">
-            {canPublish ? (isHost ? 'On Stage' : 'Leave Stage') : (hasRequested ? 'Withdraw' : 'Raise Hand')}
+            {isHost ? 'Invite' : (canPublish ? 'Leave Stage' : (hasRequested ? 'Withdraw' : 'Raise Hand'))}
           </span>
         </div>
 
