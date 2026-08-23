@@ -68,35 +68,36 @@ const VideosSection = ({ data: videos = [], loading = true }) => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: index * 0.05 }}
-                            className="group/card flex-shrink-0 w-[280px] sm:w-[320px] bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:shadow-orange-100 dark:hover:shadow-orange-900/20 hover:border-orange-400 dark:hover:border-orange-500 hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer snap-start"
+                            className="flex-shrink-0 w-[210px] sm:w-[290px] bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer snap-start flex flex-col overflow-hidden group/item"
                             onClick={() => navigate(`/classroom/${video.vid}`)}
                         >
-                            <div className="aspect-video relative overflow-hidden rounded-t-xl">
-                                <img
+                            <div className="w-full aspect-video relative flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0 shadow-sm">
+                                <img 
                                     src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
-                                    alt={video.name}
-                                    className="w-full h-full object-cover"
+                                    alt={video.name} 
+                                    className="w-full h-full object-cover animate-none"
                                 />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
-                                        <Play size={24} className="text-white fill-white ml-1" />
-                                    </div>
-                                </div>
                                 {video.is_completed && (
-                                    <div className="absolute top-2 left-2 bg-green-500 text-white text-[8px] font-black px-2 py-1 rounded-lg uppercase tracking-widest shadow-lg">
+                                    <div className="absolute top-1.5 left-1.5 bg-green-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider">
                                         Mastered
                                     </div>
                                 )}
                             </div>
-                            <div className="p-4">
-                                <h3 className="font-semibold text-gray-800 dark:text-gray-100 group-hover/card:text-orange-500 text-sm mb-2 line-clamp-2 transition-colors duration-300">
+                            <div className="flex-1 flex flex-col justify-between min-w-0 p-3 pb-3.5">
+                                <h3 className="font-bold text-gray-855 dark:text-gray-100 text-[13px] leading-tight line-clamp-2 group-hover/item:text-orange-500 transition-colors">
                                     {video.name}
                                 </h3>
-                                <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
-                                    <div
-                                        className="bg-orange-500 h-full rounded-full transition-all duration-500"
-                                        style={{ width: `${video.watch_progress || 0}%` }}
-                                    ></div>
+                                <div className="mt-2.5">
+                                    <div className="flex items-center justify-between text-[10px] text-gray-400 dark:text-slate-400 font-bold mb-0.5">
+                                        <span>Progress</span>
+                                        <span>{Math.round(video.watch_progress || 0)}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-105 dark:bg-gray-700 h-1 rounded-full overflow-hidden">
+                                        <div
+                                            className="bg-orange-500 h-full rounded-full transition-all duration-300"
+                                            style={{ width: `${video.watch_progress || 0}%` }}
+                                        ></div>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>

@@ -125,16 +125,16 @@ const CompletedSection = () => {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.05 }}
-                                    className="group/card flex-shrink-0 w-[280px] sm:w-[320px] bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:shadow-green-100 dark:hover:shadow-green-900/20 hover:border-green-400 dark:hover:border-green-500 hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer snap-start"
+                                    className="group/card flex-shrink-0 w-[210px] sm:w-[290px] bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer snap-start flex flex-col"
                                     onClick={() => navigate(`/classroom/${video.vid}`)}
                                 >
-                                    <div className="aspect-video relative flex items-center justify-center overflow-hidden rounded-xl shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
-                                        <img src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`} alt={video.name} className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                    <div className="w-full aspect-video relative flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
+                                        <img src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`} alt={video.name} className="w-full h-full object-cover animate-none" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
-                                                    className="h-7 w-7 text-white ml-1"
+                                                    className="h-5 w-5 text-white ml-0.5"
                                                     viewBox="0 0 24 24"
                                                     fill="currentColor"
                                                 >
@@ -142,15 +142,17 @@ const CompletedSection = () => {
                                                 </svg>
                                             </div>
                                         </div>
-                                        <div className="absolute bottom-2 right-2 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg shadow-lg border border-white/10">
+                                        <div className="absolute bottom-1 right-1 bg-green-500 text-white text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">
                                             Completed
                                         </div>
                                     </div>
-                                    <div className="p-4">
-                                        <h3 className="font-bold text-gray-900 dark:text-white group-hover/card:text-green-600 dark:group-hover/card:text-green-400 text-md truncate transition-colors duration-300">{video.name}</h3>
-                                        <p className="text-xs text-gray-500 dark:text-slate-400 font-medium truncate mb-4">{video.description || 'No description available.'}</p>
-                                        <div className="flex items-center gap-2 text-green-600 dark:text-green-500 text-[11px] font-black uppercase tracking-wider">
-                                            <CheckCircle size={14} fill="currentColor" className="text-green-100 dark:text-green-900" />
+                                    <div className="flex-1 flex flex-col justify-between min-w-0 p-3 pb-3.5">
+                                        <div>
+                                            <h3 className="font-bold text-gray-855 dark:text-white group-hover/card:text-green-600 dark:group-hover/card:text-green-400 text-[13px] leading-tight line-clamp-2 transition-colors duration-300">{video.name}</h3>
+                                            <p className="text-[10px] text-gray-400 dark:text-slate-400 font-bold mt-1 line-clamp-1">{video.description || 'No description available.'}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-green-600 dark:text-green-500 text-[10px] font-black uppercase tracking-wider mt-3">
+                                            <CheckCircle size={12} fill="currentColor" className="text-green-100 dark:text-green-900" />
                                             <span>Completed</span>
                                         </div>
                                     </div>
@@ -198,24 +200,24 @@ const CompletedSection = () => {
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: index * 0.05 }}
-                                        className="group/card flex-shrink-0 w-[280px] sm:w-[320px] bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:shadow-green-100 dark:hover:shadow-green-900/20 hover:border-green-400 dark:hover:border-green-500 hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer snap-start"
+                                        className="group/card flex-shrink-0 w-[210px] sm:w-[290px] bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer snap-start flex flex-col"
                                         onClick={() => navigate(`/dashboard/playlist/${playlist.pid}`)}
                                     >
-                                        <div className="aspect-video relative flex items-center justify-center overflow-hidden rounded-xl shadow-md border border-gray-100 dark:border-gray-700/50 transition-transform duration-500 group-hover/card:scale-[1.02]">
+                                        <div className="w-full aspect-video relative flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
                                             {thumbnail ? (
                                                 <img
                                                     src={thumbnail}
                                                     alt={playlist.name}
-                                                    className="w-full h-full object-cover"
+                                                    className="w-full h-full object-cover animate-none"
                                                 />
                                             ) : (
-                                                <Play size={48} className="text-green-300" />
+                                                <Play size={32} className="text-green-300" />
                                             )}
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                                                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center ring-2 ring-white/50 transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
                                                     <svg
                                                         xmlns="http://www.w3.org/2000/svg"
-                                                        className="h-7 w-7 text-white ml-1"
+                                                        className="h-5 w-5 text-white ml-0.5"
                                                         viewBox="0 0 24 24"
                                                         fill="currentColor"
                                                     >
@@ -223,21 +225,23 @@ const CompletedSection = () => {
                                                     </svg>
                                                 </div>
                                             </div>
-                                            <div className="absolute bottom-2 right-2 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg shadow-lg border border-white/10">
+                                            <div className="absolute bottom-1 right-1 bg-green-500 text-white text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md">
                                                 Completed
                                             </div>
                                         </div>
-                                        <div className="p-4">
-                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover/card:text-green-600 dark:group-hover/card:text-green-400 text-md mb-1 truncate transition-colors duration-300">
-                                                {playlist.name}
-                                            </h3>
-                                            <div className="flex items-center gap-2 text-green-600 dark:text-green-500 text-[11px] font-black uppercase tracking-wider">
-                                                <CheckCircle size={14} fill="currentColor" className="text-green-100 dark:text-green-900" />
-                                                <span>Completed</span>
+                                        <div className="flex-1 flex flex-col justify-between min-w-0 p-3 pb-3.5">
+                                            <div>
+                                                <h3 className="font-bold text-gray-855 dark:text-white group-hover/card:text-green-600 dark:group-hover/card:text-green-400 text-[13px] leading-tight line-clamp-2 transition-colors duration-300">
+                                                    {playlist.name}
+                                                </h3>
+                                                <div className="flex items-center gap-1.5 text-green-600 dark:text-green-500 text-[10px] font-black uppercase tracking-wider mt-1.5">
+                                                    <CheckCircle size={12} fill="currentColor" className="text-green-100 dark:text-green-900" />
+                                                    <span>Completed</span>
+                                                </div>
                                             </div>
-                                            <div className="mt-4 pt-4 border-t border-gray-50 dark:border-gray-700 flex justify-between items-center group-hover/card:border-green-100 dark:group-hover/card:border-green-900/30 transition-colors">
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-400 group-hover/card:text-green-600 transition-colors">Full Course</span>
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-orange-600">Classroom →</span>
+                                            <div className="mt-3.5 pt-3.5 border-t border-gray-50 dark:border-gray-700 flex justify-between items-center group-hover/card:border-green-100 dark:group-hover/card:border-green-900/30 transition-colors">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-400 group-hover/card:text-green-600 transition-colors">Full Course</span>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-orange-600">Classroom →</span>
                                             </div>
                                         </div>
                                     </motion.div>

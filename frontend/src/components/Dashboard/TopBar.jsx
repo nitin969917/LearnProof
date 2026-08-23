@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Youtube, Search, Menu, Inbox } from 'lucide-react';
+import { Youtube, Search, Menu, Bell } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -110,12 +110,15 @@ const TopBar = ({ onMenuClick }) => {
                 {/* Right Side: Actions (Import & Inbox Group) */}
                 <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 pl-14 sm:pl-0 px-2 sm:px-4 min-w-0">
                     {/* Desktop Import Bar (sm and up) */}
-                    <div className="hidden sm:flex items-center flex-1 max-w-[300px] bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-3 py-1.5 gap-2 transition-all duration-200 shadow-sm">
-                        <Youtube className="text-orange-500 shrink-0" size={20} />
+                    <div className="hidden sm:flex items-center flex-1 max-w-[320px] bg-white dark:bg-gray-700 border border-orange-100 dark:border-gray-600 rounded-full pl-3 pr-1 py-1 gap-2 shadow-sm transition-all duration-200 focus-within:ring-2 focus-within:ring-orange-500/25">
+                        <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.522 3.5 12 3.5 12 3.5s-7.522 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.029 0 12 0 12s0 3.971.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.478 20.5 12 20.5 12 20.5s7.522 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.971 24 12 24 12s0-3.971-.502-5.837z" />
+                            <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="white" />
+                        </svg>
                         <input
                             type="text"
-                            placeholder="Enter Youtube URL..."
-                            className="w-full bg-transparent outline-none text-sm text-gray-800 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400"
+                            placeholder="Paste YouTube link"
+                            className="w-full bg-transparent outline-none text-sm text-gray-800 dark:text-gray-200 placeholder-gray-450 font-semibold"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleImport()}
@@ -123,18 +126,22 @@ const TopBar = ({ onMenuClick }) => {
                         <button
                             onClick={handleImport}
                             disabled={loading}
-                            className="text-white bg-gradient-to-r from-orange-500 to-red-500 px-4 py-1.5 rounded-lg text-sm font-bold uppercase tracking-wider hover:opacity-90 transition-all shrink-0"
+                            className="text-white bg-[#FF5100] px-4 py-1.5 rounded-full text-xs font-black uppercase hover:bg-orange-600 transition-all shrink-0 cursor-pointer"
                         >
                             {loading ? "..." : "Import"}
                         </button>
                     </div>
 
-                    {/* Mobile Import Bar (Refined Size & Same Text) */}
-                    <div className="flex sm:hidden flex-1 max-w-[170px] min-w-0 bg-orange-50 dark:bg-gray-700 border border-orange-200 dark:border-gray-600 rounded-xl px-2 py-1 items-center gap-1.5 shadow-sm">
-                       <input
+                    {/* Mobile Import Bar */}
+                    <div className="flex sm:hidden flex-1 max-w-[200px] min-w-0 bg-white dark:bg-gray-700 border border-orange-100 dark:border-gray-600 rounded-full pl-2.5 pr-1 py-0.5 items-center gap-1.5 shadow-sm">
+                        <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.522 3.5 12 3.5 12 3.5s-7.522 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.029 0 12 0 12s0 3.971.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.478 20.5 12 20.5 12 20.5s7.522 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.971 24 12 24 12s0-3.971-.502-5.837z" />
+                            <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="white" />
+                        </svg>
+                        <input
                             type="text"
-                            placeholder="Enter Youtube URL..."
-                            className="w-full bg-transparent outline-none text-[11px] text-gray-800 dark:text-gray-200 placeholder-gray-400"
+                            placeholder="Paste YouTube link"
+                            className="w-full bg-transparent outline-none text-[11px] text-gray-800 dark:text-gray-200 placeholder-gray-400 font-semibold"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleImport()}
@@ -142,33 +149,31 @@ const TopBar = ({ onMenuClick }) => {
                         <button 
                             onClick={handleImport} 
                             disabled={loading}
-                            className="bg-orange-600 text-white rounded-lg px-2 py-1 font-bold text-[10px] uppercase tracking-tight shrink-0 active:scale-90 transition-transform"
+                            className="bg-[#FF5100] text-white rounded-full px-3 py-1 font-bold text-[9px] uppercase shrink-0 active:scale-95 transition-transform cursor-pointer"
                         >
                             {loading ? "..." : "Import"}
                         </button>
                     </div>
                     
-                    {/* Inbox Quick Action (Big on mobile, standard on desktop) */}
+                    {/* Bell Notification Action */}
                     <button
                         onClick={() => navigate('/dashboard/inbox')}
-                        className="p-2 sm:p-2.5 text-orange-500 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-lg sm:rounded-xl transition-all shadow-sm shrink-0 border border-orange-100 dark:border-gray-600 active:scale-95"
+                        className="relative p-2 text-gray-600 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-slate-700/50 rounded-xl transition-all cursor-pointer shrink-0 border border-orange-100 dark:border-gray-600 active:scale-95 bg-orange-50/20"
                         title="Inbox"
                     >
-                        <Inbox size={24} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
+                        <Bell size={20} />
+                        {totalSocialCount > 0 && (
+                            <span className="absolute top-1 right-1 bg-[#FF5100] rounded-full w-2 h-2 flex items-center justify-center animate-pulse" />
+                        )}
                     </button>
 
                     {/* Menu Toggle Action */}
                     <button
                         onClick={onMenuClick}
-                        className="relative p-2 sm:p-2.5 text-orange-505 bg-orange-50 dark:bg-slate-700/50 hover:bg-orange-100 dark:hover:bg-slate-600 rounded-lg sm:rounded-xl transition-all shadow-sm shrink-0 border border-orange-100 dark:border-gray-600 active:scale-95 flex items-center justify-center cursor-pointer"
+                        className="relative p-2.5 text-gray-700 bg-white dark:bg-slate-750 hover:bg-orange-50 dark:hover:bg-slate-600 rounded-2xl transition-all shadow-sm shrink-0 border border-gray-100 dark:border-gray-600 active:scale-95 flex items-center justify-center cursor-pointer"
                         title="Menu"
                     >
-                        <Menu size={24} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
-                        {totalSocialCount > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[8px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-white dark:border-gray-800 z-20 animate-pulse">
-                                {totalSocialCount > 99 ? '99+' : totalSocialCount}
-                            </span>
-                        )}
+                        <Menu size={20} />
                     </button>
                 </div>
             </div>

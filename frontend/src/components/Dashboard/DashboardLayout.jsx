@@ -350,11 +350,17 @@ const DashboardLayout = () => {
                             ? 'p-0 overflow-hidden' 
                             : isLiveRoom 
                                 ? 'p-0 overflow-y-auto' 
-                                : 'p-4 sm:p-6 pb-24 lg:pb-6 overflow-y-auto'
+                                : 'p-0 overflow-y-auto'
                     }`}
                 >
                     <ErrorBoundary>
-                        <Outlet context={{ toggleSidebar, setHeaderAction: setOnHeaderAction }} />
+                        {isSocialHub || isInsideWorkspace || isLiveRoom ? (
+                            <Outlet context={{ toggleSidebar, setHeaderAction: setOnHeaderAction }} />
+                        ) : (
+                            <div className="max-w-[1360px] mx-auto px-4 md:px-8 py-6 pb-24 md:pb-8">
+                                <Outlet context={{ toggleSidebar, setHeaderAction: setOnHeaderAction }} />
+                            </div>
+                        )}
                     </ErrorBoundary>
                 </div>
                 {/* Social Hub's bottom nav — shown on live-rooms pages when the user navigated from Social Hub */}
