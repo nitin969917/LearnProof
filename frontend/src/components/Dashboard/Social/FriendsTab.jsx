@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Clock, UserCheck, Check, X, Star, MessageSquare, UserX } from 'lucide-react';
+import { Clock, UserCheck, Check, X, Star, MessageSquare, UserX, Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
@@ -7,6 +8,7 @@ import { useModal } from '../../../context/ModalContext.jsx';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 
 export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
+  const navigate = useNavigate();
   const friends = useSocialFeedStore(state => state.friends);
   const fetchFriends = useSocialFeedStore(state => state.fetchFriends);
   const loadingFriends = useSocialFeedStore(state => state.loadingFriends);
@@ -166,9 +168,18 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
 
         {/* Friends List */}
         <div className="lg:col-span-8 flex flex-col gap-5">
-          <div className="flex items-center gap-2 text-gray-800 dark:text-white mb-2">
-            <UserCheck size={20} className="text-orange-500" />
-            <h2 className="text-lg font-bold">My Connections</h2>
+          <div className="flex items-center justify-between gap-4 text-gray-800 dark:text-white mb-2">
+            <div className="flex items-center gap-2">
+              <UserCheck size={20} className="text-orange-500" />
+              <h2 className="text-lg font-bold">My Connections</h2>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard/social/discover')}
+              className="text-xs font-bold text-orange-500 hover:text-orange-600 dark:text-orange-400 dark:hover:text-orange-300 flex items-center gap-1.5 transition active:scale-95 cursor-pointer bg-orange-500/5 dark:bg-orange-500/10 px-3 py-1.5 rounded-xl border border-orange-500/10 hover:border-orange-500/25"
+            >
+              <Search size={12} />
+              Find Friends
+            </button>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm space-y-4">
@@ -231,10 +242,19 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
             })}
 
             {friends.length === 0 && (
-              <div className="text-center py-16 text-gray-400 dark:text-gray-500 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
-                 <UserCheck size={36} className="mx-auto mb-3 opacity-50" />
-                 <p className="font-semibold mb-1 text-sm">No connections yet</p>
-                 <p className="text-xs">Find other members using the connection explorer!</p>
+              <div className="text-center py-16 text-gray-400 dark:text-gray-500 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl flex flex-col items-center justify-center p-6">
+                 <UserCheck size={36} className="mx-auto mb-3 opacity-55 text-orange-500" />
+                 <p className="font-extrabold mb-1 text-sm text-gray-800 dark:text-gray-200">No connections yet</p>
+                 <p className="text-xs mb-4 text-gray-500 dark:text-gray-400 max-w-xs leading-normal">
+                   Find other members and build your learning network using the connection explorer!
+                 </p>
+                 <button
+                   onClick={() => navigate('/dashboard/social/discover')}
+                   className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-xs transition shadow-md shadow-orange-500/10 active:scale-95 cursor-pointer flex items-center gap-1.5"
+                 >
+                   <Search size={12} />
+                   Explore Members
+                 </button>
               </div>
             )}
           </div>

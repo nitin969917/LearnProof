@@ -346,11 +346,13 @@ const DashboardLayout = () => {
                 <div 
                     ref={contentRef}
                     className={`flex-1 ${
-                        isSocialHub || isInsideWorkspace
+                        isInsideWorkspace
                             ? 'p-0 overflow-hidden' 
-                            : isLiveRoom 
-                                ? 'p-0 overflow-y-auto' 
-                                : 'p-4 sm:p-4 pb-24 lg:pb-6 overflow-y-auto hide-scrollbar'
+                            : isSocialHub
+                                ? 'p-0 overflow-hidden hide-scrollbar'
+                                : isLiveRoom 
+                                    ? 'p-0 overflow-y-auto' 
+                                    : 'p-4 sm:p-4 pb-24 lg:pb-6 overflow-y-auto hide-scrollbar'
                     }`}
                 >
                     <ErrorBoundary>
