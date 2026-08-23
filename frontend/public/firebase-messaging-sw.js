@@ -16,8 +16,15 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message: ', payload);
   
+  // If the message has a notification block, the browser displays it automatically.
+  // Calling showNotification here causes duplicate notifications.
+  if (payload.notification) {
+    console.log('[firebase-messaging-sw.js] Notification payload detected. Letting browser handle auto-display to prevent duplicates.');
+    return;
+  }
+
   const iconUrl = self.location.origin + '/LP_M_logo.png';
-  const notificationTitle = payload.notification?.title || "LearnProof AI";
+  const notificationTitle = payload.data?.title || "LearnProof AI";
   
   const data = payload.data || {};
   let clickAction = data.clickAction || data.click_action;
@@ -37,7 +44,7 @@ messaging.onBackgroundMessage((payload) => {
   };
 
   const notificationOptions = {
-    body: payload.notification?.body || "You have a new update",
+    body: payload.data?.body || "You have a new update",
     icon: iconUrl,
     badge: iconUrl,
     data: enrichedData
