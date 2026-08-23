@@ -197,49 +197,69 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const [hasRequested, setHasRequested] = useState(false);
   // Ref to the promote function so the data handler can call it without stale closure
   const handlePromoteSpeakerRef = useRef(null);
+  const notifiedRequestsRef = useRef(new Set());
 
   const addSpeakRequest = useCallback((identity, name) => {
     if (!identity) return;
+    if (notifiedRequestsRef.current.has(identity)) return;
+    
+    // Mark as notified immediately (outside state updater!)
+    notifiedRequestsRef.current.add(identity);
+
     setSpeakRequests(prev => {
       if (prev.some(r => r.identity === identity)) return prev;
-      
-      toast((t) => (
-        <div className="flex flex-col gap-2 p-1 text-left">
-          <span className="font-bold text-white text-xs leading-relaxed">
-            🎤 {name || 'Someone'} wants to speak!
-          </span>
-          <div className="flex gap-2 justify-end mt-1.5">
-            <button
-              onClick={() => {
-                toast.dismiss(t.id);
-                if (handlePromoteSpeakerRef.current) {
-                  handlePromoteSpeakerRef.current(identity, name || 'User');
-                }
-              }}
-              className="px-3 py-1 bg-white hover:bg-orange-50 text-orange-600 font-extrabold text-[10px] rounded-lg transition active:scale-95 cursor-pointer shadow-sm border-none"
-            >
-              Approve
-            </button>
-            <button
-              onClick={async () => {
-                toast.dismiss(t.id);
-                setSpeakRequests(prev => prev.filter(r => r.identity !== identity));
-                try {
-                  await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`);
-                } catch (_) {}
-              }}
-              className="px-3 py-1 bg-orange-700/40 hover:bg-orange-700/60 text-orange-100 font-bold text-[10px] rounded-lg transition active:scale-95 cursor-pointer border-none"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      ), {
-        duration: 9000,
-        style: { background: '#f97316', color: '#fff', padding: '10px 14px', minWidth: '240px', borderRadius: '14px' },
-      });
-
       return [...prev, { identity, name: name || 'User' }];
+    });
+
+    toast((t) => (
+      <div className="flex items-center gap-3.5 p-3.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-orange-500/15 dark:border-orange-500/25 min-w-[320px] pointer-events-auto">
+        {/* Mic Icon Bubble */}
+        <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
+          <Mic size={18} className="animate-pulse" />
+        </div>
+        
+        {/* Request Text info */}
+        <div className="flex-1 min-w-0 flex flex-col text-left">
+          <span className="text-xs font-black text-gray-900 dark:text-white truncate">
+            {name || 'Someone'}
+          </span>
+          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 mt-0.5">
+            wants to join stage
+          </span>
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+              notifiedRequestsRef.current.delete(identity);
+              if (handlePromoteSpeakerRef.current) {
+                handlePromoteSpeakerRef.current(identity, name || 'User');
+              }
+            }}
+            className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-[10px] rounded-lg transition cursor-pointer active:scale-95 shadow-sm shadow-orange-500/10 border-none"
+          >
+            Approve
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              notifiedRequestsRef.current.delete(identity);
+              setSpeakRequests(prev => prev.filter(r => r.identity !== identity));
+              try {
+                await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`);
+              } catch (_) {}
+            }}
+            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold text-[10px] rounded-lg transition cursor-pointer active:scale-95 border border-gray-200 dark:border-white/5"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: 10000,
+      style: { background: 'transparent', boxShadow: 'none', border: 'none', padding: 0 },
     });
   }, [roomName]);
 
