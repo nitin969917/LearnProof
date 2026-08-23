@@ -650,20 +650,59 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                   {(() => {
                     const getSocialLink = (label, val) => {
                       if (!val) return null;
-                      if (val.startsWith('http://') || val.startsWith('https://')) return val;
-                      switch (label.toLowerCase()) {
-                        case 'instagram':
-                          return `https://instagram.com/${val.replace('@', '')}`;
-                        case 'snapchat':
-                          return `https://snapchat.com/add/${val}`;
-                        case 'whatsapp':
-                          return `https://wa.me/${val.replace(/[^0-9]/g, '')}`;
-                        case 'facebook':
-                          return `https://facebook.com/${val}`;
-                        case 'linkedin':
-                          return `https://linkedin.com/in/${val}`;
-                        default:
-                          return null;
+                      
+                      const cleanVal = val.replace('@', '').trim();
+                      const isHttp = val.startsWith('http://') || val.startsWith('https://');
+
+                      if (isMobileOrApp) {
+                        // Dynamic deep links for mobile app / TWA context to bypass browser redirect pages and launch native apps
+                        switch (label.toLowerCase()) {
+                          case 'whatsapp':
+                            const waNum = val.replace(/[^0-9]/g, '');
+                            return `whatsapp://send?phone=${waNum}`;
+                          case 'instagram':
+                            if (isHttp) {
+                              const parts = val.split('instagram.com/');
+                              const username = parts[1]?.split('/')[0]?.split('?')[0] || cleanVal;
+                              return `instagram://user?username=${username}`;
+                            }
+                            return `instagram://user?username=${cleanVal}`;
+                          case 'snapchat':
+                            if (isHttp) {
+                              const parts = val.split('snapchat.com/add/');
+                              const username = parts[1]?.split('/')[0]?.split('?')[0] || cleanVal;
+                              return `snapchat://add/${username}`;
+                            }
+                            return `snapchat://add/${cleanVal}`;
+                          case 'linkedin':
+                            if (isHttp) {
+                              const parts = val.split('linkedin.com/in/');
+                              const username = parts[1]?.split('/')[0]?.split('?')[0] || cleanVal;
+                              return `linkedin://profile/in/${username}`;
+                            }
+                            return `linkedin://profile/in/${cleanVal}`;
+                          case 'facebook':
+                            return `fb://facewebmodal/f?href=${isHttp ? val : `https://facebook.com/${cleanVal}`}`;
+                          default:
+                            return isHttp ? val : `https://${cleanVal}`;
+                        }
+                      } else {
+                        // Standard web links for desktop/web context
+                        if (isHttp) return val;
+                        switch (label.toLowerCase()) {
+                          case 'instagram':
+                            return `https://instagram.com/${cleanVal}`;
+                          case 'snapchat':
+                            return `https://snapchat.com/add/${cleanVal}`;
+                          case 'whatsapp':
+                            return `https://wa.me/${val.replace(/[^0-9]/g, '')}`;
+                          case 'facebook':
+                            return `https://facebook.com/${cleanVal}`;
+                          case 'linkedin':
+                            return `https://linkedin.com/in/${cleanVal}`;
+                          default:
+                            return `https://${cleanVal}`;
+                        }
                       }
                     };
 
