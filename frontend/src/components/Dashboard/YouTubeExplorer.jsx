@@ -31,6 +31,7 @@ const YouTubeExplorer = () => {
     const [importLoading, setImportLoading] = useState(false);
     const [importData, setImportData] = useState(null);
     const [activePreview, setActivePreview] = useState(null); // stores { id, type } of item to preview
+    const [importUrl, setImportUrl] = useState('');
 
     // Recommendations state
     const [recommendSubject, setRecommendSubject] = useState('');
@@ -424,6 +425,63 @@ const YouTubeExplorer = () => {
                 </div>
             </div>
 
+            {/* Quick YouTube Import Section */}
+            <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full bg-gradient-to-r from-[#fff7f4] via-[#fffaf8] to-[#fffbf9] dark:from-orange-950/5 dark:via-orange-950/10 dark:to-orange-950/5 border border-orange-100/80 dark:border-orange-900/20 p-5 sm:p-6 rounded-[2rem] shadow-sm relative overflow-hidden"
+            >
+                {/* Mesh dots overlay just like login card */}
+                <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                    <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
+                            <Sparkles size={20} className="animate-pulse" />
+                        </div>
+                        <div className="space-y-1">
+                            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                                Import from YouTube
+                            </h3>
+                            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400 font-medium max-w-xl">
+                                Paste any YouTube link to add content to your library in one click.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="w-full md:max-w-md bg-white dark:bg-gray-800 rounded-xl p-1.5 border border-orange-100/60 dark:border-gray-700 shadow-sm flex flex-row items-center gap-2">
+                        <input
+                            type="text"
+                            placeholder="Paste YouTube playlist or video link..."
+                            value={importUrl}
+                            onChange={(e) => setImportUrl(e.target.value)}
+                            className="flex-1 min-w-0 bg-transparent border-none py-1.5 px-2 text-xs text-gray-905 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-0 outline-none font-semibold"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (!importUrl.trim()) {
+                                    toast.error("Please paste a valid YouTube link.");
+                                    return;
+                                }
+                                handleImportClick(importUrl);
+                            }}
+                            disabled={importLoading}
+                            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 py-2.5 rounded-lg transition-all shadow-md shadow-orange-500/10 active:scale-95 flex items-center justify-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
+                        >
+                            {importLoading ? <Loader size={12} className="animate-spin" /> : (
+                                <>
+                                    <svg className="w-3.5 h-3.5 fill-white shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.387.51A3.003 3.003 0 0 0 .502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 0 0 2.11 2.108c1.862.51 9.387.51 9.387.51s7.524 0 9.387-.51a3.003 3.003 0 0 0 2.11-2.108C24 15.93 24 12 24 12s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                    </svg>
+                                    <span>Import Now</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+
             {/* Search Results / Loading / Empty State */}
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -436,7 +494,7 @@ const YouTubeExplorer = () => {
                     ))}
                 </div>
             ) : results.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 pb-8">
                     {results.map((item, idx) => (
                         <motion.div
                             key={item.id}
@@ -458,16 +516,16 @@ const YouTubeExplorer = () => {
                                     {item.type}
                                 </div>
                             </div>
-                            <div className="p-4 space-y-3.5 flex flex-col flex-1">
-                                <div className="space-y-1.5 flex-1">
-                                    <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-500 transition-colors text-sm" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
+                            <div className="p-3.5 space-y-2.5 flex flex-col flex-1">
+                                <div className="space-y-0.5 flex-1">
+                                    <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-orange-500 transition-colors text-sm" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
                                     <span className="text-[10px] font-bold text-gray-400 dark:text-slate-505 uppercase tracking-wider block">{item.channel}</span>
                                 </div>
                                 <button
                                     onClick={() => handleImportClick(item.url)}
-                                    className="w-full py-2.5 bg-gray-50 dark:bg-gray-700 hover:bg-red-500 dark:hover:bg-red-650 text-gray-900 dark:text-white hover:text-white font-black text-[10px] uppercase tracking-[0.15em] rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 border border-gray-150 dark:border-gray-600 hover:border-transparent shadow-sm"
+                                    className="w-full py-1.5 sm:py-2 bg-orange-50/50 hover:bg-orange-500 dark:bg-orange-950/10 dark:hover:bg-orange-500 text-orange-600 dark:text-orange-400 hover:text-white dark:hover:text-white font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-1 border border-orange-100/60 dark:border-orange-950/50 hover:border-transparent shadow-sm cursor-pointer"
                                 >
-                                    <Plus size={14} strokeWidth={3} /> Add to Platform
+                                    <Plus size={13} strokeWidth={3} /> Add to Platform
                                 </button>
                             </div>
                         </motion.div>
@@ -475,126 +533,6 @@ const YouTubeExplorer = () => {
                 </div>
             ) : null}
 
-            {/* AI Magic Recommendation Section */}
-            <div className="relative group shadow-2xl rounded-3xl sm:rounded-[2rem]">
-                <div className="relative bg-white dark:bg-gray-800 rounded-3xl sm:rounded-[2rem] p-5 md:p-6 lg:p-7 border border-gray-100 dark:border-gray-700">
-                    <div className="flex flex-col xl:flex-row items-center justify-between gap-6">
-                        <div className="space-y-1 text-center xl:text-left w-full xl:w-1/3 shrink-0">
-                            <div className="flex items-center justify-center xl:justify-start gap-2 text-orange-600 dark:text-orange-400">
-                                <Sparkles size={20} className="animate-pulse" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.3em]">AI Personalization</span>
-                            </div>
-                            <h2 className="text-lg md:text-xl lg:text-2xl font-black text-gray-900 dark:text-white">Smart Course Generator</h2>
-                            <p className="text-xs text-gray-500 dark:text-slate-400 font-medium">Describe your goal and let our AI curate the perfect curriculum.</p>
-                        </div>
-
-                        <form onSubmit={handleGetRecommendations} className="w-full xl:w-2/3 flex flex-col sm:flex-row items-center gap-4">
-                            <div className="w-full sm:flex-1 relative">
-                                <input
-                                    type="text"
-                                    placeholder="I want to learn..."
-                                    value={recommendSubject}
-                                    onChange={(e) => setRecommendSubject(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-gray-700/50 border-none py-3.5 px-5 rounded-[1.25rem] text-sm font-bold text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-                                />
-                            </div>
-                            <div className="w-full sm:w-48 relative shrink-0">
-                                <select
-                                    value={recommendLanguage}
-                                    onChange={(e) => setRecommendLanguage(e.target.value)}
-                                    className="w-full bg-gray-50 dark:bg-gray-700/50 border-none py-3.5 px-5 pr-10 rounded-[1.25rem] text-sm font-black uppercase tracking-wider text-gray-700 dark:text-slate-300 focus:ring-2 focus:ring-orange-500 outline-none transition-all appearance-none cursor-pointer"
-                                >
-                                    <option value="">Language</option>
-                                    <option value="English">English</option>
-                                    <option value="Hindi">Hindi</option>
-                                    <option value="Marathi">Marathi</option>
-                                    <option value="Telugu">Telugu</option>
-                                    <option value="Tamil">Tamil</option>
-                                    <option value="Kannada">Kannada</option>
-                                    <option value="Malayalam">Malayalam</option>
-                                    <option value="Bengali">Bengali</option>
-                                    <option value="Punjabi">Punjabi</option>
-                                    <option value="Gujarati">Gujarati</option>
-                                    <option value="Spanish">Spanish</option>
-                                    <option value="French">French</option>
-                                    <option value="German">German</option>
-                                </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                                </div>
-                            </div>
-                            <button
-                                type="submit"
-                                disabled={recommendLoading}
-                                className="w-full sm:w-auto shrink-0 bg-gradient-to-br from-orange-500 to-red-600 hover:shadow-lg hover:shadow-orange-500/25 text-white px-8 py-3.5 rounded-[1.25rem] font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                            >
-                                {recommendLoading ? <Loader size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                                Generate
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            {recommendations.length > 0 && (
-                <div className="mb-10">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                            <Sparkles className="text-orange-500" size={20} />
-                            Recommended for You
-                        </h2>
-                        <button
-                            onClick={() => setRecommendations([])}
-                            className="text-sm text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400"
-                        >
-                            Clear Recommendations
-                        </button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {recommendations.map((item, idx) => (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.1 }}
-                                key={`rec-${item.id}`}
-                                className="group relative bg-white dark:bg-gray-800 rounded-2xl sm:rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden flex flex-col"
-                            >
-                                <div className="relative aspect-video overflow-hidden border-b border-gray-100 dark:border-gray-700/50 cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
-                                    <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
-                                    <div className="absolute inset-0 bg-black/40 xl:bg-gradient-to-t xl:from-black/60 xl:via-transparent xl:to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                                        <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500">
-                                            <Play size={24} className="fill-white ml-1" />
-                                        </div>
-                                    </div>
-                                    <div className="absolute top-4 right-4 px-3 py-1 bg-orange-500 text-white text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg z-10">
-                                        Top Pick
-                                    </div>
-                                </div>
-                                <div className="p-5 space-y-4 flex flex-col flex-1">
-                                    <div className="space-y-2">
-                                        <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-orange-500 transition-colors" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">{item.channel}</span>
-                                            {item.video_count !== undefined && (
-                                                <span className="text-[10px] font-black text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-lg uppercase tracking-wider">
-                                                    {item.video_count} lessons
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => handleImportClick(item.url)}
-                                        className="w-full py-4 bg-gray-900 dark:bg-gray-700 hover:bg-orange-600 dark:hover:bg-orange-600 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-2xl transition-all duration-300 shadow-lg shadow-gray-200 dark:shadow-none flex items-center justify-center gap-2"
-                                    >
-                                        <Plus size={14} strokeWidth={3} /> Import Course
-                                    </button>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                    <div className="mt-8 border-b border-gray-100 dark:border-gray-700"></div>
-                </div>
-            )}
 
             {results.length === 0 && !loading && (
                 <div className="text-center py-12 sm:py-20 bg-gray-50/50 dark:bg-gray-700/20 rounded-3xl sm:rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-700 max-w-4xl mx-auto w-full">
@@ -721,14 +659,14 @@ const YouTubeExplorer = () => {
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-black rounded-[2.5rem] overflow-hidden shadow-2xl w-full max-w-5xl aspect-video relative group"
+                            className="bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl w-full max-w-4xl aspect-video relative group border border-slate-800"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <button
                                 onClick={() => setActivePreview(null)}
-                                className="absolute top-6 right-6 z-10 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white p-3 rounded-full transition-all duration-300 opacity-100 xl:opacity-0 xl:group-hover:opacity-100 scale-100 sm:scale-90 xl:group-hover:scale-100"
+                                className="absolute top-3 right-3 z-50 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2 rounded-full transition-all duration-300 border border-white/10 shadow-lg focus:outline-none"
                             >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
                             <iframe
                                 width="100%"

@@ -498,50 +498,52 @@ const Quiz = () => {
     }
 
     return (
-        <div className="w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
+        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-28 relative z-10 selection:bg-orange-100 select-none">
+            
+            {/* Dotted mesh grid overlay matching dashboard style */}
+            <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }} />
 
-            {/* ── Compact Mobile Header ─────────────────────────────────── */}
-            <div className="flex items-center gap-2.5 mb-8 sm:mb-10">
-                <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
-                    <Award size={18} />
+            {/* ── Header ─────────────────────────────────── */}
+            <div className="flex items-center gap-3 mb-8 sm:mb-10 relative z-10">
+                <div className="w-10 h-10 rounded-2xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0 shadow-[0_4px_12px_rgba(249,115,22,0.05)]">
+                    <Award size={20} className="animate-pulse" />
                 </div>
                 <div>
-                    <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Quiz Center</h1>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">Test your knowledge & earn certificates</p>
+                    <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none">Quiz Center</h1>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 font-medium">Test your knowledge & earn credentials</p>
                 </div>
             </div>
 
             {/* ── Search Bar ────────────────────────────────── */}
-            <div className="space-y-2 mb-6">
+            <div className="space-y-2 mb-8 relative z-10 max-w-md">
                 <div className="relative group">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={15} />
                     <input
                         type="text"
-                        placeholder="Search completed playlists..."
+                        placeholder="Search completed quizzes..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 dark:text-white"
+                        className="w-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-orange-100/60 dark:border-gray-700/60 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 dark:text-white shadow-sm"
                     />
                 </div>
             </div>
 
-            <div className="space-y-6 sm:space-y-8">
+            <div className="space-y-8 relative z-10">
 
                 {/* ── Section 1: Completed Playlists ────────────────────── */}
-                <section className="space-y-2.5">
-
-                    <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
-                            <Library className="w-3.5 h-3.5 text-orange-500" />
-                            Completed Playlists
+                <section className="space-y-3.5">
+                    <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <Library className="w-4 h-4 text-orange-500" />
+                            Completed Quizzes
                         </h2>
-                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 bg-orange-500/5 dark:bg-orange-500/10 px-2.5 py-0.5 rounded-full border border-orange-500/10">
                             {filteredPlaylists.length} total
                         </span>
                     </div>
 
                     {filteredPlaylists.length === 0 ? (
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center border border-gray-100 dark:border-gray-700">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center border border-gray-100 dark:border-gray-700 shadow-sm">
                             <BookOpen className="w-8 h-8 text-gray-200 dark:text-gray-600 mx-auto mb-2" />
                             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">No playlists ready for quizzes yet.</p>
                         </div>
@@ -550,54 +552,81 @@ const Quiz = () => {
                             {/* Horizontal Scroll Container */}
                             <div
                                 ref={playlistScrollRef}
-                                className="flex overflow-x-auto gap-3 pb-3 px-3 sm:px-4 snap-x snap-mandatory hide-scrollbar"
+                                className="flex overflow-x-auto gap-3.5 pb-4 px-3 sm:px-4 snap-x snap-mandatory hide-scrollbar"
                             >
-                                {filteredPlaylists.map(pl => (
-                                    <motion.div
-                                        key={pl.pid}
-                                        initial={{ opacity: 0, scale: 0.95 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        className="flex-shrink-0 w-[260px] snap-start"
-                                    >
-                                        <div className={`h-full bg-white dark:bg-gray-800 rounded-2xl border overflow-hidden transition-all duration-200 ${
-                                            pl.is_eligible
-                                                ? 'border-orange-100 dark:border-gray-700 shadow-sm'
-                                                : 'border-gray-100 dark:border-gray-700/50'
-                                        }`}>
-                                            <div className="p-3.5">
-                                                <div className="flex items-start justify-between gap-2 mb-3">
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className="font-bold text-gray-800 dark:text-white text-sm leading-snug line-clamp-2">{pl.name}</h3>
-                                                        <div className="flex items-center gap-2 mt-1.5">
-                                                            {pl.is_eligible ? (
-                                                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full">
-                                                                    <CheckCircle size={9} /> Ready
-                                                                </span>
-                                                            ) : (
-                                                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-700/50 px-2 py-0.5 rounded-full">
-                                                                    <Lock size={9} /> Locked
-                                                                </span>
-                                                            )}
-                                                            <span className="text-[10px] text-orange-500 dark:text-orange-400 font-black">
-                                                                {pl.passed_video_quizzes}/{pl.total_videos}
-                                                            </span>
+                                {filteredPlaylists.map((pl, plIdx) => {
+                                    // Soft color gradient mapping for subject card cards
+                                    const themes = [
+                                        { bg: "from-[#fff6f2]/90 to-white", border: "border-[#feebe3] dark:border-[#3d2722]/40", iconColor: "text-orange-500" },
+                                        { bg: "from-[#f6f5ff]/90 to-white", border: "border-[#e8e6ff] dark:border-[#252643]/40", iconColor: "text-[#4f46e5]" },
+                                        { bg: "from-[#f2faf6]/90 to-white", border: "border-[#e0f4ea] dark:border-[#1c3a2f]/40", iconColor: "text-[#059669]" },
+                                        { bg: "from-[#fffaf0]/90 to-white", border: "border-[#fef0d5] dark:border-[#3e3423]/40", iconColor: "text-amber-500" },
+                                        { bg: "from-[#f2f9fe]/90 to-white", border: "border-[#e0f1fe] dark:border-[#1a3147]/40", iconColor: "text-sky-500" }
+                                    ];
+                                    const theme = themes[plIdx % themes.length];
+
+                                    return (
+                                        <motion.div
+                                            key={pl.pid}
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="flex-shrink-0 w-[240px] snap-start"
+                                        >
+                                            <div className={`h-full bg-gradient-to-br ${
+                                                pl.is_eligible ? theme.bg : 'from-[#fafafa] to-white dark:from-gray-850 dark:to-gray-800'
+                                            } rounded-2xl border ${
+                                                pl.is_eligible ? theme.border : 'border-gray-100 dark:border-gray-700/50'
+                                            } overflow-hidden shadow-sm hover:shadow-md transition-all duration-300`}>
+                                                
+                                                <div className="p-4 flex flex-col justify-between h-[155px]">
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-start justify-between gap-2.5">
+                                                            {/* White round-square icon card bubble */}
+                                                            <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.02)] border border-slate-100/35 dark:border-gray-850 shrink-0">
+                                                                <BookOpen size={16} className={pl.is_eligible ? theme.iconColor : "text-gray-400"} />
+                                                            </div>
+
+                                                            {/* Complete / Lock badge status */}
+                                                            <div>
+                                                                {pl.is_eligible ? (
+                                                                    <span className="inline-flex items-center gap-1 text-[8.5px] font-black text-green-600 dark:text-green-400 bg-green-50/80 dark:bg-green-950/20 px-2 py-0.5 rounded-md border border-green-100/50">
+                                                                        <CheckCircle size={8} /> READY
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1 text-[8.5px] font-black text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-700/40 px-2 py-0.5 rounded-md border border-gray-150">
+                                                                        <Lock size={8} /> LOCKED
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        <div>
+                                                            <h3 className="font-bold text-gray-900 dark:text-white text-xs sm:text-[13px] tracking-tight leading-snug line-clamp-2">{pl.name}</h3>
                                                         </div>
                                                     </div>
-                                                    <button
-                                                        disabled={!pl.is_eligible}
-                                                        onClick={() => handleStartQuiz("playlist", pl.pid)}
-                                                        className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs transition-all ${
-                                                            pl.is_eligible
-                                                                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 hover:bg-orange-600 active:scale-95'
-                                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                                                        }`}
-                                                    >
-                                                        {pl.is_eligible ? "Start" : "Unlock"}
-                                                        <ChevronRight size={12} />
-                                                    </button>
+
+                                                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100/50 dark:border-gray-800">
+                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
+                                                            Score: <span className="text-orange-500 font-extrabold">{pl.passed_video_quizzes}/{pl.total_videos}</span>
+                                                        </span>
+                                                        
+                                                        <button
+                                                            disabled={!pl.is_eligible}
+                                                            onClick={() => handleStartQuiz("playlist", pl.pid)}
+                                                            className={`shrink-0 flex items-center gap-0.5 px-3 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all ${
+                                                                pl.is_eligible
+                                                                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/10 hover:shadow-md hover:from-orange-600 hover:to-amber-600 active:scale-95 cursor-pointer'
+                                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                                            }`}
+                                                        >
+                                                            {pl.is_eligible ? "Start" : "Locked"}
+                                                            <ChevronRight size={10} strokeWidth={2.5} />
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                {/* Progress bar */}
-                                                <div className="h-1.5 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden">
+
+                                                {/* Card bottom Progress bar indicator */}
+                                                <div className="h-1 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden mx-4 mb-2">
                                                     <motion.div
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${pl.total_videos > 0 ? (pl.passed_video_quizzes / pl.total_videos) * 100 : 0}%` }}
@@ -610,88 +639,117 @@ const Quiz = () => {
                                                     />
                                                 </div>
                                             </div>
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                        </motion.div>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
                 </section>
 
                 {/* ── Section 2: Attempt History ────────────────────────── */}
-                <section className="space-y-3.5 pt-4 sm:pt-6">
-                    <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-sm font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-orange-500" />
-                            Attempt History
+                <section className="space-y-3.5 pt-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-orange-500" />
+                            Recent Attempts
                         </h2>
-                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
-                            {history.length} total
+                        <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 bg-orange-500/5 dark:bg-orange-500/10 px-2.5 py-0.5 rounded-full border border-orange-500/10">
+                            {history.length} attempts
                         </span>
                     </div>
 
                     {history.length === 0 ? (
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center border border-gray-100 dark:border-gray-700">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center border border-gray-100 dark:border-gray-700 shadow-sm">
                             <Sparkles className="w-8 h-8 mx-auto mb-2 text-gray-200 dark:text-gray-600" />
                             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">No quiz attempts yet. Take your first test!</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {history.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(hist => (
-                                <motion.div
-                                    key={hist.id}
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    onClick={() => handleViewHistoryQuiz(hist)}
-                                    className="flex items-center gap-3 p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-orange-200 dark:hover:border-orange-500/30 cursor-pointer transition-all active:scale-[0.99] shadow-sm group"
-                                >
-                                    {/* Type icon */}
-                                    <div className={`w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center ${
-                                        hist.video
-                                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'
-                                            : 'bg-purple-50 dark:bg-purple-900/20 text-purple-500'
-                                    }`}>
-                                        {hist.video ? <Video size={16} /> : <Library size={16} />}
-                                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                            {history.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(hist => {
+                                // SVG Circular Score indicator calculations
+                                const radius = 16;
+                                const strokeWidth = 3.5;
+                                const circumference = 2 * Math.PI * radius;
+                                const strokeDashoffset = circumference - (hist.score / 100) * circumference;
 
-                                    {/* Name + date */}
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-bold text-gray-800 dark:text-gray-200 text-xs leading-snug line-clamp-2 group-hover:text-orange-500 transition-colors">
-                                            {hist.video ? hist.video.name : hist.playlist?.name}
-                                        </p>
-                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 font-medium">
-                                            {new Date(hist.attempted_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                                        </p>
-                                    </div>
+                                return (
+                                    <motion.div
+                                        key={hist.id}
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        onClick={() => handleViewHistoryQuiz(hist)}
+                                        className="flex items-center gap-4 p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-orange-50/50 dark:border-gray-700/50 hover:border-orange-100 dark:hover:border-orange-950/50 hover:shadow-[0_8px_30px_rgba(249,115,22,0.03)] cursor-pointer transition-all duration-350 active:scale-[0.99] shadow-sm group"
+                                    >
+                                        {/* Type icon card bubble */}
+                                        <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.01)] border border-slate-100/35 dark:border-gray-800 ${
+                                            hist.video
+                                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500'
+                                                : 'bg-purple-50 dark:bg-purple-900/20 text-purple-500'
+                                        }`}>
+                                            {hist.video ? <Video size={16} /> : <Library size={16} />}
+                                        </div>
 
-                                    {/* Score badge */}
-                                    <div className={`flex-shrink-0 px-2.5 py-1.5 rounded-xl text-[11px] font-black tracking-tight ${
-                                        hist.passed
-                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                            : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                                    }`}>
-                                        {hist.score}%
-                                    </div>
+                                        {/* Name + date */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-bold text-gray-900 dark:text-gray-200 text-xs sm:text-[13px] leading-snug line-clamp-2 group-hover:text-orange-500 transition-colors">
+                                                {hist.video ? hist.video.name : hist.playlist?.name}
+                                            </p>
+                                            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 font-medium leading-none">
+                                                {new Date(hist.attempted_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </p>
+                                        </div>
 
-                                    {/* Delete + loader */}
-                                    <div className="flex-shrink-0 flex items-center gap-1">
-                                        {loadingQuizDetails === hist.id ? (
-                                            <div className="w-7 h-7 rounded-lg flex items-center justify-center">
-                                                <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-orange-500 border-t-transparent" />
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={e => { e.stopPropagation(); handleDeleteHistory(hist.id); }}
-                                                className="w-7 h-7 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex items-center justify-center cursor-pointer"
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={13} />
-                                            </button>
-                                        )}
-                                        <ChevronRight size={14} className="text-gray-300 group-hover:text-orange-400 transition-colors" />
-                                    </div>
-                                </motion.div>
-                            ))}
+                                        {/* Premium Circular Progress Score Chart */}
+                                        <div className="relative w-11 h-11 flex items-center justify-center shrink-0 select-none">
+                                            <svg className="w-full h-full transform -rotate-90">
+                                                <circle
+                                                    cx="22"
+                                                    cy="22"
+                                                    r={radius}
+                                                    className="stroke-slate-100 dark:stroke-gray-700/50 fill-transparent"
+                                                    strokeWidth={strokeWidth}
+                                                />
+                                                <circle
+                                                    cx="22"
+                                                    cy="22"
+                                                    r={radius}
+                                                    className={`${
+                                                        hist.passed
+                                                            ? 'stroke-green-500'
+                                                            : 'stroke-orange-500'
+                                                    } fill-transparent transition-all duration-500`}
+                                                    strokeWidth={strokeWidth}
+                                                    strokeDasharray={circumference}
+                                                    strokeDashoffset={strokeDashoffset}
+                                                    strokeLinecap="round"
+                                                />
+                                            </svg>
+                                            <span className="absolute text-[9px] font-black text-slate-800 dark:text-white">
+                                                {hist.score}%
+                                            </span>
+                                        </div>
+
+                                        {/* Actions: delete & loader */}
+                                        <div className="flex-shrink-0 flex items-center gap-1.5">
+                                            {loadingQuizDetails === hist.id ? (
+                                                <div className="w-7 h-7 rounded-lg flex items-center justify-center">
+                                                    <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-orange-500 border-t-transparent" />
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={e => { e.stopPropagation(); handleDeleteHistory(hist.id); }}
+                                                    className="w-7 h-7 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex items-center justify-center cursor-pointer"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            )}
+                                            <ChevronRight size={14} className="text-gray-300 group-hover:text-orange-400 transition-colors" />
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
 
                             {/* Pagination */}
                             {history.length > itemsPerPage && (
@@ -701,8 +759,8 @@ const Quiz = () => {
                                         onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                                         className={`p-2 rounded-xl border text-sm transition-all ${
                                             currentPage === 1
-                                                ? 'text-gray-200 dark:text-gray-600 border-gray-100 dark:border-gray-700 cursor-not-allowed'
-                                                : 'text-orange-500 border-orange-100 dark:border-gray-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 active:scale-95'
+                                                ? 'text-gray-250 dark:text-gray-600 border-gray-100 dark:border-gray-700 cursor-not-allowed'
+                                                : 'text-orange-500 border-orange-100 dark:border-gray-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 active:scale-95 cursor-pointer'
                                         }`}
                                     >
                                         <ArrowLeft size={16} />
@@ -711,10 +769,10 @@ const Quiz = () => {
                                         <button
                                             key={page}
                                             onClick={() => setCurrentPage(page)}
-                                            className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+                                            className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                                                 currentPage === page
-                                                    ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
-                                                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                    ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                                                    : 'text-gray-550 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                                             }`}
                                         >
                                             {page}
@@ -725,8 +783,8 @@ const Quiz = () => {
                                         onClick={() => setCurrentPage(prev => Math.min(Math.ceil(history.length / itemsPerPage), prev + 1))}
                                         className={`p-2 rounded-xl border text-sm transition-all ${
                                             currentPage === Math.ceil(history.length / itemsPerPage)
-                                                ? 'text-gray-200 dark:text-gray-600 border-gray-100 dark:border-gray-700 cursor-not-allowed'
-                                                : 'text-orange-500 border-orange-100 dark:border-gray-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 active:scale-95'
+                                                ? 'text-gray-250 dark:text-gray-600 border-gray-100 dark:border-gray-700 cursor-not-allowed'
+                                                : 'text-orange-500 border-orange-100 dark:border-gray-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 active:scale-95 cursor-pointer'
                                         }`}
                                     >
                                         <ChevronRight size={16} />
@@ -737,6 +795,46 @@ const Quiz = () => {
                     )}
                 </section>
 
+                {/* ── Section 3: Keep Learning Promo Card ────────────────────────── */}
+                <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="relative bg-[#fff8f5] dark:bg-orange-950/10 border border-orange-100 dark:border-orange-900/20 rounded-[2rem] p-5.5 sm:p-6 shadow-sm overflow-hidden flex flex-row items-center justify-between gap-5 sm:gap-6"
+                >
+                    <div className="flex items-center gap-4 text-left">
+                        {/* Thin outline circle for medal icon */}
+                        <div className="w-14 h-14 rounded-full border border-orange-200/60 dark:border-orange-900/30 flex items-center justify-center text-orange-500 shrink-0">
+                            <Award size={20} strokeWidth={2.5} className="text-orange-500" />
+                        </div>
+                        <div className="space-y-1">
+                            <h3 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">
+                                Keep Learning!
+                            </h3>
+                            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 font-bold leading-normal max-w-sm">
+                                Complete quizzes to earn certificates and track your progress.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {/* Decorative vector certificate matching screenshot layout */}
+                    <div className="shrink-0 w-20 h-16 relative opacity-95">
+                        <svg viewBox="0 0 64 48" className="w-full h-full text-orange-500/80 fill-current" xmlns="http://www.w3.org/2000/svg">
+                            {/* Certificate Border Frame */}
+                            <rect x="2" y="2" width="60" height="40" rx="4.5" fill="none" stroke="currentColor" strokeWidth="2.5" />
+                            {/* Certificate Text Lines */}
+                            <line x1="10" y1="12" x2="30" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                            <line x1="10" y1="18" x2="25" y2="18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                            <line x1="10" y1="26" x2="44" y2="26" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <line x1="10" y1="32" x2="36" y2="32" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            {/* Mini top-right stamp */}
+                            <circle cx="50" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                            
+                            {/* Ribbon seal at bottom-right corner */}
+                            <circle cx="50" cy="30" r="5.5" fill="#f97316" stroke="#f97316" strokeWidth="1" />
+                            <path d="M 46.5 34 L 43 45 L 48.5 41 L 54 45 L 50.5 34" fill="#f97316" />
+                        </svg>
+                    </div>
+                </motion.div>
             </div>
         </div>
     );
