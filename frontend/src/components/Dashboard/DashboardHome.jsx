@@ -195,8 +195,8 @@ const DashboardHome = () => {
                         />
                     </div>
                 </div>
-                {/* 2. SERVICES/FEATURES GRID */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 2. SERVICES/FEATURES GRID - DESKTOP VIEW ONLY */}
+                <div className="hidden lg:grid grid-cols-4 gap-4">
                     {/* Learning Hub Card */}
                     <div
                         onClick={() => navigate((playlists.length === 0 && videos.length === 0) ? '/dashboard/explore' : '/dashboard/library')}
@@ -259,7 +259,7 @@ const DashboardHome = () => {
                     {/* Social Hub Card */}
                     <div
                         onClick={() => navigate('/dashboard/social')}
-                        className="col-span-2 lg:col-span-1 bg-white dark:bg-gray-800 rounded-[2rem] border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-[2rem] border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
                     >
                         <div>
                             <div className="flex items-center gap-3">
@@ -287,7 +287,7 @@ const DashboardHome = () => {
                     {/* Ask My Notes Card */}
                     <div
                         onClick={() => navigate('/dashboard/ask-my-notes')}
-                        className="hidden lg:flex bg-white dark:bg-gray-800 rounded-[2rem] border border-orange-100/40 dark:border-gray-700 p-5 flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-[2rem] border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
                     >
                         <div>
                             <div className="flex items-center gap-3">
@@ -310,6 +310,121 @@ const DashboardHome = () => {
                                 <ArrowRight size={12} />
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {/* 2. SERVICES/FEATURES GRID - MOBILE VIEW ONLY */}
+                <div className="block lg:hidden space-y-5">
+                    {/* Header: Continue Learning */}
+                    <div className="flex justify-between items-center mt-6">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-500">
+                                <BookOpen size={18} />
+                            </div>
+                            <h2 className="text-[13px] sm:text-sm font-black text-gray-955 dark:text-white uppercase tracking-wider">
+                                Continue Learning
+                            </h2>
+                        </div>
+                        <button
+                            onClick={() => navigate('/dashboard/library')}
+                            className="px-3 py-1 rounded-full border border-orange-200/60 dark:border-gray-700 bg-white dark:bg-gray-800 text-orange-600 dark:text-orange-400 text-[10px] font-black flex items-center gap-0.5 transition-all cursor-pointer shadow-sm"
+                        >
+                            View all <ArrowRight size={10} />
+                        </button>
+                    </div>
+
+                    {/* Learning Hub & Live Rooms in a 2-Column Grid */}
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Learning Hub Card */}
+                        <div
+                            onClick={() => navigate((playlists.length === 0 && videos.length === 0) ? '/dashboard/explore' : '/dashboard/library')}
+                            className="bg-gradient-to-b from-[#FFFDFB] to-[#FFF9F5] dark:from-gray-800 dark:to-gray-900 border border-orange-100/50 dark:border-gray-750 p-4 rounded-[2rem] flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
+                        >
+                            <div>
+                                <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
+                                    <GraduationCap size={20} />
+                                </div>
+                                <h3 className="text-xs font-black text-gray-955 dark:text-white mt-3.5">
+                                    Learning Hub
+                                </h3>
+                                <p className="text-[10px] text-gray-400 dark:text-slate-400 font-bold mt-2 leading-snug line-clamp-3 min-h-[48px]">
+                                    Learn from YouTube videos, study notes, and roadmap.
+                                </p>
+                            </div>
+                            <div className="flex items-center justify-between mt-4">
+                                <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 bg-orange-50/60 dark:bg-orange-950/40 px-2 py-0.5 rounded-full">
+                                    {playlists.length + videos.length > 0 ? `${playlists.length + videos.length} Courses` : "8 Courses"}
+                                </span>
+                                <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-md shrink-0">
+                                    <ArrowRight size={12} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Live Rooms Card */}
+                        <div
+                            onClick={() => navigate('/dashboard/live-rooms')}
+                            className="bg-gradient-to-b from-[#F9FBFF] to-[#F1F6FF] dark:from-gray-800 dark:to-gray-900 border border-blue-100/50 dark:border-gray-750 p-4 rounded-[2rem] flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
+                        >
+                            <div>
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0">
+                                    <Video size={20} />
+                                </div>
+                                <h3 className="text-xs font-black text-gray-955 dark:text-white mt-3.5">
+                                    Live Rooms
+                                </h3>
+                                <p className="text-[10px] text-gray-400 dark:text-slate-400 font-bold mt-2 leading-snug line-clamp-3 min-h-[48px]">
+                                    Join audio/video study rooms and interact in real-time.
+                                </p>
+                            </div>
+                            <div className="flex items-center justify-between mt-4">
+                                <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
+                                    Join Now
+                                </span>
+                                <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-md shrink-0">
+                                    <ArrowRight size={12} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Header: Connect & Collaborate */}
+                    <div className="flex items-center gap-2 mt-6">
+                        <div className="p-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500">
+                            <Users size={18} />
+                        </div>
+                        <h2 className="text-[13px] sm:text-sm font-black text-gray-955 dark:text-white uppercase tracking-wider">
+                            Connect & Collaborate
+                        </h2>
+                    </div>
+
+                    {/* Social Hub Horizontal Card */}
+                    <div
+                        onClick={() => navigate('/dashboard/social')}
+                        className="bg-gradient-to-r from-[#F4FBF7] to-[#EBF9F1] dark:from-gray-800/40 dark:to-gray-900 border border-emerald-100/50 dark:border-gray-750 p-4 rounded-[2rem] flex flex-row items-center justify-between gap-4 shadow-sm active:scale-98 transition-all group cursor-pointer"
+                    >
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-[#1f2c24] text-emerald-500 flex items-center justify-center shrink-0">
+                                <Users size={22} />
+                            </div>
+                            <div className="min-w-0">
+                                <h3 className="text-xs font-black text-gray-955 dark:text-white leading-tight">
+                                    Social Hub
+                                </h3>
+                                <p className="text-[10px] text-gray-400 dark:text-slate-400 font-bold mt-1 leading-snug line-clamp-2">
+                                    Interact with study partners, send messages, and share updates.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                navigate('/dashboard/social');
+                            }}
+                            className="px-4 py-2 bg-emerald-500 text-white text-[10px] font-black rounded-full shadow-md flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-transform"
+                        >
+                            Connect <ArrowRight size={10} />
+                        </button>
                     </div>
                 </div>
                 {/* 4. SHARE CARD SECTION */}
