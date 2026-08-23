@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Search, Compass, GraduationCap, MapPin, ArrowRight, UserCheck, Check, UserPlus, Users, MessageSquare, Lock, Unlock, Sparkles, MessageSquareMore } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Compass, GraduationCap, MapPin, ArrowRight, ArrowLeft, UserCheck, Check, UserPlus, Users, MessageSquare, Lock, Unlock, Sparkles, MessageSquareMore, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
@@ -11,6 +11,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [sentRequests, setSentRequests] = useState([]);
+  const searchInputRef = useRef(null);
 
   // Groups from shared store (pre-fetched by GroupsTab/ChatsTab)
   const storeGroups = useSocialGroupsStore(state => state.groups);
@@ -101,95 +102,212 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
     return name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'GP';
   };
 
+  const isSearching = query.trim() || results.length > 0 || (searchType === 'groups' && hasLoadedGroups);
+
   return (
-    <div className="flex flex-col gap-6 sm:gap-10 w-full mx-auto py-2 sm:py-4">
-      {/* ── YOUTUBE EXPLORER STYLE TOP BANNER ── */}
-      <div className="flex flex-col items-center text-center gap-4 sm:gap-6 max-w-2xl mx-auto mt-2 sm:mt-4">
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-          <div className="w-14 sm:w-16 h-14 sm:h-16 rounded-full bg-gradient-to-tr from-orange-500 to-red-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
-            <Compass size={28} className="animate-spin-slow" />
-          </div>
+    <div className="flex flex-col gap-5 sm:gap-6 w-full max-w-md mx-auto py-2 sm:py-4 px-3 sm:px-0">
+      
+      {/* ── LANDING VIEW: MATCHING TARGET SCREENSHOT ── */}
+      {!isSearching && (
+        <div className="flex flex-col gap-6 w-full">
           
-          <div className="text-center sm:text-left">
-            <span className="text-[9px] sm:text-[10px] text-orange-500 dark:text-orange-400 uppercase tracking-widest font-black block sm:inline-block">
-              Advanced Finder
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white mt-0.5 sm:mt-1">
-              Social <span className="text-orange-500">Explorer</span>
-            </h2>
+          {/* Header Section */}
+          <div className="flex flex-col items-center text-center gap-4 mt-2">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/10 shrink-0">
+              <Users size={26} />
+            </div>
+            
+            <div className="text-center">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white mt-1">
+                Social <span className="text-orange-500">Explorer</span>
+              </h2>
+              <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-semibold leading-relaxed mt-2 max-w-xs mx-auto">
+                Find people in the community to connect and collaborate.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-medium sm:font-semibold leading-relaxed max-w-md sm:max-w-lg px-4 sm:px-0">
-          Discover students in the community or search for discussion groups to join public and private conversations.
-        </p>
-
-        {/* ── SEARCH TYPE TOGGLE PILLS ── */}
-        <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
-          <button
+          {/* Card 1: Search Students */}
+          <div 
             onClick={() => {
               setSearchType('students');
-              setQuery('');
+              searchInputRef.current?.focus();
             }}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
-              searchType === 'students'
-                ? 'bg-white dark:bg-gray-800 text-orange-500 dark:text-orange-400 shadow-sm'
-                : 'text-gray-500 hover:text-gray-800 dark:text-gray-400'
-            }`}
+            className="bg-white dark:bg-gray-900 hover:bg-orange-50/5 dark:hover:bg-gray-800/20 rounded-3xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow transition-all duration-300 cursor-pointer flex items-center justify-between group"
           >
-            <Users size={14} />
-            <span>Search Students</span>
-          </button>
-          <button
-            onClick={() => {
-              setSearchType('groups');
-              setQuery('');
-            }}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer ${
-              searchType === 'groups'
-                ? 'bg-white dark:bg-gray-800 text-orange-500 dark:text-orange-400 shadow-sm'
-                : 'text-gray-500 hover:text-gray-800 dark:text-gray-400'
-            }`}
-          >
-            <MessageSquare size={14} />
-            <span>Search Groups</span>
-          </button>
-        </div>
-
-        {/* ── PILL STYLE SEARCH BAR ── */}
-        <form 
-          onSubmit={(e) => { e.preventDefault(); if (searchType === 'students') handleSearch(); }}
-          className="w-full flex items-center bg-white dark:bg-gray-900 rounded-full border border-gray-200 dark:border-gray-700 shadow-md p-1 focus-within:ring-2 focus-within:ring-orange-500/25 focus-within:border-orange-500 transition-all"
-        >
-          <div className="pl-3.5 sm:pl-4 pr-1.5 sm:pr-2 text-gray-400">
-            <Search size={18} />
+            <div className="flex items-center gap-4 text-left">
+              <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 text-orange-500 flex items-center justify-center shrink-0 border border-orange-100/50 dark:border-orange-500/10">
+                <Users size={20} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm sm:text-base">Search Students</h3>
+                <p className="text-gray-405 dark:text-gray-500 text-xs mt-0.5 font-bold leading-normal">Find and connect with students in the community.</p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-orange-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </div>
-          <input 
-            type="text" 
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={searchType === 'students' ? "Search people, colleges, majors..." : "Search groups by name or description..."}
-            className="flex-1 bg-transparent text-gray-950 dark:text-white text-xs sm:text-sm focus:outline-none py-2 sm:py-2.5 font-semibold min-w-0"
-          />
-          {query && (
-            <button 
-              type="button"
-              onClick={() => { setQuery(''); if (searchType === 'students') setResults([]); }}
-              className="px-2 text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 text-[10px] sm:text-xs font-bold transition cursor-pointer shrink-0"
-            >
-              Clear
-            </button>
-          )}
-          {searchType === 'students' && (
+
+          {/* Pill Style Search Bar */}
+          <form 
+            onSubmit={(e) => { e.preventDefault(); if (searchType === 'students') handleSearch(); }}
+            className="w-full flex items-center bg-white dark:bg-gray-900 rounded-full border border-gray-200 dark:border-gray-800 shadow-md p-1 focus-within:ring-2 focus-within:ring-orange-500/20 focus-within:border-orange-500 transition-all"
+          >
+            <div className="pl-4 pr-2 text-gray-400">
+              <Search size={18} />
+            </div>
+            <input 
+              ref={searchInputRef}
+              type="text" 
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search people, colleges, interests..."
+              className="flex-1 bg-transparent text-gray-950 dark:text-white text-xs sm:text-sm focus:outline-none py-2.5 font-semibold min-w-0"
+            />
+            {query && (
+              <button 
+                type="button"
+                onClick={() => { setQuery(''); setResults([]); }}
+                className="px-2 text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer shrink-0"
+              >
+                Clear
+              </button>
+            )}
             <button
               type="submit"
-              className="bg-[#0f172a] hover:bg-[#1e293b] text-white font-extrabold text-[10px] sm:text-xs uppercase tracking-wider px-4 sm:px-7 py-2 sm:py-3 rounded-full transition shadow-md cursor-pointer shrink-0"
+              className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs uppercase tracking-wider px-6 py-2.5 rounded-full transition shadow-md shadow-orange-500/10 cursor-pointer shrink-0"
             >
               Search
             </button>
-          )}
-        </form>
-      </div>
+          </form>
+
+          {/* Card 2: Build your network */}
+          <div 
+            onClick={() => {
+              setSearchType('groups');
+              if (!hasLoadedGroups) {
+                fetchStoreGroups();
+              }
+            }}
+            className="bg-white dark:bg-gray-900 hover:bg-orange-50/5 dark:hover:bg-gray-800/20 rounded-3xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow transition-all duration-300 cursor-pointer flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-4 text-left">
+              <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 text-orange-500 flex items-center justify-center shrink-0 border border-orange-100/50 dark:border-orange-500/10">
+                <Users size={20} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
+                  Build your <span className="text-orange-500">network</span>
+                </h3>
+                <p className="text-gray-405 dark:text-gray-500 text-xs mt-0.5 font-bold leading-normal">Explore the community and make meaningful connections.</p>
+              </div>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchType('groups');
+                if (!hasLoadedGroups) {
+                  fetchStoreGroups();
+                }
+              }}
+              className="text-[10px] sm:text-xs border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white font-extrabold px-3.5 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 shrink-0"
+            >
+              <span>Start Exploring</span>
+              <ChevronRight size={12} strokeWidth={3} />
+            </button>
+          </div>
+
+        </div>
+      )}
+
+      {/* ── ACTIVE SEARCH RESULTS VIEW ── */}
+      {isSearching && (
+        <div className="flex flex-col gap-4 w-full animate-in fade-in duration-200">
+          
+          {/* Back action and selector header row */}
+          <div className="flex items-center justify-between gap-3">
+            <button
+              onClick={() => {
+                setQuery('');
+                setResults([]);
+                setSearchType('students');
+              }}
+              className="flex items-center gap-1.5 text-[11px] font-extrabold text-gray-550 hover:text-orange-500 dark:text-gray-400 dark:hover:text-orange-400 transition cursor-pointer bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3.5 py-2 rounded-xl"
+            >
+              <ArrowLeft size={13} />
+              <span>Back to Explorer</span>
+            </button>
+            
+            <div className="flex gap-1 p-0.5 bg-gray-100 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800">
+              <button
+                onClick={() => {
+                  setSearchType('students');
+                  setQuery('');
+                  setResults([]);
+                }}
+                className={`px-3 py-1 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                  searchType === 'students'
+                    ? 'bg-white dark:bg-gray-850 text-orange-500 dark:text-orange-400 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-450 hover:text-gray-800'
+                }`}
+              >
+                Students
+              </button>
+              <button
+                onClick={() => {
+                  setSearchType('groups');
+                  setQuery('');
+                  if (!hasLoadedGroups) {
+                    fetchStoreGroups();
+                  }
+                }}
+                className={`px-3 py-1 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                  searchType === 'groups'
+                    ? 'bg-white dark:bg-gray-850 text-orange-500 dark:text-orange-400 shadow-sm'
+                    : 'text-gray-500 dark:text-gray-450 hover:text-gray-800'
+                }`}
+              >
+                Groups
+              </button>
+            </div>
+          </div>
+
+          {/* Active Search Input Pill */}
+          <form 
+            onSubmit={(e) => { e.preventDefault(); if (searchType === 'students') handleSearch(); }}
+            className="w-full flex items-center bg-white dark:bg-gray-900 rounded-full border border-gray-200 dark:border-gray-800 shadow-md p-1 focus-within:ring-2 focus-within:ring-orange-500/20 focus-within:border-orange-500 transition-all"
+          >
+            <div className="pl-4 pr-2 text-gray-400">
+              <Search size={18} />
+            </div>
+            <input 
+              ref={searchInputRef}
+              type="text" 
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchType === 'students' ? "Search people, colleges, interests..." : "Search groups by name or description..."}
+              className="flex-1 bg-transparent text-gray-950 dark:text-white text-xs sm:text-sm focus:outline-none py-2.5 font-semibold min-w-0"
+            />
+            {query && (
+              <button 
+                type="button"
+                onClick={() => { setQuery(''); if (searchType === 'students') setResults([]); }}
+                className="px-2 text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer shrink-0"
+              >
+                Clear
+              </button>
+            )}
+            {searchType === 'students' && (
+              <button
+                type="submit"
+                className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs uppercase tracking-wider px-6 py-2.5 rounded-full transition shadow-md shadow-orange-500/10 cursor-pointer shrink-0"
+              >
+                Search
+              </button>
+            )}
+          </form>
+
+        </div>
+      )}
 
       {/* ── RESULTS SECTION ── */}
       <div className="flex flex-col gap-4">
