@@ -284,9 +284,9 @@ const TopBar = ({ onMenuClick }) => {
                 </div>
             </div>
 
-            {/* Learning Hub Subsections Bar (Mobile Only: lg:hidden) */}
+            {/* Learning Hub Subsections Bar (Mobile Only: lg:hidden) - Perfectly equal gaps, fixed non-scrollable */}
             {isLearningHub && (
-                <div className="border-t border-orange-100/60 dark:border-gray-700/60 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md px-2 sm:px-4 flex items-center justify-around sm:justify-start gap-1 sm:gap-6 overflow-x-auto hide-scrollbar h-11 sm:h-12 shrink-0 lg:hidden">
+                <div className="border-t border-orange-100/60 dark:border-gray-700/60 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md w-full flex items-center justify-between px-3 sm:px-6 h-11 sm:h-12 shrink-0 lg:hidden overflow-hidden select-none">
                     {learnSubTabs.map((tab) => {
                         const isActive = checkLearnSubActive(tab.path);
                         const Icon = tab.icon;
@@ -294,13 +294,13 @@ const TopBar = ({ onMenuClick }) => {
                             <Link
                                 key={tab.name}
                                 to={tab.path}
-                                className={`relative flex items-center gap-1.5 px-3 py-2.5 text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer touch-manipulation outline-none ${
+                                className={`relative flex items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-1 sm:px-2 text-xs font-bold transition-all whitespace-nowrap cursor-pointer touch-manipulation outline-none ${
                                     isActive
                                         ? 'text-orange-600 dark:text-orange-400 font-extrabold'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
                                 }`}
                             >
-                                <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-orange-500' : ''} />
+                                <Icon size={15} strokeWidth={isActive ? 2.5 : 2} className={`shrink-0 ${isActive ? 'text-orange-500' : ''}`} />
                                 <span>{tab.name}</span>
                                 {isActive && (
                                     <motion.div
@@ -315,9 +315,9 @@ const TopBar = ({ onMenuClick }) => {
                 </div>
             )}
 
-            {/* Social Hub Subsections Bar (Mobile Only: lg:hidden) */}
+            {/* Social Hub Subsections Bar (Mobile Only: lg:hidden) - Perfectly equal gaps, fixed non-scrollable */}
             {isSocialHub && !location.pathname.includes('/profile') && !location.search.includes('tab=profile') && (
-                <div className="border-t border-orange-100/60 dark:border-gray-700/60 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md px-2 sm:px-4 flex items-center justify-around sm:justify-start gap-1 sm:gap-6 overflow-x-auto hide-scrollbar h-11 sm:h-12 shrink-0 lg:hidden">
+                <div className="border-t border-orange-100/60 dark:border-gray-700/60 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md w-full flex items-center justify-between px-3 sm:px-6 h-11 sm:h-12 shrink-0 lg:hidden overflow-hidden select-none">
                     {socialSubTabs.map((tab) => {
                         const isActive = checkSocialSubActive(tab.path);
                         const Icon = tab.icon;
@@ -325,16 +325,16 @@ const TopBar = ({ onMenuClick }) => {
                             <Link
                                 key={tab.name}
                                 to={tab.path}
-                                className={`relative flex items-center gap-1.5 px-3 py-2.5 text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer touch-manipulation outline-none ${
+                                className={`relative flex items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-1 sm:px-2 text-xs font-bold transition-all whitespace-nowrap cursor-pointer touch-manipulation outline-none ${
                                     isActive
                                         ? 'text-orange-600 dark:text-orange-400 font-extrabold'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
                                 }`}
                             >
-                                <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-orange-500' : ''} />
+                                <Icon size={15} strokeWidth={isActive ? 2.5 : 2} className={`shrink-0 ${isActive ? 'text-orange-500' : ''}`} />
                                 <span>{tab.name}</span>
                                 {tab.badge && (
-                                    <span className="text-[9px] font-black rounded-full min-w-[15px] h-[15px] px-1 flex items-center justify-center bg-orange-500 text-white shadow-sm">
+                                    <span className="text-[9px] font-black rounded-full min-w-[14px] h-[14px] px-0.5 flex items-center justify-center bg-orange-500 text-white shadow-sm shrink-0">
                                         {tab.badge > 99 ? '99+' : tab.badge}
                                     </span>
                                 )}

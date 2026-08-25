@@ -14,9 +14,10 @@ const BottomNav = () => {
     const totalSocialCount = totalUnreadCount + pendingFriendCount;
     const socialUser = useSocialFeedStore((state) => state.socialUser);
 
-    // Hide BottomNav inside the Ask My Notes chat canvas (when a subject ID is present)
+    // Hide BottomNav inside the Ask My Notes chat canvas or active Social Chat conversation (WhatsApp style full-screen)
     const isAskMyNotesSubject = location.pathname.match(/\/dashboard\/ask-my-notes(?:-dev)?\/[^/]+/);
-    if (isAskMyNotesSubject) {
+    const isSocialChatConversation = location.pathname.match(/\/dashboard\/social\/chats\/(?:direct|group)\/[^/]+/) || location.search.includes('chatId=');
+    if (isAskMyNotesSubject || isSocialChatConversation) {
         return null;
     }
 

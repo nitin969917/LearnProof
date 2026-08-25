@@ -182,6 +182,7 @@ const DashboardLayout = () => {
     const isAskMyNotes = location.pathname.startsWith('/dashboard/ask-my-notes');
     const isInsideWorkspace = location.pathname.match(/\/dashboard\/ask-my-notes(?:-dev)?\/[^/]+/);
     const isSocialHub = location.pathname.startsWith('/dashboard/social');
+    const isInsideSocialChat = location.pathname.match(/\/dashboard\/social\/chats\/(?:direct|group)\/[^/]+/) || (location.pathname.startsWith('/dashboard/social') && location.search.includes('chatId='));
     const isLiveRoom = location.pathname.includes('/dashboard/live-rooms/') && location.pathname !== '/dashboard/live-rooms';
     const isLiveRoomList = location.pathname === '/dashboard/live-rooms';
 
@@ -395,8 +396,8 @@ const DashboardLayout = () => {
 
             {/* Main content area */}
             <main className="flex-1 flex flex-col min-w-0 relative">
-                {/* Top Bar - rendered uniformly on all pages except full-screen live room sessions */}
-                {!isLiveRoom && (!isInsideWorkspace || !isMobile) && (
+                {/* Top Bar - rendered uniformly on all pages except full-screen live room sessions & mobile chat */}
+                {!isLiveRoom && (!isInsideWorkspace || !isMobile) && (!isInsideSocialChat || !isMobile) && (
                     <TopBar 
                         onMenuClick={toggleSidebar} 
                         onHeaderAction={onHeaderAction}
@@ -410,7 +411,7 @@ const DashboardLayout = () => {
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                     className={`flex-1 ${
-                        isInsideWorkspace
+                        isInsideWorkspace || (isInsideSocialChat && isMobile)
                             ? 'p-0 overflow-hidden' 
                             : isSocialHub
                                 ? 'p-0 overflow-hidden hide-scrollbar'
@@ -426,7 +427,7 @@ const DashboardLayout = () => {
             </main>
 
             {/* Constant Bottom Navigation Bar (Home, Learn, Social, Rooms, Profile) */}
-            {!isLiveRoom && !isInsideWorkspace && (
+            {!isLiveRoom && !isInsideWorkspace && !isInsideSocialChat && (
                 <BottomNav onMenuClick={toggleSidebar} />
             )}
 

@@ -132,10 +132,10 @@ const PlaylistProgress = () => {
 
     return (
         <div className="max-w-[1200px] mx-auto space-y-6">
-            {/* Back Button */}
+            {/* Back Button (Desktop only - mobile uses TopBar subtabs) */}
             <button
                 onClick={() => navigate('/dashboard/library')}
-                className="group flex items-center gap-2 text-gray-400 dark:text-slate-500 hover:text-orange-500 transition-all font-black text-xs uppercase tracking-widest"
+                className="hidden lg:flex group items-center gap-2 text-gray-400 dark:text-slate-500 hover:text-orange-500 transition-all font-black text-xs uppercase tracking-widest cursor-pointer"
             >
                 <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
                 Back to Library

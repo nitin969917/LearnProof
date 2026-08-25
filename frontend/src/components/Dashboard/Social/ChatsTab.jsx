@@ -1175,12 +1175,42 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Discover Groups (All public/private groups user hasn't joined)
-  const discoverGroups = groups.filter(g => !g.isJoined);
-  const filteredDiscoverGroups = discoverGroups.filter(g => 
-    g.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (g.description && g.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Mobile Back Navigation & Swipe to Back
+  const handleBack = () => {
+    localStorage.removeItem('social_selected_chat_contact');
+    if (onClearSelectedContact) {
+      onClearSelectedContact();
+    }
+    navigate('/dashboard/social/chats');
+  };
+
+  const chatTouchStartRef = useRef({ x: 0, y: 0, time: 0, target: null });
+
+  const handleChatTouchStart = (e) => {
+    const touch = e.touches[0];
+    chatTouchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+      target: e.target,
+    };
+  };
+
+  const handleChatTouchEnd = (e) => {
+    const touch = e.changedTouches[0];
+    const deltaX = touch.clientX - chatTouchStartRef.current.x;
+    const deltaY = touch.clientY - chatTouchStartRef.current.y;
+    const deltaTime = Date.now() - chatTouchStartRef.current.time;
+
+    if (deltaTime > 650) return;
+
+    // Swipe right (deltaX > 60) to go backward (WhatsApp/Telegram style)
+    if (deltaX > 60 && Math.abs(deltaY) < 65 && deltaX > Math.abs(deltaY) * 1.3) {
+      const target = chatTouchStartRef.current.target;
+      if (target && target.closest('input, textarea, button, audio, video, select, .no-swipe, [contenteditable="true"]')) return;
+      handleBack();
+    }
+  };
 
   return (
     <div 
@@ -1402,35 +1432,39 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         </div>
       </div>
 
-      {/* ── ACTIVE CONVERSATION WINDOW ── */}
+      {/* ── ACTIVE CONVERSATION WINDOW (Full Screen on Mobile WhatsApp/Telegram style) ── */}
       <div 
+        onTouchStart={handleChatTouchStart}
+        onTouchEnd={handleChatTouchEnd}
         className={`${
-          selectedChat ? 'flex' : 'hidden md:flex'
+          selectedChat 
+            ? 'flex fixed inset-0 z-[70] md:static md:z-auto' 
+            : 'hidden md:flex'
         } flex-1 flex-row h-full min-h-0 bg-white dark:bg-gray-900 relative`}
       >
         {selectedChat ? (
           <>
             <div className="flex-1 flex flex-col h-full min-h-0 relative border-r border-gray-100 dark:border-gray-700/50">
               {/* Header */}
-              <div className="p-3 md:p-4 border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0 z-10">
+              <div className="p-2.5 sm:p-3 md:p-4 border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0 z-10 shadow-sm">
                 <div 
                   onClick={() => {
                     if (selectedChat.type === 'group') {
                       setShowGroupDetails(true);
                     }
                   }}
-                  className={`flex items-center gap-3 min-w-0 ${selectedChat.type === 'group' ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
+                  className={`flex items-center gap-2 sm:gap-3 min-w-0 ${selectedChat.type === 'group' ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
                 >
-                  {/* Mobile Back Arrow */}
+                  {/* Mobile Back Arrow Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      localStorage.removeItem('social_selected_chat_contact');
-                      navigate('/dashboard/social/chats');
+                      handleBack();
                     }}
-                    className="md:hidden p-1.5 rounded-xl text-gray-550 hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer mr-1"
+                    className="md:hidden p-2 -ml-1 rounded-full text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 transition cursor-pointer shrink-0"
+                    aria-label="Back to chats"
                   >
-                    <ArrowLeft size={20} />
+                    <ArrowLeft size={22} className="stroke-[2.5]" />
                   </button>
 
                   {/* Avatar */}
@@ -1768,7 +1802,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   Only admins can send messages in this group
                 </div>
               ) : (
-                <div className="border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 z-10 p-2 md:p-3">
+                <div className="border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 z-10 p-2 md:p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
                   
                   {/* Selected File Preview */}
                   {selectedFile && (
