@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import {
-    Play, CheckCircle, Circle, ArrowLeft, Clock, Sparkles,
-    Trophy, BookOpen, BarChart2, ChevronRight, Lock
+    Play, CheckCircle, ArrowLeft, Sparkles,
+    Trophy, BookOpen, BarChart2, ChevronRight, Lock,
+    FileText, Hourglass, Video, Check
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
@@ -70,10 +71,10 @@ const PlaylistProgress = () => {
 
     if (loading) {
         return (
-            <div className="h-screen flex items-center justify-center">
+            <div className="h-[70vh] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-gray-500 dark:text-slate-400 font-bold tracking-widest uppercase text-xs">Loading playlist...</p>
+                    <p className="text-gray-500 dark:text-slate-400 font-bold tracking-widest uppercase text-xs">Loading progress...</p>
                 </div>
             </div>
         );
@@ -90,6 +91,7 @@ const PlaylistProgress = () => {
 
     const totalVideos = videos.length;
     const completedVideos = videos.filter(v => v.is_completed).length;
+    const remainingVideos = Math.max(0, totalVideos - completedVideos);
     const quizzesPassed = videos.filter(v => v.passed_quiz).length;
     const percentComplete = totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0;
     const overallProgress = percentComplete;
@@ -99,40 +101,12 @@ const PlaylistProgress = () => {
     const isEligibleForCert = totalVideos > 0 && quizzesPassed === totalVideos && completedVideos === totalVideos;
     const firstUnwatched = videos.find(v => !v.is_completed) || videos[0];
 
-    const handleUpdateRoadmap = async () => {
-        if (!roadmapDays || isNaN(roadmapDays) || parseInt(roadmapDays) <= 0) {
-            toast.error("Please enter a valid number of days.");
-            return;
-        }
-
-        setIsSavingRoadmap(true);
-        try {
-            await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/set-playlist-goal/`, {
-                idToken: token,
-                pid: playlistId,
-                duration_goal: parseInt(roadmapDays)
-            });
-            toast.success("Roadmap updated successfully!");
-        } catch (err) {
-            console.error("Failed to update roadmap", err);
-            toast.error("Failed to update roadmap.");
-        } finally {
-            setIsSavingRoadmap(false);
-        }
-    };
-
-    const videosPerDay = roadmapDays ? Math.ceil(totalVideos / parseInt(roadmapDays)) : 0;
-
-    const stats = [
-        { label: "Total Lessons", value: totalVideos, icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
-        { label: "Completed", value: completedVideos, icon: CheckCircle, color: "text-green-500", bg: "bg-green-50 dark:bg-green-500/10" },
-        { label: "Quizzes Passed", value: quizzesPassed, icon: Trophy, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-500/10" },
-        { label: "Overall Progress", value: `${overallProgress}%`, icon: BarChart2, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-500/10" },
-    ];
+    const isFullyCompleted = totalVideos > 0 && completedVideos === totalVideos;
+    const isNotStarted = completedVideos === 0;
 
     return (
-        <div className="max-w-[1200px] mx-auto space-y-6">
-            {/* Back Button (Desktop only - mobile uses TopBar subtabs) */}
+        <div className="max-w-[1200px] mx-auto space-y-5 sm:space-y-6">
+            {/* Desktop Back Button */}
             <button
                 onClick={() => navigate('/dashboard/library')}
                 className="hidden lg:flex group items-center gap-2 text-gray-400 dark:text-slate-500 hover:text-orange-500 transition-all font-black text-xs uppercase tracking-widest cursor-pointer"
@@ -141,186 +115,288 @@ const PlaylistProgress = () => {
                 Back to Library
             </button>
 
-            {/* Hero Banner */}
+            {/* ── 1. SIGNATURE ORANGE HERO CARD ── */}
             <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-[2rem] shadow-lg border border-orange-100/10"
+                className="relative overflow-hidden rounded-3xl sm:rounded-[2rem] bg-gradient-to-br from-[#FF5100] via-[#F04700] to-[#D83600] border border-orange-400/30 text-white shadow-xl shadow-orange-500/20 p-4 sm:p-6"
             >
-                {/* Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-600 via-orange-500 to-red-500" />
-                {playlist.thumbnail && (
-                    <div
-                        className="absolute inset-0 bg-cover bg-center opacity-10"
-                        style={{ backgroundImage: `url(${playlist.thumbnail})` }}
-                    />
-                )}
-                {/* Decorative blobs */}
-                <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-black/10 rounded-full blur-3xl pointer-events-none" />
+                {/* Subtle soft lighting */}
+                <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-black/15 rounded-full blur-3xl pointer-events-none" />
 
-                <div className="relative p-4 pt-5 md:p-10 flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-start">
-                    {/* Thumbnail */}
-                    {playlist.thumbnail ? (
-                        <img
-                            src={playlist.thumbnail}
-                            alt={playlist.name}
-                            className="w-full max-w-[180px] md:max-w-[300px] aspect-video object-cover rounded-2xl shadow-md border-2 md:border-4 border-white/20 ring-1 ring-white/10 flex-shrink-0"
-                        />
-                    ) : (
-                        <div className="w-full max-w-[180px] md:max-w-[300px] aspect-video bg-white/10 rounded-2xl shadow-md border-2 md:border-4 border-white/20 flex items-center justify-center flex-shrink-0">
-                            <Play size={36} className="text-white/60" />
-                        </div>
-                    )}
-
-                    {/* Info */}
-                    <div className="flex-1 text-white space-y-3 text-center md:text-left w-full">
-                        {isEligibleForCert && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[9px] bg-green-400/20 border border-green-400/30 text-green-100 font-black uppercase tracking-widest rounded-xl">
-                                <Sparkles size={11} /> Ready for Certification
-                            </span>
-                        )}
-                        <h1 className="text-lg sm:text-2xl md:text-4xl font-black leading-tight">{playlist.name}</h1>
-                        <p className="text-white/75 text-[11px] md:text-sm font-medium">
-                            {completedVideos} of {totalVideos} lessons watched · {quizzesPassed} quizzes passed
-                        </p>
-
-                        {/* Progress Bar */}
-                        <div>
-                            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/70 mb-1.5">
-                                <span>Total Progress</span>
-                                <span className="text-white">{overallProgress}%</span>
+                <div className="relative z-10 space-y-3.5">
+                    {/* Header Row: Title & Badges + Big Prominent Thumbnail */}
+                    <div className="flex items-center justify-between gap-3 sm:gap-6">
+                        <div className="flex-1 min-w-0 space-y-1.5 sm:space-y-2">
+                            {/* Status Tag */}
+                            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-black/20 backdrop-blur-md text-white border border-white/20 font-black text-[9px] sm:text-[10px] uppercase tracking-wider rounded-lg shadow-xs">
+                                {isFullyCompleted ? 'COMPLETED' : isNotStarted ? 'NOT STARTED' : 'IN PROGRESS'}
                             </div>
-                            <div className="w-full bg-black/20 rounded-full h-2 backdrop-blur-sm overflow-hidden">
-                                <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${overallProgress}%` }}
-                                    transition={{ duration: 1, ease: "easeOut" }}
-                                    className="h-full bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,0.4)]"
-                                />
+
+                            {/* Main Title */}
+                            <h1 className="text-sm sm:text-xl lg:text-2xl font-black text-white leading-tight tracking-tight uppercase line-clamp-2 drop-shadow-sm">
+                                {playlist.name}
+                            </h1>
+
+                            {/* Tags row */}
+                            <div className="flex items-center flex-wrap gap-1.5 pt-0.5">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-black/20 backdrop-blur-md rounded-lg text-[9px] sm:text-[10px] font-bold text-white/95 border border-white/15">
+                                    <Video size={11} className="text-white" />
+                                    VIDEO COURSE
+                                </span>
+                                {totalVideos > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-black/20 backdrop-blur-md rounded-lg text-[9px] sm:text-[10px] font-bold text-white/95 border border-white/15">
+                                        <BookOpen size={11} className="text-white" />
+                                        {totalVideos} LESSONS
+                                    </span>
+                                )}
                             </div>
                         </div>
 
-                        {/* Action Buttons — always side by side */}
-                        <div className="flex flex-row flex-wrap gap-2 justify-center md:justify-start pt-1">
-                            {firstUnwatched && (
-                                <button
-                                    onClick={() => navigate(`/classroom/${firstUnwatched.vid}`)}
-                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-white text-orange-600 rounded-full font-black text-xs hover:bg-orange-50 hover:shadow-lg transition-all active:scale-95 shadow-md"
-                                >
-                                    <Play size={13} className="fill-orange-600" />
-                                    {percentComplete === 0 ? "Start Learning" : percentComplete === 100 ? "Review Again" : "Continue"}
-                                </button>
-                            )}
-                            
-                            <button
-                                onClick={() => navigate(`/dashboard/roadmap/${playlistId}`)}
-                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/15 backdrop-blur-md text-white border border-white/25 rounded-full font-black text-xs hover:bg-white/25 transition-all active:scale-95 shadow-md"
+                        {/* Large, High-Def Thumbnail Card */}
+                        {playlist.thumbnail && (
+                            <div 
+                                onClick={() => firstUnwatched && navigate(`/classroom/${firstUnwatched.vid}`)}
+                                className="relative group cursor-pointer w-40 sm:w-56 md:w-64 lg:w-72 aspect-video rounded-2xl overflow-hidden shadow-2xl border-2 border-white/30 shrink-0 transition-transform duration-200 hover:scale-[1.02] ring-2 ring-black/10"
                             >
-                                <Sparkles size={13} className="text-amber-300" />
-                                {playlist.duration_goal ? "View Roadmap" : "Generate Roadmap"}
-                            </button>
+                                <img
+                                    src={playlist.thumbnail}
+                                    alt={playlist.name}
+                                    className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 transition-colors flex items-center justify-center">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/95 text-[#FF5100] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                                        <Play size={16} className="sm:w-5 sm:h-5 fill-[#FF5100] ml-0.5" />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
-                            {isEligibleForCert && (
-                                <button
-                                    onClick={() => navigate('/dashboard/quiz')}
-                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-500 text-white rounded-full font-black text-xs hover:bg-green-600 border border-green-400 transition-all active:scale-95 shadow-md"
-                                >
-                                    <Trophy size={13} /> Certify
-                                </button>
-                            )}
+                    {/* Progress Bar Row */}
+                    <div className="pt-0.5">
+                        <div className="flex justify-between items-center text-[11px] sm:text-xs font-bold text-white/90 mb-1.5">
+                            <span>Overall Progress</span>
+                            <span className="text-sm sm:text-base font-black text-white">{overallProgress}%</span>
                         </div>
+                        <div className="w-full bg-black/20 rounded-full h-2 sm:h-2.5 backdrop-blur-sm overflow-hidden p-0.5">
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${overallProgress}%` }}
+                                transition={{ duration: 0.9, ease: "easeOut" }}
+                                className="h-full bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,0.9)]"
+                            />
+                        </div>
+                        <p className="text-[10px] sm:text-[11px] font-bold text-white/80 mt-1.5">
+                            Total {totalVideos} Lessons • {completedVideos} Completed • {remainingVideos} Remaining
+                        </p>
+                    </div>
+
+                    {/* Compact, User-Friendly Action Buttons Row */}
+                    <div className="flex items-center flex-wrap gap-2 sm:gap-2.5 pt-0.5">
+                        {firstUnwatched && (
+                            <button
+                                onClick={() => navigate(`/classroom/${firstUnwatched.vid}`)}
+                                className="h-9 sm:h-10 px-4 sm:px-5 bg-white text-[#FF5100] hover:bg-orange-50 active:scale-95 shadow-sm hover:shadow-md rounded-full font-black text-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
+                            >
+                                <Play size={13} className="fill-[#FF5100] shrink-0" />
+                                <span>{isNotStarted ? "Start Learning" : isFullyCompleted ? "Review Again" : "Continue Learning"}</span>
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => navigate(`/dashboard/roadmap/${playlistId}`)}
+                            className="h-9 sm:h-10 px-4 sm:px-5 bg-black/20 hover:bg-black/35 text-white border border-white/25 active:scale-95 rounded-full font-black text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer whitespace-nowrap"
+                        >
+                            <Sparkles size={13} className="text-amber-200 shrink-0" />
+                            <span>View Roadmap</span>
+                        </button>
+
+                        {isEligibleForCert && (
+                            <button
+                                onClick={() => navigate('/dashboard/quiz')}
+                                className="h-9 sm:h-10 px-4 sm:px-5 bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-400/30 active:scale-95 rounded-full font-black text-xs inline-flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer whitespace-nowrap"
+                            >
+                                <Trophy size={13} className="shrink-0" />
+                                <span>Claim Certificate</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </motion.div>
 
-            {/* Stats Row */}
-            <div className="grid grid-cols-4 gap-3 sm:gap-4">
-                {stats.map((stat, i) => {
-                    const Icon = stat.icon;
-                    return (
-                        <motion.div
-                            key={stat.label}
-                            initial={{ opacity: 0, y: 16 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.06 }}
-                            className="bg-white dark:bg-slate-800 rounded-2xl p-3 sm:p-5 border border-gray-50 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all"
-                        >
-                            <div className={`w-8 h-8 sm:w-10 sm:h-10 ${stat.bg} ${stat.color} rounded-xl flex items-center justify-center mb-2 sm:mb-3`}>
-                                <Icon size={16} className="sm:w-5 sm:h-5" />
-                            </div>
-                            <p className="text-lg sm:text-2xl font-black text-gray-800 dark:text-white">{stat.value}</p>
-                            <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 mt-1">{stat.label}</p>
-                        </motion.div>
-                    );
-                })}
+            {/* ── 2. FOUR METRICS STATS CARD ── */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700/60 grid grid-cols-4 divide-x divide-gray-100 dark:divide-gray-700/60">
+                {/* 1. Total Lessons */}
+                <div className="flex flex-col items-center text-center px-1 sm:px-3">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center mb-1.5 sm:mb-2 shadow-sm">
+                        <BookOpen size={16} className="sm:w-5 sm:h-5 stroke-[2.5]" />
+                    </div>
+                    <span className="text-base sm:text-2xl font-black text-gray-900 dark:text-white leading-tight">
+                        {totalVideos}
+                    </span>
+                    <span className="text-[8px] sm:text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider mt-0.5">
+                        TOTAL LESSONS
+                    </span>
+                </div>
+
+                {/* 2. Completed */}
+                <div className="flex flex-col items-center text-center px-1 sm:px-3">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 flex items-center justify-center mb-1.5 sm:mb-2 shadow-sm">
+                        <CheckCircle size={16} className="sm:w-5 sm:h-5 stroke-[2.5]" />
+                    </div>
+                    <span className="text-base sm:text-2xl font-black text-gray-900 dark:text-white leading-tight">
+                        {completedVideos}
+                    </span>
+                    <span className="text-[8px] sm:text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider mt-0.5">
+                        COMPLETED
+                    </span>
+                </div>
+
+                {/* 3. Left to Finish */}
+                <div className="flex flex-col items-center text-center px-1 sm:px-3">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center mb-1.5 sm:mb-2 shadow-sm">
+                        <Hourglass size={16} className="sm:w-5 sm:h-5 stroke-[2.5]" />
+                    </div>
+                    <span className="text-base sm:text-2xl font-black text-gray-900 dark:text-white leading-tight">
+                        {remainingVideos}
+                    </span>
+                    <span className="text-[8px] sm:text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider mt-0.5">
+                        LEFT TO FINISH
+                    </span>
+                </div>
+
+                {/* 4. Overall Progress */}
+                <div className="flex flex-col items-center text-center px-1 sm:px-3">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mb-1.5 sm:mb-2 shadow-sm">
+                        <BarChart2 size={16} className="sm:w-5 sm:h-5 stroke-[2.5]" />
+                    </div>
+                    <span className="text-base sm:text-2xl font-black text-orange-500 leading-tight">
+                        {overallProgress}%
+                    </span>
+                    <span className="text-[8px] sm:text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider mt-0.5">
+                        OVERALL PROGRESS
+                    </span>
+                </div>
             </div>
 
-            {/* Course Content */}
-            <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-gray-50 dark:border-slate-700/50 shadow-sm overflow-hidden">
-                <div className="p-6 md:p-8 border-b border-gray-100 dark:border-slate-700/50">
-                    <h3 className="text-xl font-black text-gray-800 dark:text-white flex items-center gap-3">
-                        <div className="p-2 bg-orange-500/10 text-orange-500 rounded-xl">
-                            <Clock size={20} />
+            {/* ── 3. COURSE CONTENT SECTION ── */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-4 sm:p-6 space-y-3 sm:space-y-4">
+                {/* Section Header */}
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-700/60">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 bg-orange-50 dark:bg-orange-950/40 text-orange-500 rounded-xl flex items-center justify-center shrink-0">
+                            <FileText size={18} className="stroke-[2.5]" />
                         </div>
-                        Course Content
-                        <span className="ml-auto text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
-                            {totalVideos} Lessons
-                        </span>
-                    </h3>
+                        <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">
+                            Course Content
+                        </h3>
+                    </div>
+                    <span className="text-[11px] sm:text-xs font-black uppercase text-gray-400 dark:text-gray-400 tracking-wider flex items-center gap-1">
+                        {totalVideos} LESSONS
+                        <ChevronRight size={14} />
+                    </span>
                 </div>
-                <div className="p-4 md:p-6 space-y-3">
+
+                {/* Lesson Rows */}
+                <div className="space-y-2.5 sm:space-y-3 pt-1">
                     {paginatedVideos.map((video, index) => {
                         const absoluteIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
                         const isCompleted = video.is_completed;
+                        const isCurrent = !isCompleted && firstUnwatched && firstUnwatched.vid === video.vid;
                         const hasPassedQuiz = video.passed_quiz;
+
                         return (
                             <motion.div
                                 key={video.vid}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: index * 0.03 }}
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.02 }}
                                 onClick={() => navigate(`/classroom/${video.vid}`)}
-                                className={`group flex items-center gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${
+                                className={`group flex items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-2xl border transition-all cursor-pointer select-none ${
                                     isCompleted
-                                        ? 'bg-green-50/50 dark:bg-green-900/10 border-green-100 dark:border-green-800/30'
-                                        : 'bg-gray-50/50 dark:bg-slate-900/30 border-gray-100 dark:border-slate-700/30 hover:border-orange-200 dark:hover:border-orange-500/30 hover:bg-orange-50/30 dark:hover:bg-orange-900/10'
+                                        ? 'bg-[#F4FAF6] dark:bg-emerald-950/20 border-emerald-100/80 dark:border-emerald-900/30 hover:border-emerald-300'
+                                        : isCurrent
+                                            ? 'bg-[#FFF9F5] dark:bg-orange-950/25 border-2 border-orange-400 dark:border-orange-500/50 shadow-md shadow-orange-500/10'
+                                            : 'bg-gray-50/70 dark:bg-gray-900/40 border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 hover:bg-gray-100/70'
                                 }`}
                             >
-                                {/* Status Icon */}
-                                <div className="flex-shrink-0">
+                                {/* Left icon badge + title info */}
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    {/* Left badge */}
+                                    <div className="shrink-0">
+                                        {isCompleted ? (
+                                            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-sm shadow-emerald-500/20">
+                                                <Video size={18} className="stroke-[2.5]" />
+                                            </div>
+                                        ) : isCurrent ? (
+                                            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl flex items-center justify-center shadow-md shadow-orange-500/30 animate-pulse">
+                                                <Play size={16} className="fill-white ml-0.5" />
+                                            </div>
+                                        ) : (
+                                            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-xl flex items-center justify-center font-black text-xs">
+                                                {absoluteIndex + 1}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Video metadata */}
+                                    <div className="min-w-0 flex-1">
+                                        <h4 className={`text-xs sm:text-sm font-black truncate transition-colors ${
+                                            isCompleted
+                                                ? 'text-gray-800 dark:text-gray-200'
+                                                : isCurrent
+                                                    ? 'text-orange-600 dark:text-orange-400'
+                                                    : 'text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white'
+                                        }`}>
+                                            {absoluteIndex + 1}. {video.name}
+                                        </h4>
+
+                                        <div className="flex items-center gap-2 mt-1">
+                                            {isCompleted ? (
+                                                <span className="text-[10px] sm:text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                                    <Check size={12} className="stroke-[3]" /> Completed
+                                                </span>
+                                            ) : isCurrent ? (
+                                                <span className="text-[10px] sm:text-xs font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-ping" />
+                                                    In Progress • Next Up
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] sm:text-xs font-semibold text-gray-400 dark:text-gray-400">
+                                                    Upcoming Lesson
+                                                </span>
+                                            )}
+
+                                            {hasPassedQuiz && (
+                                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-black uppercase tracking-wider rounded-md">
+                                                    <Trophy size={9} /> Quiz Passed
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right action / checkmark indicator */}
+                                <div className="flex items-center gap-2 shrink-0">
                                     {isCompleted ? (
-                                        <div className="w-9 h-9 bg-green-500 text-white rounded-xl flex items-center justify-center shadow-md shadow-green-500/20">
-                                            <CheckCircle size={18} />
+                                        <div className="flex items-center gap-1.5 text-emerald-500">
+                                            <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+                                                <Check size={13} className="stroke-[3]" />
+                                            </div>
+                                            <ChevronRight size={16} className="text-emerald-400 group-hover:translate-x-0.5 transition-transform" />
+                                        </div>
+                                    ) : isCurrent ? (
+                                        <div className="flex items-center gap-1.5 text-orange-500">
+                                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-500/30">
+                                                <Play size={12} className="fill-white ml-0.5" />
+                                            </div>
+                                            <ChevronRight size={16} className="text-orange-400 group-hover:translate-x-0.5 transition-transform" />
                                         </div>
                                     ) : (
-                                        <div className="w-9 h-9 bg-gray-100 dark:bg-slate-700 text-gray-400 rounded-xl flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-all">
-                                                <span className="text-[11px] font-black">{absoluteIndex + 1}</span>
-                                            </div>
+                                        <ChevronRight size={16} className="text-gray-400 dark:text-gray-400 group-hover:translate-x-0.5 transition-transform" />
                                     )}
-                                </div>
-
-                                {/* Video Info */}
-                                <div className="flex-grow min-w-0">
-                                    <h4 className={`text-sm font-bold truncate transition-colors line-clamp-1 ${
-                                        isCompleted
-                                            ? 'text-gray-500 dark:text-slate-400 line-through decoration-1'
-                                            : 'text-gray-800 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400'
-                                    }`}>
-                                        {video.name}
-                                    </h4>
-                                    {hasPassedQuiz && (
-                                        <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[9px] font-black uppercase tracking-widest rounded-lg border border-green-200 dark:border-green-800">
-                                            <Trophy size={9} /> Quiz Passed
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Play Arrow */}
-                                <div className="flex-shrink-0 opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-all">
-                                    <div className="w-8 h-8 bg-orange-500 text-white rounded-xl flex items-center justify-center shadow-md shadow-orange-500/30">
-                                        <Play size={14} className="fill-white ml-0.5" />
-                                    </div>
                                 </div>
                             </motion.div>
                         );
@@ -329,24 +405,24 @@ const PlaylistProgress = () => {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 sm:gap-3 px-2 sm:px-6 pb-8 mt-4">
+                    <div className="flex items-center justify-center gap-2 sm:gap-3 px-2 sm:px-6 pt-4 pb-2">
                         <button
                             disabled={currentPage === 1}
                             onClick={() => { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className={`group flex items-center justify-center gap-2 px-3 sm:px-6 py-3 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest transition-all ${
+                            className={`group flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest transition-all cursor-pointer ${
                                 currentPage === 1
-                                ? 'bg-gray-50 dark:bg-slate-900 text-gray-300 dark:text-slate-700 cursor-not-allowed'
-                                : 'bg-white dark:bg-slate-800 text-orange-500 border border-orange-100 dark:border-slate-700 hover:shadow-xl hover:-translate-y-0.5'
+                                ? 'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700 cursor-not-allowed'
+                                : 'bg-white dark:bg-gray-800 text-orange-500 border border-orange-100 dark:border-gray-700 hover:shadow-md'
                             }`}
                         >
-                            <ArrowLeft size={16} className="shrink-0 transition-transform group-hover:-translate-x-1" />
+                            <ArrowLeft size={15} className="shrink-0 transition-transform group-hover:-translate-x-1" />
                             <span className="hidden sm:inline">Previous</span>
                         </button>
 
                         <div className="flex items-center gap-1">
                             {(() => {
                                 const pages = [];
-                                const range = 1; // Number of neighbors to show
+                                const range = 1;
                                 
                                 for (let i = 1; i <= totalPages; i++) {
                                     if (
@@ -369,10 +445,10 @@ const PlaylistProgress = () => {
                                     <button
                                         key={pg}
                                         onClick={() => { setCurrentPage(pg); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl font-black text-[10px] sm:text-xs transition-all ${
+                                        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl font-black text-[10px] sm:text-xs transition-all cursor-pointer ${
                                             pg === currentPage
-                                            ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
-                                            : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 hover:bg-orange-100 dark:hover:bg-orange-900/20'
+                                            ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-orange-100 dark:hover:bg-orange-900/20'
                                         }`}
                                     >
                                         {pg}
@@ -384,14 +460,14 @@ const PlaylistProgress = () => {
                         <button
                             disabled={currentPage === totalPages}
                             onClick={() => { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                            className={`group flex items-center justify-center gap-2 px-3 sm:px-6 py-3 rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest transition-all ${
+                            className={`group flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest transition-all cursor-pointer ${
                                 currentPage === totalPages
-                                ? 'bg-gray-50 dark:bg-slate-900 text-gray-300 dark:text-slate-700 cursor-not-allowed'
-                                : 'bg-orange-500 text-white shadow-lg shadow-orange-500/20 hover:shadow-orange-500/40 hover:-translate-y-0.5'
+                                ? 'bg-gray-50 dark:bg-gray-900 text-gray-300 dark:text-gray-700 cursor-not-allowed'
+                                : 'bg-orange-500 text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/40'
                             }`}
                         >
                             <span className="hidden sm:inline">Next</span>
-                            <ChevronRight size={16} className="shrink-0 transition-transform group-hover:translate-x-1" />
+                            <ChevronRight size={15} className="shrink-0 transition-transform group-hover:translate-x-1" />
                         </button>
                     </div>
                 )}
