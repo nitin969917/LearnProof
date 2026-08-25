@@ -1661,8 +1661,8 @@ const AskMyNotes = () => {
         return (
             <div className="w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 space-y-6">
 
-                    {/* ── Compact Mobile Header ────────────────────────────── */}
-                    <div className="flex flex-row items-center gap-2.5">
+                    {/* ── Compact Header (Desktop only - mobile uses TopBar subtabs) ── */}
+                    <div className="hidden lg:flex flex-row items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
                             <BrainCircuit size={18} />
                         </div>
@@ -1676,6 +1676,18 @@ const AskMyNotes = () => {
                         >
                             <Plus size={14} className="stroke-[2.5] sm:w-4 sm:h-4" />
                             <span>Create</span>
+                        </button>
+                    </div>
+
+                    {/* ── Mobile Action Row ── */}
+                    <div className="flex lg:hidden items-center justify-between">
+                        <h2 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Your Active Subjects</h2>
+                        <button
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-md shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
+                        >
+                            <Plus size={14} className="stroke-[2.5]" />
+                            <span>New Subject</span>
                         </button>
                     </div>
 

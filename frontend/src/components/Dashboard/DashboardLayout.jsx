@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
-import SocialBottomNavBar from "./Social/SocialBottomNavBar";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Menu, Plus } from "lucide-react";
+import { ArrowLeft, Menu, Plus, RefreshCw } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import { useAuth } from "../../context/AuthContext.jsx";
 import socialApi from "../../api/socialApi.js";
@@ -249,6 +248,119 @@ const DashboardLayout = () => {
         }
     }, [location.pathname]);
 
+    // Touch gesture swipe handling for mobile subsection switching
+    const touchStartRef = useRef({ x: 0, y: 0, time: 0, target: null });
+
+    const handleTouchStart = (e) => {
+        if (!isMobile || isLiveRoom || isInsideWorkspace) return;
+        const touch = e.touches[0];
+        touchStartRef.current = {
+            x: touch.clientX,
+            y: touch.clientY,
+            time: Date.now(),
+            target: e.target
+        };
+    };
+
+    const handleTouchEnd = (e) => {
+        if (!isMobile || isLiveRoom || isInsideWorkspace) return;
+        const touch = e.changedTouches[0];
+        const deltaX = touch.clientX - touchStartRef.current.x;
+        const deltaY = touch.clientY - touchStartRef.current.y;
+        const deltaTime = Date.now() - touchStartRef.current.time;
+
+        // Ignore slow gestures (> 650ms) or taps
+        if (deltaTime > 650) return;
+
+        // Minimum horizontal swipe distance and maximum vertical deviation
+        const minSwipeDistance = 50;
+        const maxVerticalDisplacement = 70;
+
+        if (
+            Math.abs(deltaX) < minSwipeDistance || 
+            Math.abs(deltaY) > maxVerticalDisplacement || 
+            Math.abs(deltaX) < Math.abs(deltaY) * 1.3
+        ) {
+            return;
+        }
+
+        // Ignore if touch began on interactive elements (inputs, buttons, scrollable carousels)
+        const startTarget = touchStartRef.current.target;
+        if (startTarget) {
+            const tagName = startTarget.tagName?.toLowerCase();
+            if (['input', 'textarea', 'select', 'button', 'a'].includes(tagName)) return;
+            if (startTarget.closest('input, textarea, select, button, a, [contenteditable="true"], .no-swipe, [data-no-swipe]')) return;
+            const scrollableParent = startTarget.closest('.overflow-x-auto, .overflow-x-scroll');
+            if (scrollableParent && scrollableParent.scrollWidth > scrollableParent.clientWidth + 15) {
+                return;
+            }
+        }
+
+        const isSwipeLeft = deltaX < 0;  // Swiped left -> navigate to next tab on the right
+        const isSwipeRight = deltaX > 0; // Swiped right -> navigate to previous tab on the left
+
+        // 1. Learn Hub Tabs Swiping
+        const isLearnPage = (
+            location.pathname.startsWith('/dashboard/library') ||
+            location.pathname.startsWith('/dashboard/explore') ||
+            location.pathname.startsWith('/dashboard/quiz') ||
+            location.pathname.startsWith('/dashboard/ask-my-notes') ||
+            location.pathname.startsWith('/dashboard/playlist') ||
+            location.pathname.startsWith('/dashboard/roadmap') ||
+            location.pathname.startsWith('/dashboard/certificates')
+        );
+
+        if (isLearnPage) {
+            const learnTabs = [
+                '/dashboard/library',
+                '/dashboard/explore',
+                '/dashboard/quiz',
+                '/dashboard/ask-my-notes'
+            ];
+
+            let currentIndex = 0;
+            if (location.pathname.startsWith('/dashboard/explore')) currentIndex = 1;
+            else if (location.pathname.startsWith('/dashboard/quiz')) currentIndex = 2;
+            else if (location.pathname.startsWith('/dashboard/ask-my-notes')) currentIndex = 3;
+            else currentIndex = 0; // library, playlist, roadmap, certificates
+
+            if (isSwipeLeft && currentIndex < learnTabs.length - 1) {
+                navigate(learnTabs[currentIndex + 1]);
+            } else if (isSwipeRight && currentIndex > 0) {
+                navigate(learnTabs[currentIndex - 1]);
+            }
+            return;
+        }
+
+        // 2. Social Hub Tabs Swiping
+        if (isSocialHub) {
+            // Ignore if deep inside a full chat conversation screen
+            if (location.pathname.includes('/social/chats/') && location.pathname.split('/').length > 4) {
+                return;
+            }
+
+            const socialTabs = [
+                '/dashboard/social/feed',
+                '/dashboard/social/discover',
+                '/dashboard/social/friends',
+                '/dashboard/social/chats'
+            ];
+
+            let currentIndex = 0;
+            if (location.pathname.includes('/social/discover')) currentIndex = 1;
+            else if (location.pathname.includes('/social/friends')) currentIndex = 2;
+            else if (location.pathname.includes('/social/chats')) currentIndex = 3;
+            else currentIndex = 0; // feed
+
+            if (isSwipeLeft && currentIndex < socialTabs.length - 1) {
+                navigate(socialTabs[currentIndex + 1]);
+            } else if (isSwipeRight && currentIndex > 0) {
+                navigate(socialTabs[currentIndex - 1]);
+            }
+            return;
+        }
+    };
+
     const layoutContent = (
         <div className="flex h-[100dvh] bg-orange-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 relative transition-colors duration-200 overflow-hidden font-sans">
             {/* Sidebar Overlay for Mobile (triggered from Bottom Nav) */}
@@ -282,69 +394,21 @@ const DashboardLayout = () => {
             )}
 
             {/* Main content area */}
-             <main className="flex-1 flex flex-col min-w-0 relative">
-                {/* Top Bar */}
-                {/* Hidden when: social hub, inside a live room, or on live-rooms list coming from social */}
-                {!isSocialHub && !isLiveRoom && !showSocialBottomNav && (!isInsideWorkspace || !isMobile) && <TopBar onMenuClick={toggleSidebar} />}                {/* Social Hub-context header — mirrors SocialDashboard header and main TopBar logo position exactly. */}
-                {showSocialBottomNav && !isLiveRoom && (
-                    <div className="bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm flex items-stretch justify-between h-16 sm:h-20 shrink-0 w-full transition-colors duration-200 overflow-hidden">
-                        {/* Left — flush-left logo identical to TopBar.jsx + SocialDashboard */}
-                        <div className="flex items-stretch min-w-0">
-                            {/* Logo wrapper: ml-2 sm:ml-0, no left padding on container */}
-                            <div className="h-full cursor-default hover:opacity-90 transition-opacity shrink-0 flex items-stretch ml-2 sm:ml-0">
-                                {/* Mobile logo */}
-                                <img src="/LP_M_logo.png" alt="LearnProof" className="h-full w-auto object-cover object-left block sm:hidden" />
-                                {/* Desktop logo */}
-                                <img src="/LP_logo.png" alt="LearnProof" className="h-full w-auto object-cover object-left hidden sm:block" />
-                            </div>
-
-                            {/* Divider + Title */}
-                            <div className="flex items-center gap-3 px-3 md:px-4 min-w-0">
-                                <div className="border-l border-gray-200 dark:border-gray-700 h-8"></div>
-                                <div className="min-w-0">
-                                    <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h1>
-                                    <p className="text-[9px] text-gray-400 dark:text-gray-550 uppercase tracking-widest font-black">Live Rooms</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right — Create Room action button (if on rooms list) & Profile button */}
-                        <div className="flex items-center gap-2.5 shrink-0 px-4 md:px-6">
-                            {onHeaderAction && isLiveRoomList && (
-                                <button
-                                    onClick={onHeaderAction}
-                                    className="p-2 sm:p-2.5 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer flex items-center justify-center border border-orange-600/10 shrink-0 animate-in fade-in zoom-in-95 duration-250"
-                                    title="Create Room"
-                                >
-                                    <Plus size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
-                                </button>
-                            )}
-
-                            {/* Profile Action Button */}
-                            <button
-                                onClick={() => {
-                                    localStorage.setItem('social_active_tab', 'profile');
-                                    navigate('/dashboard/social?tab=profile');
-                                }}
-                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-orange-100 dark:border-gray-700 active:scale-95 transition-all cursor-pointer flex items-center justify-center shrink-0"
-                                title="My Profile"
-                            >
-                                <UserAvatar 
-                                    src={socialUser?.avatar} 
-                                    name={socialUser?.name} 
-                                    className="w-full h-full rounded-full" 
-                                    textClassName="text-sm font-bold"
-                                />
-                            </button>
-                        </div>
-                    </div>
+            <main className="flex-1 flex flex-col min-w-0 relative">
+                {/* Top Bar - rendered uniformly on all pages except full-screen live room sessions */}
+                {!isLiveRoom && (!isInsideWorkspace || !isMobile) && (
+                    <TopBar 
+                        onMenuClick={toggleSidebar} 
+                        onHeaderAction={onHeaderAction}
+                        isLiveRoomList={isLiveRoomList}
+                    />
                 )}
-
-
 
                 {/* Dashboard Content */}
                 <div 
                     ref={contentRef}
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
                     className={`flex-1 ${
                         isInsideWorkspace
                             ? 'p-0 overflow-hidden' 
@@ -359,13 +423,10 @@ const DashboardLayout = () => {
                         <Outlet context={{ toggleSidebar, setHeaderAction: setOnHeaderAction }} />
                     </ErrorBoundary>
                 </div>
-                {/* Social Hub's bottom nav — shown on live-rooms pages when the user navigated from Social Hub */}
-                {showSocialBottomNav && !isLiveRoom && (
-                    <SocialBottomNavBar onMenuClick={toggleSidebar} />
-                )}
             </main>
 
-            {!isSocialHub && !isLiveRoom && !showSocialBottomNav && !isInsideWorkspace && (
+            {/* Constant Bottom Navigation Bar (Home, Learn, Social, Rooms, Profile) */}
+            {!isLiveRoom && !isInsideWorkspace && (
                 <BottomNav onMenuClick={toggleSidebar} />
             )}
 

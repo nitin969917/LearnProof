@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Youtube, Search, Menu, Bell } from 'lucide-react';
+import { Youtube, Search, Menu, Bell, BookOpen, Compass, HelpCircle, MessageSquare, Globe, Plus, Home, Users } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useSocialMessageStore } from '../../store/socialMessageStore';
 import { useSocialFeedStore } from '../../store/socialFeedStore';
+import UserAvatar from '../Common/UserAvatar.jsx';
 
 const TopBar = ({ onMenuClick }) => {
     const [url, setUrl] = useState('');
@@ -14,10 +15,77 @@ const TopBar = ({ onMenuClick }) => {
     const [importData, setImportData] = useState(null);
     const { token } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
     const pendingFriendCount = useSocialFeedStore((state) => state.pendingFriendCount);
     const totalSocialCount = totalUnreadCount + pendingFriendCount;
+    const socialUser = useSocialFeedStore((state) => state.socialUser);
+
+    const isLearningHub = (
+        location.pathname.startsWith('/dashboard/library') ||
+        location.pathname.startsWith('/dashboard/explore') ||
+        location.pathname.startsWith('/dashboard/quiz') ||
+        location.pathname.startsWith('/dashboard/ask-my-notes') ||
+        location.pathname.startsWith('/dashboard/playlist') ||
+        location.pathname.startsWith('/dashboard/roadmap') ||
+        location.pathname.startsWith('/dashboard/certificates')
+    );
+
+    const isSocialHub = location.pathname.startsWith('/dashboard/social');
+    const isLiveRoomsPage = location.pathname.startsWith('/dashboard/live-rooms');
+    const isInboxPage = location.pathname.startsWith('/dashboard/inbox');
+    const isGoalsPage = location.pathname.startsWith('/dashboard/goals');
+
+    const learnSubTabs = [
+        { name: 'My Learning', icon: BookOpen, path: '/dashboard/library' },
+        { name: 'Discover', icon: Compass, path: '/dashboard/explore' },
+        { name: 'Quiz', icon: HelpCircle, path: '/dashboard/quiz' },
+        { name: 'Ask My Notes', icon: MessageSquare, path: '/dashboard/ask-my-notes' },
+    ];
+
+    const checkLearnSubActive = (path) => {
+        if (path === '/dashboard/library') {
+            return (
+                location.pathname.startsWith('/dashboard/library') ||
+                location.pathname.startsWith('/dashboard/playlist') ||
+                location.pathname.startsWith('/dashboard/roadmap') ||
+                location.pathname.startsWith('/dashboard/certificates')
+            );
+        }
+        return location.pathname.startsWith(path);
+    };
+
+    const socialSubTabs = [
+        { name: 'Feed', icon: Home, path: '/dashboard/social/feed' },
+        { name: 'Discover', icon: Compass, path: '/dashboard/social/discover' },
+        { name: 'Friends', icon: Users, path: '/dashboard/social/friends', badge: pendingFriendCount > 0 ? pendingFriendCount : null },
+        { name: 'Chats', icon: MessageSquare, path: '/dashboard/social/chats', badge: totalUnreadCount > 0 ? totalUnreadCount : null },
+    ];
+
+    const checkSocialSubActive = (path) => {
+        const p = location.pathname;
+        const s = location.search;
+        if (path === '/dashboard/social/feed' || path === '/dashboard/social') {
+            return (
+                p === '/dashboard/social' ||
+                p === '/dashboard/social/' ||
+                p === '/dashboard/social/feed' ||
+                (p.startsWith('/dashboard/social') && !p.includes('/discover') && !p.includes('/friends') && !p.includes('/chats') && !p.includes('/profile') && !s.includes('tab=')) ||
+                s.includes('tab=feed')
+            );
+        }
+        if (path === '/dashboard/social/discover') {
+            return p.includes('/social/discover') || s.includes('tab=discover');
+        }
+        if (path === '/dashboard/social/friends') {
+            return p.includes('/social/friends') || s.includes('tab=friends');
+        }
+        if (path === '/dashboard/social/chats') {
+            return p.includes('/social/chats') || s.includes('tab=chats') || s.includes('tab=chat');
+        }
+        return p.startsWith(path);
+    };
 
     const handleImport = async () => {
         if (!url.trim()) {
@@ -27,7 +95,6 @@ const TopBar = ({ onMenuClick }) => {
 
         setLoading(true);
         try {
-
             const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/import/`, {
                 idToken: token,
                 url: url
@@ -36,7 +103,6 @@ const TopBar = ({ onMenuClick }) => {
             if (response.data.success) {
                 setImportData(response.data.data);
                 toast.success("Imported successfully");
-                // You can trigger state update or navigate if needed
             } else {
                 toast.error("Something went wrong!");
             }
@@ -83,34 +149,70 @@ const TopBar = ({ onMenuClick }) => {
     const handleCancel = () => {
         setImportData(null);
         setUrl('');
-    }
+    };
 
     return (
-        <>
-            <div className="flex items-stretch justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm sticky top-0 z-10 transition-colors duration-200 h-16 sm:h-20 w-full overflow-hidden">
-                {/* Left Side: Logo (Flush Left) */}
-                <div
-                    onClick={() => navigate('/dashboard')}
-                    className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 flex items-stretch ml-2 sm:ml-0"
-                >
-                    {/* Mobile Logo */}
-                    <img
-                        src="/LP_M_logo.png"
-                        alt="LearnProof"
-                        className="h-full w-auto object-cover object-left block sm:hidden"
-                    />
-                    {/* Desktop Logo */}
-                    <img
-                        src="/LP_logo.png"
-                        alt="LearnProof"
-                        className="h-full w-auto object-cover object-left hidden sm:block"
-                    />
+        <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm transition-colors duration-200 w-full shrink-0">
+            {/* Top Bar Header */}
+            <div className="flex items-stretch justify-between h-16 sm:h-20 w-full px-2 sm:px-4">
+                {/* Left Side: Logo & Section Title */}
+                <div className="flex items-stretch min-w-0">
+                    <div
+                        onClick={() => navigate('/dashboard')}
+                        className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 flex items-stretch ml-1 sm:ml-0"
+                    >
+                        {/* Mobile Logo */}
+                        <img
+                            src="/LP_M_logo.png"
+                            alt="LearnProof"
+                            className="h-full w-auto object-cover object-left block sm:hidden"
+                        />
+                        {/* Desktop Logo */}
+                        <img
+                            src="/LP_logo.png"
+                            alt="LearnProof"
+                            className="h-full w-auto object-cover object-left hidden sm:block"
+                        />
+                    </div>
+
+                    {/* Section Title when in Learning Hub (Mobile only) */}
+                    {isLearningHub && (
+                        <div className="flex lg:hidden items-center gap-3 px-2 sm:px-4 min-w-0">
+                            <div className="border-l border-gray-200 dark:border-gray-700 h-8"></div>
+                            <div className="min-w-0">
+                                <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Learn</h1>
+                                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Your learning space</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Section Title when in Social Hub (Mobile only) */}
+                    {isSocialHub && (
+                        <div className="flex lg:hidden items-center gap-3 px-2 sm:px-4 min-w-0">
+                            <div className="border-l border-gray-200 dark:border-gray-700 h-8"></div>
+                            <div className="min-w-0">
+                                <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h1>
+                                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Connect &amp; Share</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Section Title when on Live Rooms page (Mobile only) */}
+                    {isLiveRoomsPage && (
+                        <div className="flex lg:hidden items-center gap-3 px-2 sm:px-4 min-w-0">
+                            <div className="border-l border-gray-200 dark:border-gray-700 h-8"></div>
+                            <div className="min-w-0">
+                                <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Live Rooms</h1>
+                                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Audio &amp; Video Practice</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Right Side: Actions (Import & Inbox Group) */}
-                <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 pl-14 sm:pl-0 px-2 sm:px-4 min-w-0">
+                {/* Right Side: Actions (Import & Inbox Group & Menu) */}
+                <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 pl-2 sm:pl-0 min-w-0">
                     {/* Desktop Import Bar (sm and up) */}
-                    <div className="hidden sm:flex items-center flex-1 max-w-[320px] bg-white dark:bg-gray-700 border border-orange-100 dark:border-gray-600 rounded-full pl-3 pr-1 py-1 gap-2 shadow-sm transition-all duration-200 focus-within:ring-2 focus-within:ring-orange-500/25">
+                    <div className="hidden md:flex items-center flex-1 max-w-[320px] bg-white dark:bg-gray-700 border border-orange-100 dark:border-gray-600 rounded-full pl-3 pr-1 py-1 gap-2 shadow-sm transition-all duration-200 focus-within:ring-2 focus-within:ring-orange-500/25">
                         <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
                             <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.522 3.5 12 3.5 12 3.5s-7.522 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.029 0 12 0 12s0 3.971.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.478 20.5 12 20.5 12 20.5s7.522 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.971 24 12 24 12s0-3.971-.502-5.837z" />
                             <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="white" />
@@ -118,7 +220,7 @@ const TopBar = ({ onMenuClick }) => {
                         <input
                             type="text"
                             placeholder="Paste YouTube link"
-                            className="w-full bg-transparent outline-none text-sm text-gray-800 dark:text-gray-200 placeholder-gray-450 font-semibold"
+                            className="w-full bg-transparent outline-none text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 font-semibold"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleImport()}
@@ -132,28 +234,30 @@ const TopBar = ({ onMenuClick }) => {
                         </button>
                     </div>
 
-                    {/* Mobile Import Bar */}
-                    <div className="flex sm:hidden flex-1 max-w-[200px] min-w-0 bg-white dark:bg-gray-700 border border-orange-100 dark:border-gray-600 rounded-full pl-2.5 pr-1 py-0.5 items-center gap-1.5 shadow-sm">
-                        <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.522 3.5 12 3.5 12 3.5s-7.522 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.029 0 12 0 12s0 3.971.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.478 20.5 12 20.5 12 20.5s7.522 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.971 24 12 24 12s0-3.971-.502-5.837z" />
-                            <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="white" />
-                        </svg>
-                        <input
-                            type="text"
-                            placeholder="Paste YouTube link"
-                            className="w-full bg-transparent outline-none text-[11px] text-gray-800 dark:text-gray-200 placeholder-gray-400 font-semibold"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleImport()}
-                        />
-                        <button 
-                            onClick={handleImport} 
-                            disabled={loading}
-                            className="bg-[#FF5100] text-white rounded-full px-3 py-1 font-bold text-[9px] uppercase shrink-0 active:scale-95 transition-transform cursor-pointer"
-                        >
-                            {loading ? "..." : "Import"}
-                        </button>
-                    </div>
+                    {/* Mobile Import Bar (on Home only) */}
+                    {!isLearningHub && !isSocialHub && !isLiveRoomsPage && (
+                        <div className="flex md:hidden flex-1 max-w-[200px] min-w-0 bg-white dark:bg-gray-700 border border-orange-100 dark:border-gray-600 rounded-full pl-2.5 pr-1 py-0.5 items-center gap-1.5 shadow-sm">
+                            <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.522 3.5 12 3.5 12 3.5s-7.522 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.029 0 12 0 12s0 3.971.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.478 20.5 12 20.5 12 20.5s7.522 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.971 24 12 24 12s0-3.971-.502-5.837z" />
+                                <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="white" />
+                            </svg>
+                            <input
+                                type="text"
+                                placeholder="Paste YouTube link"
+                                className="w-full bg-transparent outline-none text-[11px] text-gray-800 dark:text-gray-200 placeholder-gray-400 font-semibold"
+                                value={url}
+                                onChange={(e) => setUrl(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleImport()}
+                            />
+                            <button 
+                                onClick={handleImport} 
+                                disabled={loading}
+                                className="bg-[#FF5100] text-white rounded-full px-3 py-1 font-bold text-[9px] uppercase shrink-0 active:scale-95 transition-transform cursor-pointer"
+                            >
+                                {loading ? "..." : "Import"}
+                            </button>
+                        </div>
+                    )}
                     
                     {/* Bell Notification Action */}
                     <button
@@ -163,20 +267,89 @@ const TopBar = ({ onMenuClick }) => {
                     >
                         <Bell size={20} />
                         {totalSocialCount > 0 && (
-                            <span className="absolute top-1 right-1 bg-[#FF5100] rounded-full w-2 h-2 flex items-center justify-center animate-pulse" />
+                            <span className="absolute top-1 right-1 bg-[#FF5100] rounded-full w-4 h-4 text-[9px] font-bold text-white flex items-center justify-center shadow-sm">
+                                {totalSocialCount > 9 ? '9+' : totalSocialCount}
+                            </span>
                         )}
                     </button>
 
-                    {/* Menu Toggle Action - only on mobile/tablet where sidebar is hidden */}
+                    {/* Menu Toggle Action - for mobile/tablet where sidebar is hidden */}
                     <button
                         onClick={onMenuClick}
-                        className="relative p-2.5 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 rounded-xl transition-all shrink-0 active:scale-95 flex items-center justify-center cursor-pointer lg:hidden"
+                        className="relative p-2 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 rounded-xl transition-all shrink-0 active:scale-95 flex items-center justify-center cursor-pointer lg:hidden"
                         title="Menu"
                     >
                         <Menu size={20} />
                     </button>
                 </div>
             </div>
+
+            {/* Learning Hub Subsections Bar (Mobile Only: lg:hidden) */}
+            {isLearningHub && (
+                <div className="border-t border-orange-100/60 dark:border-gray-700/60 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md px-2 sm:px-4 flex items-center justify-around sm:justify-start gap-1 sm:gap-6 overflow-x-auto hide-scrollbar h-11 sm:h-12 shrink-0 lg:hidden">
+                    {learnSubTabs.map((tab) => {
+                        const isActive = checkLearnSubActive(tab.path);
+                        const Icon = tab.icon;
+                        return (
+                            <Link
+                                key={tab.name}
+                                to={tab.path}
+                                className={`relative flex items-center gap-1.5 px-3 py-2.5 text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer touch-manipulation outline-none ${
+                                    isActive
+                                        ? 'text-orange-600 dark:text-orange-400 font-extrabold'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                                }`}
+                            >
+                                <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-orange-500' : ''} />
+                                <span>{tab.name}</span>
+                                {isActive && (
+                                    <motion.div
+                                        layoutId="learningActiveSubTabIndicator"
+                                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full"
+                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                    />
+                                )}
+                            </Link>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Social Hub Subsections Bar (Mobile Only: lg:hidden) */}
+            {isSocialHub && !location.pathname.includes('/profile') && !location.search.includes('tab=profile') && (
+                <div className="border-t border-orange-100/60 dark:border-gray-700/60 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md px-2 sm:px-4 flex items-center justify-around sm:justify-start gap-1 sm:gap-6 overflow-x-auto hide-scrollbar h-11 sm:h-12 shrink-0 lg:hidden">
+                    {socialSubTabs.map((tab) => {
+                        const isActive = checkSocialSubActive(tab.path);
+                        const Icon = tab.icon;
+                        return (
+                            <Link
+                                key={tab.name}
+                                to={tab.path}
+                                className={`relative flex items-center gap-1.5 px-3 py-2.5 text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer touch-manipulation outline-none ${
+                                    isActive
+                                        ? 'text-orange-600 dark:text-orange-400 font-extrabold'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                                }`}
+                            >
+                                <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-orange-500' : ''} />
+                                <span>{tab.name}</span>
+                                {tab.badge && (
+                                    <span className="text-[9px] font-black rounded-full min-w-[15px] h-[15px] px-1 flex items-center justify-center bg-orange-500 text-white shadow-sm">
+                                        {tab.badge > 99 ? '99+' : tab.badge}
+                                    </span>
+                                )}
+                                {isActive && (
+                                    <motion.div
+                                        layoutId="socialActiveSubTabIndicator"
+                                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full"
+                                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                    />
+                                )}
+                            </Link>
+                        );
+                    })}
+                </div>
+            )}
 
             <AnimatePresence>
                 {importData && (
@@ -236,7 +409,7 @@ const TopBar = ({ onMenuClick }) => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </>
+        </div>
     );
 };
 

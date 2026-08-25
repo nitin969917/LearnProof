@@ -116,13 +116,13 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start w-full mx-auto">
         {/* Pending Requests */}
-        <div className="lg:col-span-4 flex flex-col gap-5">
-          <div className="flex items-center gap-2 text-gray-800 dark:text-white mb-2">
-            <Clock size={20} className="text-orange-500" />
-            <h2 className="text-lg font-bold">Pending Requests</h2>
+        <div className={`lg:col-span-4 ${pendingRequests.length === 0 ? 'hidden lg:flex' : 'flex'} flex-col gap-4 sm:gap-5`}>
+          <div className="flex items-center gap-2 text-gray-800 dark:text-white mb-1 sm:mb-2">
+            <Clock size={18} className="text-orange-500" />
+            <h2 className="text-base sm:text-lg font-bold">Pending Requests</h2>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm space-y-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 sm:p-5 shadow-sm space-y-3 sm:space-y-4">
             {pendingRequests.map((req) => (
               <div 
                 key={req.id} 
@@ -167,9 +167,9 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
         </div>
 
         {/* Friends List */}
-        <div className="lg:col-span-8 flex flex-col gap-5">
-          <div className="flex items-center justify-between gap-4 text-gray-800 dark:text-white mb-2">
-            <div className="flex items-center gap-2">
+        <div className="lg:col-span-8 flex flex-col gap-4 sm:gap-5">
+          <div className="flex items-center justify-between gap-4 text-gray-800 dark:text-white mb-1 sm:mb-2">
+            <div className="hidden lg:flex items-center gap-2">
               <UserCheck size={20} className="text-orange-500" />
               <h2 className="text-lg font-bold">My Connections</h2>
             </div>

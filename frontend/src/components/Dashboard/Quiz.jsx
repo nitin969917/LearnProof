@@ -498,13 +498,13 @@ const Quiz = () => {
     }
 
     return (
-        <div className="w-full max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-28 relative z-10 selection:bg-orange-100 select-none">
+        <div className="w-full max-w-[1360px] mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 space-y-6 relative z-10 selection:bg-orange-100 select-none">
             
             {/* Dotted mesh grid overlay matching dashboard style */}
             <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }} />
 
-            {/* ── Header ─────────────────────────────────── */}
-            <div className="flex items-center gap-3 mb-8 sm:mb-10 relative z-10">
+            {/* ── Header (Desktop only - mobile uses TopBar subtabs) ── */}
+            <div className="hidden lg:flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0 shadow-[0_4px_12px_rgba(249,115,22,0.05)]">
                     <Award size={20} className="animate-pulse" />
                 </div>
@@ -514,16 +514,16 @@ const Quiz = () => {
                 </div>
             </div>
 
-            {/* ── Search Bar ────────────────────────────────── */}
-            <div className="space-y-2 mb-8 relative z-10 max-w-md">
+            {/* ── Search Bar (Identical style, size, position to My Learning) ── */}
+            <div className="space-y-3 relative z-10">
                 <div className="relative group">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={15} />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={16} />
                     <input
                         type="text"
                         placeholder="Search completed quizzes..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-md border border-orange-100/60 dark:border-gray-700/60 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-gray-900 dark:text-white shadow-sm"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
                     />
                 </div>
             </div>

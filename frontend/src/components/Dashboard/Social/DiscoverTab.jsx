@@ -120,8 +120,8 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
       {!isSearching && (
         <div className="flex flex-col gap-6 w-full">
           
-          {/* Header Section */}
-          <div className="flex flex-col items-center text-center gap-4 mt-2">
+          {/* Header Section (Desktop only - mobile uses TopBar subtabs) */}
+          <div className="hidden lg:flex flex-col items-center text-center gap-4 mt-2">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/10 shrink-0">
               <Users size={26} />
             </div>

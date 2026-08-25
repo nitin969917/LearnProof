@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Image as ImageIcon } from 'lucide-react';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
 
-export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser, postCreatedTrigger }) {
+export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSelectChatUser, postCreatedTrigger, onOpenCreatePost }) {
   const posts = useSocialFeedStore(state => state.posts);
   const friends = useSocialFeedStore(state => state.friends);
   const closeFriends = useSocialFeedStore(state => state.closeFriends);
@@ -81,7 +81,26 @@ export default function FeedTab({ currentUserId, onViewProfile, onSelectChatUser
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* Feed Column */}
       <div className="lg:col-span-8 flex flex-col gap-6">
-        {/* Create Post has been moved to a modal triggered from the top navbar button */}
+        {/* ── What's on your mind? Create Post Card ── */}
+        <div 
+          onClick={onOpenCreatePost}
+          className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/80 dark:border-gray-700/80 p-3 sm:p-3.5 flex items-center gap-3 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-gray-600 transition-all cursor-pointer group"
+        >
+          <div className="shrink-0">
+            <UserAvatar 
+              src={socialUser?.avatar} 
+              name={socialUser?.name} 
+              className="w-10 h-10 rounded-full" 
+              textClassName="text-sm font-bold"
+            />
+          </div>
+          <div className="flex-1 text-sm text-gray-400 dark:text-gray-500 font-medium select-none truncate">
+            What's on your mind?
+          </div>
+          <div className="p-2 rounded-xl text-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors shrink-0">
+            <ImageIcon size={20} className="stroke-[1.75]" />
+          </div>
+        </div>
 
         {/* Posts Feed */}
         <div className="flex flex-col gap-6">

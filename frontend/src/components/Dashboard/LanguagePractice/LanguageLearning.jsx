@@ -122,8 +122,8 @@ export default function LanguageLearning() {
   return (
     <div className="flex flex-col gap-4 w-full max-w-[1360px] mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
 
-      {/* ── Compact Mobile Header ──────────────────────────────── */}
-      <div className="flex items-center gap-2.5">
+      {/* ── Compact Header (Desktop only - mobile uses TopBar) ── */}
+      <div className="hidden lg:flex items-center gap-2.5">
         <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
           <Globe size={18} />
         </div>
@@ -145,35 +145,49 @@ export default function LanguageLearning() {
         </button>
       </div>
 
-      {/* Tabs Selector */}
-      <div className="flex border-b border-gray-200 dark:border-gray-800 max-w-md">
+      {/* Tabs Selector + Mobile Create Action */}
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 gap-2">
+        <div className="flex flex-1 max-w-xs sm:max-w-md">
+          <button
+            onClick={() => {
+              setActiveTab('audio');
+              localStorage.setItem('languageRoomsTab', 'audio');
+            }}
+            className={`flex-1 pb-2.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+              activeTab === 'audio'
+                ? 'border-orange-500 text-orange-500'
+                : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+            }`}
+          >
+            <Mic size={14} />
+            <span>Audio ({audioRoomsCount})</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('video');
+              localStorage.setItem('languageRoomsTab', 'video');
+            }}
+            className={`flex-1 pb-2.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+              activeTab === 'video'
+                ? 'border-orange-500 text-orange-500'
+                : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+            }`}
+          >
+            <Video size={14} />
+            <span>Video ({videoRoomsCount})</span>
+          </button>
+        </div>
+
+        {/* Mobile Create Room Button */}
         <button
           onClick={() => {
-            setActiveTab('audio');
-            localStorage.setItem('languageRoomsTab', 'audio');
+            setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
+            setShowModal(true);
           }}
-          className={`flex-1 pb-2.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-all cursor-pointer ${
-            activeTab === 'audio'
-              ? 'border-orange-500 text-orange-500'
-              : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-          }`}
+          className="flex lg:hidden items-center gap-1 px-3 py-1.5 mb-1.5 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer font-bold text-xs shrink-0"
         >
-          <Mic size={13} />
-          <span>Audio ({audioRoomsCount})</span>
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab('video');
-            localStorage.setItem('languageRoomsTab', 'video');
-          }}
-          className={`flex-1 pb-2.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border-b-2 transition-all cursor-pointer ${
-            activeTab === 'video'
-              ? 'border-orange-500 text-orange-500'
-              : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-          }`}
-        >
-          <Video size={13} />
-          <span>Video ({videoRoomsCount})</span>
+          <Plus size={14} />
+          <span>New Room</span>
         </button>
       </div>
 

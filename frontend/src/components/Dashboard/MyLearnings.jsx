@@ -231,8 +231,8 @@ const MyLearnings = () => {
 
     return (
         <div className="w-full max-w-[1360px] mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 space-y-6">
-            {/* ── Compact Mobile Header ───────────────────────────────── */}
-            <div className="flex items-center gap-2.5">
+            {/* ── Compact Header (Desktop only - mobile uses TopBar subtabs) ── */}
+            <div className="hidden lg:flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
                     <BookOpen size={18} />
                 </div>
@@ -243,16 +243,16 @@ const MyLearnings = () => {
             </div>
 
             {/* ── Search + Tab Bar ────────────────────────────────── */}
-            <div className="space-y-2">
+            <div className="space-y-3">
                 {/* Search */}
                 <div className="relative group">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={15} />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={16} />
                     <input
                         type="text"
                         placeholder={`Search ${activeTab}...`}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
                     />
                 </div>
                 {/* Tab Switcher */}

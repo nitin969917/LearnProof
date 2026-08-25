@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
-import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe } from 'lucide-react';
+import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe, Compass, Bell } from 'lucide-react';
 import { Link, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
@@ -25,12 +25,21 @@ export default function SocialDashboard() {
   const pendingFriendCount = useSocialFeedStore((state) => state.pendingFriendCount);
   const clearPendingFriendCount = useSocialFeedStore((state) => state.clearPendingFriendCount);
 
-  // Initialize state variables from URL query parameters (or fall back to localStorage/defaults)
+  // Initialize state variables strictly from URL pathname/search
   const [activeTab, setActiveTab] = useState(() => {
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    const sub = segments[2];
+    if (sub === 'discover') return 'discover';
+    if (sub === 'friends') return 'friends';
+    if (sub === 'chats') return 'chat';
+    if (sub === 'profile') return 'profile';
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam) return tabParam;
-    return localStorage.getItem('social_active_tab') || 'feed';
+    if (tabParam === 'discover') return 'discover';
+    if (tabParam === 'friends') return 'friends';
+    if (tabParam === 'chat' || tabParam === 'chats') return 'chat';
+    if (tabParam === 'profile') return 'profile';
+    return 'feed';
   });
 
   const [selectedProfileId, setSelectedProfileId] = useState(() => {
@@ -114,7 +123,7 @@ export default function SocialDashboard() {
     }
 
     const pathSegments = location.pathname.split('/').filter(Boolean);
-    const subRoute = pathSegments[2] || localStorage.getItem('social_active_tab') || 'feed';
+    const subRoute = pathSegments[2];
 
     if (subRoute === 'discover') {
       setActiveTab('discover');
@@ -145,6 +154,7 @@ export default function SocialDashboard() {
         setSelectedProfileId(savedPId ? parseInt(savedPId, 10) : (socialUser?.id || null));
       }
     } else {
+      // /dashboard/social or /dashboard/social/feed -> strictly feed tab
       setActiveTab('feed');
       setSelectedProfileId(null);
       setSelectedChatContact(null);
@@ -285,13 +295,11 @@ export default function SocialDashboard() {
     }
   };
 
-  const tabs = [
-    { id: 'home',    name: 'Home',    icon: Home,          mobileOnly: true },
-    { id: 'feed',    name: 'Feed',    icon: MessageCircle },
-    { id: 'discover',name: 'Discover',icon: Search },
+  const socialSubTabs = [
+    { id: 'feed', name: 'Feed', icon: Home },
+    { id: 'discover', name: 'Discover', icon: Compass },
     { id: 'friends', name: 'Friends', icon: Users, badge: pendingFriendCount > 0 ? pendingFriendCount : null },
-    { id: 'chat',    name: 'Chats',   icon: MessageSquare, badge: totalUnreadCount > 0 ? totalUnreadCount : null },
-    { id: 'profile', name: 'Profile', icon: User,          desktopOnly: true },
+    { id: 'chat', name: 'Chats', icon: MessageSquare, badge: totalUnreadCount > 0 ? totalUnreadCount : null },
   ];
 
   if (!socialUser) {
@@ -305,84 +313,66 @@ export default function SocialDashboard() {
 
   return (
     <div className="flex flex-col h-full w-full relative overflow-hidden transition-colors duration-200 bg-[#FAF6EE] dark:bg-gray-950">
-      {/* Top Header Bar — matches main app TopBar logo position exactly */}
-      <div className={`bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm flex items-stretch justify-between h-16 sm:h-20 shrink-0 w-full transition-colors duration-200 overflow-hidden ${hideHeader ? 'hidden md:flex' : 'flex'}`}>
-        {/* Left Side: Logo (flush left, same as main TopBar) + Social Hub title */}
-        <div className="flex items-stretch min-w-0">
-          {/* Logo wrapper — identical classes to TopBar.jsx */}
-          <Link
-            to="/dashboard"
-            className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 flex items-stretch ml-2 sm:ml-0"
-          >
-            {/* Mobile Logo */}
-            <img
-              src="/LP_M_logo.png"
-              alt="LearnProof"
-              className="h-full w-auto object-cover object-left block sm:hidden"
-            />
-            {/* Desktop Logo */}
-            <img
-              src="/LP_logo.png"
-              alt="LearnProof"
-              className="h-full w-auto object-cover object-left hidden sm:block"
-            />
-          </Link>
+      {/* Desktop Header / Tab Switcher (Visible only on Desktop: lg:flex) */}
+      <div className="hidden lg:flex items-center justify-between bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 px-6 py-3 shrink-0 shadow-sm">
+        <div className="flex items-center gap-2">
+          {socialSubTabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600'
+                }`}
+              >
+                <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                <span>{tab.name}</span>
+                {tab.badge && (
+                  <span className={`text-[10px] font-black rounded-full min-w-[16px] h-[16px] px-1 flex items-center justify-center ${
+                    isActive ? 'bg-white text-orange-600' : 'bg-orange-500 text-white'
+                  }`}>
+                    {tab.badge > 99 ? '99+' : tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-          {/* Divider + Title */}
-          <div className="flex items-center gap-3 px-3 md:px-4 min-w-0">
-            <div className="border-l border-gray-200 dark:border-gray-700 h-8"></div>
-            <div className="min-w-0">
-              <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h1>
-              <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Connect &amp; Share</p>
-            </div>
+        {/* Desktop Profile shortcut */}
+        <button
+          onClick={() => handleTabChange('profile')}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+            activeTab === 'profile'
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600'
+          }`}
+        >
+          <div className="w-6 h-6 rounded-full overflow-hidden border border-current">
+            <UserAvatar src={socialUser?.avatar} name={socialUser?.name} className="w-full h-full" textClassName="text-[9px]" />
           </div>
-        </div>
-
-        {/* Right Side: Actions (Create Post & Profile) */}
-        <div className="flex items-center gap-2.5 shrink-0 px-4 md:px-6">
-          {activeTab === 'feed' && (
-            <button
-              onClick={() => setShowCreatePostModal(true)}
-              className="p-2 sm:p-2.5 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer flex items-center justify-center border border-orange-600/10 shrink-0"
-              title="Create Post"
-            >
-              <Plus size={20} className="w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]" />
-            </button>
-          )}
-
-          {/* Profile Action Button */}
-          <button
-            onClick={() => handleTabChange('profile')}
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border active:scale-95 transition-all cursor-pointer flex items-center justify-center shrink-0 ${
-              activeTab === 'profile'
-                ? 'border-orange-500 ring-2 ring-orange-500/20'
-                : 'border-orange-100 dark:border-gray-700'
-            }`}
-            title="My Profile"
-          >
-            <UserAvatar 
-              src={socialUser.avatar} 
-              name={socialUser.name} 
-              className="w-full h-full rounded-full" 
-              textClassName="text-sm font-bold"
-            />
-          </button>
-        </div>
+          <span>My Profile</span>
+        </button>
       </div>
 
-      {/* Main Content Area (Scrollable container, no padding outside) */}
+      {/* Main Content Area (Scrollable container) */}
       <div className={`flex-1 w-full relative ${(hideHeader || activeTab === 'chat') ? 'overflow-hidden md:overflow-y-auto' : 'overflow-y-auto'}`}>
-        <div className={`w-full mx-auto ${(hideHeader || activeTab === 'chat') ? 'px-0 md:px-6 py-0 md:py-6 pb-0 md:pb-28 h-full' : 'px-4 md:px-6 py-6 pb-28'}`}>
-
+        <div className={`w-full mx-auto ${(hideHeader || activeTab === 'chat') ? 'px-0 md:px-6 py-0 md:py-6 pb-24 lg:pb-6 h-full' : 'px-4 md:px-6 py-6 pb-28 lg:pb-6'}`}>
 
           {/* Tab Panels */}
           <div className={`w-full ${(hideHeader || activeTab === 'chat') ? 'h-full' : ''}`}>
             <div className={activeTab === 'feed' ? 'block' : 'hidden'}>
               <FeedTab 
                 currentUserId={socialUser.id} 
+                socialUser={socialUser}
                 onViewProfile={viewUserProfile} 
                 onSelectChatUser={startDirectChat} 
                 postCreatedTrigger={postCreatedTrigger}
+                onOpenCreatePost={() => setShowCreatePostModal(true)}
               />
             </div>
             <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
@@ -418,81 +408,6 @@ export default function SocialDashboard() {
           </div>
         </div>
       </div>
-      <nav className={`absolute bottom-5 left-1/2 -translate-x-1/2 w-[390px] xs:w-[440px] sm:w-[520px] md:w-[600px] max-w-[95vw] z-50 bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition-all duration-300 ${hideHeader ? 'hidden md:block' : 'block'}`}>
-        <div className="flex items-stretch justify-around h-16 px-3.5 relative">
-          {tabs.map((tab, idx) => {
-            const isActive = activeTab === tab.id || (tab.id === 'profile' && activeTab === 'profile' && selectedProfileId === socialUser.id);
-            const Icon = tab.icon;
-
-            return (
-              <Fragment key={tab.id}>
-              <button
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-555 no-underline touch-manipulation select-none outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 cursor-pointer ${
-                    tab.mobileOnly ? 'lg:hidden' : tab.desktopOnly ? 'hidden lg:flex' : ''
-                  }`}
-                >
-                  <motion.div
-                    whileTap={{ scale: 0.88 }}
-                    className="flex flex-col items-center justify-center w-full h-full relative"
-                  >
-                    <div className={`transition-all duration-300 z-10 flex flex-col items-center justify-center ${isActive ? 'scale-110 text-orange-600 dark:text-orange-400' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
-                      {tab.id === 'profile' ? (
-                        <div className={`w-[22px] h-[22px] rounded-full overflow-hidden border transition-all ${isActive ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-gray-300 dark:border-gray-600'}`}>
-                          <UserAvatar 
-                            src={socialUser.avatar} 
-                            name={socialUser.name} 
-                            className="w-full h-full rounded-full" 
-                            textClassName="text-[10px] font-bold"
-                          />
-                        </div>
-                      ) : (
-                        <Icon 
-                          size={22} 
-                          strokeWidth={isActive ? 2.5 : 2} 
-                          className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
-                        />
-                      )}
-                      <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">{tab.name}</span>
-                    </div>
-
-                    <span className="sr-only">{tab.name}</span>
-
-                    {tab.badge && (
-                      <span className="absolute top-0.5 right-2 text-[9px] font-black rounded-full min-w-[15px] h-[15px] px-1 flex items-center justify-center bg-orange-500 text-white shadow-md z-20">
-                        {tab.badge}
-                      </span>
-                    )}
-                  </motion.div>
-                </button>
-
-                {/* Live Rooms Globe icon next to Discover (idx === 2) */}
-                {idx === 2 && (
-                  <button
-                    onClick={() => {
-                      // Store nav_source so DashboardLayout shows Social Hub bottom nav on live-rooms pages
-                      sessionStorage.setItem('nav_source', 'social');
-                      navigate('/dashboard/live-rooms', { state: { from: 'social' } });
-                    }}
-                    className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-550 no-underline touch-manipulation select-none outline-none focus:outline-none cursor-pointer"
-                  >
-                    <motion.div
-                      whileTap={{ scale: 0.88 }}
-                      className="flex flex-col items-center justify-center w-full h-full relative"
-                    >
-                      <div className="text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400 transition-all duration-300 flex flex-col items-center justify-center">
-                        <Globe size={22} strokeWidth={2} />
-                        <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">Rooms</span>
-                      </div>
-                      <span className="sr-only">Live Rooms</span>
-                    </motion.div>
-                  </button>
-                )}
-              </Fragment>
-            );
-          })}
-        </div>
-      </nav>
 
       {/* Shared Post Modal */}
       {showSharedPostModal && sharedPost && (

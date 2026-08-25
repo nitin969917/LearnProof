@@ -1195,7 +1195,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         {/* Sidebar Header */}
         <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 flex-shrink-0">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+            <h2 className="hidden md:flex text-xl font-black text-gray-900 dark:text-white items-center gap-2">
               <MessageSquare size={22} className="text-orange-500" />
               <span>Chats</span>
             </h2>
