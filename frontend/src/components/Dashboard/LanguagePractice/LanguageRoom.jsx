@@ -199,10 +199,22 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const handlePromoteSpeakerRef = useRef(null);
   const notifiedRequestsRef = useRef(new Set());
 
+  const participantsRef = useRef([]);
+  useEffect(() => { participantsRef.current = participants; }, [participants]);
+
   const addSpeakRequest = useCallback((identity, name) => {
     if (!identity) return;
     if (notifiedRequestsRef.current.has(identity)) return;
     
+    // If the user is already on stage as a speaker, ignore the request
+    const allParticipants = [room?.localParticipant, ...participantsRef.current].filter(Boolean);
+    const isAlreadySpeaker = allParticipants.some(p => {
+      if (p.identity !== identity) return false;
+      const isCreator = dbRoomRef.current && dbRoomRef.current.creatorId?.toString() === p.identity;
+      return p.permissions?.canPublish || isCreator;
+    });
+    if (isAlreadySpeaker) return;
+
     // Mark as notified immediately (outside state updater!)
     notifiedRequestsRef.current.add(identity);
 
@@ -223,7 +235,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           <span className="text-xs font-black text-gray-900 dark:text-white truncate">
             {name || 'Someone'}
           </span>
-          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 mt-0.5">
+          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-550 mt-0.5">
             wants to join stage
           </span>
         </div>
@@ -233,7 +245,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           <button
             onClick={() => {
               toast.dismiss(t.id);
-              notifiedRequestsRef.current.delete(identity);
+              // Delay removing from notified list to prevent subsequent API poll from triggering a duplicate toast before DB updates
+              setTimeout(() => {
+                notifiedRequestsRef.current.delete(identity);
+              }, 10000);
               if (handlePromoteSpeakerRef.current) {
                 handlePromoteSpeakerRef.current(identity, name || 'User');
               }
@@ -245,7 +260,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           <button
             onClick={async () => {
               toast.dismiss(t.id);
-              notifiedRequestsRef.current.delete(identity);
+              // Delay removing from notified list to prevent subsequent API poll from triggering a duplicate toast before DB updates
+              setTimeout(() => {
+                notifiedRequestsRef.current.delete(identity);
+              }, 10000);
               setSpeakRequests(prev => prev.filter(r => r.identity !== identity));
               try {
                 await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`);
@@ -262,7 +280,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       duration: 10000,
       style: { background: 'transparent', boxShadow: 'none', border: 'none', padding: 0 },
     });
-  }, [roomName]);
+  }, [room, roomName]);
 
 
   // Media states
@@ -486,39 +504,51 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     return () => room.off('participantDisconnected', handleDisconnected);
   }, [room, hostIdentity, isHost, roomName, navigateBack]);
 
-  // ── Host page unload cleanup ──────────────────────────────────────────────
+  // ── Page unload cleanup for all participants (disconnects immediately when tab is closed) ──
   useEffect(() => {
-    if (!isHost) return;
     const handleUnload = () => {
-      const token = localStorage.getItem('google_token');
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-      
-      // Delete database room record
-      const dbUrl = `${backendUrl}/api/language-rooms/by-name/${roomName}`;
-      fetch(dbUrl, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        keepalive: true
-      }).catch(() => {});
+      // 1. Cleanly disconnect from LiveKit room so other participants see us leave immediately
+      if (room) {
+        try {
+          room.disconnect();
+        } catch (e) {
+          console.warn('Failed to disconnect room on unload:', e);
+        }
+      }
 
-      // Delete LiveKit server room
-      const lkUrl = `${backendUrl}/api/livekit/rooms/${roomName}`;
-      fetch(lkUrl, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        keepalive: true
-      }).catch(() => {});
+      // 2. If host, request a delayed room/meeting deletion (source=unload)
+      // If the host is only reloading the page, the new mount token call cancels this scheduled deletion.
+      if (isHost) {
+        const token = localStorage.getItem('google_token');
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+        
+        // Delete database room record (delayed)
+        const dbUrl = `${backendUrl}/api/language-rooms/by-name/${roomName}?source=unload`;
+        fetch(dbUrl, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          keepalive: true
+        }).catch(() => {});
+
+        // Delete LiveKit server room (delayed)
+        const lkUrl = `${backendUrl}/api/livekit/rooms/${roomName}?source=unload`;
+        fetch(lkUrl, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          keepalive: true
+        }).catch(() => {});
+      }
     };
 
     window.addEventListener('beforeunload', handleUnload);
     return () => window.removeEventListener('beforeunload', handleUnload);
-  }, [isHost, roomName]);
+  }, [room, isHost, roomName]);
 
   // ── Browser back button blocker ───────────────────────────────────────────
   useEffect(() => {
@@ -1006,9 +1036,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     return 'grid-cols-2 grid-rows-3 h-full'; // 5–6 people
   };
 
-  // Returns 'row-span-2' for the host tile when 3 people (asymmetric layout)
+  // Returns dynamic spans for 3-speaker layout depending on whether the chat panel is open or closed
   const getTileSpan = (index, total) => {
-    if (total === 3 && index === 0) return 'row-span-2';
+    if (total === 3 && index === 0) {
+      return showChatPanel ? 'row-span-2' : 'col-span-2';
+    }
     return '';
   };
 

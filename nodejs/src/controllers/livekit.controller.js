@@ -1,9 +1,11 @@
 const livekitService = require('../services/livekit.service');
 const datingPrisma = require('../utils/datingPrisma');
 const translate = require('google-translate-api-x');
+const datingController = require('./datingController');
 
 // In-memory stage request queue: roomName -> Map(identity -> { identity, name, requestedAt })
 const stageRequestStore = new Map();
+const delayedLiveKitDeletions = new Map();
 
 const getStageRequestMap = (roomName) => {
   if (!stageRequestStore.has(roomName)) {
@@ -28,6 +30,14 @@ const getToken = async (req, res) => {
   try {
     const { room, requestPublish } = req.query;
     if (!room) return res.status(400).json({ error: 'room name is required' });
+
+    // Cancel any delayed room database and LiveKit deletions if the user reloads or returns
+    datingController.cancelDelayedRoomDeletion(room);
+    if (delayedLiveKitDeletions.has(room)) {
+      clearTimeout(delayedLiveKitDeletions.get(room));
+      delayedLiveKitDeletions.delete(room);
+      console.log(`[LiveKit] Cancelled delayed LiveKit deletion for room: ${room}`);
+    }
 
     const userId = req.user.id;
     const userName = req.user.name || req.user.email?.split('@')[0] || `User_${userId}`;
@@ -88,13 +98,37 @@ const getRooms = async (req, res) => {
   }
 };
 
-/**
- * DELETE /api/livekit/rooms/:roomName
- * Deletes a LiveKit room
- */
 const deleteRoom = async (req, res) => {
   try {
     const { roomName } = req.params;
+    const source = req.query.source;
+
+    if (source === 'unload') {
+      if (delayedLiveKitDeletions.has(roomName)) {
+        clearTimeout(delayedLiveKitDeletions.get(roomName));
+      }
+
+      const timeoutId = setTimeout(async () => {
+        try {
+          delayedLiveKitDeletions.delete(roomName);
+          await livekitService.deleteRoom(roomName);
+          clearAllStageRequests(roomName);
+          console.log(`[LiveKit] Delayed LiveKit room deletion executed for: ${roomName}`);
+        } catch (err) {
+          console.error('Delayed LiveKit room deletion failed:', err.message);
+        }
+      }, 5000);
+
+      delayedLiveKitDeletions.set(roomName, timeoutId);
+      return res.json({ success: true, message: 'LiveKit room deletion scheduled (delayed)' });
+    }
+
+    // Normal direct end (from explicit UI action)
+    if (delayedLiveKitDeletions.has(roomName)) {
+      clearTimeout(delayedLiveKitDeletions.get(roomName));
+      delayedLiveKitDeletions.delete(roomName);
+    }
+
     await livekitService.deleteRoom(roomName);
     clearAllStageRequests(roomName);
     return res.json({ success: true });

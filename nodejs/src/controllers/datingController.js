@@ -3,6 +3,16 @@ const { sendPushNotification } = require('../utils/pushNotifier');
 const livekitService = require('../services/livekit.service');
 const cacheService = require('../services/cache.service');
 
+const delayedDeletions = new Map();
+
+const cancelDelayedRoomDeletion = (roomName) => {
+  if (delayedDeletions.has(roomName)) {
+    clearTimeout(delayedDeletions.get(roomName));
+    delayedDeletions.delete(roomName);
+    console.log(`[Dating] Cancelled delayed database deletion for room: ${roomName}`);
+  }
+};
+
 const invalidateFeedCache = async () => {
   try {
     await cacheService.delByPattern('user:feed:*');
@@ -1109,6 +1119,7 @@ const deleteLanguageRoom = async (req, res) => {
 const deleteLanguageRoomByName = async (req, res) => {
   const { roomName } = req.params;
   const creatorId = req.user.id;
+  const source = req.query.source;
 
   try {
     const room = await datingPrisma.languageRoom.findUnique({
@@ -1117,6 +1128,38 @@ const deleteLanguageRoomByName = async (req, res) => {
 
     if (!room) return res.status(404).json({ error: 'Room not found' });
     if (room.creatorId !== creatorId) return res.status(403).json({ error: 'Forbidden' });
+
+    if (source === 'unload') {
+      if (delayedDeletions.has(roomName)) {
+        clearTimeout(delayedDeletions.get(roomName));
+      }
+
+      const timeoutId = setTimeout(async () => {
+        try {
+          delayedDeletions.delete(roomName);
+          await datingPrisma.languageRoom.delete({
+            where: { roomName },
+          });
+          await invalidateRoomsCache();
+          const io = req.app.get('io');
+          if (io) {
+            io.emit('ROOMS_UPDATED');
+          }
+          console.log(`[Dating] Delayed room database deletion executed for: ${roomName}`);
+        } catch (err) {
+          console.error('Delayed database room deletion failed:', err.message);
+        }
+      }, 5000);
+
+      delayedDeletions.set(roomName, timeoutId);
+      return res.json({ message: 'Room ended scheduled (delayed)' });
+    }
+
+    // Normal direct end (from explicit UI action)
+    if (delayedDeletions.has(roomName)) {
+      clearTimeout(delayedDeletions.get(roomName));
+      delayedDeletions.delete(roomName);
+    }
 
     await datingPrisma.languageRoom.delete({
       where: { roomName },
@@ -2056,4 +2099,5 @@ module.exports = {
   getPost,
   deleteMessage,
   deleteGroupMessage,
+  cancelDelayedRoomDeletion,
 };
