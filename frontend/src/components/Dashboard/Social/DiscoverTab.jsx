@@ -156,37 +156,50 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
             <ChevronRight size={18} className="text-orange-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </div>
 
-          {/* Pill Style Search Bar */}
+          {/* ── Search Bar (Identical style & size to Learning Hub Explorer) ── */}
           <form 
             onSubmit={(e) => { e.preventDefault(); if (searchType === 'students') handleSearch(); }}
-            className="w-full flex items-center bg-white dark:bg-gray-900 rounded-full border border-gray-200 dark:border-gray-800 shadow-md p-1 focus-within:ring-2 focus-within:ring-orange-500/20 focus-within:border-orange-500 transition-all"
+            className="relative w-full group"
           >
-            <div className="pl-4 pr-2 text-gray-400">
-              <Search size={18} />
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-2xl sm:rounded-[2rem] blur-xl group-focus-within:blur-2xl transition-all duration-500 opacity-60"></div>
+            <div className="relative flex items-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl sm:rounded-[2rem] p-1.5 sm:p-2 shadow-xl shadow-gray-200/50 dark:shadow-none transition-all duration-500 focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30">
+              <div className="pl-3 sm:pl-4 text-gray-400 group-focus-within:text-orange-500 transition-colors">
+                <Search size={20} className="sm:w-[22px] sm:h-[22px]" />
+              </div>
+              <input 
+                ref={searchInputRef}
+                type="text" 
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search people, colleges, interests..."
+                className="flex-1 min-w-0 bg-transparent border-none py-2.5 sm:py-3.5 px-2 sm:px-4 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-0 outline-none text-sm sm:text-base font-semibold"
+              />
+              <div className="flex items-center gap-1.5 shrink-0 pr-1">
+                {query && (
+                  <button 
+                    type="button"
+                    onClick={() => { setQuery(''); setResults([]); setHasSearched(false); }}
+                    className="px-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-orange-500 hover:bg-orange-600 text-white p-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-[1.25rem] font-black text-xs sm:text-sm tracking-wide transition-all flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">Search</span>
+                      <span className="sm:hidden"><Search size={16} /></span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-            <input 
-              ref={searchInputRef}
-              type="text" 
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search people, colleges, interests..."
-              className="flex-1 bg-transparent text-gray-950 dark:text-white text-xs sm:text-sm focus:outline-none py-2.5 font-semibold min-w-0"
-            />
-            {query && (
-              <button 
-                type="button"
-                onClick={() => { setQuery(''); setResults([]); setHasSearched(false); }}
-                className="px-2 text-gray-400 hover:text-gray-655 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer shrink-0"
-              >
-                Clear
-              </button>
-            )}
-            <button
-              type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs uppercase tracking-wider px-6 py-2.5 rounded-full transition shadow-md shadow-orange-500/10 cursor-pointer shrink-0"
-            >
-              Search
-            </button>
           </form>
 
           {/* Card 2: Build your network */}
@@ -284,45 +297,58 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
             </div>
           </div>
 
-          {/* Active Search Input Pill */}
+          {/* ── Active Search Bar (Identical style & size to Learning Hub Explorer) ── */}
           <form 
             onSubmit={(e) => { e.preventDefault(); if (searchType === 'students') handleSearch(); }}
-            className="w-full flex items-center bg-white dark:bg-gray-900 rounded-full border border-gray-200 dark:border-gray-800 shadow-md p-1 focus-within:ring-2 focus-within:ring-orange-500/20 focus-within:border-orange-500 transition-all"
+            className="relative w-full group"
           >
-            <div className="pl-4 pr-2 text-gray-400">
-              <Search size={18} />
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-2xl sm:rounded-[2rem] blur-xl group-focus-within:blur-2xl transition-all duration-500 opacity-60"></div>
+            <div className="relative flex items-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl sm:rounded-[2rem] p-1.5 sm:p-2 shadow-xl shadow-gray-200/50 dark:shadow-none transition-all duration-500 focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30">
+              <div className="pl-3 sm:pl-4 text-gray-400 group-focus-within:text-orange-500 transition-colors">
+                <Search size={20} className="sm:w-[22px] sm:h-[22px]" />
+              </div>
+              <input 
+                ref={searchInputRef}
+                type="text" 
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={searchType === 'students' ? "Search people, colleges, interests..." : "Search groups by name or description..."}
+                className="flex-1 min-w-0 bg-transparent border-none py-2.5 sm:py-3.5 px-2 sm:px-4 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-0 outline-none text-sm sm:text-base font-semibold"
+              />
+              <div className="flex items-center gap-1.5 shrink-0 pr-1">
+                {query && (
+                  <button 
+                    type="button"
+                    onClick={() => { 
+                      setQuery(''); 
+                      if (searchType === 'students') {
+                        setResults([]); 
+                        setHasSearched(false);
+                      }
+                    }}
+                    className="px-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+                {searchType === 'students' && (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="bg-orange-500 hover:bg-orange-600 text-white p-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-[1.25rem] font-black text-xs sm:text-sm tracking-wide transition-all flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <span className="hidden sm:inline">Search</span>
+                        <span className="sm:hidden"><Search size={16} /></span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
-            <input 
-              ref={searchInputRef}
-              type="text" 
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={searchType === 'students' ? "Search people, colleges, interests..." : "Search groups by name or description..."}
-              className="flex-1 bg-transparent text-gray-950 dark:text-white text-xs sm:text-sm focus:outline-none py-2.5 font-semibold min-w-0"
-            />
-            {query && (
-              <button 
-                type="button"
-                onClick={() => { 
-                  setQuery(''); 
-                  if (searchType === 'students') {
-                    setResults([]); 
-                    setHasSearched(false);
-                  }
-                }}
-                className="px-2 text-gray-400 hover:text-gray-655 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer shrink-0"
-              >
-                Clear
-              </button>
-            )}
-            {searchType === 'students' && (
-              <button
-                type="submit"
-                className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs uppercase tracking-wider px-6 py-2.5 rounded-full transition shadow-md shadow-orange-500/10 cursor-pointer shrink-0"
-              >
-                Search
-              </button>
-            )}
           </form>
         </div>
       )}
