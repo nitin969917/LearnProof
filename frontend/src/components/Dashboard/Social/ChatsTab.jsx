@@ -4,6 +4,7 @@ import {
   ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, Sparkles, X, Trash2, CornerUpLeft,
   Phone, Video as VideoIcon, Paperclip, Smile, Mic, Image, FileText, Play, BellOff, Pin
 } from 'lucide-react';
+import { format } from 'date-fns';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
@@ -763,6 +764,11 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     }
   };
 
+  const selectChat = (chat) => {
+    setSelectedChat(chat);
+    navigate(`/dashboard/social/chats/${chat.type}/${chat.id}`);
+  };
+
   // Sync selectedChat state with URL routing to allow proper back navigation support
   useEffect(() => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -774,13 +780,45 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       
       if (chatType && chatIdStr) {
         const chatId = parseInt(chatIdStr, 10);
-        if (!selectedChat || selectedChat.id !== chatId || selectedChat.type !== chatType) {
-          const found = contacts.find(c => c.id === chatId) || groups.find(g => g.id === chatId);
-          if (found) {
-            setSelectedChat({ ...found, type: chatType });
-            localStorage.setItem('social_selected_chat_contact', JSON.stringify({ id: chatId, type: chatType }));
-          } else {
-            setSelectedChat({ id: chatId, type: chatType });
+        const list = chatType === 'direct' ? contacts : groups;
+        const found = list.find(c => c.id?.toString() === chatId.toString());
+
+        if (found) {
+          setSelectedChat(prev => {
+            if (prev && prev.id === chatId && prev.type === chatType && prev.name) {
+              return prev;
+            }
+            return { ...found, type: chatType };
+          });
+          localStorage.setItem('social_selected_chat_contact', JSON.stringify({ id: chatId, type: chatType }));
+        } else if (!selectedChat || selectedChat.id !== chatId || selectedChat.type !== chatType || !selectedChat.name) {
+          // Initialize placeholder while fetching profile
+          if (!selectedChat || selectedChat.id !== chatId || selectedChat.type !== chatType) {
+            setSelectedChat({ id: chatId, type: chatType, name: '' });
+          }
+
+          if (chatType === 'direct') {
+            socialApi.get(`/users/profile/${chatId}`).then(res => {
+              if (res.data) {
+                const fetchedName = res.data.name || res.data.fullName || res.data.username || 'User';
+                setSelectedChat(prev => (prev && prev.id === chatId ? {
+                  ...prev,
+                  ...res.data,
+                  name: fetchedName,
+                  profilePicture: res.data.profilePicture
+                } : prev));
+              }
+            }).catch(() => {});
+          } else if (chatType === 'group') {
+            socialApi.get(`/groups/${chatId}`).then(res => {
+              if (res.data) {
+                setSelectedChat(prev => (prev && prev.id === chatId ? {
+                  ...prev,
+                  ...res.data,
+                  name: res.data.name || 'Group'
+                } : prev));
+              }
+            }).catch(() => {});
           }
         }
       } else {
@@ -789,7 +827,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         }
       }
     }
-  }, [location.pathname, contacts, groups, selectedChat]);
+  }, [location.pathname, contacts, groups]);
 
   // Handle conversation selection change
   useEffect(() => {
@@ -1223,47 +1261,40 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         } flex-col w-full md:w-[350px] lg:w-[380px] shrink-0 border-r border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900`}
       >
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 flex-shrink-0">
-          <div className="flex justify-between items-center">
-            <h2 className="hidden md:flex text-xl font-black text-gray-900 dark:text-white items-center gap-2">
-              <MessageSquare size={22} className="text-orange-500" />
-              <span>Chats</span>
-            </h2>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => setShowNewDirectChatModal(true)}
-                title="New Direct Chat"
-                className="p-2 text-gray-550 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-700 rounded-xl transition cursor-pointer"
-              >
-                <UserPlus size={18} />
-              </button>
-              <button
-                onClick={() => {
-                  setNewGroupData({ name: '', description: '', isPrivate: false, entryKey: '' });
-                  setShowCreateGroupModal(true);
-                }}
-                title="Create Group"
-                className="p-2 text-gray-550 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-700 rounded-xl transition cursor-pointer"
-              >
-                <PlusCircle size={18} />
-              </button>
+        <div className="p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-2.5 sm:gap-3 flex-shrink-0">
+          {/* Unified Search & Action Row */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search chat or group..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-[#202c33] border border-gray-200 dark:border-gray-700 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/25 transition text-gray-900 dark:text-[#e9edef] placeholder-gray-400 font-semibold"
+              />
             </div>
-          </div>
-
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="absolute left-3.5 top-3.5 text-gray-400" size={16} />
-            <input
-              type="text"
-              placeholder="Search chat or group..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#202c33] border border-gray-200 dark:border-gray-700 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/25 transition text-gray-900 dark:text-[#e9edef] placeholder-gray-400 font-semibold"
-            />
+            <button
+              onClick={() => setShowNewDirectChatModal(true)}
+              title="New Direct Chat"
+              className="w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-700 bg-gray-50 dark:bg-[#202c33] border border-gray-200 dark:border-gray-700 rounded-2xl transition cursor-pointer shrink-0 active:scale-95 shadow-xs"
+            >
+              <UserPlus size={18} />
+            </button>
+            <button
+              onClick={() => {
+                setNewGroupData({ name: '', description: '', isPrivate: false, entryKey: '' });
+                setShowCreateGroupModal(true);
+              }}
+              title="Create Group"
+              className="w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-700 bg-gray-50 dark:bg-[#202c33] border border-gray-200 dark:border-gray-700 rounded-2xl transition cursor-pointer shrink-0 active:scale-95 shadow-xs"
+            >
+              <PlusCircle size={18} />
+            </button>
           </div>
 
           {/* Filter Pills */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
+          <div className="flex gap-1.5 overflow-x-auto pb-0.5 hide-scrollbar">
             {[
               { id: 'all', name: 'All' },
               { id: 'direct', name: 'Direct' },
@@ -1308,117 +1339,63 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                 const initials = chat.type === 'group' ? getGroupInitials(chat.name) : '';
                 const lastMsg = chat.lastMessage;
                 const formattedTime = lastMsg 
-                  ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  ? format(new Date(lastMsg.createdAt), 'hh:mm a') 
                   : '';
-
-                const isMuted = chat.isMuted || (chat.type === 'group' && chat.name?.includes('DSA Buddies'));
-                const isPinned = chat.isPinned || (chat.type === 'direct' && chat.name?.includes('Rohit Madage'));
+                const isOnline = chat.type === 'direct' && onlineUserIds.some(id => id.toString() === chat.id.toString());
+                const isTyping = chat.type === 'direct' && typingUsers[chat.id];
 
                 return (
                   <div
-                    key={`${chat.type}-${chat.id}`}
-                    onClick={() => navigate(`/dashboard/social/chats/${chat.type}/${chat.id}`)}
-                    className={`flex items-center gap-3.5 p-4 rounded-[1.5rem] cursor-pointer border transition-all duration-300 select-none ${
-                      isSelected
-                        ? 'bg-orange-500 border-orange-500 text-white shadow-md shadow-orange-500/15'
-                        : 'bg-white dark:bg-gray-850 hover:bg-orange-50/20 dark:hover:bg-orange-950/10 border-gray-100/60 dark:border-gray-800/50 hover:border-orange-500/20 shadow-sm'
+                    key={`${chat.type}_${chat.id}`}
+                    onClick={() => selectChat(chat)}
+                    className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition select-none ${
+                      isSelected 
+                        ? 'bg-orange-50 dark:bg-gray-800/90 border-l-4 border-orange-500 shadow-xs' 
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-800/40 border-l-4 border-transparent'
                     }`}
                   >
-                    {/* Avatar */}
-                    <div className="relative shrink-0 select-none">
+                    <div className="relative shrink-0">
                       {chat.type === 'direct' ? (
                         <UserAvatar 
                           src={chat.profilePicture} 
                           name={chat.name} 
-                          className="w-11 h-11 rounded-full border border-gray-100 dark:border-gray-700" 
+                          className="w-12 h-12 rounded-full border border-gray-200/50 dark:border-gray-700" 
                         />
                       ) : (
-                        <div className={`w-11 h-11 rounded-full flex items-center justify-center font-black text-sm text-white shadow-sm border bg-gradient-to-tr ${
-                          isSelected ? 'from-orange-600 to-amber-600 border-orange-400' : getGradientBg(chat.name)
-                        }`}>
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center font-black text-white bg-gradient-to-tr from-emerald-400 to-teal-500 shadow-xs">
                           {initials}
                         </div>
                       )}
-                      {chat.type === 'direct' && chat.isOnline && (
-                        <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                      {chat.type === 'direct' && isOnline && (
+                        <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></span>
                       )}
                     </div>
-
-                    {/* Middle Info Block */}
-                    <div className="min-w-0 flex-1 text-left">
-                      <h3 className={`text-sm truncate mb-1 flex items-center gap-1.5 ${
-                        isSelected ? 'font-black text-white' : 'font-extrabold text-gray-800 dark:text-gray-200'
-                      }`}>
-                        <span>{chat.name}</span>
-                        {chat.type === 'direct' && chat.isOnline && (
-                          <span className="w-1.5 h-1.5 bg-green-500 rounded-full shrink-0 animate-pulse" title="Online" />
-                        )}
-                      </h3>
-                      
-                      <p className={`text-xs truncate font-semibold leading-normal ${
-                        isSelected ? 'text-white opacity-85' : 'text-gray-400 dark:text-gray-500'
-                      }`}>
-                        {chat.type === 'direct' && typingUsers[chat.id] ? (
-                          <span className={isSelected ? 'text-white italic animate-pulse font-bold' : 'text-green-500 italic animate-pulse font-bold'}>
-                            typing...
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline mb-1">
+                        <h4 className="text-sm font-black text-gray-900 dark:text-white truncate">
+                          {chat.name}
+                        </h4>
+                        {formattedTime && (
+                          <span className="text-[10px] text-gray-400 dark:text-gray-550 font-bold shrink-0 ml-1">
+                            {formattedTime}
                           </span>
-                        ) : lastMsg ? (
-                          <span className="flex items-center gap-1 min-w-0 truncate">
-                            {chat.type === 'group' && lastMsg.sender?.name && (
-                              <span className={`font-bold mr-1 shrink-0 ${isSelected ? 'text-white' : 'text-gray-550 dark:text-gray-400'}`}>
-                                {lastMsg.senderId === currentUserId ? 'You' : lastMsg.sender.name}:
-                              </span>
-                            )}
-                            <span className={`truncate ${lastMsg.isDeleted ? 'italic opacity-60' : ''}`}>
-                              {lastMsg.isDeleted ? (
-                                'This message was deleted'
-                              ) : lastMsg.isFile ? (
-                                <span className="inline-flex items-center gap-1">
-                                  <Paperclip size={11} className="shrink-0" />
-                                  <span>{lastMsg.fileName || 'Shared a File'}</span>
-                                </span>
-                              ) : lastMsg.isVoiceNote ? (
-                                <span className="inline-flex items-center gap-1">
-                                  <Mic size={11} className="shrink-0 animate-pulse" />
-                                  <span>Voice message</span>
-                                </span>
-                              ) : (() => {
-                                try {
-                                  const p = JSON.parse(lastMsg.content);
-                                  if (p && typeof p === 'object') {
-                                    if (p.type === 'call') {
-                                      return p.mediaType === 'video' ? '📹 Video Call' : '📞 Audio Call';
-                                    }
-                                    if (p.text !== undefined) return p.text;
-                                  }
-                                } catch (e) {}
-                                return lastMsg.content;
-                              })()}
-                            </span>
-                          </span>
-                        ) : (
-                          chat.type === 'group' ? 'Tap to start group chat' : 'No messages yet'
                         )}
-                      </p>
-                    </div>
-
-                    {/* Right Meta Column */}
-                    <div className="flex flex-col items-end justify-between gap-1.5 shrink-0 select-none ml-1 self-stretch py-0.5">
-                      <span className={`text-[10px] font-bold ${isSelected ? 'text-orange-100' : 'text-gray-450 dark:text-gray-500'}`}>
-                        {formattedTime}
-                      </span>
+                      </div>
                       
-                      <div className="flex items-center gap-1.5 min-h-[20px]">
-                        {isMuted && (
-                          <BellOff size={12} className={isSelected ? 'text-orange-100' : 'text-gray-450 dark:text-gray-500'} />
-                        )}
-                        {isPinned && (
-                          <Pin size={12} className={`rotate-45 ${isSelected ? 'text-orange-100' : 'text-gray-450 dark:text-gray-550'}`} />
-                        )}
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate font-semibold">
+                          {isTyping ? (
+                            <span className="text-green-500 italic font-black animate-pulse">typing...</span>
+                          ) : lastMsg ? (
+                            (lastMsg.senderId === currentUserId ? 'You: ' : '') + parseMessageContent(lastMsg).text
+                          ) : (
+                            chat.type === 'group' ? 'Tap to open group' : 'Tap to start chatting'
+                          )}
+                        </p>
+                        
                         {chat.unreadCount > 0 && (
-                          <span className={`text-[10px] font-black rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center ${
-                            isSelected ? 'bg-white text-orange-600' : 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
-                          }`}>
+                          <span className="bg-orange-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shrink-0 ml-1 min-w-[18px] text-center shadow-xs">
                             {chat.unreadCount}
                           </span>
                         )}
@@ -1438,7 +1415,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         onTouchEnd={handleChatTouchEnd}
         className={`${
           selectedChat 
-            ? 'flex fixed inset-0 z-[70] md:static md:z-auto' 
+            ? 'flex fixed inset-0 z-[70] md:static md:z-auto w-full h-[100dvh] md:h-full' 
             : 'hidden md:flex'
         } flex-1 flex-row h-full min-h-0 bg-white dark:bg-gray-900 relative`}
       >
@@ -1471,19 +1448,21 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   {selectedChat.type === 'direct' ? (
                     <UserAvatar 
                       src={selectedChat.profilePicture} 
-                      name={selectedChat.name} 
+                      name={selectedChat.name || 'User'} 
                       className="w-10 h-10 rounded-full border border-gray-200/50 dark:border-gray-700 shrink-0" 
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm text-white bg-gradient-to-tr from-emerald-400 to-teal-500 shrink-0 shadow-sm">
-                      {getGroupInitials(selectedChat.name)}
+                      {getGroupInitials(selectedChat.name || 'Group')}
                     </div>
                   )}
 
                   {/* Metadata */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <h3 className="font-black text-gray-900 dark:text-white text-sm truncate">{selectedChat.name}</h3>
+                      <h3 className="font-black text-gray-900 dark:text-white text-sm truncate">
+                        {selectedChat.name || (selectedChat.type === 'direct' ? 'Friend' : 'Group')}
+                      </h3>
                       {selectedChat.type === 'group' && (
                         selectedChat.isPrivate ? (
                           <span className="flex items-center gap-0.5 text-[9px] text-red-500 bg-red-50 dark:bg-red-950/20 px-1 rounded-md font-black uppercase">
@@ -1802,7 +1781,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   Only admins can send messages in this group
                 </div>
               ) : (
-                <div className="border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 z-10 p-2 md:p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+                <div className="border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 z-10 p-3 sm:p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
                   
                   {/* Selected File Preview */}
                   {selectedFile && (

@@ -1202,7 +1202,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         )}
 
         {/* Chat Input */}
-        <div className="p-2 border-t border-gray-200 dark:border-white/5 bg-white dark:bg-gray-900 shrink-0">
+        <div className="p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] border-t border-gray-200 dark:border-white/5 bg-white dark:bg-gray-900 shrink-0">
           <form onSubmit={handleSendChat} className="flex gap-2 items-center w-full">
             <input
               type="text"

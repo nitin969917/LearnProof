@@ -361,7 +361,7 @@ export default function SocialDashboard() {
 
       {/* Main Content Area (Scrollable container) */}
       <div className={`flex-1 w-full relative ${(hideHeader || activeTab === 'chat') ? 'overflow-hidden md:overflow-y-auto' : 'overflow-y-auto'}`}>
-        <div className={`w-full mx-auto ${(hideHeader || activeTab === 'chat') ? 'px-0 md:px-6 py-0 md:py-6 pb-24 lg:pb-6 h-full' : 'px-4 md:px-6 py-6 pb-28 lg:pb-6'}`}>
+        <div className={`w-full mx-auto ${(hideHeader || activeTab === 'chat') ? 'px-0 md:px-6 py-0 md:py-6 pb-0 lg:pb-6 h-full' : 'px-4 md:px-6 py-6 pb-28 lg:pb-6'}`}>
 
           {/* Tab Panels */}
           <div className={`w-full ${(hideHeader || activeTab === 'chat') ? 'h-full' : ''}`}>
