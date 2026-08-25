@@ -249,18 +249,24 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
           
           {/* Back action and selector header row */}
           <div className="flex items-center justify-between gap-3">
-            <button
-              onClick={() => {
-                setQuery('');
-                setResults([]);
-                setSearchType('students');
-                setHasSearched(false);
-              }}
-              className="flex items-center gap-1.5 text-[11px] font-extrabold text-gray-550 hover:text-orange-500 dark:text-gray-400 dark:hover:text-orange-400 transition cursor-pointer bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3.5 py-2 rounded-xl"
-            >
-              <ArrowLeft size={13} />
-              <span>Back to Explorer</span>
-            </button>
+            {searchType === 'students' ? (
+              <button
+                onClick={() => {
+                  setQuery('');
+                  setResults([]);
+                  setSearchType('students');
+                  setHasSearched(false);
+                }}
+                className="flex items-center gap-1.5 text-[11px] font-extrabold text-gray-550 hover:text-orange-500 dark:text-gray-400 dark:hover:text-orange-400 transition cursor-pointer bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3.5 py-2 rounded-xl"
+              >
+                <ArrowLeft size={13} />
+                <span>Back to Explorer</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-gray-900 dark:text-white text-sm sm:text-base">Explore Groups</h3>
+              </div>
+            )}
             
             <div className="flex gap-1 p-0.5 bg-gray-100 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800">
               <button

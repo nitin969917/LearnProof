@@ -375,6 +375,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     { onlySubscribed: false }
   );
 
+  // Clean up all lingering room toasts when leaving the component
+  useEffect(() => {
+    return () => {
+      toast.dismiss();
+    };
+  }, []);
+
   // Filter tracks to show only participants that are stage speakers (host or has publish permission)
   const stageTracks = tracks.filter(t => {
     const p = t.participant;
@@ -709,10 +716,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         targetIdentity: identity,
         hostName: localParticipant.name || 'Host'
       }, [identity]);
-      toast.success(`Stage invitation sent to ${pName || 'user'}!`);
+      toast.success(`Stage invitation sent to ${pName || 'user'}!`, { id: `invite-${identity}`, duration: 2500 });
     } catch (err) {
       console.error('[Signal] Failed to invite to stage:', err);
-      toast.error('Failed to send stage invitation.');
+      toast.error('Failed to send stage invitation.', { id: `invite-err-${identity}` });
     }
   };
 
@@ -757,6 +764,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     if (currentSpeakersCount >= 6) {
       toast.error('The stage is full! Maximum of 6 speakers allowed.', {
+        id: 'stage-full',
         style: { background: '#ef4444', color: '#fff', fontWeight: '700' }
       });
       return;
@@ -768,14 +776,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       try {
         await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`);
       } catch (_) {}
-      toast.success(`${pName || 'User'} is now on stage!`, { icon: '🎤' });
       // Notify the promoted user via data channel
       try {
         await sendSignal({ type: 'you_were_promoted' }, [identity]);
       } catch (_) {}
     } catch (err) {
       console.error('[Promote]', err);
-      toast.error(err.response?.data?.error || 'Failed to promote user.');
+      toast.error(err.response?.data?.error || 'Failed to promote user.', { id: `promote-err-${identity}` });
     }
   };
 
@@ -873,21 +880,20 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           }
         } else if (data.type === 'you_were_promoted') {
           // Triggered when host approves a speak request
-          toast.success('You are now on stage! 🎤', { duration: 4000 });
+          toast.success('You are now on stage! 🎤', { id: 'on-stage-self', duration: 3000 });
           setHasRequested(false);
         } else if (data.type === 'accept_invite_response') {
           if (amIHost()) {
-            toast(`${data.name || 'User'} accepted the stage invitation!`, { icon: '🎤' });
             if (handlePromoteSpeakerRef.current) {
               handlePromoteSpeakerRef.current(data.identity, data.name);
             }
           }
         } else if (data.type === 'decline_invite_response') {
           if (amIHost()) {
-            toast.error(`${data.name || 'User'} declined the stage invitation.`);
+            toast.error(`${data.name || 'User'} declined the stage invitation.`, { id: `decline-${data.identity || 'user'}`, duration: 3000 });
           }
         } else if (data.type === 'room_ended') {
-          toast.error('The host has ended this session.', { duration: 5000 });
+          toast.error('The host has ended this session.', { id: 'room-ended', duration: 4000 });
           localStorage.removeItem(`livekit_stage_${roomName}`);
           localStorage.removeItem(`livekit_mic_${roomName}`);
           localStorage.removeItem(`livekit_cam_${roomName}`);

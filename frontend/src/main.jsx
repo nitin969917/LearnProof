@@ -60,10 +60,16 @@ createRoot(document.getElementById('root')).render(
     <AuthProvider>
       <App />
       <Toaster
-        position='top-right'
+        position='top-center'
+        reverseOrder={false}
+        gutter={8}
         toastOptions={{
+          duration: 2500,
           style: {
-            fontSize: '0.875rem',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            borderRadius: '0.75rem',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
           }
         }}
       />
