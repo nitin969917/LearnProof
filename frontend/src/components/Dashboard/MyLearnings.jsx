@@ -255,10 +255,11 @@ const MyLearnings = () => {
                         className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
                     />
                 </div>
-                {/* Tab Switcher */}
-                <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-x-auto hide-scrollbar gap-0.5 max-w-md">
+                {/* Modern Segmented Tab Switcher */}
+                <div className="w-full sm:max-w-md grid grid-cols-3 p-1 sm:p-1.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-2xl shadow-sm gap-1">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
+                        const isActive = activeTab === tab.id;
                         return (
                             <button
                                 key={tab.id}
@@ -266,21 +267,21 @@ const MyLearnings = () => {
                                     setActiveTab(tab.id);
                                     setSearchQuery("");
                                 }}
-                                className={`relative flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex-1 ${
-                                    activeTab === tab.id
+                                className={`relative flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl font-bold text-xs transition-all duration-300 select-none cursor-pointer z-10 ${
+                                    isActive
                                         ? "text-white"
-                                        : "text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
+                                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                                 }`}
                             >
-                                {activeTab === tab.id && (
+                                {isActive && (
                                     <motion.div
                                         layoutId="activeTabLibrary"
-                                        className="absolute inset-0 bg-orange-500 rounded-lg shadow-lg shadow-orange-500/20"
-                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                        className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl shadow-md shadow-orange-500/25 -z-10"
+                                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                                     />
                                 )}
-                                <Icon size={13} className="relative z-10" />
-                                <span className="relative z-10">{tab.label}</span>
+                                <Icon size={15} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                                <span className="font-extrabold tracking-tight truncate">{tab.label}</span>
                             </button>
                         );
                     })}
