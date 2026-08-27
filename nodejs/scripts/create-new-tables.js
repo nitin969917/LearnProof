@@ -56,7 +56,8 @@ async function createAllTables() {
         "name" TEXT NOT NULL,
         "url" TEXT NOT NULL,
         "thumbnail" TEXT,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "imported_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "duration_goal" INTEGER,
         CONSTRAINT "Playlist_pkey" PRIMARY KEY ("id")
     );`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "Playlist_userId_pid_key" ON "Playlist"("userId", "pid");`,
@@ -64,52 +65,59 @@ async function createAllTables() {
     // 5. Video
     `CREATE TABLE IF NOT EXISTS "Video" (
         "id" SERIAL NOT NULL,
-        "playlistId" INTEGER NOT NULL,
+        "userId" INTEGER NOT NULL,
         "vid" TEXT NOT NULL,
-        "title" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
         "url" TEXT NOT NULL,
-        "thumbnail" TEXT,
+        "description" TEXT,
+        "playlistId" INTEGER,
+        "imported_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "watch_progress" DOUBLE PRECISION NOT NULL DEFAULT 0.0,
         "is_completed" BOOLEAN NOT NULL DEFAULT false,
-        "completed_at" TIMESTAMP(3),
-        "last_watched_at" TIMESTAMP(3),
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "position" INTEGER NOT NULL DEFAULT 0,
+        "duration_seconds" INTEGER NOT NULL DEFAULT 0,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "Video_pkey" PRIMARY KEY ("id")
     );`,
-    `CREATE UNIQUE INDEX IF NOT EXISTS "Video_playlistId_vid_key" ON "Video"("playlistId", "vid");`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Video_userId_vid_key" ON "Video"("userId", "vid");`,
 
     // 6. UserActivityLog
     `CREATE TABLE IF NOT EXISTS "UserActivityLog" (
         "id" SERIAL NOT NULL,
         "userId" INTEGER NOT NULL,
-        "activity_date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "activity_type" TEXT NOT NULL DEFAULT 'WATCH_VIDEO',
+        "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "UserActivityLog_pkey" PRIMARY KEY ("id")
     );`,
 
     // 7. VideoNote
     `CREATE TABLE IF NOT EXISTS "VideoNote" (
         "id" SERIAL NOT NULL,
-        "videoId" INTEGER NOT NULL,
-        "note" TEXT NOT NULL,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "userId" INTEGER NOT NULL,
+        "vid" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "VideoNote_pkey" PRIMARY KEY ("id")
     );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "VideoNote_userId_vid_key" ON "VideoNote"("userId", "vid");`,
 
     // 8. VideoNoteFile
     `CREATE TABLE IF NOT EXISTS "VideoNoteFile" (
         "id" SERIAL NOT NULL,
-        "videoId" INTEGER NOT NULL,
-        "file_name" TEXT NOT NULL,
-        "file_url" TEXT NOT NULL,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "noteId" INTEGER NOT NULL,
+        "file" TEXT NOT NULL,
+        "original_name" TEXT,
+        "uploaded_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "VideoNoteFile_pkey" PRIMARY KEY ("id")
     );`,
 
     // 9. VideoComment
     `CREATE TABLE IF NOT EXISTS "VideoComment" (
         "id" SERIAL NOT NULL,
-        "videoId" INTEGER NOT NULL,
-        "comment" TEXT NOT NULL,
+        "userId" INTEGER NOT NULL,
+        "vid" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "parentId" INTEGER,
         "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "VideoComment_pkey" PRIMARY KEY ("id")
     );`,
@@ -117,31 +125,38 @@ async function createAllTables() {
     // 10. VideoIntuition
     `CREATE TABLE IF NOT EXISTS "VideoIntuition" (
         "id" SERIAL NOT NULL,
-        "videoId" INTEGER NOT NULL,
-        "data" TEXT NOT NULL,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "vid" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "model_name" TEXT,
+        "transcript_used" BOOLEAN NOT NULL DEFAULT false,
+        "generated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "VideoIntuition_pkey" PRIMARY KEY ("id")
     );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "VideoIntuition_vid_key" ON "VideoIntuition"("vid");`,
 
     // 11. VideoQuizData
     `CREATE TABLE IF NOT EXISTS "VideoQuizData" (
         "id" SERIAL NOT NULL,
-        "videoId" INTEGER NOT NULL,
-        "data" TEXT NOT NULL,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "vid" TEXT NOT NULL,
+        "questions" TEXT NOT NULL,
+        "generated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "VideoQuizData_pkey" PRIMARY KEY ("id")
     );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "VideoQuizData_vid_key" ON "VideoQuizData"("vid");`,
 
     // 12. Quiz
     `CREATE TABLE IF NOT EXISTS "Quiz" (
         "id" SERIAL NOT NULL,
         "userId" INTEGER NOT NULL,
-        "videoId" INTEGER NOT NULL,
-        "total_questions" INTEGER NOT NULL,
-        "correct_answers" INTEGER NOT NULL,
-        "passed" BOOLEAN NOT NULL DEFAULT false,
+        "videoId" INTEGER,
+        "playlistId" INTEGER,
+        "questions" TEXT NOT NULL,
+        "user_answers" TEXT,
+        "score" DOUBLE PRECISION,
+        "passed" BOOLEAN,
         "is_combined" BOOLEAN NOT NULL DEFAULT false,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "time_limit" INTEGER NOT NULL DEFAULT 15,
+        "attempted_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "Quiz_pkey" PRIMARY KEY ("id")
     );`,
 
@@ -149,10 +164,11 @@ async function createAllTables() {
     `CREATE TABLE IF NOT EXISTS "Certificate" (
         "id" SERIAL NOT NULL,
         "userId" INTEGER NOT NULL,
-        "playlistId" INTEGER NOT NULL,
+        "videoId" INTEGER,
+        "playlistId" INTEGER,
         "certificate_id" TEXT NOT NULL,
-        "certificate_url" TEXT NOT NULL,
         "issued_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "download_url" TEXT,
         CONSTRAINT "Certificate_pkey" PRIMARY KEY ("id")
     );`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "Certificate_certificate_id_key" ON "Certificate"("certificate_id");`,
@@ -185,6 +201,7 @@ async function createAllTables() {
         "userId" INTEGER NOT NULL,
         "token" TEXT NOT NULL,
         "deviceType" TEXT,
+        "timezone" TEXT NOT NULL DEFAULT 'UTC',
         "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "UserFcmToken_pkey" PRIMARY KEY ("id")
@@ -197,19 +214,20 @@ async function createAllTables() {
         "type" TEXT NOT NULL,
         "title" TEXT NOT NULL,
         "body" TEXT NOT NULL,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "hour" INTEGER NOT NULL DEFAULT 9,
+        "minute" INTEGER NOT NULL DEFAULT 0,
+        "enabled" BOOLEAN NOT NULL DEFAULT true,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "NotificationTemplate_pkey" PRIMARY KEY ("id")
     );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "NotificationTemplate_type_key" ON "NotificationTemplate"("type");`,
 
     // 18. SentNotification
     `CREATE TABLE IF NOT EXISTS "SentNotification" (
         "id" SERIAL NOT NULL,
-        "userId" INTEGER,
-        "deviceId" TEXT,
-        "title" TEXT NOT NULL,
-        "body" TEXT NOT NULL,
+        "userId" INTEGER NOT NULL,
         "type" TEXT NOT NULL,
-        "sent_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "sentAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "SentNotification_pkey" PRIMARY KEY ("id")
     );`,
 
@@ -219,8 +237,10 @@ async function createAllTables() {
         "userId" INTEGER NOT NULL,
         "subject" TEXT NOT NULL,
         "message" TEXT NOT NULL,
-        "status" TEXT NOT NULL DEFAULT 'open',
+        "status" TEXT NOT NULL DEFAULT 'OPEN',
+        "priority" TEXT NOT NULL DEFAULT 'NORMAL',
         "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "SupportTicket_pkey" PRIMARY KEY ("id")
     );`,
 
@@ -228,8 +248,8 @@ async function createAllTables() {
     `CREATE TABLE IF NOT EXISTS "SupportResponse" (
         "id" SERIAL NOT NULL,
         "ticketId" INTEGER NOT NULL,
+        "adminId" INTEGER,
         "message" TEXT NOT NULL,
-        "isAdmin" BOOLEAN NOT NULL DEFAULT false,
         "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "SupportResponse_pkey" PRIMARY KEY ("id")
     );`,
