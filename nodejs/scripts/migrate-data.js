@@ -3,7 +3,14 @@ const { PrismaClient } = require('@prisma/client');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-const prisma = new PrismaClient();
+const dbUrl = process.env.DATABASE_URL || 'postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30';
+const prisma = new PrismaClient({
+    datasources: {
+        db: {
+            url: dbUrl
+        }
+    }
+});
 
 async function migrate() {
     const mysqlUrl = process.env.MYSQL_DATABASE_URL || "mysql://u529802313_Learn_platform:Nitin%40225111@srv1339.hstgr.io:3306/u529802313_Learn_platform";
