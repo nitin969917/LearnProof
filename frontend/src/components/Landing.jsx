@@ -333,29 +333,13 @@ const LandingPage = () => {
 
             await login({ credential: idToken });
             
-            const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/login/`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ idToken }),
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.details || errorData.error || "Backend login failed");
-            }
-
-            const data = await res.json();
-            console.log("User synced with backend:", data);
-
             sessionStorage.removeItem("is_logging_in");
             const redirectTo = sessionStorage.getItem("redirect_to") || "/dashboard";
             sessionStorage.removeItem("redirect_to");
             navigate(redirectTo);
         } catch (err) {
             console.error("Google login error:", err);
-            toast.error(`Login failed: ${err.message}`);
+            toast.error(`Login failed: ${err.message || 'Please try again.'}`);
             setIsLoggingIn(false);
             sessionStorage.removeItem("is_logging_in");
         }

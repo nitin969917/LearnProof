@@ -26,6 +26,7 @@ const verifyFirebaseToken = async (idToken) => {
             idToken,
             audience: [
                 process.env.GOOGLE_CLIENT_ID,
+                '557947080645-2iqd1t1h79b273ktjqthcg6q23k9pem1.apps.googleusercontent.com', // Production Web Client ID
                 '549492309059-6k98pip4c51rdsh69cls1s7ti2s8ci8n.apps.googleusercontent.com', // iOS Client ID
                 '549492309059-gnp3l12c78becf8v2svifc31f7g0epm7.apps.googleusercontent.com', // Android Debug Client ID
                 '549492309059-bubrnj34doiq581gccf8bj9qs9u09miv.apps.googleusercontent.com', // Android Release Client ID
@@ -61,17 +62,28 @@ const authMiddleware = async (req, res, next) => {
         // 1. Try Custom JWT first (Long-lived session)
         try {
             const decoded = jwt.verify(idToken, JWT_SECRET);
-            if (decoded && decoded.uid) {
-                console.log('Valid Custom JWT session for:', decoded.uid);
-                const cacheKey = `user:profile:${decoded.uid}`;
+            const userUid = decoded.uid || decoded.sub;
+            if (decoded && userUid) {
+                console.log('Valid Custom JWT session for:', userUid);
+                const cacheKey = `user:profile:${userUid}`;
                 let user = await cacheService.get(cacheKey);
                 if (!user) {
-                    user = await prisma.userProfile.findUnique({ where: { uid: decoded.uid } });
+                    user = await prisma.userProfile.findUnique({ where: { uid: userUid } });
+                    if (!user) {
+                        user = await prisma.userProfile.create({
+                            data: {
+                                uid: userUid,
+                                email: decoded.email || '',
+                                name: decoded.name || 'User',
+                                profile_pic: decoded.picture || ''
+                            }
+                        });
+                    }
                     if (user) await cacheService.set(cacheKey, user, 3600);
                 }
                 
                 if (user) {
-                    req.user = { ...decoded, ...user, id: user.id };
+                    req.user = { ...decoded, ...user, id: user.id, uid: userUid };
                     return next();
                 }
             }

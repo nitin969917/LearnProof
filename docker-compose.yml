@@ -12,6 +12,7 @@ services:
       - SOCIAL_DATABASE_URL=postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30
       - REDIS_URL=redis://cache:6379
       - NODE_ENV=production
+      - GOOGLE_CLIENT_ID=557947080645-2iqd1t1h79b273ktjqthcg6q23k9pem1.apps.googleusercontent.com
       - MATRIX_HOMESERVER_URL=http://conduit:8008
       - MATRIX_CLIENT_HOMESERVER_URL=https://learnproofai.com
     env_file:

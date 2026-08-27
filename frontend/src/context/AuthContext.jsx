@@ -12,12 +12,15 @@ axios.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-            localStorage.removeItem("google_token");
-            disconnectMatrixClient();
-            // If they are on a dashboard/classroom route, redirect to home page to force re-login
-            if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom")) {
-                sessionStorage.setItem("redirect_to", window.location.pathname + window.location.search);
-                window.location.href = "/";
+            const isLoginRequest = error.config?.url?.includes('/api/login');
+            if (!isLoginRequest) {
+                localStorage.removeItem("google_token");
+                disconnectMatrixClient();
+                // If they are on a dashboard/classroom route, redirect to home page to force re-login
+                if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom")) {
+                    sessionStorage.setItem("redirect_to", window.location.pathname + window.location.search);
+                    window.location.href = "/";
+                }
             }
         }
         return Promise.reject(error);
