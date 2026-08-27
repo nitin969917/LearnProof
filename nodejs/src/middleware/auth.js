@@ -26,6 +26,7 @@ const verifyFirebaseToken = async (idToken) => {
             idToken,
             audience: [
                 process.env.GOOGLE_CLIENT_ID,
+                '557947080645-2iqd1t1h79b273ktjqthcg6q23k9pem1.apps.googleusercontent.com', // Production Web Client ID
                 '549492309059-6k98pip4c51rdsh69cls1s7ti2s8ci8n.apps.googleusercontent.com', // iOS Client ID
                 '549492309059-gnp3l12c78becf8v2svifc31f7g0epm7.apps.googleusercontent.com', // Android Debug Client ID
                 '549492309059-bubrnj34doiq581gccf8bj9qs9u09miv.apps.googleusercontent.com', // Android Release Client ID
