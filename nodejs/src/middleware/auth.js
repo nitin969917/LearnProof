@@ -62,17 +62,28 @@ const authMiddleware = async (req, res, next) => {
         // 1. Try Custom JWT first (Long-lived session)
         try {
             const decoded = jwt.verify(idToken, JWT_SECRET);
-            if (decoded && decoded.uid) {
-                console.log('Valid Custom JWT session for:', decoded.uid);
-                const cacheKey = `user:profile:${decoded.uid}`;
+            const userUid = decoded.uid || decoded.sub;
+            if (decoded && userUid) {
+                console.log('Valid Custom JWT session for:', userUid);
+                const cacheKey = `user:profile:${userUid}`;
                 let user = await cacheService.get(cacheKey);
                 if (!user) {
-                    user = await prisma.userProfile.findUnique({ where: { uid: decoded.uid } });
+                    user = await prisma.userProfile.findUnique({ where: { uid: userUid } });
+                    if (!user) {
+                        user = await prisma.userProfile.create({
+                            data: {
+                                uid: userUid,
+                                email: decoded.email || '',
+                                name: decoded.name || 'User',
+                                profile_pic: decoded.picture || ''
+                            }
+                        });
+                    }
                     if (user) await cacheService.set(cacheKey, user, 3600);
                 }
                 
                 if (user) {
-                    req.user = { ...decoded, ...user, id: user.id };
+                    req.user = { ...decoded, ...user, id: user.id, uid: userUid };
                     return next();
                 }
             }
