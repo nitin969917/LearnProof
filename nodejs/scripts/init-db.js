@@ -10,14 +10,18 @@ const mysqlUrl = process.env.MYSQL_DATABASE_URL || "mysql://u529802313_Learn_pla
 async function init() {
     console.log('🚀 [DB Init] Starting automatic database verification and sync...');
 
+    const appDir = path.join(__dirname, '..');
+
     // 1. Push schema.prisma
     try {
         console.log('📦 [DB Init] Pushing Prisma schemas...');
         execSync(`npx prisma db push --schema=prisma/schema.prisma --accept-data-loss`, {
+            cwd: appDir,
             stdio: 'inherit',
             env: { ...process.env, DATABASE_URL: dbUrl }
         });
         execSync(`npx prisma db push --schema=prisma/dating.prisma --accept-data-loss`, {
+            cwd: appDir,
             stdio: 'inherit',
             env: { ...process.env, DATABASE_URL: socialDbUrl }
         });
@@ -93,6 +97,7 @@ async function init() {
             console.log('🔄 [DB Init] social_users is empty, importing from dating-dev.db...');
             try {
                 execSync(`node scripts/migrate-social-to-postgres.js`, {
+                    cwd: appDir,
                     stdio: 'inherit',
                     env: { ...process.env, SOCIAL_DATABASE_URL: socialDbUrl }
                 });
