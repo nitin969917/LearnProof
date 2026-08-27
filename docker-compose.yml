@@ -46,11 +46,11 @@ services:
       - ./nodejs/prisma/learning_schema.sql:/docker-entrypoint-initdb.d/01_learning_schema.sql:ro
       - ./nodejs/prisma/dating_schema.sql:/docker-entrypoint-initdb.d/02_dating_schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d learnproof_db"]
-      interval: 2s
-      timeout: 3s
-      retries: 15
-      start_period: 2s
+      test: ["CMD-SHELL", "pg_isready -U user -d learnproof_db || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
   cache:
     image: redis:7-alpine
     container_name: learnproof-cache
