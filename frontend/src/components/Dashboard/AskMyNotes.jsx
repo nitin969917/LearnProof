@@ -751,17 +751,10 @@ const AskMyNotes = () => {
     }, [quizResult, activeWorkspace]);
 
     const fetchWorkspaces = async () => {
-        const token = localStorage.getItem('google_token');
-        if (!token) {
-            setWorkspaces([]);
-            setLoadingWorkspaces(false);
-            return;
-        }
-
         setLoadingWorkspaces(true);
         try {
             const res = await socialApi.get('/workspaces');
-            const list = res.data?.workspaces || [];
+            const list = res.data.workspaces || [];
             setWorkspaces(list);
 
             if (subjectId) {
@@ -776,9 +769,7 @@ const AskMyNotes = () => {
             }
         } catch (err) {
             console.error('Failed to fetch workspaces:', err);
-            if (err.response?.status !== 401 && err.code !== 'ERR_CANCELED') {
-                toast.error('Failed to load workspaces', { id: 'ws-load-error' });
-            }
+            toast.error('Failed to load workspaces');
         } finally {
             setLoadingWorkspaces(false);
         }

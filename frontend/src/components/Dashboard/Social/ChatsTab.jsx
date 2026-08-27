@@ -4,6 +4,7 @@ import {
   ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, Sparkles, X, Trash2, CornerUpLeft,
   Phone, Video as VideoIcon, Paperclip, Smile, Mic, Image, FileText, Play, BellOff, Pin
 } from 'lucide-react';
+import { format } from 'date-fns';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
@@ -1175,16 +1176,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     return name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'GP';
   };
 
-  const formatChatTime = (dateStr) => {
-    if (!dateStr) return '';
-    try {
-      const d = new Date(dateStr);
-      return isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return '';
-    }
-  };
-
   // Filter and search active chats
   const activeConversations = [];
   
@@ -1348,7 +1339,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                 const initials = chat.type === 'group' ? getGroupInitials(chat.name) : '';
                 const lastMsg = chat.lastMessage;
                 const formattedTime = lastMsg 
-                  ? formatChatTime(lastMsg.createdAt) 
+                  ? format(new Date(lastMsg.createdAt), 'hh:mm a') 
                   : '';
                 const isOnline = chat.type === 'direct' && onlineUserIds.some(id => id.toString() === chat.id.toString());
                 const isTyping = chat.type === 'direct' && typingUsers[chat.id];
