@@ -187,7 +187,8 @@ async function init() {
             FROM social_users s
             WHERE NOT EXISTS (
                 SELECT 1 FROM "UserProfile" u WHERE u.email = s.email
-            );
+            )
+            ON CONFLICT (email) DO NOTHING;
         `);
         const finalRes = await pgClient.query('SELECT count(*) FROM "UserProfile";');
         console.log(`🎉 [DB Init] Total synchronized users in UserProfile: ${finalRes.rows[0].count}`);
