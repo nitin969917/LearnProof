@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: learnproof-app
     restart: always
-    command: sh -c "npx prisma db push --schema=prisma/schema.prisma --accept-data-loss && npx prisma db push --schema=prisma/dating.prisma --accept-data-loss && pm2-runtime start server.js -i max --name learnproof"
+    command: sh -c "DATABASE_URL='postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30' npx prisma db push --schema=prisma/schema.prisma --accept-data-loss && SOCIAL_DATABASE_URL='postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30' npx prisma db push --schema=prisma/dating.prisma --accept-data-loss && pm2-runtime start server.js -i max --name learnproof"
     ports:
       - "8000:8000"
     environment:
