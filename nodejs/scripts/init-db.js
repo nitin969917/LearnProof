@@ -7,12 +7,21 @@ const dbUrl = process.env.DATABASE_URL || 'postgresql://user:password@db:5432/le
 const socialDbUrl = process.env.SOCIAL_DATABASE_URL || 'postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30';
 const mysqlUrl = process.env.MYSQL_DATABASE_URL || "mysql://u529802313_Learn_platform:Nitin%40225111@srv1339.hstgr.io:3306/u529802313_Learn_platform";
 
+const { createAllTables } = require('./create-new-tables');
+
 async function init() {
     console.log('🚀 [DB Init] Starting automatic database verification and sync...');
 
     const appDir = path.join(__dirname, '..');
 
-    // 1. Push schema.prisma
+    // 1. Ensure all tables exist in PostgreSQL
+    try {
+        await createAllTables();
+    } catch (err) {
+        console.error('⚠️ [DB Init] Error creating tables:', err.message);
+    }
+
+    // 2. Push schema.prisma & dating.prisma
     try {
         console.log('📦 [DB Init] Pushing Prisma schemas...');
         execSync(`npx prisma db push --schema=prisma/schema.prisma --accept-data-loss`, {
