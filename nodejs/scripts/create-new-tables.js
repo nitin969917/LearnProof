@@ -260,27 +260,31 @@ async function createAllTables() {
         "userId" INTEGER NOT NULL,
         "name" TEXT NOT NULL,
         "description" TEXT,
-        "icon" TEXT,
-        "color" TEXT,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "difyDatasetId" TEXT,
+        "knowledgeMap" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "Workspace_pkey" PRIMARY KEY ("id")
     );`,
+    `CREATE INDEX IF NOT EXISTS "Workspace_userId_idx" ON "Workspace"("userId");`,
 
     // 22. KnowledgeSource
     `CREATE TABLE IF NOT EXISTS "KnowledgeSource" (
         "id" SERIAL NOT NULL,
         "workspaceId" INTEGER NOT NULL,
         "type" TEXT NOT NULL,
-        "title" TEXT NOT NULL,
-        "content" TEXT,
-        "url" TEXT,
-        "filePath" TEXT,
+        "name" TEXT NOT NULL,
+        "fileUrl" TEXT,
+        "sourceUrl" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'PENDING',
+        "errorMessage" TEXT,
         "metadata" TEXT,
-        "status" TEXT NOT NULL DEFAULT 'ready',
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "difyDocumentId" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "KnowledgeSource_pkey" PRIMARY KEY ("id")
     );`,
+    `CREATE INDEX IF NOT EXISTS "KnowledgeSource_workspaceId_idx" ON "KnowledgeSource"("workspaceId");`,
 
     // 23. WorkspaceNote
     `CREATE TABLE IF NOT EXISTS "WorkspaceNote" (
@@ -288,53 +292,62 @@ async function createAllTables() {
         "workspaceId" INTEGER NOT NULL,
         "title" TEXT NOT NULL,
         "content" TEXT NOT NULL,
-        "tags" TEXT,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "WorkspaceNote_pkey" PRIMARY KEY ("id")
     );`,
+    `CREATE INDEX IF NOT EXISTS "WorkspaceNote_workspaceId_idx" ON "WorkspaceNote"("workspaceId");`,
 
-    // 24. WorkspaceQuiz
+    // 24. WorkspaceFlashcard
+    `CREATE TABLE IF NOT EXISTS "WorkspaceFlashcard" (
+        "id" SERIAL NOT NULL,
+        "workspaceId" INTEGER NOT NULL,
+        "question" TEXT NOT NULL,
+        "answer" TEXT NOT NULL,
+        "interval" INTEGER NOT NULL DEFAULT 1,
+        "repetition" INTEGER NOT NULL DEFAULT 0,
+        "easeFactor" DOUBLE PRECISION NOT NULL DEFAULT 2.5,
+        "nextReview" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "WorkspaceFlashcard_pkey" PRIMARY KEY ("id")
+    );`,
+    `CREATE INDEX IF NOT EXISTS "WorkspaceFlashcard_workspaceId_idx" ON "WorkspaceFlashcard"("workspaceId");`,
+    `CREATE INDEX IF NOT EXISTS "WorkspaceFlashcard_nextReview_idx" ON "WorkspaceFlashcard"("nextReview");`,
+
+    // 25. WorkspaceQuiz
     `CREATE TABLE IF NOT EXISTS "WorkspaceQuiz" (
         "id" SERIAL NOT NULL,
         "workspaceId" INTEGER NOT NULL,
         "title" TEXT NOT NULL,
         "questions" TEXT NOT NULL,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "WorkspaceQuiz_pkey" PRIMARY KEY ("id")
     );`,
+    `CREATE INDEX IF NOT EXISTS "WorkspaceQuiz_workspaceId_idx" ON "WorkspaceQuiz"("workspaceId");`,
 
-    // 25. WorkspaceQuizAttempt
+    // 26. WorkspaceQuizAttempt
     `CREATE TABLE IF NOT EXISTS "WorkspaceQuizAttempt" (
         "id" SERIAL NOT NULL,
         "quizId" INTEGER NOT NULL,
-        "score" INTEGER NOT NULL,
-        "totalQuestions" INTEGER NOT NULL,
+        "score" DOUBLE PRECISION NOT NULL,
         "answers" TEXT NOT NULL,
-        "attempted_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "attemptedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "WorkspaceQuizAttempt_pkey" PRIMARY KEY ("id")
     );`,
-
-    // 26. WorkspaceFlashcard
-    `CREATE TABLE IF NOT EXISTS "WorkspaceFlashcard" (
-        "id" SERIAL NOT NULL,
-        "workspaceId" INTEGER NOT NULL,
-        "front" TEXT NOT NULL,
-        "back" TEXT NOT NULL,
-        "deck" TEXT NOT NULL DEFAULT 'General',
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        CONSTRAINT "WorkspaceFlashcard_pkey" PRIMARY KEY ("id")
-    );`,
+    `CREATE INDEX IF NOT EXISTS "WorkspaceQuizAttempt_quizId_idx" ON "WorkspaceQuizAttempt"("quizId");`,
 
     // 27. WorkspaceChatSession
     `CREATE TABLE IF NOT EXISTS "WorkspaceChatSession" (
         "id" SERIAL NOT NULL,
         "workspaceId" INTEGER NOT NULL,
         "title" TEXT NOT NULL DEFAULT 'New Chat',
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "WorkspaceChatSession_pkey" PRIMARY KEY ("id")
     );`,
+    `CREATE INDEX IF NOT EXISTS "WorkspaceChatSession_workspaceId_idx" ON "WorkspaceChatSession"("workspaceId");`,
 
     // 28. WorkspaceChatMessage
     `CREATE TABLE IF NOT EXISTS "WorkspaceChatMessage" (
@@ -342,10 +355,11 @@ async function createAllTables() {
         "sessionId" INTEGER NOT NULL,
         "role" TEXT NOT NULL,
         "content" TEXT NOT NULL,
-        "sources" TEXT,
-        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "citations" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT "WorkspaceChatMessage_pkey" PRIMARY KEY ("id")
-    );`
+    );`,
+    `CREATE INDEX IF NOT EXISTS "WorkspaceChatMessage_sessionId_idx" ON "WorkspaceChatMessage"("sessionId");`
   ];
 
   for (const sql of statements) {
