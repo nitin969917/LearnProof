@@ -4,7 +4,6 @@ import {
   ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, Sparkles, X, Trash2, CornerUpLeft,
   Phone, Video as VideoIcon, Paperclip, Smile, Mic, Image, FileText, Play, BellOff, Pin
 } from 'lucide-react';
-import { format } from 'date-fns';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
@@ -1339,7 +1338,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                 const initials = chat.type === 'group' ? getGroupInitials(chat.name) : '';
                 const lastMsg = chat.lastMessage;
                 const formattedTime = lastMsg 
-                  ? format(new Date(lastMsg.createdAt), 'hh:mm a') 
+                  ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                   : '';
                 const isOnline = chat.type === 'direct' && onlineUserIds.some(id => id.toString() === chat.id.toString());
                 const isTyping = chat.type === 'direct' && typingUsers[chat.id];
