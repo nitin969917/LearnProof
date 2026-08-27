@@ -5,13 +5,12 @@ services:
       dockerfile: Dockerfile
     container_name: learnproof-app
     restart: always
-    command: sh -c "node scripts/init-db.js && pm2-runtime start server.js -i max --name learnproof"
+    command: pm2-runtime start server.js -i max --name learnproof
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30
       - SOCIAL_DATABASE_URL=postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30
-      - MYSQL_DATABASE_URL=mysql://u529802313_Learn_platform:Nitin%40225111@srv1339.hstgr.io:3306/u529802313_Learn_platform
       - REDIS_URL=redis://cache:6379
       - NODE_ENV=production
       - GOOGLE_CLIENT_ID=557947080645-2iqd1t1h79b273ktjqthcg6q23k9pem1.apps.googleusercontent.com
@@ -22,7 +21,6 @@ services:
     volumes:
       - ./nodejs/media:/app/media
       - ./nodejs/prisma:/app/prisma
-      - ./nodejs/scripts:/app/scripts
       - /home/ubuntu/.config/gcloud:/root/.config/gcloud:ro
     depends_on:
       db:
@@ -43,8 +41,6 @@ services:
       - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./nodejs/prisma/learning_schema.sql:/docker-entrypoint-initdb.d/01_learning_schema.sql:ro
-      - ./nodejs/prisma/dating_schema.sql:/docker-entrypoint-initdb.d/02_dating_schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d learnproof_db || exit 1"]
       interval: 3s
