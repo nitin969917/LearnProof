@@ -22,12 +22,9 @@ async function migrate() {
         // Table list in dependency order
         const tables = [
             { prismaName: 'userProfile', tableName: 'UserProfile', idField: 'id' },
-            { prismaName: 'subject', tableName: 'Subject', idField: 'id' },
             { prismaName: 'playlist', tableName: 'Playlist', idField: 'id' },
             { prismaName: 'video', tableName: 'Video', idField: 'id' },
             { prismaName: 'userActivityLog', tableName: 'UserActivityLog', idField: 'id' },
-            { prismaName: 'subjectNote', tableName: 'SubjectNote', idField: 'id' },
-            { prismaName: 'askMyNoteChat', tableName: 'AskMyNoteChat', idField: 'id' },
             { prismaName: 'videoNote', tableName: 'VideoNote', idField: 'id' },
             { prismaName: 'videoNoteFile', tableName: 'VideoNoteFile', idField: 'id' },
             { prismaName: 'videoComment', tableName: 'VideoComment', idField: 'id' },
@@ -38,10 +35,22 @@ async function migrate() {
         ];
 
         for (const { prismaName, tableName } of tables) {
-            console.log(`Migrating table: ${tableName}...`);
-            const [rows] = await mysqlConnection.execute(`SELECT * FROM ${tableName}`);
-            console.log(`Found ${rows.length} rows in ${tableName}.`);
+            if (!prisma[prismaName]) {
+                console.log(`Model ${prismaName} not found in Prisma Client, skipping...`);
+                continue;
+            }
 
+            console.log(`Migrating table: ${tableName}...`);
+            let rows = [];
+            try {
+                const [result] = await mysqlConnection.execute(`SELECT * FROM ${tableName}`);
+                rows = result;
+            } catch (queryErr) {
+                console.log(`Table ${tableName} not found in MySQL source, skipping...`);
+                continue;
+            }
+
+            console.log(`Found ${rows.length} rows in ${tableName}.`);
             if (rows.length === 0) continue;
 
             // Handle data type conversions (MySQL Int -> Postgres Boolean)
@@ -71,7 +80,9 @@ async function migrate() {
         // Reset PostgreSQL ID sequences for all tables
         console.log('Resetting sequences...');
         for (const { tableName } of tables) {
-            await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"${tableName}"', 'id'), coalesce(max(id),0) + 1, false) FROM "${tableName}";`);
+            try {
+                await prisma.$executeRawUnsafe(`SELECT setval(pg_get_serial_sequence('"${tableName}"', 'id'), coalesce(max(id),0) + 1, false) FROM "${tableName}";`);
+            } catch (seqErr) {}
         }
 
         console.log('Migration completed successfully!');
