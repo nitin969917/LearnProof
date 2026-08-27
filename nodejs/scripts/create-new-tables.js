@@ -1,7 +1,12 @@
-const prisma = require('../src/lib/prisma');
+const { Client } = require('pg');
+
+const dbUrl = process.env.DATABASE_URL || 'postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30';
 
 async function createAllTables() {
-  console.log('🚀 [Schema Setup] Ensuring all LearnProof database tables exist...');
+  console.log('🚀 [Schema Setup] Ensuring all LearnProof database tables exist via direct PostgreSQL client...');
+
+  const client = new Client({ connectionString: dbUrl });
+  await client.connect();
 
   const statements = [
     // 1. UserProfile
@@ -325,17 +330,18 @@ async function createAllTables() {
 
   for (const sql of statements) {
     try {
-      await prisma.$executeRawUnsafe(sql);
+      await client.query(sql);
     } catch (err) {
       console.warn('⚠️ Statement execution warning:', err.message);
     }
   }
 
+  await client.end();
   console.log('✅ [Schema Setup] All 28 learning tables and indexes verified.');
 }
 
 if (require.main === module) {
-  createAllTables().then(() => prisma.$disconnect()).catch(console.error);
+  createAllTables().catch(console.error);
 }
 
 module.exports = { createAllTables };
