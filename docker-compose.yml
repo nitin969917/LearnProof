@@ -25,9 +25,12 @@ services:
       - ./nodejs/scripts:/app/scripts
       - /home/ubuntu/.config/gcloud:/root/.config/gcloud:ro
     depends_on:
-      - db
-      - cache
-      - conduit
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+      conduit:
+        condition: service_started
 
   db:
     image: postgres:14-alpine
@@ -39,6 +42,12 @@ services:
       - POSTGRES_DB=learnproof_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d learnproof_db"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 2s
   cache:
     image: redis:7-alpine
     container_name: learnproof-cache
