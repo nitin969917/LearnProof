@@ -11,6 +11,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30
       - SOCIAL_DATABASE_URL=postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30
+      - MYSQL_DATABASE_URL=mysql://u529802313_Learn_platform:Nitin%40225111@srv1339.hstgr.io:3306/u529802313_Learn_platform
       - REDIS_URL=redis://cache:6379
       - NODE_ENV=production
       - GOOGLE_CLIENT_ID=557947080645-2iqd1t1h79b273ktjqthcg6q23k9pem1.apps.googleusercontent.com

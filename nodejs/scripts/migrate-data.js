@@ -6,11 +6,8 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const prisma = new PrismaClient();
 
 async function migrate() {
-    console.log('Starting migration...');
-
     const mysqlUrl = process.env.MYSQL_DATABASE_URL || "mysql://u529802313_Learn_platform:Nitin%40225111@srv1339.hstgr.io:3306/u529802313_Learn_platform";
     console.log('Connecting to MySQL source...');
-
     const mysqlConnection = await mysql.createConnection(mysqlUrl);
     console.log('Connected to MySQL source.');
 
