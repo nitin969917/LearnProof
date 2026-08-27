@@ -2,7 +2,7 @@
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateTable
-CREATE TABLE "UserProfile" (
+CREATE TABLE IF NOT EXISTS "UserProfile" (
     "id" SERIAL NOT NULL,
     "uid" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE "UserProfile" (
 );
 
 -- CreateTable
-CREATE TABLE "InboxMessage" (
+CREATE TABLE IF NOT EXISTS "InboxMessage" (
     "id" SERIAL NOT NULL,
     "senderId" INTEGER,
     "receiverId" INTEGER,
@@ -31,7 +31,7 @@ CREATE TABLE "InboxMessage" (
 );
 
 -- CreateTable
-CREATE TABLE "MessageReadStatus" (
+CREATE TABLE IF NOT EXISTS "MessageReadStatus" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "messageId" INTEGER NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE "MessageReadStatus" (
 );
 
 -- CreateTable
-CREATE TABLE "Playlist" (
+CREATE TABLE IF NOT EXISTS "Playlist" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "pid" TEXT NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE "Playlist" (
 );
 
 -- CreateTable
-CREATE TABLE "Video" (
+CREATE TABLE IF NOT EXISTS "Video" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "vid" TEXT NOT NULL,
@@ -74,7 +74,7 @@ CREATE TABLE "Video" (
 );
 
 -- CreateTable
-CREATE TABLE "Quiz" (
+CREATE TABLE IF NOT EXISTS "Quiz" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "videoId" INTEGER,
@@ -91,7 +91,7 @@ CREATE TABLE "Quiz" (
 );
 
 -- CreateTable
-CREATE TABLE "Certificate" (
+CREATE TABLE IF NOT EXISTS "Certificate" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "videoId" INTEGER,
@@ -104,7 +104,7 @@ CREATE TABLE "Certificate" (
 );
 
 -- CreateTable
-CREATE TABLE "UserActivityLog" (
+CREATE TABLE IF NOT EXISTS "UserActivityLog" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "activity_type" TEXT NOT NULL,
@@ -114,7 +114,7 @@ CREATE TABLE "UserActivityLog" (
 );
 
 -- CreateTable
-CREATE TABLE "VideoNote" (
+CREATE TABLE IF NOT EXISTS "VideoNote" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "vid" TEXT NOT NULL,
@@ -125,7 +125,7 @@ CREATE TABLE "VideoNote" (
 );
 
 -- CreateTable
-CREATE TABLE "VideoNoteFile" (
+CREATE TABLE IF NOT EXISTS "VideoNoteFile" (
     "id" SERIAL NOT NULL,
     "noteId" INTEGER NOT NULL,
     "file" TEXT NOT NULL,
@@ -136,7 +136,7 @@ CREATE TABLE "VideoNoteFile" (
 );
 
 -- CreateTable
-CREATE TABLE "VideoComment" (
+CREATE TABLE IF NOT EXISTS "VideoComment" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "vid" TEXT NOT NULL,
@@ -148,7 +148,7 @@ CREATE TABLE "VideoComment" (
 );
 
 -- CreateTable
-CREATE TABLE "VideoIntuition" (
+CREATE TABLE IF NOT EXISTS "VideoIntuition" (
     "id" SERIAL NOT NULL,
     "vid" TEXT NOT NULL,
     "content" TEXT NOT NULL,
@@ -160,7 +160,7 @@ CREATE TABLE "VideoIntuition" (
 );
 
 -- CreateTable
-CREATE TABLE "VideoQuizData" (
+CREATE TABLE IF NOT EXISTS "VideoQuizData" (
     "id" SERIAL NOT NULL,
     "vid" TEXT NOT NULL,
     "questions" TEXT NOT NULL,
@@ -170,7 +170,7 @@ CREATE TABLE "VideoQuizData" (
 );
 
 -- CreateTable
-CREATE TABLE "SupportTicket" (
+CREATE TABLE IF NOT EXISTS "SupportTicket" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "subject" TEXT NOT NULL,
@@ -184,7 +184,7 @@ CREATE TABLE "SupportTicket" (
 );
 
 -- CreateTable
-CREATE TABLE "SupportResponse" (
+CREATE TABLE IF NOT EXISTS "SupportResponse" (
     "id" SERIAL NOT NULL,
     "ticketId" INTEGER NOT NULL,
     "adminId" INTEGER,
@@ -195,7 +195,7 @@ CREATE TABLE "SupportResponse" (
 );
 
 -- CreateTable
-CREATE TABLE "UserFcmToken" (
+CREATE TABLE IF NOT EXISTS "UserFcmToken" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "token" TEXT NOT NULL,
@@ -208,7 +208,7 @@ CREATE TABLE "UserFcmToken" (
 );
 
 -- CreateTable
-CREATE TABLE "SentNotification" (
+CREATE TABLE IF NOT EXISTS "SentNotification" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "type" TEXT NOT NULL,
@@ -218,7 +218,7 @@ CREATE TABLE "SentNotification" (
 );
 
 -- CreateTable
-CREATE TABLE "NotificationTemplate" (
+CREATE TABLE IF NOT EXISTS "NotificationTemplate" (
     "id" SERIAL NOT NULL,
     "type" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -232,7 +232,7 @@ CREATE TABLE "NotificationTemplate" (
 );
 
 -- CreateTable
-CREATE TABLE "AnonymousDevice" (
+CREATE TABLE IF NOT EXISTS "AnonymousDevice" (
     "id" SERIAL NOT NULL,
     "token" TEXT NOT NULL,
     "deviceType" TEXT,
@@ -244,7 +244,7 @@ CREATE TABLE "AnonymousDevice" (
 );
 
 -- CreateTable
-CREATE TABLE "AppLaunchLog" (
+CREATE TABLE IF NOT EXISTS "AppLaunchLog" (
     "id" SERIAL NOT NULL,
     "deviceId" TEXT NOT NULL,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -253,7 +253,7 @@ CREATE TABLE "AppLaunchLog" (
 );
 
 -- CreateTable
-CREATE TABLE "Workspace" (
+CREATE TABLE IF NOT EXISTS "Workspace" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "name" TEXT NOT NULL,
@@ -267,7 +267,7 @@ CREATE TABLE "Workspace" (
 );
 
 -- CreateTable
-CREATE TABLE "KnowledgeSource" (
+CREATE TABLE IF NOT EXISTS "KnowledgeSource" (
     "id" SERIAL NOT NULL,
     "workspaceId" INTEGER NOT NULL,
     "type" TEXT NOT NULL,
@@ -285,7 +285,7 @@ CREATE TABLE "KnowledgeSource" (
 );
 
 -- CreateTable
-CREATE TABLE "WorkspaceNote" (
+CREATE TABLE IF NOT EXISTS "WorkspaceNote" (
     "id" SERIAL NOT NULL,
     "workspaceId" INTEGER NOT NULL,
     "title" TEXT NOT NULL,
@@ -297,7 +297,7 @@ CREATE TABLE "WorkspaceNote" (
 );
 
 -- CreateTable
-CREATE TABLE "WorkspaceFlashcard" (
+CREATE TABLE IF NOT EXISTS "WorkspaceFlashcard" (
     "id" SERIAL NOT NULL,
     "workspaceId" INTEGER NOT NULL,
     "question" TEXT NOT NULL,
@@ -313,7 +313,7 @@ CREATE TABLE "WorkspaceFlashcard" (
 );
 
 -- CreateTable
-CREATE TABLE "WorkspaceQuiz" (
+CREATE TABLE IF NOT EXISTS "WorkspaceQuiz" (
     "id" SERIAL NOT NULL,
     "workspaceId" INTEGER NOT NULL,
     "title" TEXT NOT NULL,
@@ -325,7 +325,7 @@ CREATE TABLE "WorkspaceQuiz" (
 );
 
 -- CreateTable
-CREATE TABLE "WorkspaceQuizAttempt" (
+CREATE TABLE IF NOT EXISTS "WorkspaceQuizAttempt" (
     "id" SERIAL NOT NULL,
     "quizId" INTEGER NOT NULL,
     "score" DOUBLE PRECISION NOT NULL,
@@ -336,7 +336,7 @@ CREATE TABLE "WorkspaceQuizAttempt" (
 );
 
 -- CreateTable
-CREATE TABLE "WorkspaceChatSession" (
+CREATE TABLE IF NOT EXISTS "WorkspaceChatSession" (
     "id" SERIAL NOT NULL,
     "workspaceId" INTEGER NOT NULL,
     "title" TEXT NOT NULL DEFAULT 'New Chat',
@@ -347,7 +347,7 @@ CREATE TABLE "WorkspaceChatSession" (
 );
 
 -- CreateTable
-CREATE TABLE "WorkspaceChatMessage" (
+CREATE TABLE IF NOT EXISTS "WorkspaceChatMessage" (
     "id" SERIAL NOT NULL,
     "sessionId" INTEGER NOT NULL,
     "role" TEXT NOT NULL,
@@ -359,353 +359,191 @@ CREATE TABLE "WorkspaceChatMessage" (
 );
 
 -- CreateTable
-CREATE TABLE "social_users" (
-    "id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
-    "password" TEXT,
-    "googleId" TEXT,
-    "bio" TEXT,
-    "profilePicture" TEXT,
-    "collegeName" TEXT,
-    "department" TEXT,
-    "yearOfStudy" TEXT,
-    "phoneNumber" TEXT,
-    "phoneVisibility" TEXT NOT NULL DEFAULT 'public',
-    "whatsappNumber" TEXT,
-    "whatsappVisibility" TEXT NOT NULL DEFAULT 'public',
-    "instagramHandle" TEXT,
-    "instagramVisibility" TEXT NOT NULL DEFAULT 'public',
-    "facebookUrl" TEXT,
-    "facebookVisibility" TEXT NOT NULL DEFAULT 'public',
-    "snapchatUsername" TEXT,
-    "snapchatVisibility" TEXT NOT NULL DEFAULT 'public',
-    "linkedinUrl" TEXT,
-    "linkedinVisibility" TEXT NOT NULL DEFAULT 'public',
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "social_users_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
-CREATE TABLE "social_posts" (
-    "id" SERIAL NOT NULL,
-    "content" TEXT NOT NULL,
-    "image" TEXT,
-    "visibility" TEXT NOT NULL DEFAULT 'public',
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "authorId" INTEGER NOT NULL,
-
-    CONSTRAINT "social_posts_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
-CREATE TABLE "social_friendships" (
-    "id" SERIAL NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'pending',
-    "isCloseFriend" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "senderId" INTEGER NOT NULL,
-    "receiverId" INTEGER NOT NULL,
-
-    CONSTRAINT "social_friendships_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
-CREATE TABLE "social_messages" (
-    "id" SERIAL NOT NULL,
-    "content" TEXT NOT NULL,
-    "isRead" BOOLEAN NOT NULL DEFAULT false,
-    "isDeleted" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "senderId" INTEGER NOT NULL,
-    "receiverId" INTEGER NOT NULL,
-
-    CONSTRAINT "social_messages_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
-CREATE TABLE "social_comments" (
-    "id" SERIAL NOT NULL,
-    "content" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "postId" INTEGER NOT NULL,
-    "authorId" INTEGER NOT NULL,
-
-    CONSTRAINT "social_comments_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
-CREATE TABLE "social_crushes" (
-    "id" SERIAL NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "userId" INTEGER NOT NULL,
-    "crushId" INTEGER NOT NULL,
-
-    CONSTRAINT "social_crushes_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
-CREATE TABLE "social_close_friend_requests" (
-    "id" SERIAL NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'pending',
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "senderId" INTEGER NOT NULL,
-    "receiverId" INTEGER NOT NULL,
-
-    CONSTRAINT "social_close_friend_requests_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
-CREATE TABLE "social_language_rooms" (
-    "id" SERIAL NOT NULL,
-    "roomName" TEXT NOT NULL,
-    "topic" TEXT NOT NULL,
-    "language" TEXT NOT NULL,
-    "roomType" TEXT NOT NULL DEFAULT 'group',
-    "mediaType" TEXT NOT NULL DEFAULT 'audio',
-    "maxParticipants" INTEGER NOT NULL DEFAULT 10,
-    "isFriendsOnly" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "creatorId" INTEGER NOT NULL,
-
-    CONSTRAINT "social_language_rooms_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
-CREATE TABLE "social_groups" (
-    "id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL,
-    "description" TEXT,
-    "isPrivate" BOOLEAN NOT NULL DEFAULT false,
-    "entryKey" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "onlyAdminsCanPost" BOOLEAN NOT NULL DEFAULT false,
-    "creatorId" INTEGER NOT NULL,
-
-    CONSTRAINT "social_groups_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
-CREATE TABLE "social_group_members" (
-    "id" SERIAL NOT NULL,
-    "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "groupId" INTEGER NOT NULL,
-    "userId" INTEGER NOT NULL,
-
-    CONSTRAINT "social_group_members_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
-CREATE TABLE "social_group_messages" (
-    "id" SERIAL NOT NULL,
-    "content" TEXT NOT NULL,
-    "isDeleted" BOOLEAN NOT NULL DEFAULT false,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "groupId" INTEGER NOT NULL,
-    "senderId" INTEGER NOT NULL,
-
-    CONSTRAINT "social_group_messages_pkey" PRIMARY KEY ("id")
-);
 
 -- CreateTable
-CREATE TABLE "_PostLikes" (
-    "A" INTEGER NOT NULL,
-    "B" INTEGER NOT NULL,
-
-    CONSTRAINT "_PostLikes_AB_pkey" PRIMARY KEY ("A","B")
-);
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UserProfile_uid_key" ON "UserProfile"("uid");
+CREATE UNIQUE INDEX IF NOT EXISTS "UserProfile_uid_key" ON "UserProfile"("uid");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UserProfile_email_key" ON "UserProfile"("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "UserProfile_email_key" ON "UserProfile"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "MessageReadStatus_userId_messageId_key" ON "MessageReadStatus"("userId", "messageId");
+CREATE UNIQUE INDEX IF NOT EXISTS "MessageReadStatus_userId_messageId_key" ON "MessageReadStatus"("userId", "messageId");
 
 -- CreateIndex
-CREATE INDEX "Playlist_userId_id_idx" ON "Playlist"("userId", "id");
+CREATE INDEX IF NOT EXISTS "Playlist_userId_id_idx" ON "Playlist"("userId", "id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Playlist_userId_pid_key" ON "Playlist"("userId", "pid");
+CREATE UNIQUE INDEX IF NOT EXISTS "Playlist_userId_pid_key" ON "Playlist"("userId", "pid");
 
 -- CreateIndex
-CREATE INDEX "Video_playlistId_idx" ON "Video"("playlistId");
+CREATE INDEX IF NOT EXISTS "Video_playlistId_idx" ON "Video"("playlistId");
 
 -- CreateIndex
-CREATE INDEX "Video_userId_playlistId_imported_at_idx" ON "Video"("userId", "playlistId", "imported_at");
+CREATE INDEX IF NOT EXISTS "Video_userId_playlistId_imported_at_idx" ON "Video"("userId", "playlistId", "imported_at");
 
 -- CreateIndex
-CREATE INDEX "Video_userId_is_completed_watch_progress_idx" ON "Video"("userId", "is_completed", "watch_progress");
+CREATE INDEX IF NOT EXISTS "Video_userId_is_completed_watch_progress_idx" ON "Video"("userId", "is_completed", "watch_progress");
 
 -- CreateIndex
-CREATE INDEX "Video_userId_is_completed_updated_at_idx" ON "Video"("userId", "is_completed", "updated_at");
+CREATE INDEX IF NOT EXISTS "Video_userId_is_completed_updated_at_idx" ON "Video"("userId", "is_completed", "updated_at");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Video_userId_vid_key" ON "Video"("userId", "vid");
+CREATE UNIQUE INDEX IF NOT EXISTS "Video_userId_vid_key" ON "Video"("userId", "vid");
 
 -- CreateIndex
-CREATE INDEX "Quiz_userId_idx" ON "Quiz"("userId");
+CREATE INDEX IF NOT EXISTS "Quiz_userId_idx" ON "Quiz"("userId");
 
 -- CreateIndex
-CREATE INDEX "Quiz_userId_passed_idx" ON "Quiz"("userId", "passed");
+CREATE INDEX IF NOT EXISTS "Quiz_userId_passed_idx" ON "Quiz"("userId", "passed");
 
 -- CreateIndex
-CREATE INDEX "Quiz_userId_attempted_at_idx" ON "Quiz"("userId", "attempted_at");
+CREATE INDEX IF NOT EXISTS "Quiz_userId_attempted_at_idx" ON "Quiz"("userId", "attempted_at");
 
 -- CreateIndex
-CREATE INDEX "Quiz_videoId_idx" ON "Quiz"("videoId");
+CREATE INDEX IF NOT EXISTS "Quiz_videoId_idx" ON "Quiz"("videoId");
 
 -- CreateIndex
-CREATE INDEX "Quiz_playlistId_idx" ON "Quiz"("playlistId");
+CREATE INDEX IF NOT EXISTS "Quiz_playlistId_idx" ON "Quiz"("playlistId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Certificate_certificate_id_key" ON "Certificate"("certificate_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "Certificate_certificate_id_key" ON "Certificate"("certificate_id");
 
 -- CreateIndex
-CREATE INDEX "Certificate_userId_idx" ON "Certificate"("userId");
+CREATE INDEX IF NOT EXISTS "Certificate_userId_idx" ON "Certificate"("userId");
 
 -- CreateIndex
-CREATE INDEX "UserActivityLog_userId_idx" ON "UserActivityLog"("userId");
+CREATE INDEX IF NOT EXISTS "UserActivityLog_userId_idx" ON "UserActivityLog"("userId");
 
 -- CreateIndex
-CREATE INDEX "UserActivityLog_userId_timestamp_idx" ON "UserActivityLog"("userId", "timestamp");
+CREATE INDEX IF NOT EXISTS "UserActivityLog_userId_timestamp_idx" ON "UserActivityLog"("userId", "timestamp");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "VideoNote_userId_vid_key" ON "VideoNote"("userId", "vid");
+CREATE UNIQUE INDEX IF NOT EXISTS "VideoNote_userId_vid_key" ON "VideoNote"("userId", "vid");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "VideoIntuition_vid_key" ON "VideoIntuition"("vid");
+CREATE UNIQUE INDEX IF NOT EXISTS "VideoIntuition_vid_key" ON "VideoIntuition"("vid");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "VideoQuizData_vid_key" ON "VideoQuizData"("vid");
+CREATE UNIQUE INDEX IF NOT EXISTS "VideoQuizData_vid_key" ON "VideoQuizData"("vid");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UserFcmToken_token_key" ON "UserFcmToken"("token");
+CREATE UNIQUE INDEX IF NOT EXISTS "UserFcmToken_token_key" ON "UserFcmToken"("token");
 
 -- CreateIndex
-CREATE INDEX "UserFcmToken_userId_idx" ON "UserFcmToken"("userId");
+CREATE INDEX IF NOT EXISTS "UserFcmToken_userId_idx" ON "UserFcmToken"("userId");
 
 -- CreateIndex
-CREATE INDEX "SentNotification_userId_type_sentAt_idx" ON "SentNotification"("userId", "type", "sentAt");
+CREATE INDEX IF NOT EXISTS "SentNotification_userId_type_sentAt_idx" ON "SentNotification"("userId", "type", "sentAt");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "NotificationTemplate_type_key" ON "NotificationTemplate"("type");
+CREATE UNIQUE INDEX IF NOT EXISTS "NotificationTemplate_type_key" ON "NotificationTemplate"("type");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "AnonymousDevice_token_key" ON "AnonymousDevice"("token");
+CREATE UNIQUE INDEX IF NOT EXISTS "AnonymousDevice_token_key" ON "AnonymousDevice"("token");
 
 -- CreateIndex
-CREATE INDEX "AnonymousDevice_token_idx" ON "AnonymousDevice"("token");
+CREATE INDEX IF NOT EXISTS "AnonymousDevice_token_idx" ON "AnonymousDevice"("token");
 
 -- CreateIndex
-CREATE INDEX "AppLaunchLog_deviceId_idx" ON "AppLaunchLog"("deviceId");
+CREATE INDEX IF NOT EXISTS "AppLaunchLog_deviceId_idx" ON "AppLaunchLog"("deviceId");
 
 -- CreateIndex
-CREATE INDEX "AppLaunchLog_timestamp_idx" ON "AppLaunchLog"("timestamp");
+CREATE INDEX IF NOT EXISTS "AppLaunchLog_timestamp_idx" ON "AppLaunchLog"("timestamp");
 
 -- CreateIndex
-CREATE INDEX "Workspace_userId_idx" ON "Workspace"("userId");
+CREATE INDEX IF NOT EXISTS "Workspace_userId_idx" ON "Workspace"("userId");
 
 -- CreateIndex
-CREATE INDEX "KnowledgeSource_workspaceId_idx" ON "KnowledgeSource"("workspaceId");
+CREATE INDEX IF NOT EXISTS "KnowledgeSource_workspaceId_idx" ON "KnowledgeSource"("workspaceId");
 
 -- CreateIndex
-CREATE INDEX "WorkspaceNote_workspaceId_idx" ON "WorkspaceNote"("workspaceId");
+CREATE INDEX IF NOT EXISTS "WorkspaceNote_workspaceId_idx" ON "WorkspaceNote"("workspaceId");
 
 -- CreateIndex
-CREATE INDEX "WorkspaceFlashcard_workspaceId_idx" ON "WorkspaceFlashcard"("workspaceId");
+CREATE INDEX IF NOT EXISTS "WorkspaceFlashcard_workspaceId_idx" ON "WorkspaceFlashcard"("workspaceId");
 
 -- CreateIndex
-CREATE INDEX "WorkspaceFlashcard_nextReview_idx" ON "WorkspaceFlashcard"("nextReview");
+CREATE INDEX IF NOT EXISTS "WorkspaceFlashcard_nextReview_idx" ON "WorkspaceFlashcard"("nextReview");
 
 -- CreateIndex
-CREATE INDEX "WorkspaceQuiz_workspaceId_idx" ON "WorkspaceQuiz"("workspaceId");
+CREATE INDEX IF NOT EXISTS "WorkspaceQuiz_workspaceId_idx" ON "WorkspaceQuiz"("workspaceId");
 
 -- CreateIndex
-CREATE INDEX "WorkspaceQuizAttempt_quizId_idx" ON "WorkspaceQuizAttempt"("quizId");
+CREATE INDEX IF NOT EXISTS "WorkspaceQuizAttempt_quizId_idx" ON "WorkspaceQuizAttempt"("quizId");
 
 -- CreateIndex
-CREATE INDEX "WorkspaceChatSession_workspaceId_idx" ON "WorkspaceChatSession"("workspaceId");
+CREATE INDEX IF NOT EXISTS "WorkspaceChatSession_workspaceId_idx" ON "WorkspaceChatSession"("workspaceId");
 
 -- CreateIndex
-CREATE INDEX "WorkspaceChatMessage_sessionId_idx" ON "WorkspaceChatMessage"("sessionId");
+CREATE INDEX IF NOT EXISTS "WorkspaceChatMessage_sessionId_idx" ON "WorkspaceChatMessage"("sessionId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "social_users_email_key" ON "social_users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "social_users_googleId_key" ON "social_users"("googleId");
 
 -- CreateIndex
-CREATE INDEX "social_users_name_idx" ON "social_users"("name");
 
 -- CreateIndex
-CREATE INDEX "social_users_collegeName_idx" ON "social_users"("collegeName");
 
 -- CreateIndex
-CREATE INDEX "social_users_department_idx" ON "social_users"("department");
 
 -- CreateIndex
-CREATE INDEX "social_posts_authorId_idx" ON "social_posts"("authorId");
 
 -- CreateIndex
-CREATE INDEX "social_posts_visibility_idx" ON "social_posts"("visibility");
 
 -- CreateIndex
-CREATE INDEX "social_posts_createdAt_idx" ON "social_posts"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "social_friendships_senderId_idx" ON "social_friendships"("senderId");
 
 -- CreateIndex
-CREATE INDEX "social_friendships_receiverId_idx" ON "social_friendships"("receiverId");
 
 -- CreateIndex
-CREATE INDEX "social_friendships_status_idx" ON "social_friendships"("status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "social_friendships_senderId_receiverId_key" ON "social_friendships"("senderId", "receiverId");
 
 -- CreateIndex
-CREATE INDEX "social_messages_senderId_idx" ON "social_messages"("senderId");
 
 -- CreateIndex
-CREATE INDEX "social_messages_receiverId_idx" ON "social_messages"("receiverId");
 
 -- CreateIndex
-CREATE INDEX "social_messages_createdAt_idx" ON "social_messages"("createdAt");
 
 -- CreateIndex
-CREATE INDEX "social_comments_postId_idx" ON "social_comments"("postId");
 
 -- CreateIndex
-CREATE INDEX "social_comments_authorId_idx" ON "social_comments"("authorId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "social_crushes_userId_crushId_key" ON "social_crushes"("userId", "crushId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "social_close_friend_requests_senderId_receiverId_key" ON "social_close_friend_requests"("senderId", "receiverId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "social_language_rooms_roomName_key" ON "social_language_rooms"("roomName");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "social_groups_name_key" ON "social_groups"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "social_group_members_groupId_userId_key" ON "social_group_members"("groupId", "userId");
 
 -- CreateIndex
-CREATE INDEX "_PostLikes_B_index" ON "_PostLikes"("B");
 
 -- AddForeignKey
 ALTER TABLE "InboxMessage" ADD CONSTRAINT "InboxMessage_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "UserProfile"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -801,59 +639,40 @@ ALTER TABLE "WorkspaceChatSession" ADD CONSTRAINT "WorkspaceChatSession_workspac
 ALTER TABLE "WorkspaceChatMessage" ADD CONSTRAINT "WorkspaceChatMessage_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "WorkspaceChatSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_posts" ADD CONSTRAINT "social_posts_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_friendships" ADD CONSTRAINT "social_friendships_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_friendships" ADD CONSTRAINT "social_friendships_receiverId_fkey" FOREIGN KEY ("receiverId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_messages" ADD CONSTRAINT "social_messages_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_messages" ADD CONSTRAINT "social_messages_receiverId_fkey" FOREIGN KEY ("receiverId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_comments" ADD CONSTRAINT "social_comments_postId_fkey" FOREIGN KEY ("postId") REFERENCES "social_posts"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_comments" ADD CONSTRAINT "social_comments_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_crushes" ADD CONSTRAINT "social_crushes_userId_fkey" FOREIGN KEY ("userId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_crushes" ADD CONSTRAINT "social_crushes_crushId_fkey" FOREIGN KEY ("crushId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_close_friend_requests" ADD CONSTRAINT "social_close_friend_requests_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_close_friend_requests" ADD CONSTRAINT "social_close_friend_requests_receiverId_fkey" FOREIGN KEY ("receiverId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_language_rooms" ADD CONSTRAINT "social_language_rooms_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_groups" ADD CONSTRAINT "social_groups_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_group_members" ADD CONSTRAINT "social_group_members_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "social_groups"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_group_members" ADD CONSTRAINT "social_group_members_userId_fkey" FOREIGN KEY ("userId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_group_messages" ADD CONSTRAINT "social_group_messages_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "social_groups"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "social_group_messages" ADD CONSTRAINT "social_group_messages_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "social_users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "_PostLikes" ADD CONSTRAINT "_PostLikes_A_fkey" FOREIGN KEY ("A") REFERENCES "social_posts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "_PostLikes" ADD CONSTRAINT "_PostLikes_B_fkey" FOREIGN KEY ("B") REFERENCES "social_users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
