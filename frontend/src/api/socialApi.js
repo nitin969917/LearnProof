@@ -18,4 +18,18 @@ socialApi.interceptors.request.use((config) => {
   return config;
 });
 
+socialApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem('google_token');
+      if (typeof window !== 'undefined' && (window.location.pathname.startsWith('/dashboard') || window.location.pathname.startsWith('/classroom'))) {
+        sessionStorage.setItem('redirect_to', window.location.pathname + window.location.search);
+        window.location.href = '/';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default socialApi;
