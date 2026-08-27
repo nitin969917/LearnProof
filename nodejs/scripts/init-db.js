@@ -14,29 +14,11 @@ async function init() {
 
     const appDir = path.join(__dirname, '..');
 
-    // 1. Ensure all tables exist in PostgreSQL
+    // 1. Ensure all learning tables exist in PostgreSQL
     try {
         await createAllTables();
     } catch (err) {
         console.error('⚠️ [DB Init] Error creating tables:', err.message);
-    }
-
-    // 2. Push schema.prisma & dating.prisma
-    try {
-        console.log('📦 [DB Init] Pushing Prisma schemas...');
-        execSync(`npx prisma db push --schema=prisma/schema.prisma --accept-data-loss`, {
-            cwd: appDir,
-            stdio: 'inherit',
-            env: { ...process.env, DATABASE_URL: dbUrl }
-        });
-        execSync(`npx prisma db push --schema=prisma/dating.prisma --accept-data-loss`, {
-            cwd: appDir,
-            stdio: 'inherit',
-            env: { ...process.env, DATABASE_URL: socialDbUrl }
-        });
-        console.log('✅ [DB Init] Prisma schemas in sync.');
-    } catch (err) {
-        console.error('⚠️ [DB Init] Error pushing schemas:', err.message);
     }
 
     const pgClient = new Client({ connectionString: dbUrl });
