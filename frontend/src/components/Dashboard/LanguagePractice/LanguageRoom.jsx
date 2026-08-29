@@ -1035,9 +1035,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const getGridClassName = (count) => {
     if (count <= 1) return 'grid-cols-1 grid-rows-1 h-full';
     if (count === 2) {
-      return 'grid-cols-1 md:grid-cols-2 grid-rows-2 md:grid-rows-1 h-full';
+      return 'grid-cols-2 grid-rows-1 h-full';
     }
-    if (count === 3) return 'grid-cols-1 md:grid-cols-2 grid-rows-3 md:grid-rows-2 h-full';
+    if (count === 3) return 'grid-cols-2 grid-rows-2 h-full';
     if (count === 4) return 'grid-cols-2 grid-rows-2 h-full';
     return 'grid-cols-2 md:grid-cols-3 grid-rows-3 md:grid-rows-2 h-full'; // 5–6 people
   };
@@ -1045,7 +1045,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Returns dynamic spans for 3-speaker layout
   const getTileSpan = (index, total) => {
     if (total === 3 && index === 0) {
-      return 'col-span-1 md:col-span-2';
+      return 'col-span-2';
     }
     return '';
   };
