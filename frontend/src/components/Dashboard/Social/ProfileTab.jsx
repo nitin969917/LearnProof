@@ -12,12 +12,9 @@ import UserAvatar from '../../Common/UserAvatar.jsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, onSelectChatUser, onViewProfile }) {
-  const { updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const { confirm } = useModal();
-  const isOwnProfile = !viewUserId || String(viewUserId) === String(currentUserId);
-  const targetId = isOwnProfile ? currentUserId : viewUserId;
-  const isMobileOrApp = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || navigator.userAgent.includes('LearnProofApp');
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -26,6 +23,12 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
   const [expandedSection, setExpandedSection] = useState(null); // 'academics', 'contact', 'social', or null
+
+  const isOwnProfile = !viewUserId || 
+                       String(viewUserId) === String(currentUserId) ||
+                       (profile && (String(profile.id) === String(currentUserId) || (user?.email && profile.email === user.email)));
+  const targetId = !viewUserId || String(viewUserId) === String(currentUserId) ? currentUserId : viewUserId;
+  const isMobileOrApp = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || navigator.userAgent.includes('LearnProofApp');
 
   useEffect(() => {
     fetchProfile();
@@ -434,25 +437,32 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               </div>
 
               {/* Action Row containing stats & Edit Profile / Connect */}
-              <div className="flex items-center justify-between gap-4 mt-2 pt-4 border-t border-gray-100 dark:border-gray-700/60">
-                <div className="flex flex-col text-left">
-                  <span className="text-xl font-black text-gray-900 dark:text-white leading-none">{profile._count?.posts || 0}</span>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 font-extrabold uppercase tracking-wider mt-1">Posts</span>
+              <div className="flex flex-col gap-3 mt-2 pt-4 border-t border-gray-100 dark:border-gray-700/60">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-black text-gray-900 dark:text-white leading-none">{profile._count?.posts || 0}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 font-extrabold uppercase tracking-wider">Posts</span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-full border border-emerald-200/50 dark:border-emerald-500/20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Learner</span>
+                  </div>
                 </div>
 
                 {isOwnProfile ? (
                   <button 
                     onClick={() => setIsEditing(true)}
-                    className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-2xl border border-orange-200 dark:border-orange-500/30 text-orange-500 hover:bg-orange-500 hover:text-white transition font-extrabold text-xs cursor-pointer shadow-sm active:scale-95"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm shadow-md shadow-orange-500/20 transition active:scale-[0.98] cursor-pointer border-0"
                   >
-                    <Edit3 size={13} />
+                    <Edit3 size={15} />
                     <span>Edit Profile</span>
                   </button>
                 ) : (
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2 w-full">
                     <button 
                       onClick={handleFriendAction}
-                      className={`flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-2xl font-black text-xs transition cursor-pointer active:scale-95 ${
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-3 px-4 rounded-2xl font-extrabold text-xs transition cursor-pointer active:scale-95 ${
                         profile.isFriend 
                           ? 'border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100' 
                           : profile.hasPendingRequest 
@@ -461,32 +471,32 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       }`}
                     >
                       {profile.isFriend ? (
-                        <><UserCheck size={13} /><span>Connected</span></>
+                        <><UserCheck size={14} /><span>Connected</span></>
                       ) : profile.hasPendingRequest ? (
-                        <><Shield size={13} /><span>{profile.isRequestSender ? 'Request Sent' : 'Accept Request'}</span></>
+                        <><Shield size={14} /><span>{profile.isRequestSender ? 'Request Sent' : 'Accept Request'}</span></>
                       ) : (
-                        <><UserPlus size={13} /><span>Connect</span></>
+                        <><UserPlus size={14} /><span>Connect</span></>
                       )}
                     </button>
                     {profile.isFriend && (
                       <>
                         <button 
                           onClick={() => onSelectChatUser(profile)}
-                          className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs shadow shadow-orange-500/10 transition cursor-pointer active:scale-95"
+                          className="flex-1 flex items-center justify-center gap-1.5 py-3 px-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs shadow shadow-orange-500/10 transition cursor-pointer active:scale-95"
                         >
-                          <MessageSquare size={13} />
+                          <MessageSquare size={14} />
                           <span>Message</span>
                         </button>
                         <button 
                           onClick={handleToggleCloseFriend}
                           title={profile.isMyCloseFriend ? "Remove from Close Friends" : "Add to Close Friends"}
-                          className={`flex items-center justify-center h-10 w-10 rounded-2xl border transition cursor-pointer active:scale-95 ${
+                          className={`flex items-center justify-center h-11 w-11 rounded-2xl border transition cursor-pointer active:scale-95 shrink-0 ${
                             profile.isMyCloseFriend 
                               ? 'border-amber-200 bg-amber-50 dark:bg-amber-950/30 text-amber-500 dark:text-amber-400 hover:bg-amber-100' 
                               : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100'
                           }`}
                         >
-                          <Star size={14} className={profile.isMyCloseFriend ? "fill-amber-500 text-amber-500" : ""} />
+                          <Star size={15} className={profile.isMyCloseFriend ? "fill-amber-500 text-amber-500" : ""} />
                         </button>
                       </>
                     )}
