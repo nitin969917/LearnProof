@@ -81,8 +81,12 @@ const cleanupWorkerSockets = async () => {
   }
 };
 
-// Run stale socket cleanup on worker startup
+// Run stale socket cleanup and DB sequence sync on worker startup
 cleanupWorkerSockets();
+const { syncAllSequences } = require('./src/utils/syncSequences');
+if (workerId === '0' || workerId === 'standalone') {
+  syncAllSequences().catch(err => console.error('[Server] Sequence sync failed:', err));
+}
 
 io.on('connection', (socket) => {
   console.log('Social Socket connected:', socket.id);
