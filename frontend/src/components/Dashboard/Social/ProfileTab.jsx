@@ -15,6 +15,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const { confirm } = useModal();
+  const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
 
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -29,6 +30,14 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                        (profile && (String(profile.id) === String(currentUserId) || (user?.email && profile.email === user.email)));
   const targetId = !viewUserId || String(viewUserId) === String(currentUserId) ? currentUserId : viewUserId;
   const isMobileOrApp = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || navigator.userAgent.includes('LearnProofApp');
+
+  const isOnline = isOwnProfile ? true : (
+    onlineUserIds instanceof Set 
+      ? onlineUserIds.has(profile?.id) 
+      : Array.isArray(onlineUserIds) 
+        ? onlineUserIds.includes(profile?.id) 
+        : false
+  );
 
   useEffect(() => {
     fetchProfile();
@@ -169,15 +178,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       </div>
     );
   }
-
-  const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
-  const isOnline = isOwnProfile ? true : (
-    onlineUserIds instanceof Set 
-      ? onlineUserIds.has(profile?.id) 
-      : Array.isArray(onlineUserIds) 
-        ? onlineUserIds.includes(profile?.id) 
-        : false
-  );
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-36">
