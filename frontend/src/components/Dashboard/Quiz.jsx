@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
@@ -8,6 +9,7 @@ import { useModal } from "../../context/ModalContext";
 import { useQuizStore } from "../../store/quizStore.js";
 
 const Quiz = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [token] = useState(useAuth().token); // Use token from context
     const { token: authToken } = useAuth();
     const { confirm } = useModal();
@@ -48,11 +50,40 @@ const Quiz = () => {
         }
     };
 
+    const attemptParam = searchParams.get("attempt");
+
     useEffect(() => {
         if (authToken) {
             fetchQuizData(authToken);
         }
     }, [authToken, fetchQuizData]);
+
+    // Synchronize browser back/forward navigation with quiz attempt view
+    useEffect(() => {
+        if (!attemptParam) {
+            setSelectedHistoryQuiz(null);
+            return;
+        }
+
+        const targetId = parseInt(attemptParam, 10);
+        if (selectedHistoryQuiz && selectedHistoryQuiz.id === targetId) return;
+
+        const found = history.find(h => h.id === targetId);
+        if (found) {
+            if (found.questions) {
+                setSelectedHistoryQuiz(found);
+            } else if (authToken) {
+                setLoadingQuizDetails(targetId);
+                axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${targetId}?idToken=${authToken}`)
+                    .then(res => {
+                        addAttempt(res.data);
+                        setSelectedHistoryQuiz(res.data);
+                    })
+                    .catch(err => console.error("Failed to load attempt from URL:", err))
+                    .finally(() => setLoadingQuizDetails(null));
+            }
+        }
+    }, [attemptParam, history, authToken]);
 
     useEffect(() => {
         if (!quizData) return;
@@ -131,6 +162,7 @@ const Quiz = () => {
     };
 
     const handleViewHistoryQuiz = async (hist) => {
+        setSearchParams({ attempt: String(hist.id) });
         if (hist.questions) {
             setSelectedHistoryQuiz(hist);
             return;
@@ -150,10 +182,15 @@ const Quiz = () => {
         }
     };
 
+    const handleCloseHistory = () => {
+        setSelectedHistoryQuiz(null);
+        setSearchParams({});
+    };
+
     const handleDeleteHistory = async (id) => {
         const confirmed = await confirm({
             title: "Delete Quiz Attempt",
-            message: "Are you sure you want to delete this quiz attempt from your history?",
+            message: "Are you sure you want to delete this quiz attempt record? This action cannot be undone.",
             confirmText: "Delete",
             type: "danger"
         });
@@ -166,6 +203,7 @@ const Quiz = () => {
             deleteAttempt(id);
             if (selectedHistoryQuiz?.id === id) {
                 setSelectedHistoryQuiz(null);
+                setSearchParams({});
             }
         } catch (err) {
             console.error(err);
@@ -389,21 +427,21 @@ const Quiz = () => {
         return (
             <div className="bg-orange-50 dark:bg-gray-900 transition-colors duration-300">
                 <div className="max-w-4xl mx-auto">
-                    <div className="flex justify-between items-center mb-6 sm:mb-8">
+                    <div className="flex justify-between items-center mb-5 sm:mb-6 pt-1">
                         <button
-                            onClick={() => setSelectedHistoryQuiz(null)}
-                            className="flex items-center gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-white dark:bg-gray-700 text-gray-705 dark:text-white text-xs sm:text-base font-bold rounded-xl border border-orange-100 dark:border-gray-600/50 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 w-fit"
+                            onClick={handleCloseHistory}
+                            className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:text-orange-500 dark:hover:text-orange-400 text-xs sm:text-sm font-extrabold rounded-xl border border-gray-200/80 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-750 transition-all active:scale-95 cursor-pointer"
                         >
-                            <ArrowLeft size={16} className="sm:w-[18px] sm:h-[18px]" />
-                            Back to Selection
+                            <ArrowLeft size={16} className="text-gray-500 dark:text-gray-400" />
+                            <span>Back</span>
                         </button>
 
                         <button
                             onClick={() => handleDeleteHistory(selectedHistoryQuiz.id)}
-                            className="flex items-center gap-2 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs sm:text-base font-bold rounded-xl border border-red-200 dark:border-red-900/30 shadow-sm hover:bg-red-105 dark:hover:bg-red-900/40 transition-all active:scale-95 w-fit"
+                            className="flex items-center gap-1.5 px-3.5 py-2 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white text-xs sm:text-sm font-extrabold rounded-xl border border-red-200 dark:border-red-500/20 shadow-sm transition-all duration-200 active:scale-95 cursor-pointer"
                         >
-                            <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
-                            Delete Attempt
+                            <Trash2 size={15} />
+                            <span>Delete Attempt</span>
                         </button>
                     </div>
 
