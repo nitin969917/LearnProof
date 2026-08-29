@@ -156,25 +156,37 @@ const Support = () => {
 
     if (isDashboardView) {
         return (
-            <div className="w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 space-y-6 select-none selection:bg-orange-200 dark:bg-gray-900 transition-colors duration-300">
+            <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-36 space-y-6 select-none selection:bg-orange-200 transition-colors duration-300 relative">
+                {/* Dotted mesh grid overlay matching dashboard style */}
+                <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }} />
+
                 {/* ── Compact Header ───────────────────────────────────── */}
-                <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
-                        <LifeBuoy size={18} />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0 shadow-sm">
+                            <LifeBuoy size={20} />
+                        </div>
+                        <div className="min-w-0">
+                            <h1 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none">Help & Support</h1>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 font-medium">
+                                Student Assistance Center & Ticket Management
+                            </p>
+                        </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Help & Support</h1>
-                        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-                            Student Assistance Center - Raise tickets and view support history.
-                        </p>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20 text-[10px] font-black uppercase tracking-wider shadow-sm">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Live Support Active
+                        </span>
                     </div>
                 </div>
 
                 {/* Main Content Area */}
-                <div className="space-y-6">
+                <div className="space-y-6 relative z-10">
                     {/* Navigation Tabs */}
-                    <div className="flex justify-between items-center border-b border-orange-100 dark:border-gray-800 pb-4">
-                        <div className="flex p-1 bg-orange-50 dark:bg-gray-800 border border-orange-100/50 dark:border-gray-700/50 rounded-xl w-72 sm:w-80">
+                    <div className="flex justify-between items-center border-b border-gray-100 dark:border-gray-800 pb-3">
+                        <div className="flex p-1 bg-white dark:bg-gray-800/80 border border-gray-200/80 dark:border-gray-700/80 rounded-2xl shadow-sm w-full sm:w-80">
                             {tabs.map((tab) => {
                                 const Icon = tab.icon;
                                 const isActive = view === tab.id || (tab.id === 'history' && view === 'detail');
@@ -182,76 +194,119 @@ const Support = () => {
                                     <button
                                         key={tab.id}
                                         onClick={() => setView(tab.id)}
-                                        className={`relative flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex-1 ${
+                                        className={`relative flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex-1 cursor-pointer ${
                                             isActive
                                                 ? "text-white"
-                                                : "text-gray-550 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
+                                                : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                                         }`}
                                     >
                                         {isActive && (
                                             <motion.div
                                                 layoutId="activeTabSupport"
-                                                className="absolute inset-0 bg-orange-500 rounded-lg shadow-lg shadow-orange-500/20"
-                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                                className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl shadow-md shadow-orange-500/25"
+                                                transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                                             />
                                         )}
-                                        <Icon size={13} className="relative z-10" />
+                                        <Icon size={14} className="relative z-10" />
                                         <span className="relative z-10">{tab.label}</span>
+                                        {tab.id === 'history' && tickets.length > 0 && (
+                                            <span className={`relative z-10 ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black ${isActive ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                                                {tickets.length}
+                                            </span>
+                                        )}
                                     </button>
                                 );
                             })}
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-start">
                         {/* Main ticketing column */}
                         <div className="lg:col-span-2 space-y-6">
                             <AnimatePresence mode="wait">
                                 {view === 'new' && (
                                     <motion.div 
                                         key="new" 
-                                        initial={{ opacity: 0, y: 10 }}
+                                        initial={{ opacity: 0, y: 12 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
-                                        className="bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-orange-100 dark:border-gray-700 shadow-sm relative overflow-hidden"
+                                        exit={{ opacity: 0, y: -12 }}
+                                        className="bg-white dark:bg-gray-800/90 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-7 shadow-sm relative overflow-hidden"
                                     >
                                         <div className="mb-6">
-                                            <div className="flex items-center gap-2 mb-2 text-orange-500">
-                                                <Sparkles size={18} />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">Connect with our team</span>
+                                            <div className="flex items-center gap-1.5 mb-1.5 text-orange-500 font-black text-[11px] uppercase tracking-widest">
+                                                <Sparkles size={14} />
+                                                <span>Direct Assistance</span>
                                             </div>
-                                            <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight mb-1">Request Assistance</h2>
-                                            <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold">Please provide accurate context for a swift resolution.</p>
+                                            <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white tracking-tight">Request Assistance</h2>
+                                            <p className="text-gray-400 dark:text-gray-500 text-xs font-medium mt-0.5">Please provide accurate context so our team can resolve your issue quickly.</p>
                                         </div>
+
                                         <form onSubmit={handleSubmit} className="space-y-4">
-                                            <div className="space-y-1">
+                                            {/* Priority Selector */}
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Priority Level</label>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {[
+                                                        { id: 'NORMAL', label: 'Normal', color: 'border-blue-200 text-blue-600 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20' },
+                                                        { id: 'HIGH', label: 'High', color: 'border-amber-200 text-amber-600 dark:text-amber-400 bg-amber-50/40 dark:bg-amber-950/20' },
+                                                        { id: 'URGENT', label: 'Urgent', color: 'border-red-200 text-red-600 dark:text-red-400 bg-red-50/40 dark:bg-red-950/20' }
+                                                    ].map(p => (
+                                                        <button
+                                                            key={p.id}
+                                                            type="button"
+                                                            onClick={() => setFormState({ ...formState, priority: p.id })}
+                                                            className={`py-2 px-3 rounded-xl border text-xs font-extrabold transition-all cursor-pointer text-center ${
+                                                                formState.priority === p.id 
+                                                                    ? `${p.color} border-current shadow-sm ring-1 ring-current` 
+                                                                    : 'border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                            }`}
+                                                        >
+                                                            {p.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* Subject */}
+                                            <div className="space-y-1.5">
                                                 <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Case Subject</label>
                                                 <input 
                                                     required 
                                                     type="text" 
                                                     value={formState.subject} 
                                                     onChange={(e) => setFormState({...formState, subject: e.target.value})} 
-                                                    className="w-full px-4 py-3 bg-orange-50/20 dark:bg-gray-900/50 border border-orange-100 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-semibold text-sm text-gray-900 dark:text-white" 
-                                                    placeholder="What can we help you with?" 
+                                                    className="w-full px-4 py-3 bg-gray-50/60 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-semibold text-sm text-gray-900 dark:text-white" 
+                                                    placeholder="e.g., Certificate issue or Video playback error" 
                                                 />
                                             </div>
-                                            <div className="space-y-1">
+
+                                            {/* Message */}
+                                            <div className="space-y-1.5">
                                                 <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Detailed Message</label>
                                                 <textarea 
                                                     required 
                                                     rows="4" 
                                                     value={formState.message} 
                                                     onChange={(e) => setFormState({...formState, message: e.target.value})} 
-                                                    className="w-full px-4 py-3 bg-orange-50/20 dark:bg-gray-900/50 border border-orange-100 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-semibold text-sm text-gray-900 dark:text-white resize-none" 
-                                                    placeholder="Describe the problem accurately..."
+                                                    className="w-full px-4 py-3 bg-gray-50/60 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-semibold text-sm text-gray-900 dark:text-white resize-none" 
+                                                    placeholder="Describe the issue in detail..."
                                                 ></textarea>
                                             </div>
+
+                                            {/* Submit Button */}
                                             <button 
                                                 type="submit" 
                                                 disabled={isSubmitting} 
-                                                className="w-full sm:w-fit sm:px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl uppercase tracking-widest shadow-lg shadow-orange-500/20 flex items-center justify-center gap-3 active:scale-95 transition-all text-xs border-0 cursor-pointer"
+                                                className="w-full sm:w-fit px-8 py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold rounded-2xl uppercase tracking-wider shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all text-xs border-0 cursor-pointer disabled:opacity-50"
                                             >
-                                                {isSubmitting ? <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" /> : <><Send size={18} /> Open Ticket</>}
+                                                {isSubmitting ? (
+                                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        <Send size={15} />
+                                                        <span>Submit Ticket</span>
+                                                    </>
+                                                )}
                                             </button>
                                         </form>
                                     </motion.div>
@@ -260,48 +315,65 @@ const Support = () => {
                                 {view === 'history' && (
                                     <motion.div 
                                         key="history" 
-                                        initial={{ opacity: 0, y: 10 }}
+                                        initial={{ opacity: 0, y: 12 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
+                                        exit={{ opacity: 0, y: -12 }}
                                         className="space-y-4"
                                     >
-                                        <div className="relative group mb-4">
-                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={18} />
+                                        <div className="relative group">
+                                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={16} />
                                             <input 
                                                 type="text" 
-                                                placeholder="Search across support history..." 
+                                                placeholder="Search your support tickets..." 
                                                 value={searchQuery} 
                                                 onChange={(e) => setSearchQuery(e.target.value)} 
-                                                className="w-full pl-11 pr-4 py-3 bg-white dark:bg-gray-800 border border-orange-100 dark:border-gray-700 shadow-sm rounded-xl outline-none focus:border-orange-500 transition-all font-semibold text-sm text-gray-900 dark:text-white" 
+                                                className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 shadow-sm rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-semibold text-sm text-gray-900 dark:text-white" 
                                             />
                                         </div>
+
                                         {loading && filteredTickets.length === 0 ? (
-                                            <div className="text-center py-10"><div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+                                            <div className="text-center py-12"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
                                         ) : filteredTickets.length === 0 ? (
-                                            <div className="text-center py-12 text-gray-400 dark:text-gray-500 font-semibold text-sm bg-white dark:bg-gray-800 bg-opacity-75 dark:bg-opacity-75 backdrop-blur-xl rounded-3xl border border-orange-100 dark:border-gray-700 shadow-sm">No support tickets found.</div>
-                                        ) : (
-                                            filteredTickets.map(ticket => (
-                                                <div 
-                                                    key={ticket.id} 
-                                                    onClick={() => fetchTicketDetail(ticket.id)} 
-                                                    className="group bg-white dark:bg-gray-800 p-4 rounded-xl border border-orange-100 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-400 transition-all cursor-pointer shadow-sm flex items-center justify-between gap-4"
+                                            <div className="text-center py-14 px-4 bg-white dark:bg-gray-800/80 rounded-3xl border border-gray-200/80 dark:border-gray-700 shadow-sm">
+                                                <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-950/20 text-orange-500 mx-auto flex items-center justify-center mb-3">
+                                                    <MessageSquare size={22} />
+                                                </div>
+                                                <h3 className="font-extrabold text-gray-900 dark:text-white text-sm">No Support Tickets</h3>
+                                                <p className="text-gray-400 dark:text-gray-500 text-xs mt-1 max-w-sm mx-auto">You haven't submitted any support requests yet. Open a ticket if you need assistance!</p>
+                                                <button
+                                                    onClick={() => setView('new')}
+                                                    className="mt-4 px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 cursor-pointer"
                                                 >
-                                                    <div className="flex items-center gap-4 overflow-hidden">
-                                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${getStatusStyles(ticket.status)} border whitespace-nowrap`}>
-                                                            <MessageSquare size={16} />
-                                                        </div>
-                                                        <div className="overflow-hidden">
-                                                            <h3 className="font-bold text-gray-900 dark:text-white truncate text-sm mb-1">{ticket.subject}</h3>
-                                                            <div className="flex items-center gap-2.5 text-[9px] uppercase font-bold tracking-wider text-gray-400">
-                                                                <span>{formatDate(ticket.created_at)}</span>
-                                                                <span className="w-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full"></span>
-                                                                <span className={ticket.status === 'RESOLVED' ? 'text-green-500' : 'text-orange-500'}>{ticket.status}</span>
+                                                    + Open New Ticket
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {filteredTickets.map(ticket => (
+                                                    <div 
+                                                        key={ticket.id} 
+                                                        onClick={() => fetchTicketDetail(ticket.id)} 
+                                                        className="group bg-white dark:bg-gray-800/90 p-4 rounded-2xl border border-gray-200/80 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-400 transition-all cursor-pointer shadow-sm hover:shadow-md flex items-center justify-between gap-4"
+                                                    >
+                                                        <div className="flex items-center gap-3.5 overflow-hidden">
+                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${getStatusStyles(ticket.status)} border shadow-xs`}>
+                                                                <MessageSquare size={16} />
+                                                            </div>
+                                                            <div className="overflow-hidden min-w-0">
+                                                                <h3 className="font-extrabold text-gray-900 dark:text-white truncate text-sm mb-1 group-hover:text-orange-500 transition-colors">{ticket.subject}</h3>
+                                                                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 dark:text-gray-500">
+                                                                    <span>{formatDate(ticket.created_at)}</span>
+                                                                    <span className="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></span>
+                                                                    <span className={`px-2 py-0.5 rounded-full uppercase tracking-wider text-[9px] font-black border ${getStatusStyles(ticket.status)}`}>
+                                                                        {ticket.status}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
+                                                        <ChevronRight className="text-gray-300 dark:text-gray-600 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all shrink-0" size={18} />
                                                     </div>
-                                                    <ChevronRight className="text-gray-300 dark:text-gray-600 group-hover:text-orange-500 flex-shrink-0" size={18} />
-                                                </div>
-                                            ))
+                                                ))}
+                                            </div>
                                         )}
                                     </motion.div>
                                 )}
@@ -312,30 +384,36 @@ const Support = () => {
                                         initial={{ opacity: 0, scale: 0.98 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.98 }}
-                                        className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col h-full"
+                                        className="bg-white dark:bg-gray-800/95 rounded-3xl border border-gray-200/80 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col h-full"
                                     >
-                                        <div className="p-4 sm:p-6 bg-orange-50/30 dark:bg-gray-900/30 border-b border-orange-100 dark:border-gray-700">
-                                            <button onClick={() => setView('history')} className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 font-black uppercase text-[9px] mb-3 hover:text-orange-500 transition-colors group bg-transparent border-0 cursor-pointer">
-                                                <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> Back
+                                        <div className="p-4 sm:p-6 bg-orange-50/20 dark:bg-gray-900/40 border-b border-gray-100 dark:border-gray-700">
+                                            <button 
+                                                onClick={() => setView('history')} 
+                                                className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 font-extrabold text-xs mb-3 hover:text-orange-500 transition-colors group bg-transparent border-0 cursor-pointer"
+                                            >
+                                                <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                                                <span>Back to Tickets</span>
                                             </button>
-                                            <div className="flex items-center gap-2 mb-1.5">
-                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${getStatusStyles(selectedTicket.status)}`}>{selectedTicket.status}</span>
-                                                <span className="text-gray-300 dark:text-gray-600 text-xs font-bold">#{selectedTicket.id}</span>
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${getStatusStyles(selectedTicket.status)}`}>
+                                                    {selectedTicket.status}
+                                                </span>
+                                                <span className="text-gray-400 dark:text-gray-500 text-xs font-bold">Ticket #{selectedTicket.id}</span>
                                             </div>
-                                            <h2 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-2">{selectedTicket.subject}</h2>
+                                            <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white tracking-tight leading-snug">{selectedTicket.subject}</h2>
                                         </div>
 
-                                        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto max-h-[400px] min-h-[300px] bg-white dark:bg-gray-800">
+                                        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[420px] min-h-[280px] bg-gray-50/20 dark:bg-gray-900/20">
                                             {/* Original Case Message */}
                                             <div className="flex flex-col items-end gap-1.5">
-                                                <div className="flex items-center gap-2 mb-0.5">
-                                                    <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">You (Original Case)</span>
-                                                    <div className="w-6 h-6 rounded-md bg-orange-500 text-white flex items-center justify-center font-black text-[9px]">ME</div>
+                                                <div className="flex items-center gap-1.5 mb-0.5">
+                                                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">You (Original Ticket)</span>
+                                                    <div className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-[9px]">ME</div>
                                                 </div>
-                                                <div className="bg-orange-500 text-white p-3.5 rounded-2xl rounded-tr-none shadow-sm max-w-[85%] text-right font-semibold text-xs sm:text-sm leading-relaxed">
+                                                <div className="bg-orange-500 text-white p-4 rounded-2xl rounded-tr-none shadow-sm max-w-[90%] text-left font-medium text-xs sm:text-sm leading-relaxed">
                                                     {selectedTicket.message}
                                                 </div>
-                                                <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest pr-1">{formatDate(selectedTicket.created_at)}</span>
+                                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500">{formatDate(selectedTicket.created_at)}</span>
                                             </div>
 
                                             {/* Response Thread */}
@@ -343,24 +421,24 @@ const Support = () => {
                                                 const isFromAdmin = resp.adminId !== null;
                                                 return (
                                                     <div key={resp.id} className={`flex flex-col gap-1.5 ${isFromAdmin ? 'items-start' : 'items-end'}`}>
-                                                        <div className={`flex items-center gap-2 mb-0.5 ${isFromAdmin ? '' : 'flex-row-reverse'}`}>
-                                                            <div className={`w-6 h-6 rounded-md flex items-center justify-center font-black text-[9px] shadow-sm ${isFromAdmin ? 'bg-slate-700 text-white' : 'bg-orange-500 text-white'}`}>
-                                                                {isFromAdmin ? <ShieldCheck size={12} /> : 'ME'}
+                                                        <div className={`flex items-center gap-1.5 mb-0.5 ${isFromAdmin ? '' : 'flex-row-reverse'}`}>
+                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[9px] shadow-sm ${isFromAdmin ? 'bg-slate-700 text-white' : 'bg-orange-500 text-white'}`}>
+                                                                {isFromAdmin ? <ShieldCheck size={11} /> : 'ME'}
                                                             </div>
-                                                            <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                                                                {isFromAdmin ? 'Team Support' : 'You'}
+                                                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">
+                                                                {isFromAdmin ? 'Support Team' : 'You'}
                                                             </span>
                                                         </div>
-                                                        <div className={`p-3.5 rounded-2xl shadow-sm max-w-[85%] font-semibold text-xs sm:text-sm leading-relaxed ${
+                                                        <div className={`p-4 rounded-2xl shadow-sm max-w-[90%] font-medium text-xs sm:text-sm leading-relaxed ${
                                                             isFromAdmin 
-                                                            ? 'bg-slate-50 dark:bg-gray-900 border border-slate-100 dark:border-gray-800 text-slate-800 dark:text-gray-200 rounded-tl-none' 
-                                                            : 'bg-orange-500 text-white rounded-tr-none text-right'
+                                                            ? 'bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none' 
+                                                            : 'bg-orange-500 text-white rounded-tr-none text-left'
                                                         }`}>
                                                             {resp.message}
                                                         </div>
                                                         <div className={`flex items-center gap-2 mt-0.5 ${isFromAdmin ? '' : 'flex-row-reverse'}`}>
-                                                            {isFromAdmin && <span className="text-[8px] font-black text-orange-500 uppercase flex items-center gap-1 bg-orange-50 dark:bg-orange-950/40 px-1.5 py-0.5 rounded-full"><ShieldCheck size={8} /> Team</span>}
-                                                            <span className="text-[8px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{formatDate(resp.created_at)}</span>
+                                                            {isFromAdmin && <span className="text-[9px] font-bold text-orange-500 uppercase flex items-center gap-1 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded-full"><ShieldCheck size={10} /> Verified Staff</span>}
+                                                            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500">{formatDate(resp.created_at)}</span>
                                                         </div>
                                                     </div>
                                                 );
@@ -368,23 +446,23 @@ const Support = () => {
                                         </div>
 
                                         {selectedTicket.status !== 'CLOSED' && (
-                                            <div className="p-4 border-t border-orange-100 dark:border-gray-700 bg-orange-50/20 dark:bg-gray-900/20">
+                                            <div className="p-3 sm:p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
                                                 <form onSubmit={handleRespond} className="relative">
                                                     <textarea 
                                                         required 
                                                         rows="2" 
                                                         value={responseMessage} 
                                                         onChange={(e) => setResponseMessage(e.target.value)} 
-                                                        className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-orange-100 dark:border-gray-700 focus:border-orange-500 rounded-xl outline-none transition-all font-semibold text-xs sm:text-sm resize-none pr-14 text-gray-900 dark:text-white" 
-                                                        placeholder="Type your message here..."
+                                                        className="w-full px-4 py-3 bg-gray-50/80 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 focus:border-orange-500 rounded-2xl outline-none transition-all font-medium text-xs sm:text-sm resize-none pr-14 text-gray-900 dark:text-white" 
+                                                        placeholder="Write your response..."
                                                     ></textarea>
-                                                    <div className="absolute right-2 bottom-2">
+                                                    <div className="absolute right-2.5 bottom-3">
                                                         <button 
                                                             type="submit" 
                                                             disabled={isSubmitting || !responseMessage} 
-                                                            className="h-8 w-8 sm:h-10 sm:w-10 bg-orange-500 text-white rounded-lg flex items-center justify-center hover:bg-orange-600 transition-all active:scale-95 disabled:bg-gray-200 dark:disabled:bg-gray-700 border-0 cursor-pointer"
+                                                            className="h-9 w-9 bg-orange-500 text-white rounded-xl flex items-center justify-center hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-40 border-0 cursor-pointer shadow-sm"
                                                         >
-                                                            {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={16} />}
+                                                            {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={15} />}
                                                         </button>
                                                     </div>
                                                 </form>
@@ -397,33 +475,37 @@ const Support = () => {
 
                         {/* Sidebar widget info */}
                         <div className="space-y-6">
-                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-orange-100 dark:border-gray-700 text-center relative overflow-hidden shadow-sm">
-                                <div className="w-12 h-12 bg-orange-50 dark:bg-gray-900 rounded-xl mx-auto flex items-center justify-center text-orange-500 border border-orange-100 dark:border-gray-700 shadow-inner mb-4">
-                                    <Mail size={24} />
+                            {/* Direct Email Card */}
+                            <div className="bg-white dark:bg-gray-800/90 p-5 sm:p-6 rounded-3xl border border-gray-200/80 dark:border-gray-700 shadow-sm relative overflow-hidden text-center">
+                                <div className="w-12 h-12 bg-gradient-to-tr from-orange-500 to-amber-400 rounded-2xl mx-auto flex items-center justify-center text-white shadow-md shadow-orange-500/20 mb-3.5">
+                                    <Mail size={22} />
                                 </div>
-                                <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Support Email</h4>
-                                <p className="text-sm font-black text-gray-900 dark:text-white mb-4 break-all">hello@learnproofai.com</p>
+                                <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Direct Inquiries</h4>
+                                <p className="text-sm font-black text-gray-900 dark:text-white mb-1 break-all">hello@learnproofai.com</p>
+                                <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mb-4">⚡ Avg response time: &lt; 2 Hours</p>
                                 <a 
                                     href="mailto:hello@learnproofai.com" 
-                                    className="inline-block w-fit px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-lg uppercase text-[10px] tracking-widest active:scale-95 transition-all shadow-md shadow-orange-500/10 no-underline cursor-pointer"
+                                    className="inline-flex items-center justify-center gap-2 w-full py-2.5 bg-gray-50 dark:bg-gray-700 hover:bg-orange-500 hover:text-white text-gray-800 dark:text-gray-200 font-extrabold rounded-xl text-xs transition-all active:scale-95 no-underline cursor-pointer border border-gray-200 dark:border-gray-600 shadow-xs"
                                 >
-                                    Compose Message
+                                    <Mail size={13} />
+                                    <span>Compose Message</span>
                                 </a>
                             </div>
 
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100 dark:border-gray-700 overflow-hidden shadow-sm">
-                                <div className="p-4 border-b border-orange-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex items-center gap-3">
-                                    <HelpCircle size={18} className="text-orange-500" />
-                                    <h3 className="font-black text-gray-800 dark:text-white text-xs uppercase tracking-widest">General FAQs</h3>
+                            {/* FAQs Accordion */}
+                            <div className="bg-white dark:bg-gray-800/90 rounded-3xl border border-gray-200/80 dark:border-gray-700 overflow-hidden shadow-sm">
+                                <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40 flex items-center gap-2.5">
+                                    <HelpCircle size={17} className="text-orange-500" />
+                                    <h3 className="font-extrabold text-gray-900 dark:text-white text-xs uppercase tracking-wider">Frequently Asked Questions</h3>
                                 </div>
-                                <div className="p-4 sm:p-5 space-y-4">
+                                <div className="p-4 sm:p-5 space-y-3.5">
                                     {faqItems.map((item, i) => (
-                                        <details key={i} className="group cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-0 pb-3 last:pb-0">
-                                            <summary className="text-xs font-bold text-gray-700 dark:text-gray-300 list-none flex justify-between items-center group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors leading-snug">
-                                                <span className="pr-4">{item.q}</span>
-                                                <ChevronRight size={14} className="group-open:rotate-90 transition-all text-gray-400 dark:text-gray-550 flex-shrink-0" />
+                                        <details key={i} className="group cursor-pointer border-b border-gray-100 dark:border-gray-700/60 last:border-0 pb-3 last:pb-0">
+                                            <summary className="text-xs font-bold text-gray-800 dark:text-gray-200 list-none flex justify-between items-center group-hover:text-orange-500 transition-colors leading-snug">
+                                                <span className="pr-3">{item.q}</span>
+                                                <ChevronRight size={14} className="group-open:rotate-90 transition-transform text-gray-400 shrink-0" />
                                             </summary>
-                                            <div className="mt-2 p-3 bg-orange-50/50 dark:bg-gray-900/50 rounded-xl text-xs font-semibold text-gray-550 dark:text-gray-400 leading-relaxed italic">
+                                            <div className="mt-2 p-3 bg-orange-50/40 dark:bg-gray-900/50 rounded-xl text-xs font-medium text-gray-600 dark:text-gray-400 leading-relaxed">
                                                 {item.a}
                                             </div>
                                         </details>
