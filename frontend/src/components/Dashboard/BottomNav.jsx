@@ -67,6 +67,7 @@ const BottomNav = () => {
     const handleItemClick = (e, item) => {
         if (item.name === 'Profile') {
             e.preventDefault();
+            localStorage.removeItem('social_selected_profile_id');
             navigate('/dashboard/social/profile');
         } else if (item.name === 'Social') {
             e.preventDefault();

@@ -170,6 +170,15 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     );
   }
 
+  const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
+  const isOnline = isOwnProfile ? true : (
+    onlineUserIds instanceof Set 
+      ? onlineUserIds.has(profile?.id) 
+      : Array.isArray(onlineUserIds) 
+        ? onlineUserIds.includes(profile?.id) 
+        : false
+  );
+
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-36">
       {isEditing ? (
@@ -381,13 +390,13 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               <button 
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-6 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 font-extrabold text-sm transition cursor-pointer active:scale-95"
+                className="px-6 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-750 font-extrabold text-sm transition cursor-pointer active:scale-95"
               >
                 Cancel
               </button>
               <button 
                 type="submit"
-                className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm shadow-lg shadow-orange-500/25 transition cursor-pointer active:scale-95 border-0"
+                className="flex items-center gap-2 px-8 py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-lg shadow-orange-500/25 transition cursor-pointer active:scale-95 border-0"
               >
                 <Save size={16} />
                 <span>Save Profile Changes</span>
@@ -402,7 +411,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {/* Unified View Mode Card */}
             <div className="bg-white dark:bg-gray-800/95 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-sm flex flex-col gap-4">
               <div className="flex gap-4 items-start">
-                {/* Avatar container with green online dot */}
+                {/* Avatar container with conditional green online dot */}
                 <div className="relative shrink-0 select-none">
                   <UserAvatar 
                     src={profile.profilePicture} 
@@ -410,7 +419,12 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-white dark:border-gray-800 shadow"
                     textClassName="text-3xl sm:text-4xl"
                   />
-                  <div className="absolute bottom-1.5 right-1.5 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-gray-800 rounded-full shadow-sm" />
+                  {isOnline && (
+                    <div 
+                      title="Online"
+                      className="absolute bottom-1.5 right-1.5 w-4 h-4 bg-emerald-500 border-2 border-white dark:border-gray-800 rounded-full shadow-sm" 
+                    />
+                  )}
                 </div>
 
                 {/* Info details */}
@@ -442,11 +456,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                   <div className="flex items-center gap-2">
                     <span className="text-xl font-black text-gray-900 dark:text-white leading-none">{profile._count?.posts || 0}</span>
                     <span className="text-xs text-gray-400 dark:text-gray-500 font-extrabold uppercase tracking-wider">Posts</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-full border border-emerald-200/50 dark:border-emerald-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Learner</span>
                   </div>
                 </div>
 

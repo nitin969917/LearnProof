@@ -150,8 +150,8 @@ export default function SocialDashboard() {
       if (profileId) {
         setSelectedProfileId(parseInt(profileId, 10));
       } else {
-        const savedPId = localStorage.getItem('social_selected_profile_id');
-        setSelectedProfileId(savedPId ? parseInt(savedPId, 10) : (socialUser?.id || null));
+        localStorage.removeItem('social_selected_profile_id');
+        setSelectedProfileId(socialUser?.id || null);
       }
     } else {
       // /dashboard/social or /dashboard/social/feed -> strictly feed tab
@@ -288,9 +288,9 @@ export default function SocialDashboard() {
       return;
     }
     if (tabId === 'profile') {
-      const pId = socialUser?.id;
-      if (pId) navigate(`/dashboard/social/profile/${pId}`);
-      else navigate('/dashboard/social/profile');
+      localStorage.removeItem('social_selected_profile_id');
+      setSelectedProfileId(socialUser?.id || null);
+      navigate('/dashboard/social/profile');
       return;
     }
   };

@@ -54,9 +54,8 @@ export default function SocialBottomNavBar() {
     }
 
     if (tabId === 'profile') {
-      const savedPId = localStorage.getItem('social_selected_profile_id');
-      if (savedPId) navigate(`/dashboard/social/profile/${savedPId}`);
-      else navigate('/dashboard/social/profile');
+      localStorage.removeItem('social_selected_profile_id');
+      navigate('/dashboard/social/profile');
       return;
     }
 
