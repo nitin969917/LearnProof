@@ -1427,9 +1427,14 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   onClick={() => {
                     if (selectedChat.type === 'group') {
                       setShowGroupDetails(true);
+                    } else if (selectedChat.type === 'direct' && selectedChat.id) {
+                      if (onViewProfile) {
+                        onViewProfile(selectedChat.id);
+                      }
                     }
                   }}
-                  className={`flex items-center gap-2 sm:gap-3 min-w-0 ${selectedChat.type === 'group' ? 'cursor-pointer hover:opacity-85 transition-opacity' : ''}`}
+                  title={selectedChat.type === 'direct' ? "Click to view profile" : "Click to view group info"}
+                  className="flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer hover:opacity-85 active:scale-[0.99] transition-all"
                 >
                   {/* Mobile Back Arrow Button */}
                   <button

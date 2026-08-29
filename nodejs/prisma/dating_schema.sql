@@ -6,6 +6,7 @@ CREATE TABLE "social_users" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
+    "emailVisibility" TEXT NOT NULL DEFAULT 'private',
     "password" TEXT,
     "googleId" TEXT,
     "bio" TEXT,

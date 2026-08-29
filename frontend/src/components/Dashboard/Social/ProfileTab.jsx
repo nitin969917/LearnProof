@@ -412,7 +412,9 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       </span>
                     )}
                   </div>
-                  <p className="text-gray-550 dark:text-gray-400 text-xs font-semibold mt-1 mb-1 leading-relaxed">{profile.bio || 'Co-founder learnproofai'}</p>
+                  {profile.bio && (
+                    <p className="text-gray-550 dark:text-gray-400 text-xs font-semibold mt-1 mb-1 leading-relaxed">{profile.bio}</p>
+                  )}
                 </div>
               </div>
 
@@ -595,20 +597,32 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                           )}
                         </div>
 
-                        <div className="bg-gray-50/50 dark:bg-gray-955 border border-gray-100/50 dark:border-gray-855 rounded-2xl p-4 flex items-center justify-between min-w-0">
-                          <div className="min-w-0 flex flex-col">
-                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-550 uppercase tracking-wider mb-1">Email</span>
-                            <span className="text-xs sm:text-sm font-extrabold text-gray-855 dark:text-gray-200 truncate" title={profile.email}>{profile.email || 'Not Set'}</span>
-                          </div>
-                          {profile.email && (
-                            <a 
-                              href={`mailto:${profile.email}`}
-                              className="p-2 rounded-xl bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition"
-                            >
-                              <Mail size={14} />
-                            </a>
-                          )}
-                        </div>
+                        {(() => {
+                          const vis = profile.emailVisibility || 'private';
+                          const canSee = isOwnProfile || 
+                                         vis === 'public' || 
+                                         (vis === 'friends' && profile.isFriend) || 
+                                         (vis === 'close_friends' && profile.isCloseFriend);
+                          if (!canSee && !profile.email) return null;
+                          return (
+                            <div className="bg-gray-50/50 dark:bg-gray-955 border border-gray-100/50 dark:border-gray-855 rounded-2xl p-4 flex items-center justify-between min-w-0">
+                              <div className="min-w-0 flex flex-col">
+                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-550 uppercase tracking-wider mb-1">Email</span>
+                                <span className="text-xs sm:text-sm font-extrabold text-gray-855 dark:text-gray-200 truncate" title={canSee ? (profile.email || 'Not Set') : 'Private'}>
+                                  {canSee ? (profile.email || 'Not Set') : 'Private'}
+                                </span>
+                              </div>
+                              {canSee && profile.email && (
+                                <a 
+                                  href={`mailto:${profile.email}`}
+                                  className="p-2 rounded-xl bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-white transition"
+                                >
+                                  <Mail size={14} />
+                                </a>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </motion.div>
                   )}

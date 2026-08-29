@@ -405,8 +405,9 @@ const getProfile = async (req, res) => {
     }
 
     if (currentUserId !== profileUser.id) {
-      // Filter sensitive info based on relationship settings
+      // Filter sensitive info based on relationship settings (email private by default)
       const contactFields = [
+        { key: 'email', visibility: profileUser.emailVisibility || 'private' },
         { key: 'phoneNumber', visibility: profileUser.phoneVisibility },
         { key: 'whatsappNumber', visibility: profileUser.whatsappVisibility },
         { key: 'instagramHandle', visibility: profileUser.instagramVisibility },
@@ -416,7 +417,9 @@ const getProfile = async (req, res) => {
       ];
 
       contactFields.forEach(field => {
-        if (field.visibility === 'friends') {
+        if (field.visibility === 'private' || !field.visibility) {
+          profileUser[field.key] = null;
+        } else if (field.visibility === 'friends') {
           if (!isFriend && !isCloseFriend) profileUser[field.key] = null;
         } else if (field.visibility === 'close_friends') {
           if (!isCloseFriend) profileUser[field.key] = null;
