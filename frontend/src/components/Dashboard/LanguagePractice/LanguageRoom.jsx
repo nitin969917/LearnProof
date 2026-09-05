@@ -119,7 +119,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           if (parsed && parsed.id && parsed.type) {
             targetPath += `&chatId=${parsed.id}&chatType=${parsed.type}`;
           }
-        } catch (e) {}
+        } catch (e) { }
       }
       navigateRef.current(targetPath);
     } else {
@@ -161,7 +161,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // Role Permissions — use token identity for host check (available before LiveKit connects)
   const canPublish = localParticipant?.permissions?.canPublish ?? false;
-  const isHost = dbRoom && userIdentity && String(dbRoom.creatorId) === String(userIdentity);
+  const isHost = Boolean(
+    (dbRoom && user && String(dbRoom.creatorId) === String(user.id)) ||
+    (dbRoom && userIdentity && String(dbRoom.creatorId) === String(userIdentity)) ||
+    (dbRoom && localParticipant?.identity && String(dbRoom.creatorId) === String(localParticipant.identity))
+  );
+  const isHostRef = useRef(isHost);
+  useEffect(() => { isHostRef.current = isHost; }, [isHost]);
+
   const hostIdentity = dbRoom?.creatorId != null ? String(dbRoom.creatorId) : null;
   const isVideoRoom = dbRoom?.mediaType === 'video';
 
@@ -174,9 +181,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   const amIHost = useCallback(() => {
     const hostId = dbRoomRef.current?.creatorId;
-    const myId = userIdentityRef.current;
-    return hostId != null && myId != null && String(hostId) === String(myId);
-  }, []);
+    const myId = userIdentityRef.current || (user?.id ? String(user.id) : null);
+    return (hostId != null && myId != null && String(hostId) === String(myId)) || isHostRef.current;
+  }, [user]);
 
   // Keep refs so the data channel handler closure never goes stale
   const canPublishRef = useRef(canPublish);
@@ -264,13 +271,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   const addSpeakRequest = useCallback((identity, name) => {
     if (!identity) return;
-    
+
     // If the user is already on stage as a speaker, ignore the request
     const allParticipants = [room?.localParticipant, ...participantsRef.current].filter(Boolean);
     const isAlreadySpeaker = allParticipants.some(p => {
       if (p.identity !== identity) return false;
       const isCreator = dbRoomRef.current && dbRoomRef.current.creatorId?.toString() === p.identity;
-      return p.permissions?.canPublish || isCreator;
+      return (p.permissions?.canPublish === true) || isCreator;
     });
     if (isAlreadySpeaker) return;
 
@@ -289,7 +296,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
             <Mic size={18} className="animate-pulse" />
           </div>
-          
+
           {/* Request Text info */}
           <div className="flex-1 min-w-0 flex flex-col text-left">
             <span className="text-xs font-black text-gray-900 dark:text-white truncate">
@@ -299,7 +306,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
               wants to join stage
             </span>
           </div>
-          
+
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5 shrink-0 ml-2">
             <button
@@ -319,7 +326,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                 toast.dismiss(t.id);
                 notifiedRequestsRef.current.delete(identity);
                 setSpeakRequests(prev => prev.filter(r => r.identity !== identity));
-                socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`).catch(() => {});
+                socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`).catch(() => { });
               }}
               className="px-2.5 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold text-[10px] rounded-lg transition cursor-pointer active:scale-95 border border-gray-200 dark:border-white/5"
             >
@@ -330,6 +337,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       ), { duration: 8000, id: `speak_req_${identity}` });
     }
   }, [room, roomName]);
+
+  const addSpeakRequestRef = useRef(addSpeakRequest);
+  useEffect(() => { addSpeakRequestRef.current = addSpeakRequest; }, [addSpeakRequest]);
 
 
   // Media states
@@ -354,7 +364,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           const devices = await navigator.mediaDevices.enumerateDevices();
           const videoDevs = devices.filter(d => d.kind === 'videoinput');
           setVideoDevices(videoDevs);
-          
+
           if (room) {
             const activeId = room.getActiveDevice ? room.getActiveDevice('videoinput') : undefined;
             if (activeId) {
@@ -495,7 +505,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       try {
         await localParticipant?.setScreenShareEnabled(false);
         setIsScreenSharing(false);
-      } catch (e) {}
+      } catch (e) { }
     }
     broadcastRoomSettings(allowWhiteboard, newVal);
     toast.success(newVal ? 'Screen sharing enabled for speakers' : 'Screen sharing disabled for speakers', {
@@ -591,7 +601,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             }
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     };
 
     const handleParticipantConnected = () => {
@@ -611,7 +621,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           new TextEncoder().encode(reqPayload),
           { reliable: true }
         );
-      } catch (e) {}
+      } catch (e) { }
     }
 
     return () => {
@@ -646,12 +656,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         if (!isRestoring) {
           const savedMic = localStorage.getItem(`livekit_mic_${roomName}`);
           const targetMic = savedMic !== 'disabled';
-          localParticipant.setMicrophoneEnabled(targetMic).catch(() => {});
-          
+          localParticipant.setMicrophoneEnabled(targetMic).catch(() => { });
+
           if (isVideoRoom) {
             const savedCam = localStorage.getItem(`livekit_cam_${roomName}`);
             const targetCam = savedCam === 'enabled';
-            localParticipant.setCameraEnabled(targetCam).catch(() => {});
+            localParticipant.setCameraEnabled(targetCam).catch(() => { });
           }
         }
       }
@@ -670,14 +680,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     if (hasInitializedState.current && currentCanPublish !== prevCanPublish.current) {
       if (currentCanPublish) {
         setHasRequested(false);
-        localParticipant.setMicrophoneEnabled(true).catch(() => {});
+        localParticipant.setMicrophoneEnabled(true).catch(() => { });
         setIsMicEnabled(true);
         localStorage.setItem(`livekit_stage_${roomName}`, 'speaker');
         localStorage.setItem(`livekit_mic_${roomName}`, 'enabled');
       } else {
         toast.error('You have been moved back to the audience.', { duration: 5000 });
-        localParticipant.setMicrophoneEnabled(false).catch(() => {});
-        localParticipant.setCameraEnabled(false).catch(() => {});
+        localParticipant.setMicrophoneEnabled(false).catch(() => { });
+        localParticipant.setCameraEnabled(false).catch(() => { });
         setIsMicEnabled(false);
         setIsCamEnabled(false);
         localStorage.setItem(`livekit_stage_${roomName}`, 'listener');
@@ -757,7 +767,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       if (isHost) {
         const token = localStorage.getItem('google_token');
         const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-        
+
         // Delete database room record (delayed)
         const dbUrl = `${backendUrl}/api/language-rooms/by-name/${roomName}?source=unload`;
         fetch(dbUrl, {
@@ -767,7 +777,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             'Content-Type': 'application/json'
           },
           keepalive: true
-        }).catch(() => {});
+        }).catch(() => { });
 
         // Delete LiveKit server room (delayed)
         const lkUrl = `${backendUrl}/api/livekit/rooms/${roomName}?source=unload`;
@@ -778,7 +788,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             'Content-Type': 'application/json'
           },
           keepalive: true
-        }).catch(() => {});
+        }).catch(() => { });
       }
     };
 
@@ -904,19 +914,26 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     setHasRequested(true);
     toast.success('Stage request sent! Waiting for host approval...', { icon: '🎤' });
 
-    // 1. Instant Data channel fast-path signal directly to room & host (0ms latency)
+    const myIdentity = localParticipant?.identity || userIdentity || (user?.id ? String(user.id) : null);
+    const myName = localParticipant?.name || user?.name || 'User';
+
+    const requestPayload = {
+      type: 'request_to_speak',
+      identity: myIdentity,
+      name: myName,
+    };
+
+    // 1. Instant Data channel fast-path signal: send directly to host AND broadcast to room (0ms latency)
     try {
-      const requestPayload = {
-        type: 'request_to_speak',
-        identity: localParticipant?.identity || userIdentity,
-        name: localParticipant?.name || 'User',
-      };
+      if (hostIdentity) {
+        sendSignal(requestPayload, [hostIdentity]);
+      }
       sendSignal(requestPayload);
     } catch (sigErr) {
       console.warn('[Signal] Fast-path signal failed:', sigErr);
     }
 
-    // 2. Submit to backend in background (async non-blocking)
+    // 2. Submit to backend in background (async non-blocking fallback)
     socialApi.post(`/livekit/rooms/${roomName}/stage-requests`).catch(err => {
       console.warn('[StageRequest] Background API submit error:', err);
     });
@@ -927,18 +944,22 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     setHasRequested(false);
     toast.success('Stage request withdrawn.', { icon: '🎤' });
 
-    const myId = localParticipant?.identity || userIdentity;
+    const myId = localParticipant?.identity || userIdentity || (user?.id ? String(user.id) : null);
     if (myId) {
-      // 1. Instant data channel signal
+      const withdrawPayload = {
+        type: 'withdraw_stage_request',
+        identity: myId,
+      };
+      // 1. Instant data channel signal directly to host + broadcast
       try {
-        sendSignal({
-          type: 'withdraw_stage_request',
-          identity: myId,
-        });
-      } catch (_) {}
+        if (hostIdentity) {
+          sendSignal(withdrawPayload, [hostIdentity]);
+        }
+        sendSignal(withdrawPayload);
+      } catch (_) { }
 
       // 2. Background backend store removal
-      socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${myId}`).catch(() => {});
+      socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${myId}`).catch(() => { });
     }
   };
 
@@ -1019,11 +1040,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       setSpeakRequests(prev => prev.filter(r => r.identity !== identity));
       try {
         await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`);
-      } catch (_) {}
+      } catch (_) { }
       // Notify the promoted user via data channel
       try {
         await sendSignal({ type: 'you_were_promoted' }, [identity]);
-      } catch (_) {}
+      } catch (_) { }
     } catch (err) {
       console.error('[Promote]', err);
       toast.error(err.response?.data?.error || 'Failed to promote user.', { id: `promote-err-${identity}` });
@@ -1089,7 +1110,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       try {
         const res = await socialApi.get(`/livekit/rooms/${roomName}/stage-requests`);
         const incoming = Array.isArray(res.data?.requests) ? res.data.requests : [];
-        incoming.forEach((req) => addSpeakRequest(req.identity, req.name));
+        incoming.forEach((req) => addSpeakRequestRef.current?.(req.identity, req.name));
       } catch (err) {
         console.warn('[StageRequests] poll failed:', err);
       }
@@ -1098,7 +1119,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     fetchStageRequests();
     const pollId = setInterval(fetchStageRequests, 3000);
     return () => clearInterval(pollId);
-  }, [isHost, roomName, addSpeakRequest]);
+  }, [isHost, roomName]);
 
   useEffect(() => {
     if (!room) return;
@@ -1107,13 +1128,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       try {
         const data = JSON.parse(new TextDecoder().decode(payload));
         const currentLocalParticipant = localParticipantRef.current;
+        const hostActive = isHostRef.current || isHost || amIHost();
 
         if (data.type === 'request_to_speak') {
-          if (isHost || amIHost()) {
-            addSpeakRequest(data.identity, data.name);
+          if (hostActive) {
+            addSpeakRequestRef.current?.(data.identity, data.name);
           }
         } else if (data.type === 'withdraw_stage_request') {
-          if (isHost || amIHost()) {
+          if (hostActive) {
             notifiedRequestsRef.current.delete(data.identity);
             setSpeakRequests(prev => prev.filter(r => r.identity !== data.identity));
             toast.dismiss(`speak_req_${data.identity}`);
@@ -1129,13 +1151,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           toast.success('You are now on stage! 🎤', { id: 'on-stage-self', duration: 3000 });
           setHasRequested(false);
         } else if (data.type === 'accept_invite_response') {
-          if (isHost || amIHost()) {
+          if (hostActive) {
             if (handlePromoteSpeakerRef.current) {
               handlePromoteSpeakerRef.current(data.identity, data.name);
             }
           }
         } else if (data.type === 'decline_invite_response') {
-          if (isHost || amIHost()) {
+          if (hostActive) {
             toast.error(`${data.name || 'User'} declined the stage invitation.`, { id: `decline-${data.identity || 'user'}`, duration: 3000 });
           }
         } else if (data.type === 'room_ended') {
@@ -1155,11 +1177,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     };
 
     room.on('dataReceived', handleRemoteData);
+    room.on(RoomEvent.DataReceived, handleRemoteData);
     return () => {
       room.off('dataReceived', handleRemoteData);
+      room.off(RoomEvent.DataReceived, handleRemoteData);
       if (subtitleTimeoutRef.current) clearTimeout(subtitleTimeoutRef.current);
     };
-  }, [room, roomName, amIHost, addSpeakRequest]);
+  }, [room, roomName, isHost, amIHost]);
 
   // ── Speech Transcription / Subtitles ───────────────────────────────────────
   const startSpeechRecognition = () => {
@@ -1213,7 +1237,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     recognition.onend = () => {
       if (isTranscribing) {
-        try { recognitionRef.current.start(); } catch(e) {}
+        try { recognitionRef.current.start(); } catch (e) { }
       }
     };
 
@@ -1344,11 +1368,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     return (
       <div
         key={p.identity}
-        className={`${spanClass} relative rounded-2xl overflow-hidden bg-white dark:bg-gray-900 border-2 transition-all flex flex-col items-center justify-center p-3 w-full h-full shadow-sm ${
-          isSpeaking
+        className={`${spanClass} relative rounded-2xl overflow-hidden bg-white dark:bg-gray-900 border-2 transition-all flex flex-col items-center justify-center p-3 w-full h-full shadow-sm ${isSpeaking
             ? 'border-orange-500 shadow-lg shadow-orange-500/20'
             : 'border-gray-200 dark:border-gray-800'
-        }`}
+          }`}
       >
 
 
@@ -1381,9 +1404,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         </div>
 
         <div className="absolute top-2 right-2 z-20 flex gap-1">
-          <span className={`p-1 rounded-lg text-white shadow-sm ${
-            hasMic ? 'bg-green-500/80 backdrop-blur-sm' : 'bg-red-500/80 backdrop-blur-sm'
-          }`}>
+          <span className={`p-1 rounded-lg text-white shadow-sm ${hasMic ? 'bg-green-500/80 backdrop-blur-sm' : 'bg-red-500/80 backdrop-blur-sm'
+            }`}>
             {hasMic ? <Mic size={9} /> : <MicOff size={9} />}
           </span>
         </div>
@@ -1431,7 +1453,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             const isMe = item.from?.identity === localParticipant?.identity;
             return (
               <div key={item.id} className="flex gap-2 flex-row items-end">
-                <div 
+                <div
                   onClick={() => navigate(`/dashboard/social?tab=profile&profileId=${item.from?.identity}`)}
                   className={`w-7 h-7 rounded-full bg-gradient-to-tr ${getGradient(item.from?.identity || '')} flex items-center justify-center text-white font-black text-[10px] uppercase shrink-0 border border-white/10 cursor-pointer hover:scale-105 transition-all`}
                   title="View Profile"
@@ -1439,18 +1461,17 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                   {item.from?.name?.[0] || 'U'}
                 </div>
                 <div className="flex flex-col gap-0.5 max-w-[200px] items-start">
-                  <span 
+                  <span
                     onClick={() => navigate(`/dashboard/social?tab=profile&profileId=${item.from?.identity}`)}
                     className="text-[9px] font-black text-gray-500 uppercase tracking-wide px-1 cursor-pointer hover:text-orange-500 transition-colors"
                     title="View Profile"
                   >
                     {item.from?.name || 'User'}
                   </span>
-                  <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${
-                    isMe
+                  <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${isMe
                       ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-bl-md shadow-orange-500/20'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-md border border-gray-200 dark:border-white/5'
-                  }`}>
+                    }`}>
                     {item.text}
                   </div>
                 </div>
@@ -1497,7 +1518,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   return (
     <div className="flex flex-col h-screen w-full bg-orange-50 dark:bg-gray-950 font-sans text-gray-900 dark:text-white overflow-hidden relative">
-      
+
       {/* Dynamic style block for beauty filter */}
       <style>{`
         div[data-lk-local-participant="true"] video {
@@ -1558,13 +1579,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                     <div
                       key={friend.id}
                       onClick={() => !isInRoom && toggleInviteFriendSelection(friend.id)}
-                      className={`flex items-center justify-between p-2 rounded-xl border transition-all ${
-                        isInRoom
+                      className={`flex items-center justify-between p-2 rounded-xl border transition-all ${isInRoom
                           ? 'bg-green-500/5 border-green-500/20 opacity-70 cursor-default'
                           : isSelected
                             ? 'bg-purple-500/10 border-purple-400 dark:border-purple-600 cursor-pointer'
                             : 'bg-gray-50 dark:bg-gray-800/60 border-gray-100 dark:border-gray-800 hover:border-purple-200 cursor-pointer select-none'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <UserAvatar
@@ -1590,11 +1610,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                       </div>
 
                       {!isInRoom && (
-                        <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
-                          isSelected
+                        <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${isSelected
                             ? 'bg-purple-600 border-purple-600 text-white'
                             : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700'
-                        }`}>
+                          }`}>
                           {isSelected && <Check size={11} strokeWidth={3} />}
                         </div>
                       )}
@@ -1722,7 +1741,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       {showSettingsModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[200] p-0 sm:p-4 animate-fade-in">
           <div className="bg-white dark:bg-gray-900 border-t sm:border border-gray-100 dark:border-gray-800 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl transition-all max-h-[88vh] sm:max-h-[82vh] flex flex-col gap-4 overflow-hidden">
-            
+
             {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3 shrink-0">
               <div className="flex items-center gap-2.5">
@@ -1750,11 +1769,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             <div className="flex gap-1.5 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl shrink-0">
               <button
                 onClick={() => setActiveSettingsTab('tools')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl font-black text-xs transition-all cursor-pointer ${
-                  activeSettingsTab === 'tools' || (activeSettingsTab !== 'host' && activeSettingsTab !== 'camera' && activeSettingsTab !== 'filter')
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl font-black text-xs transition-all cursor-pointer ${activeSettingsTab === 'tools' || (activeSettingsTab !== 'host' && activeSettingsTab !== 'camera' && activeSettingsTab !== 'filter')
                     ? 'bg-white dark:bg-gray-900 text-orange-500 shadow-sm'
                     : 'text-gray-550 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 <PenTool size={13} />
                 <span>Actions</span>
@@ -1762,11 +1780,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
               {isHost && (
                 <button
                   onClick={() => setActiveSettingsTab('host')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl font-black text-xs transition-all cursor-pointer ${
-                    activeSettingsTab === 'host'
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl font-black text-xs transition-all cursor-pointer ${activeSettingsTab === 'host'
                       ? 'bg-white dark:bg-gray-900 text-orange-500 shadow-sm'
                       : 'text-gray-550 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'
-                  }`}
+                    }`}
                 >
                   <ShieldCheck size={13} />
                   <span>Host Settings</span>
@@ -1775,11 +1792,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
               {isVideoRoom && (
                 <button
                   onClick={() => setActiveSettingsTab('camera')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl font-black text-xs transition-all cursor-pointer ${
-                    activeSettingsTab === 'camera' || activeSettingsTab === 'filter'
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl font-black text-xs transition-all cursor-pointer ${activeSettingsTab === 'camera' || activeSettingsTab === 'filter'
                       ? 'bg-white dark:bg-gray-900 text-orange-500 shadow-sm'
                       : 'text-gray-550 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Camera size={13} />
                   <span>Video & Filters</span>
@@ -1789,7 +1805,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
             {/* Content Body */}
             <div className="flex flex-col gap-4 overflow-y-auto pr-1 flex-1">
-              
+
               {/* Tab 1: Tools & Stage Actions */}
               {(activeSettingsTab === 'tools' || (!isHost && !isVideoRoom && activeSettingsTab !== 'host' && activeSettingsTab !== 'camera')) && (
                 <div className="flex flex-col gap-2.5">
@@ -1808,20 +1824,18 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                         toggleWhiteboard();
                         setShowSettingsModal(false);
                       }}
-                      className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer active:scale-98 ${
-                        isWhiteboardOpen
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer active:scale-98 ${isWhiteboardOpen
                           ? 'bg-orange-500/10 border-orange-500/40 dark:bg-orange-500/15'
                           : (!isHost && !allowWhiteboard)
                             ? 'bg-gray-50/70 dark:bg-gray-800/30 border-gray-200/50 dark:border-white/5 opacity-60'
                             : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-white/5 hover:border-orange-500/30'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                          isWhiteboardOpen
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isWhiteboardOpen
                             ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                             : 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400'
-                        }`}>
+                          }`}>
                           <PenTool size={18} />
                         </div>
                         <div className="flex flex-col min-w-0">
@@ -1865,20 +1879,18 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                         toggleScreenShare();
                         setShowSettingsModal(false);
                       }}
-                      className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer active:scale-98 ${
-                        isScreenSharing
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer active:scale-98 ${isScreenSharing
                           ? 'bg-blue-500/10 border-blue-500/40 dark:bg-blue-500/15'
                           : (!isHost && !allowScreenShare)
                             ? 'bg-gray-50/70 dark:bg-gray-800/30 border-gray-200/50 dark:border-white/5 opacity-60'
                             : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-white/5 hover:border-blue-500/30'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                          isScreenSharing
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isScreenSharing
                             ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                             : 'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
-                        }`}>
+                          }`}>
                           {isScreenSharing ? <MonitorOff size={18} /> : <ScreenShare size={18} />}
                         </div>
                         <div className="flex flex-col min-w-0">
@@ -1931,22 +1943,20 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                         }
                         setShowSettingsModal(false);
                       }}
-                      className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer active:scale-98 ${
-                        hasRequested || (isHost && speakRequests.length > 0)
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer active:scale-98 ${hasRequested || (isHost && speakRequests.length > 0)
                           ? 'bg-purple-500/10 border-purple-500/40 dark:bg-purple-500/15'
                           : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-white/5 hover:border-purple-500/30'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                          isHost
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isHost
                             ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
                             : canPublish
                               ? 'bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400'
                               : hasRequested
                                 ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                                 : 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
-                        }`}>
+                          }`}>
                           {isHost ? <UserPlus size={18} /> : canPublish ? <ChevronsDown size={18} /> : <Hand size={18} />}
                         </div>
                         <div className="flex flex-col min-w-0">
@@ -1978,7 +1988,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                       Host Room Settings & Collaboration
                     </span>
                   </div>
-                  
+
                   {/* Whiteboard permission switch */}
                   <div className="flex items-center justify-between pt-1">
                     <div className="flex flex-col pr-3">
@@ -1991,13 +2001,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                     </div>
                     <button
                       onClick={() => handleToggleAllowWhiteboard(!allowWhiteboard)}
-                      className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer p-0.5 shrink-0 ${
-                        allowWhiteboard ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-700'
-                      }`}
+                      className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer p-0.5 shrink-0 ${allowWhiteboard ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-700'
+                        }`}
                     >
-                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                        allowWhiteboard ? 'translate-x-6' : 'translate-x-0'
-                      }`} />
+                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${allowWhiteboard ? 'translate-x-6' : 'translate-x-0'
+                        }`} />
                     </button>
                   </div>
 
@@ -2013,13 +2021,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                     </div>
                     <button
                       onClick={() => handleToggleAllowScreenShare(!allowScreenShare)}
-                      className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer p-0.5 shrink-0 ${
-                        allowScreenShare ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-700'
-                      }`}
+                      className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer p-0.5 shrink-0 ${allowScreenShare ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-700'
+                        }`}
                     >
-                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
-                        allowScreenShare ? 'translate-x-6' : 'translate-x-0'
-                      }`} />
+                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${allowScreenShare ? 'translate-x-6' : 'translate-x-0'
+                        }`} />
                     </button>
                   </div>
                 </div>
@@ -2068,7 +2074,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                         Choose a visual style to enhance skin tone and lighting in real-time.
                       </span>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-2 mt-1">
                       {[
                         { id: 'none', label: 'Natural', desc: 'Original camera' },
@@ -2082,11 +2088,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                           <button
                             key={f.id}
                             onClick={() => handleSelectFilter(f.id)}
-                            className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all cursor-pointer active:scale-95 ${
-                              isActive
+                            className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all cursor-pointer active:scale-95 ${isActive
                                 ? 'bg-orange-500/10 border-orange-500 text-orange-600 dark:text-orange-400 shadow-sm'
                                 : 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-white/5 text-gray-700 dark:text-gray-300 hover:border-orange-500/30'
-                            }`}
+                              }`}
                           >
                             <span className="text-xs font-black">{f.label}</span>
                             <span className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5 leading-none font-bold">
@@ -2124,8 +2129,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         {/* Left: Brand + Separator + Room Name */}
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Logo — same position in both Social Hub and Main App headers */}
-          <div 
-            className="flex items-center gap-2 shrink-0 cursor-pointer hover:opacity-80 transition-opacity" 
+          <div
+            className="flex items-center gap-2 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => navigate('/dashboard')}
           >
             <img src="/LP_M_logo.png" alt="LearnProof" className="w-8 h-8 object-contain shrink-0 rounded-xl" />
@@ -2176,11 +2181,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleLeaveClick}
-            className={`flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl font-black shadow-lg transition-all active:scale-95 cursor-pointer ${
-              isHost
+            className={`flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl font-black shadow-lg transition-all active:scale-95 cursor-pointer ${isHost
                 ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/25 border-none'
                 : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/30'
-            }`}
+              }`}
             title={isHost ? 'End Session for all' : 'Leave Room'}
           >
             <LogOut size={16} />
@@ -2195,9 +2199,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
 
         {/* ══ LEFT: Stage Area ══ */}
-        <div className={`${
-          showChatPanel ? (isChatHidable ? 'h-full flex-1' : 'h-[48vh] lg:h-full lg:flex-1') : 'h-full flex-1'
-        } shrink-0 relative overflow-hidden bg-orange-50 dark:bg-gray-950`}>
+        <div className={`${showChatPanel ? (isChatHidable ? 'h-full flex-1' : 'h-[48vh] lg:h-full lg:flex-1') : 'h-full flex-1'
+          } shrink-0 relative overflow-hidden bg-orange-50 dark:bg-gray-950`}>
 
           {/* Ambient gradient bg */}
           <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-orange-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 pointer-events-none" />
@@ -2390,7 +2393,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
       {/* Collapsible Participants Info Card (only when chat is hidable on mobile view) */}
       {isChatHidable && (
-        <div 
+        <div
           onClick={() => setShowParticipants(prev => !prev)}
           className="mx-4 mb-3 mt-1.5 p-3.5 bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.99] transition-all relative z-20"
         >
@@ -2415,20 +2418,19 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
       {/* ── Global Bottom Controls Bar ── */}
       <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-white/5 py-3 px-3 sm:px-6 flex items-center justify-around z-30 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] gap-1 sm:gap-2">
-        
+
         {/* On-Stage Controls: Shown only when user is on Stage (Host or Approved Speaker) */}
         {(canPublish || isHost) ? (
           <>
             {/* 1. Mute / Unmute Button */}
-            <div 
+            <div
               onClick={toggleMic}
               className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
             >
-              <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
-                isMicEnabled 
-                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
+              <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${isMicEnabled
+                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                   : 'bg-red-50 dark:bg-red-950/30 text-red-500 border border-red-200/50 dark:border-red-900/30'
-              }`}>
+                }`}>
                 {isMicEnabled ? <Mic size={20} /> : <MicOff size={20} />}
               </div>
               <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
@@ -2438,15 +2440,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
             {/* 2. Video Button (if video room) */}
             {isVideoRoom && (
-              <div 
+              <div
                 onClick={toggleCam}
                 className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
               >
-                <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
-                  isCamEnabled 
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
+                <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${isCamEnabled
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-white/5'
-                }`}>
+                  }`}>
                   {isCamEnabled ? <Video size={20} /> : <VideoOff size={20} />}
                 </div>
                 <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
@@ -2456,15 +2457,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             )}
 
             {/* 3. Stage Action: Invite Friends (Host) or Leave Stage (Speaker) */}
-            <div 
+            <div
               onClick={isHost ? handleOpenInviteFriendsModal : handleLeaveStage}
               className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
             >
-              <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
-                isHost
+              <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${isHost
                   ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
                   : 'bg-red-50 dark:bg-red-950/30 text-red-500 border border-red-200/50 dark:border-red-900/30'
-              }`}>
+                }`}>
                 {isHost ? <UserPlus size={20} /> : <ChevronsDown size={20} />}
               </div>
               <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
@@ -2474,15 +2474,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           </>
         ) : (
           /* Audience / Listener Control: Prominent Raise Hand Button */
-          <div 
+          <div
             onClick={hasRequested ? handleWithdrawRequest : handleRequestToSpeak}
             className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[70px] sm:min-w-[84px]"
           >
-            <div className={`w-14 sm:w-16 h-11 rounded-2xl flex items-center justify-center transition-all ${
-              hasRequested 
-                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25 ring-2 ring-orange-500/30 animate-pulse' 
+            <div className={`w-14 sm:w-16 h-11 rounded-2xl flex items-center justify-center transition-all ${hasRequested
+                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25 ring-2 ring-orange-500/30 animate-pulse'
                 : 'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-md shadow-purple-500/20'
-            }`}>
+              }`}>
               <Hand size={20} className={hasRequested ? 'animate-bounce' : ''} />
             </div>
             <span className={`text-[11px] font-black tracking-tight ${hasRequested ? 'text-orange-600 dark:text-orange-400' : 'text-purple-600 dark:text-purple-400'}`}>
@@ -2492,15 +2491,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         )}
 
         {/* Chat Button */}
-        <div 
+        <div
           onClick={() => setShowChatPanel(prev => !prev)}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px] relative"
         >
-          <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
-            showChatPanel 
-              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
+          <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${showChatPanel
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
               : 'bg-orange-50 dark:bg-orange-950/30 text-orange-500 border border-orange-200/40 dark:border-orange-900/30'
-          }`}>
+            }`}>
             <MessageSquare size={20} />
           </div>
           <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
@@ -2509,15 +2507,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         </div>
 
         {/* Participants Button */}
-        <div 
+        <div
           onClick={() => setShowParticipants(prev => !prev)}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px] relative"
         >
-          <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all relative ${
-            showParticipants
+          <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all relative ${showParticipants
               ? 'bg-green-600 text-white shadow-md shadow-green-600/20'
               : 'bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/40 dark:border-green-900/30'
-          }`}>
+            }`}>
             <Users size={20} />
             {uniqueParticipants.length > 0 && (
               <span className="absolute -top-1 -right-1 px-1.5 py-0.2 min-w-[18px] text-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[9px] font-black rounded-full shadow-sm">
@@ -2531,15 +2528,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         </div>
 
         {/* More Options / Settings Button */}
-        <div 
+        <div
           onClick={() => setShowSettingsModal(true)}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px] relative"
         >
-          <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all relative ${
-            showSettingsModal || isWhiteboardOpen || isScreenSharing
+          <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all relative ${showSettingsModal || isWhiteboardOpen || isScreenSharing
               ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
               : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200/50 dark:border-white/5'
-          }`}>
+            }`}>
             <MoreHorizontal size={20} />
             {(isWhiteboardOpen || isScreenSharing || (isHost && speakRequests.length > 0)) && (
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full ring-2 ring-white dark:ring-gray-900 animate-pulse" />
@@ -2575,154 +2571,154 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         )}
       </AnimatePresence>
 
-        {/* ── Participants Drawer ── */}
-        {showParticipants && (
-          <div
-            ref={participantsPanelRef}
-            className="absolute right-0 top-0 bottom-0 w-72 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-white/8 flex flex-col z-50 shadow-2xl"
-          >
-            {/* Drawer header */}
-            <div className="p-4 border-b border-gray-200 dark:border-white/8 flex items-center justify-between bg-white/80 dark:bg-gray-900/80 shrink-0">
-              <h3 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                  <Users size={12} className="text-orange-400" />
-                </div>
-                Room · {uniqueParticipants.length}
-              </h3>
-              <button
-                onClick={() => setShowParticipants(false)}
-                className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition cursor-pointer"
-              >
-                <X size={14} />
-              </button>
-            </div>
+      {/* ── Participants Drawer ── */}
+      {showParticipants && (
+        <div
+          ref={participantsPanelRef}
+          className="absolute right-0 top-0 bottom-0 w-72 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-white/8 flex flex-col z-50 shadow-2xl"
+        >
+          {/* Drawer header */}
+          <div className="p-4 border-b border-gray-200 dark:border-white/8 flex items-center justify-between bg-white/80 dark:bg-gray-900/80 shrink-0">
+            <h3 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                <Users size={12} className="text-orange-400" />
+              </div>
+              Room · {uniqueParticipants.length}
+            </h3>
+            <button
+              onClick={() => setShowParticipants(false)}
+              className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition cursor-pointer"
+            >
+              <X size={14} />
+            </button>
+          </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-5">
+          <div className="flex-1 overflow-y-auto p-4 space-y-5">
 
-              {/* Speak Requests */}
-              {isHost && speakRequests.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-wider text-orange-400">
-                      Stage Requests · {speakRequests.length}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {speakRequests.map((req) => (
-                      <div key={req.identity} className="flex items-center justify-between gap-2 p-2.5 bg-orange-500/8 border border-orange-500/20 rounded-2xl">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className={`w-8 h-8 rounded-full bg-gradient-to-tr ${getGradient(req.identity)} flex items-center justify-center text-white font-black text-xs uppercase shrink-0`}>
-                            {req.name ? req.name[0] : 'U'}
-                          </div>
-                          <span className="text-xs font-black text-gray-900 dark:text-white truncate">{req.name}</span>
-                        </div>
-                        <div className="flex gap-1.5 shrink-0">
-                          <button
-                            onClick={() => handlePromoteSpeaker(req.identity, req.name)}
-                            className="p-1.5 bg-green-500/15 hover:bg-green-500 text-green-400 hover:text-white rounded-lg border border-green-500/25 transition-all cursor-pointer"
-                            title="Approve"
-                          >
-                            <Check size={12} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSpeakRequests(prev => prev.filter(r => r.identity !== req.identity));
-                              socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${req.identity}`).catch(() => {});
-                            }}
-                            className="p-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-lg border border-gray-200 dark:border-white/8 transition-all cursor-pointer"
-                            title="Dismiss"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Participants List */}
+            {/* Speak Requests */}
+            {isHost && speakRequests.length > 0 && (
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-gray-500">All Participants ({uniqueParticipants.length})</span>
-                  {isHost && (
-                    <button
-                      onClick={handleOpenInviteFriendsModal}
-                      className="flex items-center gap-1 px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-extrabold text-[10px] rounded-lg transition-all cursor-pointer"
-                    >
-                      <UserPlus size={11} />
-                      <span>Invite Friends</span>
-                    </button>
-                  )}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-orange-400">
+                    Stage Requests · {speakRequests.length}
+                  </span>
                 </div>
-                <div className="space-y-1">
-                  {uniqueParticipants.map((p) => {
-                    const isCreator = dbRoom && dbRoom.creatorId?.toString() === p.identity;
-                    const isMe = p.identity === localParticipant?.identity;
-                    const pCanPublish = p.permissions?.canPublish ?? false;
-                    const role = isCreator ? 'Host' : pCanPublish ? 'Speaker' : 'Listener';
-                    const roleColors = { Host: 'text-orange-400', Speaker: 'text-green-400', Listener: 'text-gray-500' };
-
-                    return (
-                      <div key={p.identity} className="flex items-center justify-between gap-2 p-2.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-white/5 transition group">
-                        <div
-                          onClick={() => handleUserProfileClick(p.identity)}
-                          className="flex items-center gap-2.5 min-w-0 cursor-pointer"
-                        >
-                          <div className="relative shrink-0">
-                            <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${getGradient(p.identity)} flex items-center justify-center text-white font-black text-xs uppercase`}>
-                              {p.name ? p.name[0] : 'U'}
-                            </div>
-                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900" />
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-xs font-black text-gray-900 dark:text-white truncate flex items-center gap-1.5">
-                              {p.name || 'User'}
-                              {isMe && <span className="text-[8px] px-1 py-0.5 bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400 rounded font-semibold">You</span>}
-                            </span>
-                            <span className={`text-[10px] font-bold ${roleColors[role]}`}>{role}</span>
-                          </div>
+                <div className="space-y-2">
+                  {speakRequests.map((req) => (
+                    <div key={req.identity} className="flex items-center justify-between gap-2 p-2.5 bg-orange-500/8 border border-orange-500/20 rounded-2xl">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className={`w-8 h-8 rounded-full bg-gradient-to-tr ${getGradient(req.identity)} flex items-center justify-center text-white font-black text-xs uppercase shrink-0`}>
+                          {req.name ? req.name[0] : 'U'}
                         </div>
-
-                        {isHost && !isMe && (
-                          <div className="flex items-center gap-2 shrink-0">
-                            {!pCanPublish ? (
-                              <button
-                                onClick={() => handleInviteToStage(p.identity, p.name || 'User')}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[10px] font-black rounded-full shadow-md shadow-orange-500/10 transition-all cursor-pointer active:scale-95 border-none"
-                                title="Invite to Stage"
-                              >
-                                <UserPlus size={11} />
-                                <span>Invite</span>
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleDemoteSpeaker(p.identity, p.name || 'User')}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-gray-105 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-[10px] font-black rounded-full transition-all cursor-pointer active:scale-95 border border-gray-200 dark:border-white/5"
-                                title="Demote to Audience"
-                              >
-                                <UserMinus size={11} />
-                                <span>Demote</span>
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleKickParticipant(p.identity, p.name || 'User')}
-                              className="p-1.5 text-red-500 hover:text-white bg-red-500/10 hover:bg-red-500 rounded-full transition-all cursor-pointer active:scale-95"
-                              title="Remove participant"
-                            >
-                              <UserX size={13} />
-                            </button>
-                          </div>
-                        )}
+                        <span className="text-xs font-black text-gray-900 dark:text-white truncate">{req.name}</span>
                       </div>
-                    );
-                  })}
+                      <div className="flex gap-1.5 shrink-0">
+                        <button
+                          onClick={() => handlePromoteSpeaker(req.identity, req.name)}
+                          className="p-1.5 bg-green-500/15 hover:bg-green-500 text-green-400 hover:text-white rounded-lg border border-green-500/25 transition-all cursor-pointer"
+                          title="Approve"
+                        >
+                          <Check size={12} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSpeakRequests(prev => prev.filter(r => r.identity !== req.identity));
+                            socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${req.identity}`).catch(() => { });
+                          }}
+                          className="p-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-lg border border-gray-200 dark:border-white/8 transition-all cursor-pointer"
+                          title="Dismiss"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            )}
+
+            {/* Participants List */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-black uppercase tracking-wider text-gray-500">All Participants ({uniqueParticipants.length})</span>
+                {isHost && (
+                  <button
+                    onClick={handleOpenInviteFriendsModal}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-extrabold text-[10px] rounded-lg transition-all cursor-pointer"
+                  >
+                    <UserPlus size={11} />
+                    <span>Invite Friends</span>
+                  </button>
+                )}
+              </div>
+              <div className="space-y-1">
+                {uniqueParticipants.map((p) => {
+                  const isCreator = dbRoom && dbRoom.creatorId?.toString() === p.identity;
+                  const isMe = p.identity === localParticipant?.identity;
+                  const pCanPublish = p.permissions?.canPublish ?? false;
+                  const role = isCreator ? 'Host' : pCanPublish ? 'Speaker' : 'Listener';
+                  const roleColors = { Host: 'text-orange-400', Speaker: 'text-green-400', Listener: 'text-gray-500' };
+
+                  return (
+                    <div key={p.identity} className="flex items-center justify-between gap-2 p-2.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-white/5 transition group">
+                      <div
+                        onClick={() => handleUserProfileClick(p.identity)}
+                        className="flex items-center gap-2.5 min-w-0 cursor-pointer"
+                      >
+                        <div className="relative shrink-0">
+                          <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${getGradient(p.identity)} flex items-center justify-center text-white font-black text-xs uppercase`}>
+                            {p.name ? p.name[0] : 'U'}
+                          </div>
+                          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-white dark:border-gray-900" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-black text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+                            {p.name || 'User'}
+                            {isMe && <span className="text-[8px] px-1 py-0.5 bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400 rounded font-semibold">You</span>}
+                          </span>
+                          <span className={`text-[10px] font-bold ${roleColors[role]}`}>{role}</span>
+                        </div>
+                      </div>
+
+                      {isHost && !isMe && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          {!pCanPublish ? (
+                            <button
+                              onClick={() => handleInviteToStage(p.identity, p.name || 'User')}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[10px] font-black rounded-full shadow-md shadow-orange-500/10 transition-all cursor-pointer active:scale-95 border-none"
+                              title="Invite to Stage"
+                            >
+                              <UserPlus size={11} />
+                              <span>Invite</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleDemoteSpeaker(p.identity, p.name || 'User')}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-gray-105 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-[10px] font-black rounded-full transition-all cursor-pointer active:scale-95 border border-gray-200 dark:border-white/5"
+                              title="Demote to Audience"
+                            >
+                              <UserMinus size={11} />
+                              <span>Demote</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleKickParticipant(p.identity, p.name || 'User')}
+                            className="p-1.5 text-red-500 hover:text-white bg-red-500/10 hover:bg-red-500 rounded-full transition-all cursor-pointer active:scale-95"
+                            title="Remove participant"
+                          >
+                            <UserX size={13} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
     </div>
   );
 }
