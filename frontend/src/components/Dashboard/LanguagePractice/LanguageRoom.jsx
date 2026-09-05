@@ -1299,21 +1299,21 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       }
     }
     if (count === 3) {
-      // 3 speakers: Desktop view has 2 columns & 2 rows (main user left col spanning 2 rows, other 2 users stacked right)
-      return 'grid-cols-1 lg:grid-cols-2 grid-rows-3 lg:grid-rows-2 h-full';
+      // 3 speakers: 2 columns & 2 rows (main user left col spanning 2 rows, other 2 users stacked right up and down)
+      return 'grid-cols-2 grid-rows-2 h-full';
     }
     if (count === 4) return 'grid-cols-2 grid-rows-2 h-full';
     return 'grid-cols-2 lg:grid-cols-3 grid-rows-3 lg:grid-rows-2 h-full'; // 5–6 people
   };
 
   // Returns dynamic spans for 3-speaker layout:
-  // On desktop: main user (index 0) on the left takes full height (lg:row-span-2), other two are up and down on the right (lg:row-span-1)
+  // Main user (index 0) on the left takes full height (row-span-2), other two are up and down on the right (row-span-1)
   const getTileSpan = (index, total) => {
     if (total === 3) {
       if (index === 0) {
-        return 'col-span-1 lg:col-span-1 lg:row-span-2 h-full';
+        return 'col-span-1 row-span-2 h-full';
       }
-      return 'col-span-1 lg:col-span-1 lg:row-span-1 h-full';
+      return 'col-span-1 row-span-1 h-full';
     }
     return 'h-full';
   };
