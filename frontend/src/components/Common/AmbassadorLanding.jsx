@@ -114,7 +114,7 @@ export default function AmbassadorLanding() {
 
     const handlePrimaryCta = () => {
         if (user) {
-            navigate('/dashboard/ambassador');
+            navigate('/ambassador/portal');
         } else {
             handleManualGoogleLogin();
         }
@@ -227,7 +227,7 @@ export default function AmbassadorLanding() {
                         <div className="flex items-center gap-2 sm:gap-4">
                             {user ? (
                                 <button 
-                                    onClick={() => navigate('/dashboard/ambassador')}
+                                    onClick={() => navigate('/ambassador/portal')}
                                     className="group inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white rounded-xl text-sm font-bold shadow-[0_4px_18px_rgba(249,115,22,0.35)] hover:shadow-[0_6px_25px_rgba(249,115,22,0.5)] transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95"
                                 >
                                     <span>My Dashboard</span>
@@ -309,7 +309,7 @@ export default function AmbassadorLanding() {
                                     <button 
                                         onClick={() => {
                                             setIsMobileMenuOpen(false);
-                                            navigate('/dashboard/ambassador');
+                                            navigate('/ambassador/portal');
                                         }}
                                         className="w-full py-3 bg-gradient-to-r from-orange-600 to-red-500 text-white font-bold rounded-xl text-center shadow-md text-sm flex items-center justify-center gap-2"
                                     >

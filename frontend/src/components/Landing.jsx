@@ -1538,7 +1538,7 @@ const LandingPage = () => {
                                     </button>
 
                                     <button
-                                        onClick={() => navigate('/dashboard/ambassador')}
+                                        onClick={() => navigate('/ambassador/portal')}
                                         className="px-6 py-3.5 bg-white/15 hover:bg-white/25 text-white border border-white/30 font-bold rounded-2xl text-sm sm:text-base backdrop-blur-md transition active:scale-95 flex items-center gap-2 cursor-pointer"
                                     >
                                         <span>Ambassador Dashboard</span>

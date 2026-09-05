@@ -125,6 +125,22 @@ const App = () => {
                             <Route path='/referrals' element={<AmbassadorLanding />} />
                             <Route path='/campus-ambassador' element={<AmbassadorLanding />} />
                             <Route path='/referral-program' element={<AmbassadorLanding />} />
+                            <Route 
+                                path='/ambassador/portal' 
+                                element={
+                                    <ProtectedRoute>
+                                        <AmbassadorDashboard />
+                                    </ProtectedRoute>
+                                } 
+                            />
+                            <Route 
+                                path='/ambassador/dashboard' 
+                                element={
+                                    <ProtectedRoute>
+                                        <AmbassadorDashboard />
+                                    </ProtectedRoute>
+                                } 
+                            />
 
                             <Route
                                 path='/dashboard/*'
@@ -150,7 +166,7 @@ const App = () => {
                                 <Route path='ask-my-notes-dev/:subjectId' element={<AskMyNotesOriginal />} />
                                 <Route path='ask-my-notes-dev/:subjectId/quiz' element={<WorkspaceQuizPage />} />
                                 <Route path='support' element={<Support />} />
-                                <Route path='ambassador' element={<AmbassadorDashboard />} />
+                                <Route path='ambassador' element={<Navigate to="/ambassador/portal" replace />} />
                                 
                                 {/* Social / Social Hub Features */}
                                 <Route path='social/*' element={<SocialDashboard />} />
