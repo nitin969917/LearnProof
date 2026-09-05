@@ -136,26 +136,6 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
             </div>
           </div>
 
-          {/* Card 1: Search Students (Hidden on desktop as requested, kept on mobile) */}
-          <div 
-            onClick={() => {
-              setSearchType('students');
-              searchInputRef.current?.focus();
-            }}
-            className="flex lg:hidden bg-white dark:bg-gray-900 hover:bg-orange-50/5 dark:hover:bg-gray-800/20 rounded-3xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow transition-all duration-300 cursor-pointer items-center justify-between group"
-          >
-            <div className="flex items-center gap-4 text-left">
-              <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 text-orange-500 flex items-center justify-center shrink-0 border border-orange-100/50 dark:border-orange-500/10">
-                <Users size={20} />
-              </div>
-              <div className="min-w-0">
-                <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm sm:text-base">Search Students</h3>
-                <p className="text-gray-405 dark:text-gray-500 text-xs mt-0.5 font-bold leading-normal">Find and connect with students in the community.</p>
-              </div>
-            </div>
-            <ChevronRight size={18} className="text-orange-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
-          </div>
-
           {/* ── Search Bar (Identical style & size to Learning Hub Explorer) ── */}
           <form 
             onSubmit={(e) => { e.preventDefault(); if (searchType === 'students') handleSearch(); }}
