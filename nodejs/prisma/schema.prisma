@@ -40,6 +40,8 @@ model UserProfile {
   fcmTokens        UserFcmToken[]
   sentNotifications SentNotification[]
   workspaces        Workspace[]
+  referralCodes     ReferralCode[]        @relation("ReferrerCodes")
+  referralAttribution ReferralAttribution? @relation("ReferredUser")
 }
 
 model InboxMessage {
@@ -653,5 +655,52 @@ model GroupMessage {
 
   @@map("social_group_messages")
 }
+
+// ==========================================
+// REFERRAL & CAMPUS AMBASSADOR TRACKING
+// ==========================================
+
+model ReferralCode {
+  id            Int                   @id @default(autoincrement())
+  code          String                @unique
+  category      String                @default("student") // "ambassador", "creator", "student", "campaign"
+  title         String?               // Campaign / Ambassador title (e.g. "IIT Bombay Campus Drive")
+  creatorName   String?               // Name of creator or ambassador
+  targetCollege String?               // Targeted university / institute
+  clicksCount   Int                   @default(0)
+  signupCount   Int                   @default(0)
+  isActive      Boolean               @default(true)
+  rewardNotes   String?               // Commission / perk notes
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  referrerId    Int?
+  referrer      UserProfile?          @relation("ReferrerCodes", fields: [referrerId], references: [id], onDelete: SetNull)
+
+  attributions  ReferralAttribution[]
+
+  @@index([code])
+  @@index([category])
+  @@index([referrerId])
+  @@map("referral_codes")
+}
+
+model ReferralAttribution {
+  id             Int          @id @default(autoincrement())
+  referralCodeId Int
+  referralCode   ReferralCode @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+
+  referredUserId Int          @unique
+  referredUser   UserProfile  @relation("ReferredUser", fields: [referredUserId], references: [id], onDelete: Cascade)
+
+  ipAddress      String?
+  metadata       String?      // Optional metadata
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@index([referralCodeId])
+  @@index([referredUserId])
+  @@map("referral_attributions")
+}
+
 
 

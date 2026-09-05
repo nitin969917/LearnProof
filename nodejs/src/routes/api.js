@@ -135,6 +135,10 @@ router.use('/support', supportRoutes);
 const workspaceRoutes = require('./workspace.routes');
 router.use('/workspaces', workspaceRoutes);
 
+// Referrals & Campus Ambassadors
+const referralRoutes = require('./referral.routes');
+router.use('/referrals', referralRoutes);
+
 // LiveKit — Video Rooms
 router.get('/livekit/token', datingAuth, livekitController.getToken);
 router.get('/livekit/rooms', datingAuth, livekitController.getRooms);

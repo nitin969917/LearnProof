@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
 import UserAvatar from '../../Common/UserAvatar.jsx';
+import ReferralInviteCard from '../ReferralInviteCard.jsx';
 
 export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const [searchType, setSearchType] = useState('students'); // 'students' or 'groups'
@@ -237,6 +238,9 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
               </button>
             </div>
           </div>
+
+          {/* ── REFERRAL & INVITE CARD ── */}
+          <ReferralInviteCard />
 
           {/* ── SUGGESTED USERS SECTION ── */}
           {(loadingSuggested || suggestedUsers.length > 0) && (

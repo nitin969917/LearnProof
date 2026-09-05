@@ -4,6 +4,7 @@ import { googleLogout } from '@react-oauth/google';
 import axios from "axios";
 import { initMatrixClient, disconnectMatrixClient } from "../utils/matrixClient";
 import { disconnectSocialSocket } from "../utils/socialSocket";
+import { captureReferralParam, attributePendingReferral } from "../utils/referralTracker";
 
 const AuthContext = createContext();
 
@@ -34,6 +35,9 @@ export const AuthProvider = ({ children }) => {
     const [matrixClient, setMatrixClient] = useState(null);
 
     useEffect(() => {
+        // Capture any incoming referral query parameter
+        captureReferralParam();
+
         const loadUser = async () => {
             const storedToken = localStorage.getItem("google_token");
             if (storedToken) {
@@ -58,6 +62,9 @@ export const AuthProvider = ({ children }) => {
                         picture: decoded.picture
                     });
                     setToken(storedToken);
+
+                    // Attribute referral in background if pending
+                    attributePendingReferral(storedToken);
 
                     // Fetch profile to get Matrix credentials
                     axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/profile/`, {
@@ -111,6 +118,9 @@ export const AuthProvider = ({ children }) => {
             });
             setToken(sessionToken);
 
+            // Attribute referral in background
+            attributePendingReferral(sessionToken);
+
             if (res.data.matrixCredentials) {
                 const clientInstance = await initMatrixClient(res.data.matrixCredentials);
                 setMatrixClient(clientInstance);
@@ -127,6 +137,7 @@ export const AuthProvider = ({ children }) => {
                 picture: decoded.picture
             });
             setToken(idToken);
+            attributePendingReferral(idToken);
         }
     };
 
