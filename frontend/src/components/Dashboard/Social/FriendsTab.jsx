@@ -234,16 +234,9 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                       </div>
                       <div className="min-w-0">
                         <h4 className="font-bold text-gray-900 dark:text-white text-sm truncate hover:text-orange-500 transition-colors">{friend.name}</h4>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <p className={`text-[10px] font-bold ${isFriendOnline ? 'text-green-500' : 'text-gray-400'}`}>
-                            {isFriendOnline ? 'Online' : 'Offline'}
-                          </p>
-                          {friend.email && (
-                            <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
-                              • {friend.email}
-                            </span>
-                          )}
-                        </div>
+                        <p className={`text-[10px] font-bold ${isFriendOnline ? 'text-green-500' : 'text-gray-400'}`}>
+                          {isFriendOnline ? 'Online' : 'Offline'}
+                        </p>
                       </div>
                     </div>
 

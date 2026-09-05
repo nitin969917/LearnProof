@@ -806,21 +806,14 @@ export default function LanguageLearning() {
                               <UserAvatar 
                                 src={friend.profilePicture} 
                                 name={friend.name} 
-                                className="w-7 h-7 rounded-full object-cover shrink-0 text-[10px]"
+                                className="w-6 h-6 rounded-full object-cover shrink-0 text-[10px]"
                               />
-                              <div className="flex flex-col min-w-0">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                    {friend.name}
-                                  </span>
-                                  {friend.isCloseFriend && (
-                                    <Star size={11} className="text-amber-500 fill-amber-500 shrink-0" />
-                                  )}
-                                </div>
-                                {friend.email && (
-                                  <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate leading-tight">
-                                    {friend.email}
-                                  </span>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                  {friend.name}
+                                </span>
+                                {friend.isCloseFriend && (
+                                  <Star size={11} className="text-amber-500 fill-amber-500 shrink-0" />
                                 )}
                               </div>
                             </div>
