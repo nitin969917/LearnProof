@@ -132,7 +132,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const isSearching = (searchType === 'students' ? hasSearched : (hasSearched || (searchType === 'groups' && hasLoadedGroups)));
 
   return (
-    <div className={`flex flex-col gap-5 sm:gap-6 w-full ${isSearching ? 'max-w-md lg:max-w-5xl' : 'max-w-md lg:max-w-4xl'} mx-auto py-2 sm:py-4 px-3 sm:px-0 transition-all duration-300`}>
+    <div className={`flex flex-col gap-5 sm:gap-6 w-full ${isSearching ? 'max-w-md lg:max-w-5xl' : 'max-w-md lg:max-w-4xl'} mx-auto py-2 sm:py-4 px-3 sm:px-0`}>
       
       {/* ── LANDING VIEW: MATCHING TARGET SCREENSHOT ── */}
       {!isSearching && (
@@ -334,7 +334,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
 
       {/* ── ACTIVE SEARCH RESULTS VIEW ── */}
       {isSearching && (
-        <div className="flex flex-col gap-4 w-full animate-in fade-in duration-200">
+        <div className="flex flex-col gap-4 w-full">
           
           {/* Back action and selector header row */}
           <div className="flex items-center justify-between gap-3">
