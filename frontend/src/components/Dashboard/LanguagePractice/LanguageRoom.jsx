@@ -24,13 +24,14 @@ import {
   PhoneOff, Users, Globe, MessageSquare,
   Volume2, Send, UserX, UserPlus, UserMinus,
   Check, X, Hand, LogOut, ChevronsDown, Settings, Languages, Sparkles, Camera,
-  Lock, Search, UserCheck
+  Lock, Search, UserCheck, ScreenShare, Monitor, MonitorOff, PencilRuler, Presentation, PenTool
 } from 'lucide-react';
 
 
-import { Track, Room } from 'livekit-client';
+import { Track, Room, RoomEvent } from 'livekit-client';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import UserAvatar from '../../Common/UserAvatar.jsx';
+import RoomWhiteboard from './RoomWhiteboard.jsx';
 
 // ─── Loading Spinner ────────────────────────────────────────────────────────
 const RoomLoadingSpinner = () => (
@@ -448,6 +449,77 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     const isCreator = dbRoom && dbRoom.creatorId?.toString() === p.identity;
     return pCanPublish || isCreator;
   });
+
+  // ── Screen Sharing & Whiteboard States ────────────────────────────────────
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
+
+  // Sync screen share state with local participant
+  useEffect(() => {
+    if (localParticipant) {
+      setIsScreenSharing(localParticipant.isScreenShareEnabled);
+    }
+  }, [localParticipant, localParticipant?.isScreenShareEnabled]);
+
+  // Toggle Screen Sharing
+  const toggleScreenShare = async () => {
+    if (!localParticipant || !canPublish) {
+      toast.error('You need speaking permissions on stage to share your screen.');
+      return;
+    }
+    try {
+      const target = !isScreenSharing;
+      await localParticipant.setScreenShareEnabled(target, { audio: true });
+      setIsScreenSharing(target);
+      if (target) {
+        toast.success('Screen sharing active');
+      } else {
+        toast.success('Screen sharing stopped');
+      }
+    } catch (err) {
+      console.error('Failed to toggle screen share:', err);
+      if (err.name !== 'NotAllowedError') {
+        toast.error('Could not share screen: ' + (err.message || 'Permission denied'));
+      }
+      setIsScreenSharing(localParticipant?.isScreenShareEnabled || false);
+    }
+  };
+
+  // Toggle Whiteboard & Broadcast state to room participants
+  const toggleWhiteboard = (forcedState) => {
+    const nextState = typeof forcedState === 'boolean' ? forcedState : !isWhiteboardOpen;
+    setIsWhiteboardOpen(nextState);
+    if (room && localParticipant) {
+      try {
+        const payload = JSON.stringify({ type: 'WHITEBOARD_VISIBILITY', isOpen: nextState });
+        const encoder = new TextEncoder();
+        localParticipant.publishData(encoder.encode(payload), { reliable: true, topic: 'whiteboard' });
+      } catch (e) {
+        console.error('Failed to broadcast whiteboard visibility:', e);
+      }
+    }
+  };
+
+  // Listen for whiteboard visibility updates from peers
+  useEffect(() => {
+    if (!room) return;
+    const handleDataReceived = (payload, participant, kind, topic) => {
+      if (topic === 'whiteboard') {
+        try {
+          const decoder = new TextDecoder();
+          const message = JSON.parse(decoder.decode(payload));
+          if (message.type === 'WHITEBOARD_VISIBILITY') {
+            setIsWhiteboardOpen(message.isOpen);
+          }
+        } catch (e) {}
+      }
+    };
+    room.on(RoomEvent.DataReceived, handleDataReceived);
+    return () => room.off(RoomEvent.DataReceived, handleDataReceived);
+  }, [room]);
+
+  const screenShareTrack = tracks.find(t => t.source === Track.Source.ScreenShare);
+  const isPresenting = !!screenShareTrack;
 
   // ── Click-outside to close participants panel ──────────────────────────────
   useEffect(() => {
@@ -1769,7 +1841,85 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             </div>
           )}
 
-          {isVideoRoom ? (
+          {(isPresenting || isWhiteboardOpen) ? (
+            // Google Meet Presentation / Collaborative Whiteboard View
+            <div className="relative w-full h-full flex flex-col p-2 bg-orange-50 dark:bg-gray-950 overflow-hidden gap-2">
+              {/* Top Presenter / Whiteboard Status Bar */}
+              <div className="flex items-center justify-between px-2 pt-1 z-10 shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-orange-500/10 border border-orange-500/20 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400">
+                      {isWhiteboardOpen ? 'Collaborative Whiteboard' : `${screenShareTrack?.participant?.name || 'Someone'} is presenting`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {isWhiteboardOpen ? (
+                    <button
+                      onClick={() => toggleWhiteboard(false)}
+                      className="px-2.5 py-1 bg-red-50 dark:bg-red-950/30 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <X size={13} />
+                      <span>Close Whiteboard</span>
+                    </button>
+                  ) : screenShareTrack?.participant?.isLocal ? (
+                    <button
+                      onClick={toggleScreenShare}
+                      className="px-2.5 py-1 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-bold shadow transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <MonitorOff size={13} />
+                      <span>Stop Presenting</span>
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Main Hero Viewport */}
+              <div className="flex-1 min-h-0 relative rounded-2xl overflow-hidden shadow-2xl bg-black">
+                {isWhiteboardOpen ? (
+                  <RoomWhiteboard
+                    room={room}
+                    localParticipant={localParticipant}
+                    isHost={isHost}
+                    onClose={() => toggleWhiteboard(false)}
+                  />
+                ) : (
+                  <ParticipantTile
+                    trackRef={screenShareTrack}
+                    className="w-full h-full object-contain rounded-2xl overflow-hidden bg-black"
+                  />
+                )}
+              </div>
+
+              {/* Bottom Filmstrip of Stage Speakers */}
+              {stageSpeakers.length > 0 && (
+                <div className="shrink-0 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                  {stageSpeakers.map((p) => {
+                    const camTrack = tracks.find(t =>
+                      t.participant?.identity === p.identity && t.source === Track.Source.Camera && t.participant?.isCameraEnabled
+                    );
+                    return (
+                      <div
+                        key={p.identity}
+                        className="w-28 sm:w-36 h-20 sm:h-24 shrink-0 rounded-xl overflow-hidden shadow-md border border-gray-200 dark:border-white/10"
+                      >
+                        {camTrack ? (
+                          <ParticipantTile
+                            trackRef={camTrack}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          renderSpeakerTile(p, 'w-full h-full text-xs')
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : isVideoRoom ? (
             // Video room: show camera when active, fallback to same card as audio room
             <div className="w-full h-full p-2 bg-orange-50 dark:bg-gray-950 overflow-hidden">
               <div className={`grid ${getGridClassName(stageSpeakers.length)} w-full h-full gap-2`}>
@@ -1880,13 +2030,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       )}
 
       {/* ── Global Bottom Controls Bar ── */}
-      <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-white/5 py-3.5 px-4 flex items-center justify-around z-30 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+      <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-white/5 py-3.5 px-3 sm:px-4 flex items-center justify-around z-30 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] gap-1">
         {/* Mute button */}
         <div 
           onClick={toggleMic}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
         >
-          <div className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+          <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
             isMicEnabled 
               ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/10' 
               : 'bg-red-50 dark:bg-red-950/20 text-red-500'
@@ -1904,7 +2054,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             onClick={toggleCam}
             className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
           >
-            <div className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+            <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
               isCamEnabled 
                 ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-500' 
                 : 'bg-gray-50 dark:bg-gray-800 text-gray-400'
@@ -1917,12 +2067,50 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           </div>
         )}
 
+        {/* Screen Share button */}
+        <div 
+          onClick={toggleScreenShare}
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+          title="Share Screen"
+        >
+          <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+            isScreenSharing
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 animate-pulse'
+              : isPresenting
+                ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-500'
+                : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+          }`}>
+            {isScreenSharing ? <MonitorOff size={18} /> : <ScreenShare size={18} />}
+          </div>
+          <span className="text-[10px] font-black tracking-wide text-gray-650 dark:text-gray-400">
+            {isScreenSharing ? 'Stop Share' : 'Share'}
+          </span>
+        </div>
+
+        {/* Collaborative Whiteboard button */}
+        <div 
+          onClick={() => toggleWhiteboard()}
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+          title="Collaborative Whiteboard"
+        >
+          <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+            isWhiteboardOpen 
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
+              : 'bg-orange-50 dark:bg-orange-950/20 text-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/30'
+          }`}>
+            <PenTool size={18} />
+          </div>
+          <span className="text-[10px] font-black tracking-wide text-gray-650 dark:text-gray-400">
+            Board
+          </span>
+        </div>
+
         {/* Chat button */}
         <div 
           onClick={() => setShowChatPanel(prev => !prev)}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
         >
-          <div className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+          <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
             showChatPanel 
               ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/10' 
               : 'bg-orange-50 dark:bg-orange-950/20 text-orange-500'
@@ -1939,11 +2127,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           onClick={() => setShowParticipants(prev => !prev)}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
         >
-          <div className="w-12 h-10 rounded-xl bg-green-50 dark:bg-green-950/20 text-green-500 flex items-center justify-center transition-all">
+          <div className="w-11 sm:w-12 h-10 rounded-xl bg-green-50 dark:bg-green-950/20 text-green-500 flex items-center justify-center transition-all">
             <Users size={18} />
           </div>
           <span className="text-[10px] font-black tracking-wide text-gray-655 dark:text-gray-400">
-            Participants
+            People
           </span>
         </div>
 
@@ -1952,7 +2140,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           onClick={isHost ? handleOpenInviteFriendsModal : (canPublish ? handleLeaveStage : (hasRequested ? handleWithdrawRequest : handleRequestToSpeak))}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
         >
-          <div className={`w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+          <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
             isHost
               ? 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400'
               : (canPublish 
@@ -1971,7 +2159,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           onClick={() => setShowSettingsModal(true)}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
         >
-          <div className="w-12 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center transition-all">
+          <div className="w-11 sm:w-12 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center transition-all">
             <Settings size={18} />
           </div>
           <span className="text-[10px] font-black tracking-wide text-gray-655 dark:text-gray-400">
