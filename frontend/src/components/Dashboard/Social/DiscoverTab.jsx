@@ -114,7 +114,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const isSearching = (searchType === 'students' ? hasSearched : (hasSearched || (searchType === 'groups' && hasLoadedGroups)));
 
   return (
-    <div className="flex flex-col gap-5 sm:gap-6 w-full max-w-md mx-auto py-2 sm:py-4 px-3 sm:px-0">
+    <div className={`flex flex-col gap-5 sm:gap-6 w-full ${isSearching ? 'max-w-md lg:max-w-5xl' : 'max-w-md lg:max-w-xl'} mx-auto py-2 sm:py-4 px-3 sm:px-0 transition-all duration-300`}>
       
       {/* ── LANDING VIEW: MATCHING TARGET SCREENSHOT ── */}
       {!isSearching && (
@@ -136,13 +136,13 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
             </div>
           </div>
 
-          {/* Card 1: Search Students */}
+          {/* Card 1: Search Students (Hidden on desktop as requested, kept on mobile) */}
           <div 
             onClick={() => {
               setSearchType('students');
               searchInputRef.current?.focus();
             }}
-            className="bg-white dark:bg-gray-900 hover:bg-orange-50/5 dark:hover:bg-gray-800/20 rounded-3xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow transition-all duration-300 cursor-pointer flex items-center justify-between group"
+            className="flex lg:hidden bg-white dark:bg-gray-900 hover:bg-orange-50/5 dark:hover:bg-gray-800/20 rounded-3xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow transition-all duration-300 cursor-pointer items-center justify-between group"
           >
             <div className="flex items-center gap-4 text-left">
               <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 text-orange-500 flex items-center justify-center shrink-0 border border-orange-100/50 dark:border-orange-500/10">
@@ -249,24 +249,18 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
           
           {/* Back action and selector header row */}
           <div className="flex items-center justify-between gap-3">
-            {searchType === 'students' ? (
-              <button
-                onClick={() => {
-                  setQuery('');
-                  setResults([]);
-                  setSearchType('students');
-                  setHasSearched(false);
-                }}
-                className="flex items-center gap-1.5 text-[11px] font-extrabold text-gray-550 hover:text-orange-500 dark:text-gray-400 dark:hover:text-orange-400 transition cursor-pointer bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3.5 py-2 rounded-xl"
-              >
-                <ArrowLeft size={13} />
-                <span>Back to Explorer</span>
-              </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <h3 className="font-extrabold text-gray-900 dark:text-white text-sm sm:text-base">Explore Groups</h3>
-              </div>
-            )}
+            <button
+              onClick={() => {
+                setQuery('');
+                setResults([]);
+                setSearchType('students');
+                setHasSearched(false);
+              }}
+              className="flex items-center gap-1.5 text-[11px] font-extrabold text-gray-500 hover:text-orange-500 dark:text-gray-400 dark:hover:text-orange-400 transition cursor-pointer bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3.5 py-2 rounded-xl shadow-sm hover:shadow"
+            >
+              <ArrowLeft size={13} />
+              <span>Back to Explorer</span>
+            </button>
             
             <div className="flex gap-1 p-0.5 bg-gray-100 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800">
               <button
@@ -377,7 +371,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
               <h3 className="text-sm font-black text-gray-400 dark:text-gray-550 uppercase tracking-wider">
                 Search Results ({results.length})
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {results.map((student) => {
                   const isSent = sentRequests.includes(student.id);
                   return (
@@ -389,7 +383,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                       <UserAvatar 
                         src={student.profilePicture} 
                         name={student.name} 
-                        className="w-14 h-14 rounded-2xl" 
+                        className="w-14 h-14 rounded-2xl shrink-0" 
                         textClassName="text-xl"
                       />
                       
@@ -398,13 +392,13 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                         {student.department && (
                           <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs mt-1 truncate font-semibold">
                             <GraduationCap size={13} className="text-orange-400 shrink-0" />
-                            <span>{student.department}</span>
+                            <span className="truncate">{student.department}</span>
                           </div>
                         )}
                         {student.collegeName && (
                           <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs mt-0.5 truncate font-semibold">
                             <MapPin size={13} className="text-orange-400 shrink-0" />
-                            <span>{student.collegeName}</span>
+                            <span className="truncate">{student.collegeName}</span>
                           </div>
                         )}
                       </div>
@@ -415,7 +409,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                           <button
                             onClick={(e) => handleConnect(e, student.id)}
                             disabled={fState.isConnected || fState.isPending}
-                            className={`z-10 p-2.5 rounded-2xl transition-all cursor-pointer ${
+                            className={`z-10 p-2.5 rounded-2xl transition-all cursor-pointer shrink-0 ${
                               fState.isConnected
                                 ? 'bg-indigo-50 bg-opacity-20 text-indigo-650 dark:text-indigo-400 border border-indigo-200/25'
                                 : fState.isPending 
@@ -441,68 +435,72 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
               <h3 className="text-sm font-black text-gray-400 dark:text-gray-550 uppercase tracking-wider">
                 Discussion Groups ({filteredGroups.length})
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredGroups.map((group) => {
                   const initials = getGroupInitials(group.name);
                   return (
                     <div 
                       key={group.id} 
-                      className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-4.5 shadow-sm flex gap-4 items-start relative overflow-hidden"
+                      className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden"
                     >
-                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base text-white bg-gradient-to-tr from-emerald-400 to-teal-500 shrink-0 shadow-sm mt-1">
-                        {initials}
-                      </div>
-                      
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h3 className="font-black text-gray-800 dark:text-gray-100 text-base truncate">{group.name}</h3>
-                          {group.isPrivate ? (
-                            <span className="flex items-center gap-0.5 text-[9px] text-red-500 bg-red-50 dark:bg-red-950/20 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
-                              <Lock size={8} /> Private
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-0.5 text-[9px] text-green-600 bg-green-50 dark:bg-green-950/20 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
-                              <Unlock size={8} /> Public
-                            </span>
-                          )}
+                      <div>
+                        <div className="flex items-start gap-3.5 mb-3">
+                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base text-white bg-gradient-to-tr from-emerald-400 to-teal-500 shrink-0 shadow-sm">
+                            {initials}
+                          </div>
+                          
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h3 className="font-black text-gray-800 dark:text-gray-100 text-base truncate">{group.name}</h3>
+                              {group.isPrivate ? (
+                                <span className="flex items-center gap-0.5 text-[9px] text-red-500 bg-red-50 dark:bg-red-950/20 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
+                                  <Lock size={8} /> Private
+                                </span>
+                              ) : (
+                                <span className="flex items-center gap-0.5 text-[9px] text-green-600 bg-green-50 dark:bg-green-950/20 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
+                                  <Unlock size={8} /> Public
+                                </span>
+                              )}
+                            </div>
+                            
+                            <p className="text-xs text-gray-400 dark:text-gray-500 font-bold mt-0.5">
+                              {group.memberCount} members
+                            </p>
+                          </div>
                         </div>
-                        
-                        <p className="text-xs text-gray-400 dark:text-gray-505 font-bold mt-0.5">
-                          {group.memberCount} members
-                        </p>
-                        
-                        <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold mt-2 line-clamp-2 leading-relaxed">
+
+                        <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold line-clamp-2 leading-relaxed min-h-[2rem]">
                           {group.description || 'No description provided.'}
                         </p>
+                      </div>
 
-                        <div className="flex gap-2 mt-4">
-                          {group.isJoined ? (
-                            <>
-                              <span className="flex items-center gap-1 text-[10px] text-green-600 bg-green-50 dark:bg-green-950/20 px-3 py-1.5 rounded-xl font-black uppercase tracking-wider">
-                                <Check size={12} strokeWidth={3} /> Joined
-                              </span>
-                              <button
-                                onClick={() => onSelectChatUser && onSelectChatUser({ ...group, type: 'group' })}
-                                className="flex items-center gap-1 text-[10px] text-orange-500 hover:text-white hover:bg-orange-500 border border-orange-500 bg-transparent px-3.5 py-1.5 rounded-xl font-black uppercase tracking-wider transition cursor-pointer"
-                              >
-                                <MessageSquareMore size={12} /> Open Chat
-                              </button>
-                            </>
-                          ) : (
+                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-50 dark:border-gray-800/50 flex-wrap">
+                        {group.isJoined ? (
+                          <>
+                            <span className="flex items-center gap-1 text-[10px] text-green-600 bg-green-50 dark:bg-green-950/20 px-3 py-1.5 rounded-xl font-black uppercase tracking-wider whitespace-nowrap">
+                              <Check size={12} strokeWidth={3} /> Joined
+                            </span>
                             <button
-                              onClick={() => {
-                                if (group.isPrivate) {
-                                  setShowJoinGroupModal(group);
-                                } else {
-                                  handleJoinGroup(group);
-                                }
-                              }}
-                              className="text-[10px] bg-orange-500 hover:bg-orange-600 text-white font-black px-4 py-2 rounded-xl transition shadow-md shadow-orange-500/10 cursor-pointer uppercase tracking-wider"
+                              onClick={() => onSelectChatUser && onSelectChatUser({ ...group, type: 'group' })}
+                              className="flex items-center gap-1.5 text-[10px] text-orange-500 hover:text-white hover:bg-orange-500 border border-orange-500 bg-transparent px-3 py-1.5 rounded-xl font-black uppercase tracking-wider transition cursor-pointer whitespace-nowrap active:scale-95"
                             >
-                              Join Group
+                              <MessageSquareMore size={12} /> Open Chat
                             </button>
-                          )}
-                        </div>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (group.isPrivate) {
+                                setShowJoinGroupModal(group);
+                              } else {
+                                handleJoinGroup(group);
+                              }
+                            }}
+                            className="text-[10px] bg-orange-500 hover:bg-orange-600 text-white font-black px-4 py-2 rounded-xl transition shadow-md shadow-orange-500/10 cursor-pointer uppercase tracking-wider whitespace-nowrap active:scale-95"
+                          >
+                            Join Group
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
