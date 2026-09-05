@@ -125,6 +125,7 @@ exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   name: 'name',
   email: 'email',
+  emailVisibility: 'emailVisibility',
   password: 'password',
   googleId: 'googleId',
   bio: 'bio',
@@ -212,6 +213,8 @@ exports.Prisma.LanguageRoomScalarFieldEnum = {
   mediaType: 'mediaType',
   maxParticipants: 'maxParticipants',
   isFriendsOnly: 'isFriendsOnly',
+  isPrivate: 'isPrivate',
+  invitedUserIds: 'invitedUserIds',
   createdAt: 'createdAt',
   creatorId: 'creatorId'
 };

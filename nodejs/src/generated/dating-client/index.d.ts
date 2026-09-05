@@ -2031,6 +2031,7 @@ export namespace Prisma {
     id: number | null
     name: string | null
     email: string | null
+    emailVisibility: string | null
     password: string | null
     googleId: string | null
     bio: string | null
@@ -2058,6 +2059,7 @@ export namespace Prisma {
     id: number | null
     name: string | null
     email: string | null
+    emailVisibility: string | null
     password: string | null
     googleId: string | null
     bio: string | null
@@ -2085,6 +2087,7 @@ export namespace Prisma {
     id: number
     name: number
     email: number
+    emailVisibility: number
     password: number
     googleId: number
     bio: number
@@ -2122,6 +2125,7 @@ export namespace Prisma {
     id?: true
     name?: true
     email?: true
+    emailVisibility?: true
     password?: true
     googleId?: true
     bio?: true
@@ -2149,6 +2153,7 @@ export namespace Prisma {
     id?: true
     name?: true
     email?: true
+    emailVisibility?: true
     password?: true
     googleId?: true
     bio?: true
@@ -2176,6 +2181,7 @@ export namespace Prisma {
     id?: true
     name?: true
     email?: true
+    emailVisibility?: true
     password?: true
     googleId?: true
     bio?: true
@@ -2290,6 +2296,7 @@ export namespace Prisma {
     id: number
     name: string
     email: string
+    emailVisibility: string
     password: string | null
     googleId: string | null
     bio: string | null
@@ -2336,6 +2343,7 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
+    emailVisibility?: boolean
     password?: boolean
     googleId?: boolean
     bio?: boolean
@@ -2379,6 +2387,7 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
+    emailVisibility?: boolean
     password?: boolean
     googleId?: boolean
     bio?: boolean
@@ -2406,6 +2415,7 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
+    emailVisibility?: boolean
     password?: boolean
     googleId?: boolean
     bio?: boolean
@@ -2433,6 +2443,7 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
+    emailVisibility?: boolean
     password?: boolean
     googleId?: boolean
     bio?: boolean
@@ -2456,7 +2467,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "password" | "googleId" | "bio" | "profilePicture" | "collegeName" | "department" | "yearOfStudy" | "phoneNumber" | "phoneVisibility" | "whatsappNumber" | "whatsappVisibility" | "instagramHandle" | "instagramVisibility" | "facebookUrl" | "facebookVisibility" | "snapchatUsername" | "snapchatVisibility" | "linkedinUrl" | "linkedinVisibility" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "emailVisibility" | "password" | "googleId" | "bio" | "profilePicture" | "collegeName" | "department" | "yearOfStudy" | "phoneNumber" | "phoneVisibility" | "whatsappNumber" | "whatsappVisibility" | "instagramHandle" | "instagramVisibility" | "facebookUrl" | "facebookVisibility" | "snapchatUsername" | "snapchatVisibility" | "linkedinUrl" | "linkedinVisibility" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     posts?: boolean | User$postsArgs<ExtArgs>
     comments?: boolean | User$commentsArgs<ExtArgs>
@@ -2501,6 +2512,7 @@ export namespace Prisma {
       id: number
       name: string
       email: string
+      emailVisibility: string
       password: string | null
       googleId: string | null
       bio: string | null
@@ -2963,6 +2975,7 @@ export namespace Prisma {
     readonly id: FieldRef<"User", 'Int'>
     readonly name: FieldRef<"User", 'String'>
     readonly email: FieldRef<"User", 'String'>
+    readonly emailVisibility: FieldRef<"User", 'String'>
     readonly password: FieldRef<"User", 'String'>
     readonly googleId: FieldRef<"User", 'String'>
     readonly bio: FieldRef<"User", 'String'>
@@ -10568,6 +10581,8 @@ export namespace Prisma {
     mediaType: string | null
     maxParticipants: number | null
     isFriendsOnly: boolean | null
+    isPrivate: boolean | null
+    invitedUserIds: string | null
     createdAt: Date | null
     creatorId: number | null
   }
@@ -10581,6 +10596,8 @@ export namespace Prisma {
     mediaType: string | null
     maxParticipants: number | null
     isFriendsOnly: boolean | null
+    isPrivate: boolean | null
+    invitedUserIds: string | null
     createdAt: Date | null
     creatorId: number | null
   }
@@ -10594,6 +10611,8 @@ export namespace Prisma {
     mediaType: number
     maxParticipants: number
     isFriendsOnly: number
+    isPrivate: number
+    invitedUserIds: number
     createdAt: number
     creatorId: number
     _all: number
@@ -10621,6 +10640,8 @@ export namespace Prisma {
     mediaType?: true
     maxParticipants?: true
     isFriendsOnly?: true
+    isPrivate?: true
+    invitedUserIds?: true
     createdAt?: true
     creatorId?: true
   }
@@ -10634,6 +10655,8 @@ export namespace Prisma {
     mediaType?: true
     maxParticipants?: true
     isFriendsOnly?: true
+    isPrivate?: true
+    invitedUserIds?: true
     createdAt?: true
     creatorId?: true
   }
@@ -10647,6 +10670,8 @@ export namespace Prisma {
     mediaType?: true
     maxParticipants?: true
     isFriendsOnly?: true
+    isPrivate?: true
+    invitedUserIds?: true
     createdAt?: true
     creatorId?: true
     _all?: true
@@ -10747,6 +10772,8 @@ export namespace Prisma {
     mediaType: string
     maxParticipants: number
     isFriendsOnly: boolean
+    isPrivate: boolean
+    invitedUserIds: string | null
     createdAt: Date
     creatorId: number
     _count: LanguageRoomCountAggregateOutputType | null
@@ -10779,6 +10806,8 @@ export namespace Prisma {
     mediaType?: boolean
     maxParticipants?: boolean
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10793,6 +10822,8 @@ export namespace Prisma {
     mediaType?: boolean
     maxParticipants?: boolean
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10807,6 +10838,8 @@ export namespace Prisma {
     mediaType?: boolean
     maxParticipants?: boolean
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10821,11 +10854,13 @@ export namespace Prisma {
     mediaType?: boolean
     maxParticipants?: boolean
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: boolean
     createdAt?: boolean
     creatorId?: boolean
   }
 
-  export type LanguageRoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "roomName" | "topic" | "language" | "roomType" | "mediaType" | "maxParticipants" | "isFriendsOnly" | "createdAt" | "creatorId", ExtArgs["result"]["languageRoom"]>
+  export type LanguageRoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "roomName" | "topic" | "language" | "roomType" | "mediaType" | "maxParticipants" | "isFriendsOnly" | "isPrivate" | "invitedUserIds" | "createdAt" | "creatorId", ExtArgs["result"]["languageRoom"]>
   export type LanguageRoomInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     creator?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -10850,6 +10885,8 @@ export namespace Prisma {
       mediaType: string
       maxParticipants: number
       isFriendsOnly: boolean
+      isPrivate: boolean
+      invitedUserIds: string | null
       createdAt: Date
       creatorId: number
     }, ExtArgs["result"]["languageRoom"]>
@@ -11284,6 +11321,8 @@ export namespace Prisma {
     readonly mediaType: FieldRef<"LanguageRoom", 'String'>
     readonly maxParticipants: FieldRef<"LanguageRoom", 'Int'>
     readonly isFriendsOnly: FieldRef<"LanguageRoom", 'Boolean'>
+    readonly isPrivate: FieldRef<"LanguageRoom", 'Boolean'>
+    readonly invitedUserIds: FieldRef<"LanguageRoom", 'String'>
     readonly createdAt: FieldRef<"LanguageRoom", 'DateTime'>
     readonly creatorId: FieldRef<"LanguageRoom", 'Int'>
   }
@@ -15127,6 +15166,7 @@ export namespace Prisma {
     id: 'id',
     name: 'name',
     email: 'email',
+    emailVisibility: 'emailVisibility',
     password: 'password',
     googleId: 'googleId',
     bio: 'bio',
@@ -15235,6 +15275,8 @@ export namespace Prisma {
     mediaType: 'mediaType',
     maxParticipants: 'maxParticipants',
     isFriendsOnly: 'isFriendsOnly',
+    isPrivate: 'isPrivate',
+    invitedUserIds: 'invitedUserIds',
     createdAt: 'createdAt',
     creatorId: 'creatorId'
   };
@@ -15380,6 +15422,7 @@ export namespace Prisma {
     id?: IntFilter<"User"> | number
     name?: StringFilter<"User"> | string
     email?: StringFilter<"User"> | string
+    emailVisibility?: StringFilter<"User"> | string
     password?: StringNullableFilter<"User"> | string | null
     googleId?: StringNullableFilter<"User"> | string | null
     bio?: StringNullableFilter<"User"> | string | null
@@ -15422,6 +15465,7 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    emailVisibility?: SortOrder
     password?: SortOrderInput | SortOrder
     googleId?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
@@ -15468,6 +15512,7 @@ export namespace Prisma {
     OR?: UserWhereInput[]
     NOT?: UserWhereInput | UserWhereInput[]
     name?: StringFilter<"User"> | string
+    emailVisibility?: StringFilter<"User"> | string
     password?: StringNullableFilter<"User"> | string | null
     bio?: StringNullableFilter<"User"> | string | null
     profilePicture?: StringNullableFilter<"User"> | string | null
@@ -15509,6 +15554,7 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    emailVisibility?: SortOrder
     password?: SortOrderInput | SortOrder
     googleId?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
@@ -15544,6 +15590,7 @@ export namespace Prisma {
     id?: IntWithAggregatesFilter<"User"> | number
     name?: StringWithAggregatesFilter<"User"> | string
     email?: StringWithAggregatesFilter<"User"> | string
+    emailVisibility?: StringWithAggregatesFilter<"User"> | string
     password?: StringNullableWithAggregatesFilter<"User"> | string | null
     googleId?: StringNullableWithAggregatesFilter<"User"> | string | null
     bio?: StringNullableWithAggregatesFilter<"User"> | string | null
@@ -15980,6 +16027,8 @@ export namespace Prisma {
     mediaType?: StringFilter<"LanguageRoom"> | string
     maxParticipants?: IntFilter<"LanguageRoom"> | number
     isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
+    isPrivate?: BoolFilter<"LanguageRoom"> | boolean
+    invitedUserIds?: StringNullableFilter<"LanguageRoom"> | string | null
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -15994,6 +16043,8 @@ export namespace Prisma {
     mediaType?: SortOrder
     maxParticipants?: SortOrder
     isFriendsOnly?: SortOrder
+    isPrivate?: SortOrder
+    invitedUserIds?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
     creator?: UserOrderByWithRelationInput
@@ -16011,6 +16062,8 @@ export namespace Prisma {
     mediaType?: StringFilter<"LanguageRoom"> | string
     maxParticipants?: IntFilter<"LanguageRoom"> | number
     isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
+    isPrivate?: BoolFilter<"LanguageRoom"> | boolean
+    invitedUserIds?: StringNullableFilter<"LanguageRoom"> | string | null
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -16025,6 +16078,8 @@ export namespace Prisma {
     mediaType?: SortOrder
     maxParticipants?: SortOrder
     isFriendsOnly?: SortOrder
+    isPrivate?: SortOrder
+    invitedUserIds?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
     _count?: LanguageRoomCountOrderByAggregateInput
@@ -16046,6 +16101,8 @@ export namespace Prisma {
     mediaType?: StringWithAggregatesFilter<"LanguageRoom"> | string
     maxParticipants?: IntWithAggregatesFilter<"LanguageRoom"> | number
     isFriendsOnly?: BoolWithAggregatesFilter<"LanguageRoom"> | boolean
+    isPrivate?: BoolWithAggregatesFilter<"LanguageRoom"> | boolean
+    invitedUserIds?: StringNullableWithAggregatesFilter<"LanguageRoom"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"LanguageRoom"> | Date | string
     creatorId?: IntWithAggregatesFilter<"LanguageRoom"> | number
   }
@@ -16252,6 +16309,7 @@ export namespace Prisma {
   export type UserCreateInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -16294,6 +16352,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -16335,6 +16394,7 @@ export namespace Prisma {
   export type UserUpdateInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16377,6 +16437,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16419,6 +16480,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -16445,6 +16507,7 @@ export namespace Prisma {
   export type UserUpdateManyMutationInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16472,6 +16535,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16867,6 +16931,8 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
     createdAt?: Date | string
     creator: UserCreateNestedOneWithoutLanguageRoomsInput
   }
@@ -16880,6 +16946,8 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
     createdAt?: Date | string
     creatorId: number
   }
@@ -16892,6 +16960,8 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutLanguageRoomsNestedInput
   }
@@ -16905,6 +16975,8 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creatorId?: IntFieldUpdateOperationsInput | number
   }
@@ -16918,6 +16990,8 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
     createdAt?: Date | string
     creatorId: number
   }
@@ -16930,6 +17004,8 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -16942,6 +17018,8 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creatorId?: IntFieldUpdateOperationsInput | number
   }
@@ -17290,6 +17368,7 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    emailVisibility?: SortOrder
     password?: SortOrder
     googleId?: SortOrder
     bio?: SortOrder
@@ -17321,6 +17400,7 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    emailVisibility?: SortOrder
     password?: SortOrder
     googleId?: SortOrder
     bio?: SortOrder
@@ -17348,6 +17428,7 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    emailVisibility?: SortOrder
     password?: SortOrder
     googleId?: SortOrder
     bio?: SortOrder
@@ -17733,6 +17814,8 @@ export namespace Prisma {
     mediaType?: SortOrder
     maxParticipants?: SortOrder
     isFriendsOnly?: SortOrder
+    isPrivate?: SortOrder
+    invitedUserIds?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17752,6 +17835,8 @@ export namespace Prisma {
     mediaType?: SortOrder
     maxParticipants?: SortOrder
     isFriendsOnly?: SortOrder
+    isPrivate?: SortOrder
+    invitedUserIds?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17765,6 +17850,8 @@ export namespace Prisma {
     mediaType?: SortOrder
     maxParticipants?: SortOrder
     isFriendsOnly?: SortOrder
+    isPrivate?: SortOrder
+    invitedUserIds?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -19391,6 +19478,8 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
     createdAt?: Date | string
   }
 
@@ -19403,6 +19492,8 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
     createdAt?: Date | string
   }
 
@@ -19772,6 +19863,8 @@ export namespace Prisma {
     mediaType?: StringFilter<"LanguageRoom"> | string
     maxParticipants?: IntFilter<"LanguageRoom"> | number
     isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
+    isPrivate?: BoolFilter<"LanguageRoom"> | boolean
+    invitedUserIds?: StringNullableFilter<"LanguageRoom"> | string | null
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
   }
@@ -19863,6 +19956,7 @@ export namespace Prisma {
   export type UserCreateWithoutPostsInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -19904,6 +19998,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -19949,6 +20044,7 @@ export namespace Prisma {
   export type UserCreateWithoutLikedPostsInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -19990,6 +20086,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -20071,6 +20168,7 @@ export namespace Prisma {
   export type UserUpdateWithoutPostsInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20112,6 +20210,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20172,6 +20271,7 @@ export namespace Prisma {
     id?: IntFilter<"User"> | number
     name?: StringFilter<"User"> | string
     email?: StringFilter<"User"> | string
+    emailVisibility?: StringFilter<"User"> | string
     password?: StringNullableFilter<"User"> | string | null
     googleId?: StringNullableFilter<"User"> | string | null
     bio?: StringNullableFilter<"User"> | string | null
@@ -20214,6 +20314,7 @@ export namespace Prisma {
   export type UserCreateWithoutSentFriendRequestsInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -20255,6 +20356,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -20300,6 +20402,7 @@ export namespace Prisma {
   export type UserCreateWithoutReceivedFriendRequestsInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -20341,6 +20444,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -20397,6 +20501,7 @@ export namespace Prisma {
   export type UserUpdateWithoutSentFriendRequestsInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20438,6 +20543,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20489,6 +20595,7 @@ export namespace Prisma {
   export type UserUpdateWithoutReceivedFriendRequestsInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20530,6 +20637,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20570,6 +20678,7 @@ export namespace Prisma {
   export type UserCreateWithoutSentMessagesInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -20611,6 +20720,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -20656,6 +20766,7 @@ export namespace Prisma {
   export type UserCreateWithoutReceivedMessagesInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -20697,6 +20808,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -20753,6 +20865,7 @@ export namespace Prisma {
   export type UserUpdateWithoutSentMessagesInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20794,6 +20907,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20845,6 +20959,7 @@ export namespace Prisma {
   export type UserUpdateWithoutReceivedMessagesInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20886,6 +21001,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20952,6 +21068,7 @@ export namespace Prisma {
   export type UserCreateWithoutCommentsInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -20993,6 +21110,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -21081,6 +21199,7 @@ export namespace Prisma {
   export type UserUpdateWithoutCommentsInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21122,6 +21241,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21162,6 +21282,7 @@ export namespace Prisma {
   export type UserCreateWithoutMyCrushesInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -21203,6 +21324,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -21248,6 +21370,7 @@ export namespace Prisma {
   export type UserCreateWithoutCrushedByInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -21289,6 +21412,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -21345,6 +21469,7 @@ export namespace Prisma {
   export type UserUpdateWithoutMyCrushesInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21386,6 +21511,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21437,6 +21563,7 @@ export namespace Prisma {
   export type UserUpdateWithoutCrushedByInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21478,6 +21605,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21518,6 +21646,7 @@ export namespace Prisma {
   export type UserCreateWithoutSentCloseFriendRequestsInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -21559,6 +21688,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -21604,6 +21734,7 @@ export namespace Prisma {
   export type UserCreateWithoutReceivedCloseFriendRequestsInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -21645,6 +21776,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -21701,6 +21833,7 @@ export namespace Prisma {
   export type UserUpdateWithoutSentCloseFriendRequestsInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21742,6 +21875,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21793,6 +21927,7 @@ export namespace Prisma {
   export type UserUpdateWithoutReceivedCloseFriendRequestsInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21834,6 +21969,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21874,6 +22010,7 @@ export namespace Prisma {
   export type UserCreateWithoutLanguageRoomsInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -21915,6 +22052,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -21971,6 +22109,7 @@ export namespace Prisma {
   export type UserUpdateWithoutLanguageRoomsInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22012,6 +22151,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22052,6 +22192,7 @@ export namespace Prisma {
   export type UserCreateWithoutCreatedGroupsInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -22093,6 +22234,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -22195,6 +22337,7 @@ export namespace Prisma {
   export type UserUpdateWithoutCreatedGroupsInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22236,6 +22379,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22336,6 +22480,7 @@ export namespace Prisma {
   export type UserCreateWithoutGroupMembersInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -22377,6 +22522,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -22467,6 +22613,7 @@ export namespace Prisma {
   export type UserUpdateWithoutGroupMembersInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22508,6 +22655,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22576,6 +22724,7 @@ export namespace Prisma {
   export type UserCreateWithoutGroupMessagesInput = {
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -22617,6 +22766,7 @@ export namespace Prisma {
     id?: number
     name: string
     email: string
+    emailVisibility?: string
     password?: string | null
     googleId?: string | null
     bio?: string | null
@@ -22707,6 +22857,7 @@ export namespace Prisma {
   export type UserUpdateWithoutGroupMessagesInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22748,6 +22899,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22875,6 +23027,8 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
     createdAt?: Date | string
   }
 
@@ -23178,6 +23332,8 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -23190,6 +23346,8 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -23202,6 +23360,8 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -23289,6 +23449,7 @@ export namespace Prisma {
   export type UserUpdateWithoutLikedPostsInput = {
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23330,6 +23491,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23371,6 +23533,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
     password?: NullableStringFieldUpdateOperationsInput | string | null
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null

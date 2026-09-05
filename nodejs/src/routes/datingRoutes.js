@@ -24,6 +24,7 @@ const {
   deleteLanguageRoomByName,
   getLanguageRooms,
   getLanguageRoomByName,
+  inviteToLanguageRoom,
   createGroup,
   joinGroup,
   leaveGroup,
@@ -76,6 +77,7 @@ router.get('/messages/:targetUserId', datingAuth, getMessages);
 
 // Language Room routes
 router.post('/language-rooms', datingAuth, createLanguageRoom);
+router.post('/language-rooms/:roomName/invite', datingAuth, inviteToLanguageRoom);
 router.delete('/language-rooms/:id', datingAuth, deleteLanguageRoom);
 router.delete('/language-rooms/by-name/:roomName', datingAuth, deleteLanguageRoomByName);
 router.get('/language-rooms', datingAuth, getLanguageRooms);

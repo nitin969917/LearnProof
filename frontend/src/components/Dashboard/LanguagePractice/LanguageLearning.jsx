@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Mic, Globe, Plus, Users, Search, GraduationCap, Video, PhoneOff, Trash2, X } from 'lucide-react';
+import { Mic, Globe, Plus, Users, Search, GraduationCap, Video, PhoneOff, Trash2, X, Lock, UserCheck, Check } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import toast from 'react-hot-toast';
@@ -14,7 +14,17 @@ export default function LanguageLearning() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [newRoom, setNewRoom] = useState({ roomName: '', topic: '', language: '', mediaType: 'audio', isFriendsOnly: false });
+  const [newRoom, setNewRoom] = useState({ 
+    roomName: '', 
+    topic: '', 
+    language: '', 
+    mediaType: 'audio', 
+    visibility: 'public' // 'public' | 'friends_only' | 'private'
+  });
+  const [friendsList, setFriendsList] = useState([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
+  const [selectedFriends, setSelectedFriends] = useState([]);
+  const [friendSearchQuery, setFriendSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState(localStorage.getItem('languageRoomsTab') || 'audio'); // 'audio' or 'video'
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState(null);
@@ -70,6 +80,46 @@ export default function LanguageLearning() {
     }
   };
 
+  const fetchFriends = async () => {
+    if (friendsList.length > 0) return;
+    setLoadingFriends(true);
+    try {
+      const res = await socialApi.get('/social/friendships');
+      const accepted = (Array.isArray(res.data) ? res.data : []).filter(f => f.status === 'accepted');
+      const myId = socialUser?.id;
+      const friends = accepted.map(f => {
+        const isSender = f.senderId === myId;
+        return isSender ? f.receiver : f.sender;
+      }).filter(Boolean);
+      setFriendsList(friends);
+    } catch (err) {
+      console.error('Failed to fetch friends for private room:', err);
+    } finally {
+      setLoadingFriends(false);
+    }
+  };
+
+  const openCreateModal = (mediaType = activeTab) => {
+    setNewRoom({ 
+      roomName: '', 
+      topic: '', 
+      language: '', 
+      mediaType, 
+      visibility: 'public' 
+    });
+    setSelectedFriends([]);
+    setFriendSearchQuery('');
+    setShowModal(true);
+  };
+
+  const toggleFriendSelection = (friendId) => {
+    setSelectedFriends(prev => 
+      prev.includes(friendId) 
+        ? prev.filter(id => id !== friendId) 
+        : [...prev, friendId]
+    );
+  };
+
   const handleCreateRoom = async (e) => {
     e.preventDefault();
     if (!newRoom.roomName || !newRoom.language) return;
@@ -78,13 +128,17 @@ export default function LanguageLearning() {
     try {
       // Format room name to be url safe
       const formattedRoomName = newRoom.roomName.replace(/\s+/g, '-').toLowerCase();
+      const isPrivate = newRoom.visibility === 'private';
+      const isFriendsOnly = newRoom.visibility === 'friends_only';
       
       const response = await socialApi.post('/language-rooms', {
         roomName: formattedRoomName,
         topic: newRoom.topic || 'General Discussion',
         language: newRoom.language,
         mediaType: newRoom.mediaType || 'audio',
-        isFriendsOnly: !!newRoom.isFriendsOnly
+        isPrivate,
+        isFriendsOnly,
+        invitedUserIds: isPrivate ? selectedFriends : []
       });
       
       setShowModal(false);
@@ -119,6 +173,10 @@ export default function LanguageLearning() {
   const videoRoomsCount = (Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === 'video').length;
   const totalRoomsCount = audioRoomsCount + videoRoomsCount;
 
+  const filteredFriends = friendsList.filter(f => 
+    f.name?.toLowerCase().includes(friendSearchQuery.toLowerCase())
+  );
+
   return (
     <div className="flex flex-col gap-4 w-full max-w-[1360px] mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28">
 
@@ -134,10 +192,7 @@ export default function LanguageLearning() {
           </p>
         </div>
         <button
-          onClick={() => {
-            setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
-            setShowModal(true);
-          }}
+          onClick={() => openCreateModal(activeTab)}
           className="flex items-center gap-1.5 px-3 py-2 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer font-bold text-xs shrink-0"
         >
           <Plus size={14} />
@@ -180,10 +235,7 @@ export default function LanguageLearning() {
 
         {/* Mobile Create Room Button */}
         <button
-          onClick={() => {
-            setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
-            setShowModal(true);
-          }}
+          onClick={() => openCreateModal(activeTab)}
           className="flex lg:hidden items-center gap-1 px-3 py-1.5 mb-1.5 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer font-bold text-xs shrink-0"
         >
           <Plus size={14} />
@@ -210,10 +262,7 @@ export default function LanguageLearning() {
                     <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">No active {activeTab} rooms</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-405 mb-6 leading-relaxed">Be the first to start a live {activeTab} room session today to discuss, connect, or learn together!</p>
                     <button 
-                      onClick={() => {
-                        setNewRoom({ roomName: '', topic: '', language: '', mediaType: activeTab, isFriendsOnly: false });
-                        setShowModal(true);
-                      }}
+                      onClick={() => openCreateModal(activeTab)}
                       className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
                     >
                       Create a Room
@@ -236,11 +285,17 @@ export default function LanguageLearning() {
                     <span className="bg-orange-100/60 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-wider truncate">
                       {room.language}
                     </span>
-                    {room.isFriendsOnly && (
-                      <span className="bg-orange-500/10 text-orange-500 p-1 rounded-full shrink-0" title="Friends Only Room">
-                        <Users size={10} className="sm:size-[12px] shrink-0" />
+                    {room.isPrivate ? (
+                      <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0" title="Private Room">
+                        <Lock size={10} className="shrink-0" />
+                        <span className="text-[9px] font-extrabold uppercase tracking-wide">Private</span>
                       </span>
-                    )}
+                    ) : room.isFriendsOnly ? (
+                      <span className="bg-orange-500/10 text-orange-500 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0" title="Friends Only Room">
+                        <Users size={10} className="shrink-0" />
+                        <span className="text-[9px] font-extrabold uppercase tracking-wide">Friends</span>
+                      </span>
+                    ) : null}
                   </div>
                   {socialUser && socialUser.id?.toString() === room.creatorId?.toString() && (
                     <button 
@@ -304,28 +359,38 @@ export default function LanguageLearning() {
 
       {/* Create Room Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-md w-full p-6 shadow-2xl animate-scale-up">
-            <h2 className="text-xl font-black text-gray-900 dark:text-white mb-4">Create Live Room</h2>
-            <form onSubmit={handleCreateRoom} className="space-y-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl animate-scale-up my-auto max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">Create Live Room</h2>
+              <button 
+                onClick={() => setShowModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateRoom} className="space-y-3.5 overflow-y-auto pr-1 flex-1">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Room Name</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Room Name</label>
                 <input 
                   type="text" 
                   value={newRoom.roomName}
                   onChange={(e) => setNewRoom({...newRoom, roomName: e.target.value})}
                   placeholder="e.g. english-speaking-club" 
                   required
-                  className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium"
+                  className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium"
                 />
               </div>
+
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Language</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Language</label>
                 <select 
                   value={newRoom.language}
                   onChange={(e) => setNewRoom({...newRoom, language: e.target.value})}
                   required
-                  className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
+                  className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
                 >
                   <option value="">Select Language</option>
                   <option value="English">English</option>
@@ -343,12 +408,12 @@ export default function LanguageLearning() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Room Type</label>
-                <div className="flex gap-3">
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Room Type</label>
+                <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setNewRoom({ ...newRoom, mediaType: 'audio' })}
-                    className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-2 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       newRoom.mediaType === 'audio'
                         ? 'border-orange-500 bg-orange-500/5 text-orange-500'
                         : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -360,7 +425,7 @@ export default function LanguageLearning() {
                   <button
                     type="button"
                     onClick={() => setNewRoom({ ...newRoom, mediaType: 'video' })}
-                    className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-2 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       newRoom.mediaType === 'video'
                         ? 'border-orange-500 bg-orange-500/5 text-orange-500'
                         : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -373,67 +438,162 @@ export default function LanguageLearning() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Visibility</label>
-                <div className="flex gap-3">
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Visibility</label>
+                <div className="grid grid-cols-3 gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setNewRoom({ ...newRoom, isFriendsOnly: false })}
-                    className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      !newRoom.isFriendsOnly
-                        ? 'border-orange-500 bg-orange-500/5 text-orange-500'
+                    onClick={() => setNewRoom({ ...newRoom, visibility: 'public' })}
+                    className={`py-2 px-1 border rounded-xl font-bold text-[11px] transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      newRoom.visibility === 'public'
+                        ? 'border-orange-500 bg-orange-500/10 text-orange-500 shadow-sm'
                         : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
-                    <Globe size={14} />
+                    <Globe size={13} />
                     <span>Public</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setNewRoom({ ...newRoom, isFriendsOnly: true })}
-                    className={`flex-1 py-2.5 border rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      newRoom.isFriendsOnly
-                        ? 'border-orange-500 bg-orange-500/5 text-orange-500'
+                    onClick={() => setNewRoom({ ...newRoom, visibility: 'friends_only' })}
+                    className={`py-2 px-1 border rounded-xl font-bold text-[11px] transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      newRoom.visibility === 'friends_only'
+                        ? 'border-orange-500 bg-orange-500/10 text-orange-500 shadow-sm'
                         : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
-                    <Users size={14} />
+                    <Users size={13} />
                     <span>Friends Only</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewRoom({ ...newRoom, visibility: 'private' });
+                      fetchFriends();
+                    }}
+                    className={`py-2 px-1 border rounded-xl font-bold text-[11px] transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      newRoom.visibility === 'private'
+                        ? 'border-purple-500 bg-purple-500/10 text-purple-600 dark:text-purple-400 shadow-sm'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    <Lock size={13} />
+                    <span>Private</span>
                   </button>
                 </div>
               </div>
 
+              {/* Private Room Friend Picker & Solo Mode */}
+              {newRoom.visibility === 'private' && (
+                <div className="bg-purple-500/5 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-800/40 rounded-2xl p-3 space-y-2.5 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-extrabold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                      <Lock size={13} />
+                      Invite Specific Friends
+                    </span>
+                    <span className="text-[10px] font-bold text-purple-600/80 dark:text-purple-400/80">
+                      {selectedFriends.length === 0 ? 'Solo Practice (Study Alone)' : `${selectedFriends.length} invited`}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-snug">
+                    Uninvited users cannot discover or enter this room. Leave all unselected to study alone in private.
+                  </p>
+
+                  {/* Friend search bar */}
+                  <div className="relative">
+                    <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input 
+                      type="text"
+                      value={friendSearchQuery}
+                      onChange={(e) => setFriendSearchQuery(e.target.value)}
+                      placeholder="Search friends..."
+                      className="w-full pl-7 pr-3 py-1.5 bg-white dark:bg-gray-900 border border-purple-200/50 dark:border-purple-800/40 rounded-xl text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                    />
+                  </div>
+
+                  {/* Friend checkboxes list */}
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                    {loadingFriends ? (
+                      <div className="text-center py-3 text-[11px] text-gray-400">Loading friends...</div>
+                    ) : filteredFriends.length === 0 ? (
+                      <div className="text-center py-3 text-[11px] text-gray-400">
+                        {friendsList.length === 0 ? "You don't have added friends yet. You can still practice alone!" : "No friends match search."}
+                      </div>
+                    ) : (
+                      filteredFriends.map(friend => {
+                        const isSelected = selectedFriends.includes(friend.id);
+                        return (
+                          <div 
+                            key={friend.id}
+                            onClick={() => toggleFriendSelection(friend.id)}
+                            className={`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer select-none ${
+                              isSelected 
+                                ? 'bg-purple-500/15 border-purple-400 dark:border-purple-600' 
+                                : 'bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-purple-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <img 
+                                src={friend.profilePicture || '/default-avatar.png'} 
+                                alt={friend.name}
+                                onError={(e) => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
+                                className="w-6 h-6 rounded-full object-cover shrink-0"
+                              />
+                              <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                {friend.name}
+                              </span>
+                            </div>
+                            <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
+                              isSelected 
+                                ? 'bg-purple-600 border-purple-600 text-white' 
+                                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'
+                            }`}>
+                              {isSelected && <Check size={11} strokeWidth={3} />}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5">Topic (Optional)</label>
+                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Topic (Optional)</label>
                 <input 
                   type="text" 
                   value={newRoom.topic}
                   onChange={(e) => setNewRoom({...newRoom, topic: e.target.value})}
                   placeholder="e.g. Discuss daily topics" 
-                  className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium"
+                  className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-medium"
                 />
               </div>
               
-              <div className="flex gap-3 pt-3">
+              <div className="flex gap-2.5 pt-2">
                 <button 
                   type="button" 
                   disabled={creating}
                   onClick={() => setShowModal(false)} 
-                  className="flex-1 px-4 py-2.5 border border-gray-205 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-350 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer disabled:opacity-50"
+                  className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 font-bold text-xs hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={creating}
-                  className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow transition rounded-xl cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2"
+                  className={`flex-1 px-4 py-2 text-white font-bold text-xs shadow transition rounded-xl cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2 ${
+                    newRoom.visibility === 'private'
+                      ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
+                      : 'bg-orange-500 hover:bg-orange-600 shadow-orange-500/20'
+                  }`}
                 >
                   {creating ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <div className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></div>
                       <span>Creating...</span>
                     </>
                   ) : (
-                    <span>Create & Join</span>
+                    <span>{newRoom.visibility === 'private' && selectedFriends.length === 0 ? 'Start Solo Room' : 'Create & Join'}</span>
                   )}
                 </button>
               </div>

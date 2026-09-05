@@ -987,7 +987,7 @@ const getUnreadCounts = async (req, res) => {
 // ==========================================
 
 const createLanguageRoom = async (req, res) => {
-  const { roomName, topic, language, roomType, mediaType, maxParticipants, isFriendsOnly } = req.body;
+  const { roomName, topic, language, roomType, mediaType, maxParticipants, isFriendsOnly, isPrivate, invitedUserIds } = req.body;
   const creatorId = req.user.id;
 
   try {
@@ -1020,6 +1020,24 @@ const createLanguageRoom = async (req, res) => {
       finalMaxParticipants = 2;
     }
 
+    const finalIsPrivate = !!isPrivate;
+    const finalIsFriendsOnly = finalIsPrivate ? false : !!isFriendsOnly;
+
+    // Normalize invitedUserIds
+    let invitedIds = [];
+    if (invitedUserIds) {
+      if (Array.isArray(invitedUserIds)) {
+        invitedIds = invitedUserIds.map(Number).filter(n => !isNaN(n) && n !== creatorId);
+      } else if (typeof invitedUserIds === 'string') {
+        try {
+          const parsed = JSON.parse(invitedUserIds);
+          if (Array.isArray(parsed)) {
+            invitedIds = parsed.map(Number).filter(n => !isNaN(n) && n !== creatorId);
+          }
+        } catch (e) {}
+      }
+    }
+
     const room = await datingPrisma.languageRoom.create({
       data: {
         roomName: uniqueRoomName,
@@ -1029,7 +1047,9 @@ const createLanguageRoom = async (req, res) => {
         roomType: finalRoomType,
         mediaType: mediaType || 'audio',
         maxParticipants: finalMaxParticipants,
-        isFriendsOnly: !!isFriendsOnly,
+        isFriendsOnly: finalIsFriendsOnly,
+        isPrivate: finalIsPrivate,
+        invitedUserIds: JSON.stringify(invitedIds),
       },
       include: {
         creator: {
@@ -1042,33 +1062,63 @@ const createLanguageRoom = async (req, res) => {
       },
     });
 
-    // Send push notification to creator's friends
-    try {
-      const friendships = await datingPrisma.friendship.findMany({
-        where: {
-          status: 'accepted',
-          OR: [
-            { senderId: creatorId },
-            { receiverId: creatorId }
-          ]
+    const creatorName = room.creator?.name || 'A friend';
+    const formattedLanguage = room.language || 'English';
+    const topicText = room.topic || 'General Discussion';
+
+    if (finalIsPrivate) {
+      // Send invitations specifically to selected friends (if any were invited)
+      if (invitedIds.length > 0) {
+        try {
+          sendPushNotification(
+            invitedIds,
+            `${creatorName} invited you to a private live room`,
+            `Join the private room "${topicText}" in ${formattedLanguage} now!`,
+            { type: 'LIVE_ROOM_INVITATION', roomName: room.roomName }
+          );
+
+          const io = req.app.get('io');
+          if (io) {
+            invitedIds.forEach(targetId => {
+              io.to(`user_${targetId}`).emit('ROOM_INVITATION', {
+                roomName: room.roomName,
+                creatorName,
+                topic: room.topic,
+                language: room.language,
+                mediaType: room.mediaType,
+              });
+            });
+          }
+        } catch (pushErr) {
+          console.error('Error sending private room invite notification:', pushErr.message);
         }
-      });
-      const friendIds = friendships.map(f => f.senderId === creatorId ? f.receiverId : f.senderId);
-      
-      if (friendIds.length > 0) {
-        const creatorName = room.creator?.name || 'A friend';
-        const formattedLanguage = room.language || 'English';
-        const topicText = room.topic || 'General Discussion';
-        
-        sendPushNotification(
-          friendIds,
-          `${creatorName} started a live room`,
-          `Join the live room "${topicText}" in ${formattedLanguage} to discuss together!`,
-          { type: 'LIVE_ROOM_CREATED', roomName: room.roomName }
-        );
       }
-    } catch (pushErr) {
-      console.error('Error sending room push notification to friends:', pushErr.message);
+      // If invitedIds is empty, user is studying alone in a solo room (no notifications sent)
+    } else {
+      // Send push notification to creator's friends for public or friends-only rooms
+      try {
+        const friendships = await datingPrisma.friendship.findMany({
+          where: {
+            status: 'accepted',
+            OR: [
+              { senderId: creatorId },
+              { receiverId: creatorId }
+            ]
+          }
+        });
+        const friendIds = friendships.map(f => f.senderId === creatorId ? f.receiverId : f.senderId);
+        
+        if (friendIds.length > 0) {
+          sendPushNotification(
+            friendIds,
+            `${creatorName} started a live room`,
+            `Join the live room "${topicText}" in ${formattedLanguage} to discuss together!`,
+            { type: 'LIVE_ROOM_CREATED', roomName: room.roomName }
+          );
+        }
+      } catch (pushErr) {
+        console.error('Error sending room push notification to friends:', pushErr.message);
+      }
     }
 
     await invalidateRoomsCache();
@@ -1210,11 +1260,11 @@ const refreshRoomsInBackground = async (userId, cacheKey) => {
 
     const rooms = await datingPrisma.languageRoom.findMany({
       where: {
-        OR: [
-          { isFriendsOnly: false },
-          { creatorId: userId },
-          { creatorId: { in: friendIds } }
-        ]
+        NOT: {
+          roomName: {
+            startsWith: 'privatecall-'
+          }
+        },
       },
       include: {
         creator: {
@@ -1236,7 +1286,27 @@ const refreshRoomsInBackground = async (userId, cacheKey) => {
     for (const room of rooms) {
       const isNew = (now - new Date(room.createdAt)) < 30000;
       if (isNew || activeLkRoomNames.includes(room.roomName)) {
-        validRooms.push(room);
+        // Determine if current user is authorized to see this room
+        let canView = false;
+        if (room.creatorId === userId) {
+          canView = true;
+        } else if (room.isPrivate) {
+          try {
+            const parsed = JSON.parse(room.invitedUserIds || '[]');
+            canView = Array.isArray(parsed) && parsed.map(Number).includes(Number(userId));
+          } catch (e) {
+            canView = false;
+          }
+        } else if (room.isFriendsOnly) {
+          canView = friendIds.includes(room.creatorId);
+        } else {
+          // Public room
+          canView = true;
+        }
+
+        if (canView) {
+          validRooms.push(room);
+        }
       } else {
         datingPrisma.languageRoom.delete({
           where: { id: room.id }
@@ -1290,11 +1360,6 @@ const getLanguageRooms = async (req, res) => {
             startsWith: 'privatecall-'
           }
         },
-        OR: [
-          { isFriendsOnly: false },
-          { creatorId: userId },
-          { creatorId: { in: friendIds } }
-        ]
       },
       include: {
         creator: {
@@ -1316,7 +1381,27 @@ const getLanguageRooms = async (req, res) => {
     for (const room of rooms) {
       const isNew = (now - new Date(room.createdAt)) < 30000;
       if (isNew || activeLkRoomNames.includes(room.roomName)) {
-        validRooms.push(room);
+        // Determine if current user is authorized to see this room
+        let canView = false;
+        if (room.creatorId === userId) {
+          canView = true;
+        } else if (room.isPrivate) {
+          try {
+            const parsed = JSON.parse(room.invitedUserIds || '[]');
+            canView = Array.isArray(parsed) && parsed.map(Number).includes(Number(userId));
+          } catch (e) {
+            canView = false;
+          }
+        } else if (room.isFriendsOnly) {
+          canView = friendIds.includes(room.creatorId);
+        } else {
+          // Public room
+          canView = true;
+        }
+
+        if (canView) {
+          validRooms.push(room);
+        }
       } else {
         datingPrisma.languageRoom.delete({
           where: { id: room.id }
@@ -1359,12 +1444,121 @@ const getLanguageRoomByName = async (req, res) => {
       if (userId !== room.creatorId && userId !== callerId && userId !== receiverId) {
         return res.status(403).json({ error: 'Forbidden' });
       }
+    } else if (room.isPrivate) {
+      let isInvited = false;
+      try {
+        const parsed = JSON.parse(room.invitedUserIds || '[]');
+        isInvited = Array.isArray(parsed) && parsed.map(Number).includes(Number(userId));
+      } catch (e) {}
+      if (room.creatorId !== userId && !isInvited) {
+        return res.status(403).json({ error: 'Access denied: this is a private room' });
+      }
+    } else if (room.isFriendsOnly && room.creatorId !== userId) {
+      const friendship = await datingPrisma.friendship.findFirst({
+        where: {
+          status: 'accepted',
+          OR: [
+            { senderId: room.creatorId, receiverId: userId },
+            { senderId: userId, receiverId: room.creatorId }
+          ]
+        }
+      });
+      if (!friendship) {
+        return res.status(403).json({ error: 'Access denied: this is a friends-only room' });
+      }
     }
 
     res.json(room);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+const inviteToLanguageRoom = async (req, res) => {
+  const { roomName } = req.params;
+  const { userIds } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const room = await datingPrisma.languageRoom.findUnique({
+      where: { roomName },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+      },
+    });
+
+    if (!room) return res.status(404).json({ error: 'Room not found' });
+    if (room.creatorId !== userId) {
+      return res.status(403).json({ error: 'Only the room creator can invite participants' });
+    }
+
+    const rawNewIds = Array.isArray(userIds) ? userIds.map(Number).filter(n => !isNaN(n) && n !== userId) : [];
+    if (rawNewIds.length === 0) {
+      return res.status(400).json({ error: 'No valid user IDs provided' });
+    }
+
+    let existingInvited = [];
+    try {
+      existingInvited = JSON.parse(room.invitedUserIds || '[]');
+      if (!Array.isArray(existingInvited)) existingInvited = [];
+    } catch (e) {
+      existingInvited = [];
+    }
+
+    const combinedSet = new Set([...existingInvited.map(Number), ...rawNewIds]);
+    const updatedInvited = Array.from(combinedSet);
+
+    const updatedRoom = await datingPrisma.languageRoom.update({
+      where: { roomName },
+      data: {
+        invitedUserIds: JSON.stringify(updatedInvited),
+      },
+    });
+
+    const newlyAdded = rawNewIds.filter(id => !existingInvited.includes(id));
+    if (newlyAdded.length > 0) {
+      const creatorName = room.creator?.name || 'A friend';
+      const formattedLanguage = room.language || 'English';
+      const topicText = room.topic || 'General Discussion';
+
+      sendPushNotification(
+        newlyAdded,
+        `${creatorName} invited you to a live room`,
+        `Join "${topicText}" in ${formattedLanguage} now!`,
+        { type: 'LIVE_ROOM_INVITATION', roomName: room.roomName }
+      );
+
+      try {
+        const io = req.app.get('io');
+        if (io) {
+          newlyAdded.forEach(targetId => {
+            io.to(`user_${targetId}`).emit('ROOM_INVITATION', {
+              roomName: room.roomName,
+              creatorName,
+              topic: room.topic,
+              language: room.language,
+              mediaType: room.mediaType,
+            });
+          });
+          io.emit('ROOMS_UPDATED');
+        }
+      } catch (socketErr) {
+        console.error('Socket emit failed for room invitation:', socketErr.message);
+      }
+    }
+
+    await invalidateRoomsCache();
+    return res.json({ success: true, room: updatedRoom, newlyAdded });
+  } catch (error) {
+    console.error('Error inviting users to room:', error);
+    return res.status(500).json({ error: 'Failed to invite users' });
   }
 };
 
@@ -2086,6 +2280,7 @@ module.exports = {
   deleteLanguageRoomByName,
   getLanguageRooms,
   getLanguageRoomByName,
+  inviteToLanguageRoom,
   createGroup,
   joinGroup,
   leaveGroup,

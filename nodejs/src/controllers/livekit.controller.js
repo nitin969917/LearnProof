@@ -42,24 +42,35 @@ const getToken = async (req, res) => {
     const userId = req.user.id;
     const userName = req.user.name || req.user.email?.split('@')[0] || `User_${userId}`;
 
-    // 1. Fetch room config from SQLite
+    // 1. Fetch room config from database
     const dbRoom = await datingPrisma.languageRoom.findUnique({
       where: { roomName: room }
     });
 
-    if (dbRoom && dbRoom.isFriendsOnly && dbRoom.creatorId !== userId) {
-      const friendship = await datingPrisma.friendship.findFirst({
-        where: {
-          status: 'accepted',
-          OR: [
-            { senderId: dbRoom.creatorId, receiverId: userId },
-            { senderId: userId, receiverId: dbRoom.creatorId }
-          ]
+    if (dbRoom && dbRoom.creatorId !== userId) {
+      if (dbRoom.isPrivate) {
+        let isInvited = false;
+        try {
+          const parsed = JSON.parse(dbRoom.invitedUserIds || '[]');
+          isInvited = Array.isArray(parsed) && parsed.map(Number).includes(Number(userId));
+        } catch (e) {}
+        if (!isInvited) {
+          return res.status(403).json({ error: 'Access denied: this is a private room' });
         }
-      });
+      } else if (dbRoom.isFriendsOnly) {
+        const friendship = await datingPrisma.friendship.findFirst({
+          where: {
+            status: 'accepted',
+            OR: [
+              { senderId: dbRoom.creatorId, receiverId: userId },
+              { senderId: userId, receiverId: dbRoom.creatorId }
+            ]
+          }
+        });
 
-      if (!friendship) {
-        return res.status(403).json({ error: 'Access denied: this is a friends-only room' });
+        if (!friendship) {
+          return res.status(403).json({ error: 'Access denied: this is a friends-only room' });
+        }
       }
     }
 

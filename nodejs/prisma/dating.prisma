@@ -187,6 +187,8 @@ model LanguageRoom {
   mediaType       String   @default("audio") // "audio" or "video"
   maxParticipants Int      @default(10)
   isFriendsOnly   Boolean  @default(false)
+  isPrivate       Boolean  @default(false)
+  invitedUserIds  String?  @default("[]")
   createdAt       DateTime @default(now())
 
   creatorId       Int
