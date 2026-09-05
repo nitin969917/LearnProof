@@ -312,6 +312,21 @@ const submitStageRequest = async (req, res) => {
       requestedAt: Date.now(),
     });
 
+    // Real-time Push via Socket.IO directly to the host
+    try {
+      const io = req.app.get('io');
+      if (io && dbRoom.creatorId) {
+        const hostId = String(dbRoom.creatorId);
+        io.to(hostId).emit('speak_request', {
+          roomName,
+          identity: userId,
+          name: userName,
+        });
+      }
+    } catch (sockErr) {
+      console.warn('Socket stage request emit error:', sockErr.message);
+    }
+
     return res.json({ success: true });
   } catch (err) {
     console.error('Failed to submit stage request:', err);
@@ -361,6 +376,21 @@ const dismissStageRequest = async (req, res) => {
     }
 
     clearStageRequest(roomName, identity);
+
+    // Real-time Push via Socket.IO directly to the host
+    try {
+      const io = req.app.get('io');
+      if (io && dbRoom.creatorId) {
+        const hostId = String(dbRoom.creatorId);
+        io.to(hostId).emit('withdraw_stage_request', {
+          roomName,
+          identity: String(identity),
+        });
+      }
+    } catch (sockErr) {
+      console.warn('Socket stage request withdraw emit error:', sockErr.message);
+    }
+
     return res.json({ success: true });
   } catch (err) {
     console.error('Failed to dismiss stage request:', err);

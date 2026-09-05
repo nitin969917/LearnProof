@@ -29,8 +29,8 @@ import {
 } from 'lucide-react';
 
 
-import { Track, Room, RoomEvent } from 'livekit-client';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
+import { getSocialSocket } from '../../../utils/socialSocket.js';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 import RoomWhiteboard from './RoomWhiteboard.jsx';
 
@@ -334,7 +334,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             </button>
           </div>
         </div>
-      ), { duration: 8000, id: `speak_req_${identity}` });
+      ), {
+        id: `speak_req_${identity}`,
+        duration: 8000,
+        style: { background: 'transparent', boxShadow: 'none', border: 'none', padding: 0 },
+      });
     }
   }, [room, roomName]);
 
@@ -1120,6 +1124,39 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     const pollId = setInterval(fetchStageRequests, 3000);
     return () => clearInterval(pollId);
   }, [isHost, roomName]);
+
+  // Real-time Push Listener via Socket.IO directly to Host
+  useEffect(() => {
+    if (!user?.id || !isHost) return;
+    const socket = getSocialSocket(user.id);
+    if (!socket) return;
+
+    const handleSocketSpeakReq = (data) => {
+      if (!data || (data.roomName && data.roomName !== roomName)) return;
+      const hostActive = isHostRef.current || isHost || amIHost();
+      if (hostActive) {
+        addSpeakRequestRef.current?.(data.identity, data.name);
+      }
+    };
+
+    const handleSocketWithdrawReq = (data) => {
+      if (!data || (data.roomName && data.roomName !== roomName)) return;
+      const hostActive = isHostRef.current || isHost || amIHost();
+      if (hostActive) {
+        notifiedRequestsRef.current.delete(data.identity);
+        setSpeakRequests(prev => prev.filter(r => r.identity !== data.identity));
+        toast.dismiss(`speak_req_${data.identity}`);
+      }
+    };
+
+    socket.on('speak_request', handleSocketSpeakReq);
+    socket.on('withdraw_stage_request', handleSocketWithdrawReq);
+
+    return () => {
+      socket.off('speak_request', handleSocketSpeakReq);
+      socket.off('withdraw_stage_request', handleSocketWithdrawReq);
+    };
+  }, [user, isHost, roomName, amIHost]);
 
   useEffect(() => {
     if (!room) return;

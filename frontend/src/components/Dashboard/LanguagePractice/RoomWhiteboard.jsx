@@ -99,22 +99,23 @@ export default function RoomWhiteboard({
 
   // ── Helper: Broadcast packet over LiveKit Data Channel ───────────────────────
   const broadcastPacket = useCallback((payload, reliable = true) => {
-    if (!room?.localParticipant) return;
+    const participant = room?.localParticipant || localParticipant;
+    if (!participant) return;
     try {
       const dataStr = JSON.stringify(payload);
       const encoder = new TextEncoder();
       const encoded = encoder.encode(dataStr);
-      room.localParticipant.publishData(encoded, {
+      participant.publishData(encoded, {
         reliable,
         topic: 'whiteboard'
       }).catch(() => {
         // Fallback without topic for maximum compatibility
-        room.localParticipant.publishData(encoded, { reliable }).catch(() => {});
+        participant.publishData(encoded, { reliable }).catch(() => {});
       });
     } catch (e) {
       console.error('Failed to broadcast whiteboard packet:', e);
     }
-  }, [room]);
+  }, [room, localParticipant]);
 
   // Host updates permission mode
   const handleSetPermissionMode = (mode) => {
