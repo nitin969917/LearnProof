@@ -461,12 +461,27 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     }
   }, [localParticipant, localParticipant?.isScreenShareEnabled]);
 
-  // Toggle Screen Sharing
+  const screenShareTrack = tracks.find(t => t.source === Track.Source.ScreenShare);
+  const isPresenting = !!screenShareTrack;
+  const activeScreenSharer = screenShareTrack?.participant;
+  const isAnotherUserSharing = !!(activeScreenSharer && !activeScreenSharer.isLocal);
+
+  // Toggle Screen Sharing (Enforce 1 person at a time)
   const toggleScreenShare = async () => {
     if (!localParticipant || !canPublish) {
       toast.error('You need speaking permissions on stage to share your screen.');
       return;
     }
+
+    // Block if someone else is already sharing
+    if (!isScreenSharing && isAnotherUserSharing) {
+      const sharerName = activeScreenSharer?.name || 'Another participant';
+      toast.error(`${sharerName} is already sharing their screen. Only one person can share at a time.`, {
+        id: 'screen_share_limit'
+      });
+      return;
+    }
+
     try {
       const target = !isScreenSharing;
       await localParticipant.setScreenShareEnabled(target, { audio: true });
@@ -517,9 +532,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     room.on(RoomEvent.DataReceived, handleDataReceived);
     return () => room.off(RoomEvent.DataReceived, handleDataReceived);
   }, [room]);
-
-  const screenShareTrack = tracks.find(t => t.source === Track.Source.ScreenShare);
-  const isPresenting = !!screenShareTrack;
 
   // ── Click-outside to close participants panel ──────────────────────────────
   useEffect(() => {
@@ -1883,6 +1895,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                     room={room}
                     localParticipant={localParticipant}
                     isHost={isHost}
+                    canPublish={canPublish}
+                    participants={participants}
                     onClose={() => toggleWhiteboard(false)}
                   />
                 ) : (
@@ -2071,19 +2085,27 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         <div 
           onClick={toggleScreenShare}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
-          title="Share Screen"
+          title={
+            isScreenSharing 
+              ? "Stop Screen Sharing" 
+              : isAnotherUserSharing 
+                ? `${activeScreenSharer?.name || 'Someone'} is sharing their screen`
+                : "Share Screen"
+          }
         >
           <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
             isScreenSharing
               ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 animate-pulse'
-              : isPresenting
-                ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-500'
-                : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+              : isAnotherUserSharing
+                ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+                : isPresenting
+                  ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-500'
+                  : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}>
             {isScreenSharing ? <MonitorOff size={18} /> : <ScreenShare size={18} />}
           </div>
           <span className="text-[10px] font-black tracking-wide text-gray-650 dark:text-gray-400">
-            {isScreenSharing ? 'Stop Share' : 'Share'}
+            {isScreenSharing ? 'Stop Share' : isAnotherUserSharing ? 'Sharing' : 'Share'}
           </span>
         </div>
 

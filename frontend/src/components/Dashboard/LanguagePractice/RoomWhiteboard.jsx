@@ -2,7 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Pencil, Highlighter, Eraser, Square, Circle,
   Minus, MoveRight, Type, RotateCcw, RotateCw,
-  Trash2, Download, X, Maximize2, Minimize2, Palette
+  Trash2, Download, X, Maximize2, Minimize2,
+  Lock, Unlock, Users, Globe, Shield, Check,
+  ChevronDown, UserCheck, UserPlus, UserMinus, Sparkles
 } from 'lucide-react';
 import { RoomEvent } from 'livekit-client';
 import toast from 'react-hot-toast';
@@ -25,16 +27,30 @@ const STROKE_WIDTHS = [
   { label: 'Bold', value: 14 },
 ];
 
-export default function RoomWhiteboard({ room, localParticipant, isHost, onClose }) {
+export default function RoomWhiteboard({
+  room,
+  localParticipant,
+  isHost,
+  canPublish = false,
+  participants = [],
+  onClose
+}) {
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
 
-  // Tools: 'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'text'
+  // Drawing tools: 'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'text'
   const [activeTool, setActiveTool] = useState('pen');
   const [selectedColor, setSelectedColor] = useState('#f97316');
   const [strokeWidth, setStrokeWidth] = useState(4);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Permission Modes: 'speakers' (default) | 'host_only' | 'all'
+  const [drawPermissionMode, setDrawPermissionMode] = useState('speakers');
+  const [customAllowedIds, setCustomAllowedIds] = useState([]); // User identities explicitly allowed to draw
+  const [showPermissionMenu, setShowPermissionMenu] = useState(false);
+  const [showManageModal, setShowManageModal] = useState(false);
+  const permissionMenuRef = useRef(null);
 
   // Shapes & text in-progress
   const startPos = useRef({ x: 0, y: 0 });
@@ -44,6 +60,30 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
   // Action history for Undo/Redo & Late Joiner Sync
   const elementsRef = useRef([]);
   const undoStackRef = useRef([]);
+
+  // Calculate if local user can draw
+  const myIdentity = String(localParticipant?.identity || '');
+  const canDraw = Boolean(
+    isHost ||
+    drawPermissionMode === 'all' ||
+    (drawPermissionMode === 'speakers' && canPublish) ||
+    customAllowedIds.includes(myIdentity)
+  );
+
+  // Click outside to close permission dropdown
+  useEffect(() => {
+    if (!showPermissionMenu) return;
+    const handleClickOutside = (e) => {
+      if (permissionMenuRef.current && !permissionMenuRef.current.contains(e.target)) {
+        setShowPermissionMenu(false);
+      }
+    };
+    const timer = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 50);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPermissionMenu]);
 
   // ── Helper: Broadcast packet over LiveKit Data Channel ───────────────────────
   const broadcastPacket = useCallback((payload) => {
@@ -59,6 +99,35 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
       console.error('Failed to broadcast whiteboard packet:', e);
     }
   }, [room, localParticipant]);
+
+  // Host updates permission mode
+  const handleSetPermissionMode = (mode) => {
+    if (!isHost) return;
+    setDrawPermissionMode(mode);
+    setShowPermissionMenu(false);
+    broadcastPacket({
+      type: 'DRAW_PERMISSIONS_UPDATE',
+      mode,
+      allowedIds: customAllowedIds,
+    });
+    const label = mode === 'host_only' ? 'Host Only' : mode === 'speakers' ? 'Stage Speakers' : 'Everyone';
+    toast.success(`Whiteboard drawing set to: ${label}`);
+  };
+
+  // Host toggles individual participant permission
+  const handleToggleUserPermission = (identity) => {
+    if (!isHost) return;
+    const idStr = String(identity);
+    const updated = customAllowedIds.includes(idStr)
+      ? customAllowedIds.filter(id => id !== idStr)
+      : [...customAllowedIds, idStr];
+    setCustomAllowedIds(updated);
+    broadcastPacket({
+      type: 'DRAW_PERMISSIONS_UPDATE',
+      mode: drawPermissionMode,
+      allowedIds: updated,
+    });
+  };
 
   // ── Initialize Canvas Size ──────────────────────────────────────────────────
   const setupCanvas = useCallback(() => {
@@ -103,6 +172,7 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
 
   // ── Draw Single Element onto Canvas ──────────────────────────────────────────
   const drawElement = (ctx, elem) => {
+    if (!ctx || !elem) return;
     ctx.save();
     ctx.strokeStyle = elem.color;
     ctx.fillStyle = elem.color;
@@ -209,12 +279,19 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
             redrawAllElements();
             break;
 
+          case 'DRAW_PERMISSIONS_UPDATE':
+            if (message.mode) setDrawPermissionMode(message.mode);
+            if (Array.isArray(message.allowedIds)) setCustomAllowedIds(message.allowedIds);
+            break;
+
           case 'SYNC_REQUEST':
-            // Host or peer answers request with full element array
-            if (elementsRef.current.length > 0) {
+            // Host or peer answers request with full element array and current permission settings
+            if (elementsRef.current.length > 0 || isHost) {
               broadcastPacket({
                 type: 'SYNC_RESPONSE',
                 elements: elementsRef.current,
+                mode: drawPermissionMode,
+                allowedIds: customAllowedIds,
               });
             }
             break;
@@ -223,6 +300,12 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
             if (message.elements && Array.isArray(message.elements)) {
               elementsRef.current = message.elements;
               redrawAllElements();
+            }
+            if (message.mode) {
+              setDrawPermissionMode(message.mode);
+            }
+            if (Array.isArray(message.allowedIds)) {
+              setCustomAllowedIds(message.allowedIds);
             }
             break;
 
@@ -242,7 +325,7 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
     return () => {
       room.off(RoomEvent.DataReceived, handleDataReceived);
     };
-  }, [room, broadcastPacket, redrawAllElements]);
+  }, [room, isHost, drawPermissionMode, customAllowedIds, broadcastPacket, redrawAllElements]);
 
   // ── Coordinates Helper ───────────────────────────────────────────────────────
   const getCoords = (e) => {
@@ -261,6 +344,10 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
   const currentPath = useRef([]);
 
   const handleStart = (e) => {
+    if (!canDraw) {
+      toast('Host controls drawing permissions', { icon: '🔒', id: 'draw_restricted' });
+      return;
+    }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
     const { x, y } = getCoords(e);
     startPos.current = { x, y };
@@ -284,7 +371,7 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
   };
 
   const handleMove = (e) => {
-    if (!isDrawing) return;
+    if (!canDraw || !isDrawing) return;
     const { x, y } = getCoords(e);
     const ctx = contextRef.current;
     if (!ctx) return;
@@ -335,7 +422,7 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
   };
 
   const handleEnd = (e) => {
-    if (!isDrawing) return;
+    if (!canDraw || !isDrawing) return;
     setIsDrawing(false);
     const { x, y } = getCoords(e);
 
@@ -375,7 +462,7 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
 
     if (newElement) {
       elementsRef.current.push(newElement);
-      undoStackRef.current = []; // Clear redo stack on new action
+      undoStackRef.current = [];
       redrawAllElements();
       broadcastPacket({
         type: 'DRAW_ELEMENT',
@@ -412,7 +499,7 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
 
   // ── Actions: Undo, Redo, Clear, Download ─────────────────────────────────────
   const handleUndo = () => {
-    if (elementsRef.current.length === 0) return;
+    if (!canDraw || elementsRef.current.length === 0) return;
     const removed = elementsRef.current.pop();
     undoStackRef.current.push(removed);
     redrawAllElements();
@@ -420,7 +507,7 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
   };
 
   const handleRedo = () => {
-    if (undoStackRef.current.length === 0) return;
+    if (!canDraw || undoStackRef.current.length === 0) return;
     const restored = undoStackRef.current.pop();
     elementsRef.current.push(restored);
     redrawAllElements();
@@ -431,7 +518,7 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
   };
 
   const handleClear = () => {
-    if (elementsRef.current.length === 0) return;
+    if (!canDraw || elementsRef.current.length === 0) return;
     elementsRef.current = [];
     undoStackRef.current = [];
     redrawAllElements();
@@ -443,7 +530,6 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Create a temporary canvas with white background
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
@@ -460,166 +546,299 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
     toast.success('Whiteboard exported as PNG!');
   };
 
+  // Participant list for individual permission management
+  const allParticipantsList = [
+    localParticipant,
+    ...(Array.isArray(participants) ? participants : [])
+  ].filter(Boolean);
+
   return (
     <div className={`relative w-full h-full flex flex-col bg-white dark:bg-gray-900 overflow-hidden select-none ${
       isFullscreen ? 'fixed inset-0 z-50' : 'rounded-2xl shadow-xl border border-gray-200 dark:border-white/10'
     }`}>
       {/* ── Top Whiteboard Toolbar ── */}
       <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-150 dark:border-white/8 px-3 py-2 flex items-center justify-between gap-2 shrink-0 z-20 overflow-x-auto no-scrollbar">
-        {/* Left: Tools & Shapes */}
+        
+        {/* Left: Tools & Shapes OR View-Only Status */}
         <div className="flex items-center gap-1">
-          {/* Pen */}
-          <button
-            onClick={() => setActiveTool('pen')}
-            className={`p-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 ${
-              activeTool === 'pen' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-            }`}
-            title="Pen / Marker"
-          >
-            <Pencil size={15} />
-          </button>
+          {canDraw ? (
+            <>
+              {/* Pen */}
+              <button
+                onClick={() => setActiveTool('pen')}
+                className={`p-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 ${
+                  activeTool === 'pen' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                }`}
+                title="Pen / Marker"
+              >
+                <Pencil size={15} />
+              </button>
 
-          {/* Highlighter */}
-          <button
-            onClick={() => setActiveTool('highlighter')}
-            className={`p-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 ${
-              activeTool === 'highlighter' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-            }`}
-            title="Highlighter"
-          >
-            <Highlighter size={15} />
-          </button>
+              {/* Highlighter */}
+              <button
+                onClick={() => setActiveTool('highlighter')}
+                className={`p-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 ${
+                  activeTool === 'highlighter' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                }`}
+                title="Highlighter"
+              >
+                <Highlighter size={15} />
+              </button>
 
-          {/* Eraser */}
-          <button
-            onClick={() => setActiveTool('eraser')}
-            className={`p-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 ${
-              activeTool === 'eraser' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-            }`}
-            title="Eraser"
-          >
-            <Eraser size={15} />
-          </button>
+              {/* Eraser */}
+              <button
+                onClick={() => setActiveTool('eraser')}
+                className={`p-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 ${
+                  activeTool === 'eraser' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                }`}
+                title="Eraser"
+              >
+                <Eraser size={15} />
+              </button>
 
-          <div className="w-px h-4 bg-gray-200 dark:bg-white/10 mx-0.5" />
+              <div className="w-px h-4 bg-gray-200 dark:bg-white/10 mx-0.5" />
 
-          {/* Rectangle */}
-          <button
-            onClick={() => setActiveTool('rectangle')}
-            className={`p-1.5 rounded-xl transition cursor-pointer ${
-              activeTool === 'rectangle' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-            }`}
-            title="Rectangle"
-          >
-            <Square size={15} />
-          </button>
+              {/* Rectangle */}
+              <button
+                onClick={() => setActiveTool('rectangle')}
+                className={`p-1.5 rounded-xl transition cursor-pointer ${
+                  activeTool === 'rectangle' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                }`}
+                title="Rectangle"
+              >
+                <Square size={15} />
+              </button>
 
-          {/* Circle */}
-          <button
-            onClick={() => setActiveTool('circle')}
-            className={`p-1.5 rounded-xl transition cursor-pointer ${
-              activeTool === 'circle' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-            }`}
-            title="Circle"
-          >
-            <Circle size={15} />
-          </button>
+              {/* Circle */}
+              <button
+                onClick={() => setActiveTool('circle')}
+                className={`p-1.5 rounded-xl transition cursor-pointer ${
+                  activeTool === 'circle' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                }`}
+                title="Circle"
+              >
+                <Circle size={15} />
+              </button>
 
-          {/* Line */}
-          <button
-            onClick={() => setActiveTool('line')}
-            className={`p-1.5 rounded-xl transition cursor-pointer ${
-              activeTool === 'line' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-            }`}
-            title="Line"
-          >
-            <Minus size={15} />
-          </button>
+              {/* Line */}
+              <button
+                onClick={() => setActiveTool('line')}
+                className={`p-1.5 rounded-xl transition cursor-pointer ${
+                  activeTool === 'line' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                }`}
+                title="Line"
+              >
+                <Minus size={15} />
+              </button>
 
-          {/* Arrow */}
-          <button
-            onClick={() => setActiveTool('arrow')}
-            className={`p-1.5 rounded-xl transition cursor-pointer ${
-              activeTool === 'arrow' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-            }`}
-            title="Arrow"
-          >
-            <MoveRight size={15} />
-          </button>
+              {/* Arrow */}
+              <button
+                onClick={() => setActiveTool('arrow')}
+                className={`p-1.5 rounded-xl transition cursor-pointer ${
+                  activeTool === 'arrow' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                }`}
+                title="Arrow"
+              >
+                <MoveRight size={15} />
+              </button>
 
-          {/* Text */}
-          <button
-            onClick={() => setActiveTool('text')}
-            className={`p-1.5 rounded-xl transition cursor-pointer ${
-              activeTool === 'text' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-            }`}
-            title="Text Note"
-          >
-            <Type size={15} />
-          </button>
+              {/* Text */}
+              <button
+                onClick={() => setActiveTool('text')}
+                className={`p-1.5 rounded-xl transition cursor-pointer ${
+                  activeTool === 'text' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                }`}
+                title="Text Note"
+              >
+                <Type size={15} />
+              </button>
+            </>
+          ) : (
+            /* View Only Badge for non-drawers */
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/25 rounded-xl text-amber-600 dark:text-amber-400">
+              <Lock size={13} className="animate-pulse" />
+              <span className="text-xs font-bold">View Only</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 hidden sm:inline">(Host controls drawing)</span>
+            </div>
+          )}
         </div>
 
-        {/* Center: Color Picker & Stroke Width */}
+        {/* Center: Color Picker & Stroke Width (if canDraw) OR Host Permission Controls */}
         <div className="flex items-center gap-1.5">
-          {/* Color swatches */}
-          <div className="flex items-center gap-1 bg-gray-50 dark:bg-white/5 p-1 rounded-xl border border-gray-150 dark:border-white/8">
-            {PALETTE.map(c => (
-              <button
-                key={c}
-                onClick={() => setSelectedColor(c)}
-                className={`w-4 h-4 rounded-full transition-transform cursor-pointer border border-black/10 dark:border-white/20 ${
-                  selectedColor === c ? 'scale-125 ring-2 ring-orange-500' : 'hover:scale-110'
-                }`}
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
+          {canDraw && (
+            <>
+              {/* Color swatches */}
+              <div className="flex items-center gap-1 bg-gray-50 dark:bg-white/5 p-1 rounded-xl border border-gray-150 dark:border-white/8">
+                {PALETTE.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setSelectedColor(c)}
+                    className={`w-4 h-4 rounded-full transition-transform cursor-pointer border border-black/10 dark:border-white/20 ${
+                      selectedColor === c ? 'scale-125 ring-2 ring-orange-500' : 'hover:scale-110'
+                    }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
 
-          {/* Stroke Width Selector */}
-          <div className="flex items-center gap-1 bg-gray-50 dark:bg-white/5 p-1 rounded-xl border border-gray-150 dark:border-white/8">
-            {STROKE_WIDTHS.map(sw => (
+              {/* Stroke Width Selector */}
+              <div className="flex items-center gap-1 bg-gray-50 dark:bg-white/5 p-1 rounded-xl border border-gray-150 dark:border-white/8">
+                {STROKE_WIDTHS.map(sw => (
+                  <button
+                    key={sw.value}
+                    onClick={() => setStrokeWidth(sw.value)}
+                    className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
+                      strokeWidth === sw.value ? 'bg-orange-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {sw.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Host Drawing Permission Manager Menu */}
+          {isHost && (
+            <div className="relative" ref={permissionMenuRef}>
               <button
-                key={sw.value}
-                onClick={() => setStrokeWidth(sw.value)}
-                className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
-                  strokeWidth === sw.value ? 'bg-orange-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                }`}
+                onClick={() => setShowPermissionMenu(prev => !prev)}
+                className="px-2.5 py-1 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                title="Manage Whiteboard Drawing Permissions"
               >
-                {sw.label}
+                <Shield size={13} />
+                <span className="hidden sm:inline">Drawing:</span>
+                <span className="capitalize">
+                  {drawPermissionMode === 'host_only' ? 'Host Only' : drawPermissionMode === 'speakers' ? 'Speakers' : 'Everyone'}
+                </span>
+                <ChevronDown size={12} className={`transition-transform duration-200 ${showPermissionMenu ? 'rotate-180' : ''}`} />
               </button>
-            ))}
-          </div>
+
+              {/* Dropdown Menu */}
+              {showPermissionMenu && (
+                <div className="absolute right-0 mt-1.5 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-50 flex flex-col gap-1 backdrop-blur-xl animate-in fade-in zoom-in-95">
+                  <div className="px-2.5 py-1.5 border-b border-gray-100 dark:border-white/5 mb-1">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-550">
+                      Who Can Draw?
+                    </span>
+                  </div>
+
+                  {/* Mode 1: Host Only */}
+                  <button
+                    onClick={() => handleSetPermissionMode('host_only')}
+                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition cursor-pointer ${
+                      drawPermissionMode === 'host_only'
+                        ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-bold'
+                        : 'hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Lock size={15} className="text-orange-500" />
+                      <div>
+                        <div className="text-xs font-bold">Only Host</div>
+                        <div className="text-[10px] text-gray-400 font-normal">Students watch while you teach</div>
+                      </div>
+                    </div>
+                    {drawPermissionMode === 'host_only' && <Check size={14} className="text-orange-500" />}
+                  </button>
+
+                  {/* Mode 2: Stage Speakers */}
+                  <button
+                    onClick={() => handleSetPermissionMode('speakers')}
+                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition cursor-pointer ${
+                      drawPermissionMode === 'speakers'
+                        ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-bold'
+                        : 'hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Users size={15} className="text-blue-500" />
+                      <div>
+                        <div className="text-xs font-bold">Stage Speakers</div>
+                        <div className="text-[10px] text-gray-400 font-normal">Host & speakers on stage</div>
+                      </div>
+                    </div>
+                    {drawPermissionMode === 'speakers' && <Check size={14} className="text-orange-500" />}
+                  </button>
+
+                  {/* Mode 3: Everyone */}
+                  <button
+                    onClick={() => handleSetPermissionMode('all')}
+                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition cursor-pointer ${
+                      drawPermissionMode === 'all'
+                        ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-bold'
+                        : 'hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Globe size={15} className="text-emerald-500" />
+                      <div>
+                        <div className="text-xs font-bold">Everyone in Room</div>
+                        <div className="text-[10px] text-gray-400 font-normal">Open collaboration for all</div>
+                      </div>
+                    </div>
+                    {drawPermissionMode === 'all' && <Check size={14} className="text-orange-500" />}
+                  </button>
+
+                  {/* Manage Specific Individuals */}
+                  <div className="pt-1 mt-1 border-t border-gray-100 dark:border-white/5">
+                    <button
+                      onClick={() => {
+                        setShowPermissionMenu(false);
+                        setShowManageModal(true);
+                      }}
+                      className="w-full flex items-center justify-between p-2 rounded-xl text-left hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <UserCheck size={15} className="text-purple-500" />
+                        <span className="text-xs font-bold">Manage Students...</span>
+                      </div>
+                      {customAllowedIds.length > 0 && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-extrabold bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-full">
+                          {customAllowedIds.length}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right: Undo, Redo, Clear, Export & Close */}
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={handleUndo}
-            className="p-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition cursor-pointer"
-            title="Undo"
-          >
-            <RotateCcw size={15} />
-          </button>
-          <button
-            onClick={handleRedo}
-            className="p-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition cursor-pointer"
-            title="Redo"
-          >
-            <RotateCw size={15} />
-          </button>
+          {canDraw && (
+            <>
+              <button
+                onClick={handleUndo}
+                className="p-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition cursor-pointer"
+                title="Undo"
+              >
+                <RotateCcw size={15} />
+              </button>
+              <button
+                onClick={handleRedo}
+                className="p-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition cursor-pointer"
+                title="Redo"
+              >
+                <RotateCw size={15} />
+              </button>
 
-          <button
-            onClick={handleClear}
-            className="p-1.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition cursor-pointer"
-            title="Clear Whiteboard"
-          >
-            <Trash2 size={15} />
-          </button>
+              <button
+                onClick={handleClear}
+                className="p-1.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition cursor-pointer"
+                title="Clear Whiteboard"
+              >
+                <Trash2 size={15} />
+              </button>
+            </>
+          )}
 
           <button
             onClick={handleDownload}
             className="p-1.5 rounded-xl text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition cursor-pointer"
-            title="Download as PNG"
+            title="Download Notes as PNG"
           >
             <Download size={15} />
           </button>
@@ -645,7 +864,9 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
       </div>
 
       {/* ── Canvas Board Area ── */}
-      <div className="relative flex-1 w-full h-full bg-white dark:bg-gray-950 cursor-crosshair overflow-hidden touch-none">
+      <div className={`relative flex-1 w-full h-full bg-white dark:bg-gray-950 overflow-hidden touch-none ${
+        canDraw ? 'cursor-crosshair' : 'cursor-default'
+      }`}>
         <canvas
           ref={canvasRef}
           onMouseDown={handleStart}
@@ -659,7 +880,7 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
         />
 
         {/* Text placement input */}
-        {textInput && (
+        {textInput && canDraw && (
           <div
             className="absolute z-30"
             style={{ left: textInput.x, top: textInput.y }}
@@ -678,6 +899,106 @@ export default function RoomWhiteboard({ room, localParticipant, isHost, onClose
           </div>
         )}
       </div>
+
+      {/* ── Manage Individual Participants Drawing Modal (Host Only) ── */}
+      {showManageModal && isHost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-white/10 p-5 shadow-2xl flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/5 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-purple-500/10 text-purple-500 rounded-xl">
+                  <UserCheck size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-gray-900 dark:text-white">Individual Drawing Access</h3>
+                  <p className="text-[11px] text-gray-500">Toggle drawing access per student</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowManageModal(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white rounded-xl cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* List of room participants */}
+            <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+              {allParticipantsList.length === 0 ? (
+                <div className="text-center py-6 text-xs text-gray-400">No other participants in room</div>
+              ) : (
+                allParticipantsList.map(p => {
+                  const idStr = String(p.identity);
+                  const isUserHost = isHost && p.isLocal;
+                  const isExplicitlyAllowed = customAllowedIds.includes(idStr);
+                  const isSpeaker = p.permissions?.canPublish;
+                  const hasAccess = isUserHost || isExplicitlyAllowed || drawPermissionMode === 'all' || (drawPermissionMode === 'speakers' && isSpeaker);
+
+                  return (
+                    <div
+                      key={p.identity}
+                      className="flex items-center justify-between p-2.5 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-150 dark:border-white/5"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-500 font-black text-xs flex items-center justify-center shrink-0">
+                          {(p.name || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                            {p.name || 'Participant'} {p.isLocal ? '(You)' : ''}
+                          </div>
+                          <div className="text-[10px] text-gray-400">
+                            {isUserHost ? 'Host' : isSpeaker ? 'Speaker' : 'Audience'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Toggle button (disabled for host) */}
+                      {isUserHost ? (
+                        <span className="text-[10px] font-black text-orange-500 px-2 py-0.5 bg-orange-500/10 rounded-lg">Host</span>
+                      ) : (
+                        <button
+                          onClick={() => handleToggleUserPermission(p.identity)}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                            isExplicitlyAllowed
+                              ? 'bg-purple-600 text-white shadow-sm'
+                              : hasAccess
+                                ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:text-purple-600'
+                          }`}
+                        >
+                          {isExplicitlyAllowed ? (
+                            <>
+                              <Check size={12} />
+                              <span>Allowed</span>
+                            </>
+                          ) : hasAccess ? (
+                            <>
+                              <span>Allowed via Mode</span>
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus size={12} />
+                              <span>Allow</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowManageModal(false)}
+              className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-extrabold transition cursor-pointer shadow-md"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
