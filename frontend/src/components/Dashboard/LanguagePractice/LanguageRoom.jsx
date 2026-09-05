@@ -889,32 +889,48 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // ─── Helper: send a data message to room participants ─────────────────────
   const sendSignal = async (payloadObj, destinationIdentities) => {
-    if (!room?.localParticipant) {
-      throw new Error('Room not connected');
+    if (!room?.localParticipant) return;
+    try {
+      const encoded = new TextEncoder().encode(JSON.stringify(payloadObj));
+      const opts = { reliable: true };
+      if (destinationIdentities && destinationIdentities.length > 0) {
+        opts.destinationIdentities = destinationIdentities;
+      }
+      try {
+        await room.localParticipant.publishData(encoded, opts);
+      } catch (innerErr) {
+        // If directed transmission fails, broadcast to room
+        if (opts.destinationIdentities) {
+          await room.localParticipant.publishData(encoded, { reliable: true });
+        }
+      }
+    } catch (err) {
+      console.warn('[Signal] Non-critical signal publish error:', err?.message || err);
     }
-    const encoded = new TextEncoder().encode(JSON.stringify(payloadObj));
-    const opts = { reliable: true };
-    if (destinationIdentities && destinationIdentities.length > 0) {
-      opts.destinationIdentities = destinationIdentities;
-    }
-    await room.localParticipant.publishData(encoded, opts);
   };
 
   // ── Request to Speak (Listener side) ──────────────────────────────────────
   const handleRequestToSpeak = async () => {
-    if (hasRequested || !hostIdentity) return;
+    if (hasRequested) return;
     try {
-      const requestPayload = {
-        type: 'request_to_speak',
-        identity: localParticipant.identity,
-        name: localParticipant.name || 'User',
-      };
-
-      // LiveKit data channel — deliver directly to host
-      await sendSignal(requestPayload, [hostIdentity]);
-
-      // Server fallback so host always receives the request
+      // 1. Submit request to backend store so host sees it in polling and lists
       await socialApi.post(`/livekit/rooms/${roomName}/stage-requests`);
+
+      // 2. Data channel fast-path signal to host
+      try {
+        const requestPayload = {
+          type: 'request_to_speak',
+          identity: localParticipant?.identity || userIdentity,
+          name: localParticipant?.name || 'User',
+        };
+        if (hostIdentity) {
+          await sendSignal(requestPayload, [hostIdentity]);
+        } else {
+          await sendSignal(requestPayload);
+        }
+      } catch (sigErr) {
+        console.warn('[Signal] Fast-path signal failed, server request will suffice:', sigErr);
+      }
 
       setHasRequested(true);
       toast.success('Stage request sent! Waiting for host approval...', { icon: '🎤' });
@@ -927,17 +943,23 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const handleWithdrawRequest = async () => {
     if (!hasRequested) return;
     try {
-      if (localParticipant?.identity) {
-        // Send signal to host so they remove us from their list immediately
-        if (hostIdentity) {
-          await sendSignal({
+      const myId = localParticipant?.identity || userIdentity;
+      if (myId) {
+        // Fast-path signal to host
+        try {
+          const withdrawPayload = {
             type: 'withdraw_stage_request',
-            identity: localParticipant.identity,
-          }, [hostIdentity]);
-        }
+            identity: myId,
+          };
+          if (hostIdentity) {
+            await sendSignal(withdrawPayload, [hostIdentity]);
+          } else {
+            await sendSignal(withdrawPayload);
+          }
+        } catch (_) {}
         
-        // Call backend API to delete the request
-        await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${localParticipant.identity}`);
+        // Backend store removal
+        await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${myId}`);
       }
       setHasRequested(false);
       toast.success('Stage request withdrawn.', { icon: '🎤' });
@@ -950,28 +972,34 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // ── Host: Invite listener to stage ────────────────────────────────────────
   const handleInviteToStage = async (identity, pName) => {
     try {
-      // Send invitation signal to listener first. Do not promote yet!
-      await sendSignal({
-        type: 'invite_to_stage',
-        targetIdentity: identity,
-        hostName: localParticipant.name || 'Host'
-      }, [identity]);
-      toast.success(`Stage invitation sent to ${pName || 'user'}!`, { id: `invite-${identity}`, duration: 2500 });
+      // Direct API promotion ensures permissions are granted immediately on server
+      await socialApi.post(`/livekit/rooms/${roomName}/participants/${identity}/promote`);
+      toast.success(`${pName || 'User'} has been invited to stage!`, { id: `invite-${identity}`, duration: 2500, icon: '🎤' });
+      // Send signal to notify user on UI
+      try {
+        await sendSignal({
+          type: 'invite_to_stage',
+          targetIdentity: identity,
+          hostName: localParticipant?.name || 'Host'
+        }, [identity]);
+      } catch (signalErr) {
+        console.warn('[Signal] Non-fatal signal error:', signalErr);
+      }
     } catch (err) {
       console.error('[Signal] Failed to invite to stage:', err);
-      toast.error('Failed to send stage invitation.', { id: `invite-err-${identity}` });
+      toast.error(err.response?.data?.error || 'Failed to invite participant to stage.', { id: `invite-err-${identity}` });
     }
   };
 
   // ── Listener: Accept host invite ───────────────────────────────────────────
   const handleAcceptInvite = async () => {
     setShowInviteModal(false);
+    toast.success('You are now on stage! 🎤', { id: 'on-stage-self', duration: 3000 });
     try {
-      // Send confirmation signal back to host so they promote us
       await sendSignal({
         type: 'accept_invite_response',
-        identity: localParticipant.identity,
-        name: localParticipant.name || 'User'
+        identity: localParticipant?.identity || userIdentity,
+        name: localParticipant?.name || 'User'
       });
     } catch (err) {
       console.warn('[Signal] Accept notification failed:', err);
@@ -982,10 +1010,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const handleDeclineInvite = async () => {
     setShowInviteModal(false);
     try {
-      // Notify host that we declined
+      const myId = localParticipant?.identity || userIdentity;
+      if (canPublish && myId) {
+        await socialApi.post(`/livekit/rooms/${roomName}/participants/${myId}/demote`);
+      }
       await sendSignal({
         type: 'decline_invite_response',
-        name: localParticipant.name || 'User'
+        name: localParticipant?.name || 'User'
       });
     } catch (err) {
       console.warn('[Signal] Decline notification failed:', err);
