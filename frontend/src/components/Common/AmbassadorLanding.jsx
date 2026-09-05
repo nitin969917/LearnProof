@@ -452,7 +452,7 @@ export default function AmbassadorLanding() {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5, delay: 0.4 }}
-                        className="max-w-xl mx-auto bg-white/95 backdrop-blur-md border border-orange-200/90 rounded-2xl p-5 sm:p-6 shadow-[0_12px_36px_rgba(249,115,22,0.08)] text-left"
+                        className="w-full max-w-lg mx-auto bg-white/95 backdrop-blur-md border border-orange-200/90 rounded-2xl p-4 sm:p-5 shadow-[0_12px_36px_rgba(249,115,22,0.08)] text-left overflow-hidden"
                     >
                         <div className="flex items-center justify-between gap-2 mb-3">
                             <div className="flex items-center gap-2 text-xs font-bold text-gray-800">
@@ -464,29 +464,29 @@ export default function AmbassadorLanding() {
                             </span>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row items-center gap-2.5">
-                            <div className="w-full flex-1 flex items-center gap-1.5 px-3.5 py-2.5 bg-orange-50/60 border border-orange-200/80 rounded-xl text-xs sm:text-sm font-mono text-gray-800">
-                                <span className="text-gray-500 select-none">learnproof.org/?ref=</span>
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full">
+                            <div className="flex-1 min-w-0 flex items-center gap-1 px-3 py-2.5 bg-orange-50/70 border border-orange-200/80 rounded-xl text-xs sm:text-sm font-mono text-gray-800 overflow-hidden">
+                                <span className="text-gray-500 select-none shrink-0 text-xs sm:text-sm">learnproof.org/?ref=</span>
                                 <input
                                     type="text"
                                     value={sampleRefCode}
                                     onChange={(e) => setSampleRefCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
-                                    className="bg-transparent border-none outline-none font-bold text-orange-600 flex-1 min-w-[100px]"
+                                    className="bg-transparent border-none outline-none font-bold text-orange-600 flex-1 min-w-0 w-full text-xs sm:text-sm"
                                     placeholder="YOUR_CODE"
-                                    maxLength={20}
+                                    maxLength={18}
                                 />
                             </div>
 
                             <button
                                 onClick={handleCopySample}
-                                className={`w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 shrink-0 cursor-pointer ${
+                                className={`w-full sm:w-auto px-4 sm:px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200 flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-sm ${
                                     copiedSample
-                                        ? 'bg-emerald-600 text-white shadow-sm'
+                                        ? 'bg-emerald-600 text-white'
                                         : 'bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white shadow-md shadow-orange-500/20'
                                 }`}
                             >
                                 {copiedSample ? <Check size={15} /> : <Copy size={15} />}
-                                <span>{copiedSample ? 'Copied!' : 'Copy Example Link'}</span>
+                                <span className="whitespace-nowrap">{copiedSample ? 'Copied!' : 'Copy Example Link'}</span>
                             </button>
                         </div>
                         <p className="text-[11px] text-gray-500 mt-2.5">
