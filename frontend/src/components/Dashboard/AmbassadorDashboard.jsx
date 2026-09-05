@@ -187,15 +187,18 @@ export default function AmbassadorDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-orange-50 font-sans selection:bg-orange-200">
+        <div className="min-h-screen bg-white font-sans selection:bg-orange-200">
+            {/* Ambient subtle glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[400px] bg-gradient-to-b from-orange-50 via-amber-50/30 to-transparent pointer-events-none -z-10" />
+
             {/* ── Standalone Glassmorphism Header ── */}
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-orange-100/60 py-2.5 px-4 sm:px-8 lg:px-12">
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 py-3 px-4 sm:px-8 lg:px-12">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Link to="/" className="flex shrink-0 items-center">
-                            <img src="/LP_logo.png" alt="LearnProof" className="h-10 sm:h-12 w-auto object-contain" />
+                            <img src="/LP_logo.png" alt="LearnProof" className="h-9 sm:h-11 w-auto object-contain" />
                         </Link>
-                        <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-100 text-orange-600 text-xs font-bold border border-orange-200">
+                        <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-600 text-xs font-bold border border-orange-200">
                             <Sparkles size={13} className="text-orange-500" />
                             Ambassador Portal
                         </span>
@@ -204,18 +207,18 @@ export default function AmbassadorDashboard() {
                     <div className="flex items-center gap-2 sm:gap-4">
                         <Link
                             to="/dashboard"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-orange-50 text-gray-700 hover:text-orange-600 font-bold text-xs sm:text-sm rounded-xl border border-orange-200 shadow-sm transition active:scale-95"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-orange-50 text-gray-700 hover:text-orange-600 font-bold text-xs sm:text-sm rounded-xl border border-gray-200 shadow-sm transition active:scale-95"
                         >
                             <BookOpen size={16} className="text-orange-500" />
                             <span>Go to Student App</span>
                         </Link>
 
                         {user && (
-                            <div className="flex items-center gap-2 pl-2 border-l border-orange-200">
+                            <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
                                 <UserAvatar
                                     src={user.profile_pic}
                                     name={user.name}
-                                    className="w-9 h-9 rounded-xl border border-orange-200 shadow-sm"
+                                    className="w-9 h-9 rounded-xl border border-gray-200 shadow-sm"
                                     textClassName="text-sm font-bold"
                                 />
                                 <span className="hidden md:inline font-bold text-sm text-gray-800 truncate max-w-[120px]">
@@ -230,11 +233,11 @@ export default function AmbassadorDashboard() {
             {/* ── Main Container ── */}
             <main className="pt-24 pb-16 px-4 sm:px-8 max-w-6xl mx-auto space-y-6">
                 {/* ── Top Header ── */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/90 backdrop-blur-md p-6 sm:p-7 rounded-3xl border border-orange-100 shadow-lg shadow-orange-100/50">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 sm:p-7 rounded-3xl border border-gray-200/80 shadow-[0_8px_24px_rgba(0,0,0,0.03)]">
                     <div>
                         <div className="flex items-center gap-2">
                             <span className="text-xl">{tier.badge}</span>
-                            <span className="text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-100 px-2.5 py-0.5 rounded-full border border-orange-200">
+                            <span className="text-xs font-bold uppercase tracking-wider text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-200">
                                 {tier.name}
                             </span>
                         </div>

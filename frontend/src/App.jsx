@@ -79,6 +79,49 @@ const PageLoader = () => (
     </div>
 );
 
+// Global OAuth Hash & Redirect Interceptor
+const OAuthRedirectHandler = () => {
+    const navigate = React.useRef(null);
+    navigate.current = React.useRef(null);
+    const { login } = useAuth();
+
+    React.useEffect(() => {
+        const hash = window.location.hash;
+        if (hash && (hash.includes('id_token=') || hash.includes('credential='))) {
+            const params = new URLSearchParams(hash.substring(1));
+            const idToken = params.get('id_token') || params.get('credential');
+            const state = params.get('state');
+            let targetRedirect = null;
+            if (state) {
+                try {
+                    targetRedirect = decodeURIComponent(state);
+                } catch (e) {
+                    targetRedirect = state;
+                }
+            }
+
+            if (!targetRedirect) {
+                targetRedirect = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to");
+            }
+
+            if (idToken) {
+                login({ credential: idToken }).then(() => {
+                    const finalTarget = targetRedirect || "/dashboard";
+                    localStorage.removeItem("redirect_to");
+                    sessionStorage.removeItem("redirect_to");
+                    document.cookie = "redirect_to=; path=/; max-age=0; SameSite=Lax";
+                    window.history.replaceState(null, '', window.location.pathname);
+                    window.location.replace(finalTarget);
+                }).catch(err => {
+                    console.error("Global OAuth login error:", err);
+                });
+            }
+        }
+    }, [login]);
+
+    return null;
+};
+
 const App = () => {
     React.useEffect(() => {
         initializeLaunch();
@@ -106,6 +149,7 @@ const App = () => {
         <AuthProvider>
             <ModalProvider>
                 <Router>
+                    <OAuthRedirectHandler />
                     <Suspense fallback={<PageLoader />}>
                         <Routes>
                             <Route path='/' element={<LandingPage />} />
