@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Mic, Globe, Plus, Users, Search, GraduationCap, Video, PhoneOff, Trash2, X, Lock, UserCheck, Check } from 'lucide-react';
+import { Mic, Globe, Plus, Users, Search, GraduationCap, Video, PhoneOff, Trash2, X, Lock, UserCheck, Check, Star } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import toast from 'react-hot-toast';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 
 export default function LanguageLearning() {
   const outletContext = useOutletContext();
@@ -21,8 +22,9 @@ export default function LanguageLearning() {
     mediaType: 'audio', 
     visibility: 'public' // 'public' | 'friends_only' | 'private'
   });
-  const [friendsList, setFriendsList] = useState([]);
-  const [loadingFriends, setLoadingFriends] = useState(false);
+  const friends = useSocialFeedStore(state => state.friends);
+  const fetchFriends = useSocialFeedStore(state => state.fetchFriends);
+  const loadingFriends = useSocialFeedStore(state => state.loadingFriends);
   const [selectedFriends, setSelectedFriends] = useState([]);
   const [friendSearchQuery, setFriendSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState(localStorage.getItem('languageRoomsTab') || 'audio'); // 'audio' or 'video'
@@ -40,7 +42,7 @@ export default function LanguageLearning() {
     if (user && !socialUser) {
       fetchSocialUser();
     }
-  }, [user, socialUser, fetchSocialUser]);
+  }, [user, socialUser, fetchSocialUser, fetchFriends]);
 
   useEffect(() => {
     // Listen to real-time room creation/deletion events from other users via socket
@@ -81,28 +83,6 @@ export default function LanguageLearning() {
     }
   };
 
-  const fetchFriends = async () => {
-    setLoadingFriends(true);
-    try {
-      const res = await socialApi.get('/social/friendships');
-      let friends = [];
-      if (Array.isArray(res.data?.friends)) {
-        friends = res.data.friends;
-      } else if (Array.isArray(res.data)) {
-        const myId = socialUser?.id;
-        friends = res.data
-          .filter(f => f.status === 'accepted')
-          .map(f => (f.senderId === myId ? f.receiver : f.sender))
-          .filter(Boolean);
-      }
-      setFriendsList(friends);
-    } catch (err) {
-      console.error('Failed to fetch friends for private room:', err);
-    } finally {
-      setLoadingFriends(false);
-    }
-  };
-
   const openCreateModal = (mediaType = activeTab) => {
     setNewRoom({ 
       roomName: '', 
@@ -113,6 +93,7 @@ export default function LanguageLearning() {
     });
     setSelectedFriends([]);
     setFriendSearchQuery('');
+    fetchFriends(true);
     setShowModal(true);
   };
 
@@ -177,8 +158,8 @@ export default function LanguageLearning() {
   const videoRoomsCount = (Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === 'video').length;
   const totalRoomsCount = audioRoomsCount + videoRoomsCount;
 
-  const filteredFriends = friendsList.filter(f => 
-    f.name?.toLowerCase().includes(friendSearchQuery.toLowerCase())
+  const filteredFriends = (friends || []).filter(f => 
+    (f.name || '').toLowerCase().includes(friendSearchQuery.toLowerCase())
   );
 
   return (
@@ -517,11 +498,11 @@ export default function LanguageLearning() {
 
                   {/* Friend checkboxes list */}
                   <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
-                    {loadingFriends ? (
+                    {loadingFriends && (!friends || friends.length === 0) ? (
                       <div className="text-center py-3 text-[11px] text-gray-400">Loading friends...</div>
                     ) : filteredFriends.length === 0 ? (
                       <div className="text-center py-3 text-[11px] text-gray-400">
-                        {friendsList.length === 0 ? "You don't have added friends yet. You can still practice alone!" : "No friends match search."}
+                        {(!friends || friends.length === 0) ? "You don't have added friends yet. You can still practice alone!" : "No friends match search."}
                       </div>
                     ) : (
                       filteredFriends.map(friend => {
@@ -537,15 +518,19 @@ export default function LanguageLearning() {
                             }`}
                           >
                             <div className="flex items-center gap-2 min-w-0">
-                              <img 
-                                src={friend.profilePicture || '/default-avatar.png'} 
-                                alt={friend.name}
-                                onError={(e) => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
-                                className="w-6 h-6 rounded-full object-cover shrink-0"
+                              <UserAvatar 
+                                src={friend.profilePicture} 
+                                name={friend.name} 
+                                className="w-6 h-6 rounded-full object-cover shrink-0 text-[10px]"
                               />
-                              <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                {friend.name}
-                              </span>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                  {friend.name}
+                                </span>
+                                {friend.isCloseFriend && (
+                                  <Star size={11} className="text-amber-500 fill-amber-500 shrink-0" />
+                                )}
+                              </div>
                             </div>
                             <div className={`w-4 h-4 rounded-md border flex items-center justify-center transition-all ${
                               isSelected 

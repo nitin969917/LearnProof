@@ -29,6 +29,8 @@ import {
 
 
 import { Track, Room } from 'livekit-client';
+import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 
 // ─── Loading Spinner ────────────────────────────────────────────────────────
 const RoomLoadingSpinner = () => (
@@ -186,36 +188,15 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // Invite Friends to Live Room Modal (Host or members inviting friends)
   const [showInviteFriendsModal, setShowInviteFriendsModal] = useState(false);
-  const [friendsToInvite, setFriendsToInvite] = useState([]);
-  const [loadingFriendsToInvite, setLoadingFriendsToInvite] = useState(false);
+  const friends = useSocialFeedStore(state => state.friends);
+  const fetchFriends = useSocialFeedStore(state => state.fetchFriends);
+  const loadingFriendsToInvite = useSocialFeedStore(state => state.loadingFriends);
   const [selectedInviteFriends, setSelectedInviteFriends] = useState([]);
   const [inviteSearchQuery, setInviteSearchQuery] = useState('');
   const [sendingInvites, setSendingInvites] = useState(false);
 
-  const fetchFriendsToInvite = async () => {
-    setLoadingFriendsToInvite(true);
-    try {
-      const res = await socialApi.get('/social/friendships');
-      let friends = [];
-      if (Array.isArray(res.data?.friends)) {
-        friends = res.data.friends;
-      } else if (Array.isArray(res.data)) {
-        const myId = userIdentity ? Number(userIdentity) : null;
-        friends = res.data
-          .filter(f => f.status === 'accepted')
-          .map(f => (f.senderId === myId ? f.receiver : f.sender))
-          .filter(Boolean);
-      }
-      setFriendsToInvite(friends);
-    } catch (err) {
-      console.error('Failed to load friends for invite modal:', err);
-    } finally {
-      setLoadingFriendsToInvite(false);
-    }
-  };
-
   const handleOpenInviteFriendsModal = () => {
-    fetchFriendsToInvite();
+    fetchFriends(true);
     setSelectedInviteFriends([]);
     setInviteSearchQuery('');
     setShowInviteFriendsModal(true);
@@ -256,8 +237,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     }
   })();
 
-  const filteredInviteFriends = friendsToInvite.filter(f =>
-    f.name?.toLowerCase().includes(inviteSearchQuery.toLowerCase())
+  const filteredInviteFriends = (friends || []).filter(f =>
+    (f.name || '').toLowerCase().includes(inviteSearchQuery.toLowerCase())
   );
 
   // Kick Confirmation Modal
@@ -1361,11 +1342,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
             {/* Friend List */}
             <div className="overflow-y-auto max-h-56 space-y-1.5 pr-1 flex-1 mb-4">
-              {loadingFriendsToInvite ? (
+              {loadingFriendsToInvite && (!friends || friends.length === 0) ? (
                 <div className="text-center py-4 text-xs text-gray-400">Loading friends...</div>
               ) : filteredInviteFriends.length === 0 ? (
                 <div className="text-center py-4 text-xs text-gray-400">
-                  {friendsToInvite.length === 0 ? 'No friends found. Add friends in Social Hub!' : 'No friends match search.'}
+                  {(!friends || friends.length === 0) ? 'No friends found. Add friends in Social Hub!' : 'No friends match search.'}
                 </div>
               ) : (
                 filteredInviteFriends.map(friend => {
@@ -1386,16 +1367,20 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <img
-                          src={friend.profilePicture || '/default-avatar.png'}
-                          alt={friend.name}
-                          onError={(e) => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
-                          className="w-7 h-7 rounded-full object-cover shrink-0"
+                        <UserAvatar
+                          src={friend.profilePicture}
+                          name={friend.name}
+                          className="w-7 h-7 rounded-full object-cover shrink-0 text-[10px]"
                         />
                         <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                            {friend.name}
-                          </span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                              {friend.name}
+                            </span>
+                            {friend.isCloseFriend && (
+                              <Star size={11} className="text-amber-500 fill-amber-500 shrink-0" />
+                            )}
+                          </div>
                           {isInRoom ? (
                             <span className="text-[9px] text-green-500 font-semibold">Already in room</span>
                           ) : isAlreadyInvited ? (
