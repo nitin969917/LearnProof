@@ -118,11 +118,8 @@ const getDashboardStats = async (req, res) => {
             getUniqueActiveUsersInRange(thirtyDaysAgo, now),
             getUniqueActiveUsersInRange(sixtyDaysAgo, thirtyDaysAgo),
             prisma.userActivityLog.findMany({
-                take: 25,
+                take: 30,
                 orderBy: { timestamp: 'desc' },
-                where: {
-                    user: { isNot: null }
-                },
                 include: {
                     user: {
                         select: { id: true, name: true, email: true, profile_pic: true }
