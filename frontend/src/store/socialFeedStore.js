@@ -110,7 +110,11 @@ export const useSocialFeedStore = create((set, get) => ({
     
     try {
       const response = await socialApi.get('/social/friendships');
-      const allFriends = Array.isArray(response.data?.friends) ? response.data.friends : [];
+      const rawFriends = Array.isArray(response.data?.friends) ? response.data.friends : [];
+      // Enforce strict uniqueness by user ID
+      const allFriends = rawFriends.filter((f, idx, self) => 
+        self.findIndex(item => item.id === f.id) === idx
+      );
       const close = allFriends.filter(f => f.isCloseFriend);
       set({ 
         friends: allFriends, 

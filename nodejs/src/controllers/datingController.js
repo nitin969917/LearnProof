@@ -799,20 +799,38 @@ const getFriendships = async (req, res) => {
       },
       include: {
         sender: {
-          select: { id: true, name: true, profilePicture: true },
+          select: { id: true, name: true, profilePicture: true, email: true, collegeName: true },
         },
         receiver: {
-          select: { id: true, name: true, profilePicture: true },
+          select: { id: true, name: true, profilePicture: true, email: true, collegeName: true },
         },
       },
+      orderBy: { createdAt: 'desc' }
     });
 
     const acceptedFriendships = friendships.filter(f => f.status === 'accepted');
-    const friendIds = acceptedFriendships.map(f => f.senderId === userId ? f.receiverId : f.senderId);
+
+    // Deduplicate accepted friends by user ID
+    const friendsMap = new Map();
+    acceptedFriendships.forEach(f => {
+      const friend = f.senderId === userId ? f.receiver : f.sender;
+      if (friend && !friendsMap.has(friend.id)) {
+        friendsMap.set(friend.id, {
+          id: friend.id,
+          name: friend.name,
+          email: friend.email,
+          collegeName: friend.collegeName,
+          profilePicture: friend.profilePicture,
+          friendshipId: f.id,
+          isCloseFriend: false,
+          lastMessage: null,
+        });
+      }
+    });
+
+    const friendIds = Array.from(friendsMap.keys());
 
     // ── Batch last-message fetch (1 query instead of N) ──────────────────────
-    // Previously: 1 findFirst() per friend = N DB queries
-    // Now: 1 raw query using DISTINCT ON to get latest message per conversation
     let lastMessageMap = new Map();
     if (friendIds.length > 0) {
       try {
@@ -837,7 +855,6 @@ const getFriendships = async (req, res) => {
           lastMessageMap.set(Number(friendId), msg);
         });
       } catch (rawErr) {
-        // Fallback gracefully if raw query fails (e.g. tables not yet created)
         console.error('Last message batch query failed:', rawErr.message);
       }
     }
@@ -851,18 +868,23 @@ const getFriendships = async (req, res) => {
     });
     const myCloseFriendIds = new Set(myCloseFriends.map(cf => cf.receiverId));
 
-    // Build friends list — zero additional queries
-    const friends = acceptedFriendships.map(f => {
-      const friend = f.senderId === userId ? f.receiver : f.sender;
-      return {
-        ...friend,
-        isCloseFriend: myCloseFriendIds.has(friend.id),
-        friendshipId: f.id,
-        lastMessage: lastMessageMap.get(friend.id) || null,
-      };
-    });
+    // Finalize friends list with closeFriend & lastMessage metadata
+    const friends = Array.from(friendsMap.values()).map(friend => ({
+      ...friend,
+      isCloseFriend: myCloseFriendIds.has(friend.id),
+      lastMessage: lastMessageMap.get(friend.id) || null,
+    }));
 
-    const pending = friendships.filter(f => f.status === 'pending' && f.receiverId === userId);
+    // Deduplicate pending requests by senderId
+    const pendingMap = new Map();
+    friendships
+      .filter(f => f.status === 'pending' && f.receiverId === userId)
+      .forEach(req => {
+        if (!pendingMap.has(req.senderId)) {
+          pendingMap.set(req.senderId, req);
+        }
+      });
+    const pending = Array.from(pendingMap.values());
 
     const result = { friends, pending };
     await cacheService.set(cacheKey, result, 30); // Cache for 30 seconds

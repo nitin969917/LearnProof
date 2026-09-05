@@ -293,8 +293,13 @@ export default function LanguageLearning() {
   const videoRoomsCount = (Array.isArray(roomsList) ? roomsList : []).filter(r => (r.mediaType || 'audio') === 'video').length;
   const totalRoomsCount = audioRoomsCount + videoRoomsCount;
 
-  const filteredFriends = (friends || []).filter(f => 
-    (f.name || '').toLowerCase().includes(friendSearchQuery.toLowerCase())
+  const uniqueFriendsList = (friends || []).filter((f, index, self) => 
+    self.findIndex(item => item.id === f.id) === index
+  );
+
+  const filteredFriends = uniqueFriendsList.filter(f => 
+    (f.name || '').toLowerCase().includes(friendSearchQuery.toLowerCase()) ||
+    (f.email || '').toLowerCase().includes(friendSearchQuery.toLowerCase())
   );
 
   return (
@@ -801,14 +806,21 @@ export default function LanguageLearning() {
                               <UserAvatar 
                                 src={friend.profilePicture} 
                                 name={friend.name} 
-                                className="w-6 h-6 rounded-full object-cover shrink-0 text-[10px]"
+                                className="w-7 h-7 rounded-full object-cover shrink-0 text-[10px]"
                               />
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                  {friend.name}
-                                </span>
-                                {friend.isCloseFriend && (
-                                  <Star size={11} className="text-amber-500 fill-amber-500 shrink-0" />
+                              <div className="flex flex-col min-w-0">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                    {friend.name}
+                                  </span>
+                                  {friend.isCloseFriend && (
+                                    <Star size={11} className="text-amber-500 fill-amber-500 shrink-0" />
+                                  )}
+                                </div>
+                                {friend.email && (
+                                  <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate leading-tight">
+                                    {friend.email}
+                                  </span>
                                 )}
                               </div>
                             </div>

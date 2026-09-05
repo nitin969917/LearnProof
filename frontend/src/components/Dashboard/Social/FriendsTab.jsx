@@ -210,7 +210,11 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
 
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 sm:p-5 shadow-sm space-y-3 sm:space-y-4">
             {friends
-              .filter(friend => (friend.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+              .filter((friend, idx, self) => self.findIndex(f => f.id === friend.id) === idx)
+              .filter(friend => 
+                (friend.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (friend.email || '').toLowerCase().includes(searchQuery.toLowerCase())
+              )
               .map((friend) => {
                 const isFriendOnline = onlineUserIds.some(id => id.toString() === friend.id.toString());
                 return (
@@ -230,9 +234,16 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                       </div>
                       <div className="min-w-0">
                         <h4 className="font-bold text-gray-900 dark:text-white text-sm truncate hover:text-orange-500 transition-colors">{friend.name}</h4>
-                        <p className={`text-[10px] font-bold ${isFriendOnline ? 'text-green-500' : 'text-gray-400'}`}>
-                          {isFriendOnline ? 'Online' : 'Offline'}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className={`text-[10px] font-bold ${isFriendOnline ? 'text-green-500' : 'text-gray-400'}`}>
+                            {isFriendOnline ? 'Online' : 'Offline'}
+                          </p>
+                          {friend.email && (
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+                              • {friend.email}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
