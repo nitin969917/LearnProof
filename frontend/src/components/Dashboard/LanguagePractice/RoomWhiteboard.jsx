@@ -295,6 +295,8 @@ export default function RoomWhiteboard({
 
   // ── Redraw Canvas from Element History + Active Live Strokes ─────────────────
   const currentPath = useRef([]);
+  const currentShapePreview = useRef(null);
+  const lastMousePos = useRef({ x: 0, y: 0 });
 
   const redrawAllElements = useCallback(() => {
     const canvas = canvasRef.current;
@@ -309,7 +311,7 @@ export default function RoomWhiteboard({
       drawElement(ctx, elem);
     });
 
-    // 2. Draw in-progress local stroke if currently drawing
+    // 2. Draw in-progress local stroke if currently drawing with pen/highlighter/eraser
     if (currentPath.current && currentPath.current.length > 0) {
       drawElement(ctx, {
         type: 'path',
@@ -320,7 +322,12 @@ export default function RoomWhiteboard({
       });
     }
 
-    // 3. Draw in-progress live peer strokes
+    // 3. Draw in-progress local shape preview if currently dragging shape
+    if (currentShapePreview.current) {
+      drawElement(ctx, currentShapePreview.current);
+    }
+
+    // 4. Draw in-progress live peer strokes
     peerActiveStrokes.current.forEach(stroke => {
       if (stroke.points && stroke.points.length > 0) {
         drawElement(ctx, {
@@ -333,7 +340,7 @@ export default function RoomWhiteboard({
       }
     });
 
-    // 4. Draw in-progress live peer shapes
+    // 5. Draw in-progress live peer shapes
     peerPreviewShapes.current.forEach(shape => {
       if (shape) {
         drawElement(ctx, shape);
@@ -530,10 +537,8 @@ export default function RoomWhiteboard({
               if (!exists) {
                 elementsRef.current.push(message.element);
               }
-              if (contextRef.current) {
-                drawElement(contextRef.current, message.element);
-              }
             }
+            redrawAllElements();
             break;
           }
 
@@ -542,6 +547,7 @@ export default function RoomWhiteboard({
             undoStackRef.current = [];
             peerActiveStrokes.current.clear();
             peerPreviewShapes.current.clear();
+            currentShapePreview.current = null;
             redrawAllElements();
             toast('Whiteboard was cleared', { icon: '🧹', id: 'board_cleared' });
             break;
@@ -615,17 +621,33 @@ export default function RoomWhiteboard({
     };
   }, [room, broadcastPacket, redrawAllElements, drawElement]);
 
-  // ── Coordinates Helper (Accurate 1:1 Pixel Mapping) ──────────────────────────
+  // ── Coordinates Helper (Accurate 1:1 Pixel Mapping for Touch & Mouse) ───────
   const getCoords = (e) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
-    return {
-      x: Math.max(0, Math.min(rect.width, clientX - rect.left)),
-      y: Math.max(0, Math.min(rect.height, clientY - rect.top)),
-    };
+    let clientX = e?.clientX;
+    let clientY = e?.clientY;
+
+    if (e?.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if (e?.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    }
+
+    if (typeof clientX !== 'number' || isNaN(clientX)) {
+      clientX = lastMousePos.current.x + rect.left;
+    }
+    if (typeof clientY !== 'number' || isNaN(clientY)) {
+      clientY = lastMousePos.current.y + rect.top;
+    }
+
+    const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    const y = Math.max(0, Math.min(rect.height, clientY - rect.top));
+    lastMousePos.current = { x, y };
+    return { x, y };
   };
 
   // ── Mouse & Touch Event Handlers (High Performance Real-Time Streaming) ────
@@ -642,6 +664,7 @@ export default function RoomWhiteboard({
     const h = Math.max(1, rect.height);
 
     startPos.current = { x, y };
+    currentShapePreview.current = null;
     setIsDrawing(true);
 
     if (activeTool === 'pen' || activeTool === 'highlighter' || activeTool === 'eraser') {
@@ -681,10 +704,6 @@ export default function RoomWhiteboard({
         color: selectedColor,
         width: strokeWidth,
       }, true);
-    } else {
-      if (canvas) {
-        snapshotRef.current = canvas.toDataURL();
-      }
     }
   };
 
@@ -747,22 +766,23 @@ export default function RoomWhiteboard({
         strokeBuffer.current = [];
         lastBroadcastTime.current = now;
       }
-    } else {
-      // Preview shape locally
-      redrawAllElements();
-      const elem = {
+    } else if (['rectangle', 'circle', 'line', 'arrow'].includes(activeTool)) {
+      // Create active shape element
+      const dx = x - startPos.current.x;
+      const dy = y - startPos.current.y;
+      const shapeElem = {
         type: activeTool,
         tool: activeTool,
         color: selectedColor,
         width: strokeWidth,
         x: startPos.current.x,
         y: startPos.current.y,
-        w: x - startPos.current.x,
-        h: y - startPos.current.y,
+        w: dx,
+        h: dy,
         nx: startPos.current.x / w,
         ny: startPos.current.y / h,
-        nw: (x - startPos.current.x) / w,
-        nh: (y - startPos.current.y) / h,
+        nw: dx / w,
+        nh: dy / h,
         x1: startPos.current.x,
         y1: startPos.current.y,
         x2: x,
@@ -772,14 +792,16 @@ export default function RoomWhiteboard({
         nx2: x / w,
         ny2: y / h,
       };
-      drawElement(ctx, elem);
+
+      currentShapePreview.current = shapeElem;
+      redrawAllElements();
 
       // ⚡ Stream live shape preview to peers every 35ms reliably
       const now = performance.now();
       if (now - lastShapeBroadcastTime.current >= 35) {
         broadcastPacket({
           type: 'SHAPE_PREVIEW',
-          shape: elem,
+          shape: shapeElem,
         }, true);
         lastShapeBroadcastTime.current = now;
       }
@@ -839,9 +861,9 @@ export default function RoomWhiteboard({
     } else if (['rectangle', 'circle', 'line', 'arrow'].includes(activeTool)) {
       const dx = x - startPos.current.x;
       const dy = y - startPos.current.y;
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-        newElement = {
-          id: 'shape_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      
+      const candidateShape = currentShapePreview.current || (
+        (Math.abs(dx) > 3 || Math.abs(dy) > 3) ? {
           type: activeTool,
           tool: activeTool,
           color: selectedColor,
@@ -862,18 +884,32 @@ export default function RoomWhiteboard({
           ny1: startPos.current.y / h,
           nx2: x / w,
           ny2: y / h,
+        } : null
+      );
+
+      currentShapePreview.current = null;
+
+      if (candidateShape && (Math.abs(candidateShape.w || 0) > 3 || Math.abs(candidateShape.h || 0) > 3 || Math.abs((candidateShape.x2 || 0) - (candidateShape.x1 || 0)) > 3 || Math.abs((candidateShape.y2 || 0) - (candidateShape.y1 || 0)) > 3)) {
+        newElement = {
+          ...candidateShape,
+          id: 'shape_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
         };
 
         elementsRef.current.push(newElement);
         undoStackRef.current = [];
         redrawAllElements();
 
-        // Clear preview & commit element
+        // ⚡ Clear preview on peers and commit element
         broadcastPacket({
           type: 'DRAW_ELEMENT',
           element: newElement,
         }, true);
+        broadcastPacket({
+          type: 'SHAPE_PREVIEW',
+          shape: null,
+        }, true);
       } else {
+        redrawAllElements();
         broadcastPacket({
           type: 'SHAPE_PREVIEW',
           shape: null,
