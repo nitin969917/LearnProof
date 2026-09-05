@@ -170,13 +170,23 @@ const isAdminMiddleware = (req, res, next) => {
         return res.status(403).json({ error: 'Access denied. User not authenticated.' });
     }
 
-    const adminEmail = process.env.ADMIN_EMAIL;
-    if (!adminEmail) {
-        console.error('ADMIN_EMAIL is not configured in environment variables. Access denied.');
-        return res.status(403).json({ error: 'Access denied. Admin configuration missing.' });
-    }
+    const userEmail = req.user.email.toLowerCase().trim();
 
-    if (req.user.email.toLowerCase() === adminEmail.toLowerCase()) {
+    // Configured admin emails from environment (supports comma-separated list)
+    const envAdmins = (process.env.ADMIN_EMAIL || '')
+        .split(',')
+        .map(e => e.trim().toLowerCase())
+        .filter(Boolean);
+
+    // Default authorized admin emails
+    const defaultAdmins = [
+        'nitin9699176009@gmail.com',
+        'kakadeavishkar84@gmail.com'
+    ];
+
+    const authorizedAdmins = new Set([...envAdmins, ...defaultAdmins]);
+
+    if (authorizedAdmins.has(userEmail) || userEmail.endsWith('@learnproofai.com')) {
         return next();
     }
 
