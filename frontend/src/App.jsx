@@ -67,6 +67,8 @@ const PrivacyPolicy = lazyWithRetry(() => import('./components/Common/PrivacyPol
 const DeleteAccount = lazyWithRetry(() => import('./components/Common/DeleteAccount'));
 const TermsOfService = lazyWithRetry(() => import('./components/Common/TermsOfService'));
 const DownloadPage = lazyWithRetry(() => import('./components/Common/DownloadPage'));
+const AmbassadorLanding = lazyWithRetry(() => import('./components/Common/AmbassadorLanding'));
+const AmbassadorDashboard = lazyWithRetry(() => import('./components/Dashboard/AmbassadorDashboard'));
 
 const PageLoader = () => (
     <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white">
@@ -119,6 +121,10 @@ const App = () => {
                             <Route path='/delete-account' element={<DeleteAccount />} />
                             <Route path='/login' element={<LoginPage />} />
                             <Route path='/download' element={<DownloadPage />} />
+                            <Route path='/ambassador' element={<AmbassadorLanding />} />
+                            <Route path='/referrals' element={<AmbassadorLanding />} />
+                            <Route path='/campus-ambassador' element={<AmbassadorLanding />} />
+                            <Route path='/referral-program' element={<AmbassadorLanding />} />
 
                             <Route
                                 path='/dashboard/*'
@@ -144,6 +150,7 @@ const App = () => {
                                 <Route path='ask-my-notes-dev/:subjectId' element={<AskMyNotesOriginal />} />
                                 <Route path='ask-my-notes-dev/:subjectId/quiz' element={<WorkspaceQuizPage />} />
                                 <Route path='support' element={<Support />} />
+                                <Route path='ambassador' element={<AmbassadorDashboard />} />
                                 
                                 {/* Social / Social Hub Features */}
                                 <Route path='social/*' element={<SocialDashboard />} />
