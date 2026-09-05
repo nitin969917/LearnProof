@@ -2391,31 +2391,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         )}
       </div>
 
-      {/* Collapsible Participants Info Card (only when chat is hidable on mobile view) */}
-      {isChatHidable && (
-        <div
-          onClick={() => setShowParticipants(prev => !prev)}
-          className="mx-4 mb-3 mt-1.5 p-3.5 bg-white dark:bg-gray-900 border border-gray-150 dark:border-gray-800 rounded-2xl flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 active:scale-[0.99] transition-all relative z-20"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
-              <Users size={16} />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="text-xs font-black text-gray-900 dark:text-white leading-tight">
-                {uniqueParticipants.length} Participants
-              </span>
-              <span className="text-[10px] font-bold text-gray-450 dark:text-slate-450 mt-0.5">
-                {stageSpeakers.length} Speakers · {listeners.length} Listeners
-              </span>
-            </div>
-          </div>
-          <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${showParticipants ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </div>
-      )}
-
       {/* ── Global Bottom Controls Bar ── */}
       <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-white/5 py-3 px-3 sm:px-6 flex items-center justify-around z-30 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] gap-1 sm:gap-2">
 

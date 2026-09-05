@@ -99,18 +99,22 @@ export default function RoomWhiteboard({
 
   // ── Helper: Broadcast packet over LiveKit Data Channel ───────────────────────
   const broadcastPacket = useCallback((payload, reliable = true) => {
-    if (!room || !localParticipant) return;
+    if (!room?.localParticipant) return;
     try {
       const dataStr = JSON.stringify(payload);
       const encoder = new TextEncoder();
-      localParticipant.publishData(encoder.encode(dataStr), {
+      const encoded = encoder.encode(dataStr);
+      room.localParticipant.publishData(encoded, {
         reliable,
         topic: 'whiteboard'
-      }).catch(err => console.error('Whiteboard publish error:', err));
+      }).catch(() => {
+        // Fallback without topic for maximum compatibility
+        room.localParticipant.publishData(encoded, { reliable }).catch(() => {});
+      });
     } catch (e) {
       console.error('Failed to broadcast whiteboard packet:', e);
     }
-  }, [room, localParticipant]);
+  }, [room]);
 
   // Host updates permission mode
   const handleSetPermissionMode = (mode) => {
@@ -401,10 +405,20 @@ export default function RoomWhiteboard({
     if (!room) return;
 
     const handleDataReceived = (payload, participant, kind, topic) => {
-      if (topic !== 'whiteboard') return;
       try {
         const decoder = new TextDecoder();
         const message = JSON.parse(decoder.decode(payload));
+        if (!message) return;
+
+        // Accept if topic is whiteboard OR if message type is whiteboard-related
+        const isWhiteboardMsg = topic === 'whiteboard' || [
+          'STROKE_START', 'STROKE_CHUNK', 'STROKE_END',
+          'SHAPE_PREVIEW', 'DRAW_ELEMENT', 'CLEAR', 'UNDO',
+          'DRAW_PERMISSIONS_UPDATE', 'SYNC_REQUEST', 'SYNC_RESPONSE'
+        ].includes(message.type);
+
+        if (!isWhiteboardMsg) return;
+
         const senderId = participant?.identity || 'peer';
 
         switch (message.type) {
@@ -569,9 +583,9 @@ export default function RoomWhiteboard({
             break;
           }
 
-          // ONLY Host answers SYNC_REQUEST
+          // Answer SYNC_REQUEST if we have elements to share
           case 'SYNC_REQUEST': {
-            if (isHostRef.current && elementsRef.current.length > 0) {
+            if (elementsRef.current.length > 0) {
               broadcastPacket({
                 type: 'SYNC_RESPONSE',
                 elements: elementsRef.current,
@@ -612,12 +626,14 @@ export default function RoomWhiteboard({
     };
 
     room.on(RoomEvent.DataReceived, handleDataReceived);
+    room.on('dataReceived', handleDataReceived);
 
     // Request initial sync once upon mount
     broadcastPacket({ type: 'SYNC_REQUEST' }, true);
 
     return () => {
       room.off(RoomEvent.DataReceived, handleDataReceived);
+      room.off('dataReceived', handleDataReceived);
     };
   }, [room, broadcastPacket, redrawAllElements, drawElement]);
 
