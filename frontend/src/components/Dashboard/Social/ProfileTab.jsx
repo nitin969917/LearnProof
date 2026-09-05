@@ -15,6 +15,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   const { confirm } = useModal();
+  const socialUser = useSocialFeedStore((state) => state.socialUser);
   const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
 
   const [profile, setProfile] = useState(null);
@@ -25,10 +26,9 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const [formData, setFormData] = useState({});
   const [expandedSection, setExpandedSection] = useState(null); // 'academics', 'contact', 'social', or null
 
-  const isOwnProfile = !viewUserId || 
-                       String(viewUserId) === String(currentUserId) ||
-                       (profile && (String(profile.id) === String(currentUserId) || (user?.email && profile.email === user.email)));
-  const targetId = !viewUserId || String(viewUserId) === String(currentUserId) ? currentUserId : viewUserId;
+  const effectiveCurrentUserId = currentUserId || socialUser?.id || user?.id;
+  const targetId = viewUserId ? parseInt(viewUserId, 10) : effectiveCurrentUserId;
+  const isOwnProfile = !viewUserId || (effectiveCurrentUserId && parseInt(viewUserId, 10) === parseInt(effectiveCurrentUserId, 10));
   const isMobileOrApp = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || navigator.userAgent.includes('LearnProofApp');
 
   const isOnline = isOwnProfile ? true : (
@@ -40,11 +40,14 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   );
 
   useEffect(() => {
-    fetchProfile();
-    fetchUserPosts();
+    if (targetId) {
+      fetchProfile();
+      fetchUserPosts();
+    }
   }, [targetId]);
 
   const fetchUserPosts = async () => {
+    if (!targetId) return;
     setPostsLoading(true);
     try {
       const response = await socialApi.get(`/posts/feed?authorId=${targetId}`);
@@ -58,6 +61,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   };
 
   const fetchProfile = async () => {
+    if (!targetId) return;
     setLoading(true);
     try {
       const response = await socialApi.get(`/users/profile/${targetId}`);
@@ -406,6 +410,17 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
+          {!isOwnProfile && (
+            <div className="lg:col-span-12 flex items-center justify-between">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-2 text-xs font-black text-gray-600 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 transition bg-white dark:bg-gray-800/90 border border-gray-200/80 dark:border-gray-700 px-4 py-2 rounded-2xl shadow-sm cursor-pointer active:scale-95"
+              >
+                <ArrowLeft size={14} />
+                <span>Back</span>
+              </button>
+            </div>
+          )}
           {/* Left Column: Profile Card + Accordion Details */}
           <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 lg:sticky lg:top-4">
             {/* Unified View Mode Card */}

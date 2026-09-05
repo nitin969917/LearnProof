@@ -151,7 +151,7 @@ export default function SocialDashboard() {
         setSelectedProfileId(parseInt(profileId, 10));
       } else {
         localStorage.removeItem('social_selected_profile_id');
-        setSelectedProfileId(socialUser?.id || null);
+        setSelectedProfileId(null);
       }
     } else {
       // /dashboard/social or /dashboard/social/feed -> strictly feed tab
@@ -159,7 +159,7 @@ export default function SocialDashboard() {
       setSelectedProfileId(null);
       setSelectedChatContact(null);
     }
-  }, [location.pathname, location.search, socialUser?.id]);
+  }, [location.pathname, location.search, socialUser?.id, user?.id]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -347,7 +347,7 @@ export default function SocialDashboard() {
         <button
           onClick={() => handleTabChange('profile')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-            activeTab === 'profile'
+            activeTab === 'profile' && (!selectedProfileId || String(selectedProfileId) === String(socialUser?.id || user?.id))
               ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
               : 'text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600'
           }`}
@@ -367,7 +367,7 @@ export default function SocialDashboard() {
           <div className={`w-full ${(hideHeader || activeTab === 'chat') ? 'h-full' : ''}`}>
             <div className={activeTab === 'feed' ? 'block' : 'hidden'}>
               <FeedTab 
-                currentUserId={socialUser.id} 
+                currentUserId={socialUser?.id || user?.id} 
                 socialUser={socialUser}
                 onViewProfile={viewUserProfile} 
                 onSelectChatUser={startDirectChat} 
@@ -389,7 +389,7 @@ export default function SocialDashboard() {
             </div>
             <div className={activeTab === 'chat' ? 'h-full block' : 'hidden'}>
               <ChatsTab 
-                currentUserId={socialUser.id}
+                currentUserId={socialUser?.id || user?.id}
                 selectedContact={selectedChatContact}
                 onClearSelectedContact={() => setSelectedChatContact(null)}
                 onToggleHeader={setHideHeader}
@@ -398,9 +398,9 @@ export default function SocialDashboard() {
             </div>
             <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
               <ProfileTab 
-                currentUserId={socialUser.id}
+                currentUserId={socialUser?.id || user?.id}
                 viewUserId={selectedProfileId}
-                onBackToFeed={() => setActiveTab('feed')}
+                onBackToFeed={() => handleTabChange('feed')}
                 onSelectChatUser={startDirectChat}
                 onViewProfile={viewUserProfile}
               />
