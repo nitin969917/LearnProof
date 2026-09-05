@@ -317,6 +317,55 @@ const LandingPage = () => {
         }, 150);
     };
 
+    const getRedirectTarget = () => {
+        // 1. Check URL hash or query params
+        const hash = window.location.hash;
+        if (hash) {
+            const params = new URLSearchParams(hash.substring(1));
+            const state = params.get('state');
+            if (state) {
+                try {
+                    return decodeURIComponent(state);
+                } catch (e) {
+                    return state;
+                }
+            }
+        }
+        const searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.get('redirect_to')) {
+            return searchParams.get('redirect_to');
+        }
+        if (searchParams.get('state')) {
+            return decodeURIComponent(searchParams.get('state'));
+        }
+
+        // 2. Check document.cookie
+        const cookieMatch = document.cookie.match(/(?:^|;\s*)redirect_to=([^;]+)/);
+        if (cookieMatch && cookieMatch[1]) {
+            try {
+                return decodeURIComponent(cookieMatch[1]);
+            } catch (e) {
+                return cookieMatch[1];
+            }
+        }
+
+        // 3. Check localStorage
+        const local = localStorage.getItem("redirect_to");
+        if (local) return local;
+
+        // 4. Check sessionStorage
+        const session = sessionStorage.getItem("redirect_to");
+        if (session) return session;
+
+        return "/dashboard";
+    };
+
+    const clearRedirectTarget = () => {
+        localStorage.removeItem("redirect_to");
+        sessionStorage.removeItem("redirect_to");
+        document.cookie = "redirect_to=; path=/; max-age=0; SameSite=Lax";
+    };
+
     const handleGoogleSuccess = async (credentialResponse, targetRedirect = null) => {
         setIsLoggingIn(true);
         sessionStorage.setItem("is_logging_in", "true");
@@ -331,13 +380,14 @@ const LandingPage = () => {
                 return;
             }
 
+            const target = targetRedirect || getRedirectTarget();
+
             await login({ credential: idToken });
             
+            setIsLoggingIn(false);
             sessionStorage.removeItem("is_logging_in");
-            const redirectTo = targetRedirect || localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
-            localStorage.removeItem("redirect_to");
-            sessionStorage.removeItem("redirect_to");
-            navigate(redirectTo);
+            clearRedirectTarget();
+            navigate(target, { replace: true });
         } catch (err) {
             console.error("Google login error:", err);
             toast.error(`Login failed: ${err.message || 'Please try again.'}`);
@@ -434,10 +484,9 @@ const LandingPage = () => {
         const isFlutter = navigator.userAgent.includes('LearnProofApp') || !!window.GoogleSignInChannel;
         if (isFlutter && !loading) {
             if (user) {
-                const redirectTo = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
-                localStorage.removeItem("redirect_to");
-                sessionStorage.removeItem("redirect_to");
-                navigate(redirectTo);
+                const target = getRedirectTarget();
+                clearRedirectTarget();
+                navigate(target, { replace: true });
             } else {
                 navigate('/login');
             }
@@ -446,10 +495,9 @@ const LandingPage = () => {
 
         if (!loading && user) {
             if (location.pathname === '/') {
-                const redirectTo = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
-                localStorage.removeItem("redirect_to");
-                sessionStorage.removeItem("redirect_to");
-                navigate(redirectTo);
+                const target = getRedirectTarget();
+                clearRedirectTarget();
+                navigate(target, { replace: true });
             }
         }
     }, [user, loading, navigate, location.pathname]);
