@@ -584,6 +584,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             setIsWhiteboardOpen(message.isOpen);
           }
         }
+        if (message.type === 'REQUEST_ROOM_SETTINGS' && isHost) {
+          broadcastRoomSettings(allowWhiteboard, allowScreenShare);
+        }
         if (topic === 'room_settings' || message.type === 'ROOM_SETTINGS_UPDATE') {
           if (typeof message.allowWhiteboard === 'boolean') {
             setAllowWhiteboard(message.allowWhiteboard);
@@ -601,9 +604,32 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         }
       } catch (e) {}
     };
+
+    const handleParticipantConnected = () => {
+      if (isHost) {
+        broadcastRoomSettings(allowWhiteboard, allowScreenShare);
+      }
+    };
+
     room.on(RoomEvent.DataReceived, handleDataReceived);
-    return () => room.off(RoomEvent.DataReceived, handleDataReceived);
-  }, [room, isScreenSharing, amIHost, localParticipant]);
+    room.on(RoomEvent.ParticipantConnected, handleParticipantConnected);
+
+    // If not host, request initial settings on connect
+    if (!isHost) {
+      try {
+        const reqPayload = JSON.stringify({ type: 'REQUEST_ROOM_SETTINGS' });
+        room.localParticipant?.publishData(
+          new TextEncoder().encode(reqPayload),
+          { reliable: true }
+        );
+      } catch (e) {}
+    }
+
+    return () => {
+      room.off(RoomEvent.DataReceived, handleDataReceived);
+      room.off(RoomEvent.ParticipantConnected, handleParticipantConnected);
+    };
+  }, [room, isScreenSharing, amIHost, localParticipant, isHost, allowWhiteboard, allowScreenShare]);
 
   // ── Click-outside to close participants panel ──────────────────────────────
   useEffect(() => {
@@ -1814,6 +1840,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                           toast.error('Screen sharing is restricted by the host.', { icon: '🔒' });
                           return;
                         }
+                        if (!canPublish && !isHost) {
+                          toast.error('You need to be a speaker on stage to share your screen. Raise your hand to join stage!', { icon: '✋' });
+                          return;
+                        }
                         toggleScreenShare();
                         setShowSettingsModal(false);
                       }}
@@ -1861,7 +1891,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                                 ? `${activeScreenSharer?.name || 'Someone'} is sharing`
                                 : (!isHost && !allowScreenShare)
                                   ? 'Disabled by host'
-                                  : 'Share screen or window'}
+                                  : (!canPublish && !isHost)
+                                    ? 'Join stage to share'
+                                    : 'Share screen or window'}
                           </span>
                         </div>
                       </div>
