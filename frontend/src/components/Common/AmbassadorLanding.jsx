@@ -132,7 +132,7 @@ export default function AmbassadorLanding() {
             description: "Receive an authentic, tamper-proof Certificate of Leadership with a unique Verification ID to showcase on LinkedIn and your resume.",
             badge: "Official Credential",
             bg: "bg-orange-50",
-            border: "border-orange-200"
+            border: "border-orange-100"
         },
         {
             icon: <Zap className="w-6 h-6 text-amber-600" />,
@@ -140,7 +140,7 @@ export default function AmbassadorLanding() {
             description: "Unlock full premium AI video summaries, unlimited course tracking, priority roadmap generation, and higher token limits for life.",
             badge: "Pro Access",
             bg: "bg-amber-50",
-            border: "border-amber-200"
+            border: "border-amber-100"
         },
         {
             icon: <Gift className="w-6 h-6 text-red-600" />,
@@ -148,7 +148,7 @@ export default function AmbassadorLanding() {
             description: "Top ambassadors receive custom LearnProof hoodies, premium tees, laptop stickers, and certificate packs delivered to their doorstep.",
             badge: "Swag Box",
             bg: "bg-red-50",
-            border: "border-red-200"
+            border: "border-red-100"
         },
         {
             icon: <HeartHandshake className="w-6 h-6 text-emerald-600" />,
@@ -156,7 +156,7 @@ export default function AmbassadorLanding() {
             description: "Direct letters of recommendation from the founders, plus priority interviews for engineering, product, and community growth roles.",
             badge: "Career Growth",
             bg: "bg-emerald-50",
-            border: "border-emerald-200"
+            border: "border-emerald-100"
         },
         {
             icon: <TrendingUp className="w-6 h-6 text-blue-600" />,
@@ -164,7 +164,7 @@ export default function AmbassadorLanding() {
             description: "Self-serve analytics dashboard displaying your live link clicks, registered students, conversion rates, and milestone rewards.",
             badge: "Live Telemetry",
             bg: "bg-blue-50",
-            border: "border-blue-200"
+            border: "border-blue-100"
         },
         {
             icon: <Users className="w-6 h-6 text-purple-600" />,
@@ -172,7 +172,7 @@ export default function AmbassadorLanding() {
             description: "Join an exclusive private community of student leaders across universities, with direct monthly sessions and founder access.",
             badge: "VIP Community",
             bg: "bg-purple-50",
-            border: "border-purple-200"
+            border: "border-purple-100"
         }
     ];
 
@@ -182,7 +182,7 @@ export default function AmbassadorLanding() {
             badge: "🥉",
             requirement: "1 - 9 Signups",
             reward: "Early AI Beta Access, Verified Digital Badge & Private Community Access",
-            badgeColor: "bg-orange-100 text-orange-700 border-orange-200"
+            badgeColor: "bg-orange-100/80 text-orange-700 border-orange-200"
         },
         {
             tier: "Silver Ambassador",
@@ -196,14 +196,14 @@ export default function AmbassadorLanding() {
             badge: "🥇",
             requirement: "50 - 99 Signups",
             reward: "Exclusive LearnProof Swag Package (Hoodie, T-Shirt, Stickers) & Letter of Recommendation",
-            badgeColor: "bg-amber-100 text-amber-700 border-amber-200"
+            badgeColor: "bg-amber-100/80 text-amber-700 border-amber-200"
         },
         {
             tier: "Diamond Lead",
             badge: "💎",
             requirement: "100+ Signups",
             reward: "Stipend Grants, Priority Internship Interview & Keynote Speaker Role in Global Hackathons",
-            badgeColor: "bg-purple-100 text-purple-700 border-purple-200"
+            badgeColor: "bg-purple-100/80 text-purple-700 border-purple-200"
         }
     ];
 
@@ -229,14 +229,14 @@ export default function AmbassadorLanding() {
     ];
 
     return (
-        <div className="min-h-screen bg-orange-50 relative overflow-hidden font-sans text-gray-900 selection:bg-orange-200 pt-16 md:pt-18">
-            {/* Background Texture & Ambient Glows */}
-            <div className="absolute inset-0 z-0 opacity-[0.025] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }} />
-            <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-orange-200 via-red-100 to-transparent rounded-full blur-[140px] opacity-60 z-0 pointer-events-none -translate-y-1/2 translate-x-1/3" />
-            <div className="absolute bottom-0 left-0 w-[700px] h-[700px] bg-gradient-to-tr from-amber-200 via-orange-100 to-transparent rounded-full blur-[130px] opacity-50 z-0 pointer-events-none -translate-x-1/3" />
+        <div className="min-h-screen bg-gradient-to-b from-[#FFFDFB] via-[#FFF9F5] to-[#FFFDFB] relative overflow-hidden font-sans text-gray-900 selection:bg-orange-200 pt-16 md:pt-18">
+            {/* Soft, Clean Ambient Background Glows (Clean & Bright, No Dark Dots) */}
+            <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-gradient-to-bl from-orange-200/40 via-amber-100/30 to-transparent rounded-full blur-[140px] pointer-events-none -translate-y-1/3 translate-x-1/4" />
+            <div className="absolute top-1/3 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-amber-200/30 via-orange-100/20 to-transparent rounded-full blur-[130px] pointer-events-none -translate-x-1/4" />
+            <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-t from-orange-200/25 to-transparent rounded-full blur-[120px] pointer-events-none" />
 
             {/* ── Sticky Glassmorphism Header / Navbar ── */}
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-orange-100 py-1.5 px-4 sm:px-8 lg:px-12 shadow-sm">
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-orange-100/80 py-1.5 px-4 sm:px-8 lg:px-12 shadow-[0_2px_15px_rgba(249,115,22,0.04)]">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <Link to="/" className="flex shrink-0 items-center">
                         <img src="/LP_logo.png" alt="LearnProof" className="h-10 sm:h-12 w-auto object-contain" />
@@ -248,7 +248,7 @@ export default function AmbassadorLanding() {
                             <Link to="/#features" className="hover:text-orange-600 transition-colors">Features</Link>
                             <Link to="/#how-it-works" className="hover:text-orange-600 transition-colors">How It Works</Link>
                             <Link to="/#faq" className="hover:text-orange-600 transition-colors">FAQs</Link>
-                            <span className="text-orange-600 font-extrabold flex items-center gap-1.5 bg-orange-100/80 px-3 py-1 rounded-full border border-orange-200 shadow-sm">
+                            <span className="text-orange-600 font-extrabold flex items-center gap-1.5 bg-orange-50 px-3 py-1 rounded-full border border-orange-200/80 shadow-sm">
                                 <Sparkles size={13} className="text-orange-500" />
                                 Ambassadors
                             </span>
@@ -376,14 +376,14 @@ export default function AmbassadorLanding() {
             </nav>
 
             {/* ── HERO SECTION ── */}
-            <section className="relative z-10 px-4 sm:px-8 lg:px-16 pt-12 pb-16 max-w-6xl mx-auto">
+            <section className="relative z-10 px-4 sm:px-8 lg:px-16 pt-14 pb-16 max-w-6xl mx-auto">
                 <div className="text-center max-w-3xl mx-auto">
                     {/* Badge */}
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4 }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-md text-orange-600 text-xs sm:text-sm font-extrabold border border-orange-200 shadow-sm mb-6"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/90 backdrop-blur-md text-orange-600 text-xs sm:text-sm font-extrabold border border-orange-200/90 shadow-[0_2px_10px_rgba(249,115,22,0.08)] mb-6"
                     >
                         <Sparkles size={16} className="text-orange-500" />
                         <span>Campus Ambassador & Creator Program</span>
@@ -431,7 +431,7 @@ export default function AmbassadorLanding() {
                         ) : (
                             <button
                                 onClick={handlePrimaryCta}
-                                className="w-full sm:w-auto flex items-center justify-center gap-3 px-7 py-3.5 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-200/90 font-bold text-gray-800 text-sm sm:text-base cursor-pointer"
+                                className="w-full sm:w-auto flex items-center justify-center gap-3 px-7 py-3.5 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.1)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-gray-800 text-sm sm:text-base cursor-pointer"
                             >
                                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
                                 <span>Join Program with Google</span>
@@ -440,7 +440,7 @@ export default function AmbassadorLanding() {
 
                         <button
                             onClick={() => document.getElementById('perks')?.scrollIntoView({ behavior: 'smooth' })}
-                            className="w-full sm:w-auto px-7 py-3.5 bg-white/80 hover:bg-white text-gray-700 hover:text-orange-600 border border-orange-200/90 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                            className="w-full sm:w-auto px-7 py-3.5 bg-white/90 hover:bg-white text-gray-700 hover:text-orange-600 border border-orange-200/90 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                         >
                             <span>Explore Perks & Rewards</span>
                             <ChevronDown size={17} />
@@ -452,7 +452,7 @@ export default function AmbassadorLanding() {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.5, delay: 0.4 }}
-                        className="max-w-xl mx-auto bg-white/95 backdrop-blur-md border border-orange-200 rounded-2xl p-5 sm:p-6 shadow-[0_12px_36px_rgba(249,115,22,0.08)] text-left"
+                        className="max-w-xl mx-auto bg-white/95 backdrop-blur-md border border-orange-200/90 rounded-2xl p-5 sm:p-6 shadow-[0_12px_36px_rgba(249,115,22,0.08)] text-left"
                     >
                         <div className="flex items-center justify-between gap-2 mb-3">
                             <div className="flex items-center gap-2 text-xs font-bold text-gray-800">
@@ -465,7 +465,7 @@ export default function AmbassadorLanding() {
                         </div>
 
                         <div className="flex flex-col sm:flex-row items-center gap-2.5">
-                            <div className="w-full flex-1 flex items-center gap-1.5 px-3.5 py-2.5 bg-orange-50/70 border border-orange-200/80 rounded-xl text-xs sm:text-sm font-mono text-gray-800">
+                            <div className="w-full flex-1 flex items-center gap-1.5 px-3.5 py-2.5 bg-orange-50/60 border border-orange-200/80 rounded-xl text-xs sm:text-sm font-mono text-gray-800">
                                 <span className="text-gray-500 select-none">learnproof.org/?ref=</span>
                                 <input
                                     type="text"
@@ -498,13 +498,13 @@ export default function AmbassadorLanding() {
 
             {/* Section Divider */}
             <div className="max-w-6xl mx-auto px-4 sm:px-8">
-                <div className="h-px bg-gradient-to-r from-transparent via-orange-300/80 to-transparent" />
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-200 to-transparent" />
             </div>
 
             {/* ── PROGRAM PERKS & BENEFITS ── */}
             <section id="perks" className="relative z-10 py-16 px-4 sm:px-8 lg:px-16 max-w-6xl mx-auto">
                 <div className="text-center max-w-2xl mx-auto mb-12">
-                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 backdrop-blur-sm text-orange-600 text-xs font-extrabold border border-orange-200 mb-3 shadow-sm">
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white text-orange-600 text-xs font-extrabold border border-orange-200 mb-3 shadow-sm">
                         <Gift size={14} /> Ambassador Perks
                     </span>
                     <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">
@@ -522,14 +522,14 @@ export default function AmbassadorLanding() {
                     {perks.map((perk, index) => (
                         <div
                             key={index}
-                            className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 sm:p-7 border border-orange-100 shadow-[0_4px_20px_rgba(249,115,22,0.04)] hover:shadow-[0_12px_32px_rgba(249,115,22,0.12)] hover:border-orange-300 transition-all duration-300 flex flex-col justify-between group transform hover:-translate-y-1"
+                            className="bg-white rounded-2xl p-6 sm:p-7 border border-orange-100/90 shadow-[0_4px_24px_rgba(249,115,22,0.05)] hover:shadow-[0_12px_36px_rgba(249,115,22,0.12)] hover:border-orange-300 transition-all duration-300 flex flex-col justify-between group transform hover:-translate-y-1"
                         >
                             <div>
                                 <div className="flex items-center justify-between mb-4">
                                     <div className={`w-12 h-12 rounded-xl ${perk.bg} flex items-center justify-center border ${perk.border} shadow-sm`}>
                                         {perk.icon}
                                     </div>
-                                    <span className="px-3 py-1 rounded-full bg-orange-100/70 text-orange-800 text-[11px] font-extrabold border border-orange-200">
+                                    <span className="px-3 py-1 rounded-full bg-orange-50 text-orange-800 text-[11px] font-extrabold border border-orange-100">
                                         {perk.badge}
                                     </span>
                                 </div>
@@ -547,12 +547,12 @@ export default function AmbassadorLanding() {
 
             {/* Section Divider */}
             <div className="max-w-6xl mx-auto px-4 sm:px-8">
-                <div className="h-px bg-gradient-to-r from-transparent via-orange-300/80 to-transparent" />
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-200 to-transparent" />
             </div>
 
             {/* ── MILESTONE REWARDS PROGRESSION TIERS ── */}
             <section className="relative z-10 py-16 px-4 sm:px-8 lg:px-16 max-w-6xl mx-auto">
-                <div className="relative rounded-3xl bg-gradient-to-br from-white/90 via-orange-50/60 to-amber-50/40 border border-orange-200/80 p-8 sm:p-12 shadow-sm backdrop-blur-sm">
+                <div className="relative rounded-3xl bg-gradient-to-br from-orange-50/40 via-white to-amber-50/30 border border-orange-100/90 p-8 sm:p-12 shadow-[0_6px_30px_rgba(249,115,22,0.04)]">
                     <div className="text-center max-w-2xl mx-auto mb-10">
                         <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white text-orange-600 text-xs font-extrabold border border-orange-200 mb-3 shadow-sm">
                             <Flame size={14} /> Reward Progression
@@ -588,7 +588,7 @@ export default function AmbassadorLanding() {
                                     </span>
                                 </div>
 
-                                <div className="p-3 rounded-xl bg-orange-50/70 border border-orange-100 text-xs text-gray-700 leading-relaxed flex items-start gap-2">
+                                <div className="p-3 rounded-xl bg-orange-50/60 border border-orange-100 text-xs text-gray-700 leading-relaxed flex items-start gap-2">
                                     <CheckCircle2 size={15} className="text-emerald-500 shrink-0 mt-0.5" />
                                     <span>{tierItem.reward}</span>
                                 </div>
@@ -600,13 +600,13 @@ export default function AmbassadorLanding() {
 
             {/* Section Divider */}
             <div className="max-w-6xl mx-auto px-4 sm:px-8">
-                <div className="h-px bg-gradient-to-r from-transparent via-orange-300/80 to-transparent" />
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-200 to-transparent" />
             </div>
 
             {/* ── HOW IT WORKS IN 3 STEPS ── */}
             <section id="how-it-works" className="relative z-10 py-16 px-4 sm:px-8 lg:px-16 max-w-6xl mx-auto">
                 <div className="text-center max-w-2xl mx-auto mb-12">
-                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 backdrop-blur-sm text-orange-600 text-xs font-extrabold border border-orange-200 mb-3 shadow-sm">
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white text-orange-600 text-xs font-extrabold border border-orange-200 mb-3 shadow-sm">
                         <Clock size={14} /> 3-Step Journey
                     </span>
                     <h2 className="text-3xl sm:text-4xl font-black text-gray-900 tracking-tight">
@@ -621,14 +621,14 @@ export default function AmbassadorLanding() {
                     {steps.map((step, idx) => (
                         <div
                             key={idx}
-                            className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 sm:p-7 border border-orange-100 shadow-[0_4px_20px_rgba(249,115,22,0.04)] hover:shadow-md hover:border-orange-300 transition-all duration-300 flex flex-col justify-between"
+                            className="bg-white rounded-2xl p-6 sm:p-7 border border-orange-100/90 shadow-[0_4px_24px_rgba(249,115,22,0.05)] hover:shadow-md hover:border-orange-300 transition-all duration-300 flex flex-col justify-between"
                         >
                             <div>
                                 <div className="flex items-center justify-between mb-4">
                                     <span className="text-3xl font-black bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent">
                                         {step.number}
                                     </span>
-                                    <div className="w-11 h-11 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center shadow-sm">
+                                    <div className="w-11 h-11 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center shadow-sm">
                                         {step.icon}
                                     </div>
                                 </div>
@@ -646,13 +646,13 @@ export default function AmbassadorLanding() {
 
             {/* Section Divider */}
             <div className="max-w-6xl mx-auto px-4 sm:px-8">
-                <div className="h-px bg-gradient-to-r from-transparent via-orange-300/80 to-transparent" />
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-200 to-transparent" />
             </div>
 
             {/* ── FAQ SECTION ── */}
             <section id="faq" className="relative z-10 py-16 px-4 sm:px-8 lg:px-16 max-w-3xl mx-auto">
                 <div className="text-center max-w-xl mx-auto mb-10">
-                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/90 backdrop-blur-sm text-orange-600 text-xs font-extrabold border border-orange-200 mb-3 shadow-sm">
+                    <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white text-orange-600 text-xs font-extrabold border border-orange-200 mb-3 shadow-sm">
                         <Sparkles size={14} /> Questions
                     </span>
                     <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
@@ -664,15 +664,15 @@ export default function AmbassadorLanding() {
                     {ambassadorFaqs.map((item, i) => {
                         const isOpen = openFaq === i;
                         return (
-                            <div key={i} className="rounded-2xl border border-orange-200/90 overflow-hidden bg-white shadow-sm transition-all duration-200">
+                            <div key={i} className="rounded-2xl border border-orange-100 overflow-hidden bg-white shadow-sm transition-all duration-200 hover:border-orange-200">
                                 <button
                                     onClick={() => setOpenFaq(isOpen ? null : i)}
                                     className={`w-full text-left transition-colors duration-150 p-4 sm:p-5 flex items-center gap-3 cursor-pointer ${
-                                        isOpen ? 'bg-orange-50/70' : 'hover:bg-orange-50/30'
+                                        isOpen ? 'bg-orange-50/50' : 'hover:bg-orange-50/20'
                                     }`}
                                 >
                                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                                        isOpen ? 'bg-orange-500 text-white' : 'bg-orange-100 text-orange-700'
+                                        isOpen ? 'bg-orange-500 text-white' : 'bg-orange-100/70 text-orange-700'
                                     }`}>
                                         {String(i + 1).padStart(2, '0')}
                                     </div>
@@ -690,7 +690,7 @@ export default function AmbassadorLanding() {
                                             exit={{ height: 0, opacity: 0 }}
                                             transition={{ duration: 0.2, ease: 'easeInOut' }}
                                         >
-                                            <div className="px-5 pb-5 pt-1 text-gray-600 text-xs sm:text-sm leading-relaxed border-t border-orange-100">
+                                            <div className="px-5 pb-5 pt-1 text-gray-600 text-xs sm:text-sm leading-relaxed border-t border-orange-100/60">
                                                 {item.a}
                                             </div>
                                         </motion.div>
@@ -702,9 +702,9 @@ export default function AmbassadorLanding() {
                 </div>
             </section>
 
-            {/* ── BIG CALL TO ACTION SHOWCASE BANNER (Matching Landing.jsx) ── */}
+            {/* ── BIG CALL TO ACTION SHOWCASE BANNER ── */}
             <section className="relative z-10 py-16 px-4 sm:px-8 lg:px-16 max-w-6xl mx-auto">
-                <div className="relative rounded-3xl bg-gradient-to-br from-orange-600 via-orange-500 to-red-600 p-8 sm:p-12 lg:p-14 text-white shadow-2xl shadow-orange-500/25 overflow-hidden">
+                <div className="relative rounded-3xl bg-gradient-to-br from-orange-600 via-orange-500 to-red-600 p-8 sm:p-12 lg:p-14 text-white shadow-2xl shadow-orange-500/30 overflow-hidden">
                     {/* Background glow discs */}
                     <div className="absolute -top-24 -right-24 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
                     <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-amber-400/20 rounded-full blur-3xl pointer-events-none" />
@@ -779,8 +779,8 @@ export default function AmbassadorLanding() {
                 </div>
             </section>
 
-            {/* ── FOOTER (Matching Landing.jsx theme & layout seamlessly) ── */}
-            <footer className="border-t border-orange-200 py-10 px-4 sm:px-8 lg:px-16 bg-orange-50 relative z-10">
+            {/* ── FOOTER (Clean, Bright, & Seamless) ── */}
+            <footer className="border-t border-orange-100 py-12 px-4 sm:px-8 lg:px-16 bg-white relative z-10">
                 <div className="max-w-6xl mx-auto">
                     <div className="flex flex-col md:flex-row justify-between items-center">
                         <div className="mb-6 md:mb-0 text-center md:text-left">
@@ -816,7 +816,7 @@ export default function AmbassadorLanding() {
                             </div>
                         </div>
                     </div>
-                    <div className="border-t border-orange-200 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center text-gray-500 text-xs sm:text-sm gap-2">
+                    <div className="border-t border-orange-100 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center text-gray-500 text-xs sm:text-sm gap-2">
                         <p>&copy; 2026 LearnProof AI. All rights reserved.</p>
                         <div className="flex space-x-6">
                             <span>Built with ❤️ for lifelong learners</span>
