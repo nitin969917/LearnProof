@@ -59,7 +59,7 @@ export default function RoomWhiteboard({
   const lastBroadcastTime = useRef(0);
   const lastShapeBroadcastTime = useRef(0);
   const peerActiveStrokes = useRef(new Map()); // strokeId -> { tool, color, width, points }
-  const peerPreviewShapes = useRef(new Map()); // participantId -> shape element
+  const peerPreviewShapes = useRef(new Map()); // senderId -> shape element
 
   // Shapes & text in-progress
   const startPos = useRef({ x: 0, y: 0 });
@@ -159,6 +159,8 @@ export default function RoomWhiteboard({
     ctx.strokeStyle = elem.color;
     ctx.fillStyle = elem.color;
     ctx.lineWidth = elem.width;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.globalAlpha = elem.tool === 'highlighter' ? 0.35 : 1.0;
 
     if (elem.tool === 'eraser') {
@@ -171,14 +173,24 @@ export default function RoomWhiteboard({
     switch (elem.type) {
       case 'path':
         if (elem.points && elem.points.length > 0) {
-          ctx.beginPath();
           const p0 = elem.points[0];
-          ctx.moveTo(toX(p0.nx, p0.x), toY(p0.ny, p0.y));
-          for (let i = 1; i < elem.points.length; i++) {
-            const pt = elem.points[i];
-            ctx.lineTo(toX(pt.nx, pt.x), toY(pt.ny, pt.y));
+          const x0 = toX(p0.nx, p0.x);
+          const y0 = toY(p0.ny, p0.y);
+
+          if (elem.points.length === 1) {
+            // Draw single dot
+            ctx.beginPath();
+            ctx.arc(x0, y0, Math.max(1, elem.width / 2), 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.beginPath();
+            ctx.moveTo(x0, y0);
+            for (let i = 1; i < elem.points.length; i++) {
+              const pt = elem.points[i];
+              ctx.lineTo(toX(pt.nx, pt.x), toY(pt.ny, pt.y));
+            }
+            ctx.stroke();
           }
-          ctx.stroke();
         }
         break;
 
@@ -264,7 +276,7 @@ export default function RoomWhiteboard({
     const rect = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, rect.width, rect.height);
 
-    // 1. Draw committed elements
+    // 1. Draw committed elements in history
     elementsRef.current.forEach(elem => {
       drawElement(ctx, elem);
     });
@@ -371,7 +383,7 @@ export default function RoomWhiteboard({
               const w = rect.width || 1;
               const h = rect.height || 1;
 
-              // Draw new segment directly to canvas without full clear (zero overhead)
+              // Draw new segment directly to canvas without clearing
               if (ctx && activeStroke.points.length > 0) {
                 const prev = activeStroke.points[activeStroke.points.length - 1];
                 const prevX = prev.nx !== undefined ? prev.nx * w : prev.x;
@@ -379,7 +391,10 @@ export default function RoomWhiteboard({
 
                 ctx.save();
                 ctx.strokeStyle = activeStroke.color;
+                ctx.fillStyle = activeStroke.color;
                 ctx.lineWidth = activeStroke.width;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 ctx.globalAlpha = activeStroke.tool === 'highlighter' ? 0.35 : 1.0;
 
                 if (activeStroke.tool === 'eraser') {
@@ -411,7 +426,11 @@ export default function RoomWhiteboard({
           case 'STROKE_END': {
             peerActiveStrokes.current.delete(message.strokeId);
             if (message.element) {
-              elementsRef.current.push(message.element);
+              const elemId = message.element.id || message.element.strokeId;
+              const exists = elemId && elementsRef.current.some(e => (e.id || e.strokeId) === elemId);
+              if (!exists) {
+                elementsRef.current.push(message.element);
+              }
             }
             redrawAllElements();
             break;
@@ -431,9 +450,15 @@ export default function RoomWhiteboard({
           // Direct element draw
           case 'DRAW_ELEMENT': {
             peerPreviewShapes.current.delete(senderId);
-            elementsRef.current.push(message.element);
-            if (contextRef.current) {
-              drawElement(contextRef.current, message.element);
+            if (message.element) {
+              const elemId = message.element.id || message.element.strokeId;
+              const exists = elemId && elementsRef.current.some(e => (e.id || e.strokeId) === elemId);
+              if (!exists) {
+                elementsRef.current.push(message.element);
+              }
+              if (contextRef.current) {
+                drawElement(contextRef.current, message.element);
+              }
             }
             break;
           }
@@ -444,11 +469,16 @@ export default function RoomWhiteboard({
             peerActiveStrokes.current.clear();
             peerPreviewShapes.current.clear();
             redrawAllElements();
+            toast('Whiteboard was cleared', { icon: '🧹', id: 'board_cleared' });
             break;
           }
 
           case 'UNDO': {
-            elementsRef.current.pop();
+            if (message.id) {
+              elementsRef.current = elementsRef.current.filter(e => (e.id || e.strokeId) !== message.id);
+            } else {
+              elementsRef.current.pop();
+            }
             redrawAllElements();
             break;
           }
@@ -459,9 +489,9 @@ export default function RoomWhiteboard({
             break;
           }
 
-          // ONLY Host answers SYNC_REQUEST to prevent multi-peer storm
+          // ONLY Host answers SYNC_REQUEST
           case 'SYNC_REQUEST': {
-            if (isHost) {
+            if (isHost && elementsRef.current.length > 0) {
               broadcastPacket({
                 type: 'SYNC_RESPONSE',
                 elements: elementsRef.current,
@@ -472,9 +502,16 @@ export default function RoomWhiteboard({
             break;
           }
 
+          // Safely merge existing elements on late join
           case 'SYNC_RESPONSE': {
-            if (message.elements && Array.isArray(message.elements)) {
-              elementsRef.current = message.elements;
+            if (Array.isArray(message.elements) && message.elements.length > 0) {
+              const existingIds = new Set(elementsRef.current.map(e => e.id || e.strokeId).filter(Boolean));
+              const newItems = message.elements.filter(e => !(e.id || e.strokeId) || !existingIds.has(e.id || e.strokeId));
+              if (elementsRef.current.length === 0) {
+                elementsRef.current = message.elements;
+              } else if (newItems.length > 0) {
+                elementsRef.current = [...elementsRef.current, ...newItems];
+              }
               redrawAllElements();
             }
             if (message.mode) {
@@ -549,6 +586,21 @@ export default function RoomWhiteboard({
       strokeBuffer.current = [];
       lastBroadcastTime.current = performance.now();
 
+      // Draw local starting point/dot immediately
+      const ctx = contextRef.current;
+      if (ctx) {
+        ctx.save();
+        ctx.fillStyle = selectedColor;
+        ctx.globalAlpha = activeTool === 'highlighter' ? 0.35 : 1.0;
+        if (activeTool === 'eraser') {
+          ctx.globalCompositeOperation = 'destination-out';
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(1, strokeWidth / 2), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
       // ⚡ Stream STROKE_START immediately to all peers
       broadcastPacket({
         type: 'STROKE_START',
@@ -590,6 +642,8 @@ export default function RoomWhiteboard({
         ctx.save();
         ctx.strokeStyle = selectedColor;
         ctx.lineWidth = strokeWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         ctx.globalAlpha = activeTool === 'highlighter' ? 0.35 : 1.0;
 
         if (activeTool === 'eraser') {
@@ -604,9 +658,9 @@ export default function RoomWhiteboard({
         ctx.restore();
       }
 
-      // ⚡ Stream STROKE_CHUNK to all peers every ~25ms
+      // ⚡ Stream STROKE_CHUNK to all peers every ~20ms
       const now = performance.now();
-      if (now - lastBroadcastTime.current >= 25 && strokeBuffer.current.length > 0) {
+      if (now - lastBroadcastTime.current >= 20 && strokeBuffer.current.length > 0) {
         broadcastPacket({
           type: 'STROKE_CHUNK',
           strokeId: currentStrokeId.current,
@@ -668,6 +722,7 @@ export default function RoomWhiteboard({
     if (activeTool === 'pen' || activeTool === 'highlighter' || activeTool === 'eraser') {
       if (currentPath.current.length > 0) {
         newElement = {
+          id: currentStrokeId.current || ('el_' + Date.now()),
           type: 'path',
           strokeId: currentStrokeId.current,
           tool: activeTool,
@@ -705,6 +760,7 @@ export default function RoomWhiteboard({
       const dy = y - startPos.current.y;
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
         newElement = {
+          id: 'shape_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
           type: activeTool,
           tool: activeTool,
           color: selectedColor,
@@ -754,6 +810,7 @@ export default function RoomWhiteboard({
       const h = rect.height || 1;
 
       const newElem = {
+        id: 'txt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         type: 'text',
         tool: 'text',
         color: selectedColor,
@@ -784,7 +841,7 @@ export default function RoomWhiteboard({
     const removed = elementsRef.current.pop();
     undoStackRef.current.push(removed);
     redrawAllElements();
-    broadcastPacket({ type: 'UNDO' }, true);
+    broadcastPacket({ type: 'UNDO', id: removed?.id || removed?.strokeId }, true);
   };
 
   const handleRedo = () => {
