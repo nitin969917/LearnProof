@@ -910,62 +910,46 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   };
 
   // ── Request to Speak (Listener side) ──────────────────────────────────────
-  const handleRequestToSpeak = async () => {
+  const handleRequestToSpeak = () => {
     if (hasRequested) return;
+    setHasRequested(true);
+    toast.success('Stage request sent! Waiting for host approval...', { icon: '🎤' });
+
+    // 1. Instant Data channel fast-path signal directly to room & host (0ms latency)
     try {
-      // 1. Submit request to backend store so host sees it in polling and lists
-      await socialApi.post(`/livekit/rooms/${roomName}/stage-requests`);
-
-      // 2. Data channel fast-path signal to host
-      try {
-        const requestPayload = {
-          type: 'request_to_speak',
-          identity: localParticipant?.identity || userIdentity,
-          name: localParticipant?.name || 'User',
-        };
-        if (hostIdentity) {
-          await sendSignal(requestPayload, [hostIdentity]);
-        } else {
-          await sendSignal(requestPayload);
-        }
-      } catch (sigErr) {
-        console.warn('[Signal] Fast-path signal failed, server request will suffice:', sigErr);
-      }
-
-      setHasRequested(true);
-      toast.success('Stage request sent! Waiting for host approval...', { icon: '🎤' });
-    } catch (err) {
-      console.error('[Signal] Failed to send speak request:', err);
-      toast.error('Failed to send speak request. Please try again.');
+      const requestPayload = {
+        type: 'request_to_speak',
+        identity: localParticipant?.identity || userIdentity,
+        name: localParticipant?.name || 'User',
+      };
+      sendSignal(requestPayload);
+    } catch (sigErr) {
+      console.warn('[Signal] Fast-path signal failed:', sigErr);
     }
+
+    // 2. Submit to backend in background (async non-blocking)
+    socialApi.post(`/livekit/rooms/${roomName}/stage-requests`).catch(err => {
+      console.warn('[StageRequest] Background API submit error:', err);
+    });
   };
 
-  const handleWithdrawRequest = async () => {
+  const handleWithdrawRequest = () => {
     if (!hasRequested) return;
-    try {
-      const myId = localParticipant?.identity || userIdentity;
-      if (myId) {
-        // Fast-path signal to host
-        try {
-          const withdrawPayload = {
-            type: 'withdraw_stage_request',
-            identity: myId,
-          };
-          if (hostIdentity) {
-            await sendSignal(withdrawPayload, [hostIdentity]);
-          } else {
-            await sendSignal(withdrawPayload);
-          }
-        } catch (_) {}
-        
-        // Backend store removal
-        await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${myId}`);
-      }
-      setHasRequested(false);
-      toast.success('Stage request withdrawn.', { icon: '🎤' });
-    } catch (err) {
-      console.error('[Signal] Failed to withdraw speak request:', err);
-      toast.error('Failed to withdraw speak request. Please try again.');
+    setHasRequested(false);
+    toast.success('Stage request withdrawn.', { icon: '🎤' });
+
+    const myId = localParticipant?.identity || userIdentity;
+    if (myId) {
+      // 1. Instant data channel signal
+      try {
+        sendSignal({
+          type: 'withdraw_stage_request',
+          identity: myId,
+        });
+      } catch (_) {}
+
+      // 2. Background backend store removal
+      socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${myId}`).catch(() => {});
     }
   };
 
@@ -1315,20 +1299,23 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       }
     }
     if (count === 3) {
-      return showChatPanel 
-        ? 'grid-cols-2 grid-rows-2 h-full' 
-        : 'grid-cols-1 lg:grid-cols-2 grid-rows-3 lg:grid-rows-2 h-full';
+      // 3 speakers: Desktop view has 2 columns & 2 rows (main user left col spanning 2 rows, other 2 users stacked right)
+      return 'grid-cols-1 lg:grid-cols-2 grid-rows-3 lg:grid-rows-2 h-full';
     }
     if (count === 4) return 'grid-cols-2 grid-rows-2 h-full';
     return 'grid-cols-2 lg:grid-cols-3 grid-rows-3 lg:grid-rows-2 h-full'; // 5–6 people
   };
 
-  // Returns dynamic spans for 3-speaker layout
+  // Returns dynamic spans for 3-speaker layout:
+  // On desktop: main user (index 0) on the left takes full height (lg:row-span-2), other two are up and down on the right (lg:row-span-1)
   const getTileSpan = (index, total) => {
-    if (total === 3 && index === 0) {
-      return 'col-span-1 lg:col-span-2';
+    if (total === 3) {
+      if (index === 0) {
+        return 'col-span-1 lg:col-span-1 lg:row-span-2 h-full';
+      }
+      return 'col-span-1 lg:col-span-1 lg:row-span-1 h-full';
     }
-    return '';
+    return 'h-full';
   };
 
   const gradientColors = [
