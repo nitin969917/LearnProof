@@ -56,12 +56,9 @@ export default function AmbassadorDashboard() {
         else setLoading(true);
 
         try {
-            const [codeRes, leaderRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/my-code`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                }),
-                axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/leaderboard`)
-            ]);
+            const codeRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/my-code`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
 
             if (codeRes.data?.success) {
                 setReferralData(codeRes.data);
@@ -72,10 +69,6 @@ export default function AmbassadorDashboard() {
                     creatorName: codeRes.data.creatorName || user?.name || '',
                     targetCollege: codeRes.data.targetCollege || ''
                 });
-            }
-
-            if (leaderRes.data?.success) {
-                setLeaderboard(leaderRes.data.leaderboard || []);
             }
         } catch (err) {
             console.error('Error fetching ambassador data:', err);
