@@ -142,30 +142,57 @@ export default function RoomWhiteboard({
     }, true);
   };
 
+  // State refs for stable event listeners without re-subscription churn
+  const isHostRef = useRef(isHost);
+  useEffect(() => { isHostRef.current = isHost; }, [isHost]);
+
+  const drawPermissionModeRef = useRef(drawPermissionMode);
+  useEffect(() => { drawPermissionModeRef.current = drawPermissionMode; }, [drawPermissionMode]);
+
+  const customAllowedIdsRef = useRef(customAllowedIds);
+  useEffect(() => { customAllowedIdsRef.current = customAllowedIds; }, [customAllowedIds]);
+
+  // Robust Coordinate Converters: never produce NaN or blow up bounds
+  const toX = (nx, x, w) => {
+    if (typeof nx === 'number' && !isNaN(nx) && nx >= 0 && nx <= 1.05) return nx * w;
+    if (typeof x === 'number' && !isNaN(x)) return x;
+    return 0;
+  };
+  const toY = (ny, y, h) => {
+    if (typeof ny === 'number' && !isNaN(ny) && ny >= 0 && ny <= 1.05) return ny * h;
+    if (typeof y === 'number' && !isNaN(y)) return y;
+    return 0;
+  };
+  const toW = (nw, rawW, w) => {
+    if (typeof nw === 'number' && !isNaN(nw)) return nw * w;
+    if (typeof rawW === 'number' && !isNaN(rawW)) return rawW;
+    return 0;
+  };
+  const toH = (nh, rawH, h) => {
+    if (typeof nh === 'number' && !isNaN(nh)) return nh * h;
+    if (typeof rawH === 'number' && !isNaN(rawH)) return rawH;
+    return 0;
+  };
+
   // ── Draw Single Element onto Canvas ──────────────────────────────────────────
   const drawElement = useCallback((ctx, elem) => {
     if (!ctx || !elem) return;
     const canvas = canvasRef.current;
     const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
-    const w = rect.width || 1;
-    const h = rect.height || 1;
-
-    const toX = (nx, x) => (nx !== undefined ? nx * w : x);
-    const toY = (ny, y) => (ny !== undefined ? ny * h : y);
-    const toW = (nw, rawW) => (nw !== undefined ? nw * w : rawW);
-    const toH = (nh, rawH) => (nh !== undefined ? nh * h : rawH);
+    const w = Math.max(1, rect.width);
+    const h = Math.max(1, rect.height);
 
     ctx.save();
-    ctx.strokeStyle = elem.color;
-    ctx.fillStyle = elem.color;
-    ctx.lineWidth = elem.width;
+    ctx.strokeStyle = elem.color || '#f97316';
+    ctx.fillStyle = elem.color || '#f97316';
+    ctx.lineWidth = elem.width || 4;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.globalAlpha = elem.tool === 'highlighter' ? 0.35 : 1.0;
 
     if (elem.tool === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
-      ctx.lineWidth = elem.width * 2;
+      ctx.lineWidth = (elem.width || 4) * 2;
     } else {
       ctx.globalCompositeOperation = 'source-over';
     }
@@ -174,20 +201,20 @@ export default function RoomWhiteboard({
       case 'path':
         if (elem.points && elem.points.length > 0) {
           const p0 = elem.points[0];
-          const x0 = toX(p0.nx, p0.x);
-          const y0 = toY(p0.ny, p0.y);
+          const x0 = toX(p0.nx, p0.x, w);
+          const y0 = toY(p0.ny, p0.y, h);
 
           if (elem.points.length === 1) {
             // Draw single dot
             ctx.beginPath();
-            ctx.arc(x0, y0, Math.max(1, elem.width / 2), 0, Math.PI * 2);
+            ctx.arc(x0, y0, Math.max(1, (elem.width || 4) / 2), 0, Math.PI * 2);
             ctx.fill();
           } else {
             ctx.beginPath();
             ctx.moveTo(x0, y0);
             for (let i = 1; i < elem.points.length; i++) {
               const pt = elem.points[i];
-              ctx.lineTo(toX(pt.nx, pt.x), toY(pt.ny, pt.y));
+              ctx.lineTo(toX(pt.nx, pt.x, w), toY(pt.ny, pt.y, h));
             }
             ctx.stroke();
           }
@@ -195,35 +222,35 @@ export default function RoomWhiteboard({
         break;
 
       case 'rectangle': {
-        const x = toX(elem.nx, elem.x);
-        const y = toY(elem.ny, elem.y);
-        const rw = toW(elem.nw, elem.w);
-        const rh = toH(elem.nh, elem.h);
+        const x = toX(elem.nx, elem.x, w);
+        const y = toY(elem.ny, elem.y, h);
+        const rw = toW(elem.nw, elem.w, w);
+        const rh = toH(elem.nh, elem.h, h);
         ctx.beginPath();
         ctx.strokeRect(x, y, rw, rh);
         break;
       }
 
       case 'circle': {
-        const x = toX(elem.nx, elem.x);
-        const y = toY(elem.ny, elem.y);
-        const rw = toW(elem.nw, elem.w);
-        const rh = toH(elem.nh, elem.h);
+        const x = toX(elem.nx, elem.x, w);
+        const y = toY(elem.ny, elem.y, h);
+        const rw = toW(elem.nw, elem.w, w);
+        const rh = toH(elem.nh, elem.h, h);
         ctx.beginPath();
         const rx = Math.abs(rw / 2);
         const ry = Math.abs(rh / 2);
         const cx = x + rw / 2;
         const cy = y + rh / 2;
-        ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+        ctx.ellipse(cx, cy, Math.max(0.1, rx), Math.max(0.1, ry), 0, 0, 2 * Math.PI);
         ctx.stroke();
         break;
       }
 
       case 'line': {
-        const x1 = toX(elem.nx1, elem.x1);
-        const y1 = toY(elem.ny1, elem.y1);
-        const x2 = toX(elem.nx2, elem.x2);
-        const y2 = toY(elem.ny2, elem.y2);
+        const x1 = toX(elem.nx1, elem.x1, w);
+        const y1 = toY(elem.ny1, elem.y1, h);
+        const x2 = toX(elem.nx2, elem.x2, w);
+        const y2 = toY(elem.ny2, elem.y2, h);
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
@@ -232,11 +259,11 @@ export default function RoomWhiteboard({
       }
 
       case 'arrow': {
-        const x1 = toX(elem.nx1, elem.x1);
-        const y1 = toY(elem.ny1, elem.y1);
-        const x2 = toX(elem.nx2, elem.x2);
-        const y2 = toY(elem.ny2, elem.y2);
-        const headlen = Math.max(10, elem.width * 3);
+        const x1 = toX(elem.nx1, elem.x1, w);
+        const y1 = toY(elem.ny1, elem.y1, h);
+        const x2 = toX(elem.nx2, elem.x2, w);
+        const y2 = toY(elem.ny2, elem.y2, h);
+        const headlen = Math.max(10, (elem.width || 4) * 3);
         const angle = Math.atan2(y2 - y1, x2 - x1);
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -253,9 +280,9 @@ export default function RoomWhiteboard({
       }
 
       case 'text': {
-        const x = toX(elem.nx, elem.x);
-        const y = toY(elem.ny, elem.y);
-        ctx.font = `${Math.max(14, elem.width * 4)}px Inter, sans-serif`;
+        const x = toX(elem.nx, elem.x, w);
+        const y = toY(elem.ny, elem.y, h);
+        ctx.font = `${Math.max(14, (elem.width || 4) * 4)}px Inter, sans-serif`;
         ctx.fillText(elem.text, x, y);
         break;
       }
@@ -268,6 +295,8 @@ export default function RoomWhiteboard({
   }, []);
 
   // ── Redraw Canvas from Element History + Active Live Strokes ─────────────────
+  const currentPath = useRef([]);
+
   const redrawAllElements = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = contextRef.current;
@@ -281,7 +310,18 @@ export default function RoomWhiteboard({
       drawElement(ctx, elem);
     });
 
-    // 2. Draw in-progress live peer strokes
+    // 2. Draw in-progress local stroke if currently drawing
+    if (currentPath.current && currentPath.current.length > 0) {
+      drawElement(ctx, {
+        type: 'path',
+        tool: activeTool,
+        color: selectedColor,
+        width: strokeWidth,
+        points: currentPath.current,
+      });
+    }
+
+    // 3. Draw in-progress live peer strokes
     peerActiveStrokes.current.forEach(stroke => {
       if (stroke.points && stroke.points.length > 0) {
         drawElement(ctx, {
@@ -294,13 +334,13 @@ export default function RoomWhiteboard({
       }
     });
 
-    // 3. Draw in-progress live peer shapes
+    // 4. Draw in-progress live peer shapes
     peerPreviewShapes.current.forEach(shape => {
       if (shape) {
         drawElement(ctx, shape);
       }
     });
-  }, [drawElement]);
+  }, [drawElement, activeTool, selectedColor, strokeWidth]);
 
   // ── Initialize & Resize Canvas Accurately ────────────────────────────────────
   const setupCanvas = useCallback(() => {
@@ -364,12 +404,35 @@ export default function RoomWhiteboard({
         switch (message.type) {
           // ⚡ Real-time Live Stroke Start
           case 'STROKE_START': {
+            const initialPoints = message.point ? [message.point] : [];
             peerActiveStrokes.current.set(message.strokeId, {
               tool: message.tool || 'pen',
               color: message.color || '#f97316',
               width: message.width || 4,
-              points: [message.point],
+              points: initialPoints,
             });
+
+            // Immediately render starting dot on peer canvas
+            if (message.point && contextRef.current) {
+              const canvas = canvasRef.current;
+              const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
+              const w = Math.max(1, rect.width);
+              const h = Math.max(1, rect.height);
+              const x0 = toX(message.point.nx, message.point.x, w);
+              const y0 = toY(message.point.ny, message.point.y, h);
+
+              const ctx = contextRef.current;
+              ctx.save();
+              ctx.fillStyle = message.color || '#f97316';
+              ctx.globalAlpha = message.tool === 'highlighter' ? 0.35 : 1.0;
+              if (message.tool === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+              }
+              ctx.beginPath();
+              ctx.arc(x0, y0, Math.max(1, (message.width || 4) / 2), 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
             break;
           }
 
@@ -377,7 +440,6 @@ export default function RoomWhiteboard({
           case 'STROKE_CHUNK': {
             let activeStroke = peerActiveStrokes.current.get(message.strokeId);
             if (!activeStroke) {
-              // Fallback initialization if STROKE_START was delayed
               activeStroke = {
                 tool: message.tool || 'pen',
                 color: message.color || '#f97316',
@@ -391,17 +453,16 @@ export default function RoomWhiteboard({
               const canvas = canvasRef.current;
               const ctx = contextRef.current;
               const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
-              const w = rect.width || 1;
-              const h = rect.height || 1;
+              const w = Math.max(1, rect.width);
+              const h = Math.max(1, rect.height);
 
-              // Draw new segment directly to canvas without clearing
               if (ctx) {
                 const prev = activeStroke.points.length > 0
                   ? activeStroke.points[activeStroke.points.length - 1]
                   : message.points[0];
 
-                const prevX = prev.nx !== undefined ? prev.nx * w : prev.x;
-                const prevY = prev.ny !== undefined ? prev.ny * h : prev.y;
+                const prevX = toX(prev.nx, prev.x, w);
+                const prevY = toY(prev.ny, prev.y, h);
 
                 ctx.save();
                 ctx.strokeStyle = activeStroke.color;
@@ -421,8 +482,8 @@ export default function RoomWhiteboard({
 
                 for (let i = 0; i < message.points.length; i++) {
                   const pt = message.points[i];
-                  const curX = pt.nx !== undefined ? pt.nx * w : pt.x;
-                  const curY = pt.ny !== undefined ? pt.ny * h : pt.y;
+                  const curX = toX(pt.nx, pt.x, w);
+                  const curY = toY(pt.ny, pt.y, h);
                   ctx.lineTo(curX, curY);
                   activeStroke.points.push(pt);
                 }
@@ -505,12 +566,12 @@ export default function RoomWhiteboard({
 
           // ONLY Host answers SYNC_REQUEST
           case 'SYNC_REQUEST': {
-            if (isHost && elementsRef.current.length > 0) {
+            if (isHostRef.current && elementsRef.current.length > 0) {
               broadcastPacket({
                 type: 'SYNC_RESPONSE',
                 elements: elementsRef.current,
-                mode: drawPermissionMode,
-                allowedIds: customAllowedIds,
+                mode: drawPermissionModeRef.current,
+                allowedIds: customAllowedIdsRef.current,
               }, true);
             }
             break;
@@ -547,13 +608,13 @@ export default function RoomWhiteboard({
 
     room.on(RoomEvent.DataReceived, handleDataReceived);
 
-    // Request initial sync from host
+    // Request initial sync once upon mount
     broadcastPacket({ type: 'SYNC_REQUEST' }, true);
 
     return () => {
       room.off(RoomEvent.DataReceived, handleDataReceived);
     };
-  }, [room, isHost, drawPermissionMode, customAllowedIds, broadcastPacket, redrawAllElements, drawElement]);
+  }, [room, broadcastPacket, redrawAllElements, drawElement]);
 
   // ── Coordinates Helper (Accurate 1:1 Pixel Mapping) ──────────────────────────
   const getCoords = (e) => {
@@ -568,9 +629,7 @@ export default function RoomWhiteboard({
     };
   };
 
-  // ── Mouse & Touch Event Handlers (High Performance Streaming) ───────────────
-  const currentPath = useRef([]);
-
+  // ── Mouse & Touch Event Handlers (High Performance Real-Time Streaming) ────
   const handleStart = (e) => {
     if (!canDraw) {
       toast('Host controls drawing permissions', { icon: '🔒', id: 'draw_restricted' });
@@ -580,8 +639,8 @@ export default function RoomWhiteboard({
     const { x, y } = getCoords(e);
     const canvas = canvasRef.current;
     const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
-    const w = rect.width || 1;
-    const h = rect.height || 1;
+    const w = Math.max(1, rect.width);
+    const h = Math.max(1, rect.height);
 
     startPos.current = { x, y };
     setIsDrawing(true);
@@ -620,7 +679,7 @@ export default function RoomWhiteboard({
         ctx.restore();
       }
 
-      // ⚡ Stream STROKE_START immediately to all peers
+      // ⚡ Stream STROKE_START immediately to all peers reliably
       broadcastPacket({
         type: 'STROKE_START',
         strokeId,
@@ -630,7 +689,6 @@ export default function RoomWhiteboard({
         width: strokeWidth,
       }, true);
     } else {
-      // Shape snapshot
       if (canvas) {
         snapshotRef.current = canvas.toDataURL();
       }
@@ -644,8 +702,8 @@ export default function RoomWhiteboard({
     const canvas = canvasRef.current;
     if (!ctx || !canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const w = rect.width || 1;
-    const h = rect.height || 1;
+    const w = Math.max(1, rect.width);
+    const h = Math.max(1, rect.height);
 
     if (activeTool === 'pen' || activeTool === 'highlighter' || activeTool === 'eraser') {
       const pt = {
@@ -682,9 +740,9 @@ export default function RoomWhiteboard({
         ctx.restore();
       }
 
-      // ⚡ Stream STROKE_CHUNK to all peers every ~30ms (Smooth streaming, zero network buffering)
+      // ⚡ Stream STROKE_CHUNK to all peers every ~25ms with 100% reliability
       const now = performance.now();
-      if (now - lastBroadcastTime.current >= 30 && strokeBuffer.current.length > 0) {
+      if (now - lastBroadcastTime.current >= 25 && strokeBuffer.current.length > 0) {
         broadcastPacket({
           type: 'STROKE_CHUNK',
           strokeId: currentStrokeId.current,
@@ -692,7 +750,7 @@ export default function RoomWhiteboard({
           color: selectedColor,
           width: strokeWidth,
           points: [...strokeBuffer.current],
-        }, false);
+        }, true);
         strokeBuffer.current = [];
         lastBroadcastTime.current = now;
       }
@@ -723,13 +781,13 @@ export default function RoomWhiteboard({
       };
       drawElement(ctx, elem);
 
-      // ⚡ Stream live shape preview to peers every 40ms
+      // ⚡ Stream live shape preview to peers every 35ms reliably
       const now = performance.now();
-      if (now - lastShapeBroadcastTime.current >= 40) {
+      if (now - lastShapeBroadcastTime.current >= 35) {
         broadcastPacket({
           type: 'SHAPE_PREVIEW',
           shape: elem,
-        }, false);
+        }, true);
         lastShapeBroadcastTime.current = now;
       }
     }
@@ -741,8 +799,8 @@ export default function RoomWhiteboard({
     const { x, y } = getCoords(e);
     const canvas = canvasRef.current;
     const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
-    const w = rect.width || 1;
-    const h = rect.height || 1;
+    const w = Math.max(1, rect.width);
+    const h = Math.max(1, rect.height);
 
     let newElement = null;
 
@@ -760,7 +818,7 @@ export default function RoomWhiteboard({
         currentPath.current = [];
       }
 
-      // Flush remaining points
+      // Flush remaining buffered points
       if (strokeBuffer.current.length > 0) {
         broadcastPacket({
           type: 'STROKE_CHUNK',
