@@ -53,6 +53,10 @@ const logDailyActiveSession = async (userId) => {
     try {
         const today = new Date().toISOString().split('T')[0];
         const sessionKey = `user:active:session:${userId}:${today}`;
+        const heartbeatKey = `user:heartbeat:${userId}`;
+
+        await cacheService.set(heartbeatKey, '1', 600);
+
         const alreadyLogged = await cacheService.get(sessionKey);
         if (!alreadyLogged) {
             await cacheService.set(sessionKey, '1', 86400);

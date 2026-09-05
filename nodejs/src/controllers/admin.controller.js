@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const redis = require('../lib/redis');
 
 /**
  * Helper to calculate percentage growth
@@ -64,6 +65,7 @@ const getDashboardStats = async (req, res) => {
         const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+        const tenMinsAgo = new Date(now.getTime() - 10 * 60 * 1000);
 
         // Core counts & sums in parallel
         const [
@@ -91,7 +93,10 @@ const getDashboardStats = async (req, res) => {
             fcmDeviceGroups,
             appLaunchesCount,
             referredUsersCount,
-            activeCampaignsCount
+            activeCampaignsCount,
+            onlineSocketUsers,
+            recentActiveIn10m,
+            activeHeartbeatKeys
         ] = await Promise.all([
             prisma.userProfile.count(),
             prisma.video.count(),
@@ -148,8 +153,25 @@ const getDashboardStats = async (req, res) => {
             }).catch(() => []),
             prisma.appLaunchLog.count().catch(() => 0),
             prisma.referralAttribution.count().catch(() => 0),
-            prisma.referralCode.count({ where: { isActive: true } }).catch(() => 0)
+            prisma.referralCode.count({ where: { isActive: true } }).catch(() => 0),
+            redis.smembers('online_users').catch(() => []),
+            prisma.userActivityLog.findMany({
+                where: { timestamp: { gte: tenMinsAgo } },
+                select: { userId: true },
+                distinct: ['userId']
+            }).catch(() => []),
+            redis.keys('user:heartbeat:*').catch(() => [])
         ]);
+
+        // Calculate Real-Time Currently Active Users
+        const liveUserSet = new Set();
+        (onlineSocketUsers || []).forEach(id => liveUserSet.add(String(id)));
+        (recentActiveIn10m || []).forEach(a => liveUserSet.add(String(a.userId)));
+        (activeHeartbeatKeys || []).forEach(k => {
+            const uid = k.replace('user:heartbeat:', '');
+            if (uid) liveUserSet.add(uid);
+        });
+        const activeNow = Math.max(liveUserSet.size, 1);
 
         const totalXP = xpSum._sum.xp || 0;
         const totalNotes = totalVideoNotes + totalWorkspaceNotes;
@@ -194,6 +216,7 @@ const getDashboardStats = async (req, res) => {
                 activeCampaignsCount
             },
             activeUsers: {
+                activeNow,
                 dau,
                 dauGrowth: calcGrowth(dau, prevDau),
                 wau,

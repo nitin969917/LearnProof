@@ -137,6 +137,11 @@ const AdminDashboardHome = () => {
     useEffect(() => {
         if (token) {
             loadAllData();
+            // Silent polling for live telemetry & active users every 15 seconds
+            const interval = setInterval(() => {
+                fetchOverviewStats();
+            }, 15000);
+            return () => clearInterval(interval);
         }
     }, [token]);
 
@@ -197,7 +202,17 @@ const AdminDashboardHome = () => {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-bold shadow-sm">
+                        <span className="flex h-2.5 w-2.5 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                        </span>
+                        <span>
+                            <strong className="text-slate-900 dark:text-white font-extrabold">{(activeUsers?.activeNow || 1).toLocaleString()}</strong> Online Now
+                        </span>
+                    </div>
+
                     <button
                         onClick={handleManualRefresh}
                         disabled={refreshing}
@@ -209,17 +224,40 @@ const AdminDashboardHome = () => {
                 </div>
             </div>
 
-            {/* SECTION 1: Active User Engagement Cohorts (DAU / WAU / MAU / Stickiness) */}
+            {/* SECTION 1: Active User Engagement Cohorts (Active Now / DAU / WAU / MAU / Stickiness) */}
             <div>
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
                         <Users className="text-orange-500" size={18} />
                         Active User Retention & Cohorts
                     </h2>
-                    <span className="text-xs text-slate-400 font-medium">Updated every session</span>
+                    <span className="text-xs text-slate-400 font-medium">Updated every session & live heartbeat</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {/* Live Active Now Card */}
+                    <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/10 via-white to-teal-500/5 dark:from-emerald-950/40 dark:via-slate-900 dark:to-teal-950/20 rounded-2xl p-5 border-2 border-emerald-500/30 dark:border-emerald-500/20 shadow-sm hover:shadow-md transition-all duration-200">
+                        <div className="flex items-start justify-between">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/60">
+                                <Activity size={24} />
+                            </div>
+                            <span className="flex items-center gap-1.5 text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
+                                <span className="flex h-2 w-2 relative">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                                LIVE
+                            </span>
+                        </div>
+                        <div className="mt-4">
+                            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Active Right Now</p>
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">
+                                {(activeUsers?.activeNow || 1).toLocaleString()}
+                            </h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Real-time online users</p>
+                        </div>
+                    </div>
+
                     <MetricCard
                         title="Daily Active Users (DAU)"
                         value={(activeUsers?.dau || 0).toLocaleString()}
@@ -236,7 +274,7 @@ const AdminDashboardHome = () => {
                         value={(activeUsers?.wau || 0).toLocaleString()}
                         growth={activeUsers?.wauGrowth}
                         subtitle="Active in past 7 days"
-                        icon={<Activity size={24} className="text-blue-500" />}
+                        icon={<TrendingUp size={24} className="text-blue-500" />}
                         color="text-blue-500"
                         bgLight="bg-blue-50"
                         bgDark="bg-blue-950"
@@ -247,7 +285,7 @@ const AdminDashboardHome = () => {
                         value={(activeUsers?.mau || 0).toLocaleString()}
                         growth={activeUsers?.mauGrowth}
                         subtitle="Active in past 30 days"
-                        icon={<TrendingUp size={24} className="text-purple-500" />}
+                        icon={<Users size={24} className="text-purple-500" />}
                         color="text-purple-500"
                         bgLight="bg-purple-50"
                         bgDark="bg-purple-950"
