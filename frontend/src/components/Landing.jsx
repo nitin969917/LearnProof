@@ -297,15 +297,22 @@ const LandingPage = () => {
     const [scrollY, setScrollY] = useState(0);
     const [userCount, setUserCount] = useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    // Only treat as logging in if the URL hash actually contains an incoming Google OAuth token
     const [isLoggingIn, setIsLoggingIn] = useState(() => {
         const hash = window.location.hash;
-        const hasHashToken = hash.includes("id_token") || hash.includes("credential");
-        const wasLoggingIn = sessionStorage.getItem("is_logging_in") === "true";
-        if (hasHashToken) {
-            sessionStorage.setItem("is_logging_in", "true");
-        }
-        return hasHashToken || wasLoggingIn;
+        return hash.includes("id_token") || hash.includes("credential");
     });
+
+    // Safety watchdog: Never allow isLoggingIn to freeze the UI in an infinite loading state
+    useEffect(() => {
+        if (isLoggingIn) {
+            const watchdog = setTimeout(() => {
+                setIsLoggingIn(false);
+                sessionStorage.removeItem("is_logging_in");
+            }, 6000);
+            return () => clearTimeout(watchdog);
+        }
+    }, [isLoggingIn]);
 
     const handleMobileLinkClick = (id) => {
         setIsMobileMenuOpen(false);
@@ -318,44 +325,40 @@ const LandingPage = () => {
     };
 
     const getRedirectTarget = () => {
-        // 1. Check URL hash or query params
+        // 1. Check URL hash parameters
         const hash = window.location.hash;
         if (hash) {
             const params = new URLSearchParams(hash.substring(1));
             const state = params.get('state');
             if (state) {
                 try {
-                    return decodeURIComponent(state);
+                    const decoded = decodeURIComponent(state);
+                    if (decoded.startsWith('/')) return decoded;
                 } catch (e) {
-                    return state;
+                    if (state.startsWith('/')) return state;
                 }
             }
         }
+        // 2. Check query search parameters
         const searchParams = new URLSearchParams(window.location.search);
         if (searchParams.get('redirect_to')) {
             return searchParams.get('redirect_to');
         }
         if (searchParams.get('state')) {
-            return decodeURIComponent(searchParams.get('state'));
-        }
-
-        // 2. Check document.cookie
-        const cookieMatch = document.cookie.match(/(?:^|;\s*)redirect_to=([^;]+)/);
-        if (cookieMatch && cookieMatch[1]) {
             try {
-                return decodeURIComponent(cookieMatch[1]);
+                const decoded = decodeURIComponent(searchParams.get('state'));
+                if (decoded.startsWith('/')) return decoded;
             } catch (e) {
-                return cookieMatch[1];
+                return searchParams.get('state');
             }
         }
 
-        // 3. Check localStorage
-        const local = localStorage.getItem("redirect_to");
-        if (local) return local;
-
-        // 4. Check sessionStorage
+        // 3. Check sessionStorage (short-lived session only)
         const session = sessionStorage.getItem("redirect_to");
-        if (session) return session;
+        if (session && session.startsWith('/')) {
+            sessionStorage.removeItem("redirect_to");
+            return session;
+        }
 
         return "/dashboard";
     };
@@ -363,14 +366,13 @@ const LandingPage = () => {
     const clearRedirectTarget = () => {
         localStorage.removeItem("redirect_to");
         sessionStorage.removeItem("redirect_to");
+        sessionStorage.removeItem("is_logging_in");
         document.cookie = "redirect_to=; path=/; max-age=0; SameSite=Lax";
     };
 
     const handleGoogleSuccess = async (credentialResponse, targetRedirect = null) => {
         setIsLoggingIn(true);
-        sessionStorage.setItem("is_logging_in", "true");
         try {
-            // Handle both GSI component response and useGoogleLogin response
             const idToken = credentialResponse.credential || credentialResponse.id_token;
             
             if (!idToken) {
@@ -385,14 +387,13 @@ const LandingPage = () => {
             await login({ credential: idToken });
             
             setIsLoggingIn(false);
-            sessionStorage.removeItem("is_logging_in");
             clearRedirectTarget();
             navigate(target, { replace: true });
         } catch (err) {
             console.error("Google login error:", err);
             toast.error(`Login failed: ${err.message || 'Please try again.'}`);
             setIsLoggingIn(false);
-            sessionStorage.removeItem("is_logging_in");
+            clearRedirectTarget();
         }
     };
 
@@ -459,14 +460,11 @@ const LandingPage = () => {
                 } catch (e) {
                     stateRedirect = state;
                 }
-                localStorage.setItem("redirect_to", stateRedirect);
-                sessionStorage.setItem("redirect_to", stateRedirect);
             }
             if (idToken) {
                 setIsLoggingIn(true);
-                sessionStorage.setItem("is_logging_in", "true");
                 handleGoogleSuccess({ credential: idToken }, stateRedirect);
-                // Clean the hash from URL
+                // Clean the hash from URL cleanly
                 window.history.replaceState(null, '', window.location.pathname);
             }
         }
@@ -502,13 +500,13 @@ const LandingPage = () => {
         }
     }, [user, loading, navigate, location.pathname]);
 
-    if (loading || isLoggingIn) {
+    if (loading || (isLoggingIn && !user)) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white">
                 <div className="flex flex-col items-center gap-3">
                     <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-sm font-medium text-slate-400">
-                        {isLoggingIn ? "Redirecting to Dashboard..." : "Loading LearnProof AI..."}
+                        {isLoggingIn ? "Signing you in..." : "Loading LearnProof AI..."}
                     </p>
                 </div>
             </div>
@@ -526,10 +524,14 @@ const LandingPage = () => {
         );
     }
 
-    const handleManualGoogleLogin = () => {
+    const handleManualGoogleLogin = (customTarget = "/dashboard") => {
+        clearRedirectTarget();
+        sessionStorage.setItem("redirect_to", customTarget);
+        
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         const redirectUri = window.location.origin;
         const nonce = Math.random().toString(36).substring(2);
+        const state = encodeURIComponent(customTarget);
         
         // Construct the Google OAuth URL manually to guarantee same-tab redirect and account selection
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + 
@@ -537,6 +539,7 @@ const LandingPage = () => {
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +
             `&response_type=id_token` +
             `&scope=${encodeURIComponent('openid email profile')}` +
+            `&state=${state}` +
             `&nonce=${nonce}` +
             `&ux_mode=redirect` +
             `&prompt=select_account`;

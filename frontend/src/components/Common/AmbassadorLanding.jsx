@@ -87,10 +87,10 @@ export default function AmbassadorLanding() {
     }, [login, navigate]);
 
     const handleManualGoogleLogin = () => {
-        // Set the redirect target so after Google login, user lands on the Ambassador Portal
+        // Set the redirect target in session storage only for this specific login attempt
         sessionStorage.setItem("redirect_to", "/ambassador/portal");
-        localStorage.setItem("redirect_to", "/ambassador/portal");
-        document.cookie = "redirect_to=/ambassador/portal; path=/; max-age=3600; SameSite=Lax";
+        localStorage.removeItem("redirect_to");
+        document.cookie = "redirect_to=; path=/; max-age=0; SameSite=Lax";
 
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         const redirectUri = window.location.origin;
