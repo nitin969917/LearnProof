@@ -35,6 +35,7 @@ export default function RoomWhiteboard({
   participants = [],
   onClose
 }) {
+  const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
 
@@ -129,50 +130,19 @@ export default function RoomWhiteboard({
     });
   };
 
-  // ── Initialize Canvas Size ──────────────────────────────────────────────────
-  const setupCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-
-    const ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    contextRef.current = ctx;
-
-    redrawAllElements();
-  }, []);
-
-  useEffect(() => {
-    setupCanvas();
-    const handleResize = () => setupCanvas();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [setupCanvas]);
-
-  // ── Redraw Canvas from Element History ───────────────────────────────────────
-  const redrawAllElements = useCallback(() => {
-    const canvas = canvasRef.current;
-    const ctx = contextRef.current;
-    if (!canvas || !ctx) return;
-
-    const rect = canvas.getBoundingClientRect();
-    ctx.clearRect(0, 0, rect.width, rect.height);
-
-    elementsRef.current.forEach(elem => {
-      drawElement(ctx, elem);
-    });
-  }, []);
-
   // ── Draw Single Element onto Canvas ──────────────────────────────────────────
-  const drawElement = (ctx, elem) => {
+  const drawElement = useCallback((ctx, elem) => {
     if (!ctx || !elem) return;
+    const canvas = canvasRef.current;
+    const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
+    const w = rect.width || 1;
+    const h = rect.height || 1;
+
+    const toX = (nx, x) => (nx !== undefined ? nx * w : x);
+    const toY = (ny, y) => (ny !== undefined ? ny * h : y);
+    const toW = (nw, rawW) => (nw !== undefined ? nw * w : rawW);
+    const toH = (nh, rawH) => (nh !== undefined ? nh * h : rawH);
+
     ctx.save();
     ctx.strokeStyle = elem.color;
     ctx.fillStyle = elem.color;
@@ -190,65 +160,150 @@ export default function RoomWhiteboard({
       case 'path':
         if (elem.points && elem.points.length > 0) {
           ctx.beginPath();
-          ctx.moveTo(elem.points[0].x, elem.points[0].y);
+          const p0 = elem.points[0];
+          ctx.moveTo(toX(p0.nx, p0.x), toY(p0.ny, p0.y));
           for (let i = 1; i < elem.points.length; i++) {
-            ctx.lineTo(elem.points[i].x, elem.points[i].y);
+            const pt = elem.points[i];
+            ctx.lineTo(toX(pt.nx, pt.x), toY(pt.ny, pt.y));
           }
           ctx.stroke();
         }
         break;
 
-      case 'rectangle':
+      case 'rectangle': {
+        const x = toX(elem.nx, elem.x);
+        const y = toY(elem.ny, elem.y);
+        const rw = toW(elem.nw, elem.w);
+        const rh = toH(elem.nh, elem.h);
         ctx.beginPath();
-        ctx.strokeRect(elem.x, elem.y, elem.w, elem.h);
+        ctx.strokeRect(x, y, rw, rh);
         break;
+      }
 
       case 'circle': {
+        const x = toX(elem.nx, elem.x);
+        const y = toY(elem.ny, elem.y);
+        const rw = toW(elem.nw, elem.w);
+        const rh = toH(elem.nh, elem.h);
         ctx.beginPath();
-        const rx = Math.abs(elem.w / 2);
-        const ry = Math.abs(elem.h / 2);
-        const cx = elem.x + elem.w / 2;
-        const cy = elem.y + elem.h / 2;
+        const rx = Math.abs(rw / 2);
+        const ry = Math.abs(rh / 2);
+        const cx = x + rw / 2;
+        const cy = y + rh / 2;
         ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
         ctx.stroke();
         break;
       }
 
-      case 'line':
+      case 'line': {
+        const x1 = toX(elem.nx1, elem.x1);
+        const y1 = toY(elem.ny1, elem.y1);
+        const x2 = toX(elem.nx2, elem.x2);
+        const y2 = toY(elem.ny2, elem.y2);
         ctx.beginPath();
-        ctx.moveTo(elem.x1, elem.y1);
-        ctx.lineTo(elem.x2, elem.y2);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
         ctx.stroke();
         break;
+      }
 
       case 'arrow': {
+        const x1 = toX(elem.nx1, elem.x1);
+        const y1 = toY(elem.ny1, elem.y1);
+        const x2 = toX(elem.nx2, elem.x2);
+        const y2 = toY(elem.ny2, elem.y2);
         const headlen = Math.max(10, elem.width * 3);
-        const angle = Math.atan2(elem.y2 - elem.y1, elem.x2 - elem.x1);
+        const angle = Math.atan2(y2 - y1, x2 - x1);
         ctx.beginPath();
-        ctx.moveTo(elem.x1, elem.y1);
-        ctx.lineTo(elem.x2, elem.y2);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.moveTo(elem.x2, elem.y2);
-        ctx.lineTo(elem.x2 - headlen * Math.cos(angle - Math.PI / 6), elem.y2 - headlen * Math.sin(angle - Math.PI / 6));
-        ctx.lineTo(elem.x2 - headlen * Math.cos(angle + Math.PI / 6), elem.y2 - headlen * Math.sin(angle + Math.PI / 6));
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6), y2 - headlen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 6), y2 - headlen * Math.sin(angle + Math.PI / 6));
         ctx.closePath();
         ctx.fill();
         break;
       }
 
-      case 'text':
+      case 'text': {
+        const x = toX(elem.nx, elem.x);
+        const y = toY(elem.ny, elem.y);
         ctx.font = `${Math.max(14, elem.width * 4)}px Inter, sans-serif`;
-        ctx.fillText(elem.text, elem.x, elem.y);
+        ctx.fillText(elem.text, x, y);
         break;
+      }
 
       default:
         break;
     }
 
     ctx.restore();
-  };
+  }, []);
+
+  // ── Redraw Canvas from Element History ───────────────────────────────────────
+  const redrawAllElements = useCallback(() => {
+    const canvas = canvasRef.current;
+    const ctx = contextRef.current;
+    if (!canvas || !ctx) return;
+
+    const rect = canvas.getBoundingClientRect();
+    ctx.clearRect(0, 0, rect.width, rect.height);
+
+    elementsRef.current.forEach(elem => {
+      drawElement(ctx, elem);
+    });
+  }, [drawElement]);
+
+  // ── Initialize & Resize Canvas Accurately ────────────────────────────────────
+  const setupCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
+
+    const rect = container.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    const dpr = window.devicePixelRatio || 1;
+
+    // Buffer dimensions (high-DPI crispness)
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+
+    // CSS dimensions strictly locked to rendered container pixels
+    canvas.style.width = `${rect.width}px`;
+    canvas.style.height = `${rect.height}px`;
+
+    const ctx = canvas.getContext('2d');
+    // Reset transform before scaling by DPR
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    contextRef.current = ctx;
+
+    redrawAllElements();
+  }, [redrawAllElements]);
+
+  // Auto observe resize with ResizeObserver
+  useEffect(() => {
+    setupCanvas();
+    const container = containerRef.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      setupCanvas();
+    });
+    resizeObserver.observe(container);
+
+    window.addEventListener('resize', setupCanvas);
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', setupCanvas);
+    };
+  }, [setupCanvas]);
 
   // ── LiveKit Data Event Listener for Real-Time Peer Sync ─────────────────────
   useEffect(() => {
@@ -285,7 +340,6 @@ export default function RoomWhiteboard({
             break;
 
           case 'SYNC_REQUEST':
-            // Host or peer answers request with full element array and current permission settings
             if (elementsRef.current.length > 0 || isHost) {
               broadcastPacket({
                 type: 'SYNC_RESPONSE',
@@ -325,18 +379,18 @@ export default function RoomWhiteboard({
     return () => {
       room.off(RoomEvent.DataReceived, handleDataReceived);
     };
-  }, [room, isHost, drawPermissionMode, customAllowedIds, broadcastPacket, redrawAllElements]);
+  }, [room, isHost, drawPermissionMode, customAllowedIds, broadcastPacket, redrawAllElements, drawElement]);
 
-  // ── Coordinates Helper ───────────────────────────────────────────────────────
+  // ── Coordinates Helper (Accurate 1:1 Pixel Mapping) ──────────────────────────
   const getCoords = (e) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
+      x: Math.max(0, Math.min(rect.width, clientX - rect.left)),
+      y: Math.max(0, Math.min(rect.height, clientY - rect.top)),
     };
   };
 
@@ -425,6 +479,10 @@ export default function RoomWhiteboard({
     if (!canDraw || !isDrawing) return;
     setIsDrawing(false);
     const { x, y } = getCoords(e);
+    const canvas = canvasRef.current;
+    const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
+    const w = rect.width || 1;
+    const h = rect.height || 1;
 
     let newElement = null;
 
@@ -435,7 +493,12 @@ export default function RoomWhiteboard({
           tool: activeTool,
           color: selectedColor,
           width: strokeWidth,
-          points: [...currentPath.current],
+          points: currentPath.current.map(p => ({
+            x: p.x,
+            y: p.y,
+            nx: p.x / w,
+            ny: p.y / h,
+          })),
         };
         currentPath.current = [];
       }
@@ -452,10 +515,18 @@ export default function RoomWhiteboard({
           y: startPos.current.y,
           w: dx,
           h: dy,
+          nx: startPos.current.x / w,
+          ny: startPos.current.y / h,
+          nw: dx / w,
+          nh: dy / h,
           x1: startPos.current.x,
           y1: startPos.current.y,
           x2: x,
           y2: y,
+          nx1: startPos.current.x / w,
+          ny1: startPos.current.y / h,
+          nx2: x / w,
+          ny2: y / h,
         };
       }
     }
@@ -474,6 +545,11 @@ export default function RoomWhiteboard({
   // ── Text Input Submission ────────────────────────────────────────────────────
   const handleTextSubmit = (e) => {
     if (e.key === 'Enter' && textInput && textInput.value.trim()) {
+      const canvas = canvasRef.current;
+      const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
+      const w = rect.width || 1;
+      const h = rect.height || 1;
+
       const newElem = {
         type: 'text',
         tool: 'text',
@@ -482,6 +558,8 @@ export default function RoomWhiteboard({
         text: textInput.value.trim(),
         x: textInput.x,
         y: textInput.y,
+        nx: textInput.x / w,
+        ny: textInput.y / h,
       };
 
       elementsRef.current.push(newElem);
@@ -718,7 +796,7 @@ export default function RoomWhiteboard({
               {showPermissionMenu && (
                 <div className="absolute right-0 mt-1.5 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-50 flex flex-col gap-1 backdrop-blur-xl animate-in fade-in zoom-in-95">
                   <div className="px-2.5 py-1.5 border-b border-gray-100 dark:border-white/5 mb-1">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-550">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">
                       Who Can Draw?
                     </span>
                   </div>
@@ -864,9 +942,12 @@ export default function RoomWhiteboard({
       </div>
 
       {/* ── Canvas Board Area ── */}
-      <div className={`relative flex-1 w-full h-full bg-white dark:bg-gray-950 overflow-hidden touch-none ${
-        canDraw ? 'cursor-crosshair' : 'cursor-default'
-      }`}>
+      <div
+        ref={containerRef}
+        className={`relative flex-1 w-full h-full bg-white dark:bg-gray-950 overflow-hidden touch-none ${
+          canDraw ? 'cursor-crosshair' : 'cursor-default'
+        }`}
+      >
         <canvas
           ref={canvasRef}
           onMouseDown={handleStart}
@@ -876,7 +957,7 @@ export default function RoomWhiteboard({
           onTouchStart={handleStart}
           onTouchMove={handleMove}
           onTouchEnd={handleEnd}
-          className="w-full h-full block"
+          className="absolute inset-0 block w-full h-full"
         />
 
         {/* Text placement input */}
