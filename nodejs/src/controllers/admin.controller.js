@@ -1,3 +1,5 @@
+const prisma = require('../lib/prisma');
+
 /**
  * Helper to calculate percentage growth
  */
