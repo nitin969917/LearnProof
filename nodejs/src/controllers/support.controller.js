@@ -80,14 +80,10 @@ const getTicketById = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
-        const userEmail = (req.user.email || '').toLowerCase().trim();
-        const envAdmins = (process.env.ADMIN_EMAIL || '')
-            .split(',')
-            .map(e => e.trim().toLowerCase())
-            .filter(Boolean);
-        const defaultAdmins = ['nitin9699176009@gmail.com', 'kakadeavishkar84@gmail.com'];
-        const authorizedAdmins = new Set([...envAdmins, ...defaultAdmins]);
-        const isAdmin = authorizedAdmins.has(userEmail) || userEmail.endsWith('@learnproofai.com');
+        const envAdminEmails = (process.env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+        const allowedAdmins = new Set([...envAdminEmails, 'nitin9699176009@gmail.com', 'kakadeavishkar84@gmail.com']);
+        const userEmail = (req.user.email || '').trim().toLowerCase();
+        const isAdmin = allowedAdmins.has(userEmail) || userEmail.endsWith('@learnproofai.com');
 
         const ticket = await prisma.supportTicket.findUnique({
             where: { id: parseInt(id) },

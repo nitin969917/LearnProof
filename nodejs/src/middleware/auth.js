@@ -170,23 +170,20 @@ const isAdminMiddleware = (req, res, next) => {
         return res.status(403).json({ error: 'Access denied. User not authenticated.' });
     }
 
-    const userEmail = req.user.email.toLowerCase().trim();
-
-    // Configured admin emails from environment (supports comma-separated list)
-    const envAdmins = (process.env.ADMIN_EMAIL || '')
+    const envAdminEmails = (process.env.ADMIN_EMAIL || '')
         .split(',')
         .map(e => e.trim().toLowerCase())
         .filter(Boolean);
 
-    // Default authorized admin emails
-    const defaultAdmins = [
+    const defaultAdminList = [
         'nitin9699176009@gmail.com',
         'kakadeavishkar84@gmail.com'
     ];
 
-    const authorizedAdmins = new Set([...envAdmins, ...defaultAdmins]);
+    const allowedAdmins = new Set([...envAdminEmails, ...defaultAdminList]);
+    const userEmail = (req.user.email || '').trim().toLowerCase();
 
-    if (authorizedAdmins.has(userEmail) || userEmail.endsWith('@learnproofai.com')) {
+    if (allowedAdmins.has(userEmail) || userEmail.endsWith('@learnproofai.com')) {
         return next();
     }
 
