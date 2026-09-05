@@ -2350,61 +2350,83 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
       {/* ── Global Bottom Controls Bar ── */}
       <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-white/5 py-3 px-3 sm:px-6 flex items-center justify-around z-30 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] gap-1 sm:gap-2">
-        {/* 1. Mute / Unmute Button */}
-        <div 
-          onClick={toggleMic}
-          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
-        >
-          <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
-            isMicEnabled 
-              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
-              : 'bg-red-50 dark:bg-red-950/30 text-red-500 border border-red-200/50 dark:border-red-900/30'
-          }`}>
-            {isMicEnabled ? <Mic size={20} /> : <MicOff size={20} />}
-          </div>
-          <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
-            {isMicEnabled ? 'Mute' : 'Unmute'}
-          </span>
-        </div>
+        
+        {/* On-Stage Controls: Shown only when user is on Stage (Host or Approved Speaker) */}
+        {(canPublish || isHost) ? (
+          <>
+            {/* 1. Mute / Unmute Button */}
+            <div 
+              onClick={toggleMic}
+              className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
+            >
+              <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
+                isMicEnabled 
+                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
+                  : 'bg-red-50 dark:bg-red-950/30 text-red-500 border border-red-200/50 dark:border-red-900/30'
+              }`}>
+                {isMicEnabled ? <Mic size={20} /> : <MicOff size={20} />}
+              </div>
+              <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
+                {isMicEnabled ? 'Mute' : 'Unmute'}
+              </span>
+            </div>
 
-        {/* 2. Video Button (if video room) OR Raise Hand (if audio room) */}
-        {isVideoRoom ? (
-          <div 
-            onClick={toggleCam}
-            className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
-          >
-            <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
-              isCamEnabled 
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-white/5'
-            }`}>
-              {isCamEnabled ? <Video size={20} /> : <VideoOff size={20} />}
+            {/* 2. Video Button (if video room) */}
+            {isVideoRoom && (
+              <div 
+                onClick={toggleCam}
+                className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
+              >
+                <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
+                  isCamEnabled 
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-white/5'
+                }`}>
+                  {isCamEnabled ? <Video size={20} /> : <VideoOff size={20} />}
+                </div>
+                <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
+                  {isCamEnabled ? 'Stop Video' : 'Start Video'}
+                </span>
+              </div>
+            )}
+
+            {/* 3. Stage Action: Invite Friends (Host) or Leave Stage (Speaker) */}
+            <div 
+              onClick={isHost ? handleOpenInviteFriendsModal : handleLeaveStage}
+              className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
+            >
+              <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
+                isHost
+                  ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
+                  : 'bg-red-50 dark:bg-red-950/30 text-red-500 border border-red-200/50 dark:border-red-900/30'
+              }`}>
+                {isHost ? <UserPlus size={20} /> : <ChevronsDown size={20} />}
+              </div>
+              <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
+                {isHost ? 'Invite' : 'Leave Stage'}
+              </span>
             </div>
-            <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
-              {isCamEnabled ? 'Stop Video' : 'Start Video'}
-            </span>
-          </div>
+          </>
         ) : (
+          /* Audience / Listener Control: Prominent Raise Hand Button */
           <div 
-            onClick={isHost ? handleOpenInviteFriendsModal : (canPublish ? handleLeaveStage : (hasRequested ? handleWithdrawRequest : handleRequestToSpeak))}
-            className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
+            onClick={hasRequested ? handleWithdrawRequest : handleRequestToSpeak}
+            className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[70px] sm:min-w-[84px]"
           >
-            <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
-              isHost
-                ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
-                : (canPublish 
-                    ? 'bg-red-50 dark:bg-red-950/30 text-red-500' 
-                    : (hasRequested ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 animate-pulse' : 'bg-purple-50 dark:bg-purple-950/30 text-purple-500'))
+            <div className={`w-14 sm:w-16 h-11 rounded-2xl flex items-center justify-center transition-all ${
+              hasRequested 
+                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25 ring-2 ring-orange-500/30 animate-pulse' 
+                : 'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white shadow-md shadow-purple-500/20'
             }`}>
-              {isHost ? <UserPlus size={20} /> : (canPublish ? <ChevronsDown size={20} /> : <Hand size={20} />)}
+              <Hand size={20} className={hasRequested ? 'animate-bounce' : ''} />
             </div>
-            <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
-              {isHost ? 'Invite' : (canPublish ? 'Leave' : (hasRequested ? 'Pending' : 'Raise Hand'))}
+            <span className={`text-[11px] font-black tracking-tight ${hasRequested ? 'text-orange-600 dark:text-orange-400' : 'text-purple-600 dark:text-purple-400'}`}>
+              {hasRequested ? 'Withdraw' : 'Raise Hand'}
             </span>
           </div>
         )}
 
-        {/* 3. Chat Button */}
+        {/* Chat Button */}
         <div 
           onClick={() => setShowChatPanel(prev => !prev)}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px] relative"
@@ -2421,7 +2443,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           </span>
         </div>
 
-        {/* 4. Participants Button */}
+        {/* Participants Button */}
         <div 
           onClick={() => setShowParticipants(prev => !prev)}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px] relative"
@@ -2443,7 +2465,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           </span>
         </div>
 
-        {/* 5. More Options / Settings Button */}
+        {/* More Options / Settings Button */}
         <div 
           onClick={() => setShowSettingsModal(true)}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px] relative"
@@ -2454,7 +2476,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
               : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200/50 dark:border-white/5'
           }`}>
             <MoreHorizontal size={20} />
-            {/* Pulsing indicator when Whiteboard, Screen Sharing, or Speak Requests are active */}
             {(isWhiteboardOpen || isScreenSharing || (isHost && speakRequests.length > 0)) && (
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full ring-2 ring-white dark:ring-gray-900 animate-pulse" />
             )}
