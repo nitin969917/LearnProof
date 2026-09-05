@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Pencil, Highlighter, Eraser, Square, Circle,
-  Minus, MoveRight, Type, RotateCcw, RotateCw,
+  Minus, MoveRight, RotateCcw, RotateCw,
   Trash2, Download, X, Maximize2, Minimize2,
   Lock, Unlock, Users, Globe, Shield, Check,
   ChevronDown, UserCheck, UserPlus, UserMinus, Sparkles
@@ -21,10 +21,10 @@ const PALETTE = [
 ];
 
 const STROKE_WIDTHS = [
-  { label: 'Fine', value: 2 },
-  { label: 'Medium', value: 4 },
-  { label: 'Thick', value: 8 },
-  { label: 'Bold', value: 14 },
+  { label: 'Fine', value: 2, dot: 4 },
+  { label: 'Medium', value: 4, dot: 6 },
+  { label: 'Thick', value: 8, dot: 9 },
+  { label: 'Bold', value: 14, dot: 13 },
 ];
 
 export default function RoomWhiteboard({
@@ -39,7 +39,7 @@ export default function RoomWhiteboard({
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
 
-  // Drawing tools: 'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow' | 'text'
+  // Drawing tools: 'pen' | 'highlighter' | 'eraser' | 'rectangle' | 'circle' | 'line' | 'arrow'
   const [activeTool, setActiveTool] = useState('pen');
   const [selectedColor, setSelectedColor] = useState('#f97316');
   const [strokeWidth, setStrokeWidth] = useState(4);
@@ -61,10 +61,9 @@ export default function RoomWhiteboard({
   const peerActiveStrokes = useRef(new Map()); // strokeId -> { tool, color, width, points }
   const peerPreviewShapes = useRef(new Map()); // senderId -> shape element
 
-  // Shapes & text in-progress
+  // Shapes in-progress
   const startPos = useRef({ x: 0, y: 0 });
   const snapshotRef = useRef(null);
-  const [textInput, setTextInput] = useState(null); // { x, y, value }
 
   // Action history for Undo/Redo & Late Joiner Sync
   const elementsRef = useRef([]);
@@ -645,12 +644,6 @@ export default function RoomWhiteboard({
     startPos.current = { x, y };
     setIsDrawing(true);
 
-    if (activeTool === 'text') {
-      setTextInput({ x, y, value: '' });
-      setIsDrawing(false);
-      return;
-    }
-
     if (activeTool === 'pen' || activeTool === 'highlighter' || activeTool === 'eraser') {
       const strokeId = 'strk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
       currentStrokeId.current = strokeId;
@@ -889,40 +882,6 @@ export default function RoomWhiteboard({
     }
   };
 
-  // ── Text Input Submission ────────────────────────────────────────────────────
-  const handleTextSubmit = (e) => {
-    if (e.key === 'Enter' && textInput && textInput.value.trim()) {
-      const canvas = canvasRef.current;
-      const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
-      const w = rect.width || 1;
-      const h = rect.height || 1;
-
-      const newElem = {
-        id: 'txt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        type: 'text',
-        tool: 'text',
-        color: selectedColor,
-        width: strokeWidth,
-        text: textInput.value.trim(),
-        x: textInput.x,
-        y: textInput.y,
-        nx: textInput.x / w,
-        ny: textInput.y / h,
-      };
-
-      elementsRef.current.push(newElem);
-      undoStackRef.current = [];
-      redrawAllElements();
-      broadcastPacket({
-        type: 'DRAW_ELEMENT',
-        element: newElem,
-      }, true);
-      setTextInput(null);
-    } else if (e.key === 'Escape') {
-      setTextInput(null);
-    }
-  };
-
   // ── Actions: Undo, Redo, Clear, Download ─────────────────────────────────────
   const handleUndo = () => {
     if (!canDraw || elementsRef.current.length === 0) return;
@@ -984,106 +943,106 @@ export default function RoomWhiteboard({
     <div className={`relative w-full h-full flex flex-col bg-white dark:bg-gray-900 overflow-hidden select-none ${
       isFullscreen ? 'fixed inset-0 z-50' : 'rounded-2xl shadow-xl border border-gray-200 dark:border-white/10'
     }`}>
-      {/* ── Top Whiteboard Toolbar (Horizontally Scrollable) ── */}
-      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-150 dark:border-white/8 px-3 py-2 flex items-center justify-between gap-2 shrink-0 overflow-x-auto no-scrollbar scroll-smooth relative z-20">
+      {/* ── Top Whiteboard Toolbar (Horizontally Scrollable & Unified Design) ── */}
+      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-150 dark:border-white/8 px-3 py-2 flex items-center justify-between gap-2.5 shrink-0 overflow-x-auto no-scrollbar scroll-smooth relative z-20">
         
-        {/* Left: Tools & Shapes OR View-Only Status */}
-        <div className="flex items-center gap-1 shrink-0 py-0.5">
+        {/* Left: Tools & Shapes */}
+        <div className="flex items-center gap-2 shrink-0 py-0.5">
           {canDraw ? (
             <>
-              {/* Pen */}
-              <button
-                onClick={() => setActiveTool('pen')}
-                className={`p-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 ${
-                  activeTool === 'pen' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-                }`}
-                title="Pen / Marker"
-              >
-                <Pencil size={15} />
-              </button>
+              {/* Primary Drawing Tools */}
+              <div className="flex items-center gap-1 bg-gray-100/90 dark:bg-white/5 p-1 rounded-2xl border border-gray-200/50 dark:border-white/10">
+                <button
+                  onClick={() => setActiveTool('pen')}
+                  className={`w-7.5 h-7.5 rounded-xl transition flex items-center justify-center cursor-pointer ${
+                    activeTool === 'pen'
+                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10'
+                  }`}
+                  title="Pen / Marker"
+                >
+                  <Pencil size={15} />
+                </button>
 
-              {/* Highlighter */}
-              <button
-                onClick={() => setActiveTool('highlighter')}
-                className={`p-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 ${
-                  activeTool === 'highlighter' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-                }`}
-                title="Highlighter"
-              >
-                <Highlighter size={15} />
-              </button>
+                <button
+                  onClick={() => setActiveTool('highlighter')}
+                  className={`w-7.5 h-7.5 rounded-xl transition flex items-center justify-center cursor-pointer ${
+                    activeTool === 'highlighter'
+                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10'
+                  }`}
+                  title="Highlighter"
+                >
+                  <Highlighter size={15} />
+                </button>
 
-              {/* Eraser */}
-              <button
-                onClick={() => setActiveTool('eraser')}
-                className={`p-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 ${
-                  activeTool === 'eraser' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-                }`}
-                title="Eraser"
-              >
-                <Eraser size={15} />
-              </button>
+                <button
+                  onClick={() => setActiveTool('eraser')}
+                  className={`w-7.5 h-7.5 rounded-xl transition flex items-center justify-center cursor-pointer ${
+                    activeTool === 'eraser'
+                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10'
+                  }`}
+                  title="Eraser"
+                >
+                  <Eraser size={15} />
+                </button>
+              </div>
 
-              <div className="w-px h-4 bg-gray-200 dark:bg-white/10 mx-0.5" />
+              {/* Shapes */}
+              <div className="flex items-center gap-1 bg-gray-100/90 dark:bg-white/5 p-1 rounded-2xl border border-gray-200/50 dark:border-white/10">
+                <button
+                  onClick={() => setActiveTool('rectangle')}
+                  className={`w-7.5 h-7.5 rounded-xl transition flex items-center justify-center cursor-pointer ${
+                    activeTool === 'rectangle'
+                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10'
+                  }`}
+                  title="Rectangle"
+                >
+                  <Square size={15} />
+                </button>
 
-              {/* Rectangle */}
-              <button
-                onClick={() => setActiveTool('rectangle')}
-                className={`p-1.5 rounded-xl transition cursor-pointer ${
-                  activeTool === 'rectangle' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-                }`}
-                title="Rectangle"
-              >
-                <Square size={15} />
-              </button>
+                <button
+                  onClick={() => setActiveTool('circle')}
+                  className={`w-7.5 h-7.5 rounded-xl transition flex items-center justify-center cursor-pointer ${
+                    activeTool === 'circle'
+                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10'
+                  }`}
+                  title="Circle"
+                >
+                  <Circle size={15} />
+                </button>
 
-              {/* Circle */}
-              <button
-                onClick={() => setActiveTool('circle')}
-                className={`p-1.5 rounded-xl transition cursor-pointer ${
-                  activeTool === 'circle' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-                }`}
-                title="Circle"
-              >
-                <Circle size={15} />
-              </button>
+                <button
+                  onClick={() => setActiveTool('line')}
+                  className={`w-7.5 h-7.5 rounded-xl transition flex items-center justify-center cursor-pointer ${
+                    activeTool === 'line'
+                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10'
+                  }`}
+                  title="Line"
+                >
+                  <Minus size={15} />
+                </button>
 
-              {/* Line */}
-              <button
-                onClick={() => setActiveTool('line')}
-                className={`p-1.5 rounded-xl transition cursor-pointer ${
-                  activeTool === 'line' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-                }`}
-                title="Line"
-              >
-                <Minus size={15} />
-              </button>
-
-              {/* Arrow */}
-              <button
-                onClick={() => setActiveTool('arrow')}
-                className={`p-1.5 rounded-xl transition cursor-pointer ${
-                  activeTool === 'arrow' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-                }`}
-                title="Arrow"
-              >
-                <MoveRight size={15} />
-              </button>
-
-              {/* Text */}
-              <button
-                onClick={() => setActiveTool('text')}
-                className={`p-1.5 rounded-xl transition cursor-pointer ${
-                  activeTool === 'text' ? 'bg-orange-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-                }`}
-                title="Text Note"
-              >
-                <Type size={15} />
-              </button>
+                <button
+                  onClick={() => setActiveTool('arrow')}
+                  className={`w-7.5 h-7.5 rounded-xl transition flex items-center justify-center cursor-pointer ${
+                    activeTool === 'arrow'
+                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10'
+                  }`}
+                  title="Arrow"
+                >
+                  <MoveRight size={15} />
+                </button>
+              </div>
             </>
           ) : (
             /* View Only Badge for non-drawers */
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/25 rounded-xl text-amber-600 dark:text-amber-400">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/25 rounded-2xl text-amber-600 dark:text-amber-400">
               <Lock size={13} className="animate-pulse" />
               <span className="text-xs font-bold">View Only</span>
               <span className="text-[10px] text-gray-500 dark:text-gray-400 hidden sm:inline">(Host controls drawing)</span>
@@ -1091,35 +1050,59 @@ export default function RoomWhiteboard({
           )}
         </div>
 
-        {/* Center: Color Picker & Stroke Width (if canDraw) OR Host Permission Controls */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* Center: Color Picker & Stroke Width (if canDraw) + Host Permission Controls */}
+        <div className="flex items-center gap-2 shrink-0">
           {canDraw && (
             <>
-              {/* Color swatches */}
-              <div className="flex items-center gap-1 bg-gray-50 dark:bg-white/5 p-1 rounded-xl border border-gray-150 dark:border-white/8">
-                {PALETTE.map(c => (
-                  <button
-                    key={c}
-                    onClick={() => setSelectedColor(c)}
-                    className={`w-4 h-4 rounded-full transition-transform cursor-pointer border border-black/10 dark:border-white/20 ${
-                      selectedColor === c ? 'scale-125 ring-2 ring-orange-500' : 'hover:scale-110'
-                    }`}
-                    style={{ backgroundColor: c }}
-                  />
-                ))}
+              {/* Color Swatches */}
+              <div className="flex items-center gap-1.5 bg-gray-100/90 dark:bg-white/5 p-1.5 rounded-2xl border border-gray-200/50 dark:border-white/10">
+                {PALETTE.map(c => {
+                  const isSelected = selectedColor === c;
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => setSelectedColor(c)}
+                      className={`w-5 h-5 rounded-full transition-all cursor-pointer relative flex items-center justify-center ${
+                        isSelected 
+                          ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 scale-105 shadow-sm' 
+                          : 'hover:scale-110 opacity-90 hover:opacity-100'
+                      } ${c === '#ffffff' ? 'border border-gray-300 dark:border-white/30' : ''}`}
+                      style={{ backgroundColor: c }}
+                      title={c}
+                    >
+                      {isSelected && (
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: c === '#ffffff' || c === '#f59e0b' ? '#000000' : '#ffffff' }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Stroke Width Selector */}
-              <div className="flex items-center gap-1 bg-gray-50 dark:bg-white/5 p-1 rounded-xl border border-gray-150 dark:border-white/8">
+              <div className="flex items-center gap-1 bg-gray-100/90 dark:bg-white/5 p-1 rounded-2xl border border-gray-200/50 dark:border-white/10">
                 {STROKE_WIDTHS.map(sw => (
                   <button
                     key={sw.value}
                     onClick={() => setStrokeWidth(sw.value)}
-                    className={`px-1.5 py-0.5 rounded-lg text-[10px] font-bold transition cursor-pointer ${
-                      strokeWidth === sw.value ? 'bg-orange-500 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    className={`h-7 px-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      strokeWidth === sw.value
+                        ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10'
                     }`}
+                    title={`${sw.label} (${sw.value}px)`}
                   >
-                    {sw.label}
+                    <span
+                      className="rounded-full shrink-0"
+                      style={{
+                        width: `${sw.dot}px`,
+                        height: `${sw.dot}px`,
+                        backgroundColor: strokeWidth === sw.value ? '#ffffff' : (selectedColor === '#ffffff' ? '#9ca3af' : selectedColor),
+                      }}
+                    />
+                    <span className="text-[11px] font-bold">{sw.label}</span>
                   </button>
                 ))}
               </div>
@@ -1134,10 +1117,10 @@ export default function RoomWhiteboard({
                 e.stopPropagation();
                 setShowPermissionMenu(prev => !prev);
               }}
-              className="px-2.5 py-1 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
+              className="h-9 px-3 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 shrink-0"
               title="Manage Whiteboard Drawing Permissions"
             >
-              <Shield size={13} />
+              <Shield size={14} />
               <span className="hidden sm:inline">Drawing:</span>
               <span className="capitalize">
                 {drawPermissionMode === 'host_only' ? 'Host Only' : drawPermissionMode === 'speakers' ? 'Speakers' : 'Everyone'}
@@ -1147,20 +1130,22 @@ export default function RoomWhiteboard({
           )}
         </div>
 
-        {/* Right: Undo, Redo, Clear, Export & Close */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/* Right: History (Undo/Redo/Clear) & Actions */}
+        <div className="flex items-center gap-2 shrink-0">
           {canDraw && (
-            <>
+            /* History Controls */
+            <div className="flex items-center gap-1 bg-gray-100/90 dark:bg-white/5 p-1 rounded-2xl border border-gray-200/50 dark:border-white/10">
               <button
                 onClick={handleUndo}
-                className="p-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition cursor-pointer"
+                className="w-7.5 h-7.5 rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10 transition flex items-center justify-center cursor-pointer"
                 title="Undo"
               >
                 <RotateCcw size={15} />
               </button>
+
               <button
                 onClick={handleRedo}
-                className="p-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition cursor-pointer"
+                className="w-7.5 h-7.5 rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10 transition flex items-center justify-center cursor-pointer"
                 title="Redo"
               >
                 <RotateCw size={15} />
@@ -1168,39 +1153,42 @@ export default function RoomWhiteboard({
 
               <button
                 onClick={handleClear}
-                className="p-1.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition cursor-pointer"
+                className="w-7.5 h-7.5 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 transition flex items-center justify-center cursor-pointer"
                 title="Clear Whiteboard"
               >
                 <Trash2 size={15} />
               </button>
-            </>
+            </div>
           )}
 
-          <button
-            onClick={handleDownload}
-            className="p-1.5 rounded-xl text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 transition cursor-pointer"
-            title="Download Notes as PNG"
-          >
-            <Download size={15} />
-          </button>
-
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition cursor-pointer"
-            title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-          >
-            {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-          </button>
-
-          {onClose && (
+          {/* Utilities (Export, Fullscreen, Close) */}
+          <div className="flex items-center gap-1 bg-gray-100/90 dark:bg-white/5 p-1 rounded-2xl border border-gray-200/50 dark:border-white/10">
             <button
-              onClick={onClose}
-              className="p-1.5 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition cursor-pointer ml-1"
-              title="Close Whiteboard"
+              onClick={handleDownload}
+              className="w-7.5 h-7.5 rounded-xl text-orange-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/40 transition flex items-center justify-center cursor-pointer"
+              title="Download PNG"
             >
-              <X size={15} />
+              <Download size={15} />
             </button>
-          )}
+
+            <button
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              className="w-7.5 h-7.5 rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-white/10 transition flex items-center justify-center cursor-pointer"
+              title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+            </button>
+
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="w-7.5 h-7.5 rounded-xl text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition flex items-center justify-center cursor-pointer"
+                title="Close Whiteboard"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1231,8 +1219,8 @@ export default function RoomWhiteboard({
                 <Lock size={15} />
               </div>
               <div>
-                <div className="text-xs font-bold">Only Host</div>
-                <div className="text-[10px] text-gray-400 font-normal">Students watch while you teach</div>
+                <div className="text-xs font-bold">Host Only</div>
+                <div className="text-[10px] text-gray-400 font-normal">Only you can draw</div>
               </div>
             </div>
             {drawPermissionMode === 'host_only' && <Check size={14} className="text-orange-500 shrink-0" />}
@@ -1253,7 +1241,7 @@ export default function RoomWhiteboard({
               </div>
               <div>
                 <div className="text-xs font-bold">Stage Speakers</div>
-                <div className="text-[10px] text-gray-400 font-normal">Host & speakers on stage</div>
+                <div className="text-[10px] text-gray-400 font-normal">Host and speakers on stage</div>
               </div>
             </div>
             {drawPermissionMode === 'speakers' && <Check size={14} className="text-orange-500 shrink-0" />}
@@ -1321,26 +1309,6 @@ export default function RoomWhiteboard({
           onTouchEnd={handleEnd}
           className="absolute inset-0 block w-full h-full"
         />
-
-        {/* Text placement input */}
-        {textInput && canDraw && (
-          <div
-            className="absolute z-30"
-            style={{ left: textInput.x, top: textInput.y }}
-          >
-            <input
-              type="text"
-              autoFocus
-              placeholder="Type note & press Enter..."
-              value={textInput.value}
-              onChange={(e) => setTextInput({ ...textInput, value: e.target.value })}
-              onKeyDown={handleTextSubmit}
-              onBlur={() => setTextInput(null)}
-              className="px-2 py-1 bg-white dark:bg-gray-900 border border-orange-500 rounded-lg text-xs font-bold text-gray-900 dark:text-white shadow-lg focus:outline-none"
-              style={{ color: selectedColor }}
-            />
-          </div>
-        )}
       </div>
 
       {/* ── Manage Individual Participants Drawing Modal (Host Only) ── */}
