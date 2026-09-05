@@ -1,32 +1,77 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Video, Lightbulb, Award, Activity, Star, TrendingUp } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import React, { useState, useEffect, useTransition } from 'react';
+import { 
+    Users, Video, Lightbulb, Award, Activity, Star, TrendingUp, 
+    Smartphone, Monitor, Globe, Share2, Flame, BookOpen, Clock, 
+    ArrowUpRight, ArrowDownRight, RefreshCw, Layers, CheckCircle2,
+    Calendar, Sparkles, ChevronRight, BarChart2, PieChart as PieChartIcon
+} from 'lucide-react';
+import { 
+    AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+    Tooltip, ResponsiveContainer, Legend 
+} from 'recharts';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../../context/AuthContext';
 import toast from 'react-hot-toast';
 
-const StatCard = ({ title, value, icon, color }) => (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-4 hover:shadow-md transition-all hover:scale-[1.02] duration-200">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${color} bg-opacity-10`}>
-            {icon}
-        </div>
-        <div>
-            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">{title}</p>
-            <h3 className="text-2xl font-black text-slate-800 dark:text-white">{value}</h3>
-        </div>
-    </div>
-);
+const MetricCard = ({ title, value, subtitle, icon, growth, badge, color, bgLight, bgDark }) => {
+    const isPositive = growth && growth.startsWith('+');
+    const isZero = growth && growth === '0%';
 
-const CustomTooltip = ({ active, payload, label }) => {
+    return (
+        <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
+            <div className="flex items-start justify-between">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color} ${bgLight} dark:${bgDark} bg-opacity-15 dark:bg-opacity-20`}>
+                    {icon}
+                </div>
+                {growth !== undefined && (
+                    <div className={`flex items-center gap-0.5 text-xs font-bold px-2 py-1 rounded-full ${
+                        isZero 
+                            ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' 
+                            : isPositive 
+                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' 
+                                : 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400'
+                    }`}>
+                        {isPositive ? <ArrowUpRight size={14} /> : !isZero ? <ArrowDownRight size={14} /> : null}
+                        <span>{growth}</span>
+                    </div>
+                )}
+                {badge && (
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400">
+                        {badge}
+                    </span>
+                )}
+            </div>
+            
+            <div className="mt-4">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{title}</p>
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white mt-1 tracking-tight">{value}</h3>
+                {subtitle && (
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{subtitle}</p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const CustomChartTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-xl rounded-2xl p-4">
-                <p className="text-xs font-bold text-slate-400 dark:text-slate-500 mb-1">
-                    {new Date(label).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+            <div className="bg-slate-900/95 dark:bg-slate-800/95 text-white backdrop-blur-md border border-slate-700 shadow-2xl rounded-xl p-3 text-xs min-w-[160px]">
+                <p className="font-semibold text-slate-300 pb-1.5 border-b border-slate-700/60 mb-2">
+                    {label}
                 </p>
-                <p className="text-sm font-black text-blue-600 dark:text-blue-400">
-                    New Users: <span className="text-base font-bold text-slate-800 dark:text-white pl-1">{payload[0].value}</span>
-                </p>
+                <div className="space-y-1.5">
+                    {payload.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between gap-4">
+                            <span className="flex items-center gap-1.5 text-slate-300">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                                {item.name}:
+                            </span>
+                            <span className="font-bold text-white">{item.value.toLocaleString()}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }
@@ -35,163 +80,714 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const AdminDashboardHome = () => {
     const [stats, setStats] = useState(null);
+    const [activeUsers, setActiveUsers] = useState(null);
+    const [deviceStats, setDeviceStats] = useState(null);
+    const [acquisition, setAcquisition] = useState(null);
+    const [topLearners, setTopLearners] = useState([]);
     const [recentActivity, setRecentActivity] = useState([]);
+    
+    // Time-series & Chart states
     const [chartData, setChartData] = useState([]);
+    const [hourlyData, setHourlyData] = useState([]);
+    const [selectedRange, setSelectedRange] = useState('30d');
+    const [chartView, setChartView] = useState('users'); // 'users', 'learning', 'hourly'
+    
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [isPending, startTransition] = useTransition();
     const { token } = useAuth();
 
+    const fetchOverviewStats = async () => {
+        try {
+            const headers = { Authorization: `Bearer ${token}` };
+            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/stats`, { headers });
+            
+            setStats(res.data.stats);
+            setActiveUsers(res.data.activeUsers);
+            setDeviceStats(res.data.deviceStats);
+            setAcquisition(res.data.acquisition);
+            setTopLearners(res.data.topLearners || []);
+            setRecentActivity(res.data.recentActivity || []);
+        } catch (err) {
+            console.error("Failed to fetch dashboard stats", err);
+            toast.error("Failed to load dashboard metrics");
+        }
+    };
+
+    const fetchAnalyticsTimeline = async (range) => {
+        try {
+            const headers = { Authorization: `Bearer ${token}` };
+            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/analytics?range=${range}`, { headers });
+            setChartData(res.data.growthChart || []);
+            setHourlyData(res.data.hourlyDistribution || []);
+        } catch (err) {
+            console.error("Failed to fetch analytics timeline", err);
+        }
+    };
+
+    const loadAllData = async () => {
+        setLoading(true);
+        await Promise.all([
+            fetchOverviewStats(),
+            fetchAnalyticsTimeline(selectedRange)
+        ]);
+        setLoading(false);
+    };
+
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const headers = { Authorization: `Bearer ${token}` };
-
-                const [statsRes, analyticsRes] = await Promise.all([
-                    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/stats`, { headers }),
-                    axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/analytics`, { headers })
-                ]);
-
-                setStats(statsRes.data.stats);
-                setRecentActivity(statsRes.data.recentActivity);
-                setChartData(analyticsRes.data.growthChart);
-            } catch (err) {
-                console.error("Failed to fetch admin data", err);
-                toast.error("Failed to load dashboard metrics");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (token) fetchData();
+        if (token) {
+            loadAllData();
+        }
     }, [token]);
+
+    const handleRangeChange = (range) => {
+        setSelectedRange(range);
+        startTransition(async () => {
+            await fetchAnalyticsTimeline(range);
+        });
+    };
+
+    const handleManualRefresh = async () => {
+        setRefreshing(true);
+        await Promise.all([
+            fetchOverviewStats(),
+            fetchAnalyticsTimeline(selectedRange)
+        ]);
+        setRefreshing(false);
+        toast.success("Metrics refreshed with latest telemetry");
+    };
 
     if (loading) {
         return (
-            <div className="flex h-64 items-center justify-center">
-                <div className="w-10 h-10 border-4 border-slate-200 border-t-orange-500 rounded-full animate-spin"></div>
+            <div className="flex flex-col h-96 items-center justify-center gap-3">
+                <div className="w-12 h-12 border-4 border-slate-200 border-t-orange-500 rounded-full animate-spin"></div>
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Loading Platform Telemetry & Insights...</p>
             </div>
         );
     }
 
     if (!stats) return null;
 
+    // Stickiness description helper
+    const getStickinessBadge = (ratio) => {
+        if (ratio >= 40) return { label: 'High Engagement 🔥', color: 'text-emerald-500' };
+        if (ratio >= 20) return { label: 'Healthy Retention ✨', color: 'text-blue-500' };
+        return { label: 'Developing Cohort 📈', color: 'text-amber-500' };
+    };
+
+    const stickinessMeta = getStickinessBadge(activeUsers?.stickinessRatio || 0);
+
     return (
-        <div className="space-y-8 animate-fade-in">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                    title="Total Users"
-                    value={stats.totalUsers.toLocaleString()}
-                    icon={<Users size={28} className="text-blue-500" />}
-                    color="bg-blue-500"
-                />
-                <StatCard
-                    title="Videos Discovered"
-                    value={stats.totalVideos.toLocaleString()}
-                    icon={<Video size={28} className="text-purple-500" />}
-                    color="bg-purple-500"
-                />
-                <StatCard
-                    title="Quizzes Attempted"
-                    value={stats.totalQuizzes.toLocaleString()}
-                    icon={<Lightbulb size={28} className="text-amber-500" />}
-                    color="bg-amber-500"
-                />
-                <StatCard
-                    title="Platform Total XP"
-                    value={stats.totalXP.toLocaleString()}
-                    icon={<Star size={28} className="text-orange-500" />}
-                    color="bg-orange-500"
-                />
+        <div className="space-y-8 animate-fade-in pb-12">
+            {/* Command Center Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent dark:from-orange-500/5 dark:via-transparent p-6 rounded-3xl border border-orange-500/15 dark:border-slate-800">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="flex h-2.5 w-2.5 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                        </span>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tracking-wider uppercase">Live Telemetry System</span>
+                    </div>
+                    <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                        Platform Analytics & Insights
+                    </h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        Real-time active user cohorts, learning velocity, and platform engagement intelligence.
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleManualRefresh}
+                        disabled={refreshing}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs shadow-sm hover:border-orange-500/40 hover:text-orange-600 transition-all duration-200"
+                    >
+                        <RefreshCw size={14} className={refreshing ? 'animate-spin text-orange-500' : ''} />
+                        <span>Refresh Metrics</span>
+                    </button>
+                </div>
             </div>
 
-            {/* Growth Graph */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm p-6">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                            <TrendingUp className="text-blue-500" size={20} />
-                            Platform Growth
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">New user signups over the last 30 days</p>
+            {/* SECTION 1: Active User Engagement Cohorts (DAU / WAU / MAU / Stickiness) */}
+            <div>
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                        <Users className="text-orange-500" size={18} />
+                        Active User Retention & Cohorts
+                    </h2>
+                    <span className="text-xs text-slate-400 font-medium">Updated every session</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <MetricCard
+                        title="Daily Active Users (DAU)"
+                        value={(activeUsers?.dau || 0).toLocaleString()}
+                        growth={activeUsers?.dauGrowth}
+                        subtitle="Active in last 24 hours"
+                        icon={<Flame size={24} className="text-orange-500" />}
+                        color="text-orange-500"
+                        bgLight="bg-orange-50"
+                        bgDark="bg-orange-950"
+                    />
+
+                    <MetricCard
+                        title="Weekly Active Users (WAU)"
+                        value={(activeUsers?.wau || 0).toLocaleString()}
+                        growth={activeUsers?.wauGrowth}
+                        subtitle="Active in past 7 days"
+                        icon={<Activity size={24} className="text-blue-500" />}
+                        color="text-blue-500"
+                        bgLight="bg-blue-50"
+                        bgDark="bg-blue-950"
+                    />
+
+                    <MetricCard
+                        title="Monthly Active Users (MAU)"
+                        value={(activeUsers?.mau || 0).toLocaleString()}
+                        growth={activeUsers?.mauGrowth}
+                        subtitle="Active in past 30 days"
+                        icon={<TrendingUp size={24} className="text-purple-500" />}
+                        color="text-purple-500"
+                        bgLight="bg-purple-50"
+                        bgDark="bg-purple-950"
+                    />
+
+                    <div className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                        <div className="flex items-start justify-between">
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30">
+                                <Sparkles size={24} />
+                            </div>
+                            <span className={`text-xs font-bold ${stickinessMeta.color}`}>
+                                {stickinessMeta.label}
+                            </span>
+                        </div>
+                        <div className="mt-4">
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stickiness (DAU/MAU)</p>
+                            <div className="flex items-baseline gap-2 mt-1">
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                                    {activeUsers?.stickinessRatio || 0}%
+                                </h3>
+                                <span className="text-xs text-slate-400">frequency</span>
+                            </div>
+                            <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                                <div 
+                                    className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" 
+                                    style={{ width: `${Math.min(100, activeUsers?.stickinessRatio || 0)}%` }}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div className="h-72 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(100,116,139,0.1)" />
-                            <XAxis
-                                dataKey="date"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#64748b', fontSize: 12 }}
-                                tickFormatter={(str) => {
-                                    const date = new Date(str);
-                                    return `${date.getMonth() + 1}/${date.getDate()}`;
-                                }}
-                            />
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#64748b', fontSize: 12 }}
-                            />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Area
-                                type="monotone"
-                                dataKey="newUsers"
-                                name="New Users"
-                                stroke="#3b82f6"
-                                strokeWidth={3}
-                                fillOpacity={1}
-                                fill="url(#colorUsers)"
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
+            </div>
+
+            {/* SECTION 2: Platform Total Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                            <Users size={18} />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total Registered</p>
+                            <h4 className="text-lg font-black text-slate-900 dark:text-white">{stats.totalUsers.toLocaleString()}</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                            <Clock size={18} />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Watch Time</p>
+                            <h4 className="text-lg font-black text-slate-900 dark:text-white">{stats.totalWatchHours} hrs</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                            <Lightbulb size={18} />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Quizzes Passed</p>
+                            <h4 className="text-lg font-black text-slate-900 dark:text-white">{stats.passedQuizzesCount} ({stats.quizPassRate}%)</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                            <Award size={18} />
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Certificates</p>
+                            <h4 className="text-lg font-black text-slate-900 dark:text-white">{stats.totalCertificates.toLocaleString()}</h4>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Recent Activity Stream */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-                <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/30 dark:bg-slate-800/10">
-                    <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                        <Activity className="text-orange-500" size={20} />
-                        Recent Platform Activity
-                    </h3>
-                </div>
+            {/* SECTION 3: Interactive Time-Series Analytics with Tab Switcher */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm p-6">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+                    {/* View Switcher Tabs */}
+                    <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl w-fit">
+                        <button
+                            onClick={() => setChartView('users')}
+                            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                chartView === 'users'
+                                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            <Users size={14} />
+                            <span>Active Users & Growth</span>
+                        </button>
+                        <button
+                            onClick={() => setChartView('learning')}
+                            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                chartView === 'learning'
+                                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            <BarChart2 size={14} />
+                            <span>Learning Velocity</span>
+                        </button>
+                        <button
+                            onClick={() => setChartView('hourly')}
+                            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                chartView === 'hourly'
+                                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                        >
+                            <Clock size={14} />
+                            <span>24h Peak Study Hours</span>
+                        </button>
+                    </div>
 
-                {recentActivity.length > 0 ? (
-                    <div className="divide-y divide-slate-50 dark:divide-slate-800/80">
-                        {recentActivity.map((activity) => (
-                            <div key={activity.id} className="p-6 flex items-start gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                {activity.user.profile_pic ? (
-                                    <img src={activity.user.profile_pic} alt="" className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 object-cover" />
-                                ) : (
-                                    <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 font-bold flex items-center justify-center">
-                                        {activity.user.name.charAt(0)}
-                                    </div>
-                                )}
-                                <div>
-                                    <p className="text-slate-800 dark:text-slate-200">
-                                        <span className="font-semibold text-slate-900 dark:text-white">{activity.user.name}</span>{' '}
-                                        <span className="text-slate-600 dark:text-slate-400">{activity.activity_type}</span>
-                                    </p>
-                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                                        {new Date(activity.timestamp).toLocaleString()}
-                                    </p>
-                                </div>
-                            </div>
+                    {/* Time Range Pills (7d, 30d, 90d, 1y) */}
+                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl w-fit self-end lg:self-auto">
+                        {[
+                            { key: '7d', label: '7D' },
+                            { key: '30d', label: '30D' },
+                            { key: '90d', label: '90D' },
+                            { key: '1y', label: '1Y' }
+                        ].map(pill => (
+                            <button
+                                key={pill.key}
+                                onClick={() => handleRangeChange(pill.key)}
+                                className={`px-3 py-1 text-xs font-bold rounded-xl transition-all ${
+                                    selectedRange === pill.key
+                                        ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
+                                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                }`}
+                            >
+                                {pill.label}
+                            </button>
                         ))}
                     </div>
-                ) : (
-                    <div className="p-12 text-center text-slate-500 dark:text-slate-400">
-                        No recent activity recorded yet.
+                </div>
+
+                {/* Main Dynamic Chart Rendering */}
+                <div className="h-80 w-full">
+                    {chartView === 'users' && (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="activeUsersGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4} />
+                                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.0} />
+                                    </linearGradient>
+                                    <linearGradient id="newUsersGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(100,116,139,0.1)" />
+                                <XAxis
+                                    dataKey="date"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#64748b', fontSize: 11 }}
+                                    tickFormatter={(str) => {
+                                        const d = new Date(str);
+                                        return `${d.getMonth() + 1}/${d.getDate()}`;
+                                    }}
+                                />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
+                                <Tooltip content={<CustomChartTooltip />} />
+                                <Legend 
+                                    verticalAlign="top" 
+                                    align="right" 
+                                    iconType="circle"
+                                    wrapperStyle={{ paddingBottom: '12px', fontSize: '12px' }} 
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="activeUsers"
+                                    name="Daily Active Users"
+                                    stroke="#8b5cf6"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#activeUsersGrad)"
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="newUsers"
+                                    name="New Signups"
+                                    stroke="#3b82f6"
+                                    strokeWidth={2}
+                                    fillOpacity={1}
+                                    fill="url(#newUsersGrad)"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    )}
+
+                    {chartView === 'learning' && (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(100,116,139,0.1)" />
+                                <XAxis
+                                    dataKey="date"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#64748b', fontSize: 11 }}
+                                    tickFormatter={(str) => {
+                                        const d = new Date(str);
+                                        return `${d.getMonth() + 1}/${d.getDate()}`;
+                                    }}
+                                />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
+                                <Tooltip content={<CustomChartTooltip />} />
+                                <Legend 
+                                    verticalAlign="top" 
+                                    align="right" 
+                                    iconType="circle"
+                                    wrapperStyle={{ paddingBottom: '12px', fontSize: '12px' }} 
+                                />
+                                <Bar dataKey="quizzesAttempted" name="Quizzes Taken" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="videosCompleted" name="Videos Completed" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="certificatesIssued" name="Certificates Issued" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
+
+                    {chartView === 'hourly' && (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={hourlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="hourlyGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.4} />
+                                        <stop offset="95%" stopColor="#f97316" stopOpacity={0.0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(100,116,139,0.1)" />
+                                <XAxis
+                                    dataKey="label"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#64748b', fontSize: 11 }}
+                                />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
+                                <Tooltip content={<CustomChartTooltip />} />
+                                <Area
+                                    type="monotone"
+                                    dataKey="events"
+                                    name="Active Interactions"
+                                    stroke="#f97316"
+                                    strokeWidth={3}
+                                    fillOpacity={1}
+                                    fill="url(#hourlyGrad)"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    )}
+                </div>
+            </div>
+
+            {/* SECTION 4: Platform Intelligence Widgets (Device Distribution & Referral Funnel) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Device & Platform Breakdown */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Monitor className="text-blue-500" size={18} />
+                                Platforms & Ecosystem
+                            </h3>
+                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 font-semibold">
+                                {deviceStats?.totalSubscribers || 0} Clients
+                            </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+                            Client environment and push notification receiver distribution.
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <div className="flex justify-between text-xs font-semibold mb-1">
+                                    <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                                        <Globe size={14} className="text-sky-500" /> Web Browser
+                                    </span>
+                                    <span className="text-slate-900 dark:text-white font-bold">{deviceStats?.deviceMap?.web || 0}</span>
+                                </div>
+                                <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                                    <div className="bg-sky-500 h-full rounded-full" style={{ width: '65%' }} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between text-xs font-semibold mb-1">
+                                    <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                                        <Smartphone size={14} className="text-emerald-500" /> Mobile / Android TWA
+                                    </span>
+                                    <span className="text-slate-900 dark:text-white font-bold">
+                                        {(deviceStats?.deviceMap?.twa || 0) + (deviceStats?.deviceMap?.android || 0)}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                                    <div className="bg-emerald-500 h-full rounded-full" style={{ width: '25%' }} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <div className="flex justify-between text-xs font-semibold mb-1">
+                                    <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                                        <Monitor size={14} className="text-purple-500" /> Desktop Apps (macOS / Win)
+                                    </span>
+                                    <span className="text-slate-900 dark:text-white font-bold">{deviceStats?.deviceMap?.desktop || 0}</span>
+                                </div>
+                                <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                                    <div className="bg-purple-500 h-full rounded-full" style={{ width: '10%' }} />
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                )}
+
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 mt-6 flex items-center justify-between text-xs text-slate-500">
+                        <span>Total App Launches</span>
+                        <span className="font-bold text-slate-800 dark:text-white">{deviceStats?.appLaunchesCount?.toLocaleString() || 0}</span>
+                    </div>
+                </div>
+
+                {/* Campus Ambassador & Referral Funnel */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Share2 className="text-orange-500" size={18} />
+                                Acquisition & Referrals
+                            </h3>
+                            <Link 
+                                to="/admin/referrals" 
+                                className="text-xs font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-0.5"
+                            >
+                                Manage <ChevronRight size={14} />
+                            </Link>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+                            Breakdown between Campus Ambassador referrals and organic platform signups.
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-3 mb-6">
+                            <div className="p-3.5 rounded-2xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Referred Signups</p>
+                                <h4 className="text-xl font-black text-orange-600 dark:text-orange-400 mt-1">
+                                    {acquisition?.referredUsers || 0}
+                                </h4>
+                                <p className="text-[11px] text-slate-400 mt-0.5">{acquisition?.referredPercent || 0}% of all users</p>
+                            </div>
+
+                            <div className="p-3.5 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30">
+                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Organic Signups</p>
+                                <h4 className="text-xl font-black text-blue-600 dark:text-blue-400 mt-1">
+                                    {acquisition?.organicUsers || 0}
+                                </h4>
+                                <p className="text-[11px] text-slate-400 mt-0.5">{100 - (acquisition?.referredPercent || 0)}% direct</p>
+                            </div>
+                        </div>
+
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full flex overflow-hidden">
+                            <div 
+                                className="bg-orange-500 h-full transition-all" 
+                                style={{ width: `${acquisition?.referredPercent || 0}%` }} 
+                                title="Referred Users"
+                            />
+                            <div 
+                                className="bg-blue-500 h-full transition-all" 
+                                style={{ width: `${100 - (acquisition?.referredPercent || 0)}%` }} 
+                                title="Organic Users"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 mt-6 flex items-center justify-between text-xs text-slate-500">
+                        <span>Active Ambassador Codes</span>
+                        <span className="font-bold text-slate-800 dark:text-white">{stats.activeCampaignsCount || 0}</span>
+                    </div>
+                </div>
+
+                {/* AI Workspaces & Notes Knowledge Engine */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <BookOpen className="text-emerald-500" size={18} />
+                                Knowledge & AI Engine
+                            </h3>
+                            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 font-semibold">
+                                AI Ecosystem
+                            </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+                            Student study tools, generated AI summaries, and workspace notes.
+                        </p>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                                <span className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                                    <Layers size={16} className="text-emerald-500" />
+                                    Study Workspaces Created
+                                </span>
+                                <span className="text-sm font-bold text-slate-900 dark:text-white">{stats.totalWorkspaces || 0}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                                <span className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                                    <BookOpen size={16} className="text-blue-500" />
+                                    AI Notes & Summaries
+                                </span>
+                                <span className="text-sm font-bold text-slate-900 dark:text-white">{stats.totalNotes || 0}</span>
+                            </div>
+
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                                <span className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                                    <CheckCircle2 size={16} className="text-purple-500" />
+                                    Video Completion Rate
+                                </span>
+                                <span className="text-sm font-bold text-slate-900 dark:text-white">{stats.videoCompletionRate}%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-6 border-t border-slate-100 dark:border-slate-800 mt-6 flex items-center justify-between text-xs text-slate-500">
+                        <span>Average Quiz Score</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{stats.avgScore}%</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* SECTION 5: Top Active Learners Leaderboard & Live Telemetry Feed */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Top Active Learners */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm p-6">
+                    <div className="flex items-center justify-between mb-5">
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Star className="text-amber-500" size={18} />
+                                Top Active Learners
+                            </h3>
+                            <p className="text-xs text-slate-400 mt-0.5">Highest XP and course completion leaders</p>
+                        </div>
+                        <Link
+                            to="/admin/users"
+                            className="text-xs font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-0.5"
+                        >
+                            View All <ChevronRight size={14} />
+                        </Link>
+                    </div>
+
+                    {topLearners.length > 0 ? (
+                        <div className="space-y-3">
+                            {topLearners.map((user, idx) => (
+                                <Link
+                                    key={user.id}
+                                    to={`/admin/users/${user.id}`}
+                                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-800"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-6 text-center font-black text-xs text-slate-400">
+                                            {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                                        </div>
+                                        {user.profile_pic ? (
+                                            <img src={user.profile_pic} alt="" className="w-9 h-9 rounded-full object-cover bg-slate-100" />
+                                        ) : (
+                                            <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400 font-bold flex items-center justify-center text-xs">
+                                                {user.name?.charAt(0) || 'U'}
+                                            </div>
+                                        )}
+                                        <div>
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white leading-snug">{user.name}</p>
+                                            <p className="text-[11px] text-slate-400 truncate max-w-[150px]">{user.email}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4 text-right">
+                                        {user.streak_count > 0 && (
+                                            <span className="hidden sm:flex items-center gap-1 text-[11px] font-semibold text-orange-600 dark:text-orange-400">
+                                                <Flame size={12} /> {user.streak_count}d
+                                            </span>
+                                        )}
+                                        <div>
+                                            <p className="text-xs font-black text-slate-900 dark:text-white">{user.xp.toLocaleString()} XP</p>
+                                            <p className="text-[10px] text-slate-400">Lvl {user.level || 1}</p>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-8 text-center text-xs text-slate-400">No student learning data yet.</div>
+                    )}
+                </div>
+
+                {/* Live Platform Activity Feed */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm p-6">
+                    <div className="flex items-center justify-between mb-5">
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Activity className="text-orange-500" size={18} />
+                                Live Telemetry Stream
+                            </h3>
+                            <p className="text-xs text-slate-400 mt-0.5">Real-time user actions across the platform</p>
+                        </div>
+                    </div>
+
+                    {recentActivity.length > 0 ? (
+                        <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                            {recentActivity.map((act) => (
+                                <div key={act.id} className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50/50 dark:bg-slate-800/30">
+                                    {act.user?.profile_pic ? (
+                                        <img src={act.user.profile_pic} alt="" className="w-8 h-8 rounded-full object-cover mt-0.5" />
+                                    ) : (
+                                        <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400 font-bold flex items-center justify-center text-xs mt-0.5">
+                                            {act.user?.name?.charAt(0) || 'U'}
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs text-slate-800 dark:text-slate-200">
+                                            <span className="font-bold text-slate-900 dark:text-white">{act.user?.name || 'User'}</span>{' '}
+                                            <span className="text-slate-500 dark:text-slate-400">{act.activity_type}</span>
+                                        </p>
+                                        <p className="text-[10px] text-slate-400 mt-0.5">
+                                            {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(act.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-8 text-center text-xs text-slate-400">No activity logged yet today.</div>
+                    )}
+                </div>
             </div>
         </div>
     );

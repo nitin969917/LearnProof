@@ -48,6 +48,27 @@ const verifyFirebaseToken = async (idToken) => {
     }
 };
 
+const logDailyActiveSession = async (userId) => {
+    if (!userId) return;
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const sessionKey = `user:active:session:${userId}:${today}`;
+        const alreadyLogged = await cacheService.get(sessionKey);
+        if (!alreadyLogged) {
+            await cacheService.set(sessionKey, '1', 86400);
+            await prisma.userActivityLog.create({
+                data: {
+                    userId,
+                    activity_type: 'Active Session',
+                    timestamp: new Date()
+                }
+            }).catch(() => {});
+        }
+    } catch (e) {
+        // Silently catch logging error
+    }
+};
+
 /**
  * Express Middleware for Auth
  */
@@ -84,6 +105,7 @@ const authMiddleware = async (req, res, next) => {
                 
                 if (user) {
                     req.user = { ...decoded, ...user, id: user.id, uid: userUid };
+                    logDailyActiveSession(user.id);
                     return next();
                 }
             }
@@ -128,6 +150,7 @@ const authMiddleware = async (req, res, next) => {
         req.user = { ...decodedToken, ...user, id: user.id };
         req.newSessionToken = newSessionToken;
         
+        logDailyActiveSession(user.id);
         next();
     } catch (error) {
         console.error('Auth middleware error details:', error);
