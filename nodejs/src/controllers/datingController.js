@@ -548,6 +548,103 @@ const searchUsers = async (req, res) => {
   }
 };
 
+const getSuggestedUsers = async (req, res) => {
+  const userId = req.user.id;
+  const limit = parseInt(req.query.limit) || 8;
+
+  try {
+    // 1. Get existing accepted friendships to avoid suggesting already connected friends
+    const existingFriendships = await datingPrisma.friendship.findMany({
+      where: {
+        OR: [
+          { senderId: userId },
+          { receiverId: userId }
+        ]
+      }
+    });
+
+    const connectedUserIds = existingFriendships
+      .filter(f => f.status === 'accepted')
+      .map(f => f.senderId === userId ? f.receiverId : f.senderId);
+
+    const excludeIds = [userId, ...connectedUserIds];
+
+    // 2. Fetch suggested users excluding self and connected friends
+    let suggested = await datingPrisma.user.findMany({
+      where: {
+        id: { notIn: excludeIds }
+      },
+      select: {
+        id: true,
+        name: true,
+        profilePicture: true,
+        collegeName: true,
+        department: true,
+        bio: true,
+        createdAt: true,
+      },
+      take: limit,
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // Fallback: If not enough users, include other users excluding only self
+    if (suggested.length < limit) {
+      const remaining = limit - suggested.length;
+      const alreadyFetchedIds = [userId, ...suggested.map(u => u.id)];
+      const fallbackUsers = await datingPrisma.user.findMany({
+        where: {
+          id: { notIn: alreadyFetchedIds }
+        },
+        select: {
+          id: true,
+          name: true,
+          profilePicture: true,
+          collegeName: true,
+          department: true,
+          bio: true,
+          createdAt: true,
+        },
+        take: remaining,
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+      suggested = [...suggested, ...fallbackUsers];
+    }
+
+    // 3. Attach friendship status for each user
+    const suggestedIds = suggested.map(u => u.id);
+    const relevantFriendships = await datingPrisma.friendship.findMany({
+      where: {
+        OR: [
+          { senderId: userId, receiverId: { in: suggestedIds } },
+          { senderId: { in: suggestedIds }, receiverId: userId }
+        ]
+      }
+    });
+
+    const suggestedWithStatus = suggested.map(u => {
+      const friendship = relevantFriendships.find(f => 
+        (f.senderId === userId && f.receiverId === u.id) ||
+        (f.senderId === u.id && f.receiverId === userId)
+      );
+
+      return {
+        ...u,
+        friendshipStatus: friendship ? friendship.status : null,
+        isFriendshipSender: friendship ? friendship.senderId === userId : false,
+      };
+    });
+
+    res.json(suggestedWithStatus);
+  } catch (error) {
+    console.error('Failed to get suggested users:', error);
+    res.status(500).json({ error: 'Failed to fetch suggested users' });
+  }
+};
+
 // ==========================================
 // SOCIAL CONTROLLERS
 // ==========================================
@@ -2498,6 +2595,7 @@ module.exports = {
   getProfile,
   updateProfile,
   searchUsers,
+  getSuggestedUsers,
   sendFriendRequest,
   acceptFriendRequest,
   acceptFriendship,

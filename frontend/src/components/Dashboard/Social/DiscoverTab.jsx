@@ -12,6 +12,8 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const [loading, setLoading] = useState(false);
   const [sentRequests, setSentRequests] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [loadingSuggested, setLoadingSuggested] = useState(false);
   const searchInputRef = useRef(null);
 
   // Groups from shared store (pre-fetched by GroupsTab/ChatsTab)
@@ -22,6 +24,22 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   // Join Private Group Modal states
   const [showJoinGroupModal, setShowJoinGroupModal] = useState(null);
   const [joinKey, setJoinKey] = useState('');
+
+  // Fetch suggested users on mount
+  useEffect(() => {
+    const fetchSuggested = async () => {
+      setLoadingSuggested(true);
+      try {
+        const response = await socialApi.get('/users/suggested?limit=8');
+        setSuggestedUsers(Array.isArray(response.data) ? response.data : []);
+      } catch (err) {
+        console.error('Failed to fetch suggested users:', err);
+      } finally {
+        setLoadingSuggested(false);
+      }
+    };
+    fetchSuggested();
+  }, []);
 
   // Trigger search or fetch when query or searchType changes
   useEffect(() => {
@@ -114,7 +132,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const isSearching = (searchType === 'students' ? hasSearched : (hasSearched || (searchType === 'groups' && hasLoadedGroups)));
 
   return (
-    <div className={`flex flex-col gap-5 sm:gap-6 w-full ${isSearching ? 'max-w-md lg:max-w-5xl' : 'max-w-md lg:max-w-xl'} mx-auto py-2 sm:py-4 px-3 sm:px-0 transition-all duration-300`}>
+    <div className={`flex flex-col gap-5 sm:gap-6 w-full ${isSearching ? 'max-w-md lg:max-w-5xl' : 'max-w-md lg:max-w-4xl'} mx-auto py-2 sm:py-4 px-3 sm:px-0 transition-all duration-300`}>
       
       {/* ── LANDING VIEW: MATCHING TARGET SCREENSHOT ── */}
       {!isSearching && (
@@ -219,6 +237,97 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
               </button>
             </div>
           </div>
+
+          {/* ── SUGGESTED USERS SECTION ── */}
+          {(loadingSuggested || suggestedUsers.length > 0) && (
+            <div className="flex flex-col gap-3.5 mt-2">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100/60 dark:border-orange-500/10">
+                    <Sparkles size={14} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-gray-900 dark:text-gray-100 text-sm sm:text-base">
+                      Suggested Users
+                    </h3>
+                  </div>
+                </div>
+                {suggestedUsers.length > 0 && (
+                  <span className="text-[10px] font-extrabold text-orange-500 bg-orange-50 dark:bg-orange-950/20 px-2.5 py-1 rounded-full border border-orange-100/50 dark:border-orange-500/10">
+                    {suggestedUsers.length} People
+                  </span>
+                )}
+              </div>
+
+              {loadingSuggested ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  {[1, 2, 3, 4].map((n) => (
+                    <div key={n} className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-4 animate-pulse flex items-center gap-3.5">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gray-200 dark:bg-gray-800 shrink-0"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-100 dark:bg-gray-850 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+                  {suggestedUsers.map((student) => {
+                    const fState = getFriendshipState(student);
+                    return (
+                      <div
+                        key={student.id}
+                        onClick={() => onViewProfile && onViewProfile(student.id)}
+                        className="bg-white dark:bg-gray-900 hover:bg-orange-50/10 dark:hover:bg-gray-800/40 rounded-3xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer flex items-center gap-3.5 group relative overflow-hidden"
+                      >
+                        <UserAvatar
+                          src={student.profilePicture}
+                          name={student.name}
+                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl shrink-0"
+                          textClassName="text-base sm:text-lg"
+                        />
+
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-extrabold text-gray-900 dark:text-gray-100 group-hover:text-orange-500 transition-colors text-sm sm:text-base truncate">
+                            {student.name}
+                          </h4>
+                          {student.department && (
+                            <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs mt-0.5 truncate font-semibold">
+                              <GraduationCap size={12} className="text-orange-400 shrink-0" />
+                              <span className="truncate">{student.department}</span>
+                            </div>
+                          )}
+                          {student.collegeName && (
+                            <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 text-[11px] mt-0.5 truncate font-medium">
+                              <MapPin size={11} className="text-orange-400 shrink-0" />
+                              <span className="truncate">{student.collegeName}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={(e) => handleConnect(e, student.id)}
+                          disabled={fState.isConnected || fState.isPending}
+                          className={`z-10 p-2 sm:px-3 sm:py-2 rounded-2xl transition-all cursor-pointer shrink-0 font-extrabold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 ${
+                            fState.isConnected
+                              ? 'bg-indigo-50 bg-opacity-20 text-indigo-650 dark:text-indigo-400 border border-indigo-200/25'
+                              : fState.isPending
+                                ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 border border-green-200/25'
+                                : 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20'
+                          }`}
+                          title={fState.label}
+                        >
+                          {fState.icon}
+                          <span className="hidden sm:inline">{fState.label}</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       )}
