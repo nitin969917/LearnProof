@@ -36,6 +36,7 @@ export default function LanguageLearning() {
 
   useEffect(() => {
     fetchRooms();
+    fetchFriends();
     if (user && !socialUser) {
       fetchSocialUser();
     }
@@ -81,16 +82,19 @@ export default function LanguageLearning() {
   };
 
   const fetchFriends = async () => {
-    if (friendsList.length > 0) return;
     setLoadingFriends(true);
     try {
       const res = await socialApi.get('/social/friendships');
-      const accepted = (Array.isArray(res.data) ? res.data : []).filter(f => f.status === 'accepted');
-      const myId = socialUser?.id;
-      const friends = accepted.map(f => {
-        const isSender = f.senderId === myId;
-        return isSender ? f.receiver : f.sender;
-      }).filter(Boolean);
+      let friends = [];
+      if (Array.isArray(res.data?.friends)) {
+        friends = res.data.friends;
+      } else if (Array.isArray(res.data)) {
+        const myId = socialUser?.id;
+        friends = res.data
+          .filter(f => f.status === 'accepted')
+          .map(f => (f.senderId === myId ? f.receiver : f.sender))
+          .filter(Boolean);
+      }
       setFriendsList(friends);
     } catch (err) {
       console.error('Failed to fetch friends for private room:', err);

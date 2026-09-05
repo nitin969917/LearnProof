@@ -196,12 +196,16 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     setLoadingFriendsToInvite(true);
     try {
       const res = await socialApi.get('/social/friendships');
-      const accepted = (Array.isArray(res.data) ? res.data : []).filter(f => f.status === 'accepted');
-      const myId = userIdentity ? Number(userIdentity) : null;
-      const friends = accepted.map(f => {
-        const isSender = f.senderId === myId;
-        return isSender ? f.receiver : f.sender;
-      }).filter(Boolean);
+      let friends = [];
+      if (Array.isArray(res.data?.friends)) {
+        friends = res.data.friends;
+      } else if (Array.isArray(res.data)) {
+        const myId = userIdentity ? Number(userIdentity) : null;
+        friends = res.data
+          .filter(f => f.status === 'accepted')
+          .map(f => (f.senderId === myId ? f.receiver : f.sender))
+          .filter(Boolean);
+      }
       setFriendsToInvite(friends);
     } catch (err) {
       console.error('Failed to load friends for invite modal:', err);
