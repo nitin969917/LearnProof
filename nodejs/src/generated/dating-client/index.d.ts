@@ -10583,6 +10583,8 @@ export namespace Prisma {
     isFriendsOnly: boolean | null
     isPrivate: boolean | null
     invitedUserIds: string | null
+    scheduledFor: Date | null
+    isStartedNotificationSent: boolean | null
     createdAt: Date | null
     creatorId: number | null
   }
@@ -10598,6 +10600,8 @@ export namespace Prisma {
     isFriendsOnly: boolean | null
     isPrivate: boolean | null
     invitedUserIds: string | null
+    scheduledFor: Date | null
+    isStartedNotificationSent: boolean | null
     createdAt: Date | null
     creatorId: number | null
   }
@@ -10613,6 +10617,8 @@ export namespace Prisma {
     isFriendsOnly: number
     isPrivate: number
     invitedUserIds: number
+    scheduledFor: number
+    isStartedNotificationSent: number
     createdAt: number
     creatorId: number
     _all: number
@@ -10642,6 +10648,8 @@ export namespace Prisma {
     isFriendsOnly?: true
     isPrivate?: true
     invitedUserIds?: true
+    scheduledFor?: true
+    isStartedNotificationSent?: true
     createdAt?: true
     creatorId?: true
   }
@@ -10657,6 +10665,8 @@ export namespace Prisma {
     isFriendsOnly?: true
     isPrivate?: true
     invitedUserIds?: true
+    scheduledFor?: true
+    isStartedNotificationSent?: true
     createdAt?: true
     creatorId?: true
   }
@@ -10672,6 +10682,8 @@ export namespace Prisma {
     isFriendsOnly?: true
     isPrivate?: true
     invitedUserIds?: true
+    scheduledFor?: true
+    isStartedNotificationSent?: true
     createdAt?: true
     creatorId?: true
     _all?: true
@@ -10774,6 +10786,8 @@ export namespace Prisma {
     isFriendsOnly: boolean
     isPrivate: boolean
     invitedUserIds: string | null
+    scheduledFor: Date | null
+    isStartedNotificationSent: boolean
     createdAt: Date
     creatorId: number
     _count: LanguageRoomCountAggregateOutputType | null
@@ -10808,6 +10822,8 @@ export namespace Prisma {
     isFriendsOnly?: boolean
     isPrivate?: boolean
     invitedUserIds?: boolean
+    scheduledFor?: boolean
+    isStartedNotificationSent?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10824,6 +10840,8 @@ export namespace Prisma {
     isFriendsOnly?: boolean
     isPrivate?: boolean
     invitedUserIds?: boolean
+    scheduledFor?: boolean
+    isStartedNotificationSent?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10840,6 +10858,8 @@ export namespace Prisma {
     isFriendsOnly?: boolean
     isPrivate?: boolean
     invitedUserIds?: boolean
+    scheduledFor?: boolean
+    isStartedNotificationSent?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10856,11 +10876,13 @@ export namespace Prisma {
     isFriendsOnly?: boolean
     isPrivate?: boolean
     invitedUserIds?: boolean
+    scheduledFor?: boolean
+    isStartedNotificationSent?: boolean
     createdAt?: boolean
     creatorId?: boolean
   }
 
-  export type LanguageRoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "roomName" | "topic" | "language" | "roomType" | "mediaType" | "maxParticipants" | "isFriendsOnly" | "isPrivate" | "invitedUserIds" | "createdAt" | "creatorId", ExtArgs["result"]["languageRoom"]>
+  export type LanguageRoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "roomName" | "topic" | "language" | "roomType" | "mediaType" | "maxParticipants" | "isFriendsOnly" | "isPrivate" | "invitedUserIds" | "scheduledFor" | "isStartedNotificationSent" | "createdAt" | "creatorId", ExtArgs["result"]["languageRoom"]>
   export type LanguageRoomInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     creator?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -10887,6 +10909,8 @@ export namespace Prisma {
       isFriendsOnly: boolean
       isPrivate: boolean
       invitedUserIds: string | null
+      scheduledFor: Date | null
+      isStartedNotificationSent: boolean
       createdAt: Date
       creatorId: number
     }, ExtArgs["result"]["languageRoom"]>
@@ -11323,6 +11347,8 @@ export namespace Prisma {
     readonly isFriendsOnly: FieldRef<"LanguageRoom", 'Boolean'>
     readonly isPrivate: FieldRef<"LanguageRoom", 'Boolean'>
     readonly invitedUserIds: FieldRef<"LanguageRoom", 'String'>
+    readonly scheduledFor: FieldRef<"LanguageRoom", 'DateTime'>
+    readonly isStartedNotificationSent: FieldRef<"LanguageRoom", 'Boolean'>
     readonly createdAt: FieldRef<"LanguageRoom", 'DateTime'>
     readonly creatorId: FieldRef<"LanguageRoom", 'Int'>
   }
@@ -15277,6 +15303,8 @@ export namespace Prisma {
     isFriendsOnly: 'isFriendsOnly',
     isPrivate: 'isPrivate',
     invitedUserIds: 'invitedUserIds',
+    scheduledFor: 'scheduledFor',
+    isStartedNotificationSent: 'isStartedNotificationSent',
     createdAt: 'createdAt',
     creatorId: 'creatorId'
   };
@@ -16029,6 +16057,8 @@ export namespace Prisma {
     isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
     isPrivate?: BoolFilter<"LanguageRoom"> | boolean
     invitedUserIds?: StringNullableFilter<"LanguageRoom"> | string | null
+    scheduledFor?: DateTimeNullableFilter<"LanguageRoom"> | Date | string | null
+    isStartedNotificationSent?: BoolFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -16045,6 +16075,8 @@ export namespace Prisma {
     isFriendsOnly?: SortOrder
     isPrivate?: SortOrder
     invitedUserIds?: SortOrderInput | SortOrder
+    scheduledFor?: SortOrderInput | SortOrder
+    isStartedNotificationSent?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
     creator?: UserOrderByWithRelationInput
@@ -16064,6 +16096,8 @@ export namespace Prisma {
     isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
     isPrivate?: BoolFilter<"LanguageRoom"> | boolean
     invitedUserIds?: StringNullableFilter<"LanguageRoom"> | string | null
+    scheduledFor?: DateTimeNullableFilter<"LanguageRoom"> | Date | string | null
+    isStartedNotificationSent?: BoolFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -16080,6 +16114,8 @@ export namespace Prisma {
     isFriendsOnly?: SortOrder
     isPrivate?: SortOrder
     invitedUserIds?: SortOrderInput | SortOrder
+    scheduledFor?: SortOrderInput | SortOrder
+    isStartedNotificationSent?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
     _count?: LanguageRoomCountOrderByAggregateInput
@@ -16103,6 +16139,8 @@ export namespace Prisma {
     isFriendsOnly?: BoolWithAggregatesFilter<"LanguageRoom"> | boolean
     isPrivate?: BoolWithAggregatesFilter<"LanguageRoom"> | boolean
     invitedUserIds?: StringNullableWithAggregatesFilter<"LanguageRoom"> | string | null
+    scheduledFor?: DateTimeNullableWithAggregatesFilter<"LanguageRoom"> | Date | string | null
+    isStartedNotificationSent?: BoolWithAggregatesFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"LanguageRoom"> | Date | string
     creatorId?: IntWithAggregatesFilter<"LanguageRoom"> | number
   }
@@ -16933,6 +16971,8 @@ export namespace Prisma {
     isFriendsOnly?: boolean
     isPrivate?: boolean
     invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
     creator: UserCreateNestedOneWithoutLanguageRoomsInput
   }
@@ -16948,6 +16988,8 @@ export namespace Prisma {
     isFriendsOnly?: boolean
     isPrivate?: boolean
     invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
     creatorId: number
   }
@@ -16962,6 +17004,8 @@ export namespace Prisma {
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutLanguageRoomsNestedInput
   }
@@ -16977,6 +17021,8 @@ export namespace Prisma {
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creatorId?: IntFieldUpdateOperationsInput | number
   }
@@ -16992,6 +17038,8 @@ export namespace Prisma {
     isFriendsOnly?: boolean
     isPrivate?: boolean
     invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
     creatorId: number
   }
@@ -17006,6 +17054,8 @@ export namespace Prisma {
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -17020,6 +17070,8 @@ export namespace Prisma {
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creatorId?: IntFieldUpdateOperationsInput | number
   }
@@ -17805,6 +17857,17 @@ export namespace Prisma {
     receiverId?: SortOrder
   }
 
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type LanguageRoomCountOrderByAggregateInput = {
     id?: SortOrder
     roomName?: SortOrder
@@ -17816,6 +17879,8 @@ export namespace Prisma {
     isFriendsOnly?: SortOrder
     isPrivate?: SortOrder
     invitedUserIds?: SortOrder
+    scheduledFor?: SortOrder
+    isStartedNotificationSent?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17837,6 +17902,8 @@ export namespace Prisma {
     isFriendsOnly?: SortOrder
     isPrivate?: SortOrder
     invitedUserIds?: SortOrder
+    scheduledFor?: SortOrder
+    isStartedNotificationSent?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17852,6 +17919,8 @@ export namespace Prisma {
     isFriendsOnly?: SortOrder
     isPrivate?: SortOrder
     invitedUserIds?: SortOrder
+    scheduledFor?: SortOrder
+    isStartedNotificationSent?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17860,6 +17929,20 @@ export namespace Prisma {
     id?: SortOrder
     maxParticipants?: SortOrder
     creatorId?: SortOrder
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type GroupCountOrderByAggregateInput = {
@@ -18877,6 +18960,10 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
   export type UserUpdateOneRequiredWithoutLanguageRoomsNestedInput = {
     create?: XOR<UserCreateWithoutLanguageRoomsInput, UserUncheckedCreateWithoutLanguageRoomsInput>
     connectOrCreate?: UserCreateOrConnectWithoutLanguageRoomsInput
@@ -19188,6 +19275,31 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
   export type PostCreateWithoutAuthorInput = {
     content: string
     image?: string | null
@@ -19480,6 +19592,8 @@ export namespace Prisma {
     isFriendsOnly?: boolean
     isPrivate?: boolean
     invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
   }
 
@@ -19494,6 +19608,8 @@ export namespace Prisma {
     isFriendsOnly?: boolean
     isPrivate?: boolean
     invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
   }
 
@@ -19865,6 +19981,8 @@ export namespace Prisma {
     isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
     isPrivate?: BoolFilter<"LanguageRoom"> | boolean
     invitedUserIds?: StringNullableFilter<"LanguageRoom"> | string | null
+    scheduledFor?: DateTimeNullableFilter<"LanguageRoom"> | Date | string | null
+    isStartedNotificationSent?: BoolFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
   }
@@ -23029,6 +23147,8 @@ export namespace Prisma {
     isFriendsOnly?: boolean
     isPrivate?: boolean
     invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
   }
 
@@ -23334,6 +23454,8 @@ export namespace Prisma {
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -23348,6 +23470,8 @@ export namespace Prisma {
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -23362,6 +23486,8 @@ export namespace Prisma {
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
     isPrivate?: BoolFieldUpdateOperationsInput | boolean
     invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

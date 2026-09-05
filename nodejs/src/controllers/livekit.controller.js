@@ -76,6 +76,13 @@ const getToken = async (req, res) => {
 
     const isAdmin = dbRoom ? (dbRoom.creatorId === userId) : false;
 
+    // If host is entering a scheduled room early, trigger starting notifications immediately
+    if (isAdmin && dbRoom && dbRoom.scheduledFor && !dbRoom.isStartedNotificationSent) {
+      datingController.sendRoomStartedNotification(dbRoom, req.app.get('io')).catch(err => {
+        console.error('Failed early start notification on LiveKit token generation:', err);
+      });
+    }
+
     // 2. Ensure room exists in LiveKit server (support up to 500 audience members for "unlimited" feel)
     await livekitService.createRoom(room, 500);
 

@@ -215,6 +215,8 @@ exports.Prisma.LanguageRoomScalarFieldEnum = {
   isFriendsOnly: 'isFriendsOnly',
   isPrivate: 'isPrivate',
   invitedUserIds: 'invitedUserIds',
+  scheduledFor: 'scheduledFor',
+  isStartedNotificationSent: 'isStartedNotificationSent',
   createdAt: 'createdAt',
   creatorId: 'creatorId'
 };

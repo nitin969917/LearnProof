@@ -8,7 +8,7 @@ const datingPrisma = new PrismaClient({
   log: process.env.NODE_ENV === 'production' ? ['error'] : ['error', 'warn'],
 });
 
-// Self-healing check for new social table columns (isPrivate & invitedUserIds)
+// Self-healing check for new social table columns (isPrivate, invitedUserIds, scheduledFor, isStartedNotificationSent)
 (async () => {
   try {
     await datingPrisma.$executeRawUnsafe(`
@@ -18,6 +18,14 @@ const datingPrisma = new PrismaClient({
     await datingPrisma.$executeRawUnsafe(`
       ALTER TABLE "social_language_rooms" 
       ADD COLUMN IF NOT EXISTS "invitedUserIds" TEXT DEFAULT '[]';
+    `);
+    await datingPrisma.$executeRawUnsafe(`
+      ALTER TABLE "social_language_rooms" 
+      ADD COLUMN IF NOT EXISTS "scheduledFor" TIMESTAMP WITH TIME ZONE;
+    `);
+    await datingPrisma.$executeRawUnsafe(`
+      ALTER TABLE "social_language_rooms" 
+      ADD COLUMN IF NOT EXISTS "isStartedNotificationSent" BOOLEAN NOT NULL DEFAULT false;
     `);
   } catch (err) {
     // Ignore if not supported by current dialect or already exists

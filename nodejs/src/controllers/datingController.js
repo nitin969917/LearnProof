@@ -992,13 +992,38 @@ const createLanguageRoom = async (req, res) => {
 
   try {
     // Generate a unique roomName by appending a random suffix and checking existence
-    let uniqueRoomName = roomName;
+    let uniqueRoomName = roomNconst createLanguageRoom = async (req, res) => {
+  const { roomName, topic, language, roomType, mediaType, maxParticipants, isFriendsOnly, isPrivate, invitedUserIds, scheduledFor } = req.body;
+  const creatorId = req.user.id;
+
+  try {
+    if (!roomName || !language) {
+      return res.status(400).json({ error: 'Room name and language are required' });
+    }
+
+    // Auto-generate clean unique roomName
+    const baseSlug = roomName
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .slice(0, 40);
+
+    let uniqueRoomName = baseSlug;
     let isUnique = false;
     let attempts = 0;
 
-    while (!isUnique && attempts < 10) {
+    const existingExact = await datingPrisma.languageRoom.findUnique({
+      where: { roomName: uniqueRoomName },
+    });
+
+    if (!existingExact) {
+      isUnique = true;
+    }
+
+    while (!isUnique && attempts < 5) {
       const suffix = Math.floor(1000 + Math.random() * 9000); // 4-digit number
-      uniqueRoomName = `${roomName}-${suffix}`;
+      uniqueRoomName = `${baseSlug}-${suffix}`;
       
       const checkRoom = await datingPrisma.languageRoom.findUnique({
         where: { roomName: uniqueRoomName },
@@ -1011,7 +1036,7 @@ const createLanguageRoom = async (req, res) => {
     }
 
     if (!isUnique) {
-      uniqueRoomName = `${roomName}-${Date.now()}`;
+      uniqueRoomName = `${baseSlug}-${Date.now()}`;
     }
 
     const finalRoomType = roomType || 'group';
@@ -1022,6 +1047,17 @@ const createLanguageRoom = async (req, res) => {
 
     const finalIsPrivate = !!isPrivate;
     const finalIsFriendsOnly = finalIsPrivate ? false : !!isFriendsOnly;
+
+    // Parse scheduled date if provided
+    let parsedScheduledFor = null;
+    let isScheduledRoom = false;
+    if (scheduledFor) {
+      const d = new Date(scheduledFor);
+      if (!isNaN(d.getTime()) && d > new Date()) {
+        parsedScheduledFor = d;
+        isScheduledRoom = true;
+      }
+    }
 
     // Normalize invitedUserIds
     let invitedIds = [];
@@ -1050,6 +1086,8 @@ const createLanguageRoom = async (req, res) => {
         isFriendsOnly: finalIsFriendsOnly,
         isPrivate: finalIsPrivate,
         invitedUserIds: JSON.stringify(invitedIds),
+        scheduledFor: parsedScheduledFor,
+        isStartedNotificationSent: !isScheduledRoom, // if not scheduled, mark starting notifications as processed after immediate dispatch
       },
       include: {
         creator: {
@@ -1065,27 +1103,55 @@ const createLanguageRoom = async (req, res) => {
     const creatorName = room.creator?.name || 'A friend';
     const formattedLanguage = room.language || 'English';
     const topicText = room.topic || 'General Discussion';
+    const mediaTypeLabel = (mediaType || 'audio') === 'video' ? 'video' : 'audio';
+
+    const formatScheduleText = (dateObj) => {
+      try {
+        return dateObj.toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        });
+      } catch {
+        return 'soon';
+      }
+    };
 
     if (finalIsPrivate) {
       // Send invitations specifically to selected friends (if any were invited)
       if (invitedIds.length > 0) {
         try {
+          const title = isScheduledRoom
+            ? `📅 Private ${mediaTypeLabel.toUpperCase()} Room Scheduled`
+            : `${creatorName} invited you to a private live room`;
+          const body = isScheduledRoom
+            ? `${creatorName} scheduled "${topicText}" (${formattedLanguage}) for ${formatScheduleText(parsedScheduledFor)}. Tap to view.`
+            : `Join the private room "${topicText}" in ${formattedLanguage} now!`;
+
           sendPushNotification(
             invitedIds,
-            `${creatorName} invited you to a private live room`,
-            `Join the private room "${topicText}" in ${formattedLanguage} now!`,
-            { type: 'LIVE_ROOM_INVITATION', roomName: room.roomName }
+            title,
+            body,
+            { 
+              type: isScheduledRoom ? 'LIVE_ROOM_SCHEDULED' : 'LIVE_ROOM_INVITATION', 
+              roomName: room.roomName,
+              scheduledFor: parsedScheduledFor ? parsedScheduledFor.toISOString() : null
+            }
           );
 
           const io = req.app.get('io');
           if (io) {
             invitedIds.forEach(targetId => {
-              io.to(`user_${targetId}`).emit('ROOM_INVITATION', {
+              io.to(`user_${targetId}`).emit(isScheduledRoom ? 'ROOM_SCHEDULED' : 'ROOM_INVITATION', {
                 roomName: room.roomName,
                 creatorName,
                 topic: room.topic,
                 language: room.language,
                 mediaType: room.mediaType,
+                scheduledFor: parsedScheduledFor,
+                isPrivate: true,
               });
             });
           }
@@ -1093,7 +1159,6 @@ const createLanguageRoom = async (req, res) => {
           console.error('Error sending private room invite notification:', pushErr.message);
         }
       }
-      // If invitedIds is empty, user is studying alone in a solo room (no notifications sent)
     } else {
       // Send push notification to creator's friends for public or friends-only rooms
       try {
@@ -1109,12 +1174,39 @@ const createLanguageRoom = async (req, res) => {
         const friendIds = friendships.map(f => f.senderId === creatorId ? f.receiverId : f.senderId);
         
         if (friendIds.length > 0) {
+          const roomLabel = finalIsFriendsOnly ? 'Friends-only' : 'Live';
+          const title = isScheduledRoom
+            ? `📅 ${creatorName} scheduled a ${roomLabel} ${mediaTypeLabel.toUpperCase()} Room`
+            : `${creatorName} started a ${roomLabel.toLowerCase()} room`;
+          const body = isScheduledRoom
+            ? `"${topicText}" (${formattedLanguage}) is scheduled for ${formatScheduleText(parsedScheduledFor)}. Mark your calendar!`
+            : `Join the live room "${topicText}" in ${formattedLanguage} to discuss together!`;
+
           sendPushNotification(
             friendIds,
-            `${creatorName} started a live room`,
-            `Join the live room "${topicText}" in ${formattedLanguage} to discuss together!`,
-            { type: 'LIVE_ROOM_CREATED', roomName: room.roomName }
+            title,
+            body,
+            { 
+              type: isScheduledRoom ? 'LIVE_ROOM_SCHEDULED' : 'LIVE_ROOM_CREATED', 
+              roomName: room.roomName,
+              scheduledFor: parsedScheduledFor ? parsedScheduledFor.toISOString() : null
+            }
           );
+
+          const io = req.app.get('io');
+          if (io) {
+            friendIds.forEach(targetId => {
+              io.to(`user_${targetId}`).emit(isScheduledRoom ? 'ROOM_SCHEDULED' : 'ROOM_CREATED', {
+                roomName: room.roomName,
+                creatorName,
+                topic: room.topic,
+                language: room.language,
+                mediaType: room.mediaType,
+                scheduledFor: parsedScheduledFor,
+                isFriendsOnly: finalIsFriendsOnly,
+              });
+            });
+          }
         }
       } catch (pushErr) {
         console.error('Error sending room push notification to friends:', pushErr.message);
@@ -1134,6 +1226,121 @@ const createLanguageRoom = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to create room' });
+  }
+};
+
+const sendRoomStartedNotification = async (room, io) => {
+  if (!room || room.isStartedNotificationSent) return;
+  try {
+    const creatorName = room.creator?.name || 'A friend';
+    const formattedLanguage = room.language || 'English';
+    const topicText = room.topic || 'General Discussion';
+    const mediaTypeLabel = (room.mediaType || 'audio') === 'video' ? 'Video' : 'Audio';
+    const isPrivate = room.isPrivate;
+    const isFriendsOnly = room.isFriendsOnly;
+
+    if (isPrivate) {
+      let invitedIds = [];
+      try {
+        const parsed = JSON.parse(room.invitedUserIds || '[]');
+        if (Array.isArray(parsed)) invitedIds = parsed.map(Number).filter(n => !isNaN(n) && n !== room.creatorId);
+      } catch (e) {}
+
+      if (invitedIds.length > 0) {
+        sendPushNotification(
+          invitedIds,
+          `🔴 Private ${mediaTypeLabel} Room Starting Now!`,
+          `${creatorName}'s scheduled room "${topicText}" in ${formattedLanguage} is live now. Tap to join!`,
+          { type: 'LIVE_ROOM_STARTED', roomName: room.roomName }
+        );
+
+        if (io) {
+          invitedIds.forEach(targetId => {
+            io.to(`user_${targetId}`).emit('ROOM_STARTED', {
+              roomName: room.roomName,
+              creatorName,
+              topic: room.topic,
+              language: room.language,
+              mediaType: room.mediaType,
+              isPrivate: true,
+            });
+          });
+        }
+      }
+    } else {
+      // Friends-only or Public room
+      const friendships = await datingPrisma.friendship.findMany({
+        where: {
+          status: 'accepted',
+          OR: [
+            { senderId: room.creatorId },
+            { receiverId: room.creatorId }
+          ]
+        }
+      });
+      const friendIds = friendships.map(f => f.senderId === room.creatorId ? f.receiverId : f.senderId);
+
+      if (friendIds.length > 0) {
+        const roomTypeLabel = isFriendsOnly ? 'Friends-only' : 'Live';
+        sendPushNotification(
+          friendIds,
+          `🔴 ${roomTypeLabel} ${mediaTypeLabel} Room Starting Now!`,
+          `${creatorName}'s scheduled room "${topicText}" in ${formattedLanguage} is live now. Tap to join!`,
+          { type: 'LIVE_ROOM_STARTED', roomName: room.roomName }
+        );
+
+        if (io) {
+          friendIds.forEach(targetId => {
+            io.to(`user_${targetId}`).emit('ROOM_STARTED', {
+              roomName: room.roomName,
+              creatorName,
+              topic: room.topic,
+              language: room.language,
+              mediaType: room.mediaType,
+              isFriendsOnly: isFriendsOnly,
+            });
+          });
+        }
+      }
+    }
+
+    await datingPrisma.languageRoom.update({
+      where: { id: room.id },
+      data: { isStartedNotificationSent: true }
+    });
+
+    await invalidateRoomsCache();
+    if (io) {
+      io.emit('ROOMS_UPDATED');
+    }
+    console.log(`[Scheduled Rooms] Sent start notification for room: ${room.roomName}`);
+  } catch (err) {
+    console.error(`Failed to send room started notification for ${room?.roomName}:`, err);
+  }
+};
+
+const checkScheduledRoomsToStart = async (io) => {
+  try {
+    const now = new Date();
+    const dueRooms = await datingPrisma.languageRoom.findMany({
+      where: {
+        scheduledFor: {
+          lte: now,
+        },
+        isStartedNotificationSent: false,
+      },
+      include: {
+        creator: {
+          select: { id: true, name: true, profilePicture: true }
+        }
+      }
+    });
+
+    for (const room of dueRooms) {
+      await sendRoomStartedNotification(room, io);
+    }
+  } catch (err) {
+    console.error('Error checking scheduled rooms to start:', err);
   }
 };
 
@@ -1275,17 +1482,21 @@ const refreshRoomsInBackground = async (userId, cacheKey) => {
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { scheduledFor: 'asc' },
+        { createdAt: 'desc' },
+      ],
     });
 
     const now = new Date();
     const validRooms = [];
 
     for (const room of rooms) {
-      const isNew = (now - new Date(room.createdAt)) < 30000;
-      if (isNew || activeLkRoomNames.includes(room.roomName)) {
+      const isScheduled = !!room.scheduledFor;
+      const isScheduledFuture = isScheduled && (new Date(room.scheduledFor) > new Date(now.getTime() - 2 * 60 * 60 * 1000)); // allow up to 2h past scheduled start
+      const isNew = (now - new Date(room.createdAt)) < 45000;
+
+      if (isScheduledFuture || isNew || activeLkRoomNames.includes(room.roomName)) {
         // Determine if current user is authorized to see this room
         let canView = false;
         if (room.creatorId === userId) {
@@ -1308,6 +1519,7 @@ const refreshRoomsInBackground = async (userId, cacheKey) => {
           validRooms.push(room);
         }
       } else {
+        // Auto delete old dead non-scheduled rooms or scheduled rooms expired over 2h ago
         datingPrisma.languageRoom.delete({
           where: { id: room.id }
         }).catch(err => console.error(`Failed to auto-delete dead room ${room.roomName} in background:`, err));
@@ -1370,17 +1582,21 @@ const getLanguageRooms = async (req, res) => {
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { scheduledFor: 'asc' },
+        { createdAt: 'desc' },
+      ],
     });
 
     const now = new Date();
     const validRooms = [];
 
     for (const room of rooms) {
-      const isNew = (now - new Date(room.createdAt)) < 30000;
-      if (isNew || activeLkRoomNames.includes(room.roomName)) {
+      const isScheduled = !!room.scheduledFor;
+      const isScheduledFuture = isScheduled && (new Date(room.scheduledFor) > new Date(now.getTime() - 2 * 60 * 60 * 1000));
+      const isNew = (now - new Date(room.createdAt)) < 45000;
+
+      if (isScheduledFuture || isNew || activeLkRoomNames.includes(room.roomName)) {
         // Determine if current user is authorized to see this room
         let canView = false;
         if (room.creatorId === userId) {
@@ -2298,4 +2514,6 @@ module.exports = {
   deleteMessage,
   deleteGroupMessage,
   cancelDelayedRoomDeletion,
+  sendRoomStartedNotification,
+  checkScheduledRoomsToStart,
 };

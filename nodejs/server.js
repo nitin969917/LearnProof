@@ -383,6 +383,14 @@ app.use((err, req, res, next) => {
 // Listen using the HTTP server
 server.listen(PORT, () => {
     console.log(`Express server running on http://localhost:${PORT}`);
+
+    // Periodically check scheduled rooms every 15s to trigger start notifications on time
+    const { checkScheduledRoomsToStart } = require('./src/controllers/datingController');
+    setInterval(() => {
+        checkScheduledRoomsToStart(io).catch(err => {
+            console.error('[Scheduled Rooms] Background start check failed:', err.message);
+        });
+    }, 15000);
 });
 
 // Graceful shutdown — important for PM2 cluster mode
