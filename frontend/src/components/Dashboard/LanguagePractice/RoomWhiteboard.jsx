@@ -53,6 +53,14 @@ export default function RoomWhiteboard({
   const [showManageModal, setShowManageModal] = useState(false);
   const permissionMenuRef = useRef(null);
 
+  // Active stroke streaming & shape preview refs
+  const currentStrokeId = useRef(null);
+  const strokeBuffer = useRef([]);
+  const lastBroadcastTime = useRef(0);
+  const lastShapeBroadcastTime = useRef(0);
+  const peerActiveStrokes = useRef(new Map()); // strokeId -> { tool, color, width, points }
+  const peerPreviewShapes = useRef(new Map()); // participantId -> shape element
+
   // Shapes & text in-progress
   const startPos = useRef({ x: 0, y: 0 });
   const snapshotRef = useRef(null);
@@ -91,13 +99,13 @@ export default function RoomWhiteboard({
   }, [showPermissionMenu]);
 
   // ── Helper: Broadcast packet over LiveKit Data Channel ───────────────────────
-  const broadcastPacket = useCallback((payload) => {
+  const broadcastPacket = useCallback((payload, reliable = true) => {
     if (!room || !localParticipant) return;
     try {
       const dataStr = JSON.stringify(payload);
       const encoder = new TextEncoder();
       localParticipant.publishData(encoder.encode(dataStr), {
-        reliable: true,
+        reliable,
         topic: 'whiteboard'
       }).catch(err => console.error('Whiteboard publish error:', err));
     } catch (e) {
@@ -114,7 +122,7 @@ export default function RoomWhiteboard({
       type: 'DRAW_PERMISSIONS_UPDATE',
       mode,
       allowedIds: customAllowedIds,
-    });
+    }, true);
     const label = mode === 'host_only' ? 'Host Only' : mode === 'speakers' ? 'Stage Speakers' : 'Everyone';
     toast.success(`Whiteboard drawing set to: ${label}`);
   };
@@ -131,7 +139,7 @@ export default function RoomWhiteboard({
       type: 'DRAW_PERMISSIONS_UPDATE',
       mode: drawPermissionMode,
       allowedIds: updated,
-    });
+    }, true);
   };
 
   // ── Draw Single Element onto Canvas ──────────────────────────────────────────
@@ -247,7 +255,7 @@ export default function RoomWhiteboard({
     ctx.restore();
   }, []);
 
-  // ── Redraw Canvas from Element History ───────────────────────────────────────
+  // ── Redraw Canvas from Element History + Active Live Strokes ─────────────────
   const redrawAllElements = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = contextRef.current;
@@ -256,8 +264,29 @@ export default function RoomWhiteboard({
     const rect = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, rect.width, rect.height);
 
+    // 1. Draw committed elements
     elementsRef.current.forEach(elem => {
       drawElement(ctx, elem);
+    });
+
+    // 2. Draw in-progress live peer strokes
+    peerActiveStrokes.current.forEach(stroke => {
+      if (stroke.points && stroke.points.length > 0) {
+        drawElement(ctx, {
+          type: 'path',
+          tool: stroke.tool,
+          color: stroke.color,
+          width: stroke.width,
+          points: stroke.points,
+        });
+      }
+    });
+
+    // 3. Draw in-progress live peer shapes
+    peerPreviewShapes.current.forEach(shape => {
+      if (shape) {
+        drawElement(ctx, shape);
+      }
     });
   }, [drawElement]);
 
@@ -309,7 +338,7 @@ export default function RoomWhiteboard({
     };
   }, [setupCanvas]);
 
-  // ── LiveKit Data Event Listener for Real-Time Peer Sync ─────────────────────
+  // ── LiveKit Real-Time WebRTC Data Event Listener ────────────────────────────
   useEffect(() => {
     if (!room) return;
 
@@ -318,43 +347,132 @@ export default function RoomWhiteboard({
       try {
         const decoder = new TextDecoder();
         const message = JSON.parse(decoder.decode(payload));
+        const senderId = participant?.identity || 'peer';
 
         switch (message.type) {
-          case 'DRAW_ELEMENT':
+          // ⚡ Real-time Live Stroke Start
+          case 'STROKE_START': {
+            peerActiveStrokes.current.set(message.strokeId, {
+              tool: message.tool,
+              color: message.color,
+              width: message.width,
+              points: [message.point],
+            });
+            break;
+          }
+
+          // ⚡ Real-time Live Stroke Streaming Chunk
+          case 'STROKE_CHUNK': {
+            const activeStroke = peerActiveStrokes.current.get(message.strokeId);
+            if (activeStroke && Array.isArray(message.points)) {
+              const canvas = canvasRef.current;
+              const ctx = contextRef.current;
+              const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
+              const w = rect.width || 1;
+              const h = rect.height || 1;
+
+              // Draw new segment directly to canvas without full clear (zero overhead)
+              if (ctx && activeStroke.points.length > 0) {
+                const prev = activeStroke.points[activeStroke.points.length - 1];
+                const prevX = prev.nx !== undefined ? prev.nx * w : prev.x;
+                const prevY = prev.ny !== undefined ? prev.ny * h : prev.y;
+
+                ctx.save();
+                ctx.strokeStyle = activeStroke.color;
+                ctx.lineWidth = activeStroke.width;
+                ctx.globalAlpha = activeStroke.tool === 'highlighter' ? 0.35 : 1.0;
+
+                if (activeStroke.tool === 'eraser') {
+                  ctx.globalCompositeOperation = 'destination-out';
+                  ctx.lineWidth = activeStroke.width * 2;
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(prevX, prevY);
+
+                for (let i = 0; i < message.points.length; i++) {
+                  const pt = message.points[i];
+                  const curX = pt.nx !== undefined ? pt.nx * w : pt.x;
+                  const curY = pt.ny !== undefined ? pt.ny * h : pt.y;
+                  ctx.lineTo(curX, curY);
+                  activeStroke.points.push(pt);
+                }
+
+                ctx.stroke();
+                ctx.restore();
+              } else {
+                activeStroke.points.push(...message.points);
+              }
+            }
+            break;
+          }
+
+          // ⚡ Real-time Live Stroke Completion
+          case 'STROKE_END': {
+            peerActiveStrokes.current.delete(message.strokeId);
+            if (message.element) {
+              elementsRef.current.push(message.element);
+            }
+            redrawAllElements();
+            break;
+          }
+
+          // ⚡ Live Shape Drag Preview
+          case 'SHAPE_PREVIEW': {
+            if (message.shape) {
+              peerPreviewShapes.current.set(senderId, message.shape);
+            } else {
+              peerPreviewShapes.current.delete(senderId);
+            }
+            redrawAllElements();
+            break;
+          }
+
+          // Direct element draw
+          case 'DRAW_ELEMENT': {
+            peerPreviewShapes.current.delete(senderId);
             elementsRef.current.push(message.element);
             if (contextRef.current) {
               drawElement(contextRef.current, message.element);
             }
             break;
+          }
 
-          case 'CLEAR':
+          case 'CLEAR': {
             elementsRef.current = [];
             undoStackRef.current = [];
+            peerActiveStrokes.current.clear();
+            peerPreviewShapes.current.clear();
             redrawAllElements();
             break;
+          }
 
-          case 'UNDO':
+          case 'UNDO': {
             elementsRef.current.pop();
             redrawAllElements();
             break;
+          }
 
-          case 'DRAW_PERMISSIONS_UPDATE':
+          case 'DRAW_PERMISSIONS_UPDATE': {
             if (message.mode) setDrawPermissionMode(message.mode);
             if (Array.isArray(message.allowedIds)) setCustomAllowedIds(message.allowedIds);
             break;
+          }
 
-          case 'SYNC_REQUEST':
-            if (elementsRef.current.length > 0 || isHost) {
+          // ONLY Host answers SYNC_REQUEST to prevent multi-peer storm
+          case 'SYNC_REQUEST': {
+            if (isHost) {
               broadcastPacket({
                 type: 'SYNC_RESPONSE',
                 elements: elementsRef.current,
                 mode: drawPermissionMode,
                 allowedIds: customAllowedIds,
-              });
+              }, true);
             }
             break;
+          }
 
-          case 'SYNC_RESPONSE':
+          case 'SYNC_RESPONSE': {
             if (message.elements && Array.isArray(message.elements)) {
               elementsRef.current = message.elements;
               redrawAllElements();
@@ -366,6 +484,7 @@ export default function RoomWhiteboard({
               setCustomAllowedIds(message.allowedIds);
             }
             break;
+          }
 
           default:
             break;
@@ -377,8 +496,8 @@ export default function RoomWhiteboard({
 
     room.on(RoomEvent.DataReceived, handleDataReceived);
 
-    // Request initial sync from existing peers
-    broadcastPacket({ type: 'SYNC_REQUEST' });
+    // Request initial sync from host
+    broadcastPacket({ type: 'SYNC_REQUEST' }, true);
 
     return () => {
       room.off(RoomEvent.DataReceived, handleDataReceived);
@@ -398,7 +517,7 @@ export default function RoomWhiteboard({
     };
   };
 
-  // ── Mouse & Touch Event Handlers ─────────────────────────────────────────────
+  // ── Mouse & Touch Event Handlers (High Performance Streaming) ───────────────
   const currentPath = useRef([]);
 
   const handleStart = (e) => {
@@ -408,6 +527,11 @@ export default function RoomWhiteboard({
     }
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
     const { x, y } = getCoords(e);
+    const canvas = canvasRef.current;
+    const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
+    const w = rect.width || 1;
+    const h = rect.height || 1;
+
     startPos.current = { x, y };
     setIsDrawing(true);
 
@@ -418,10 +542,24 @@ export default function RoomWhiteboard({
     }
 
     if (activeTool === 'pen' || activeTool === 'highlighter' || activeTool === 'eraser') {
-      currentPath.current = [{ x, y }];
+      const strokeId = 'strk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+      currentStrokeId.current = strokeId;
+      const point = { x, y, nx: x / w, ny: y / h };
+      currentPath.current = [point];
+      strokeBuffer.current = [];
+      lastBroadcastTime.current = performance.now();
+
+      // ⚡ Stream STROKE_START immediately to all peers
+      broadcastPacket({
+        type: 'STROKE_START',
+        strokeId,
+        point,
+        tool: activeTool,
+        color: selectedColor,
+        width: strokeWidth,
+      }, true);
     } else {
       // Shape snapshot
-      const canvas = canvasRef.current;
       if (canvas) {
         snapshotRef.current = canvas.toDataURL();
       }
@@ -432,16 +570,23 @@ export default function RoomWhiteboard({
     if (!canDraw || !isDrawing) return;
     const { x, y } = getCoords(e);
     const ctx = contextRef.current;
-    if (!ctx) return;
+    const canvas = canvasRef.current;
+    if (!ctx || !canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const w = rect.width || 1;
+    const h = rect.height || 1;
 
     if (activeTool === 'pen' || activeTool === 'highlighter' || activeTool === 'eraser') {
-      currentPath.current.push({ x, y });
+      const pt = { x, y, nx: x / w, ny: y / h };
+      currentPath.current.push(pt);
+      strokeBuffer.current.push(pt);
 
       const len = currentPath.current.length;
       if (len >= 2) {
         const p1 = currentPath.current[len - 2];
         const p2 = currentPath.current[len - 1];
 
+        // Draw locally immediately (60fps)
         ctx.save();
         ctx.strokeStyle = selectedColor;
         ctx.lineWidth = strokeWidth;
@@ -458,8 +603,20 @@ export default function RoomWhiteboard({
         ctx.stroke();
         ctx.restore();
       }
+
+      // ⚡ Stream STROKE_CHUNK to all peers every ~25ms
+      const now = performance.now();
+      if (now - lastBroadcastTime.current >= 25 && strokeBuffer.current.length > 0) {
+        broadcastPacket({
+          type: 'STROKE_CHUNK',
+          strokeId: currentStrokeId.current,
+          points: [...strokeBuffer.current],
+        }, false);
+        strokeBuffer.current = [];
+        lastBroadcastTime.current = now;
+      }
     } else {
-      // Preview shape
+      // Preview shape locally
       redrawAllElements();
       const elem = {
         type: activeTool,
@@ -470,12 +627,30 @@ export default function RoomWhiteboard({
         y: startPos.current.y,
         w: x - startPos.current.x,
         h: y - startPos.current.y,
+        nx: startPos.current.x / w,
+        ny: startPos.current.y / h,
+        nw: (x - startPos.current.x) / w,
+        nh: (y - startPos.current.y) / h,
         x1: startPos.current.x,
         y1: startPos.current.y,
         x2: x,
         y2: y,
+        nx1: startPos.current.x / w,
+        ny1: startPos.current.y / h,
+        nx2: x / w,
+        ny2: y / h,
       };
       drawElement(ctx, elem);
+
+      // ⚡ Stream live shape preview to peers every 40ms
+      const now = performance.now();
+      if (now - lastShapeBroadcastTime.current >= 40) {
+        broadcastPacket({
+          type: 'SHAPE_PREVIEW',
+          shape: elem,
+        }, false);
+        lastShapeBroadcastTime.current = now;
+      }
     }
   };
 
@@ -494,17 +669,36 @@ export default function RoomWhiteboard({
       if (currentPath.current.length > 0) {
         newElement = {
           type: 'path',
+          strokeId: currentStrokeId.current,
           tool: activeTool,
           color: selectedColor,
           width: strokeWidth,
-          points: currentPath.current.map(p => ({
-            x: p.x,
-            y: p.y,
-            nx: p.x / w,
-            ny: p.y / h,
-          })),
+          points: [...currentPath.current],
         };
         currentPath.current = [];
+      }
+
+      // Flush remaining points
+      if (strokeBuffer.current.length > 0) {
+        broadcastPacket({
+          type: 'STROKE_CHUNK',
+          strokeId: currentStrokeId.current,
+          points: [...strokeBuffer.current],
+        }, true);
+        strokeBuffer.current = [];
+      }
+
+      if (newElement) {
+        elementsRef.current.push(newElement);
+        undoStackRef.current = [];
+        redrawAllElements();
+
+        // ⚡ Commit final STROKE_END to peers
+        broadcastPacket({
+          type: 'STROKE_END',
+          strokeId: currentStrokeId.current,
+          element: newElement,
+        }, true);
       }
     } else if (['rectangle', 'circle', 'line', 'arrow'].includes(activeTool)) {
       const dx = x - startPos.current.x;
@@ -532,17 +726,22 @@ export default function RoomWhiteboard({
           nx2: x / w,
           ny2: y / h,
         };
-      }
-    }
 
-    if (newElement) {
-      elementsRef.current.push(newElement);
-      undoStackRef.current = [];
-      redrawAllElements();
-      broadcastPacket({
-        type: 'DRAW_ELEMENT',
-        element: newElement,
-      });
+        elementsRef.current.push(newElement);
+        undoStackRef.current = [];
+        redrawAllElements();
+
+        // Clear preview & commit element
+        broadcastPacket({
+          type: 'DRAW_ELEMENT',
+          element: newElement,
+        }, true);
+      } else {
+        broadcastPacket({
+          type: 'SHAPE_PREVIEW',
+          shape: null,
+        }, true);
+      }
     }
   };
 
@@ -572,7 +771,7 @@ export default function RoomWhiteboard({
       broadcastPacket({
         type: 'DRAW_ELEMENT',
         element: newElem,
-      });
+      }, true);
       setTextInput(null);
     } else if (e.key === 'Escape') {
       setTextInput(null);
@@ -585,7 +784,7 @@ export default function RoomWhiteboard({
     const removed = elementsRef.current.pop();
     undoStackRef.current.push(removed);
     redrawAllElements();
-    broadcastPacket({ type: 'UNDO' });
+    broadcastPacket({ type: 'UNDO' }, true);
   };
 
   const handleRedo = () => {
@@ -596,15 +795,17 @@ export default function RoomWhiteboard({
     broadcastPacket({
       type: 'DRAW_ELEMENT',
       element: restored,
-    });
+    }, true);
   };
 
   const handleClear = () => {
     if (!canDraw || elementsRef.current.length === 0) return;
     elementsRef.current = [];
     undoStackRef.current = [];
+    peerActiveStrokes.current.clear();
+    peerPreviewShapes.current.clear();
     redrawAllElements();
-    broadcastPacket({ type: 'CLEAR' });
+    broadcastPacket({ type: 'CLEAR' }, true);
     toast.success('Whiteboard cleared');
   };
 
