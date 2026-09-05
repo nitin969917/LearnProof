@@ -118,8 +118,11 @@ const getDashboardStats = async (req, res) => {
             getUniqueActiveUsersInRange(thirtyDaysAgo, now),
             getUniqueActiveUsersInRange(sixtyDaysAgo, thirtyDaysAgo),
             prisma.userActivityLog.findMany({
-                take: 15,
+                take: 25,
                 orderBy: { timestamp: 'desc' },
+                where: {
+                    user: { isNot: null }
+                },
                 include: {
                     user: {
                         select: { id: true, name: true, email: true, profile_pic: true }
@@ -236,7 +239,7 @@ const getDashboardStats = async (req, res) => {
                 referredPercent: totalUsers > 0 ? Math.round((referredUsersCount / totalUsers) * 100) : 0
             },
             topLearners,
-            recentActivity
+            recentActivity: (recentActivity || []).filter(a => a && a.user && (a.activity_type || '').trim().length > 0)
         });
     } catch (error) {
         console.error('getDashboardStats Error:', error);

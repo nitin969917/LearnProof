@@ -726,103 +726,108 @@ const AdminDashboardHome = () => {
             {/* SECTION 5: Top Active Learners Leaderboard & Live Telemetry Feed */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
                 {/* Top Active Learners */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm p-6 flex flex-col justify-between">
-                    <div>
-                        <div className="flex items-center justify-between mb-5">
-                            <div>
-                                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    <Star className="text-amber-500" size={18} />
-                                    Top Active Learners
-                                </h3>
-                                <p className="text-xs text-slate-400 mt-0.5">Highest XP and course completion leaders</p>
-                            </div>
-                            <Link
-                                to="/admin/users"
-                                className="text-xs font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-0.5"
-                            >
-                                View All <ChevronRight size={14} />
-                            </Link>
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm p-6 flex flex-col h-[620px]">
+                    <div className="flex items-center justify-between mb-5 shrink-0">
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Star className="text-amber-500" size={18} />
+                                Top Active Learners
+                            </h3>
+                            <p className="text-xs text-slate-400 mt-0.5">Highest XP and course completion leaders</p>
                         </div>
-
-                        {topLearners.length > 0 ? (
-                            <div className="space-y-3">
-                                {topLearners.map((user, idx) => (
-                                    <Link
-                                        key={user.id}
-                                        to={`/admin/users/${user.id}`}
-                                        className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border border-slate-50 dark:border-slate-800/60"
-                                    >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-6 text-center font-black text-xs text-slate-400 shrink-0">
-                                                {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
-                                            </div>
-                                            {user.profile_pic ? (
-                                                <img src={user.profile_pic} alt="" className="w-10 h-10 rounded-full object-cover bg-slate-100 shrink-0" />
-                                            ) : (
-                                                <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400 font-bold flex items-center justify-center text-xs shrink-0">
-                                                    {user.name?.charAt(0) || 'U'}
-                                                </div>
-                                            )}
-                                            <div className="min-w-0">
-                                                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user.name}</p>
-                                                <p className="text-[11px] text-slate-400 truncate max-w-[170px]">{user.email}</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-4 text-right shrink-0">
-                                            {user.streak_count > 0 && (
-                                                <span className="hidden sm:flex items-center gap-1 text-[11px] font-semibold text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/40">
-                                                    <Flame size={12} /> {user.streak_count}d
-                                                </span>
-                                            )}
-                                            <div>
-                                                <p className="text-xs font-black text-slate-900 dark:text-white">{user.xp.toLocaleString()} XP</p>
-                                                <p className="text-[10px] text-slate-400 font-medium">Lvl {user.level || 1}</p>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="p-8 text-center text-xs text-slate-400">No student learning data yet.</div>
-                        )}
+                        <Link
+                            to="/admin/users"
+                            className="text-xs font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 flex items-center gap-0.5 px-3 py-1.5 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-950/30 transition-colors"
+                        >
+                            View All <ChevronRight size={14} />
+                        </Link>
                     </div>
+
+                    {topLearners.length > 0 ? (
+                        <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar pb-2">
+                            {topLearners.map((user, idx) => (
+                                <Link
+                                    key={user.id}
+                                    to={`/admin/users/${user.id}`}
+                                    className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border border-slate-100/70 dark:border-slate-800/60"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-6 text-center font-black text-xs text-slate-400 shrink-0">
+                                            {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`}
+                                        </div>
+                                        {user.profile_pic ? (
+                                            <img src={user.profile_pic} alt="" className="w-10 h-10 rounded-full object-cover bg-slate-100 shrink-0 border border-slate-100 dark:border-slate-700" />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400 font-bold flex items-center justify-center text-xs shrink-0 border border-orange-200 dark:border-orange-900">
+                                                {user.name?.charAt(0) || 'U'}
+                                            </div>
+                                        )}
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user.name || 'Learner'}</p>
+                                            <p className="text-[11px] text-slate-400 truncate max-w-[170px]">{user.email || 'No email'}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 text-right shrink-0">
+                                        {user.streak_count > 0 && (
+                                            <span className="hidden sm:flex items-center gap-1 text-[11px] font-semibold text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/40">
+                                                <Flame size={12} /> {user.streak_count}d
+                                            </span>
+                                        )}
+                                        <div>
+                                            <p className="text-xs font-black text-slate-900 dark:text-white">{user.xp.toLocaleString()} XP</p>
+                                            <p className="text-[10px] text-slate-400 font-medium">Lvl {user.level || 1}</p>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center text-xs text-slate-400">No student learning data yet.</div>
+                    )}
                 </div>
 
                 {/* Live Platform Activity Feed */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm p-6 flex flex-col justify-between">
-                    <div>
-                        <div className="flex items-center justify-between mb-5">
-                            <div>
-                                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    <Activity className="text-orange-500" size={18} />
-                                    Live Telemetry Stream
-                                </h3>
-                                <p className="text-xs text-slate-400 mt-0.5">Real-time user actions across the platform</p>
-                            </div>
-                            <span className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Feed
-                            </span>
+                <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm p-6 flex flex-col h-[620px]">
+                    <div className="flex items-center justify-between mb-5 shrink-0">
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Activity className="text-orange-500" size={18} />
+                                Live Telemetry Stream
+                            </h3>
+                            <p className="text-xs text-slate-400 mt-0.5">Real-time user actions across the platform</p>
                         </div>
+                        <span className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-500/20">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Live Feed
+                        </span>
+                    </div>
 
-                        {recentActivity.length > 0 ? (
-                            <div className="space-y-3 max-h-[580px] overflow-y-auto pr-2 pb-6 custom-scrollbar">
-                                {recentActivity.map((act) => {
-                                    const text = act.activity_type || '';
-                                    const isSession = text.includes('Active Session');
-                                    const isWatched = text.startsWith('Watched:') || text.startsWith('Learning:');
-                                    const isQuiz = text.toLowerCase().includes('quiz');
-                                    const isCert = text.toLowerCase().includes('cert');
+                    {recentActivity && recentActivity.filter(a => a && a.user && (a.activity_type || '').trim().length > 0).length > 0 ? (
+                        <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar pb-3">
+                            {recentActivity
+                                .filter(act => act && act.user && (act.activity_type || '').trim().length > 0)
+                                .map((act) => {
+                                    const rawText = act.activity_type || '';
+                                    const isSession = rawText === 'Active Session' || rawText.includes('Active Session');
+                                    const isWatched = rawText.startsWith('Watched:') || rawText.startsWith('Learning:');
+                                    const isQuiz = rawText.toLowerCase().includes('quiz');
+                                    const isCert = rawText.toLowerCase().includes('cert');
+
+                                    const displayText = isSession 
+                                        ? 'User launched an active learning session'
+                                        : isWatched && rawText.startsWith('Watched:')
+                                            ? rawText.replace('Watched:', 'Watched video:').trim()
+                                            : rawText;
 
                                     return (
                                         <div 
                                             key={act.id} 
-                                            className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100/80 dark:border-slate-800 flex items-start gap-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-colors"
+                                            className="p-3.5 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-100/80 dark:border-slate-800/80 flex items-start gap-3 hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-all"
                                         >
                                             {act.user?.profile_pic ? (
-                                                <img src={act.user.profile_pic} alt="" className="w-9 h-9 rounded-full object-cover shrink-0 mt-0.5" />
+                                                <img src={act.user.profile_pic} alt="" className="w-9 h-9 rounded-full object-cover shrink-0 mt-0.5 border border-slate-100 dark:border-slate-700" />
                                             ) : (
-                                                <div className="w-9 h-9 rounded-full bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-orange-100 to-amber-100 text-orange-600 dark:from-orange-950 dark:to-amber-950 dark:text-orange-400 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5 border border-orange-200/50 dark:border-orange-800/50 shadow-sm">
                                                     {act.user?.name?.charAt(0) || 'U'}
                                                 </div>
                                             )}
@@ -830,9 +835,9 @@ const AdminDashboardHome = () => {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
                                                     <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                                                        {act.user?.name || 'Anonymous User'}
+                                                        {act.user?.name || act.user?.email || 'Learner'}
                                                     </span>
-                                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                                                         isSession
                                                             ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400'
                                                             : isWatched
@@ -843,27 +848,26 @@ const AdminDashboardHome = () => {
                                                                         ? 'bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400'
                                                                         : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                                                     }`}>
-                                                        {isSession ? 'Active Session' : isWatched ? 'Video Learning' : isQuiz ? 'Quiz Action' : isCert ? 'Certificate' : 'Activity'}
+                                                        {isSession ? 'Active Session' : isWatched ? 'Video Lesson' : isQuiz ? 'Quiz Action' : isCert ? 'Certificate' : 'Activity'}
                                                     </span>
                                                 </div>
 
-                                                <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed" title={text}>
-                                                    {text}
+                                                <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed" title={displayText}>
+                                                    {displayText}
                                                 </p>
 
                                                 <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-1.5 flex items-center gap-1">
-                                                    <Clock size={10} />
+                                                    <Clock size={11} className="text-slate-400" />
                                                     {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(act.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                                                 </p>
                                             </div>
                                         </div>
                                     );
                                 })}
-                            </div>
-                        ) : (
-                            <div className="p-8 text-center text-xs text-slate-400">No activity logged yet today.</div>
-                        )}
-                    </div>
+                        </div>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center text-xs text-slate-400">No activity logged yet today.</div>
+                    )}
                 </div>
             </div>
         </div>
