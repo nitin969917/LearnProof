@@ -454,9 +454,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // ── Screen Sharing & Whiteboard States & Host Permissions ─────────────────
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
-  // Host room settings: whiteboard disabled by default until host enables it
+  // Host room settings: both whiteboard & screen share disabled by default until host enables them
   const [allowWhiteboard, setAllowWhiteboard] = useState(false);
-  const [allowScreenShare, setAllowScreenShare] = useState(true);
+  const [allowScreenShare, setAllowScreenShare] = useState(false);
 
   // Sync screen share state with local participant
   useEffect(() => {
@@ -500,10 +500,16 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   };
 
   // Host toggle for Screen Sharing permission
-  const handleToggleAllowScreenShare = (newVal) => {
+  const handleToggleAllowScreenShare = async (newVal) => {
     setAllowScreenShare(newVal);
+    if (!newVal && !isHost && isScreenSharing) {
+      try {
+        await localParticipant?.setScreenShareEnabled(false);
+        setIsScreenSharing(false);
+      } catch (e) {}
+    }
     broadcastRoomSettings(allowWhiteboard, newVal);
-    toast.success(newVal ? 'Screen sharing enabled for speakers' : 'Screen sharing restricted to host', {
+    toast.success(newVal ? 'Screen sharing enabled for speakers' : 'Screen sharing disabled for speakers', {
       icon: newVal ? '🖥️' : '🔒'
     });
   };
@@ -587,13 +593,17 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           }
           if (typeof message.allowScreenShare === 'boolean') {
             setAllowScreenShare(message.allowScreenShare);
+            if (!message.allowScreenShare && !amIHost() && isScreenSharing) {
+              localParticipant?.setScreenShareEnabled(false);
+              setIsScreenSharing(false);
+            }
           }
         }
       } catch (e) {}
     };
     room.on(RoomEvent.DataReceived, handleDataReceived);
     return () => room.off(RoomEvent.DataReceived, handleDataReceived);
-  }, [room]);
+  }, [room, isScreenSharing, amIHost, localParticipant]);
 
   // ── Click-outside to close participants panel ──────────────────────────────
   useEffect(() => {
@@ -1836,6 +1846,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                             {isAnotherUserSharing && (
                               <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
                                 In Use
+                              </span>
+                            )}
+                            {!isHost && !allowScreenShare && (
+                              <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                                Disabled
                               </span>
                             )}
                           </div>
