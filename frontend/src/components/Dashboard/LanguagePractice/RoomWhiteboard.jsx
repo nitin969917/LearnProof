@@ -79,10 +79,14 @@ export default function RoomWhiteboard({
         setShowPermissionMenu(false);
       }
     };
-    const timer = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 50);
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }, 50);
     return () => {
       clearTimeout(timer);
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [showPermissionMenu]);
 
@@ -635,10 +639,10 @@ export default function RoomWhiteboard({
       isFullscreen ? 'fixed inset-0 z-50' : 'rounded-2xl shadow-xl border border-gray-200 dark:border-white/10'
     }`}>
       {/* ── Top Whiteboard Toolbar ── */}
-      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-150 dark:border-white/8 px-3 py-2 flex items-center justify-between gap-2 shrink-0 z-20 overflow-x-auto no-scrollbar">
+      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-150 dark:border-white/8 px-3 py-2 flex items-center justify-between gap-2 shrink-0 z-30 relative">
         
         {/* Left: Tools & Shapes OR View-Only Status */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
           {canDraw ? (
             <>
               {/* Pen */}
@@ -742,7 +746,7 @@ export default function RoomWhiteboard({
         </div>
 
         {/* Center: Color Picker & Stroke Width (if canDraw) OR Host Permission Controls */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           {canDraw && (
             <>
               {/* Color swatches */}
@@ -780,8 +784,12 @@ export default function RoomWhiteboard({
           {isHost && (
             <div className="relative" ref={permissionMenuRef}>
               <button
-                onClick={() => setShowPermissionMenu(prev => !prev)}
-                className="px-2.5 py-1 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPermissionMenu(prev => !prev);
+                }}
+                className="px-2.5 py-1 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 border border-orange-500/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                 title="Manage Whiteboard Drawing Permissions"
               >
                 <Shield size={13} />
@@ -792,9 +800,12 @@ export default function RoomWhiteboard({
                 <ChevronDown size={12} className={`transition-transform duration-200 ${showPermissionMenu ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Dropdown Menu */}
+              {/* Dropdown Menu (Positioned safely over canvas) */}
               {showPermissionMenu && (
-                <div className="absolute right-0 mt-1.5 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-50 flex flex-col gap-1 backdrop-blur-xl animate-in fade-in zoom-in-95">
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl p-2.5 z-50 flex flex-col gap-1 backdrop-blur-2xl animate-in fade-in zoom-in-95 pointer-events-auto"
+                >
                   <div className="px-2.5 py-1.5 border-b border-gray-100 dark:border-white/5 mb-1">
                     <span className="text-[11px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">
                       Who Can Draw?
@@ -804,58 +815,64 @@ export default function RoomWhiteboard({
                   {/* Mode 1: Host Only */}
                   <button
                     onClick={() => handleSetPermissionMode('host_only')}
-                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition cursor-pointer ${
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition cursor-pointer ${
                       drawPermissionMode === 'host_only'
-                        ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-bold'
+                        ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-bold border border-orange-500/20'
                         : 'hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <Lock size={15} className="text-orange-500" />
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-500">
+                        <Lock size={15} />
+                      </div>
                       <div>
                         <div className="text-xs font-bold">Only Host</div>
                         <div className="text-[10px] text-gray-400 font-normal">Students watch while you teach</div>
                       </div>
                     </div>
-                    {drawPermissionMode === 'host_only' && <Check size={14} className="text-orange-500" />}
+                    {drawPermissionMode === 'host_only' && <Check size={14} className="text-orange-500 shrink-0" />}
                   </button>
 
                   {/* Mode 2: Stage Speakers */}
                   <button
                     onClick={() => handleSetPermissionMode('speakers')}
-                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition cursor-pointer ${
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition cursor-pointer ${
                       drawPermissionMode === 'speakers'
-                        ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-bold'
+                        ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-bold border border-orange-500/20'
                         : 'hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <Users size={15} className="text-blue-500" />
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
+                        <Users size={15} />
+                      </div>
                       <div>
                         <div className="text-xs font-bold">Stage Speakers</div>
                         <div className="text-[10px] text-gray-400 font-normal">Host & speakers on stage</div>
                       </div>
                     </div>
-                    {drawPermissionMode === 'speakers' && <Check size={14} className="text-orange-500" />}
+                    {drawPermissionMode === 'speakers' && <Check size={14} className="text-orange-500 shrink-0" />}
                   </button>
 
                   {/* Mode 3: Everyone */}
                   <button
                     onClick={() => handleSetPermissionMode('all')}
-                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition cursor-pointer ${
+                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition cursor-pointer ${
                       drawPermissionMode === 'all'
-                        ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-bold'
+                        ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-bold border border-orange-500/20'
                         : 'hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <Globe size={15} className="text-emerald-500" />
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                        <Globe size={15} />
+                      </div>
                       <div>
                         <div className="text-xs font-bold">Everyone in Room</div>
                         <div className="text-[10px] text-gray-400 font-normal">Open collaboration for all</div>
                       </div>
                     </div>
-                    {drawPermissionMode === 'all' && <Check size={14} className="text-orange-500" />}
+                    {drawPermissionMode === 'all' && <Check size={14} className="text-orange-500 shrink-0" />}
                   </button>
 
                   {/* Manage Specific Individuals */}
