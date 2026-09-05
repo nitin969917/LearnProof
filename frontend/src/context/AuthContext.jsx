@@ -18,8 +18,9 @@ axios.interceptors.response.use(
                 localStorage.removeItem("google_token");
                 disconnectMatrixClient();
                 // If they are on a dashboard/classroom route, redirect to home page to force re-login
-                if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom")) {
+                if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom") || window.location.pathname.startsWith("/ambassador")) {
                     sessionStorage.setItem("redirect_to", window.location.pathname + window.location.search);
+                    localStorage.setItem("redirect_to", window.location.pathname + window.location.search);
                     window.location.href = "/";
                 }
             }
@@ -49,8 +50,9 @@ export const AuthProvider = ({ children }) => {
                         localStorage.removeItem("google_token");
                         setMatrixClient(null);
                         disconnectMatrixClient();
-                        if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom")) {
+                        if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom") || window.location.pathname.startsWith("/ambassador")) {
                             sessionStorage.setItem("redirect_to", window.location.pathname + window.location.search);
+                            localStorage.setItem("redirect_to", window.location.pathname + window.location.search);
                             window.location.href = "/";
                             return;
                         }

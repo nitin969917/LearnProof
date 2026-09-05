@@ -154,7 +154,8 @@ const LoginPage = () => {
             });
             
             sessionStorage.removeItem("is_authenticating");
-            const redirectTo = sessionStorage.getItem("redirect_to") || "/dashboard";
+            const redirectTo = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
+            localStorage.removeItem("redirect_to");
             sessionStorage.removeItem("redirect_to");
             navigate(redirectTo);
         } catch (err) {

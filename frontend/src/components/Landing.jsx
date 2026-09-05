@@ -334,7 +334,8 @@ const LandingPage = () => {
             await login({ credential: idToken });
             
             sessionStorage.removeItem("is_logging_in");
-            const redirectTo = sessionStorage.getItem("redirect_to") || "/dashboard";
+            const redirectTo = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
+            localStorage.removeItem("redirect_to");
             sessionStorage.removeItem("redirect_to");
             navigate(redirectTo);
         } catch (err) {
@@ -422,7 +423,8 @@ const LandingPage = () => {
         const isFlutter = navigator.userAgent.includes('LearnProofApp') || !!window.GoogleSignInChannel;
         if (isFlutter && !loading) {
             if (user) {
-                const redirectTo = sessionStorage.getItem("redirect_to") || "/dashboard";
+                const redirectTo = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
+                localStorage.removeItem("redirect_to");
                 sessionStorage.removeItem("redirect_to");
                 navigate(redirectTo);
             } else {
@@ -433,7 +435,8 @@ const LandingPage = () => {
 
         if (!loading && user) {
             if (location.pathname === '/') {
-                const redirectTo = sessionStorage.getItem("redirect_to") || "/dashboard";
+                const redirectTo = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
+                localStorage.removeItem("redirect_to");
                 sessionStorage.removeItem("redirect_to");
                 navigate(redirectTo);
             }
