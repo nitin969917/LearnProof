@@ -24,7 +24,8 @@ import {
   PhoneOff, Users, Globe, MessageSquare,
   Volume2, Send, UserX, UserPlus, UserMinus,
   Check, X, Hand, LogOut, ChevronsDown, Settings, Languages, Sparkles, Camera,
-  Lock, Search, UserCheck, ScreenShare, Monitor, MonitorOff, PencilRuler, Presentation, PenTool
+  Lock, Search, UserCheck, ScreenShare, Monitor, MonitorOff, PencilRuler, Presentation, PenTool,
+  MoreHorizontal, ShieldCheck, Sliders, Shield
 } from 'lucide-react';
 
 
@@ -450,9 +451,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     return pCanPublish || isCreator;
   });
 
-  // ── Screen Sharing & Whiteboard States ────────────────────────────────────
+  // ── Screen Sharing & Whiteboard States & Host Permissions ─────────────────
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
+  // Host room settings: whiteboard disabled by default until host enables it
+  const [allowWhiteboard, setAllowWhiteboard] = useState(false);
+  const [allowScreenShare, setAllowScreenShare] = useState(true);
 
   // Sync screen share state with local participant
   useEffect(() => {
@@ -466,10 +470,53 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const activeScreenSharer = screenShareTrack?.participant;
   const isAnotherUserSharing = !!(activeScreenSharer && !activeScreenSharer.isLocal);
 
-  // Toggle Screen Sharing (Enforce 1 person at a time)
+  // Broadcast host settings (allowWhiteboard, allowScreenShare) to all participants
+  const broadcastRoomSettings = (newAllowWhiteboard, newAllowScreenShare) => {
+    if (room && localParticipant) {
+      try {
+        const payload = JSON.stringify({
+          type: 'ROOM_SETTINGS_UPDATE',
+          allowWhiteboard: newAllowWhiteboard,
+          allowScreenShare: newAllowScreenShare,
+        });
+        const encoder = new TextEncoder();
+        localParticipant.publishData(encoder.encode(payload), { reliable: true, topic: 'room_settings' });
+      } catch (e) {
+        console.error('Failed to broadcast room settings:', e);
+      }
+    }
+  };
+
+  // Host toggle for Whiteboard permission
+  const handleToggleAllowWhiteboard = (newVal) => {
+    setAllowWhiteboard(newVal);
+    if (!newVal && isWhiteboardOpen) {
+      toggleWhiteboard(false);
+    }
+    broadcastRoomSettings(newVal, allowScreenShare);
+    toast.success(newVal ? 'Whiteboard enabled for the room' : 'Whiteboard disabled for the room', {
+      icon: newVal ? '🎨' : '🔒'
+    });
+  };
+
+  // Host toggle for Screen Sharing permission
+  const handleToggleAllowScreenShare = (newVal) => {
+    setAllowScreenShare(newVal);
+    broadcastRoomSettings(allowWhiteboard, newVal);
+    toast.success(newVal ? 'Screen sharing enabled for speakers' : 'Screen sharing restricted to host', {
+      icon: newVal ? '🖥️' : '🔒'
+    });
+  };
+
+  // Toggle Screen Sharing (Enforce 1 person at a time & Host permission)
   const toggleScreenShare = async () => {
     if (!localParticipant || !canPublish) {
       toast.error('You need speaking permissions on stage to share your screen.');
+      return;
+    }
+
+    if (!isHost && !allowScreenShare) {
+      toast.error('Screen sharing has been disabled by the host for this room.', { icon: '🔒' });
       return;
     }
 
@@ -503,6 +550,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Toggle Whiteboard & Broadcast state to room participants
   const toggleWhiteboard = (forcedState) => {
     const nextState = typeof forcedState === 'boolean' ? forcedState : !isWhiteboardOpen;
+    if (nextState && !isHost && !allowWhiteboard) {
+      toast.error('Whiteboard is currently disabled by the host.', { icon: '🔒' });
+      return;
+    }
     setIsWhiteboardOpen(nextState);
     if (room && localParticipant) {
       try {
@@ -515,19 +566,30 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     }
   };
 
-  // Listen for whiteboard visibility updates from peers
+  // Listen for whiteboard visibility & room settings updates from peers
   useEffect(() => {
     if (!room) return;
     const handleDataReceived = (payload, participant, kind, topic) => {
-      if (topic === 'whiteboard') {
-        try {
-          const decoder = new TextDecoder();
-          const message = JSON.parse(decoder.decode(payload));
+      try {
+        const decoder = new TextDecoder();
+        const message = JSON.parse(decoder.decode(payload));
+        if (topic === 'whiteboard' || message.type === 'WHITEBOARD_VISIBILITY') {
           if (message.type === 'WHITEBOARD_VISIBILITY') {
             setIsWhiteboardOpen(message.isOpen);
           }
-        } catch (e) {}
-      }
+        }
+        if (topic === 'room_settings' || message.type === 'ROOM_SETTINGS_UPDATE') {
+          if (typeof message.allowWhiteboard === 'boolean') {
+            setAllowWhiteboard(message.allowWhiteboard);
+            if (!message.allowWhiteboard) {
+              setIsWhiteboardOpen(false);
+            }
+          }
+          if (typeof message.allowScreenShare === 'boolean') {
+            setAllowScreenShare(message.allowScreenShare);
+          }
+        }
+      } catch (e) {}
     };
     room.on(RoomEvent.DataReceived, handleDataReceived);
     return () => room.off(RoomEvent.DataReceived, handleDataReceived);
@@ -1602,17 +1664,26 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         </div>
       )}
 
-      {/* ── Settings Modal ── */}
+      {/* ── Room Actions & Settings Modal ── */}
       {showSettingsModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
-          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-md w-full p-6 shadow-2xl transition-all scale-100 flex flex-col gap-5">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[200] p-0 sm:p-4 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900 border-t sm:border border-gray-100 dark:border-gray-800 rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl transition-all max-h-[88vh] sm:max-h-[82vh] flex flex-col gap-4 overflow-hidden">
             
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
-              <h3 className="text-base font-black text-gray-900 dark:text-white flex items-center gap-2">
-                <Settings size={18} className="text-orange-500" />
-                Room Settings
-              </h3>
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                  <Sliders size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-gray-900 dark:text-white leading-tight">
+                    Room Actions & Settings
+                  </h3>
+                  <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400">
+                    {roomName} · {isHost ? 'Host Controls Available' : 'Participant Menu'}
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => setShowSettingsModal(false)}
                 className="p-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition cursor-pointer"
@@ -1621,119 +1692,353 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
               </button>
             </div>
 
-            {/* Tabs */}
-            {isVideoRoom && (
-              <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+            {/* Navigation Tabs */}
+            <div className="flex gap-1.5 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl shrink-0">
+              <button
+                onClick={() => setActiveSettingsTab('tools')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl font-black text-xs transition-all cursor-pointer ${
+                  activeSettingsTab === 'tools' || (activeSettingsTab !== 'host' && activeSettingsTab !== 'camera' && activeSettingsTab !== 'filter')
+                    ? 'bg-white dark:bg-gray-900 text-orange-500 shadow-sm'
+                    : 'text-gray-550 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'
+                }`}
+              >
+                <PenTool size={13} />
+                <span>Actions</span>
+              </button>
+              {isHost && (
+                <button
+                  onClick={() => setActiveSettingsTab('host')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl font-black text-xs transition-all cursor-pointer ${
+                    activeSettingsTab === 'host'
+                      ? 'bg-white dark:bg-gray-900 text-orange-500 shadow-sm'
+                      : 'text-gray-550 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'
+                  }`}
+                >
+                  <ShieldCheck size={13} />
+                  <span>Host Settings</span>
+                </button>
+              )}
+              {isVideoRoom && (
                 <button
                   onClick={() => setActiveSettingsTab('camera')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-black text-xs transition-all cursor-pointer ${
-                    activeSettingsTab === 'camera'
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl font-black text-xs transition-all cursor-pointer ${
+                    activeSettingsTab === 'camera' || activeSettingsTab === 'filter'
                       ? 'bg-white dark:bg-gray-900 text-orange-500 shadow-sm'
                       : 'text-gray-550 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'
                   }`}
                 >
-                  <Camera size={14} />
-                  Switch Camera
+                  <Camera size={13} />
+                  <span>Video & Filters</span>
                 </button>
-                <button
-                  onClick={() => setActiveSettingsTab('filter')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-black text-xs transition-all cursor-pointer ${
-                    activeSettingsTab === 'filter'
-                      ? 'bg-white dark:bg-gray-900 text-orange-500 shadow-sm'
-                      : 'text-gray-550 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'
-                  }`}
-                >
-                  <Sparkles size={14} />
-                  Beauty Filters
-                </button>
-              </div>
-            )}
-
-            {/* Content */}
-            <div className="flex flex-col gap-4 overflow-y-auto max-h-[50vh] pr-1">
-              {isVideoRoom ? (
-                <>
-                  {activeSettingsTab === 'camera' && (
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                        Select Video Source
-                      </label>
-                      {canPublish ? (
-                        videoDevices.length > 0 ? (
-                          <select
-                            value={selectedDevice}
-                            onChange={(e) => handleDeviceChange(e.target.value)}
-                            className="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/8 text-gray-900 dark:text-white text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 font-bold"
-                          >
-                            {videoDevices.map((dev) => (
-                              <option key={dev.deviceId} value={dev.deviceId}>
-                                {dev.label || `Camera ${dev.deviceId.slice(0, 5)}`}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <p className="text-xs text-gray-550 dark:text-gray-400 italic">No camera devices found or permission not granted.</p>
-                        )
-                      ) : (
-                        <div className="p-4 bg-orange-500/5 border border-orange-500/10 rounded-2xl text-center">
-                          <p className="text-xs text-gray-500 dark:text-gray-450 font-bold">
-                            Camera switching is only available when you are speaking on stage.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {activeSettingsTab === 'filter' && (
-                    <div className="flex flex-col gap-2.5">
-                      <div className="flex flex-col">
-                        <label className="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                          Skin Tone & Smoothing Filter
-                        </label>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-450 mt-0.5 font-bold leading-normal">
-                          Choose a visual style to improve skin tone and smoothing in real-time.
-                        </span>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 mt-1">
-                        {[
-                          { id: 'none', label: 'Natural', desc: 'Original camera' },
-                          { id: 'smooth', label: 'Soft Smooth', desc: 'Skin smoothing' },
-                          { id: 'glow', label: 'Radiant Glow', desc: 'Brighter tone' },
-                          { id: 'warm', label: 'Warm Sun', desc: 'Warm amber hue' },
-                          { id: 'rosy', label: 'Pink Blossom', desc: 'Rosy brightness' },
-                        ].map((f) => {
-                          const isActive = beautyFilter === f.id;
-                          return (
-                            <button
-                              key={f.id}
-                              onClick={() => handleSelectFilter(f.id)}
-                              className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all cursor-pointer active:scale-95 ${
-                                isActive
-                                  ? 'bg-orange-500/10 border-orange-500 text-orange-600 dark:text-orange-400 shadow-sm'
-                                  : 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-white/5 text-gray-700 dark:text-gray-300 hover:border-orange-500/30'
-                              }`}
-                            >
-                              <span className="text-xs font-black">{f.label}</span>
-                              <span className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5 leading-none font-bold">
-                                {f.desc}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-xs text-gray-550 dark:text-gray-400">Camera and skin filters are only available in video rooms.</p>
-                </div>
               )}
             </div>
 
+            {/* Content Body */}
+            <div className="flex flex-col gap-4 overflow-y-auto pr-1 flex-1">
+              
+              {/* Tab 1: Tools & Stage Actions */}
+              {(activeSettingsTab === 'tools' || (!isHost && !isVideoRoom && activeSettingsTab !== 'host' && activeSettingsTab !== 'camera')) && (
+                <div className="flex flex-col gap-2.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-gray-450 dark:text-gray-500 px-0.5">
+                    Collaboration & Stage
+                  </span>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {/* Collaborative Whiteboard Card */}
+                    <div
+                      onClick={() => {
+                        if (!isHost && !allowWhiteboard) {
+                          toast.error('Whiteboard is currently disabled by the host in room settings.', { icon: '🔒' });
+                          return;
+                        }
+                        toggleWhiteboard();
+                        setShowSettingsModal(false);
+                      }}
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer active:scale-98 ${
+                        isWhiteboardOpen
+                          ? 'bg-orange-500/10 border-orange-500/40 dark:bg-orange-500/15'
+                          : (!isHost && !allowWhiteboard)
+                            ? 'bg-gray-50/70 dark:bg-gray-800/30 border-gray-200/50 dark:border-white/5 opacity-60'
+                            : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-white/5 hover:border-orange-500/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          isWhiteboardOpen
+                            ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                            : 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400'
+                        }`}>
+                          <PenTool size={18} />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-black text-gray-900 dark:text-white truncate">
+                              Whiteboard
+                            </span>
+                            {isWhiteboardOpen && (
+                              <span className="px-1.5 py-0.2 text-[9px] font-black rounded-full bg-emerald-500 text-white uppercase tracking-wider">
+                                Open
+                              </span>
+                            )}
+                            {!isHost && !allowWhiteboard && (
+                              <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                                Disabled
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate">
+                            {isWhiteboardOpen
+                              ? 'Tap to close board'
+                              : (!isHost && !allowWhiteboard)
+                                ? 'Disabled by host'
+                                : 'Collaborative canvas'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Screen Sharing Card */}
+                    <div
+                      onClick={() => {
+                        if (!isHost && !allowScreenShare) {
+                          toast.error('Screen sharing is restricted by the host.', { icon: '🔒' });
+                          return;
+                        }
+                        toggleScreenShare();
+                        setShowSettingsModal(false);
+                      }}
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer active:scale-98 ${
+                        isScreenSharing
+                          ? 'bg-blue-500/10 border-blue-500/40 dark:bg-blue-500/15'
+                          : (!isHost && !allowScreenShare)
+                            ? 'bg-gray-50/70 dark:bg-gray-800/30 border-gray-200/50 dark:border-white/5 opacity-60'
+                            : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-white/5 hover:border-blue-500/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          isScreenSharing
+                            ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                            : 'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400'
+                        }`}>
+                          {isScreenSharing ? <MonitorOff size={18} /> : <ScreenShare size={18} />}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-black text-gray-900 dark:text-white truncate">
+                              Screen Share
+                            </span>
+                            {isScreenSharing && (
+                              <span className="px-1.5 py-0.2 text-[9px] font-black rounded-full bg-blue-600 text-white uppercase tracking-wider animate-pulse">
+                                Sharing
+                              </span>
+                            )}
+                            {isAnotherUserSharing && (
+                              <span className="px-1.5 py-0.2 text-[9px] font-bold rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
+                                In Use
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate">
+                            {isScreenSharing
+                              ? 'Tap to stop sharing'
+                              : isAnotherUserSharing
+                                ? `${activeScreenSharer?.name || 'Someone'} is sharing`
+                                : (!isHost && !allowScreenShare)
+                                  ? 'Disabled by host'
+                                  : 'Share screen or window'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stage Action / Raise Hand Card */}
+                    <div
+                      onClick={() => {
+                        if (isHost) {
+                          handleOpenInviteFriendsModal();
+                        } else if (canPublish) {
+                          handleLeaveStage();
+                        } else if (hasRequested) {
+                          handleWithdrawRequest();
+                        } else {
+                          handleRequestToSpeak();
+                        }
+                        setShowSettingsModal(false);
+                      }}
+                      className={`p-3.5 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer active:scale-98 ${
+                        hasRequested || (isHost && speakRequests.length > 0)
+                          ? 'bg-purple-500/10 border-purple-500/40 dark:bg-purple-500/15'
+                          : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-white/5 hover:border-purple-500/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                          isHost
+                            ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
+                            : canPublish
+                              ? 'bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400'
+                              : hasRequested
+                                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                                : 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
+                        }`}>
+                          {isHost ? <UserPlus size={18} /> : canPublish ? <ChevronsDown size={18} /> : <Hand size={18} />}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-black text-gray-900 dark:text-white truncate">
+                            {isHost ? 'Invite Friends' : canPublish ? 'Leave Stage' : hasRequested ? 'Withdraw Request' : 'Raise Hand'}
+                          </span>
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate">
+                            {isHost
+                              ? `${speakRequests.length} pending requests`
+                              : canPublish
+                                ? 'Return to audience'
+                                : hasRequested
+                                  ? 'Waiting for host approval'
+                                  : 'Request to speak on stage'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 2: Host Room Settings (Host Only) */}
+              {isHost && activeSettingsTab === 'host' && (
+                <div className="p-4 bg-orange-500/5 dark:bg-orange-500/10 border border-orange-500/20 rounded-2xl flex flex-col gap-4">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={16} className="text-orange-500" />
+                    <span className="text-xs font-black text-gray-900 dark:text-white">
+                      Host Room Settings & Collaboration
+                    </span>
+                  </div>
+                  
+                  {/* Whiteboard permission switch */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex flex-col pr-3">
+                      <span className="text-xs font-black text-gray-900 dark:text-white">
+                        Enable Collaborative Whiteboard
+                      </span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">
+                        Allow participants to view and draw on the whiteboard
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleToggleAllowWhiteboard(!allowWhiteboard)}
+                      className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer p-0.5 shrink-0 ${
+                        allowWhiteboard ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-700'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                        allowWhiteboard ? 'translate-x-6' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Screen share permission switch */}
+                  <div className="flex items-center justify-between border-t border-orange-500/10 pt-3">
+                    <div className="flex flex-col pr-3">
+                      <span className="text-xs font-black text-gray-900 dark:text-white">
+                        Allow Screen Sharing
+                      </span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">
+                        Allow speakers to share their screens during this session
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleToggleAllowScreenShare(!allowScreenShare)}
+                      className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer p-0.5 shrink-0 ${
+                        allowScreenShare ? 'bg-orange-500' : 'bg-gray-300 dark:bg-gray-700'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-full bg-white transition-transform ${
+                        allowScreenShare ? 'translate-x-6' : 'translate-x-0'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab 3: Camera & Beauty Filters (Video Rooms) */}
+              {isVideoRoom && (activeSettingsTab === 'camera' || activeSettingsTab === 'filter') && (
+                <div className="flex flex-col gap-4">
+                  {/* Video Source Switcher */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      Select Camera Device
+                    </label>
+                    {canPublish ? (
+                      videoDevices.length > 0 ? (
+                        <select
+                          value={selectedDevice}
+                          onChange={(e) => handleDeviceChange(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-white/8 text-gray-900 dark:text-white text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/30 font-bold"
+                        >
+                          {videoDevices.map((dev) => (
+                            <option key={dev.deviceId} value={dev.deviceId}>
+                              {dev.label || `Camera ${dev.deviceId.slice(0, 5)}`}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="text-xs text-gray-550 dark:text-gray-400 italic">No camera devices found or permission not granted.</p>
+                      )
+                    ) : (
+                      <div className="p-3 bg-orange-500/5 border border-orange-500/10 rounded-2xl text-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-450 font-bold">
+                          Camera switching is available when you are on stage.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Beauty Filters */}
+                  <div className="flex flex-col gap-2.5 border-t border-gray-100 dark:border-gray-800 pt-3">
+                    <div className="flex flex-col">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        Skin Tone & Smoothing Filter
+                      </label>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-450 mt-0.5 font-bold leading-normal">
+                        Choose a visual style to enhance skin tone and lighting in real-time.
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      {[
+                        { id: 'none', label: 'Natural', desc: 'Original camera' },
+                        { id: 'smooth', label: 'Soft Smooth', desc: 'Skin smoothing' },
+                        { id: 'glow', label: 'Radiant Glow', desc: 'Brighter tone' },
+                        { id: 'warm', label: 'Warm Sun', desc: 'Warm amber hue' },
+                        { id: 'rosy', label: 'Pink Blossom', desc: 'Rosy brightness' },
+                      ].map((f) => {
+                        const isActive = beautyFilter === f.id;
+                        return (
+                          <button
+                            key={f.id}
+                            onClick={() => handleSelectFilter(f.id)}
+                            className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all cursor-pointer active:scale-95 ${
+                              isActive
+                                ? 'bg-orange-500/10 border-orange-500 text-orange-600 dark:text-orange-400 shadow-sm'
+                                : 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-white/5 text-gray-700 dark:text-gray-300 hover:border-orange-500/30'
+                            }`}
+                          >
+                            <span className="text-xs font-black">{f.label}</span>
+                            <span className="text-[9px] text-gray-500 dark:text-gray-400 mt-0.5 leading-none font-bold">
+                              {f.desc}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
             {/* Footer */}
-            <div className="flex justify-end pt-2 border-t border-gray-150 dark:border-gray-800">
+            <div className="flex justify-end pt-2 border-t border-gray-150 dark:border-gray-800 shrink-0">
               <button
                 onClick={() => setShowSettingsModal(false)}
                 className="px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition cursor-pointer active:scale-95"
@@ -2044,147 +2349,117 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       )}
 
       {/* ── Global Bottom Controls Bar ── */}
-      <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-white/5 py-3.5 px-3 sm:px-4 flex items-center justify-around z-30 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] gap-1">
-        {/* Mute button */}
+      <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-white/5 py-3 px-3 sm:px-6 flex items-center justify-around z-30 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] gap-1 sm:gap-2">
+        {/* 1. Mute / Unmute Button */}
         <div 
           onClick={toggleMic}
-          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
         >
-          <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+          <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
             isMicEnabled 
-              ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/10' 
-              : 'bg-red-50 dark:bg-red-950/20 text-red-500'
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
+              : 'bg-red-50 dark:bg-red-950/30 text-red-500 border border-red-200/50 dark:border-red-900/30'
           }`}>
-            {isMicEnabled ? <Mic size={18} /> : <MicOff size={18} />}
+            {isMicEnabled ? <Mic size={20} /> : <MicOff size={20} />}
           </div>
-          <span className="text-[10px] font-black tracking-wide text-gray-650 dark:text-gray-400">
+          <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
             {isMicEnabled ? 'Mute' : 'Unmute'}
           </span>
         </div>
 
-        {/* Video button (if video room) */}
-        {isVideoRoom && (
+        {/* 2. Video Button (if video room) OR Raise Hand (if audio room) */}
+        {isVideoRoom ? (
           <div 
             onClick={toggleCam}
-            className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+            className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
           >
-            <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+            <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
               isCamEnabled 
-                ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-500' 
-                : 'bg-gray-50 dark:bg-gray-800 text-gray-400'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' 
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-white/5'
             }`}>
-              {isCamEnabled ? <Video size={18} /> : <VideoOff size={18} />}
+              {isCamEnabled ? <Video size={20} /> : <VideoOff size={20} />}
             </div>
-            <span className="text-[10px] font-black tracking-wide text-gray-650 dark:text-gray-400">
+            <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
               {isCamEnabled ? 'Stop Video' : 'Start Video'}
+            </span>
+          </div>
+        ) : (
+          <div 
+            onClick={isHost ? handleOpenInviteFriendsModal : (canPublish ? handleLeaveStage : (hasRequested ? handleWithdrawRequest : handleRequestToSpeak))}
+            className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px]"
+          >
+            <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
+              isHost
+                ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400'
+                : (canPublish 
+                    ? 'bg-red-50 dark:bg-red-950/30 text-red-500' 
+                    : (hasRequested ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 animate-pulse' : 'bg-purple-50 dark:bg-purple-950/30 text-purple-500'))
+            }`}>
+              {isHost ? <UserPlus size={20} /> : (canPublish ? <ChevronsDown size={20} /> : <Hand size={20} />)}
+            </div>
+            <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
+              {isHost ? 'Invite' : (canPublish ? 'Leave' : (hasRequested ? 'Pending' : 'Raise Hand'))}
             </span>
           </div>
         )}
 
-        {/* Screen Share button */}
-        <div 
-          onClick={toggleScreenShare}
-          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
-          title={
-            isScreenSharing 
-              ? "Stop Screen Sharing" 
-              : isAnotherUserSharing 
-                ? `${activeScreenSharer?.name || 'Someone'} is sharing their screen`
-                : "Share Screen"
-          }
-        >
-          <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
-            isScreenSharing
-              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 animate-pulse'
-              : isAnotherUserSharing
-                ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20'
-                : isPresenting
-                  ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-500'
-                  : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-          }`}>
-            {isScreenSharing ? <MonitorOff size={18} /> : <ScreenShare size={18} />}
-          </div>
-          <span className="text-[10px] font-black tracking-wide text-gray-650 dark:text-gray-400">
-            {isScreenSharing ? 'Stop Share' : isAnotherUserSharing ? 'Sharing' : 'Share'}
-          </span>
-        </div>
-
-        {/* Collaborative Whiteboard button */}
-        <div 
-          onClick={() => toggleWhiteboard()}
-          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
-          title="Collaborative Whiteboard"
-        >
-          <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
-            isWhiteboardOpen 
-              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
-              : 'bg-orange-50 dark:bg-orange-950/20 text-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/30'
-          }`}>
-            <PenTool size={18} />
-          </div>
-          <span className="text-[10px] font-black tracking-wide text-gray-650 dark:text-gray-400">
-            Board
-          </span>
-        </div>
-
-        {/* Chat button */}
+        {/* 3. Chat Button */}
         <div 
           onClick={() => setShowChatPanel(prev => !prev)}
-          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px] relative"
         >
-          <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
+          <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${
             showChatPanel 
-              ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/10' 
-              : 'bg-orange-50 dark:bg-orange-950/20 text-orange-500'
+              ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' 
+              : 'bg-orange-50 dark:bg-orange-950/30 text-orange-500 border border-orange-200/40 dark:border-orange-900/30'
           }`}>
-            <MessageSquare size={18} />
+            <MessageSquare size={20} />
           </div>
-          <span className="text-[10px] font-black tracking-wide text-gray-650 dark:text-gray-400">
+          <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
             Chat
           </span>
         </div>
 
-        {/* Participants button */}
+        {/* 4. Participants Button */}
         <div 
           onClick={() => setShowParticipants(prev => !prev)}
-          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px] relative"
         >
-          <div className="w-11 sm:w-12 h-10 rounded-xl bg-green-50 dark:bg-green-950/20 text-green-500 flex items-center justify-center transition-all">
-            <Users size={18} />
+          <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all relative ${
+            showParticipants
+              ? 'bg-green-600 text-white shadow-md shadow-green-600/20'
+              : 'bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200/40 dark:border-green-900/30'
+          }`}>
+            <Users size={20} />
+            {uniqueParticipants.length > 0 && (
+              <span className="absolute -top-1 -right-1 px-1.5 py-0.2 min-w-[18px] text-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[9px] font-black rounded-full shadow-sm">
+                {uniqueParticipants.length}
+              </span>
+            )}
           </div>
-          <span className="text-[10px] font-black tracking-wide text-gray-655 dark:text-gray-400">
+          <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
             People
           </span>
         </div>
 
-        {/* Stage Request / Hand button / Host Invite Friends button */}
-        <div 
-          onClick={isHost ? handleOpenInviteFriendsModal : (canPublish ? handleLeaveStage : (hasRequested ? handleWithdrawRequest : handleRequestToSpeak))}
-          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
-        >
-          <div className={`w-11 sm:w-12 h-10 rounded-xl flex items-center justify-center transition-all ${
-            isHost
-              ? 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400'
-              : (canPublish 
-                  ? 'bg-red-50 dark:bg-red-950/20 text-red-500' 
-                  : (hasRequested ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20' : 'bg-purple-50 dark:bg-purple-950/20 text-purple-500'))
-          }`}>
-            {isHost ? <UserPlus size={18} /> : (canPublish ? <ChevronsDown size={18} /> : <Hand size={18} className={hasRequested ? 'animate-pulse' : ''} />)}
-          </div>
-          <span className="text-[10px] font-black tracking-wide text-gray-655 dark:text-gray-400">
-            {isHost ? 'Invite' : (canPublish ? 'Leave Stage' : (hasRequested ? 'Withdraw' : 'Raise Hand'))}
-          </span>
-        </div>
-
-        {/* More Options / Settings button */}
+        {/* 5. More Options / Settings Button */}
         <div 
           onClick={() => setShowSettingsModal(true)}
-          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none"
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px] relative"
         >
-          <div className="w-11 sm:w-12 h-10 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center transition-all">
-            <Settings size={18} />
+          <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all relative ${
+            showSettingsModal || isWhiteboardOpen || isScreenSharing
+              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-md'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200/50 dark:border-white/5'
+          }`}>
+            <MoreHorizontal size={20} />
+            {/* Pulsing indicator when Whiteboard, Screen Sharing, or Speak Requests are active */}
+            {(isWhiteboardOpen || isScreenSharing || (isHost && speakRequests.length > 0)) && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-orange-500 rounded-full ring-2 ring-white dark:ring-gray-900 animate-pulse" />
+            )}
           </div>
-          <span className="text-[10px] font-black tracking-wide text-gray-655 dark:text-gray-400">
+          <span className="text-[11px] font-black tracking-tight text-gray-700 dark:text-gray-300">
             More
           </span>
         </div>
