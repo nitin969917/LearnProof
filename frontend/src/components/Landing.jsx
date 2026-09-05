@@ -317,7 +317,7 @@ const LandingPage = () => {
         }, 150);
     };
 
-    const handleGoogleSuccess = async (credentialResponse) => {
+    const handleGoogleSuccess = async (credentialResponse, targetRedirect = null) => {
         setIsLoggingIn(true);
         sessionStorage.setItem("is_logging_in", "true");
         try {
@@ -334,7 +334,7 @@ const LandingPage = () => {
             await login({ credential: idToken });
             
             sessionStorage.removeItem("is_logging_in");
-            const redirectTo = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
+            const redirectTo = targetRedirect || localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
             localStorage.removeItem("redirect_to");
             sessionStorage.removeItem("redirect_to");
             navigate(redirectTo);
@@ -401,10 +401,21 @@ const LandingPage = () => {
         if (hash) {
             const params = new URLSearchParams(hash.substring(1));
             const idToken = params.get('id_token') || params.get('credential');
+            const state = params.get('state');
+            let stateRedirect = null;
+            if (state) {
+                try {
+                    stateRedirect = decodeURIComponent(state);
+                } catch (e) {
+                    stateRedirect = state;
+                }
+                localStorage.setItem("redirect_to", stateRedirect);
+                sessionStorage.setItem("redirect_to", stateRedirect);
+            }
             if (idToken) {
                 setIsLoggingIn(true);
                 sessionStorage.setItem("is_logging_in", "true");
-                handleGoogleSuccess({ credential: idToken });
+                handleGoogleSuccess({ credential: idToken }, stateRedirect);
                 // Clean the hash from URL
                 window.history.replaceState(null, '', window.location.pathname);
             }

@@ -60,13 +60,31 @@ const ambassadorFaqs = [
 ];
 
 export default function AmbassadorLanding() {
-    const { user } = useAuth();
+    const { user, login } = useAuth();
     const navigate = useNavigate();
 
     const [openFaq, setOpenFaq] = useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [sampleRefCode, setSampleRefCode] = useState('CAMPUS_LEAD');
     const [copiedSample, setCopiedSample] = useState(false);
+
+    React.useEffect(() => {
+        // Handle Google Redirect Fragment if landed on /ambassador with token
+        const hash = window.location.hash;
+        if (hash) {
+            const params = new URLSearchParams(hash.substring(1));
+            const idToken = params.get('id_token') || params.get('credential');
+            if (idToken) {
+                login({ credential: idToken }).then(() => {
+                    window.history.replaceState(null, '', window.location.pathname);
+                    navigate('/ambassador/portal');
+                }).catch(err => {
+                    console.error("Ambassador login error:", err);
+                    toast.error("Login failed. Please try again.");
+                });
+            }
+        }
+    }, [login, navigate]);
 
     const handleManualGoogleLogin = () => {
         // Set the redirect target so after Google login, user lands on the Ambassador Portal
@@ -76,12 +94,14 @@ export default function AmbassadorLanding() {
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         const redirectUri = window.location.origin;
         const nonce = Math.random().toString(36).substring(2);
+        const state = encodeURIComponent('/ambassador/portal');
         
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + 
             `client_id=${clientId}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +
             `&response_type=id_token` +
             `&scope=${encodeURIComponent('openid email profile')}` +
+            `&state=${state}` +
             `&nonce=${nonce}` +
             `&ux_mode=redirect` +
             `&prompt=select_account`;
@@ -246,13 +266,13 @@ export default function AmbassadorLanding() {
                             ) : (
                                 <>
                                     <button 
-                                        onClick={handleManualGoogleLogin}
+                                        onClick={handlePrimaryCta}
                                         className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors hidden md:block px-3 py-2 cursor-pointer"
                                     >
                                         Login
                                     </button>
                                     <button 
-                                        onClick={handleManualGoogleLogin}
+                                        onClick={handlePrimaryCta}
                                         className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl text-sm font-bold shadow-md shadow-orange-500/20 transition-all duration-200 active:scale-95 cursor-pointer"
                                     >
                                         <span>Join Program</span>
@@ -331,7 +351,7 @@ export default function AmbassadorLanding() {
                                         <button 
                                             onClick={() => {
                                                 setIsMobileMenuOpen(false);
-                                                handleManualGoogleLogin();
+                                                handlePrimaryCta();
                                             }}
                                             className="flex-1 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold rounded-xl text-center border border-gray-200 text-sm cursor-pointer"
                                         >
@@ -340,7 +360,7 @@ export default function AmbassadorLanding() {
                                         <button 
                                             onClick={() => {
                                                 setIsMobileMenuOpen(false);
-                                                handleManualGoogleLogin();
+                                                handlePrimaryCta();
                                             }}
                                             className="flex-1 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold rounded-xl text-center shadow-md text-sm flex items-center justify-center gap-2 cursor-pointer"
                                         >
