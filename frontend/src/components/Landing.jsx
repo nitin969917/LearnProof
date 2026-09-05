@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, ChevronLeft, ChevronRight, Download, Laptop, Monitor, AlertCircle, Smartphone, Linkedin, Menu, X } from 'lucide-react';
+import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, ChevronLeft, ChevronRight, Download, Laptop, Monitor, AlertCircle, Smartphone, Linkedin, Menu, X, Gift, School, Share2 } from 'lucide-react';
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -669,6 +669,13 @@ const LandingPage = () => {
                             <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">How It Works</button>
                             <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">FAQs</button>
                             <button onClick={() => document.getElementById('download')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">Downloads</button>
+                            <button 
+                                onClick={() => navigate('/ambassador')} 
+                                className="text-orange-600 hover:text-orange-700 transition-colors flex items-center gap-1.5 font-extrabold bg-orange-100/70 hover:bg-orange-100 px-3 py-1 rounded-full border border-orange-200"
+                            >
+                                <Sparkles size={13} className="text-orange-500" />
+                                <span>Ambassadors</span>
+                            </button>
                         </div>
 
                         <div className="flex items-center gap-2 sm:gap-4">
@@ -744,6 +751,19 @@ const LandingPage = () => {
                                     >
                                         <span>Downloads</span>
                                         <span className="text-orange-400">→</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setIsMobileMenuOpen(false);
+                                            navigate('/ambassador');
+                                        }}
+                                        className="w-full text-left py-2.5 px-3.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold transition-colors flex items-center justify-between border border-orange-200"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Sparkles size={16} className="text-orange-500" />
+                                            <span>Campus Ambassadors</span>
+                                        </div>
+                                        <span className="text-orange-500 font-bold">→</span>
                                     </button>
                                 </div>
 
@@ -1478,6 +1498,97 @@ const LandingPage = () => {
                         {/* Team Section (5 cols on large screens) - Horizontal Auto-Swapping Carousel */}
                         <TeamLeadershipCarousel />
 
+                    </div>
+                </div>
+            </section>
+
+            {/* Section Divider */}
+            <div className="px-8 sm:px-16">
+                <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
+            </div>
+
+            {/* Campus Ambassador & Creator Program Showcase Section */}
+            <section className="py-20 px-4 sm:px-8 lg:px-16 bg-gradient-to-br from-orange-50/70 via-white to-amber-50/50 relative z-10">
+                <div className="max-w-6xl mx-auto">
+                    <div className="relative rounded-3xl bg-gradient-to-br from-orange-600 via-orange-500 to-red-600 p-8 sm:p-12 lg:p-14 text-white shadow-2xl shadow-orange-500/25 overflow-hidden">
+                        {/* Background glow discs */}
+                        <div className="absolute -top-24 -right-24 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-amber-400/20 rounded-full blur-3xl pointer-events-none" />
+
+                        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                            <div className="lg:col-span-8 text-center lg:text-left">
+                                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/20 text-white text-xs sm:text-sm font-bold backdrop-blur-md mb-4 border border-white/30">
+                                    <Sparkles size={15} /> Campus Ambassador & Creator Program
+                                </span>
+                                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight mb-4">
+                                    Lead Your Campus. <br />
+                                    <span className="text-amber-200">Earn Verified Credentials & Perks.</span>
+                                </h2>
+                                <p className="text-white/90 text-sm sm:text-base lg:text-lg mb-6 leading-relaxed max-w-2xl">
+                                    Join 140+ student leaders representing top universities. Share your custom referral link, track live student sign-ups, and unlock verified leadership certificates, free Pro access, and merchandise.
+                                </p>
+
+                                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4">
+                                    <button
+                                        onClick={() => navigate('/ambassador')}
+                                        className="px-7 py-3.5 bg-white hover:bg-orange-50 text-orange-600 font-extrabold rounded-2xl text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2 cursor-pointer"
+                                    >
+                                        <span>Explore Ambassador Program</span>
+                                        <ArrowRight size={18} />
+                                    </button>
+
+                                    <button
+                                        onClick={() => navigate('/dashboard/ambassador')}
+                                        className="px-6 py-3.5 bg-white/15 hover:bg-white/25 text-white border border-white/30 font-bold rounded-2xl text-sm sm:text-base backdrop-blur-md transition active:scale-95 flex items-center gap-2 cursor-pointer"
+                                    >
+                                        <span>Ambassador Dashboard</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Mini Feature Highlights Box */}
+                            <div className="lg:col-span-4 bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-5 sm:p-6 space-y-3.5 text-left">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                                        <Award size={18} className="text-amber-200" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-sm">Verified Certificate</div>
+                                        <div className="text-xs text-white/80">Tamper-proof LinkedIn credential</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                                        <Zap size={18} className="text-amber-200" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-sm">Free Pro AI Access</div>
+                                        <div className="text-xs text-white/80">Unlimited summaries & tokens</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                                        <Trophy size={18} className="text-amber-200" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-sm">Live Leaderboards</div>
+                                        <div className="text-xs text-white/80">Real-time click & signup tracking</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                                        <Gift size={18} className="text-amber-200" />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-sm">100% Self-Serve</div>
+                                        <div className="text-xs text-white/80">Instant custom link generation</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
