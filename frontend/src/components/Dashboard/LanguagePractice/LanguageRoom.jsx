@@ -264,7 +264,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   const addSpeakRequest = useCallback((identity, name) => {
     if (!identity) return;
-    if (notifiedRequestsRef.current.has(identity)) return;
     
     // If the user is already on stage as a speaker, ignore the request
     const allParticipants = [room?.localParticipant, ...participantsRef.current].filter(Boolean);
@@ -275,71 +274,61 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     });
     if (isAlreadySpeaker) return;
 
-    // Mark as notified immediately (outside state updater!)
-    notifiedRequestsRef.current.add(identity);
-
+    // Immediately add to pending speak requests list
     setSpeakRequests(prev => {
       if (prev.some(r => r.identity === identity)) return prev;
       return [...prev, { identity, name: name || 'User' }];
     });
 
-    toast((t) => (
-      <div className="flex items-center gap-3.5 p-3.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-orange-500/15 dark:border-orange-500/25 min-w-[320px] pointer-events-auto">
-        {/* Mic Icon Bubble */}
-        <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
-          <Mic size={18} className="animate-pulse" />
-        </div>
-        
-        {/* Request Text info */}
-        <div className="flex-1 min-w-0 flex flex-col text-left">
-          <span className="text-xs font-black text-gray-900 dark:text-white truncate">
-            {name || 'Someone'}
-          </span>
-          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-550 mt-0.5">
-            wants to join stage
-          </span>
-        </div>
-        
-        {/* Action Buttons */}
-        <div className="flex items-center gap-1.5 shrink-0 ml-2">
-          <button
-            onClick={() => {
-              toast.dismiss(t.id);
-              // Delay removing from notified list to prevent subsequent API poll from triggering a duplicate toast before DB updates
-              setTimeout(() => {
+    if (!notifiedRequestsRef.current.has(identity)) {
+      notifiedRequestsRef.current.add(identity);
+
+      toast((t) => (
+        <div className="flex items-center gap-3.5 p-3.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-orange-500/15 dark:border-orange-500/25 min-w-[320px] pointer-events-auto">
+          {/* Mic Icon Bubble */}
+          <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
+            <Mic size={18} className="animate-pulse" />
+          </div>
+          
+          {/* Request Text info */}
+          <div className="flex-1 min-w-0 flex flex-col text-left">
+            <span className="text-xs font-black text-gray-900 dark:text-white truncate">
+              {name || 'Someone'}
+            </span>
+            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-550 mt-0.5">
+              wants to join stage
+            </span>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1.5 shrink-0 ml-2">
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
                 notifiedRequestsRef.current.delete(identity);
-              }, 10000);
-              if (handlePromoteSpeakerRef.current) {
-                handlePromoteSpeakerRef.current(identity, name || 'User');
-              }
-            }}
-            className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-[10px] rounded-lg transition cursor-pointer active:scale-95 shadow-sm shadow-orange-500/10 border-none"
-          >
-            Approve
-          </button>
-          <button
-            onClick={async () => {
-              toast.dismiss(t.id);
-              // Delay removing from notified list to prevent subsequent API poll from triggering a duplicate toast before DB updates
-              setTimeout(() => {
+                if (handlePromoteSpeakerRef.current) {
+                  handlePromoteSpeakerRef.current(identity, name || 'User');
+                }
+              }}
+              className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-[10px] rounded-lg transition cursor-pointer active:scale-95 shadow-sm shadow-orange-500/10 border-none"
+            >
+              Approve
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
                 notifiedRequestsRef.current.delete(identity);
-              }, 10000);
-              setSpeakRequests(prev => prev.filter(r => r.identity !== identity));
-              try {
-                await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`);
-              } catch (_) {}
-            }}
-            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold text-[10px] rounded-lg transition cursor-pointer active:scale-95 border border-gray-200 dark:border-white/5"
-          >
-            Dismiss
-          </button>
+                setSpeakRequests(prev => prev.filter(r => r.identity !== identity));
+                socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`).catch(() => {});
+              }}
+              className="px-2.5 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold text-[10px] rounded-lg transition cursor-pointer active:scale-95 border border-gray-200 dark:border-white/5"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
-      </div>
-    ), {
-      id: `speak_req_${identity}`,
-      duration: 10000,
-      style: { background: 'transparent', boxShadow: 'none', border: 'none', padding: 0 },
-    });
+      ), { duration: 8000, id: `speak_req_${identity}` });
+    }
   }, [room, roomName]);
 
 
@@ -1120,12 +1109,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         const currentLocalParticipant = localParticipantRef.current;
 
         if (data.type === 'request_to_speak') {
-          if (amIHost()) {
+          if (isHost || amIHost()) {
             addSpeakRequest(data.identity, data.name);
           }
         } else if (data.type === 'withdraw_stage_request') {
-          if (amIHost()) {
+          if (isHost || amIHost()) {
+            notifiedRequestsRef.current.delete(data.identity);
             setSpeakRequests(prev => prev.filter(r => r.identity !== data.identity));
+            toast.dismiss(`speak_req_${data.identity}`);
           }
         } else if (data.type === 'invite_to_stage') {
           // The host already promoted us server-side. Show confirmation toast.
@@ -1138,13 +1129,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           toast.success('You are now on stage! 🎤', { id: 'on-stage-self', duration: 3000 });
           setHasRequested(false);
         } else if (data.type === 'accept_invite_response') {
-          if (amIHost()) {
+          if (isHost || amIHost()) {
             if (handlePromoteSpeakerRef.current) {
               handlePromoteSpeakerRef.current(data.identity, data.name);
             }
           }
         } else if (data.type === 'decline_invite_response') {
-          if (amIHost()) {
+          if (isHost || amIHost()) {
             toast.error(`${data.name || 'User'} declined the stage invitation.`, { id: `decline-${data.identity || 'user'}`, duration: 3000 });
           }
         } else if (data.type === 'room_ended') {
@@ -1299,21 +1290,30 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       }
     }
     if (count === 3) {
-      // 3 speakers: 2 columns & 2 rows (main user left col spanning 2 rows, other 2 users stacked right up and down)
-      return 'grid-cols-2 grid-rows-2 h-full';
+      if (showChatPanel) {
+        // Chat open: 2 columns, 2 rows (main user left col spanning 2 rows, other 2 users stacked right)
+        return 'grid-cols-2 grid-rows-2 h-full';
+      } else {
+        // Chat closed: 3 vertical rows on mobile, 2 columns on desktop (main user left col spanning 2 rows, other 2 users stacked right)
+        return 'grid-cols-1 lg:grid-cols-2 grid-rows-3 lg:grid-rows-2 h-full';
+      }
     }
     if (count === 4) return 'grid-cols-2 grid-rows-2 h-full';
     return 'grid-cols-2 lg:grid-cols-3 grid-rows-3 lg:grid-rows-2 h-full'; // 5–6 people
   };
 
   // Returns dynamic spans for 3-speaker layout:
-  // Main user (index 0) on the left takes full height (row-span-2), other two are up and down on the right (row-span-1)
+  // When chat is open: 2-column layout on all screens (main user left col row-span-2, other two right col row-span-1)
+  // When chat is closed: 3 vertical rows on mobile, 2-column layout on desktop (lg:row-span-2 for main user, lg:row-span-1 for other two)
   const getTileSpan = (index, total) => {
     if (total === 3) {
-      if (index === 0) {
-        return 'col-span-1 row-span-2 h-full';
+      if (showChatPanel) {
+        if (index === 0) return 'col-span-1 row-span-2 h-full w-full';
+        return 'col-span-1 row-span-1 h-full w-full';
+      } else {
+        if (index === 0) return 'col-span-1 lg:col-span-1 row-span-1 lg:row-span-2 h-full w-full';
+        return 'col-span-1 lg:col-span-1 row-span-1 lg:row-span-1 h-full w-full';
       }
-      return 'col-span-1 row-span-1 h-full';
     }
     return 'h-full';
   };
