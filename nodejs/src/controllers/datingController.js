@@ -987,12 +987,6 @@ const getUnreadCounts = async (req, res) => {
 // ==========================================
 
 const createLanguageRoom = async (req, res) => {
-  const { roomName, topic, language, roomType, mediaType, maxParticipants, isFriendsOnly, isPrivate, invitedUserIds } = req.body;
-  const creatorId = req.user.id;
-
-  try {
-    // Generate a unique roomName by appending a random suffix and checking existence
-    let uniqueRoomName = roomNconst createLanguageRoom = async (req, res) => {
   const { roomName, topic, language, roomType, mediaType, maxParticipants, isFriendsOnly, isPrivate, invitedUserIds, scheduledFor } = req.body;
   const creatorId = req.user.id;
 
