@@ -17,6 +17,7 @@ import {
   useRoomContext,
   useChat,
 } from '@livekit/components-react';
+import { Track } from 'livekit-client';
 import '@livekit/components-styles';
 
 import {
