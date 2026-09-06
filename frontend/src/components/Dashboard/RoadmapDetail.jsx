@@ -61,9 +61,9 @@ const RoadmapDetail = () => {
     const [playlist, setPlaylist] = useState(null);
     const [loading, setLoading] = useState(true);
     const [themeStyle, setThemeStyle] = useState({
-        background: 'linear-gradient(150deg, #1e293b 0%, #0f172a 60%, #080c14 100%)',
-        borderColor: 'rgba(255, 255, 255, 0.15)',
-        glowColor: 'rgba(0, 0, 0, 0.3)',
+        background: 'linear-gradient(135deg, rgba(243, 244, 246, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%)',
+        borderColor: 'rgba(229, 231, 235, 0.8)',
+        glowColor: 'rgba(0, 0, 0, 0.04)',
     });
 
     useEffect(() => {
@@ -100,18 +100,10 @@ const RoadmapDetail = () => {
                     const g = Math.round(gTotal / count);
                     const b = Math.round(bTotal / count);
 
-                    const darkR = Math.min(50, Math.max(12, Math.round(r * 0.3)));
-                    const darkG = Math.min(55, Math.max(15, Math.round(g * 0.3)));
-                    const darkB = Math.min(65, Math.max(20, Math.round(b * 0.3)));
-
-                    const midR = Math.min(75, Math.max(20, Math.round(r * 0.45)));
-                    const midG = Math.min(85, Math.max(25, Math.round(g * 0.45)));
-                    const midB = Math.min(95, Math.max(30, Math.round(b * 0.45)));
-
                     setThemeStyle({
-                        background: `linear-gradient(150deg, rgb(${midR}, ${midG}, ${midB}) 0%, rgb(${darkR}, ${darkG}, ${darkB}) 55%, #080c14 100%)`,
-                        borderColor: `rgba(${r}, ${g}, ${b}, 0.35)`,
-                        glowColor: `rgba(${r}, ${g}, ${b}, 0.25)`,
+                        background: `linear-gradient(140deg, rgba(${r}, ${g}, ${b}, 0.14) 0%, rgba(${r}, ${g}, ${b}, 0.04) 55%, #ffffff 100%)`,
+                        borderColor: `rgba(${r}, ${g}, ${b}, 0.25)`,
+                        glowColor: `rgba(${r}, ${g}, ${b}, 0.12)`,
                     });
                 }
             } catch (e) {
@@ -319,9 +311,9 @@ const RoadmapDetail = () => {
                         style={{
                             background: themeStyle.background,
                             borderColor: themeStyle.borderColor,
-                            boxShadow: `0 20px 40px -15px ${themeStyle.glowColor}`
+                            boxShadow: `0 12px 32px -8px ${themeStyle.glowColor}`
                         }}
-                        className="relative overflow-hidden rounded-3xl border text-white p-4 sm:p-6 transition-all duration-700 shadow-2xl"
+                        className="relative overflow-hidden rounded-3xl border p-4 sm:p-6 transition-all duration-700 shadow-md dark:bg-gray-800 dark:border-gray-700/60"
                     >
                         {/* Dynamic Ambient Thumbnail Glow Layer */}
                         {playlist.thumbnail && (
@@ -329,31 +321,27 @@ const RoadmapDetail = () => {
                                 <img
                                     src={playlist.thumbnail}
                                     alt=""
-                                    className="w-full h-full object-cover scale-150 blur-3xl opacity-35 dark:opacity-25 saturate-150 transform transition-opacity duration-700"
+                                    className="w-full h-full object-cover scale-150 blur-3xl opacity-20 dark:opacity-15 saturate-150 transform transition-opacity duration-700"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/65 to-slate-950/85" />
+                                <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/85 to-white/95 dark:from-slate-900/70 dark:via-slate-900/85 dark:to-slate-900/95" />
                             </div>
                         )}
-
-                        {/* Background subtle glow discs */}
-                        <div className="absolute -top-24 -right-24 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-                        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-black/40 rounded-full blur-3xl pointer-events-none" />
 
                         <div className="relative z-10 space-y-3.5 sm:space-y-4">
                             {/* Prominent Playlist Video Thumbnail */}
                             {playlist.thumbnail && (
                                 <div
                                     onClick={() => playlist.videos?.find(v => !v.is_completed) && navigate(`/classroom/${playlist.videos.find(v => !v.is_completed).vid}`)}
-                                    className="relative group cursor-pointer w-full aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20 transition-transform duration-300 hover:scale-[1.01]"
+                                    className="relative group cursor-pointer w-full aspect-video rounded-2xl overflow-hidden shadow-md border border-black/5 dark:border-white/10 transition-transform duration-300 hover:scale-[1.01]"
                                 >
                                     <img
                                         src={playlist.thumbnail}
                                         alt={playlist.name}
                                         className="w-full h-full object-cover"
                                     />
-                                    <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/95 text-slate-900 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
-                                            <Play size={20} className="fill-slate-900 text-slate-900 ml-0.5 sm:size-6" />
+                                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 transition-colors flex items-center justify-center">
+                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/95 text-gray-900 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                                            <Play size={20} className="fill-gray-900 text-gray-900 ml-0.5 sm:size-6" />
                                         </div>
                                     </div>
                                     <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 bg-black/75 backdrop-blur-sm rounded-md text-[10px] font-black text-white flex items-center gap-1 border border-white/20">
@@ -366,36 +354,36 @@ const RoadmapDetail = () => {
                             {/* Playlist Meta Header */}
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/15 backdrop-blur-md text-white border border-white/20 font-black text-[10px] uppercase tracking-wider rounded-lg shadow-xs">
-                                        <Sparkles size={11} className="text-amber-300" />
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/90 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 font-black text-[10px] uppercase tracking-wider rounded-lg shadow-xs backdrop-blur-md">
+                                        <Sparkles size={11} className="text-amber-500" />
                                         ACTIVE ROADMAP
                                     </span>
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/10 backdrop-blur-md rounded-lg text-[10px] font-bold text-white/95 border border-white/15">
-                                        <BookOpen size={11} className="text-white" />
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/80 dark:bg-gray-800/80 rounded-lg text-[10px] font-bold text-gray-700 dark:text-gray-300 border border-gray-200/60 dark:border-gray-700">
+                                        <BookOpen size={11} className="text-gray-500 dark:text-gray-400" />
                                         {totalVideos} LESSONS
                                     </span>
                                 </div>
 
-                                <h1 className="text-base sm:text-xl font-black text-white leading-snug tracking-tight uppercase line-clamp-2 drop-shadow-sm">
+                                <h1 className="text-base sm:text-xl font-black text-gray-900 dark:text-white leading-snug tracking-tight uppercase line-clamp-2">
                                     {playlist.name}
                                 </h1>
                             </div>
 
                             {/* Overall Mastery Progress Bar */}
                             <div className="space-y-1.5 pt-0.5">
-                                <div className="flex justify-between items-center text-xs font-bold text-white/90">
+                                <div className="flex justify-between items-center text-xs font-bold text-gray-700 dark:text-gray-300">
                                     <span>Mastery Progress</span>
-                                    <span className="text-sm sm:text-base font-black text-white">{percentComplete}%</span>
+                                    <span className="text-sm sm:text-base font-black text-gray-900 dark:text-white">{percentComplete}%</span>
                                 </div>
-                                <div className="w-full bg-white/15 rounded-full h-2 sm:h-2.5 backdrop-blur-sm overflow-hidden p-0.5 border border-white/10">
+                                <div className="w-full bg-gray-200/80 dark:bg-gray-700/80 rounded-full h-2 sm:h-2.5 overflow-hidden p-0.5 border border-gray-200/50 dark:border-gray-700">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${percentComplete}%` }}
                                         transition={{ duration: 0.8, ease: "easeOut" }}
-                                        className="h-full bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,0.9)]"
+                                        className="h-full bg-gray-900 dark:bg-white rounded-full shadow-xs"
                                     />
                                 </div>
-                                <div className="flex justify-between text-[10px] sm:text-[11px] font-semibold text-white/80 pt-0.5">
+                                <div className="flex justify-between text-[10px] sm:text-[11px] font-semibold text-gray-500 dark:text-gray-400 pt-0.5">
                                     <span>{completedVideosCount} completed</span>
                                     <span>~{videosPerDay} lessons/day</span>
                                 </div>
@@ -406,9 +394,9 @@ const RoadmapDetail = () => {
                                 {playlist.videos?.find(v => !v.is_completed) && (
                                     <button
                                         onClick={() => navigate(`/classroom/${playlist.videos.find(v => !v.is_completed).vid}`)}
-                                        className="w-full h-10 sm:h-11 px-4 sm:px-5 bg-white text-slate-900 hover:bg-slate-100 active:scale-[0.98] shadow-md hover:shadow-lg rounded-xl font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                        className="w-full h-10 sm:h-11 px-4 sm:px-5 bg-gray-900 hover:bg-black text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 active:scale-[0.98] shadow-md hover:shadow-lg rounded-xl font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
                                     >
-                                        <Play size={15} className="fill-slate-900 text-slate-900" />
+                                        <Play size={15} className="fill-white text-white dark:fill-gray-900 dark:text-gray-900" />
                                         <span>Continue Roadmap</span>
                                     </button>
                                 )}
@@ -416,17 +404,17 @@ const RoadmapDetail = () => {
                                 <div className="grid grid-cols-2 gap-2">
                                     <button
                                         onClick={() => navigate(`/dashboard/playlist/${pid}`)}
-                                        className="h-9 sm:h-10 px-3 bg-white/10 hover:bg-white/20 text-white border border-white/15 active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer truncate"
+                                        className="h-9 sm:h-10 px-3 bg-white/90 hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer truncate"
                                     >
-                                        <BookOpen size={13} className="text-white/80 shrink-0" />
+                                        <BookOpen size={13} className="text-gray-500 dark:text-gray-400 shrink-0" />
                                         <span className="truncate">Playlist View</span>
                                     </button>
 
                                     <button
                                         onClick={() => setIsEditingGoal(!isEditingGoal)}
-                                        className={`h-9 sm:h-10 px-3 ${isEditingGoal ? 'bg-white text-slate-900' : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'} active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer truncate`}
+                                        className={`h-9 sm:h-10 px-3 ${isEditingGoal ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'bg-white/90 hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700'} active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer truncate`}
                                     >
-                                        <Sparkles size={13} className={isEditingGoal ? 'text-slate-900 shrink-0' : 'text-amber-300 shrink-0'} />
+                                        <Sparkles size={13} className={isEditingGoal ? 'text-amber-300 shrink-0' : 'text-amber-500 shrink-0'} />
                                         <span className="truncate">{isEditingGoal ? "Close" : "Adjust Goal"}</span>
                                     </button>
                                 </div>
@@ -441,15 +429,15 @@ const RoadmapDetail = () => {
                                         exit={{ opacity: 0, height: 0 }}
                                         className="pt-2 overflow-hidden"
                                     >
-                                        <form onSubmit={handleUpdateGoal} className="flex items-center gap-2 bg-black/40 backdrop-blur-md p-2.5 rounded-2xl border border-white/20">
+                                        <form onSubmit={handleUpdateGoal} className="flex items-center gap-2 bg-gray-50 dark:bg-slate-900/90 p-2.5 rounded-2xl border border-gray-200 dark:border-gray-700">
                                             <div className="flex-1 min-w-0 px-2">
-                                                <span className="text-[9px] font-black uppercase text-white/70 tracking-wider block">Target Days</span>
+                                                <span className="text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-wider block">Target Days</span>
                                                 <input
                                                     type="number"
                                                     autoFocus
                                                     min="1"
                                                     max="365"
-                                                    className="w-full bg-transparent border-none p-0 text-base font-black text-white outline-none placeholder:text-white/40"
+                                                    className="w-full bg-transparent border-none p-0 text-base font-black text-gray-900 dark:text-white outline-none placeholder:text-gray-400"
                                                     placeholder="e.g. 14"
                                                     value={roadmapDaysInput}
                                                     onChange={(e) => setRoadmapDaysInput(e.target.value)}
@@ -458,7 +446,7 @@ const RoadmapDetail = () => {
                                             <button
                                                 type="submit"
                                                 disabled={settingGoal}
-                                                className="px-4 py-2 bg-white text-[#FF5100] rounded-xl font-black text-xs uppercase tracking-wider hover:bg-orange-50 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-md shrink-0"
+                                                className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-black text-xs uppercase tracking-wider hover:bg-black dark:hover:bg-gray-100 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-md shrink-0"
                                             >
                                                 {settingGoal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save"}
                                             </button>

@@ -33,9 +33,9 @@ const PlaylistProgress = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [roadmapDays, setRoadmapDays] = useState("");
     const [themeStyle, setThemeStyle] = useState({
-        background: 'linear-gradient(150deg, #1e293b 0%, #0f172a 60%, #080c14 100%)',
-        borderColor: 'rgba(255, 255, 255, 0.15)',
-        glowColor: 'rgba(0, 0, 0, 0.3)',
+        background: 'linear-gradient(135deg, rgba(243, 244, 246, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%)',
+        borderColor: 'rgba(229, 231, 235, 0.8)',
+        glowColor: 'rgba(0, 0, 0, 0.04)',
     });
     const ITEMS_PER_PAGE = 25;
 
@@ -73,18 +73,10 @@ const PlaylistProgress = () => {
                     const g = Math.round(gTotal / count);
                     const b = Math.round(bTotal / count);
 
-                    const darkR = Math.min(50, Math.max(12, Math.round(r * 0.3)));
-                    const darkG = Math.min(55, Math.max(15, Math.round(g * 0.3)));
-                    const darkB = Math.min(65, Math.max(20, Math.round(b * 0.3)));
-
-                    const midR = Math.min(75, Math.max(20, Math.round(r * 0.45)));
-                    const midG = Math.min(85, Math.max(25, Math.round(g * 0.45)));
-                    const midB = Math.min(95, Math.max(30, Math.round(b * 0.45)));
-
                     setThemeStyle({
-                        background: `linear-gradient(150deg, rgb(${midR}, ${midG}, ${midB}) 0%, rgb(${darkR}, ${darkG}, ${darkB}) 55%, #080c14 100%)`,
-                        borderColor: `rgba(${r}, ${g}, ${b}, 0.35)`,
-                        glowColor: `rgba(${r}, ${g}, ${b}, 0.25)`,
+                        background: `linear-gradient(140deg, rgba(${r}, ${g}, ${b}, 0.14) 0%, rgba(${r}, ${g}, ${b}, 0.04) 55%, #ffffff 100%)`,
+                        borderColor: `rgba(${r}, ${g}, ${b}, 0.25)`,
+                        glowColor: `rgba(${r}, ${g}, ${b}, 0.12)`,
                     });
                 }
             } catch (e) {
@@ -271,9 +263,9 @@ const PlaylistProgress = () => {
                         style={{
                             background: themeStyle.background,
                             borderColor: themeStyle.borderColor,
-                            boxShadow: `0 20px 40px -15px ${themeStyle.glowColor}`
+                            boxShadow: `0 12px 32px -8px ${themeStyle.glowColor}`
                         }}
-                        className="relative overflow-hidden rounded-3xl border text-white p-4 sm:p-6 transition-all duration-700 shadow-2xl"
+                        className="relative overflow-hidden rounded-3xl border p-4 sm:p-6 transition-all duration-700 shadow-md dark:bg-gray-800 dark:border-gray-700/60"
                     >
                         {/* Dynamic Ambient Thumbnail Glow Layer */}
                         {playlist.thumbnail && (
@@ -281,31 +273,27 @@ const PlaylistProgress = () => {
                                 <img
                                     src={playlist.thumbnail}
                                     alt=""
-                                    className="w-full h-full object-cover scale-150 blur-3xl opacity-35 dark:opacity-25 saturate-150 transform transition-opacity duration-700"
+                                    className="w-full h-full object-cover scale-150 blur-3xl opacity-20 dark:opacity-15 saturate-150 transform transition-opacity duration-700"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/65 to-slate-950/85" />
+                                <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/85 to-white/95 dark:from-slate-900/70 dark:via-slate-900/85 dark:to-slate-900/95" />
                             </div>
                         )}
-
-                        {/* Background subtle glow discs */}
-                        <div className="absolute -top-24 -right-24 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-                        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-black/40 rounded-full blur-3xl pointer-events-none" />
 
                         <div className="relative z-10 space-y-3.5 sm:space-y-4">
                             {/* Prominent Playlist Video Thumbnail */}
                             {playlist.thumbnail && (
                                 <div
                                     onClick={() => firstUnwatched && navigate(`/classroom/${firstUnwatched.vid}`)}
-                                    className="relative group cursor-pointer w-full aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20 transition-transform duration-300 hover:scale-[1.01]"
+                                    className="relative group cursor-pointer w-full aspect-video rounded-2xl overflow-hidden shadow-md border border-black/5 dark:border-white/10 transition-transform duration-300 hover:scale-[1.01]"
                                 >
                                     <img
                                         src={playlist.thumbnail}
                                         alt={playlist.name}
                                         className="w-full h-full object-cover"
                                     />
-                                    <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/95 text-slate-900 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
-                                            <Play size={20} className="fill-slate-900 text-slate-900 ml-0.5 sm:size-6" />
+                                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 transition-colors flex items-center justify-center">
+                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/95 text-gray-900 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                                            <Play size={20} className="fill-gray-900 text-gray-900 ml-0.5 sm:size-6" />
                                         </div>
                                     </div>
                                     <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 bg-black/75 backdrop-blur-sm rounded-md text-[10px] font-black text-white flex items-center gap-1 border border-white/20">
@@ -318,35 +306,35 @@ const PlaylistProgress = () => {
                             {/* Playlist Meta Header */}
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="inline-flex items-center px-2.5 py-0.5 bg-white/15 backdrop-blur-md text-white border border-white/20 font-black text-[10px] uppercase tracking-wider rounded-lg shadow-xs">
+                                    <span className="inline-flex items-center px-2.5 py-0.5 bg-white/90 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 font-black text-[10px] uppercase tracking-wider rounded-lg shadow-xs backdrop-blur-md">
                                         {isFullyCompleted ? 'COMPLETED' : isNotStarted ? 'NOT STARTED' : 'IN PROGRESS'}
                                     </span>
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/10 backdrop-blur-md rounded-lg text-[10px] font-bold text-white/95 border border-white/15">
-                                        <Video size={11} className="text-white" />
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/80 dark:bg-gray-800/80 rounded-lg text-[10px] font-bold text-gray-700 dark:text-gray-300 border border-gray-200/60 dark:border-gray-700">
+                                        <Video size={11} className="text-gray-500 dark:text-gray-400" />
                                         VIDEO COURSE
                                     </span>
                                 </div>
 
-                                <h1 className="text-base sm:text-xl font-black text-white leading-snug tracking-tight uppercase line-clamp-2 drop-shadow-sm">
+                                <h1 className="text-base sm:text-xl font-black text-gray-900 dark:text-white leading-snug tracking-tight uppercase line-clamp-2">
                                     {playlist.name}
                                 </h1>
                             </div>
 
                             {/* Overall Progress Bar */}
                             <div className="space-y-1.5 pt-0.5">
-                                <div className="flex justify-between items-center text-xs font-bold text-white/90">
+                                <div className="flex justify-between items-center text-xs font-bold text-gray-700 dark:text-gray-300">
                                     <span>Course Progress</span>
-                                    <span className="text-sm sm:text-base font-black text-white">{overallProgress}%</span>
+                                    <span className="text-sm sm:text-base font-black text-gray-900 dark:text-white">{overallProgress}%</span>
                                 </div>
-                                <div className="w-full bg-white/15 rounded-full h-2 sm:h-2.5 backdrop-blur-sm overflow-hidden p-0.5 border border-white/10">
+                                <div className="w-full bg-gray-200/80 dark:bg-gray-700/80 rounded-full h-2 sm:h-2.5 overflow-hidden p-0.5 border border-gray-200/50 dark:border-gray-700">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${overallProgress}%` }}
                                         transition={{ duration: 0.8, ease: "easeOut" }}
-                                        className="h-full bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,0.9)]"
+                                        className="h-full bg-gray-900 dark:bg-white rounded-full shadow-xs"
                                     />
                                 </div>
-                                <div className="flex justify-between text-[10px] sm:text-[11px] font-semibold text-white/80 pt-0.5">
+                                <div className="flex justify-between text-[10px] sm:text-[11px] font-semibold text-gray-500 dark:text-gray-400 pt-0.5">
                                     <span>{completedVideos} completed</span>
                                     <span>{remainingVideos} remaining</span>
                                 </div>
@@ -357,9 +345,9 @@ const PlaylistProgress = () => {
                                 {firstUnwatched && (
                                     <button
                                         onClick={() => navigate(`/classroom/${firstUnwatched.vid}`)}
-                                        className="w-full h-10 sm:h-11 px-4 sm:px-5 bg-white text-slate-900 hover:bg-slate-100 active:scale-[0.98] shadow-md hover:shadow-lg rounded-xl font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                        className="w-full h-10 sm:h-11 px-4 sm:px-5 bg-gray-900 hover:bg-black text-white dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100 active:scale-[0.98] shadow-md hover:shadow-lg rounded-xl font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
                                     >
-                                        <Play size={15} className="fill-slate-900 text-slate-900" />
+                                        <Play size={15} className="fill-white text-white dark:fill-gray-900 dark:text-gray-900" />
                                         <span>{isNotStarted ? "Start Learning" : isFullyCompleted ? "Review Again" : "Continue Learning"}</span>
                                     </button>
                                 )}
@@ -367,9 +355,9 @@ const PlaylistProgress = () => {
                                 <div className="grid grid-cols-2 gap-2">
                                     <button
                                         onClick={() => navigate(`/dashboard/roadmap/${playlistId}`)}
-                                        className="h-9 sm:h-10 px-3 bg-white/10 hover:bg-white/20 text-white border border-white/15 active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer truncate"
+                                        className="h-9 sm:h-10 px-3 bg-white/90 hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer truncate"
                                     >
-                                        <Sparkles size={13} className="text-amber-300 shrink-0" />
+                                        <Sparkles size={13} className="text-amber-500 shrink-0" />
                                         <span className="truncate">Roadmap</span>
                                     </button>
 
@@ -384,9 +372,9 @@ const PlaylistProgress = () => {
                                     ) : (
                                         <button
                                             onClick={() => navigate(`/classroom/${firstUnwatched ? firstUnwatched.vid : videos[0]?.vid}`)}
-                                            className="h-9 sm:h-10 px-3 bg-white/10 hover:bg-white/20 text-white border border-white/15 active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer truncate"
+                                            className="h-9 sm:h-10 px-3 bg-white/90 hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer truncate"
                                         >
-                                            <Clock size={13} className="text-white/80 shrink-0" />
+                                            <Clock size={13} className="text-gray-500 dark:text-gray-400 shrink-0" />
                                             <span className="truncate">Classroom</span>
                                         </button>
                                     )}
