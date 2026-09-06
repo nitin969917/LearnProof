@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Search, Lock, Unlock, Plus, Copy, Check, MessageSquare, 
-  ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, Sparkles, X, Trash2, CornerUpLeft,
-  Phone, Video as VideoIcon, Paperclip, Smile, Mic, Image, FileText, Play, BellOff, Pin
+  ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, X, Trash2, CornerUpLeft,
+  Phone, Video as VideoIcon, Play, SquarePen, Users, MessageSquareMore
 } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
@@ -13,28 +13,50 @@ import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useModal } from '../../../context/ModalContext';
 import { useAuth } from '../../../context/AuthContext';
-import { getMatrixClient } from '../../../utils/matrixClient';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 
-const getGradientBg = (name) => {
-  const colors = [
-    'from-purple-500 to-indigo-650 border-purple-400/20',
-    'from-emerald-500 to-teal-600 border-emerald-400/20',
-    'from-blue-500 to-indigo-600 border-blue-400/20',
-    'from-pink-500 to-rose-600 border-pink-400/20',
-    'from-orange-500 to-amber-600 border-orange-400/20',
-    'from-cyan-500 to-blue-600 border-cyan-400/20',
-    'from-fuchsia-500 to-purple-600 border-fuchsia-400/20',
-    'from-red-500 to-rose-600 border-red-400/20'
-  ];
-  let hash = 0;
-  const nameStr = name || 'Group';
-  for (let i = 0; i < nameStr.length; i++) {
-    hash = nameStr.charCodeAt(i) + ((hash << 5) - hash);
+const formatConversationTime = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  if (isToday) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
-  return colors[Math.abs(hash) % colors.length];
+  if (isYesterday) {
+    return 'Yesterday';
+  }
+  const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+  if (diffDays < 7) {
+    return date.toLocaleDateString([], { weekday: 'short' });
+  }
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+};
+
+const getMessageDateLabel = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  if (isToday) return 'Today';
+  if (isYesterday) return 'Yesterday';
+  return date.toLocaleDateString(undefined, { 
+    month: 'short', 
+    day: 'numeric', 
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+  });
 };
 
 export default function ChatsTab({ currentUserId, selectedContact, onClearSelectedContact, onToggleHeader, onViewProfile }) {
@@ -50,7 +72,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const clearUnreadForContact = useSocialMessageStore((state) => state.clearUnreadForContact);
   const setActiveChatUser = useSocialMessageStore((state) => state.setActiveChatUser);
 
-  // Use shared Zustand stores for instant loading (no spinner on re-open)
+  // Use shared Zustand stores for instant loading
   const storeFriends = useSocialFeedStore(state => state.friends);
   const fetchStoreFriends = useSocialFeedStore(state => state.fetchFriends);
   const hasLoadedFriends = useSocialFeedStore(state => state.hasLoadedFriends);
@@ -62,9 +84,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(!hasLoadedFriends || !hasLoadedGroups);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'direct', 'groups', 'discover'
+  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'direct', 'groups'
 
-  // Selected chat: can be { ...friend, type: 'direct' } or { ...group, type: 'group' }
+  // Selected chat
   const [selectedChat, setSelectedChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -72,20 +94,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   // Last message previews
   const [lastMessages, setLastMessages] = useState({});
 
-  // WhatsApp/Telegram features states
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const quickEmojis = ['😀', '😂', '🔥', '👍', '❤️', '👏', '🎉', '🚀', '💡', '🤔'];
-
-  const fileInputRef = useRef(null);
-  const [selectedFile, setSelectedFile] = useState(null);
-
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const recordingInterval = useRef(null);
-
   const [replyingTo, setReplyingTo] = useState(null);
-  const [swipeState, setSwipeState] = useState({}); // { [msgIndex]: { x: number, triggered: bool } }
-  const SWIPE_THRESHOLD = 60; // px to trigger reply
+  const [swipeState, setSwipeState] = useState({});
+  const SWIPE_THRESHOLD = 60;
 
   const parseMessageContent = (msg) => {
     if (!msg || !msg.content) return { text: "" };
@@ -97,9 +108,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     } catch (e) {}
     return {
       text: msg.content,
-      isFile: msg.isFile,
-      fileName: msg.fileName,
-      fileSize: msg.fileSize,
       isVoiceNote: msg.isVoiceNote,
       duration: msg.duration,
       reactions: msg.reactions || {}
@@ -117,83 +125,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
   const [typingUsers, setTypingUsers] = useState({});
 
-  const handleEmojiClick = (emoji) => {
-    setInputText(prev => prev + emoji);
-    setShowEmojiPicker(false);
-  };
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("File size cannot exceed 2 MB");
-        e.target.value = "";
-        return;
-      }
-      setSelectedFile(file);
-      toast.success(`Attached ${file.name}`);
-    }
-  };
-
-  const handleDownloadFile = (fileName) => {
-    toast.success(`Downloading ${fileName}...`);
-    const element = document.createElement("a");
-    const file = new Blob(["Simulated content for " + fileName], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
-    element.download = fileName;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-  };
-
-  const startRecording = () => {
-    setIsRecording(true);
-    setRecordingSeconds(0);
-    toast.success("Recording voice note...");
-    recordingInterval.current = setInterval(() => {
-      setRecordingSeconds(prev => prev + 1);
-    }, 1000);
-  };
-
-  const stopRecording = async (shouldSend = true) => {
-    setIsRecording(false);
-    clearInterval(recordingInterval.current);
-    if (shouldSend && recordingSeconds > 0) {
-      const voiceMessage = {
-        senderId: currentUserId,
-        receiverId: selectedChat.id,
-        content: `🎙️ Voice Note (${recordingSeconds}s)`,
-        isVoiceNote: true,
-        duration: recordingSeconds,
-        createdAt: new Date().toISOString(),
-      };
-      
-      try {
-        if (isMatrixActive) {
-          const roomId = await getOrCreateMatrixRoom(selectedChat.id);
-          if (roomId) {
-            await matrixClient.sendMessage(roomId, {
-              msgtype: "m.text",
-              body: `🎙️ Voice Note (${recordingSeconds}s)`
-            });
-          }
-        } else {
-          socketRef.current?.emit('sendMessage', {
-            receiverId: selectedChat.id.toString(),
-            message: voiceMessage,
-          });
-        }
-        setMessages((prev) => [...prev, voiceMessage]);
-        toast.success("Voice note sent!");
-      } catch (err) {
-        console.error("Failed to send voice note:", err);
-      }
-    }
-  };
-
   // Modals
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
-  const [showJoinGroupModal, setShowJoinGroupModal] = useState(null); // stores group object
+  const [showJoinGroupModal, setShowJoinGroupModal] = useState(null);
   const [showNewDirectChatModal, setShowNewDirectChatModal] = useState(false);
   const [newGroupData, setNewGroupData] = useState({ name: '', description: '', isPrivate: false, entryKey: '' });
   const [joinKey, setJoinKey] = useState('');
@@ -266,7 +200,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       const res = await socialApi.get(`/groups/${groupId}`);
       setGroupDetails(res.data);
       
-      // Calculate friends who are not already group members
       const memberUserIds = res.data.members.map(m => m.userId);
       const inviteable = contacts.filter(f => !memberUserIds.includes(f.id));
       setFriendsToInvite(inviteable);
@@ -290,7 +223,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       setSelectedChat(prev => ({ ...prev, onlyAdminsCanPost: res.data.onlyAdminsCanPost }));
     } catch (err) {
       console.error('Failed to update group settings:', err);
-      alert('Failed to update group settings');
+      toast.error('Failed to update group settings');
     }
   };
 
@@ -300,9 +233,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         userId: friendId
       });
       await fetchGroupDetails(selectedChat.id);
+      toast.success('Member added!');
     } catch (err) {
       console.error('Failed to add member:', err);
-      alert(err.response?.data?.error || 'Failed to add member');
+      toast.error(err.response?.data?.error || 'Failed to add member');
     }
   };
 
@@ -317,13 +251,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     try {
       await socialApi.delete(`/groups/${selectedChat.id}/members/${memberId}`);
       await fetchGroupDetails(selectedChat.id);
+      toast.success('Member removed');
     } catch (err) {
       console.error('Failed to remove member:', err);
-      alert(err.response?.data?.error || 'Failed to remove member');
+      toast.error(err.response?.data?.error || 'Failed to remove member');
     }
   };
 
-  // Sync group details if open when selectedChat changes
   useEffect(() => {
     if (selectedChat && selectedChat.type === 'group' && showGroupDetails) {
       fetchGroupDetails(selectedChat.id);
@@ -333,7 +267,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     }
   }, [selectedChat]);
 
-  // Refetch group details if showGroupDetails is opened
   useEffect(() => {
     if (selectedChat && selectedChat.type === 'group' && showGroupDetails) {
       fetchGroupDetails(selectedChat.id);
@@ -348,7 +281,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const selectedChatRef = useRef(null);
   const longPressTimer = useRef(null);
 
-  // Sync ref to avoid closure issues in socket callbacks
   useEffect(() => {
     selectedChatRef.current = selectedChat;
     if (onToggleHeader) {
@@ -364,7 +296,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     };
   }, [onToggleHeader]);
 
-  // Fetch initial friendships and groups
   const fetchData = async () => {
     const cachedFriends = useSocialFeedStore.getState().friends;
     const cachedGroups = useSocialGroupsStore.getState().groups;
@@ -432,7 +363,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     };
   }, [currentUserId]);
 
-  // Set up Matrix event listeners
   useEffect(() => {
     if (!isMatrixActive || !matrixClient) return;
 
@@ -473,11 +403,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     };
   }, [isMatrixActive, matrixClient, currentUserId]);
 
-  // Set up socket listeners
   useEffect(() => {
     if (!socketRef.current) return;
 
-    // Typing indicator
     const handleUserTyping = ({ senderId, isTyping }) => {
       setTypingUsers(prev => ({
         ...prev,
@@ -485,7 +413,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       }));
     };
 
-    // Read status listener
     const handleMessagesRead = ({ readerId }) => {
       const active = selectedChatRef.current;
       if (active && active.type === 'direct' && active.id?.toString() === readerId?.toString()) {
@@ -499,7 +426,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       }
     };
 
-    // Message reaction listener
     const handleReactionUpdated = ({ messageId, reactions }) => {
       setMessages((prev) =>
         prev.map((msg) => {
@@ -523,7 +449,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     socketRef.current.on('messagesRead', handleMessagesRead);
     socketRef.current.on('messageReactionUpdated', handleReactionUpdated);
 
-    // Direct Messages (only if Matrix is not active)
     const handleDirectMessage = (message) => {
       if (isMatrixActive) return;
       const active = selectedChatRef.current;
@@ -564,7 +489,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       setMessages((prev) => prev.filter((m, i) => !(i === prev.length - 1 && !m.id)));
     };
 
-    // Group Messages
     const handleGroupMessage = (msg) => {
       const active = selectedChatRef.current;
       if (active && active.type === 'group' && msg.groupId === active.id) {
@@ -580,7 +504,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       }));
     };
 
-    // Message Deletions
     const handleMessageDeleted = ({ messageId }) => {
       setMessages((prev) =>
         prev.map((msg) =>
@@ -639,7 +562,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     };
   }, [currentUserId, isMatrixActive]);
 
-  // Sync if opened via shortcut from other tabs (Feed, Friends, etc.)
   useEffect(() => {
     if (selectedContact) {
       navigate(`/dashboard/social/chats/${selectedContact.type || 'direct'}/${selectedContact.id}`);
@@ -647,128 +569,11 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     }
   }, [selectedContact]);
 
-
-
-  const initiateCall = async (mediaType) => {
-    try {
-      // 1. Create a private language room record
-      const roomPayload = {
-        roomName: `privatecall-direct-${currentUserId}-${selectedChat.id}-${mediaType}`,
-        topic: `Private ${mediaType === 'video' ? 'Video' : 'Audio'} Call`,
-        language: 'English',
-        roomType: '1-on-1',
-        mediaType: mediaType,
-        maxParticipants: 2,
-        isFriendsOnly: true
-      };
-
-      const roomRes = await socialApi.post('/language-rooms', roomPayload);
-      const createdRoom = roomRes.data;
-
-      // 2. Send direct chat message with call metadata
-      const callMessageContent = JSON.stringify({
-        type: 'call',
-        action: 'initiated',
-        roomName: createdRoom.roomName,
-        mediaType: mediaType
-      });
-
-      const payload = {
-        content: callMessageContent
-      };
-      
-      let newMessage;
-      if (isMatrixActive) {
-        const roomId = await getOrCreateMatrixRoom(selectedChat.id);
-        const event = await matrixClient.sendMessage(roomId, {
-          msgtype: 'm.text',
-          body: callMessageContent
-        });
-        newMessage = {
-          id: event.event_id,
-          senderId: currentUserId,
-          content: callMessageContent,
-          createdAt: new Date().toISOString()
-        };
-      } else {
-        newMessage = {
-          senderId: currentUserId,
-          receiverId: selectedChat.id,
-          content: callMessageContent,
-          createdAt: new Date().toISOString()
-        };
-
-        socketRef.current?.emit('sendMessage', {
-          receiverId: selectedChat.id.toString(),
-          message: newMessage,
-        });
-      }
-
-      setMessages((prev) => [...prev, newMessage]);
-      setInputText('');
-
-      // 3. Launch LiveKit call session
-      navigate(`/dashboard/live-rooms/${createdRoom.roomName}`);
-    } catch (err) {
-      console.error('Failed to initiate call:', err);
-      toast.error('Could not initiate call. Please try again.');
-    }
-  };
-
-  const handleDeclineCall = async (msg) => {
-    try {
-      const parsed = parseMessageContent(msg);
-      if (!parsed) return;
-
-      const declineMsg = {
-        content: JSON.stringify({
-          type: 'call',
-          action: 'declined',
-          roomName: parsed.roomName,
-          mediaType: parsed.mediaType
-        })
-      };
-      
-      let newMessage;
-      if (isMatrixActive) {
-        const roomId = await getOrCreateMatrixRoom(selectedChat.id);
-        const event = await matrixClient.sendMessage(roomId, {
-          msgtype: 'm.text',
-          body: declineMsg.content
-        });
-        newMessage = {
-          id: event.event_id,
-          senderId: currentUserId,
-          content: declineMsg.content,
-          createdAt: new Date().toISOString()
-        };
-      } else {
-        newMessage = {
-          senderId: currentUserId,
-          receiverId: selectedChat.id,
-          content: declineMsg.content,
-          createdAt: new Date().toISOString()
-        };
-
-        socketRef.current?.emit('sendMessage', {
-          receiverId: selectedChat.id.toString(),
-          message: newMessage,
-        });
-      }
-      
-      setMessages((prev) => [...prev, newMessage]);
-      toast.success('Call declined');
-    } catch (err) {
-      console.error('Failed to decline call:', err);
-    }
-  };
-
   const selectChat = (chat) => {
     setSelectedChat(chat);
     navigate(`/dashboard/social/chats/${chat.type}/${chat.id}`);
   };
 
-  // Sync selectedChat state with URL routing to allow proper back navigation support
   useEffect(() => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
     const subRoute = pathSegments[2];
@@ -791,7 +596,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           });
           localStorage.setItem('social_selected_chat_contact', JSON.stringify({ id: chatId, type: chatType }));
         } else if (!selectedChat || selectedChat.id !== chatId || selectedChat.type !== chatType || !selectedChat.name) {
-          // Initialize placeholder while fetching profile
           if (!selectedChat || selectedChat.id !== chatId || selectedChat.type !== chatType) {
             setSelectedChat({ id: chatId, type: chatType, name: '' });
           }
@@ -828,7 +632,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     }
   }, [location.pathname, contacts, groups]);
 
-  // Handle conversation selection change
   useEffect(() => {
     if (!selectedChat) {
       setActiveChatUser(null);
@@ -891,51 +694,16 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     loadChatHistory();
   }, [selectedChat, isMatrixActive]);
 
-  // Scroll to bottom of chat
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Send Direct or Group Message
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
     if (!selectedChat) return;
-    if (!inputText.trim() && !selectedFile) return;
+    if (!inputText.trim()) return;
 
-    if (selectedFile) {
-      const fileMessage = {
-        senderId: currentUserId,
-        receiverId: selectedChat.id,
-        content: `📎 Sent a file: ${selectedFile.name}`,
-        isFile: true,
-        fileName: selectedFile.name,
-        fileSize: `${(selectedFile.size / 1024).toFixed(1)} KB`,
-        createdAt: new Date().toISOString(),
-      };
-
-      try {
-        if (isMatrixActive) {
-          const roomId = await getOrCreateMatrixRoom(selectedChat.id);
-          if (roomId) {
-            await matrixClient.sendMessage(roomId, {
-              msgtype: "m.text",
-              body: `📎 File: ${selectedFile.name}`
-            });
-          }
-        } else {
-          socketRef.current?.emit('sendMessage', {
-            receiverId: selectedChat.id.toString(),
-            message: fileMessage,
-          });
-        }
-        setMessages((prev) => [...prev, fileMessage]);
-        setSelectedFile(null);
-        toast.success("File sent!");
-      } catch (err) {
-        console.error("Failed to send file:", err);
-      }
-      return;
-    }
+    const textToSend = inputText.trim();
 
     if (isMatrixActive) {
       if (selectedChat.type === 'direct') {
@@ -944,14 +712,14 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           try {
             const content = {
               msgtype: "m.text",
-              body: inputText,
+              body: textToSend,
             };
             await matrixClient.sendMessage(roomId, content);
             
             const newMessage = {
               senderId: currentUserId,
               receiverId: selectedChat.id,
-              content: inputText,
+              content: textToSend,
               createdAt: new Date().toISOString(),
             };
             setMessages((prev) => [...prev, newMessage]);
@@ -970,8 +738,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
     if (selectedChat.type === 'direct') {
       const contentPayload = replyingTo
-        ? JSON.stringify({ text: inputText, replyTo: { id: replyingTo.id, senderId: replyingTo.senderId, text: parseMessageContent(replyingTo).text } })
-        : inputText;
+        ? JSON.stringify({ text: textToSend, replyTo: { id: replyingTo.id, senderId: replyingTo.senderId, text: parseMessageContent(replyingTo).text } })
+        : textToSend;
       const newMessage = {
         senderId: currentUserId,
         receiverId: selectedChat.id,
@@ -992,8 +760,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     } else if (selectedChat.type === 'group') {
       try {
         const groupContent = replyingTo
-          ? JSON.stringify({ text: inputText, replyTo: { id: replyingTo.id, senderId: replyingTo.senderId, text: parseMessageContent(replyingTo).text } })
-          : inputText;
+          ? JSON.stringify({ text: textToSend, replyTo: { id: replyingTo.id, senderId: replyingTo.senderId, text: parseMessageContent(replyingTo).text } })
+          : textToSend;
         const response = await socialApi.post(`/groups/${selectedChat.id}/messages`, {
           content: groupContent,
         });
@@ -1019,7 +787,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     setInputText('');
   };
 
-  // Delete message handler
   const handleDeleteMessage = async (msg) => {
     if (!msg.id) return;
     const confirmed = await confirm({
@@ -1033,7 +800,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       if (selectedChat.type === 'direct') {
         await socialApi.delete(`/messages/${msg.id}`);
         
-        // Emit socket event to recipient so their UI updates
         if (socketRef.current) {
           const receiverId = msg.senderId === currentUserId ? msg.receiverId : msg.senderId;
           socketRef.current.emit('deleteMessage', {
@@ -1044,7 +810,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       } else if (selectedChat.type === 'group') {
         await socialApi.delete(`/groups/${selectedChat.id}/messages/${msg.id}`);
         
-        // Emit socket event to group room
         if (socketRef.current) {
           socketRef.current.emit('deleteGroupMessage', {
             messageId: msg.id,
@@ -1053,7 +818,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         }
       }
 
-      // Update local state
       setMessages((prev) =>
         prev.map((m) =>
           m.id === msg.id
@@ -1073,21 +837,16 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       });
     } catch (err) {
       console.error('Failed to delete message:', err);
-      alert(err.response?.data?.error || 'Failed to delete message');
+      toast.error(err.response?.data?.error || 'Failed to delete message');
     }
   };
 
-  // Long-press Touch/Mouse Handlers for Message selection
   const handleStartPress = (e, msg) => {
-    // Clear any existing timer
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
-    
-    // Set a timer for 500ms to open the menu
     longPressTimer.current = setTimeout(() => {
       setActiveMenuMessage(msg);
-      // Vibrate if supported
       if (navigator.vibrate) {
         navigator.vibrate(40);
       }
@@ -1106,7 +865,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     }
   };
 
-  // Group Management APIs
   const handleCreateGroup = async (e) => {
     e.preventDefault();
     if (!newGroupData.name.trim()) return;
@@ -1122,11 +880,12 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       const created = response.data;
       setShowCreateGroupModal(false);
       setNewGroupData({ name: '', description: '', isPrivate: false, entryKey: '' });
-      await fetchData(); // refresh list
+      await fetchData();
       navigate(`/dashboard/social/chats/group/${created.id}`);
+      toast.success('Group created!');
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || 'Failed to create group');
+      toast.error(err.response?.data?.error || 'Failed to create group');
     }
   };
 
@@ -1139,11 +898,12 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
       setShowJoinGroupModal(null);
       setJoinKey('');
-      await fetchData(); // refresh
+      await fetchData();
       navigate(`/dashboard/social/chats/group/${group.id}`);
+      toast.success('Joined group!');
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || 'Failed to join group');
+      toast.error(err.response?.data?.error || 'Failed to join group');
     }
   };
 
@@ -1159,12 +919,12 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       await socialApi.post('/groups/leave', { groupId });
       navigate('/dashboard/social/chats');
       await fetchData();
+      toast.success('Left group');
     } catch (err) {
       console.error(err);
     }
   };
 
-  // UI Helpers
   const copyToClipboard = (key) => {
     navigator.clipboard.writeText(key);
     setCopiedKey(true);
@@ -1201,7 +961,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     });
   }
 
-  // Sort by last message date, or secondary by name
   activeConversations.sort((a, b) => {
     const aTime = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : 0;
     const bTime = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : 0;
@@ -1212,7 +971,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Mobile Back Navigation & Swipe to Back
   const handleBack = () => {
     localStorage.removeItem('social_selected_chat_contact');
     if (onClearSelectedContact) {
@@ -1241,7 +999,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
     if (deltaTime > 650) return;
 
-    // Swipe right (deltaX > 60) to go backward (WhatsApp/Telegram style)
     if (deltaX > 60 && Math.abs(deltaY) < 65 && deltaX > Math.abs(deltaY) * 1.3) {
       const target = chatTouchStartRef.current.target;
       if (target && target.closest('input, textarea, button, audio, video, select, .no-swipe, [contenteditable="true"]')) return;
@@ -1251,95 +1008,88 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
   return (
     <div 
-      className="bg-white dark:bg-gray-900 md:rounded-3xl md:border md:border-orange-100 dark:md:border-gray-700 md:shadow-xl overflow-hidden flex flex-1 w-full h-full min-h-0"
+      className="bg-white dark:bg-gray-900 md:rounded-3xl md:border md:border-gray-200/80 dark:md:border-gray-800 md:shadow-lg overflow-hidden flex flex-1 w-full h-full min-h-0"
     >
-      {/* ── SIDEBAR CONVERSATION LIST ── */}
+      {/* ── LEFT SIDEBAR: CONVERSATION LIST ── */}
       <div 
         className={`${
           selectedChat ? 'hidden md:flex' : 'flex'
-        } flex-col w-full md:w-[350px] lg:w-[380px] shrink-0 border-r border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900`}
+        } flex-col w-full md:w-[340px] lg:w-[380px] shrink-0 border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900`}
       >
         {/* Sidebar Header */}
-        <div className="p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-2.5 sm:gap-3 flex-shrink-0">
-          {/* Unified Search & Action Row */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type="text"
-                placeholder="Search chat or group..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-[#202c33] border border-gray-200 dark:border-gray-700 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/25 transition text-gray-900 dark:text-[#e9edef] placeholder-gray-400 font-semibold"
-              />
+        <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col gap-3 flex-shrink-0">
+          {/* Top Title Row + Compose Button */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+              Chats
+            </h2>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowNewDirectChatModal(true)}
+                title="New Chat"
+                className="w-10 h-10 rounded-2xl bg-[#FF5722] hover:bg-[#F4511E] text-white flex items-center justify-center transition-all cursor-pointer shadow-sm shadow-orange-500/20 active:scale-95 shrink-0"
+              >
+                <SquarePen size={18} strokeWidth={2.2} />
+              </button>
             </div>
-            <button
-              onClick={() => setShowNewDirectChatModal(true)}
-              title="New Direct Chat"
-              className="w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-700 bg-gray-50 dark:bg-[#202c33] border border-gray-200 dark:border-gray-700 rounded-2xl transition cursor-pointer shrink-0 active:scale-95 shadow-xs"
-            >
-              <UserPlus size={18} />
-            </button>
-            <button
-              onClick={() => {
-                setNewGroupData({ name: '', description: '', isPrivate: false, entryKey: '' });
-                setShowCreateGroupModal(true);
-              }}
-              title="Create Group"
-              className="w-10 h-10 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-700 bg-gray-50 dark:bg-[#202c33] border border-gray-200 dark:border-gray-700 rounded-2xl transition cursor-pointer shrink-0 active:scale-95 shadow-xs"
-            >
-              <PlusCircle size={18} />
-            </button>
           </div>
 
-          {/* Filter Pills */}
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5 hide-scrollbar">
+          {/* Filter Tabs */}
+          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-1">
             {[
               { id: 'all', name: 'All' },
               { id: 'direct', name: 'Direct' },
               { id: 'groups', name: 'Groups' }
             ].map(filter => {
               const isActive = activeFilter === filter.id;
-              const Icon = filter.icon;
               return (
                 <button
                   key={filter.id}
                   onClick={() => setActiveFilter(filter.id)}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-black transition cursor-pointer shrink-0 border ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer select-none ${
                     isActive 
-                      ? 'bg-orange-500 border-orange-500 text-white shadow-sm'
-                      : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-orange-500/30'
+                      ? 'bg-orange-50 dark:bg-orange-950/40 text-[#FF5722] border border-orange-200/80 dark:border-orange-800/60 shadow-xs'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
                 >
-                  {Icon && <Icon size={12} />}
-                  <span>{filter.name}</span>
+                  {filter.name}
                 </button>
               );
             })}
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+            <input
+              type="text"
+              placeholder="Search chat or group..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-gray-800/70 border border-gray-100 dark:border-gray-700/60 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition text-gray-900 dark:text-white placeholder-gray-400 font-medium"
+            />
           </div>
         </div>
 
         {/* Sidebar list items */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {loading ? (
-            <div className="flex flex-col items-center justify-center p-12 text-sm text-gray-400 gap-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent"></div>
+            <div className="flex flex-col items-center justify-center p-12 text-xs text-gray-400 gap-2 font-medium">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#FF5722] border-t-transparent"></div>
               <span>Syncing chats...</span>
             </div>
           ) : (
-            // Regular Chat Mode
             filteredConversations.length === 0 ? (
-              <div className="p-8 text-center text-gray-400 text-xs font-bold leading-relaxed">
-                No active chats found.<br />Start a new conversation with a friend!
+              <div className="p-8 text-center text-gray-400 text-xs font-semibold leading-relaxed">
+                No active conversations found.<br />Tap the top-right button to start chatting!
               </div>
             ) : (
               filteredConversations.map(chat => {
                 const isSelected = selectedChat && selectedChat.type === chat.type && selectedChat.id === chat.id;
                 const initials = chat.type === 'group' ? getGroupInitials(chat.name) : '';
                 const lastMsg = chat.lastMessage;
-                const formattedTime = lastMsg 
-                  ? new Date(lastMsg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                  : '';
+                const formattedTime = lastMsg ? formatConversationTime(lastMsg.createdAt) : '';
                 const isOnline = chat.type === 'direct' && onlineUserIds.some(id => id.toString() === chat.id.toString());
                 const isTyping = chat.type === 'direct' && typingUsers[chat.id];
 
@@ -1349,52 +1099,54 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     onClick={() => selectChat(chat)}
                     className={`flex items-center gap-3 p-3 rounded-2xl cursor-pointer transition select-none ${
                       isSelected 
-                        ? 'bg-orange-50 dark:bg-gray-800/90 border-l-4 border-orange-500 shadow-xs' 
+                        ? 'bg-[#FFF7F2] dark:bg-gray-800/90 border-l-4 border-[#FF5722] shadow-xs' 
                         : 'hover:bg-gray-50 dark:hover:bg-gray-800/40 border-l-4 border-transparent'
                     }`}
                   >
+                    {/* Avatar */}
                     <div className="relative shrink-0">
                       {chat.type === 'direct' ? (
                         <UserAvatar 
                           src={chat.profilePicture} 
                           name={chat.name} 
-                          className="w-12 h-12 rounded-full border border-gray-200/50 dark:border-gray-700" 
+                          className="w-12 h-12 rounded-full border border-gray-100 dark:border-gray-700" 
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center font-black text-white bg-gradient-to-tr from-emerald-400 to-teal-500 shadow-xs">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white bg-gradient-to-tr from-teal-500 to-emerald-500 shadow-xs text-sm">
                           {initials}
                         </div>
                       )}
                       {chat.type === 'direct' && isOnline && (
-                        <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></span>
+                        <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-gray-900 rounded-full"></span>
                       )}
                     </div>
                     
+                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline mb-1">
-                        <h4 className="text-sm font-black text-gray-900 dark:text-white truncate">
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
                           {chat.name}
                         </h4>
                         {formattedTime && (
-                          <span className="text-[10px] text-gray-400 dark:text-gray-550 font-bold shrink-0 ml-1">
+                          <span className="text-[11px] text-gray-400 dark:text-gray-500 font-medium shrink-0 ml-1">
                             {formattedTime}
                           </span>
                         )}
                       </div>
                       
-                      <div className="flex justify-between items-center">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate font-semibold">
+                      <div className="flex justify-between items-center gap-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate font-normal">
                           {isTyping ? (
-                            <span className="text-green-500 italic font-black animate-pulse">typing...</span>
+                            <span className="text-emerald-500 font-semibold animate-pulse">typing...</span>
                           ) : lastMsg ? (
-                            (lastMsg.senderId === currentUserId ? 'You: ' : '') + parseMessageContent(lastMsg).text
+                            (lastMsg.senderId === currentUserId ? 'You: ' : '') + (parseMessageContent(lastMsg).text || 'Message')
                           ) : (
                             chat.type === 'group' ? 'Tap to open group' : 'Tap to start chatting'
                           )}
                         </p>
                         
                         {chat.unreadCount > 0 && (
-                          <span className="bg-orange-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shrink-0 ml-1 min-w-[18px] text-center shadow-xs">
+                          <span className="bg-[#FF5722] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[18px] text-center shadow-xs">
                             {chat.unreadCount}
                           </span>
                         )}
@@ -1408,7 +1160,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         </div>
       </div>
 
-      {/* ── ACTIVE CONVERSATION WINDOW (Full Screen on Mobile WhatsApp/Telegram style) ── */}
+      {/* ── RIGHT PANEL: ACTIVE CONVERSATION WINDOW ── */}
       <div 
         onTouchStart={handleChatTouchStart}
         onTouchEnd={handleChatTouchEnd}
@@ -1416,13 +1168,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           selectedChat 
             ? 'flex fixed inset-0 z-[70] md:static md:z-auto w-full h-[100dvh] md:h-full' 
             : 'hidden md:flex'
-        } flex-1 flex-row h-full min-h-0 bg-white dark:bg-gray-900 relative`}
+        } flex-1 flex-row h-full min-h-0 bg-[#FAF7F2]/40 dark:bg-gray-900 relative`}
       >
         {selectedChat ? (
           <>
-            <div className="flex-1 flex flex-col h-full min-h-0 relative border-r border-gray-100 dark:border-gray-700/50">
-              {/* Header */}
-              <div className="p-2.5 sm:p-3 md:p-4 border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0 z-10 shadow-sm">
+            <div className="flex-1 flex flex-col h-full min-h-0 relative">
+              {/* Active Conversation Header */}
+              <div className="p-3 sm:p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0 z-10 shadow-xs">
                 <div 
                   onClick={() => {
                     if (selectedChat.type === 'group') {
@@ -1433,65 +1185,74 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       }
                     }
                   }}
-                  title={selectedChat.type === 'direct' ? "Click to view profile" : "Click to view group info"}
-                  className="flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer hover:opacity-85 active:scale-[0.99] transition-all"
+                  className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 cursor-pointer hover:opacity-90 active:scale-[0.99] transition-all"
                 >
                   {/* Mobile Back Arrow Button */}
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleBack();
                     }}
-                    className="md:hidden p-2 -ml-1 rounded-full text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 transition cursor-pointer shrink-0"
+                    className="md:hidden p-1.5 -ml-1 rounded-full text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-90 transition cursor-pointer shrink-0"
                     aria-label="Back to chats"
                   >
-                    <ArrowLeft size={22} className="stroke-[2.5]" />
+                    <ArrowLeft size={20} className="stroke-[2.25]" />
                   </button>
 
                   {/* Avatar */}
-                  {selectedChat.type === 'direct' ? (
-                    <UserAvatar 
-                      src={selectedChat.profilePicture} 
-                      name={selectedChat.name || 'User'} 
-                      className="w-10 h-10 rounded-full border border-gray-200/50 dark:border-gray-700 shrink-0" 
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm text-white bg-gradient-to-tr from-emerald-400 to-teal-500 shrink-0 shadow-sm">
-                      {getGroupInitials(selectedChat.name || 'Group')}
-                    </div>
-                  )}
+                  <div className="relative shrink-0">
+                    {selectedChat.type === 'direct' ? (
+                      <UserAvatar 
+                        src={selectedChat.profilePicture} 
+                        name={selectedChat.name || 'User'} 
+                        className="w-11 h-11 rounded-full border border-gray-100 dark:border-gray-700 shrink-0" 
+                      />
+                    ) : (
+                      <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm text-white bg-gradient-to-tr from-teal-500 to-emerald-500 shrink-0 shadow-xs">
+                        {getGroupInitials(selectedChat.name || 'Group')}
+                      </div>
+                    )}
+                    {selectedChat.type === 'direct' && onlineUserIds.some(id => id.toString() === selectedChat.id?.toString()) && (
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-gray-900 rounded-full"></span>
+                    )}
+                  </div>
 
-                  {/* Metadata */}
+                  {/* Name & Status */}
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <h3 className="font-black text-gray-900 dark:text-white text-sm truncate">
+                      <h3 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base truncate">
                         {selectedChat.name || (selectedChat.type === 'direct' ? 'Friend' : 'Group')}
                       </h3>
                       {selectedChat.type === 'group' && (
                         selectedChat.isPrivate ? (
-                          <span className="flex items-center gap-0.5 text-[9px] text-red-500 bg-red-50 dark:bg-red-950/20 px-1 rounded-md font-black uppercase">
-                            <Lock size={9} /> Private
+                          <span className="flex items-center gap-0.5 text-[9px] text-red-500 bg-red-50 dark:bg-red-950/20 px-1.5 py-0.5 rounded-md font-bold uppercase">
+                            <Lock size={8} /> Private
                           </span>
                         ) : (
-                          <span className="flex items-center gap-0.5 text-[9px] text-green-500 bg-green-50 dark:bg-green-950/20 px-1 rounded-md font-black uppercase">
-                            <Unlock size={9} /> Public
+                          <span className="flex items-center gap-0.5 text-[9px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.5 rounded-md font-bold uppercase">
+                            <Unlock size={8} /> Public
                           </span>
                         )
                       )}
                     </div>
-                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-550 mt-0.5 truncate">
+                    <div className="flex items-center gap-1.5 text-xs mt-0.5 truncate">
                       {selectedChat.type === 'direct' ? (
                         typingUsers[selectedChat.id] ? (
-                          <span className="text-green-500 italic font-black animate-pulse">typing...</span>
-                        ) : onlineUserIds.some(id => id.toString() === selectedChat.id.toString()) ? (
-                          <span className="text-green-500">Active now</span>
+                          <span className="text-emerald-500 font-semibold animate-pulse">typing...</span>
+                        ) : onlineUserIds.some(id => id.toString() === selectedChat.id?.toString()) ? (
+                          <span className="flex items-center gap-1 text-emerald-500 font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
+                          </span>
                         ) : (
-                          'Offline'
+                          <span className="text-gray-400 font-medium">Offline</span>
                         )
                       ) : (
-                        selectedChat.description || 'Tap for group info'
+                        <span className="text-gray-400 font-medium truncate">
+                          {selectedChat.description || 'Tap for group info'}
+                        </span>
                       )}
-                    </p>
+                    </div>
                   </div>
                 </div>
 
@@ -1500,19 +1261,21 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   {selectedChat.type === 'group' && (
                     <>
                       {selectedChat.entryKey && (
-                        <div className="hidden sm:flex items-center gap-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 rounded-xl">
-                          <span className="text-[9px] font-black text-gray-400 uppercase">Entry Key:</span>
-                          <code className="text-xs font-mono font-bold text-orange-500">{selectedChat.entryKey}</code>
+                        <div className="hidden sm:flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2.5 py-1.5 rounded-xl">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase">Key:</span>
+                          <code className="text-xs font-mono font-bold text-[#FF5722]">{selectedChat.entryKey}</code>
                           <button
+                            type="button"
                             onClick={() => copyToClipboard(selectedChat.entryKey)}
-                            className="text-gray-400 hover:text-orange-500 transition flex items-center cursor-pointer"
+                            className="text-gray-400 hover:text-[#FF5722] transition flex items-center cursor-pointer"
                             title="Copy Entry Key"
                           >
-                            {copiedKey ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                            {copiedKey ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
                           </button>
                         </div>
                       )}
                       <button
+                        type="button"
                         onClick={() => handleLeaveGroup(selectedChat.id)}
                         title="Leave Group"
                         className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition cursor-pointer"
@@ -1522,35 +1285,38 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     </>
                   )}
                   <button 
+                    type="button"
                     onClick={() => {
                       if (selectedChat.type === 'group') {
                         setShowGroupDetails(true);
                       }
                     }}
-                    className="p-2 text-gray-400 hover:text-gray-650 dark:hover:text-gray-300 rounded-xl transition cursor-pointer"
-                    title={selectedChat.type === 'group' ? "Group Info" : "Menu"}
+                    className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-xl transition cursor-pointer"
+                    title={selectedChat.type === 'group' ? "Group Info" : "Options"}
                   >
                     <MoreVertical size={18} />
                   </button>
                 </div>
               </div>
 
-              {/* WhatsApp Wallpaper Chat Area */}
+              {/* Chat Message Stream Area */}
               <div 
-                className="flex-1 overflow-y-auto p-4 space-y-3 bg-white dark:bg-gray-900 relative"
+                className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#FAF7F2]/60 dark:bg-gray-950/60 relative"
               >
-
-
                 {messages.map((msg, index) => {
                   const isMine = msg.senderId === currentUserId;
                   const senderName = msg.sender?.name || '';
                   const senderPic = msg.sender?.profilePicture || '/default-avatar.png';
                   const formattedTime = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                  // Parse JSON content (replies/reactions)
                   const parsed = parseMessageContent(msg);
                   const reactions = parsed.reactions || {};
                   const reactionEntries = Object.entries(reactions);
+
+                  // Date Separator logic
+                  const currentDateLabel = getMessageDateLabel(msg.createdAt);
+                  const prevDateLabel = index > 0 ? getMessageDateLabel(messages[index - 1].createdAt) : null;
+                  const showDateSeparator = currentDateLabel && currentDateLabel !== prevDateLabel;
 
                   // Swipe-to-reply state
                   const sw = swipeState[index] || { x: 0, triggered: false };
@@ -1560,203 +1326,151 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   const showReplyArrow = Math.abs(swipeX) > 15;
 
                   return (
-                    <div
-                      key={index}
-                      className={`group flex items-start max-w-[85%] md:max-w-[75%] ${isMine ? 'ml-auto justify-end' : 'mr-auto justify-start'} relative overflow-hidden`}
-                      onTouchStart={(e) => {
-                        if (msg.isDeleted) return;
-                        setSwipeState(prev => ({ ...prev, [index]: { startX: e.touches[0].clientX, x: 0, triggered: false } }));
-                      }}
-                      onTouchMove={(e) => {
-                        const state = swipeState[index];
-                        if (!state || state.triggered) return;
-                        const dx = e.touches[0].clientX - state.startX;
-                        const clamped = isMine
-                          ? Math.max(-(SWIPE_THRESHOLD + 10), Math.min(0, dx))
-                          : Math.min(SWIPE_THRESHOLD + 10, Math.max(0, dx));
-                        if (Math.abs(clamped) >= SWIPE_THRESHOLD) {
-                          setReplyingTo(msg);
-                          setSwipeState(prev => ({ ...prev, [index]: { x: 0, triggered: true } }));
-                        } else {
-                          setSwipeState(prev => ({ ...prev, [index]: { ...prev[index], x: clamped } }));
-                        }
-                      }}
-                      onTouchEnd={() => {
-                        setSwipeState(prev => ({ ...prev, [index]: { x: 0, triggered: false } }));
-                      }}
-                    >
-                      {/* Reply arrow indicator — fades in as user swipes */}
-                      {showReplyArrow && (
-                        <div
-                          className={`absolute top-1/2 -translate-y-1/2 flex items-center justify-center w-7 h-7 rounded-full bg-orange-100 dark:bg-orange-900/50 border border-orange-300 dark:border-orange-700 pointer-events-none z-10 ${isMine ? 'right-0' : 'left-0'}`}
-                          style={{ opacity: Math.min(1, Math.abs(swipeX) / SWIPE_THRESHOLD) }}
-                        >
-                          <CornerUpLeft size={12} className={`text-orange-500 ${isMine ? 'scale-x-[-1]' : ''}`} />
+                    <div key={msg.id || index} className="flex flex-col gap-3">
+                      {/* Date Separator Pill */}
+                      {showDateSeparator && (
+                        <div className="flex justify-center my-2">
+                          <div className="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-3.5 py-1 rounded-full text-[11px] font-bold shadow-xs border border-gray-100 dark:border-gray-700/80 select-none">
+                            {currentDateLabel}
+                          </div>
                         </div>
                       )}
 
-                      {/* Sliding inner wrapper */}
                       <div
-                        className={`flex items-start gap-2 w-full ${isMine ? 'flex-row-reverse' : ''}`}
-                        style={{ transform: `translateX(${swipeX}px)`, transition: swipeX === 0 ? 'transform 0.2s ease' : 'none' }}
+                        className={`group flex items-start max-w-[85%] md:max-w-[72%] ${isMine ? 'ml-auto justify-end' : 'mr-auto justify-start'} relative overflow-hidden`}
+                        onTouchStart={(e) => {
+                          if (msg.isDeleted) return;
+                          setSwipeState(prev => ({ ...prev, [index]: { startX: e.touches[0].clientX, x: 0, triggered: false } }));
+                        }}
+                        onTouchMove={(e) => {
+                          const state = swipeState[index];
+                          if (!state || state.triggered) return;
+                          const dx = e.touches[0].clientX - state.startX;
+                          const clamped = isMine
+                            ? Math.max(-(SWIPE_THRESHOLD + 10), Math.min(0, dx))
+                            : Math.min(SWIPE_THRESHOLD + 10, Math.max(0, dx));
+                          if (Math.abs(clamped) >= SWIPE_THRESHOLD) {
+                            setReplyingTo(msg);
+                            setSwipeState(prev => ({ ...prev, [index]: { x: 0, triggered: true } }));
+                          } else {
+                            setSwipeState(prev => ({ ...prev, [index]: { ...prev[index], x: clamped } }));
+                          }
+                        }}
+                        onTouchEnd={() => {
+                          setSwipeState(prev => ({ ...prev, [index]: { x: 0, triggered: false } }));
+                        }}
                       >
-                        {/* Avatar for group messages */}
-                        {selectedChat.type === 'group' && !isMine && (
-                          <img
-                            src={senderPic}
-                            alt={senderName}
-                            onClick={() => onViewProfile && onViewProfile(msg.senderId)}
-                            className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5 border border-gray-200 bg-white cursor-pointer hover:opacity-80"
-                          />
+                        {/* Reply swipe indicator */}
+                        {showReplyArrow && (
+                          <div
+                            className={`absolute top-1/2 -translate-y-1/2 flex items-center justify-center w-7 h-7 rounded-full bg-orange-100 dark:bg-orange-900/50 border border-orange-300 dark:border-orange-700 pointer-events-none z-10 ${isMine ? 'right-0' : 'left-0'}`}
+                            style={{ opacity: Math.min(1, Math.abs(swipeX) / SWIPE_THRESHOLD) }}
+                          >
+                            <CornerUpLeft size={12} className={`text-[#FF5722] ${isMine ? 'scale-x-[-1]' : ''}`} />
+                          </div>
                         )}
 
-                        <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
-                          {/* Sender name in group */}
-                          {selectedChat.type === 'group' && !isMine && (
-                            <span
-                              onClick={() => onViewProfile && onViewProfile(msg.senderId)}
-                              className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 ml-1.5 mb-0.5 cursor-pointer hover:underline"
-                            >
-                              {senderName}
-                            </span>
+                        {/* Sliding wrapper */}
+                        <div
+                          className={`flex items-start gap-2 w-full ${isMine ? 'flex-row-reverse' : ''}`}
+                          style={{ transform: `translateX(${swipeX}px)`, transition: swipeX === 0 ? 'transform 0.2s ease' : 'none' }}
+                        >
+                          {/* Avatar for group messages or incoming */}
+                          {!isMine && (
+                            <UserAvatar
+                              src={selectedChat.type === 'group' ? senderPic : selectedChat.profilePicture}
+                              name={selectedChat.type === 'group' ? senderName : selectedChat.name}
+                              className="w-8 h-8 rounded-full shrink-0 mt-0.5"
+                              textClassName="text-xs font-bold"
+                            />
                           )}
 
-                          {/* Message bubble */}
-                          <div
-                            className={`rounded-2xl px-3.5 py-1.5 shadow-sm text-sm relative border border-transparent select-none cursor-pointer active:scale-[0.99] transition-transform duration-100 ${
-                              isMine
-                                ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-gray-900 dark:text-[#e9edef] rounded-tr-none'
-                                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-[#e9edef] rounded-tl-none'
-                            }`}
-                            onMouseDown={(e) => !msg.isDeleted && handleStartPress(e, msg)}
-                            onMouseUp={handleEndPress}
-                            onMouseLeave={handleCancelPress}
-                            onTouchStart={(e) => !msg.isDeleted && handleStartPress(e, msg)}
-                            onTouchEnd={handleEndPress}
-                            onTouchMove={handleCancelPress}
-                            onContextMenu={(e) => {
-                              if (!msg.isDeleted) { e.preventDefault(); setActiveMenuMessage(msg); }
-                            }}
-                            title={!msg.isDeleted ? 'Long press or right-click for options' : undefined}
-                          >
-                            {/* Reply quote strip */}
-                            {!msg.isDeleted && parsed.replyTo && (
-                              <div className={`mt-1 mb-1.5 pl-2.5 pr-2 py-1 rounded-lg border-l-4 border-y-0 border-r-0 ${
-                                isMine ? 'border-green-600 bg-green-200/50 dark:bg-green-900/30' : 'border-orange-400 bg-orange-50 dark:bg-orange-950/20'
-                              }`}>
-                                <p className="text-[9px] font-black text-orange-500 dark:text-orange-400 mb-0.5">
-                                  {parsed.replyTo.senderId === currentUserId ? 'You' : contacts.find(c => c.id?.toString() === parsed.replyTo.senderId?.toString())?.name || 'User'}
-                                </p>
-                                <p className="text-[10px] text-gray-600 dark:text-gray-300 truncate leading-tight">
-                                  {parsed.replyTo.text || '📎 Attachment'}
-                                </p>
-                              </div>
+                          <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                            {/* Sender name for group messages */}
+                            {selectedChat.type === 'group' && !isMine && (
+                              <span
+                                onClick={() => onViewProfile && onViewProfile(msg.senderId)}
+                                className="text-[10px] font-bold text-[#FF5722] ml-1 mb-0.5 cursor-pointer hover:underline"
+                              >
+                                {senderName}
+                              </span>
                             )}
 
-                            {/* Message content */}
-                            {msg.isDeleted ? (
-                              <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 italic pb-3 pr-8 select-none">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-3.5 h-3.5 shrink-0">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
-                                </svg>
-                                <span>This message was deleted</span>
-                              </div>
-                            ) : msg.isVoiceNote ? (
-                              <div className="flex items-center gap-3 pb-4 pr-8 w-52 sm:w-60 select-none">
-                                <button type="button" onClick={() => toast.success('Playing voice note...')}
-                                  className="w-8 h-8 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center shadow active:scale-95 transition-all cursor-pointer shrink-0">
-                                  <Play size={12} className="fill-white ml-0.5" />
-                                </button>
-                                <div className="flex-1 space-y-1">
-                                  <div className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full w-full overflow-hidden">
-                                    <div className="h-full bg-orange-500 w-1/3 rounded-full"></div>
-                                  </div>
-                                  <div className="flex justify-between items-center text-[9px] font-black text-gray-400">
-                                    <span>0:00 / 0:{msg.duration < 10 ? `0${msg.duration}` : msg.duration}</span>
-                                  </div>
+                            {/* Message bubble */}
+                            <div
+                              className={`rounded-2xl px-4 py-2.5 shadow-xs text-sm relative select-none cursor-pointer transition-transform duration-100 ${
+                                isMine
+                                  ? 'bg-[#FFEADB] text-gray-900 dark:bg-orange-950/70 dark:text-orange-50 rounded-tr-xs border border-orange-200/50 dark:border-orange-800/40'
+                                  : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-xs border border-gray-100/90 dark:border-gray-700/80'
+                              }`}
+                              onMouseDown={(e) => !msg.isDeleted && handleStartPress(e, msg)}
+                              onMouseUp={handleEndPress}
+                              onMouseLeave={handleCancelPress}
+                              onTouchStart={(e) => !msg.isDeleted && handleStartPress(e, msg)}
+                              onTouchEnd={handleEndPress}
+                              onTouchMove={handleCancelPress}
+                              onContextMenu={(e) => {
+                                if (!msg.isDeleted) { e.preventDefault(); setActiveMenuMessage(msg); }
+                              }}
+                              title={!msg.isDeleted ? 'Long press for options' : undefined}
+                            >
+                              {/* Reply quote strip */}
+                              {!msg.isDeleted && parsed.replyTo && (
+                                <div className={`mb-2 pl-2.5 pr-2 py-1 rounded-lg border-l-3 ${
+                                  isMine ? 'border-[#FF5722] bg-white/60 dark:bg-black/20' : 'border-[#FF5722] bg-orange-50 dark:bg-orange-950/20'
+                                }`}>
+                                  <p className="text-[9px] font-bold text-[#FF5722] mb-0.5">
+                                    {parsed.replyTo.senderId === currentUserId ? 'You' : contacts.find(c => c.id?.toString() === parsed.replyTo.senderId?.toString())?.name || 'User'}
+                                  </p>
+                                  <p className="text-[10px] text-gray-600 dark:text-gray-300 truncate font-medium">
+                                    {parsed.replyTo.text || 'Message'}
+                                  </p>
                                 </div>
-                              </div>
-                            ) : msg.isFile ? (
-                              <div onClick={() => handleDownloadFile(msg.fileName)}
-                                className="flex items-center gap-3 pb-4 pr-8 select-none cursor-pointer hover:opacity-85 transition active:scale-95"
-                                title="Click to download file">
-                                <div className="p-2.5 bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 rounded-xl shrink-0">
-                                  <FileText size={18} />
+                              )}
+
+                              {/* Message text */}
+                              {msg.isDeleted ? (
+                                <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 italic text-xs py-0.5">
+                                  <span>This message was deleted</span>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-bold truncate text-gray-900 dark:text-white leading-tight">{msg.fileName}</p>
-                                  <span className="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase">{msg.fileSize || 'Unknown Size'}</span>
-                                </div>
-                              </div>
-                            ) : parsed && parsed.type === 'call' ? (
-                              <div className="flex flex-col gap-2 pb-3 pr-4 select-none w-52 sm:w-60">
-                                <div className="flex items-center gap-2.5">
-                                  <div className={`p-2.5 rounded-xl shrink-0 ${isMine ? 'bg-[#128c7e]/20 text-[#128c7e] dark:text-[#00a884]' : 'bg-orange-500/10 text-orange-500'}`}>
-                                    {parsed.mediaType === 'video' ? <VideoIcon size={18} /> : <Phone size={18} />}
-                                  </div>
-                                  <div className="flex-1 min-w-0 text-left">
-                                    <h4 className="text-xs font-black leading-tight">
-                                      {parsed.mediaType === 'video' ? 'Video Call' : 'Audio Call'}
-                                    </h4>
-                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5 block">
-                                      {parsed.action === 'declined' ? 'Call Declined' : isMine ? 'Outgoing Call' : 'Incoming Call'}
-                                    </span>
-                                  </div>
-                                </div>
-                                
-                                {/* Call Actions */}
-                                {!isMine && parsed.action === 'initiated' && (
-                                  <div className="flex gap-2 mt-2 w-full">
-                                    <button
-                                      onClick={() => navigate(`/dashboard/live-rooms/${parsed.roomName}`)}
-                                      className="flex-1 py-1.5 px-3 rounded-lg bg-green-500 hover:bg-green-600 text-white font-black text-[10px] uppercase tracking-wider text-center cursor-pointer shadow-sm shadow-green-500/10 transition"
-                                    >
-                                      Join Call
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeclineCall(msg)}
-                                      className="py-1.5 px-3 rounded-lg bg-red-500 hover:bg-red-600 text-white font-black text-[10px] uppercase tracking-wider text-center cursor-pointer shadow-sm shadow-red-500/10 transition"
-                                    >
-                                      Decline
-                                    </button>
-                                  </div>
+                              ) : (
+                                <p className="break-words font-normal text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
+                                  {parsed?.text || msg.content}
+                                </p>
+                              )}
+
+                              {/* Timestamp & read receipts */}
+                              <div className={`flex items-center gap-1 justify-end mt-1 text-[9px] font-medium ${
+                                isMine ? 'text-[#FF5722]/80 dark:text-orange-300/80' : 'text-gray-400 dark:text-gray-500'
+                              }`}>
+                                <span>{formattedTime}</span>
+                                {isMine && !msg.isDeleted && (
+                                  <CheckCheck size={13} className="text-[#FF5722]" />
                                 )}
                               </div>
-                            ) : (
-                              <p className="break-words font-medium leading-relaxed pb-3 pr-8 whitespace-pre-wrap">{parsed?.text || msg.content}</p>
+                            </div>
+
+                            {/* Reaction capsules */}
+                            {reactionEntries.length > 0 && (
+                              <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                                {reactionEntries.map(([emoji, users]) => {
+                                  const count = Array.isArray(users) ? users.length : 0;
+                                  const reacted = Array.isArray(users) && users.includes(currentUserId?.toString());
+                                  return (
+                                    <button key={emoji} onClick={() => handleToggleReaction(msg.id, emoji)}
+                                      className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-bold border transition-all active:scale-95 cursor-pointer ${
+                                        reacted
+                                          ? 'bg-orange-100 dark:bg-orange-900/40 border-orange-400 text-[#FF5722]'
+                                          : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
+                                      }`}>
+                                      <span>{emoji}</span>
+                                      {count > 0 && <span className="text-[9px]">{count}</span>}
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             )}
-
-                            {/* Timestamp + read receipt */}
-                            <div className="absolute bottom-1 right-2 flex items-center gap-1 select-none opacity-60">
-                              <span className="text-[8px] font-bold">{formattedTime}</span>
-                              {isMine && !msg.isDeleted && (
-                                msg.isRead
-                                  ? <CheckCheck size={12} className="text-blue-500" />
-                                  : <Check size={12} className="text-gray-400" />
-                              )}
-                            </div>
                           </div>
-
-                          {/* Reaction capsules */}
-                          {reactionEntries.length > 0 && (
-                            <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                              {reactionEntries.map(([emoji, users]) => {
-                                const count = Array.isArray(users) ? users.length : 0;
-                                const reacted = Array.isArray(users) && users.includes(currentUserId?.toString());
-                                return (
-                                  <button key={emoji} onClick={() => handleToggleReaction(msg.id, emoji)}
-                                    className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-bold border transition-all active:scale-95 cursor-pointer ${
-                                      reacted
-                                        ? 'bg-orange-100 dark:bg-orange-900/40 border-orange-400 text-orange-700 dark:text-orange-300'
-                                        : 'bg-white dark:bg-[#2a3942] border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
-                                    }`}>
-                                    <span>{emoji}</span>
-                                    {count > 0 && <span className="text-[9px]">{count}</span>}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -1765,106 +1479,76 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
                 {messages.length === 0 && (
                   <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-transparent">
-                    <div className="w-14 h-14 bg-white/80 dark:bg-gray-800/80 backdrop-blur border border-orange-100/50 dark:border-gray-700/50 rounded-2xl flex items-center justify-center text-orange-500 mb-3 shadow-md">
+                    <div className="w-14 h-14 bg-white dark:bg-gray-800 border border-orange-100 dark:border-gray-700 rounded-2xl flex items-center justify-center text-[#FF5722] mb-3 shadow-sm">
                       <MessageSquare size={24} />
                     </div>
-                    <h4 className="font-black text-gray-800 dark:text-gray-200 text-sm mb-1">
-                      Welcome to the Chat with {selectedChat.name}!
+                    <h4 className="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1">
+                      Start your conversation with {selectedChat.name || 'this contact'}
                     </h4>
-                    <p className="text-xs text-gray-400 dark:text-gray-550 max-w-xs leading-relaxed font-bold">
-                      This is the start of your message history. Say hello to start discussing!
+                    <p className="text-xs text-gray-400 dark:text-gray-500 max-w-xs leading-relaxed font-medium">
+                      Say hello to start discussing topics, study materials, and shared notes!
                     </p>
                   </div>
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Bottom Bar / Blocked message */}
+              {/* Bottom Input Bar */}
               {selectedChat.type === 'group' && selectedChat.onlyAdminsCanPost && selectedChat.creatorId !== currentUserId ? (
-                <div className="p-4 border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 text-center text-xs font-black text-gray-550 dark:text-gray-400 select-none">
+                <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 text-center text-xs font-bold text-gray-400 select-none">
                   Only admins can send messages in this group
                 </div>
               ) : (
-                <div className="border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 z-10 p-3 sm:p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
-                  
-                  {/* Selected File Preview */}
-                  {selectedFile && (
-                    <div className="mx-2 mb-2 p-2 bg-gray-50 dark:bg-gray-950 border border-gray-100 dark:border-gray-800 rounded-xl flex items-center justify-between text-xs animate-in fade-in duration-200">
-                      <div className="flex items-center gap-2 text-gray-700 dark:text-[#e9edef] font-bold">
-                        <FileText size={14} className="text-orange-500" />
-                        <span className="truncate max-w-[200px]">{selectedFile.name}</span>
-                        <span className="text-[10px] text-gray-400">({(selectedFile.size / 1024).toFixed(1)} KB)</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedFile(null)}
-                        className="text-gray-400 hover:text-red-500 transition cursor-pointer"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  )}
-
+                <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 z-10 p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
                   {/* Reply Banner */}
                   {replyingTo && (
-                    <div className="mx-2 mb-2 p-2.5 bg-orange-50 dark:bg-orange-950/20 border-l-4 border-orange-400 rounded-xl flex items-center justify-between gap-2 animate-in slide-in-from-bottom-2 duration-200">
+                    <div className="mx-1 mb-2 p-2.5 bg-[#FFF7F2] dark:bg-orange-950/20 border-l-3 border-[#FF5722] rounded-xl flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-black text-orange-500 dark:text-orange-400 mb-0.5">
+                        <p className="text-[10px] font-bold text-[#FF5722] mb-0.5">
                           Replying to {replyingTo.senderId === currentUserId ? 'yourself' : contacts.find(c => c.id?.toString() === replyingTo.senderId?.toString())?.name || 'User'}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-semibold">
-                          {parseMessageContent(replyingTo).text || '📎 Attachment'}
+                        <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium">
+                          {parseMessageContent(replyingTo).text || 'Message'}
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={() => setReplyingTo(null)}
-                        className="text-gray-400 hover:text-red-500 transition cursor-pointer shrink-0"
+                        className="text-gray-400 hover:text-red-500 transition cursor-pointer shrink-0 p-1"
                       >
                         <X size={14} />
                       </button>
                     </div>
                   )}
 
-                  {/* Emoji Quick Drawer */}
-                  {showEmojiPicker && (
-                    <div className="mx-2 mb-2 p-2 bg-white dark:bg-[#2a3942] border border-gray-150 dark:border-gray-700 rounded-xl flex items-center gap-2.5 flex-wrap shadow-lg animate-in slide-in-from-bottom-2 duration-200">
-                      {quickEmojis.map(emoji => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => handleEmojiClick(emoji)}
-                          className="text-xl hover:scale-125 transition active:scale-95 p-1 cursor-pointer"
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
+                  {/* Input Form */}
                   <form 
                     onSubmit={handleSendMessage} 
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2.5"
                   >
-                    <input
-                      type="text"
-                      value={inputText}
-                      onChange={(e) => {
-                        setInputText(e.target.value);
-                        if (socketRef.current && selectedChat && selectedChat.type === 'direct') {
-                          socketRef.current.emit('typing', { targetId: selectedChat.id, isTyping: e.target.value.length > 0 });
-                        }
-                      }}
-                      placeholder="Type your message here..."
-                      className="flex-1 bg-white dark:bg-[#2a3942] text-gray-900 dark:text-[#e9edef] border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-semibold transition"
-                    />
+                    <div className="flex-1 flex items-center bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/80 dark:border-gray-700/80 rounded-full px-4 py-1.5 focus-within:ring-2 focus-within:ring-orange-500/20 focus-within:border-orange-300 transition-all shadow-xs">
+                      <input
+                        type="text"
+                        value={inputText}
+                        onChange={(e) => {
+                          setInputText(e.target.value);
+                          if (socketRef.current && selectedChat && selectedChat.type === 'direct') {
+                            socketRef.current.emit('typing', { targetId: selectedChat.id, isTyping: e.target.value.length > 0 });
+                          }
+                        }}
+                        placeholder="Type a message..."
+                        className="flex-1 bg-transparent text-gray-900 dark:text-white border-none py-2 text-xs sm:text-sm font-medium focus:outline-none placeholder-gray-400"
+                      />
+                    </div>
 
+                    {/* Circular Orange Send Button */}
                     <button
                       type="submit"
                       disabled={!inputText.trim()}
-                      className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-orange-500 text-white font-extrabold p-3 rounded-2xl transition flex items-center justify-center shadow-lg shadow-orange-500/15 cursor-pointer shrink-0"
+                      className="w-11 h-11 rounded-full bg-[#FF5722] hover:bg-[#F4511E] disabled:opacity-40 disabled:hover:bg-[#FF5722] text-white flex items-center justify-center transition-all shadow-md shadow-orange-500/25 active:scale-95 cursor-pointer shrink-0"
+                      title="Send message"
                     >
-                      <Send size={18} />
+                      <Send size={18} className="translate-x-0.5" />
                     </button>
                   </form>
                 </div>
@@ -1873,53 +1557,51 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
             {/* Group Details Sliding Panel */}
             {showGroupDetails && (
-              <div className="w-full md:w-[320px] lg:w-[350px] shrink-0 h-full bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-700/50 flex flex-col z-20 absolute md:static inset-y-0 right-0 shadow-xl md:shadow-none animate-in slide-in-from-right duration-300">
-                {/* Header */}
-                <div className="p-4 border-b border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0">
-                  <h3 className="font-black text-gray-900 dark:text-white text-base">Group Info</h3>
+              <div className="w-full md:w-[320px] lg:w-[350px] shrink-0 h-full bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex flex-col z-20 absolute md:static inset-y-0 right-0 shadow-xl md:shadow-none animate-in slide-in-from-right duration-300">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0">
+                  <h3 className="font-bold text-gray-900 dark:text-white text-base">Group Info</h3>
                   <button 
                     onClick={() => setShowGroupDetails(false)}
-                    className="p-1 rounded-xl text-gray-550 hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer"
+                    className="p-1.5 rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
                   >
-                    <X size={20} />
+                    <X size={18} />
                   </button>
                 </div>
 
-                {/* Content */}
                 {loadingGroupDetails ? (
                   <div className="flex-1 flex flex-col items-center justify-center p-8 text-gray-400 gap-2">
-                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent"></div>
-                    <span className="text-xs font-bold">Syncing group details...</span>
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#FF5722] border-t-transparent"></div>
+                    <span className="text-xs font-bold">Loading group details...</span>
                   </div>
                 ) : groupDetails ? (
-                  <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-5">
                     {/* Main Info */}
                     <div className="flex flex-col items-center text-center gap-3 select-none">
-                      <div className="w-20 h-20 rounded-full flex items-center justify-center font-black text-2xl text-white bg-gradient-to-tr from-emerald-400 to-teal-500 shadow-md">
+                      <div className="w-20 h-20 rounded-full flex items-center justify-center font-bold text-2xl text-white bg-gradient-to-tr from-teal-500 to-emerald-500 shadow-sm">
                         {getGroupInitials(groupDetails.name)}
                       </div>
                       <div>
-                        <h4 className="font-black text-gray-900 dark:text-white text-lg">{groupDetails.name}</h4>
-                        <p className="text-xs text-gray-450 dark:text-gray-500 mt-1 font-bold">Created on {new Date(groupDetails.createdAt).toLocaleDateString()}</p>
+                        <h4 className="font-bold text-gray-900 dark:text-white text-base">{groupDetails.name}</h4>
+                        <p className="text-xs text-gray-400 mt-0.5">Created on {new Date(groupDetails.createdAt).toLocaleDateString()}</p>
                       </div>
                     </div>
 
                     {/* Description */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
-                      <span className="text-[10px] font-black text-gray-400 dark:text-gray-550 uppercase tracking-widest block mb-1">Description</span>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 font-bold leading-relaxed whitespace-pre-wrap">
+                    <div className="bg-gray-50 dark:bg-gray-800/60 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/60">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Description</span>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 font-normal leading-relaxed whitespace-pre-wrap">
                         {groupDetails.description || 'No description provided.'}
                       </p>
                     </div>
 
                     {/* Group Settings */}
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-3">
-                      <span className="text-[10px] font-black text-gray-400 dark:text-gray-550 uppercase tracking-widest block">Group Settings</span>
+                    <div className="bg-gray-50 dark:bg-gray-800/60 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/60 space-y-3">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Group Settings</span>
                       
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs font-black text-gray-800 dark:text-gray-200">Only Admins Can Send Messages</p>
-                          <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold mt-0.5 leading-normal">
+                          <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Only Admins Can Post</p>
+                          <p className="text-[10px] text-gray-400 font-normal mt-0.5">
                             Restrict posting to the group creator.
                           </p>
                         </div>
@@ -1928,7 +1610,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           checked={groupDetails.onlyAdminsCanPost}
                           disabled={groupDetails.creatorId !== currentUserId}
                           onChange={(e) => handleToggleOnlyAdminsPost(e.target.checked)}
-                          className="w-4.5 h-4.5 accent-orange-500 cursor-pointer disabled:cursor-not-allowed"
+                          className="w-4 h-4 accent-[#FF5722] cursor-pointer disabled:cursor-not-allowed"
                         />
                       </div>
                     </div>
@@ -1936,20 +1618,20 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     {/* Members List */}
                     <div className="space-y-3">
                       <div className="flex justify-between items-center select-none">
-                        <span className="text-[10px] font-black text-gray-400 dark:text-gray-550 uppercase tracking-widest">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                           Members ({groupDetails.members.length})
                         </span>
                         {groupDetails.creatorId === currentUserId && (
                           <button
                             onClick={() => setShowAddMemberModal(true)}
-                            className="flex items-center gap-1 text-[10px] text-orange-500 hover:text-orange-600 font-black uppercase tracking-wider bg-orange-50 dark:bg-orange-950/20 px-2.5 py-1.5 rounded-xl transition cursor-pointer"
+                            className="flex items-center gap-1 text-[10px] text-[#FF5722] hover:text-orange-600 font-bold uppercase tracking-wider bg-orange-50 dark:bg-orange-950/20 px-2.5 py-1.5 rounded-xl transition cursor-pointer"
                           >
-                            <Plus size={10} strokeWidth={3.5} /> Add Member
+                            <Plus size={10} strokeWidth={3} /> Add Member
                           </button>
                         )}
                       </div>
 
-                      <div className="space-y-2.5">
+                      <div className="space-y-2">
                         {groupDetails.members.map((member) => {
                           const isMemberAdmin = member.userId === groupDetails.creatorId;
                           const isMe = member.userId === currentUserId;
@@ -1963,30 +1645,30 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                                   setShowGroupDetails(false);
                                   onViewProfile(u.id);
                                 }}
-                                className="flex items-center gap-3 cursor-pointer min-w-0 flex-1 hover:opacity-85"
+                                className="flex items-center gap-2.5 cursor-pointer min-w-0 flex-1 hover:opacity-85"
                               >
-                                <img 
-                                  src={u.profilePicture || '/default-avatar.png'} 
-                                  alt={u.name} 
-                                  className="w-9 h-9 rounded-full object-cover bg-gray-200 border border-gray-155 dark:border-gray-700" 
+                                <UserAvatar 
+                                  src={u.profilePicture} 
+                                  name={u.name} 
+                                  className="w-8 h-8 rounded-full shrink-0" 
+                                  textClassName="text-xs font-bold"
                                 />
                                 <div className="min-w-0">
-                                  <span className="text-xs font-black text-gray-800 dark:text-gray-200 truncate block">
-                                    {u.name} {isMe && <span className="text-orange-500 font-bold">(You)</span>}
+                                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate block">
+                                    {u.name} {isMe && <span className="text-[#FF5722] font-semibold">(You)</span>}
                                   </span>
                                   {isMemberAdmin && (
-                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase bg-emerald-50 dark:bg-emerald-950/20 px-1 rounded mt-0.5 inline-block">
+                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase bg-emerald-50 dark:bg-emerald-950/20 px-1 rounded mt-0.5 inline-block">
                                       Admin
                                     </span>
                                   )}
                                 </div>
                               </div>
 
-                              {/* Action */}
                               {groupDetails.creatorId === currentUserId && !isMemberAdmin && (
                                 <button
                                   onClick={() => handleRemoveMember(u.id)}
-                                  className="text-[10px] font-black text-red-500 hover:text-white hover:bg-red-500 bg-red-50 dark:bg-red-950/25 px-2.5 py-1.5 rounded-xl transition cursor-pointer"
+                                  className="text-[10px] font-bold text-red-500 hover:text-white hover:bg-red-500 bg-red-50 dark:bg-red-950/25 px-2.5 py-1.5 rounded-xl transition cursor-pointer"
                                 >
                                   Remove
                                 </button>
@@ -1998,20 +1680,20 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     </div>
                   </div>
                 ) : (
-                  <div className="p-8 text-center text-gray-400 text-xs font-bold">Failed to sync group information.</div>
+                  <div className="p-8 text-center text-gray-400 text-xs font-semibold">Failed to load group info.</div>
                 )}
               </div>
             )}
           </>
         ) : (
           /* Empty Chat Area Placeholder */
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gray-50/20 dark:bg-gray-900/10">
-            <div className="w-16 h-16 rounded-3xl bg-orange-500/5 text-orange-500 flex items-center justify-center mb-4 border border-orange-500/10">
-              <MessageSquare size={28} className="animate-pulse" />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-transparent">
+            <div className="w-16 h-16 rounded-3xl bg-[#FFF7F2] text-[#FF5722] flex items-center justify-center mb-4 border border-orange-100 shadow-xs">
+              <MessageSquare size={28} />
             </div>
-            <h3 className="text-base font-black text-gray-800 dark:text-gray-200">Start Messaging</h3>
-            <p className="text-xs text-gray-400 dark:text-gray-550 max-w-xs mt-1 leading-relaxed font-bold font-sans">
-              Select a conversation from the sidebar, or search for public groups in the "Discover Groups" tab to join discussions.
+            <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">Start Messaging</h3>
+            <p className="text-xs text-gray-400 max-w-xs mt-1 leading-relaxed font-normal">
+              Select a conversation from the sidebar or start a new chat with your friends!
             </p>
           </div>
         )}
@@ -2022,7 +1704,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       {/* Create Group Modal */}
       <AnimatePresence>
         {showCreateGroupModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[1000] p-4">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -2032,7 +1714,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4">Create Discussion Group</h3>
               <form onSubmit={handleCreateGroup} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Group Name</label>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Group Name</label>
                   <input
                     type="text"
                     required
@@ -2044,10 +1726,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Description (Optional)</label>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Description (Optional)</label>
                   <input
                     type="text"
-                    placeholder="e.g. Discussion and tips about physics and chemistry"
+                    placeholder="e.g. Discussion about physics and chemistry"
                     value={newGroupData.description}
                     onChange={(e) => setNewGroupData({ ...newGroupData, description: e.target.value })}
                     className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-semibold"
@@ -2055,7 +1737,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Privacy Type</label>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Privacy Type</label>
                   <div className="flex gap-4">
                     <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 dark:text-gray-300">
                       <input
@@ -2063,9 +1745,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                         name="privacy"
                         checked={!newGroupData.isPrivate}
                         onChange={() => setNewGroupData({ ...newGroupData, isPrivate: false })}
-                        className="accent-orange-500"
+                        className="accent-[#FF5722]"
                       />
-                      <Unlock size={14} className="text-green-500" /> Public
+                      <Unlock size={14} className="text-emerald-500" /> Public
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 dark:text-gray-300">
                       <input
@@ -2073,7 +1755,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                         name="privacy"
                         checked={newGroupData.isPrivate}
                         onChange={() => setNewGroupData({ ...newGroupData, isPrivate: true })}
-                        className="accent-orange-500"
+                        className="accent-[#FF5722]"
                       />
                       <Lock size={14} className="text-red-500" /> Private
                     </label>
@@ -2082,7 +1764,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
                 {newGroupData.isPrivate && (
                   <div>
-                    <label className="block text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Entry Key</label>
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Entry Key</label>
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -2102,9 +1784,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           }
                           setNewGroupData({ ...newGroupData, entryKey: key });
                         }}
-                        className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-700 dark:text-gray-300 text-xs font-extrabold rounded-2xl transition cursor-pointer"
+                        className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl transition cursor-pointer"
                       >
-                        Generate Key
+                        Generate
                       </button>
                     </div>
                   </div>
@@ -2114,13 +1796,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   <button
                     type="button"
                     onClick={() => setShowCreateGroupModal(false)}
-                    className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-700 dark:text-gray-300 font-extrabold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                    className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-orange-500/10 transition cursor-pointer"
+                    className="flex-1 px-4 py-2.5 bg-[#FF5722] hover:bg-[#F4511E] text-white font-bold text-sm rounded-2xl shadow-md transition cursor-pointer"
                   >
                     Create & Join
                   </button>
@@ -2134,7 +1816,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       {/* Join Private Group Modal */}
       <AnimatePresence>
         {showJoinGroupModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[1000] p-4">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -2145,7 +1827,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                 <Lock size={18} className="text-red-500" />
                 <span>Join Private Group</span>
               </h3>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mb-4 leading-relaxed font-bold">
+              <p className="text-xs text-gray-400 mb-4 leading-relaxed font-medium">
                 The group <strong className="text-gray-700 dark:text-gray-200">"{showJoinGroupModal.name}"</strong> is private. Please enter the Entry Key to join.
               </p>
               <form
@@ -2171,13 +1853,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setShowJoinGroupModal(null);
                       setJoinKey('');
                     }}
-                    className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-700 dark:text-gray-300 font-extrabold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                    className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-orange-500/10 transition cursor-pointer"
+                    className="flex-1 px-4 py-2.5 bg-[#FF5722] hover:bg-[#F4511E] text-white font-bold text-sm rounded-2xl shadow-md transition cursor-pointer"
                   >
                     Verify Key
                   </button>
@@ -2191,7 +1873,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       {/* Start Direct Chat Modal */}
       <AnimatePresence>
         {showNewDirectChatModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[1000] p-4">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -2199,35 +1881,48 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-sm w-full p-5 shadow-2xl"
             >
               <div className="flex justify-between items-center mb-3">
-                <h3 className="text-base font-black text-gray-900 dark:text-white">Start a Conversation</h3>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">Start a Conversation</h3>
                 <button 
                   onClick={() => {
                     setShowNewDirectChatModal(false);
                     setDirectChatSearch('');
                   }}
-                  className="text-xs text-gray-400 hover:text-gray-600 font-extrabold cursor-pointer"
+                  className="text-xs text-gray-400 hover:text-gray-600 font-bold cursor-pointer"
                 >
                   Close
                 </button>
               </div>
 
+              {/* Group Create option */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewDirectChatModal(false);
+                  setShowCreateGroupModal(true);
+                }}
+                className="w-full mb-3 p-2.5 bg-orange-50 dark:bg-orange-950/30 text-[#FF5722] rounded-2xl flex items-center justify-center gap-2 font-bold text-xs hover:bg-orange-100 dark:hover:bg-orange-950/50 transition cursor-pointer"
+              >
+                <Plus size={14} />
+                <span>Create New Group</span>
+              </button>
+
               {contacts.length > 0 && (
                 <div className="relative mb-3 shrink-0">
-                  <Search className="absolute left-3 top-2.5 text-gray-450" size={14} />
+                  <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
                   <input
                     type="text"
                     placeholder="Search friends..."
                     value={directChatSearch}
                     onChange={(e) => setDirectChatSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-orange-500/25 transition text-gray-950 dark:text-[#e9edef] placeholder-gray-400 font-semibold"
+                    className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-orange-500/25 transition text-gray-950 dark:text-white placeholder-gray-400 font-medium"
                   />
                 </div>
               )}
 
               <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
                 {contacts.length === 0 ? (
-                  <p className="text-xs text-center text-gray-400 py-6 font-bold leading-relaxed">
-                    You don't have any friends added yet.<br />Add friends from the Friends tab.
+                  <p className="text-xs text-center text-gray-400 py-6 font-medium leading-relaxed">
+                    You don't have any friends added yet.<br />Add friends from the Discover tab.
                   </p>
                 ) : (() => {
                   const filtered = contacts.filter(friend =>
@@ -2235,7 +1930,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   );
                   if (filtered.length === 0) {
                     return (
-                      <p className="text-xs text-center text-gray-450 py-6 font-bold leading-relaxed">
+                      <p className="text-xs text-center text-gray-400 py-6 font-medium leading-relaxed">
                         No friends match your search.
                       </p>
                     );
@@ -2248,16 +1943,16 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                         setShowNewDirectChatModal(false);
                         setDirectChatSearch('');
                       }}
-                      className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition border border-transparent"
+                      className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition border border-transparent"
                     >
-                      <img 
-                        src={friend.profilePicture || '/default-avatar.png'} 
-                        alt={friend.name} 
-                        className="w-9 h-9 rounded-full object-cover bg-gray-200 shrink-0 border border-gray-100 dark:border-gray-700" 
+                      <UserAvatar 
+                        src={friend.profilePicture} 
+                        name={friend.name} 
+                        className="w-9 h-9 rounded-full shrink-0" 
                       />
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-extrabold text-gray-800 dark:text-gray-200 truncate">{friend.name}</h4>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold mt-0.5">
+                        <h4 className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{friend.name}</h4>
+                        <p className="text-[10px] text-gray-400 font-medium mt-0.5">
                           {onlineUserIds.some(id => id.toString() === friend.id.toString()) ? 'Online' : 'Offline'}
                         </p>
                       </div>
@@ -2273,7 +1968,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       {/* Add Member Modal */}
       <AnimatePresence>
         {showAddMemberModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[1100] p-4">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[1100] p-4">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -2281,33 +1976,32 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-sm w-full p-5 shadow-2xl flex flex-col max-h-[80vh]"
             >
               <div className="flex justify-between items-center mb-3">
-                <h3 className="text-base font-black text-gray-900 dark:text-white">Add Member</h3>
+                <h3 className="text-base font-bold text-gray-900 dark:text-white">Add Member</h3>
                 <button 
                   onClick={() => {
                     setShowAddMemberModal(false);
                     setInviteSearch('');
                   }}
-                  className="text-xs text-gray-400 hover:text-gray-650 font-extrabold cursor-pointer"
+                  className="text-xs text-gray-400 hover:text-gray-600 font-bold cursor-pointer"
                 >
                   Close
                 </button>
               </div>
 
-              {/* Friend Search bar */}
               <div className="relative mb-3 shrink-0">
-                <Search className="absolute left-3 top-2.5 text-gray-450" size={14} />
+                <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
                 <input
                   type="text"
                   placeholder="Search friends..."
                   value={inviteSearch}
                   onChange={(e) => setInviteSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-orange-500/25 transition text-gray-950 dark:text-[#e9edef] placeholder-gray-400 font-semibold"
+                  className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-orange-500/25 transition text-gray-950 dark:text-white placeholder-gray-400 font-medium"
                 />
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-1">
                 {friendsToInvite.filter(friend => friend.name.toLowerCase().includes(inviteSearch.toLowerCase())).length === 0 ? (
-                  <p className="text-xs text-center text-gray-400 py-6 font-bold leading-relaxed">
+                  <p className="text-xs text-center text-gray-400 py-6 font-medium leading-relaxed">
                     No friends available to add.
                   </p>
                 ) : (
@@ -2319,12 +2013,12 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                         className="flex items-center justify-between gap-3 p-2 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700/55 transition border border-transparent"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <img 
-                            src={friend.profilePicture || '/default-avatar.png'} 
-                            alt={friend.name} 
-                            className="w-8 h-8 rounded-full object-cover bg-gray-200 shrink-0" 
+                          <UserAvatar 
+                            src={friend.profilePicture} 
+                            name={friend.name} 
+                            className="w-8 h-8 rounded-full shrink-0" 
                           />
-                          <h4 className="text-xs font-extrabold text-gray-800 dark:text-gray-200 truncate">{friend.name}</h4>
+                          <h4 className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{friend.name}</h4>
                         </div>
                         <button
                           onClick={() => {
@@ -2332,7 +2026,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                             setShowAddMemberModal(false);
                             setInviteSearch('');
                           }}
-                          className="bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-[10px] px-3 py-1.5 rounded-lg transition shadow-md shadow-orange-500/10 cursor-pointer"
+                          className="bg-[#FF5722] hover:bg-[#F4511E] text-white font-bold text-[10px] px-3 py-1.5 rounded-lg transition shadow-xs cursor-pointer"
                         >
                           Add
                         </button>
@@ -2345,7 +2039,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         )}
       </AnimatePresence>
 
-      {/* Message Options Action Drawer (Bottom sheet on mobile, Modal on desktop) */}
+      {/* Message Options Action Drawer */}
       <AnimatePresence>
         {activeMenuMessage && (
           <div 
@@ -2357,26 +2051,24 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0.5 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="bg-white dark:bg-[#222e35] w-full md:w-[380px] rounded-t-3xl md:rounded-3xl p-5 shadow-2xl border border-orange-100/10 dark:border-gray-800 md:mb-0"
+              className="bg-white dark:bg-gray-850 w-full md:w-[380px] rounded-t-3xl md:rounded-3xl p-5 shadow-2xl border border-gray-100 dark:border-gray-700 md:mb-0"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Grab handle on mobile */}
               <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4 md:hidden"></div>
               
-              <h5 className="text-[10px] font-black text-gray-400 dark:text-gray-555 uppercase tracking-widest mb-3 select-none">
+              <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 select-none">
                 Message Options
               </h5>
               
-              {/* Message Content Preview */}
-              <div className="bg-gray-50 dark:bg-[#182229] p-3 rounded-2xl border border-gray-100 dark:border-gray-800/80 mb-4 max-h-24 overflow-y-auto">
-                <p className="text-xs text-gray-600 dark:text-gray-300 font-semibold break-words whitespace-pre-wrap leading-relaxed">
+              <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 mb-4 max-h-24 overflow-y-auto">
+                <p className="text-xs text-gray-600 dark:text-gray-300 font-medium break-words whitespace-pre-wrap leading-relaxed">
                   {parseMessageContent(activeMenuMessage).text || activeMenuMessage.content}
                 </p>
               </div>
 
               {/* Quick Emoji Reactions */}
               {!activeMenuMessage.isDeleted && (
-                <div className="flex justify-around items-center bg-gray-50 dark:bg-[#182229] rounded-2xl py-2.5 px-3 mb-3">
+                <div className="flex justify-around items-center bg-gray-50 dark:bg-gray-900 rounded-2xl py-2 px-3 mb-3">
                   {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => {
                     const reactions = parseMessageContent(activeMenuMessage).reactions || {};
                     const users = reactions[emoji];
@@ -2388,7 +2080,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           handleToggleReaction(activeMenuMessage.id, emoji);
                           setActiveMenuMessage(null);
                         }}
-                        className={`text-2xl active:scale-75 transition-transform cursor-pointer rounded-full p-1 ${reacted ? 'bg-orange-100 dark:bg-orange-900/40' : 'hover:bg-gray-200 dark:hover:bg-gray-700/40'}`}
+                        className={`text-2xl active:scale-75 transition-transform cursor-pointer rounded-full p-1 ${reacted ? 'bg-orange-100 dark:bg-orange-950/40' : 'hover:bg-gray-200 dark:hover:bg-gray-700/40'}`}
                         title={emoji}
                       >
                         {emoji}
@@ -2399,37 +2091,38 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               )}
 
               <div className="space-y-2">
-                {/* Reply Option */}
+                {/* Reply */}
                 {!activeMenuMessage.isDeleted && (
                   <button
                     onClick={() => {
                       setReplyingTo(activeMenuMessage);
                       setActiveMenuMessage(null);
                     }}
-                    className="w-full text-left py-3 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#2a3942] transition font-extrabold text-sm flex items-center gap-3 cursor-pointer"
+                    className="w-full text-left py-2.5 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-750 transition font-bold text-sm flex items-center gap-3 cursor-pointer"
                   >
-                    <CornerUpLeft size={16} className="text-orange-500 dark:text-orange-400" />
+                    <CornerUpLeft size={16} className="text-[#FF5722]" />
                     <span>Reply</span>
                   </button>
                 )}
 
-                {/* Copy Text Option */}
+                {/* Copy Text */}
                 {!activeMenuMessage.isDeleted && (
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(activeMenuMessage.content);
+                      const txt = parseMessageContent(activeMenuMessage).text || activeMenuMessage.content;
+                      navigator.clipboard.writeText(txt);
                       setActiveMenuMessage(null);
                       setShowCopyToast(true);
                       setTimeout(() => setShowCopyToast(false), 2000);
                     }}
-                    className="w-full text-left py-3 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#2a3942] transition font-extrabold text-sm flex items-center gap-3 cursor-pointer"
+                    className="w-full text-left py-2.5 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-750 transition font-bold text-sm flex items-center gap-3 cursor-pointer"
                   >
-                    <Copy size={16} className="text-gray-450 dark:text-gray-500" />
+                    <Copy size={16} className="text-gray-400" />
                     <span>Copy Text</span>
                   </button>
                 )}
 
-                {/* Delete Message Option */}
+                {/* Delete Message */}
                 {activeMenuMessage.id && !activeMenuMessage.isDeleted && (
                   activeMenuMessage.senderId === currentUserId || 
                   (selectedChat.type === 'group' && selectedChat.creatorId === currentUserId)
@@ -2440,17 +2133,17 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setActiveMenuMessage(null);
                       handleDeleteMessage(msgToDelete);
                     }}
-                    className="w-full text-left py-3 px-4 rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition font-extrabold text-sm flex items-center gap-3 cursor-pointer"
+                    className="w-full text-left py-2.5 px-4 rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition font-bold text-sm flex items-center gap-3 cursor-pointer"
                   >
-                    <Trash2 size={16} className="text-red-500 dark:text-red-400" />
+                    <Trash2 size={16} className="text-red-500" />
                     <span>Delete Message</span>
                   </button>
                 )}
 
-                {/* Cancel Option */}
+                {/* Cancel */}
                 <button
                   onClick={() => setActiveMenuMessage(null)}
-                  className="w-full text-center py-3 px-4 rounded-xl text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-[#182229] hover:bg-gray-100 dark:hover:bg-[#2a3942] transition font-extrabold text-sm cursor-pointer mt-1"
+                  className="w-full text-center py-2.5 px-4 rounded-xl text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-bold text-sm cursor-pointer mt-1"
                 >
                   Cancel
                 </button>
@@ -2467,9 +2160,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-900/95 dark:bg-gray-800/95 text-white text-xs font-extrabold px-4 py-2.5 rounded-full shadow-xl border border-gray-700/30 z-[3000] select-none flex items-center gap-2"
+            className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-gray-900/95 dark:bg-gray-800/95 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-xl border border-gray-700/30 z-[3000] select-none flex items-center gap-2"
           >
-            <Check size={14} className="text-green-500" />
+            <Check size={14} className="text-emerald-500" />
             <span>Message copied to clipboard</span>
           </motion.div>
         )}
