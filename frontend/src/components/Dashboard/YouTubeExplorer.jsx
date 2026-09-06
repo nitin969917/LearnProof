@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
+const autocompleteCache = new Map();
+
 const YouTubeExplorer = () => {
     const { token } = useAuth();
     const navigate = useNavigate();
@@ -39,9 +41,10 @@ const YouTubeExplorer = () => {
     const [recommendLoading, setRecommendLoading] = useState(false);
     const [recommendations, setRecommendations] = useState([]);
 
-    // Debounced Autocomplete Suggestion Fetching
+    // Ultra-Fast Debounced Autocomplete with In-Memory Cache
     useEffect(() => {
-        if (!query.trim()) {
+        const trimmed = query.trim().toLowerCase();
+        if (!trimmed) {
             setSuggestions([]);
             setShowSuggestions(false);
             return;
@@ -52,6 +55,14 @@ const YouTubeExplorer = () => {
             return;
         }
 
+        // 1. Instant Cache Hit for 0ms response
+        if (autocompleteCache.has(trimmed)) {
+            setSuggestions(autocompleteCache.get(trimmed));
+            setShowSuggestions(true);
+            return;
+        }
+
+        // 2. Snappy 120ms debounce for network request
         const delayDebounce = setTimeout(async () => {
             try {
                 const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/youtube-autocomplete/`, {
@@ -59,13 +70,14 @@ const YouTubeExplorer = () => {
                     query: query
                 });
                 if (res.data.suggestions) {
+                    autocompleteCache.set(trimmed, res.data.suggestions);
                     setSuggestions(res.data.suggestions);
                     setShowSuggestions(true);
                 }
             } catch (err) {
                 console.error("Autocomplete error:", err);
             }
-        }, 300);
+        }, 120);
 
         return () => clearTimeout(delayDebounce);
     }, [query, token]);
@@ -267,15 +279,33 @@ const YouTubeExplorer = () => {
                                     setActiveSuggestionIndex(-1);
                                 }}
                                 onKeyDown={handleKeyDown}
-                                onFocus={() => setShowSuggestions(true)}
+                                onFocus={() => {
+                                    if (suggestions.length > 0) setShowSuggestions(true);
+                                }}
                                 className="flex-1 min-w-0 bg-transparent border-none py-3 sm:py-4 px-2 sm:px-4 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-600 focus:ring-0 outline-none text-sm sm:text-base md:text-lg font-medium"
                             />
+
+                            {/* Clear input button */}
+                            {query && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setQuery('');
+                                        setSuggestions([]);
+                                        setShowSuggestions(false);
+                                    }}
+                                    className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mr-1 cursor-pointer"
+                                    title="Clear"
+                                >
+                                    <X size={16} />
+                                </button>
+                            )}
                             
                             {/* Filters button */}
                             <button
                                 type="button"
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`p-2.5 mr-1 sm:mr-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 shrink-0 ${
+                                className={`p-2.5 mr-1 sm:mr-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
                                     showFilters ? 'text-red-500 bg-red-50/50 dark:bg-red-950/20' : 'text-gray-450 hover:text-gray-600 dark:hover:text-gray-200'
                                 }`}
                                 title="Toggle Filters"
@@ -287,7 +317,7 @@ const YouTubeExplorer = () => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="bg-gray-900 dark:bg-red-600 hover:bg-gray-800 dark:hover:bg-red-700 text-white p-3 sm:px-8 sm:py-4 rounded-xl sm:rounded-[1.5rem] font-bold text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg disabled:opacity-50 shrink-0"
+                                className="bg-gray-900 dark:bg-red-600 hover:bg-gray-800 dark:hover:bg-red-700 text-white p-3 sm:px-8 sm:py-4 rounded-xl sm:rounded-[1.5rem] font-bold text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg disabled:opacity-50 shrink-0 cursor-pointer active:scale-95"
                             >
                                 {loading ? <Loader size={18} className="animate-spin" /> : (
                                     <>
@@ -301,32 +331,51 @@ const YouTubeExplorer = () => {
                             <AnimatePresence>
                                 {showSuggestions && suggestions.length > 0 && (
                                     <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: 10 }}
-                                        className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden z-40 text-left"
+                                        initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden z-50 text-left backdrop-blur-xl"
                                     >
-                                        <ul className="py-2">
-                                            {suggestions.map((item, idx) => (
-                                                <li
-                                                    key={idx}
-                                                    onClick={() => {
-                                                        skipNextAutocompleteRef.current = true;
-                                                        setQuery(item);
-                                                        setShowSuggestions(false);
-                                                        handleSearchWithQuery(item);
-                                                    }}
-                                                    onMouseEnter={() => setActiveSuggestionIndex(idx)}
-                                                    className={`px-6 py-3 cursor-pointer text-sm font-semibold flex items-center gap-3 transition-colors ${
-                                                        idx === activeSuggestionIndex 
-                                                            ? 'bg-red-50/50 dark:bg-red-950/20 text-red-500' 
-                                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                                                    }`}
-                                                >
-                                                    <Search size={16} className="text-gray-400 shrink-0" />
-                                                    <span>{item}</span>
-                                                </li>
-                                            ))}
+                                        <ul className="py-2 divide-y divide-gray-50 dark:divide-gray-700/40">
+                                            {suggestions.map((item, idx) => {
+                                                const lowerItem = item.toLowerCase();
+                                                const lowerQuery = query.toLowerCase().trim();
+                                                const isMatchStart = lowerItem.startsWith(lowerQuery);
+
+                                                return (
+                                                    <li
+                                                        key={idx}
+                                                        onClick={() => {
+                                                            skipNextAutocompleteRef.current = true;
+                                                            setQuery(item);
+                                                            setShowSuggestions(false);
+                                                            handleSearchWithQuery(item);
+                                                        }}
+                                                        onMouseEnter={() => setActiveSuggestionIndex(idx)}
+                                                        className={`px-4 sm:px-6 py-3 cursor-pointer text-sm flex items-center justify-between transition-colors ${
+                                                            idx === activeSuggestionIndex 
+                                                                ? 'bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400' 
+                                                                : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                            <Search size={16} className={`${idx === activeSuggestionIndex ? 'text-red-500' : 'text-gray-400'} shrink-0`} />
+                                                            <span className="truncate">
+                                                                {isMatchStart ? (
+                                                                    <>
+                                                                        <span className="font-normal">{item.slice(0, lowerQuery.length)}</span>
+                                                                        <span className="font-black">{item.slice(lowerQuery.length)}</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <span className="font-bold">{item}</span>
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                        <span className="text-[10px] uppercase font-bold text-gray-300 dark:text-gray-500 hidden sm:inline">Select</span>
+                                                    </li>
+                                                );
+                                            })}
                                         </ul>
                                     </motion.div>
                                 )}
@@ -484,52 +533,76 @@ const YouTubeExplorer = () => {
 
             {/* Search Results / Loading / Empty State */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="animate-pulse flex flex-col gap-3">
-                            <div className="w-full aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                        </div>
-                    ))}
+                <div className="space-y-4">
+                    <div className="h-5 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                        {[...Array(12).keys()].map(i => (
+                            <div key={i} className="animate-pulse bg-white dark:bg-gray-800 rounded-2xl p-3 border border-gray-100 dark:border-gray-700/60 space-y-3">
+                                <div className="w-full aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
+                                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             ) : results.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 pb-8">
-                    {results.map((item, idx) => (
-                        <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col"
-                        >
-                            <div className="relative aspect-video overflow-hidden border-b border-gray-100 dark:border-gray-700/50 cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
-                                <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
-                                <div className="absolute inset-0 bg-black/40 xl:bg-gradient-to-t xl:from-black/60 xl:via-transparent xl:to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500">
-                                        <Play size={24} className="fill-white ml-1" />
+                <div className="space-y-4 pb-8">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">
+                            Showing {results.length} Results
+                        </h2>
+                        <span className="text-[11px] font-bold text-gray-400">
+                            YouTube Search
+                        </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                        {results.map((item, idx) => (
+                            <motion.div
+                                key={item.id}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: Math.min(0.3, idx * 0.02) }}
+                                className="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col"
+                            >
+                                <div className="relative aspect-video overflow-hidden border-b border-gray-100 dark:border-gray-700/50 cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
+                                    <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                                    <div className="absolute inset-0 bg-black/40 xl:bg-gradient-to-t xl:from-black/60 xl:via-transparent xl:to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
+                                        <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500 shadow-xl">
+                                            <Play size={20} className="fill-white ml-0.5" />
+                                        </div>
                                     </div>
+                                    
+                                    {/* Type badge */}
+                                    <div className={`absolute top-2.5 right-2.5 px-2 py-0.5 text-white text-[8px] sm:text-[9px] font-black uppercase tracking-wider rounded-md shadow-md z-10 ${
+                                        item.type === 'playlist' ? 'bg-red-500' : 'bg-blue-600'
+                                    }`}>
+                                        {item.type}
+                                    </div>
+
+                                    {/* Video count badge for playlist */}
+                                    {item.type === 'playlist' && item.video_count > 0 && (
+                                        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-xs text-white text-[9px] font-bold rounded leading-none z-10">
+                                            {item.video_count} Videos
+                                        </div>
+                                    )}
                                 </div>
-                                <div className={`absolute top-3 right-3 px-2.5 py-1 text-white text-[9px] font-black uppercase tracking-wider rounded-lg shadow-md z-10 ${
-                                    item.type === 'playlist' ? 'bg-red-500' : 'bg-blue-500'
-                                }`}>
-                                    {item.type}
+                                <div className="p-3 sm:p-3.5 space-y-2.5 flex flex-col flex-1 justify-between">
+                                    <div className="space-y-0.5">
+                                        <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-orange-500 transition-colors text-xs sm:text-sm" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
+                                        <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider block truncate">{item.channel}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => handleImportClick(item.url)}
+                                        className="w-full py-1.5 sm:py-2 bg-orange-50/70 hover:bg-orange-500 dark:bg-orange-950/20 dark:hover:bg-orange-500 text-orange-600 dark:text-orange-400 hover:text-white dark:hover:text-white font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-1 border border-orange-100/80 dark:border-orange-950/50 hover:border-transparent shadow-xs cursor-pointer active:scale-95 shrink-0"
+                                    >
+                                        <Plus size={13} strokeWidth={3} /> Add to Platform
+                                    </button>
                                 </div>
-                            </div>
-                            <div className="p-3.5 space-y-2.5 flex flex-col flex-1">
-                                <div className="space-y-0.5 flex-1">
-                                    <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-orange-500 transition-colors text-sm" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
-                                    <span className="text-[10px] font-bold text-gray-400 dark:text-slate-505 uppercase tracking-wider block">{item.channel}</span>
-                                </div>
-                                <button
-                                    onClick={() => handleImportClick(item.url)}
-                                    className="w-full py-1.5 sm:py-2 bg-orange-50/50 hover:bg-orange-500 dark:bg-orange-950/10 dark:hover:bg-orange-500 text-orange-600 dark:text-orange-400 hover:text-white dark:hover:text-white font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-1 border border-orange-100/60 dark:border-orange-950/50 hover:border-transparent shadow-sm cursor-pointer"
-                                >
-                                    <Plus size={13} strokeWidth={3} /> Add to Platform
-                                </button>
-                            </div>
-                        </motion.div>
-                    ))}
+                            </motion.div>
+                        ))}
+                    </div>
                 </div>
             ) : null}
 

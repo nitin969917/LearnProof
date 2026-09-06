@@ -2,6 +2,8 @@ const { searchYoutube, getYoutubeMetadata } = require('../services/youtube.servi
 const { generateGeminiContent, MODELS } = require('../services/ai.service');
 const axios = require('axios');
 
+const autocompleteCache = new Map();
+
 /**
  * YouTube Controller
  */
@@ -9,7 +11,8 @@ const search = async (req, res) => {
     const { query, type = 'all', sortBy = 'relevance', duration = 'any' } = req.body;
     if (!query) return res.status(400).json({ error: 'Missing query' });
 
-    const result = await searchYoutube(query, 15, { type, sortBy, duration });
+    // Request up to 36 results for rich, full YouTube-style discovery
+    const result = await searchYoutube(query, 36, { type, sortBy, duration });
     if (result.error) return res.status(500).json({ error: result.error });
 
     res.status(200).json(result);
@@ -17,7 +20,12 @@ const search = async (req, res) => {
 
 const autocomplete = async (req, res) => {
     const { query } = req.body;
-    if (!query) return res.status(200).json({ suggestions: [] });
+    if (!query || !query.trim()) return res.status(200).json({ suggestions: [] });
+
+    const trimmed = query.trim().toLowerCase();
+    if (autocompleteCache.has(trimmed)) {
+        return res.status(200).json({ suggestions: autocompleteCache.get(trimmed) });
+    }
 
     try {
         const response = await axios.get(`https://suggestqueries.google.com/complete/search`, {
@@ -25,9 +33,15 @@ const autocomplete = async (req, res) => {
                 client: 'firefox',
                 ds: 'yt',
                 q: query
-            }
+            },
+            timeout: 2500
         });
         const suggestions = response.data && response.data[1] ? response.data[1] : [];
+        if (autocompleteCache.size > 500) {
+            const firstKey = autocompleteCache.keys().next().value;
+            autocompleteCache.delete(firstKey);
+        }
+        autocompleteCache.set(trimmed, suggestions);
         res.status(200).json({ suggestions });
     } catch (err) {
         console.error('Autocomplete error:', err.message);
