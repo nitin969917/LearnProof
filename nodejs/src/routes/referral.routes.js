@@ -19,6 +19,7 @@ router.put('/my-code', authMiddleware, referralController.updateMyReferralCode);
 router.get('/admin/stats', authMiddleware, isAdminMiddleware, referralController.getAdminReferralStats);
 router.get('/admin/codes', authMiddleware, isAdminMiddleware, referralController.getAdminReferralCodes);
 router.post('/admin/codes', authMiddleware, isAdminMiddleware, referralController.createAdminReferralCode);
+router.put('/admin/codes/:id', authMiddleware, isAdminMiddleware, referralController.updateAdminReferralCode);
 router.put('/admin/codes/:id/toggle', authMiddleware, isAdminMiddleware, referralController.toggleReferralCodeStatus);
 router.delete('/admin/codes/:id', authMiddleware, isAdminMiddleware, referralController.deleteAdminReferralCode);
 

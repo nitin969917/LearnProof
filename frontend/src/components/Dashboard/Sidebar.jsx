@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Award, LogOut, Quote, Search, Moon, Sun, X, MessageSquare, HelpCircle, Menu, Users, Globe, Gift } from 'lucide-react';
+import { Home, BookOpen, Award, LogOut, Quote, Search, Moon, Sun, X, MessageSquare, HelpCircle, Menu, Users, Globe, Gift, Crown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useModal } from '../../context/ModalContext';
 import { useSocialMessageStore } from '../../store/socialMessageStore';
@@ -44,7 +44,8 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
         {
             title: 'Portal',
             items: [
-                { name: 'Home', icon: <Home size={20} />, path: '/dashboard' }
+                { name: 'Home', icon: <Home size={20} />, path: '/dashboard' },
+                { name: 'Ambassador', icon: <Crown size={20} className="text-amber-500" />, path: '/ambassador/dashboard' }
             ]
         },
         {

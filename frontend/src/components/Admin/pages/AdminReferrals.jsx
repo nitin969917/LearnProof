@@ -22,7 +22,10 @@ import {
     ExternalLink,
     RefreshCw,
     Share2,
-    BarChart3
+    BarChart3,
+    Edit3,
+    ChevronDown,
+    X
 } from 'lucide-react';
 
 const AdminReferrals = () => {
@@ -48,6 +51,11 @@ const AdminReferrals = () => {
         targetCollege: '',
         rewardNotes: ''
     });
+
+    // Edit Modal State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState(null);
+    const [savingEdit, setSavingEdit] = useState(false);
 
     const fetchData = async (isRefresh = false) => {
         if (!token) return;
@@ -124,6 +132,50 @@ const AdminReferrals = () => {
         } catch (err) {
             console.error('Failed to delete code:', err);
             toast.error('Failed to delete referral campaign');
+        }
+    };
+
+    const handleCategoryChange = async (id, newCategory, name) => {
+        try {
+            const res = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/admin/codes/${id}`, {
+                category: newCategory
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data.success) {
+                setCodes(prev => prev.map(c => c.id === id ? { ...c, category: newCategory } : c));
+                const categoryLabel = newCategory.charAt(0).toUpperCase() + newCategory.slice(1);
+                toast.success(`Updated ${name || 'user'} status to ${categoryLabel}!`);
+                fetchData(true);
+            }
+        } catch (err) {
+            console.error('Failed to update category:', err);
+            toast.error(err.response?.data?.error || 'Failed to update category');
+        }
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        if (!editingItem) return;
+
+        setSavingEdit(true);
+        try {
+            const res = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/admin/codes/${editingItem.id}`, editingItem, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (res.data.success) {
+                toast.success('Campaign details updated successfully!');
+                setIsEditModalOpen(false);
+                setEditingItem(null);
+                fetchData(true);
+            }
+        } catch (err) {
+            console.error('Failed to update campaign:', err);
+            toast.error(err.response?.data?.error || 'Failed to update campaign');
+        } finally {
+            setSavingEdit(false);
         }
     };
 
@@ -410,9 +462,32 @@ const AdminReferrals = () => {
                                                 )}
                                             </td>
 
-                                            {/* Category */}
+                                            {/* Category with Interactive Role Selector */}
                                             <td className="py-4 px-6">
-                                                {getCategoryBadge(item.category)}
+                                                <div className="relative inline-flex items-center">
+                                                    <select
+                                                        value={item.category || 'student'}
+                                                        onChange={(e) => handleCategoryChange(item.id, e.target.value, item.creatorName || (item.referrer ? item.referrer.name : item.code))}
+                                                        className={`text-xs font-bold rounded-xl px-2.5 py-1.5 pr-7 appearance-none cursor-pointer border transition outline-none shadow-2xs ${
+                                                            item.category === 'ambassador'
+                                                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
+                                                                : item.category === 'creator'
+                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                                                                : item.category === 'student'
+                                                                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
+                                                                : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800'
+                                                        }`}
+                                                        title="Click to change role (Student, Ambassador, Creator)"
+                                                    >
+                                                        <option value="student" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">🎓 Student</option>
+                                                        <option value="ambassador" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">👑 Ambassador</option>
+                                                        <option value="creator" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">✨ Creator</option>
+                                                        <option value="campaign" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">🏆 Campaign</option>
+                                                    </select>
+                                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                                                        <ChevronDown size={12} />
+                                                    </div>
+                                                </div>
                                             </td>
 
                                             {/* Creator / Ambassador */}
@@ -455,7 +530,7 @@ const AdminReferrals = () => {
                                             <td className="py-4 px-6 text-center">
                                                 <button
                                                     onClick={() => handleToggleStatus(item.id, item.isActive)}
-                                                    className="inline-flex items-center gap-1.5 focus:outline-none"
+                                                    className="inline-flex items-center gap-1.5 focus:outline-none cursor-pointer"
                                                     title={item.isActive ? 'Click to Pause' : 'Click to Activate'}
                                                 >
                                                     {item.isActive ? (
@@ -474,15 +549,34 @@ const AdminReferrals = () => {
                                             <td className="py-4 px-6 text-right">
                                                 <div className="flex items-center justify-end gap-1.5">
                                                     <button
+                                                        onClick={() => {
+                                                            setEditingItem({
+                                                                id: item.id,
+                                                                code: item.code,
+                                                                category: item.category || 'ambassador',
+                                                                title: item.title || '',
+                                                                creatorName: item.creatorName || (item.referrer ? item.referrer.name : ''),
+                                                                targetCollege: item.targetCollege || '',
+                                                                rewardNotes: item.rewardNotes || '',
+                                                                isActive: item.isActive
+                                                            });
+                                                            setIsEditModalOpen(true);
+                                                        }}
+                                                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg transition cursor-pointer"
+                                                        title="Edit Campaign Details"
+                                                    >
+                                                        <Edit3 size={16} />
+                                                    </button>
+                                                    <button
                                                         onClick={() => handleCopy(item.code)}
-                                                        className="p-1.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg transition"
+                                                        className="p-1.5 text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-lg transition cursor-pointer"
                                                         title="Copy Share Link"
                                                     >
                                                         <ExternalLink size={16} />
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(item.id, item.code)}
-                                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition"
+                                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition cursor-pointer"
                                                         title="Delete Campaign"
                                                     >
                                                         <Trash2 size={16} />
@@ -675,6 +769,132 @@ const AdminReferrals = () => {
                                     className="px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold text-sm rounded-xl shadow-lg shadow-orange-500/20 transition disabled:opacity-50"
                                 >
                                     {creating ? 'Creating...' : 'Create Campaign'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Campaign Modal */}
+            {isEditModalOpen && editingItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 dark:border-gray-700 space-y-4">
+                        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <Edit3 className="text-orange-500" size={20} />
+                                Edit Campaign / Ambassador
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setIsEditModalOpen(false);
+                                    setEditingItem(null);
+                                }}
+                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditSubmit} className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                        Referral Code
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editingItem.code || ''}
+                                        onChange={(e) => setEditingItem({ ...editingItem, code: e.target.value.toUpperCase() })}
+                                        className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-mono font-bold text-gray-900 dark:text-white uppercase focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                        Role / Category
+                                    </label>
+                                    <select
+                                        value={editingItem.category || 'ambassador'}
+                                        onChange={(e) => setEditingItem({ ...editingItem, category: e.target.value })}
+                                        className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 cursor-pointer"
+                                    >
+                                        <option value="student">🎓 Student</option>
+                                        <option value="ambassador">👑 Ambassador</option>
+                                        <option value="creator">✨ Creator</option>
+                                        <option value="campaign">🏆 Campaign</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                        Creator / Ambassador Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editingItem.creatorName || ''}
+                                        onChange={(e) => setEditingItem({ ...editingItem, creatorName: e.target.value })}
+                                        className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                        Target College / Uni
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={editingItem.targetCollege || ''}
+                                        onChange={(e) => setEditingItem({ ...editingItem, targetCollege: e.target.value })}
+                                        className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                    Campaign Title
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editingItem.title || ''}
+                                    onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })}
+                                    className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                    Notes / Commission Terms
+                                </label>
+                                <textarea
+                                    rows="2"
+                                    value={editingItem.rewardNotes || ''}
+                                    onChange={(e) => setEditingItem({ ...editingItem, rewardNotes: e.target.value })}
+                                    className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsEditModalOpen(false);
+                                        setEditingItem(null);
+                                    }}
+                                    className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={savingEdit}
+                                    className="px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold text-sm rounded-xl shadow-lg shadow-orange-500/20 transition disabled:opacity-50"
+                                >
+                                    {savingEdit ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>
                         </form>

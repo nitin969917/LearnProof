@@ -635,6 +635,77 @@ const toggleReferralCodeStatus = async (req, res) => {
 };
 
 /**
+ * Admin: Update referral campaign (category, code, target college, title, status)
+ * PUT /api/admin/referrals/codes/:id
+ */
+const updateAdminReferralCode = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const {
+            code,
+            category,
+            title,
+            creatorName,
+            targetCollege,
+            rewardNotes,
+            isActive
+        } = req.body;
+
+        const referral = await prisma.referralCode.findUnique({ where: { id } });
+        if (!referral) {
+            return res.status(404).json({ error: 'Referral code not found' });
+        }
+
+        let normalizedCode;
+        if (code) {
+            normalizedCode = normalizeCode(code);
+            if (normalizedCode && normalizedCode !== referral.code) {
+                const conflict = await prisma.referralCode.findUnique({
+                    where: { code: normalizedCode }
+                });
+                if (conflict && conflict.id !== id) {
+                    return res.status(400).json({ error: `Code '${normalizedCode}' is already in use by another user` });
+                }
+            }
+        }
+
+        const updated = await prisma.referralCode.update({
+            where: { id },
+            data: {
+                ...(category ? { category } : {}),
+                ...(normalizedCode ? { code: normalizedCode } : {}),
+                ...(title !== undefined ? { title: title ? title.trim() : null } : {}),
+                ...(creatorName !== undefined ? { creatorName: creatorName ? creatorName.trim() : null } : {}),
+                ...(targetCollege !== undefined ? { targetCollege: targetCollege ? targetCollege.trim() : null } : {}),
+                ...(rewardNotes !== undefined ? { rewardNotes: rewardNotes ? rewardNotes.trim() : null } : {}),
+                ...(isActive !== undefined ? { isActive: Boolean(isActive) } : {})
+            },
+            include: {
+                referrer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true
+                    }
+                },
+                _count: {
+                    select: { attributions: true }
+                }
+            }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: `Referral code updated to ${updated.category} successfully`,
+            referralCode: updated
+        });
+    } catch (error) {
+        console.error('Error in updateAdminReferralCode:', error);
+        return res.status(500).json({ error: 'Failed to update referral code' });
+    }
+};
+
+/**
  * Admin: Delete a referral campaign
  * DELETE /api/admin/referrals/codes/:id
  */
@@ -665,6 +736,7 @@ module.exports = {
     getAdminReferralStats,
     getAdminReferralCodes,
     createAdminReferralCode,
+    updateAdminReferralCode,
     toggleReferralCodeStatus,
     deleteAdminReferralCode
 };
