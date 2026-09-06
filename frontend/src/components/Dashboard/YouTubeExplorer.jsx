@@ -501,8 +501,100 @@ const YouTubeExplorer = () => {
                 </div>
             </div>
 
-            {/* Search Results / Loading / Empty State */}
-            {loading ? (
+            {/* 1. Idle State: No search yet -> Show Quick Import below Search Bar, followed by Ready to Discover */}
+            {results.length === 0 && !loading && (
+                <>
+                    {/* Quick YouTube Import Section below search bar when idle */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="w-full bg-gradient-to-r from-[#fff7f4] via-[#fffaf8] to-[#fffbf9] dark:from-orange-950/5 dark:via-orange-950/10 dark:to-orange-950/5 border border-orange-100/80 dark:border-orange-900/20 p-5 sm:p-6 rounded-[2rem] shadow-sm relative overflow-hidden"
+                    >
+                        {/* Mesh dots overlay */}
+                        <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                        
+                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                            <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
+                                    <Sparkles size={20} className="animate-pulse" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                                        Import from YouTube
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400 font-medium max-w-xl">
+                                        Paste any YouTube link to add content to your library in one click.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="w-full md:max-w-md bg-white dark:bg-gray-800 rounded-xl p-1.5 border border-orange-100/60 dark:border-gray-700 shadow-sm flex flex-row items-center gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Paste YouTube playlist or video link..."
+                                    value={importUrl}
+                                    onChange={(e) => setImportUrl(e.target.value)}
+                                    className="flex-1 min-w-0 bg-transparent border-none py-1.5 px-2 text-xs text-gray-905 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-0 outline-none font-semibold"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!importUrl.trim()) {
+                                            toast.error("Please paste a valid YouTube link.");
+                                            return;
+                                        }
+                                        handleImportClick(importUrl);
+                                    }}
+                                    disabled={importLoading}
+                                    className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 py-2.5 rounded-lg transition-all shadow-md shadow-orange-500/10 active:scale-95 flex items-center justify-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
+                                >
+                                    {importLoading ? <Loader size={12} className="animate-spin" /> : (
+                                        <>
+                                            <svg className="w-3.5 h-3.5 fill-white shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.387.51A3.003 3.003 0 0 0 .502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 0 0 2.11 2.108c1.862.51 9.387.51 9.387.51s7.524 0 9.387-.51a3.003 3.003 0 0 0 2.11-2.108C24 15.93 24 12 24 12s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                            </svg>
+                                            <span>Import Now</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Ready to Discover Prompt */}
+                    <div className="text-center py-12 sm:py-20 bg-gray-50/50 dark:bg-gray-700/20 rounded-3xl sm:rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-700 max-w-4xl mx-auto w-full">
+                        <div className="flex flex-col items-center justify-center p-8 text-center space-y-6">
+                            <div className="relative group">
+                                <div className="absolute inset-0 bg-red-500/20 rounded-full blur-2xl group-hover:blur-3xl transition-all duration-500"></div>
+                                <div className="relative w-24 h-24 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-2xl border border-gray-100 dark:border-gray-700">
+                                    <Youtube size={48} className="text-red-500" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Ready to Discover?</h3>
+                                <p className="max-w-md mx-auto text-sm text-gray-500 dark:text-slate-400 font-medium leading-relaxed">
+                                    Use the command center above to search for tutorials, courses, and playlists. 
+                                    Everything you find can be imported directly into your dashboard.
+                                </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2 justify-center pt-4">
+                                {['ReactJS', 'Python', 'AI', 'UI/UX'].map(tag => (
+                                    <button 
+                                        key={tag}
+                                        onClick={() => { setQuery(tag); handleSearch(); }}
+                                        className="px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                                    >
+                                        {tag}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* 2. Loading State */}
+            {loading && (
                 <div className="space-y-4">
                     <div className="h-5 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
@@ -516,8 +608,11 @@ const YouTubeExplorer = () => {
                         ))}
                     </div>
                 </div>
-            ) : results.length > 0 ? (
-                <div ref={resultsRef} className="space-y-6 pb-4">
+            )}
+
+            {/* 3. Searched State: Show Results + Pagination + Quick Import at the End */}
+            {results.length > 0 && !loading && (
+                <div ref={resultsRef} className="space-y-8 pb-4">
                     {/* Header with Results Count and Page indicator */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-gray-100 dark:border-gray-800">
                         <div className="flex items-center gap-2.5">
@@ -624,126 +719,63 @@ const YouTubeExplorer = () => {
                             </div>
                         </div>
                     )}
-                </div>
-            ) : null}
 
-            {results.length === 0 && !loading && (
-                <div className="text-center py-12 sm:py-20 bg-gray-50/50 dark:bg-gray-700/20 rounded-3xl sm:rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-700 max-w-4xl mx-auto w-full">
-                    <div className="flex flex-col items-center justify-center p-8 text-center space-y-6">
-                        <div className="relative group">
-                            <div className="absolute inset-0 bg-red-500/20 rounded-full blur-2xl group-hover:blur-3xl transition-all duration-500"></div>
-                            <div className="relative w-24 h-24 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-2xl border border-gray-100 dark:border-gray-700">
-                                <Youtube size={48} className="text-red-500" />
+                    {/* Quick YouTube Import Section moved to the END of the search results */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="w-full bg-gradient-to-r from-[#fff7f4] via-[#fffaf8] to-[#fffbf9] dark:from-orange-950/5 dark:via-orange-950/10 dark:to-orange-950/5 border border-orange-100/80 dark:border-orange-900/20 p-5 sm:p-6 rounded-[2rem] shadow-sm relative overflow-hidden mt-6"
+                    >
+                        {/* Mesh dots overlay */}
+                        <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+                        
+                        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+                            <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
+                                    <Sparkles size={20} className="animate-pulse" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                                        Import from YouTube
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400 font-medium max-w-xl">
+                                        Paste any YouTube link to add content to your library in one click.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="w-full md:max-w-md bg-white dark:bg-gray-800 rounded-xl p-1.5 border border-orange-100/60 dark:border-gray-700 shadow-sm flex flex-row items-center gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Paste YouTube playlist or video link..."
+                                    value={importUrl}
+                                    onChange={(e) => setImportUrl(e.target.value)}
+                                    className="flex-1 min-w-0 bg-transparent border-none py-1.5 px-2 text-xs text-gray-905 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-0 outline-none font-semibold"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!importUrl.trim()) {
+                                            toast.error("Please paste a valid YouTube link.");
+                                            return;
+                                        }
+                                        handleImportClick(importUrl);
+                                    }}
+                                    disabled={importLoading}
+                                    className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 py-2.5 rounded-lg transition-all shadow-md shadow-orange-500/10 active:scale-95 flex items-center justify-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
+                                >
+                                    {importLoading ? <Loader size={12} className="animate-spin" /> : (
+                                        <>
+                                            <svg className="w-3.5 h-3.5 fill-white shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.387.51A3.003 3.003 0 0 0 .502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 0 0 2.11 2.108c1.862.51 9.387.51 9.387.51s7.524 0 9.387-.51a3.003 3.003 0 0 0 2.11-2.108C24 15.93 24 12 24 12s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                            </svg>
+                                            <span>Import Now</span>
+                                        </>
+                                    )}
+                                </button>
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Ready to Discover?</h3>
-                            <p className="max-w-md mx-auto text-sm text-gray-500 dark:text-slate-400 font-medium leading-relaxed">
-                                Use the command center above to search for tutorials, courses, and playlists. 
-                                Everything you find can be imported directly into your dashboard.
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2 justify-center pt-4">
-                            {['ReactJS', 'Python', 'AI', 'UI/UX'].map(tag => (
-                                <button 
-                                    key={tag}
-                                    onClick={() => { setQuery(tag); handleSearch(); }}
-                                    className="px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
-                                >
-                                    {tag}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Quick YouTube Import Section - Positioned at end */}
-            <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="w-full bg-gradient-to-r from-[#fff7f4] via-[#fffaf8] to-[#fffbf9] dark:from-orange-950/5 dark:via-orange-950/10 dark:to-orange-950/5 border border-orange-100/80 dark:border-orange-900/20 p-5 sm:p-6 rounded-[2rem] shadow-sm relative overflow-hidden"
-            >
-                {/* Mesh dots overlay just like login card */}
-                <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
-                
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
-                    <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
-                            <Sparkles size={20} className="animate-pulse" />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-tight">
-                                Import from YouTube
-                            </h3>
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400 font-medium max-w-xl">
-                                Paste any YouTube link to add content to your library in one click.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="w-full md:max-w-md bg-white dark:bg-gray-800 rounded-xl p-1.5 border border-orange-100/60 dark:border-gray-700 shadow-sm flex flex-row items-center gap-2">
-                        <input
-                            type="text"
-                            placeholder="Paste YouTube playlist or video link..."
-                            value={importUrl}
-                            onChange={(e) => setImportUrl(e.target.value)}
-                            className="flex-1 min-w-0 bg-transparent border-none py-1.5 px-2 text-xs text-gray-905 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-0 outline-none font-semibold"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if (!importUrl.trim()) {
-                                    toast.error("Please paste a valid YouTube link.");
-                                    return;
-                                }
-                                handleImportClick(importUrl);
-                            }}
-                            disabled={importLoading}
-                            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-[10px] uppercase tracking-wider px-3.5 py-2.5 rounded-lg transition-all shadow-md shadow-orange-500/10 active:scale-95 flex items-center justify-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
-                        >
-                            {importLoading ? <Loader size={12} className="animate-spin" /> : (
-                                <>
-                                    <svg className="w-3.5 h-3.5 fill-white shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.387.51A3.003 3.003 0 0 0 .502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 0 0 2.11 2.108c1.862.51 9.387.51 9.387.51s7.524 0 9.387-.51a3.003 3.003 0 0 0 2.11-2.108C24 15.93 24 12 24 12s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                                    </svg>
-                                    <span>Import Now</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </div>
-            </motion.div>
-
-
-            {results.length === 0 && !loading && (
-                <div className="text-center py-12 sm:py-20 bg-gray-50/50 dark:bg-gray-700/20 rounded-3xl sm:rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-700 max-w-4xl mx-auto w-full">
-                    <div className="flex flex-col items-center justify-center p-8 text-center space-y-6">
-                        <div className="relative group">
-                            <div className="absolute inset-0 bg-red-500/20 rounded-full blur-2xl group-hover:blur-3xl transition-all duration-500"></div>
-                            <div className="relative w-24 h-24 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-2xl border border-gray-100 dark:border-gray-700">
-                                <Youtube size={48} className="text-red-500" />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Ready to Discover?</h3>
-                            <p className="max-w-md mx-auto text-sm text-gray-500 dark:text-slate-400 font-medium leading-relaxed">
-                                Use the command center above to search for tutorials, courses, and playlists. 
-                                Everything you find can be imported directly into your dashboard.
-                            </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2 justify-center pt-4">
-                            {['ReactJS', 'Python', 'AI', 'UI/UX'].map(tag => (
-                                <button 
-                                    key={tag}
-                                    onClick={() => { setQuery(tag); handleSearch(); }}
-                                    className="px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
-                                >
-                                    {tag}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    </motion.div>
                 </div>
             )}
 
