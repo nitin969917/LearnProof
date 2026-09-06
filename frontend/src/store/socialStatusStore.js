@@ -23,6 +23,10 @@ export const useSocialStatusStore = create((set, get) => ({
     socket.off('getOnlineUsers');
     socket.off('userStatus');
     socket.off('NEW_POST');
+    socket.off('POST_LIKE_UPDATED');
+    socket.off('POST_COMMENT_ADDED');
+    socket.off('POST_COMMENT_DELETED');
+    socket.off('POST_DELETED');
     
     socket.on('getOnlineUsers', (userIds) => {
       console.log('Received online users:', userIds);
@@ -44,6 +48,26 @@ export const useSocialStatusStore = create((set, get) => ({
     socket.on('NEW_POST', (post) => {
       console.log('Real-time post received via socket:', post);
       useSocialFeedStore.getState().addPostLocally(post);
+    });
+
+    socket.on('POST_LIKE_UPDATED', (data) => {
+      console.log('Real-time post like update received:', data);
+      useSocialFeedStore.getState().handlePostLikeUpdated(data);
+    });
+
+    socket.on('POST_COMMENT_ADDED', (data) => {
+      console.log('Real-time comment added received:', data);
+      useSocialFeedStore.getState().handlePostCommentAdded(data);
+    });
+
+    socket.on('POST_COMMENT_DELETED', (data) => {
+      console.log('Real-time comment deleted received:', data);
+      useSocialFeedStore.getState().handlePostCommentDeleted(data);
+    });
+
+    socket.on('POST_DELETED', (data) => {
+      console.log('Real-time post deleted received:', data);
+      useSocialFeedStore.getState().handlePostDeleted(data);
     });
 
     // Re-request the current online list

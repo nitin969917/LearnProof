@@ -24,6 +24,11 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [isShared, setIsShared] = useState(false);
 
+  // Likes Modal state
+  const [showLikesModal, setShowLikesModal] = useState(false);
+  const [likesList, setLikesList] = useState([]);
+  const [loadingLikes, setLoadingLikes] = useState(false);
+
   // Derived values from store-managed post prop
   const liked = post.likes?.some((l) => l.id === currentUserId);
   const likesCount = post._count?.likes || 0;
@@ -35,8 +40,56 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
     setCommentsCount(post._count?.comments || 0);
   }, [post._count?.comments]);
 
+  // Real-time synchronization for comments when comments are open or post is rendered
+  useEffect(() => {
+    const handleCommentAdded = (e) => {
+      const { postId, comment } = e.detail;
+      if (postId === post.id) {
+        setComments(prev => {
+          if (prev.some(c => c.id === comment.id)) return prev;
+          const optIdx = prev.findIndex(c => c.isOptimistic && c.authorId === comment.authorId && c.content === comment.content);
+          if (optIdx !== -1) {
+            const next = [...prev];
+            next[optIdx] = comment;
+            return next;
+          }
+          return [...prev, comment];
+        });
+      }
+    };
+
+    const handleCommentDeleted = (e) => {
+      const { postId, commentId } = e.detail;
+      if (postId === post.id) {
+        setComments(prev => prev.filter(c => c.id !== commentId));
+      }
+    };
+
+    window.addEventListener('social:comment_added', handleCommentAdded);
+    window.addEventListener('social:comment_deleted', handleCommentDeleted);
+
+    return () => {
+      window.removeEventListener('social:comment_added', handleCommentAdded);
+      window.removeEventListener('social:comment_deleted', handleCommentDeleted);
+    };
+  }, [post.id]);
+
   const handleLike = () => {
     likePost(post.id, currentUserId);
+  };
+
+  const fetchLikesList = async () => {
+    setLoadingLikes(true);
+    setShowLikesModal(true);
+    try {
+      const res = await socialApi.get(`/posts/${post.id}/likes`);
+      setLikesList(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Failed to fetch likes', err);
+      setLikesList([]);
+    } finally {
+      setLoadingLikes(false);
+    }
   };
 
   const handleDeleteClick = async () => {
@@ -164,7 +217,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
           <UserAvatar 
             src={post.author.profilePicture} 
             name={post.author.name} 
-            className="w-12 h-12 rounded-full"
+            className="w-12 h-12 rounded-full" 
             textClassName="text-lg"
           />
           <div>
@@ -263,17 +316,36 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
 
       {/* Actions */}
       <div className="flex items-center gap-6 border-t border-gray-100 dark:border-gray-700 pt-3">
-        <button 
-          onClick={handleLike}
-          className={`flex items-center gap-1.5 font-semibold text-xs md:text-sm transition-colors ${
-            liked 
-              ? 'text-orange-500' 
-              : 'text-gray-500 dark:text-gray-400 hover:text-orange-500'
-          }`}
-        >
-          <Heart size={18} fill={liked ? 'currentColor' : 'transparent'} />
-          <span>{likesCount}</span>
-        </button>
+        <div className="flex items-center gap-1.5 font-semibold text-xs md:text-sm">
+          <button 
+            type="button"
+            onClick={handleLike}
+            className={`p-1 -m-1 rounded-full transition-transform active:scale-125 ${
+              liked 
+                ? 'text-orange-500' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-orange-500'
+            }`}
+            title={liked ? "Unlike" : "Like"}
+          >
+            <Heart size={18} fill={liked ? 'currentColor' : 'transparent'} />
+          </button>
+          <button
+            type="button"
+            onClick={() => likesCount > 0 && fetchLikesList()}
+            disabled={likesCount === 0}
+            className={`transition-colors select-none ${
+              likesCount > 0 
+                ? 'hover:underline cursor-pointer' 
+                : 'cursor-default'
+            } ${
+              liked ? 'text-orange-500' : 'text-gray-500 dark:text-gray-400'
+            }`}
+            title={likesCount > 0 ? "View who liked this post" : "No likes yet"}
+          >
+            {likesCount} {likesCount === 1 ? 'like' : 'likes'}
+          </button>
+        </div>
+
         <button 
           onClick={toggleComments}
           className={`flex items-center gap-1.5 font-semibold text-xs md:text-sm transition-colors ${
@@ -283,8 +355,9 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
           }`}
         >
           <MessageCircle size={18} fill={showComments ? 'currentColor' : 'transparent'} />
-          <span>{commentsCount}</span>
+          <span>{commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}</span>
         </button>
+
         <button 
           onClick={handleShare}
           className={`hover:text-orange-500 ml-auto transition-colors flex items-center gap-1.5 text-xs font-semibold ${
@@ -370,6 +443,85 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Liked By Modal */}
+      {showLikesModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setShowLikesModal(false)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <Heart size={18} className="text-orange-500 fill-orange-500" />
+                <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                  Liked by ({loadingLikes ? '...' : likesList.length})
+                </h3>
+              </div>
+              <button 
+                onClick={() => setShowLikesModal(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 overflow-y-auto flex-1 space-y-3">
+              {loadingLikes ? (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <div className="animate-spin rounded-full h-7 w-7 border-2 border-orange-500 border-t-transparent"></div>
+                  <p className="text-xs text-gray-400 mt-2 font-medium">Loading likes...</p>
+                </div>
+              ) : likesList.length === 0 ? (
+                <div className="text-center py-8 text-gray-400 text-sm">
+                  No likes found.
+                </div>
+              ) : (
+                likesList.map((user) => (
+                  <div 
+                    key={user.id}
+                    onClick={() => {
+                      setShowLikesModal(false);
+                      onViewProfile(user.id);
+                    }}
+                    className="flex items-center justify-between p-2.5 rounded-xl hover:bg-orange-50/50 dark:hover:bg-gray-700/50 cursor-pointer transition group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <UserAvatar 
+                        src={user.profilePicture} 
+                        name={user.name} 
+                        className="w-10 h-10 rounded-full"
+                        textClassName="text-sm font-bold"
+                      />
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-sm text-gray-900 dark:text-white group-hover:text-orange-500 transition-colors truncate">
+                          {user.name} {user.id === currentUserId && <span className="text-xs text-gray-400 font-normal">(You)</span>}
+                        </h4>
+                        {user.bio && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[220px]">
+                            {user.bio}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <button 
+                      type="button"
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 group-hover:bg-orange-500 group-hover:text-white transition"
+                    >
+                      View
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

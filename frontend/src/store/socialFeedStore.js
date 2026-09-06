@@ -216,5 +216,90 @@ export const useSocialFeedStore = create((set, get) => ({
       set({ posts: revertedPosts });
       throw err;
     }
+  },
+
+  handlePostLikeUpdated: ({ postId, userId, isLiked, likesCount }) => {
+    const currentUserId = get().socialUser?.id;
+    set((state) => ({
+      posts: state.posts.map(post => {
+        if (post.id === postId) {
+          let updatedLikes = post.likes || [];
+          if (currentUserId && userId === currentUserId) {
+            if (isLiked) {
+              if (!updatedLikes.some(l => l.id === currentUserId)) {
+                updatedLikes = [...updatedLikes, { id: currentUserId }];
+              }
+            } else {
+              updatedLikes = updatedLikes.filter(l => l.id !== currentUserId);
+            }
+          }
+          return {
+            ...post,
+            likes: updatedLikes,
+            _count: {
+              ...post._count,
+              likes: typeof likesCount === 'number'
+                ? likesCount
+                : (isLiked ? (post._count?.likes || 0) + 1 : Math.max(0, (post._count?.likes || 0) - 1))
+            }
+          };
+        }
+        return post;
+      })
+    }));
+  },
+
+  handlePostCommentAdded: ({ postId, comment, commentsCount }) => {
+    set((state) => ({
+      posts: state.posts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            _count: {
+              ...post._count,
+              comments: typeof commentsCount === 'number'
+                ? commentsCount
+                : (post._count?.comments || 0) + 1
+            }
+          };
+        }
+        return post;
+      })
+    }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('social:comment_added', {
+        detail: { postId, comment, commentsCount }
+      }));
+    }
+  },
+
+  handlePostCommentDeleted: ({ postId, commentId, commentsCount }) => {
+    set((state) => ({
+      posts: state.posts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            _count: {
+              ...post._count,
+              comments: typeof commentsCount === 'number'
+                ? commentsCount
+                : Math.max(0, (post._count?.comments || 0) - 1)
+            }
+          };
+        }
+        return post;
+      })
+    }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('social:comment_deleted', {
+        detail: { postId, commentId, commentsCount }
+      }));
+    }
+  },
+
+  handlePostDeleted: ({ postId }) => {
+    set((state) => ({
+      posts: state.posts.filter(post => post.id !== postId)
+    }));
   }
 }));

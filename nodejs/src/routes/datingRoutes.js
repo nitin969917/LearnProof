@@ -40,6 +40,7 @@ const {
   createComment,
   deleteComment,
   getPost,
+  getPostLikes,
   deleteMessage,
   deleteGroupMessage,
 } = require('../controllers/datingController');
@@ -48,6 +49,7 @@ const {
 router.post('/posts', datingAuth, createPost);
 router.get('/posts/feed', datingAuth, getFeed);
 router.get('/posts/:postId', datingAuth, getPost);
+router.get('/posts/:postId/likes', datingAuth, getPostLikes);
 router.post('/posts/:postId/like', datingAuth, likePost);
 router.put('/posts/:postId', datingAuth, updatePost);
 router.delete('/posts/:postId', datingAuth, deletePost);

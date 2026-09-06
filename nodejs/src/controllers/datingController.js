@@ -249,19 +249,23 @@ const getFeed = async (req, res) => {
 const likePost = async (req, res) => {
   const { postId } = req.params;
   const userId = req.user.id;
+  const numPostId = parseInt(postId);
 
   try {
     const post = await datingPrisma.post.findUnique({
-      where: { id: parseInt(postId) },
-      include: { likes: true },
+      where: { id: numPostId },
+      include: {
+        likes: { select: { id: true } },
+        _count: { select: { likes: true } }
+      },
     });
 
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
     const isLiked = post.likes.some((user) => user.id === userId);
 
-    const updatedPost = await datingPrisma.post.update({
-      where: { id: parseInt(postId) },
+    await datingPrisma.post.update({
+      where: { id: numPostId },
       data: {
         likes: isLiked
           ? { disconnect: { id: userId } }
@@ -269,8 +273,33 @@ const likePost = async (req, res) => {
       },
     });
 
+    const updatedPost = await datingPrisma.post.findUnique({
+      where: { id: numPostId },
+      select: {
+        _count: { select: { likes: true } }
+      }
+    });
+
+    const newLikesCount = updatedPost?._count?.likes ?? (isLiked ? Math.max(0, post._count.likes - 1) : post._count.likes + 1);
+
     await invalidateFeedCache();
-    res.json({ liked: !isLiked });
+
+    // Broadcast like update in real-time to all connected users
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('POST_LIKE_UPDATED', {
+          postId: numPostId,
+          userId: userId,
+          isLiked: !isLiked,
+          likesCount: newLikesCount
+        });
+      }
+    } catch (wsErr) {
+      console.error('Failed to emit like update socket:', wsErr);
+    }
+
+    res.json({ liked: !isLiked, likesCount: newLikesCount });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to toggle like' });
@@ -327,6 +356,17 @@ const deletePost = async (req, res) => {
     });
 
     await invalidateFeedCache();
+
+    // Broadcast deleted post
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('POST_DELETED', { postId: parseInt(postId) });
+      }
+    } catch (wsErr) {
+      console.error('Failed to emit post delete socket:', wsErr);
+    }
+
     res.json({ message: 'Post deleted successfully' });
   } catch (error) {
     console.error(error);
@@ -2393,6 +2433,7 @@ const createComment = async (req, res) => {
   const { postId } = req.params;
   const { content } = req.body;
   const userId = req.user.id;
+  const numPostId = parseInt(postId);
 
   if (!content || !content.trim()) {
     return res.status(400).json({ error: 'Comment content is required' });
@@ -2402,7 +2443,7 @@ const createComment = async (req, res) => {
     const comment = await datingPrisma.comment.create({
       data: {
         content: content.trim(),
-        postId: parseInt(postId),
+        postId: numPostId,
         authorId: userId,
       },
       include: {
@@ -2415,7 +2456,27 @@ const createComment = async (req, res) => {
         },
       },
     });
+
+    const commentsCount = await datingPrisma.comment.count({
+      where: { postId: numPostId }
+    });
+
     await invalidateFeedCache();
+
+    // Broadcast new comment in real-time
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('POST_COMMENT_ADDED', {
+          postId: numPostId,
+          comment,
+          commentsCount
+        });
+      }
+    } catch (wsErr) {
+      console.error('Failed to emit new comment socket:', wsErr);
+    }
+
     res.status(201).json(comment);
   } catch (error) {
     console.error(error);
@@ -2426,10 +2487,11 @@ const createComment = async (req, res) => {
 const deleteComment = async (req, res) => {
   const { commentId } = req.params;
   const userId = req.user.id;
+  const numCommentId = parseInt(commentId);
 
   try {
     const comment = await datingPrisma.comment.findUnique({
-      where: { id: parseInt(commentId) },
+      where: { id: numCommentId },
     });
 
     if (!comment) {
@@ -2445,14 +2507,62 @@ const deleteComment = async (req, res) => {
     }
 
     await datingPrisma.comment.delete({
-      where: { id: parseInt(commentId) },
+      where: { id: numCommentId },
+    });
+
+    const commentsCount = await datingPrisma.comment.count({
+      where: { postId: comment.postId }
     });
 
     await invalidateFeedCache();
-    res.json({ message: 'Comment deleted successfully' });
+
+    // Broadcast comment deletion in real-time
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('POST_COMMENT_DELETED', {
+          postId: comment.postId,
+          commentId: numCommentId,
+          commentsCount
+        });
+      }
+    } catch (wsErr) {
+      console.error('Failed to emit delete comment socket:', wsErr);
+    }
+
+    res.json({ message: 'Comment deleted successfully', commentsCount });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to delete comment' });
+  }
+};
+
+const getPostLikes = async (req, res) => {
+  const { postId } = req.params;
+  try {
+    const post = await datingPrisma.post.findUnique({
+      where: { id: parseInt(postId) },
+      include: {
+        likes: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profilePicture: true,
+            bio: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    res.json(post.likes || []);
+  } catch (error) {
+    console.error('Failed to fetch post likes:', error);
+    res.status(500).json({ error: 'Failed to fetch likes' });
   }
 };
 
@@ -2630,6 +2740,7 @@ module.exports = {
   createComment,
   deleteComment,
   getPost,
+  getPostLikes,
   deleteMessage,
   deleteGroupMessage,
   cancelDelayedRoomDeletion,
