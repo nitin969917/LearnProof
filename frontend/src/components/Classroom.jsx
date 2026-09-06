@@ -390,13 +390,13 @@ const Classroom = () => {
   const minSwipeDistance = 50;
 
   const classroomTabs = useMemo(() => [
-    ...(playlist ? [{ id: 'playlist', label: 'Playlist', icon: PlayCircle, hideOnDesktop: true }] : []),
-    { id: 'overview', label: 'Overview', icon: BookOpen },
-    { id: 'intuition', label: 'AI Notes', icon: Sparkles },
-    { id: 'ai-chat', label: 'Ask AI Chatbot', icon: Bot },
-    { id: 'quiz', label: 'AI Quiz', icon: CheckCircle },
-    { id: 'notes', label: 'Notes', icon: FileText },
-    { id: 'discussion', label: `Discussion (${(comments && comments.length) || 0})`, icon: MessageSquare },
+    ...(playlist ? [{ id: 'playlist', label: 'Playlist', shortLabel: 'Playlist', icon: PlayCircle, hideOnDesktop: true }] : []),
+    { id: 'overview', label: 'Overview', shortLabel: 'Overview', icon: BookOpen },
+    { id: 'intuition', label: 'AI Notes', shortLabel: 'AI Notes', icon: Sparkles },
+    { id: 'ai-chat', label: 'Ask AI Chatbot', shortLabel: 'AI Chat', icon: Bot },
+    { id: 'quiz', label: 'AI Quiz', shortLabel: 'Quiz', icon: CheckCircle },
+    { id: 'notes', label: 'Notes', shortLabel: 'Notes', icon: FileText },
+    { id: 'discussion', label: `Discussion (${(comments && comments.length) || 0})`, shortLabel: 'Discuss', badge: (comments && comments.length) || 0, icon: MessageSquare },
   ], [playlist, comments]);
 
   const visibleClassroomTabs = useMemo(() => {
@@ -1183,9 +1183,9 @@ const Classroom = () => {
                 </span>
               </div>
 
-              {/* Premium Tabs Switcher */}
+              {/* Premium Tabs Switcher - Fixed non-scrollable equal width */}
               <div className="mt-4">
-                <div className="flex items-center bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl p-1 sm:p-1.5 gap-1 border border-gray-200/70 dark:border-slate-700/60 overflow-x-auto scrollbar-none scroll-smooth">
+                <div className="w-full grid grid-flow-col auto-cols-fr bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl p-1 sm:p-1.5 gap-0.5 sm:gap-1 border border-gray-200/70 dark:border-slate-700/60">
                   {visibleClassroomTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -1194,10 +1194,10 @@ const Classroom = () => {
                         key={tab.id}
                         id={`classroom-tab-${tab.id}`}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 select-none cursor-pointer z-10 ${
+                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 sm:py-2 px-0.5 sm:px-2 rounded-xl text-center transition-all duration-200 select-none cursor-pointer z-10 ${
                           isActive
                             ? 'text-white font-extrabold'
-                            : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
+                            : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50 font-bold'
                         }`}
                       >
                         {isActive && (
@@ -1207,8 +1207,14 @@ const Classroom = () => {
                             transition={{ type: "spring", bounce: 0.15, duration: 0.45 }}
                           />
                         )}
-                        <Icon size={15} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
-                        <span className="whitespace-nowrap">{tab.label}</span>
+                        <Icon size={14} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 sm:size-[15px]" />
+                        <span className="text-[9px] min-[380px]:text-[10px] sm:text-xs tracking-tight truncate max-w-full leading-tight">
+                          <span className="hidden lg:inline">{tab.label}</span>
+                          <span className="lg:hidden">{tab.shortLabel}</span>
+                          {tab.badge > 0 && (
+                            <span className="ml-0.5 text-[8px] sm:text-[10px] opacity-80 lg:hidden">({tab.badge})</span>
+                          )}
+                        </span>
                       </button>
                     );
                   })}
