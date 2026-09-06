@@ -99,6 +99,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const [formData, setFormData] = useState({});
   const [expandedSection, setExpandedSection] = useState(null); // 'academics', 'contact', 'social', 'settings'
   const [activeTab, setActiveTab] = useState('posts'); // 'posts', 'likes', 'friends'
+  const [showAvatarLightbox, setShowAvatarLightbox] = useState(false);
   const [coverUrl, setCoverUrl] = useState(() => localStorage.getItem('user_cover_image') || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80');
 
   const fileInputRef = useRef(null);
@@ -191,7 +192,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
     const toastId = toast.loading('Compressing & updating profile photo...');
     try {
-      // Compress avatar with high-quality preservation (~50-80KB, 600x600)
       const compressedBase64 = await compressImage(file, 600, 600, 0.88);
       
       setProfile(prev => ({ ...prev, profilePicture: compressedBase64 }));
@@ -346,7 +346,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const postCount = posts.length || profile._count?.posts || 0;
   const friendCount = friendsList.length || profile._count?.friends || 0;
   
-  // Clean headline & quote without fake predefined placeholders
   const headline = profile.department 
     ? `${profile.department}${profile.yearOfStudy ? ` • ${profile.yearOfStudy}` : ''}`
     : (profile.collegeName || '');
@@ -397,8 +396,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       {/* ── Main 2-Column Layout Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start -mt-16 sm:-mt-20 px-2 sm:px-4">
         
-        {/* ── LEFT COLUMN (Profile Card & Accordion Sections) ── */}
-        <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4">
+        {/* ── LEFT COLUMN (Profile Card & Accordion Sections in 2x2 Grid) ── */}
+        <div className="lg:col-span-5 xl:col-span-5 flex flex-col gap-4">
           {/* Main User Card with Top-Right Corner Pencil Button */}
           <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-sm flex flex-col items-center text-center relative">
             
@@ -413,12 +412,16 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               </button>
             )}
 
-            {/* Avatar overlapping banner with Photo Upload Support */}
-            <div className="relative -mt-14 sm:-mt-16 mb-3 select-none group">
+            {/* Avatar overlapping banner with Preview & Photo Upload Support */}
+            <div 
+              onClick={() => setShowAvatarLightbox(true)}
+              title="Click to preview profile picture"
+              className="relative -mt-14 sm:-mt-16 mb-3 select-none group cursor-pointer"
+            >
               <UserAvatar
                 src={profile.profilePicture || profile.avatar}
                 name={profile.name}
-                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white dark:border-gray-850 shadow-lg text-4xl font-black object-cover"
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white dark:border-gray-850 shadow-lg text-4xl font-black object-cover group-hover:scale-105 transition-transform duration-200"
                 textClassName="text-3xl sm:text-4xl font-extrabold"
               />
               {isOnline && (
@@ -427,6 +430,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                   className="absolute bottom-1 right-1 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 border-2 sm:border-3 border-white dark:border-gray-850 rounded-full shadow-xs z-10"
                 />
               )}
+
+              {/* Hover overlay hint */}
+              <div className="absolute inset-0 rounded-full bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white pointer-events-none">
+                <Eye size={20} className="drop-shadow-sm" />
+              </div>
 
               {/* Avatar Photo Upload Camera Trigger */}
               {isOwnProfile && (
@@ -439,9 +447,13 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     className="hidden"
                   />
                   <button
-                    onClick={() => avatarInputRef.current?.click()}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      avatarInputRef.current?.click();
+                    }}
                     title="Change Profile Photo"
-                    className="absolute bottom-0 left-0 p-1.5 sm:p-2 bg-gray-900/80 hover:bg-orange-600 text-white rounded-full border-2 border-white dark:border-gray-850 shadow-md transition active:scale-95 cursor-pointer z-10"
+                    className="absolute bottom-0 left-0 p-1.5 sm:p-2 bg-gray-900/85 hover:bg-orange-600 text-white rounded-full border-2 border-white dark:border-gray-850 shadow-md transition active:scale-95 cursor-pointer z-10"
                   >
                     <Camera size={13} />
                   </button>
@@ -454,14 +466,14 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               {profile.name}
             </h2>
 
-            {/* Headline - only rendered when user actually has info */}
+            {/* Headline */}
             {headline ? (
               <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 mt-0.5">
                 {headline}
               </p>
             ) : null}
 
-            {/* Bio / Quote - only rendered when user actually entered a bio */}
+            {/* Bio / Quote */}
             {quoteText ? (
               <p className="text-xs text-gray-600 dark:text-gray-300 font-medium italic mt-2.5 px-3 leading-relaxed">
                 “{quoteText}”
@@ -504,15 +516,17 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             )}
           </div>
 
-          {/* ── Accordion Info Cards ── */}
-          <div className="flex flex-col gap-3">
+          {/* ── 2x2 Grid for Info / Settings Cards ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
             {/* Card 1: Academics */}
             <div
               onClick={() => setExpandedSection(expandedSection === 'academics' ? null : 'academics')}
-              className="bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-4 shadow-2xs hover:shadow-xs transition cursor-pointer"
+              className={`bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-3.5 shadow-2xs hover:shadow-xs transition cursor-pointer ${
+                expandedSection === 'academics' ? 'sm:col-span-2' : ''
+              }`}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3.5 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
                     <GraduationCap size={19} />
                   </div>
@@ -560,17 +574,19 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {/* Card 2: Contact with Visibility Indicators */}
             <div
               onClick={() => setExpandedSection(expandedSection === 'contact' ? null : 'contact')}
-              className="bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-4 shadow-2xs hover:shadow-xs transition cursor-pointer"
+              className={`bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-3.5 shadow-2xs hover:shadow-xs transition cursor-pointer ${
+                expandedSection === 'contact' ? 'sm:col-span-2' : ''
+              }`}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3.5 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
                     <User size={19} />
                   </div>
                   <div className="min-w-0 text-left">
                     <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white">Contact</h4>
                     <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">
-                      {profile.phoneNumber || profile.email || 'Add your phone number and email'}
+                      {profile.phoneNumber || profile.email || 'Add your phone and email'}
                     </p>
                   </div>
                 </div>
@@ -634,17 +650,19 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {/* Card 3: Social Links with Visibility Indicators */}
             <div
               onClick={() => setExpandedSection(expandedSection === 'social' ? null : 'social')}
-              className="bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-4 shadow-2xs hover:shadow-xs transition cursor-pointer"
+              className={`bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-3.5 shadow-2xs hover:shadow-xs transition cursor-pointer ${
+                expandedSection === 'social' ? 'sm:col-span-2' : ''
+              }`}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3.5 min-w-0">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
                     <Share2 size={19} />
                   </div>
                   <div className="min-w-0 text-left">
                     <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white">Social Links</h4>
                     <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">
-                      Connect your social media accounts
+                      Connect your social accounts
                     </p>
                   </div>
                 </div>
@@ -693,17 +711,19 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {isOwnProfile && (
               <div
                 onClick={() => setExpandedSection(expandedSection === 'settings' ? null : 'settings')}
-                className="bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-4 shadow-2xs hover:shadow-xs transition cursor-pointer"
+                className={`bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-3.5 shadow-2xs hover:shadow-xs transition cursor-pointer ${
+                  expandedSection === 'settings' ? 'sm:col-span-2' : ''
+                }`}
               >
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
                       <Settings size={19} />
                     </div>
                     <div className="min-w-0 text-left">
                       <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white">Account Settings</h4>
                       <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">
-                        Privacy, visibility & notifications
+                        Privacy & visibility
                       </p>
                     </div>
                   </div>
@@ -728,7 +748,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       <div className="flex items-center justify-between pb-1">
                         <div>
                           <h5 className="font-extrabold text-xs text-gray-900 dark:text-white">Quick Privacy & Visibility</h5>
-                          <p className="text-[10px] text-gray-400">Choose who can view your contact & social info</p>
+                          <p className="text-[10px] text-gray-400">Choose who can view your contact info</p>
                         </div>
                         <button
                           onClick={() => setIsEditing(true)}
@@ -1232,6 +1252,68 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           </div>
         </div>
       )}
+      {/* ── Profile Picture Lightbox Preview Modal ── */}
+      <AnimatePresence>
+        {showAvatarLightbox && (
+          <div 
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-[2000] flex items-center justify-center p-4 select-none"
+            onClick={() => setShowAvatarLightbox(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="relative max-w-sm sm:max-w-md w-full bg-white dark:bg-gray-850 rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 dark:border-gray-700 flex flex-col items-center text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setShowAvatarLightbox(false)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-750 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition cursor-pointer"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="w-44 h-44 sm:w-56 sm:h-56 rounded-full overflow-hidden border-4 border-orange-500/30 shadow-xl mb-4 bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
+                <UserAvatar
+                  src={profile.profilePicture || profile.avatar}
+                  name={profile.name}
+                  className="w-full h-full object-cover"
+                  textClassName="text-6xl font-black"
+                />
+              </div>
+
+              <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">
+                {profile.name}
+              </h3>
+              {headline && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {headline}
+                </p>
+              )}
+
+              {isOwnProfile && (
+                <div className="mt-5 w-full flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAvatarLightbox(false);
+                      avatarInputRef.current?.click();
+                    }}
+                    className="flex-1 py-2.5 px-4 bg-[#FF5722] hover:bg-[#F4511E] text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Camera size={14} />
+                    <span>Change Photo</span>
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
