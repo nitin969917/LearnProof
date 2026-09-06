@@ -268,9 +268,9 @@ const YouTubeExplorer = () => {
     };
 
     return (
-        <div className="max-w-[1360px] mx-auto px-4 sm:px-8 lg:px-12 space-y-4 sm:space-y-6 pb-20">
+        <div className="max-w-[1360px] mx-auto px-4 sm:px-8 lg:px-12 space-y-3 sm:space-y-4 pb-20">
             {/* Header & Search */}
-            <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4 pt-1 pb-1 sm:pt-4 sm:pb-2 md:pt-6 md:pb-2">
+            <div className="flex flex-col items-center text-center space-y-2 sm:space-y-3 pt-0 pb-0 sm:pt-2 sm:pb-1 md:pt-4 md:pb-2">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}

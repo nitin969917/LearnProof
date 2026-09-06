@@ -60,6 +60,65 @@ const RoadmapDetail = () => {
     
     const [playlist, setPlaylist] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [themeStyle, setThemeStyle] = useState({
+        background: 'linear-gradient(150deg, #1e293b 0%, #0f172a 60%, #080c14 100%)',
+        borderColor: 'rgba(255, 255, 255, 0.15)',
+        glowColor: 'rgba(0, 0, 0, 0.3)',
+    });
+
+    useEffect(() => {
+        if (!playlist?.thumbnail) return;
+        
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.src = playlist.thumbnail;
+        img.onload = () => {
+            try {
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d", { willReadFrequently: true });
+                canvas.width = 32;
+                canvas.height = 32;
+                ctx.drawImage(img, 0, 0, 32, 32);
+                const imgData = ctx.getImageData(0, 0, 32, 32).data;
+                
+                let rTotal = 0, gTotal = 0, bTotal = 0, count = 0;
+                for (let i = 0; i < imgData.length; i += 4) {
+                    const r = imgData[i];
+                    const g = imgData[i + 1];
+                    const b = imgData[i + 2];
+                    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                    if (brightness > 30 && brightness < 220) {
+                        rTotal += r;
+                        gTotal += g;
+                        bTotal += b;
+                        count++;
+                    }
+                }
+
+                if (count > 0) {
+                    const r = Math.round(rTotal / count);
+                    const g = Math.round(gTotal / count);
+                    const b = Math.round(bTotal / count);
+
+                    const darkR = Math.min(50, Math.max(12, Math.round(r * 0.3)));
+                    const darkG = Math.min(55, Math.max(15, Math.round(g * 0.3)));
+                    const darkB = Math.min(65, Math.max(20, Math.round(b * 0.3)));
+
+                    const midR = Math.min(75, Math.max(20, Math.round(r * 0.45)));
+                    const midG = Math.min(85, Math.max(25, Math.round(g * 0.45)));
+                    const midB = Math.min(95, Math.max(30, Math.round(b * 0.45)));
+
+                    setThemeStyle({
+                        background: `linear-gradient(150deg, rgb(${midR}, ${midG}, ${midB}) 0%, rgb(${darkR}, ${darkG}, ${darkB}) 55%, #080c14 100%)`,
+                        borderColor: `rgba(${r}, ${g}, ${b}, 0.35)`,
+                        glowColor: `rgba(${r}, ${g}, ${b}, 0.25)`,
+                    });
+                }
+            } catch (e) {
+                // Ignore CORS fallback
+            }
+        };
+    }, [playlist?.thumbnail]);
 
     useEffect(() => {
         let active = true;
@@ -257,18 +316,35 @@ const RoadmapDetail = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#FF5100] via-[#F04700] to-[#D83600] border border-orange-400/40 text-white shadow-xl shadow-orange-500/20 p-4 sm:p-6"
+                        style={{
+                            background: themeStyle.background,
+                            borderColor: themeStyle.borderColor,
+                            boxShadow: `0 20px 40px -15px ${themeStyle.glowColor}`
+                        }}
+                        className="relative overflow-hidden rounded-3xl border text-white p-4 sm:p-6 transition-all duration-700 shadow-2xl"
                     >
+                        {/* Dynamic Ambient Thumbnail Glow Layer */}
+                        {playlist.thumbnail && (
+                            <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                                <img
+                                    src={playlist.thumbnail}
+                                    alt=""
+                                    className="w-full h-full object-cover scale-150 blur-3xl opacity-35 dark:opacity-25 saturate-150 transform transition-opacity duration-700"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/65 to-slate-950/85" />
+                            </div>
+                        )}
+
                         {/* Background subtle glow discs */}
                         <div className="absolute -top-24 -right-24 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-                        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-black/20 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-black/40 rounded-full blur-3xl pointer-events-none" />
 
                         <div className="relative z-10 space-y-3.5 sm:space-y-4">
                             {/* Prominent Playlist Video Thumbnail */}
                             {playlist.thumbnail && (
                                 <div
                                     onClick={() => playlist.videos?.find(v => !v.is_completed) && navigate(`/classroom/${playlist.videos.find(v => !v.is_completed).vid}`)}
-                                    className="relative group cursor-pointer w-full aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/30 transition-transform duration-300 hover:scale-[1.01]"
+                                    className="relative group cursor-pointer w-full aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/20 transition-transform duration-300 hover:scale-[1.01]"
                                 >
                                     <img
                                         src={playlist.thumbnail}
@@ -276,8 +352,8 @@ const RoadmapDetail = () => {
                                         className="w-full h-full object-cover"
                                     />
                                     <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/95 text-[#FF5100] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
-                                            <Play size={20} className="fill-[#FF5100] ml-0.5 sm:size-6" />
+                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/95 text-slate-900 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                                            <Play size={20} className="fill-slate-900 text-slate-900 ml-0.5 sm:size-6" />
                                         </div>
                                     </div>
                                     <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 bg-black/75 backdrop-blur-sm rounded-md text-[10px] font-black text-white flex items-center gap-1 border border-white/20">
@@ -290,11 +366,11 @@ const RoadmapDetail = () => {
                             {/* Playlist Meta Header */}
                             <div className="space-y-2">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-black/20 backdrop-blur-md text-white border border-white/20 font-black text-[10px] uppercase tracking-wider rounded-lg shadow-xs">
-                                        <Sparkles size={11} className="text-amber-200" />
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/15 backdrop-blur-md text-white border border-white/20 font-black text-[10px] uppercase tracking-wider rounded-lg shadow-xs">
+                                        <Sparkles size={11} className="text-amber-300" />
                                         ACTIVE ROADMAP
                                     </span>
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-black/20 backdrop-blur-md rounded-lg text-[10px] font-bold text-white/95 border border-white/15">
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-white/10 backdrop-blur-md rounded-lg text-[10px] font-bold text-white/95 border border-white/15">
                                         <BookOpen size={11} className="text-white" />
                                         {totalVideos} LESSONS
                                     </span>
@@ -311,7 +387,7 @@ const RoadmapDetail = () => {
                                     <span>Mastery Progress</span>
                                     <span className="text-sm sm:text-base font-black text-white">{percentComplete}%</span>
                                 </div>
-                                <div className="w-full bg-black/25 rounded-full h-2 sm:h-2.5 backdrop-blur-sm overflow-hidden p-0.5">
+                                <div className="w-full bg-white/15 rounded-full h-2 sm:h-2.5 backdrop-blur-sm overflow-hidden p-0.5 border border-white/10">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${percentComplete}%` }}
@@ -330,9 +406,9 @@ const RoadmapDetail = () => {
                                 {playlist.videos?.find(v => !v.is_completed) && (
                                     <button
                                         onClick={() => navigate(`/classroom/${playlist.videos.find(v => !v.is_completed).vid}`)}
-                                        className="w-full h-10 sm:h-11 px-4 sm:px-5 bg-white text-[#FF5100] hover:bg-orange-50 active:scale-[0.98] shadow-md hover:shadow-lg rounded-xl font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                        className="w-full h-10 sm:h-11 px-4 sm:px-5 bg-white text-slate-900 hover:bg-slate-100 active:scale-[0.98] shadow-md hover:shadow-lg rounded-xl font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
                                     >
-                                        <Play size={15} className="fill-[#FF5100]" />
+                                        <Play size={15} className="fill-slate-900 text-slate-900" />
                                         <span>Continue Roadmap</span>
                                     </button>
                                 )}
@@ -340,7 +416,7 @@ const RoadmapDetail = () => {
                                 <div className="grid grid-cols-2 gap-2">
                                     <button
                                         onClick={() => navigate(`/dashboard/playlist/${pid}`)}
-                                        className="h-9 sm:h-10 px-3 bg-black/20 hover:bg-black/35 text-white border border-white/20 active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer truncate"
+                                        className="h-9 sm:h-10 px-3 bg-white/10 hover:bg-white/20 text-white border border-white/15 active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer truncate"
                                     >
                                         <BookOpen size={13} className="text-white/80 shrink-0" />
                                         <span className="truncate">Playlist View</span>
@@ -348,9 +424,9 @@ const RoadmapDetail = () => {
 
                                     <button
                                         onClick={() => setIsEditingGoal(!isEditingGoal)}
-                                        className={`h-9 sm:h-10 px-3 ${isEditingGoal ? 'bg-white text-[#FF5100]' : 'bg-black/20 hover:bg-black/35 text-white border border-white/20'} active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer truncate`}
+                                        className={`h-9 sm:h-10 px-3 ${isEditingGoal ? 'bg-white text-slate-900' : 'bg-white/10 hover:bg-white/20 text-white border border-white/15'} active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer truncate`}
                                     >
-                                        <Sparkles size={13} className={isEditingGoal ? 'text-[#FF5100] shrink-0' : 'text-amber-200 shrink-0'} />
+                                        <Sparkles size={13} className={isEditingGoal ? 'text-slate-900 shrink-0' : 'text-amber-300 shrink-0'} />
                                         <span className="truncate">{isEditingGoal ? "Close" : "Adjust Goal"}</span>
                                     </button>
                                 </div>
@@ -365,7 +441,7 @@ const RoadmapDetail = () => {
                                         exit={{ opacity: 0, height: 0 }}
                                         className="pt-2 overflow-hidden"
                                     >
-                                        <form onSubmit={handleUpdateGoal} className="flex items-center gap-2 bg-black/30 backdrop-blur-md p-2.5 rounded-2xl border border-white/20">
+                                        <form onSubmit={handleUpdateGoal} className="flex items-center gap-2 bg-black/40 backdrop-blur-md p-2.5 rounded-2xl border border-white/20">
                                             <div className="flex-1 min-w-0 px-2">
                                                 <span className="text-[9px] font-black uppercase text-white/70 tracking-wider block">Target Days</span>
                                                 <input
