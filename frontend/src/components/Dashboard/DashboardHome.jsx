@@ -24,6 +24,7 @@ import ContinueWatching from "./ContinueWatching";
 import VideosSection from "./VideosSection";
 import DailyTasksCard from "./DailyTasksCard";
 import ScreenTimeCard from "./ScreenTimeCard";
+import YourProgressCard from "./YourProgressCard";
 
 const DashboardHome = () => {
     const { token, user } = useAuth();
@@ -476,6 +477,11 @@ const DashboardHome = () => {
                     </button>
                 </div>
 
+                {/* ── MOBILE VIEW ONLY: YOUR PROGRESS CARD ── */}
+                <div className="block lg:hidden">
+                    <YourProgressCard />
+                </div>
+
                 {/* 5. PLAYLISTS SECTION */}
                 {playlists.length > 0 && (
                     <div className="space-y-4 relative group">
@@ -575,12 +581,10 @@ const DashboardHome = () => {
                 </div>
             </div>
 
-            {/* Right column (Fixed width on large screens, flex-col layout) */}
-            <div className="w-full lg:w-[310px] shrink-0 flex flex-col gap-4">
-                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                    <ScreenTimeCard />
-                    <DailyTasksCard />
-                </div>
+            {/* Right column (Desktop only, fixed width, flex-col layout) */}
+            <div className="hidden lg:flex lg:w-[310px] shrink-0 flex-col gap-4">
+                <ScreenTimeCard />
+                <DailyTasksCard />
                 <CalendarCard />
             </div>
 
