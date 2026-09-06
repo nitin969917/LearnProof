@@ -898,10 +898,10 @@ const getFriendships = async (req, res) => {
       },
       include: {
         sender: {
-          select: { id: true, name: true, profilePicture: true, email: true, collegeName: true },
+          select: { id: true, name: true, profilePicture: true, email: true, collegeName: true, department: true, yearOfStudy: true },
         },
         receiver: {
-          select: { id: true, name: true, profilePicture: true, email: true, collegeName: true },
+          select: { id: true, name: true, profilePicture: true, email: true, collegeName: true, department: true, yearOfStudy: true },
         },
       },
       orderBy: { createdAt: 'desc' }
@@ -919,10 +919,13 @@ const getFriendships = async (req, res) => {
           name: friend.name,
           email: friend.email,
           collegeName: friend.collegeName,
+          department: friend.department,
+          yearOfStudy: friend.yearOfStudy,
           profilePicture: friend.profilePicture,
           friendshipId: f.id,
           isCloseFriend: false,
           lastMessage: null,
+          createdAt: f.createdAt,
         });
       }
     });
