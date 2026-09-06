@@ -268,32 +268,31 @@ const YouTubeExplorer = () => {
     };
 
     return (
-        <div className="max-w-[1360px] mx-auto px-4 sm:px-8 lg:px-12 space-y-8 md:space-y-10 pb-20">
+        <div className="max-w-[1360px] mx-auto px-4 sm:px-8 lg:px-12 space-y-4 sm:space-y-6 pb-20">
             {/* Header & Search */}
-            <div className="flex flex-col items-center text-center space-y-4 md:space-y-8 pt-3 pb-6 md:pt-10 md:pb-8">
+            <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4 pt-1 pb-1 sm:pt-4 sm:pb-2 md:pt-6 md:pb-2">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-4 hidden lg:block"
+                    className="space-y-3 hidden lg:block"
                 >
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-2">
-                        <div className="p-3 sm:p-4 bg-red-500 text-white rounded-2xl sm:rounded-[2rem] shadow-xl shadow-red-500/20 rotate-3 hover:rotate-0 transition-transform duration-500">
-                            <Youtube size={28} className="sm:w-8 sm:h-8" />
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-1">
+                        <div className="p-2.5 sm:p-3 bg-red-500 text-white rounded-2xl sm:rounded-[1.5rem] shadow-lg shadow-red-500/20 rotate-3 hover:rotate-0 transition-transform duration-500">
+                            <Youtube size={26} className="sm:w-7 sm:h-7" />
                         </div>
                         <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-                            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-red-500 mb-1">Advanced Engine</span>
-                            <h1 className="text-3xl sm:text-4xl md:text-4xl lg:text-5xl font-black tracking-tighter text-gray-900 dark:text-white leading-none">
+                            <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.3em] text-red-500 mb-0.5">Advanced Engine</span>
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl font-black tracking-tighter text-gray-900 dark:text-white leading-none">
                                 YouTube <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-orange-500">Explorer</span>
                             </h1>
                         </div>
                     </div>
-                    <p className="text-gray-500 dark:text-slate-400 text-sm md:text-base max-w-2xl font-medium leading-relaxed">
-                        Search and import the world's best educational content directly into your personal repository. 
-                        Let AI find the perfect playlist for your learning journey.
+                    <p className="text-gray-500 dark:text-slate-400 text-xs sm:text-sm max-w-xl font-medium leading-relaxed">
+                        Search and import the world's best educational content directly into your personal repository.
                     </p>
                 </motion.div>
 
-                <div className="flex flex-col items-center w-full max-w-2xl space-y-4" ref={searchRef}>
+                <div className="flex flex-col items-center w-full max-w-2xl space-y-3" ref={searchRef}>
                     <form onSubmit={handleSearch} className="relative w-full group">
                         <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-[2rem] blur-2xl group-focus-within:blur-3xl transition-all duration-500 opacity-50"></div>
                         <div className="relative flex items-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl sm:rounded-[2rem] p-1.5 sm:p-2 shadow-2xl shadow-gray-200/50 dark:shadow-none transition-all duration-500 focus-within:ring-4 focus-within:ring-red-500/10 focus-within:border-red-500/30">
@@ -624,7 +623,7 @@ const YouTubeExplorer = () => {
 
             {/* 3. Searched State: Show Results + Pagination + Quick Import at the End */}
             {results.length > 0 && !loading && (
-                <div ref={resultsRef} className="space-y-8 pb-4">
+                <div ref={resultsRef} className="space-y-4 sm:space-y-5 pb-4">
                     {/* Header with Results Count and Page indicator */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-gray-100 dark:border-gray-800">
                         <div className="flex items-center gap-2.5">
