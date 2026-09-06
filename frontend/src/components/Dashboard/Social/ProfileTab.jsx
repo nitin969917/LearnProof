@@ -467,25 +467,22 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
               {/* Avatar Photo Upload Camera Trigger */}
               {isOwnProfile && (
-                <>
+                <label
+                  htmlFor="avatar-upload-trigger"
+                  title="Change Profile Photo"
+                  className="absolute bottom-0 left-0 p-1.5 sm:p-2 bg-gray-900/80 hover:bg-orange-600 text-white rounded-full border-2 border-white dark:border-gray-850 shadow-md transition active:scale-95 cursor-pointer z-10"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Camera size={13} />
                   <input
+                    id="avatar-upload-trigger"
                     type="file"
                     ref={avatarInputRef}
                     onChange={handleAvatarChange}
                     accept="image/*,.heic,.heif,.HEIC,.HEIF"
                     className="hidden"
                   />
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      avatarInputRef.current?.click();
-                    }}
-                    title="Change Profile Photo"
-                    className="absolute bottom-0 left-0 p-1.5 sm:p-2 bg-gray-900/80 hover:bg-orange-600 text-white rounded-full border-2 border-white dark:border-gray-850 shadow-md transition active:scale-95 cursor-pointer z-10"
-                  >
-                    <Camera size={13} />
-                  </button>
-                </>
+                </label>
               )}
             </div>
 
@@ -1161,27 +1158,24 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                   />
                   <div>
                     <h5 className="text-xs font-black text-gray-900 dark:text-white">Profile Photo</h5>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400">High-quality image compressed automatically</p>
                   </div>
                 </div>
 
-                <div>
+                <label
+                  htmlFor="modal-avatar-upload-trigger"
+                  className="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <Camera size={14} />
+                  <span>Upload Photo</span>
                   <input
+                    id="modal-avatar-upload-trigger"
                     type="file"
                     ref={modalAvatarInputRef}
                     onChange={handleAvatarChange}
                     accept="image/*,.heic,.heif,.HEIC,.HEIF"
                     className="hidden"
                   />
-                  <button
-                    type="button"
-                    onClick={() => modalAvatarInputRef.current?.click()}
-                    className="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
-                  >
-                    <Camera size={14} />
-                    <span>Upload Photo</span>
-                  </button>
-                </div>
+                </label>
               </div>
 
               {/* Basic Academic Info */}
@@ -1279,7 +1273,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     </div>
                     <input
                       type="text"
-                      placeholder="+1 (555) 000-0000"
+                      placeholder="+91 XXXXX XXXXX"
                       value={formData.phoneNumber || ''}
                       onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                       className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
@@ -1317,7 +1311,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     </div>
                     <input
                       type="text"
-                      placeholder="+15550000000"
+                      placeholder="+91 XXXXX XXXXX"
                       value={formData.whatsappNumber || ''}
                       onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
                       className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
