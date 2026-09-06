@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { isLikelyHeicSource, isNativeHeicSupported, convertHeicSourceToJpeg } from '../../utils/heicHelper.js';
 
 /**
  * UserAvatar
  * Renders a user's avatar image safely.
+ * Seamlessly converts iPhone HEIC/HEIF images for Chrome & other browsers that lack native HEIC support.
  * If the image URL is missing, invalid, or fails to load,
- * it seamlessly displays a styled initial placeholder fallback.
+ * it displays a styled initial placeholder fallback.
  */
 export default function UserAvatar({
   src,
@@ -13,15 +15,67 @@ export default function UserAvatar({
   textClassName = "",
   alt
 }) {
+  const [displaySrc, setDisplaySrc] = useState(src);
   const [imgError, setImgError] = useState(false);
+  const convertingRef = useRef(false);
 
-  // Reset error state if src changes
+  // Sync displaySrc and handle proactive HEIC conversion when src changes
   useEffect(() => {
     setImgError(false);
+    convertingRef.current = false;
+
+    if (!src || src === '/default-avatar.png' || src === 'null' || src === 'undefined') {
+      setDisplaySrc(src);
+      return;
+    }
+
+    let isMounted = true;
+
+    // Proactive conversion if known HEIC in non-Safari browsers
+    if (isLikelyHeicSource(src) && !isNativeHeicSupported()) {
+      convertingRef.current = true;
+      convertHeicSourceToJpeg(src)
+        .then((jpegUrl) => {
+          if (isMounted) {
+            setDisplaySrc(jpegUrl || src);
+            convertingRef.current = false;
+          }
+        })
+        .catch(() => {
+          if (isMounted) {
+            setDisplaySrc(src);
+            convertingRef.current = false;
+          }
+        });
+    } else {
+      setDisplaySrc(src);
+    }
+
+    return () => {
+      isMounted = false;
+    };
   }, [src]);
 
-  const initial = name?.[0]?.toUpperCase() || 'U';
+  const handleImageError = async () => {
+    // If image failed and hasn't been converted yet, check if it's a HEIC file Chrome couldn't decode
+    if (src && displaySrc === src && !convertingRef.current) {
+      convertingRef.current = true;
+      try {
+        const converted = await convertHeicSourceToJpeg(src);
+        if (converted) {
+          setDisplaySrc(converted);
+          convertingRef.current = false;
+          return;
+        }
+      } catch (err) {
+        console.warn('Fallback HEIC conversion failed:', err);
+      }
+      convertingRef.current = false;
+    }
+    setImgError(true);
+  };
 
+  const initial = name?.[0]?.toUpperCase() || 'U';
   const isInvalidSrc = !src || src === '/default-avatar.png' || src === 'null' || src === 'undefined';
 
   if (isInvalidSrc || imgError) {
@@ -55,11 +109,12 @@ export default function UserAvatar({
 
   return (
     <img
-      src={src}
+      src={displaySrc}
       alt={alt || name || 'Avatar'}
       className={`object-cover shrink-0 ${className}`}
-      onError={() => setImgError(true)}
+      onError={handleImageError}
       loading="lazy"
+      referrerPolicy="no-referrer"
     />
   );
 }

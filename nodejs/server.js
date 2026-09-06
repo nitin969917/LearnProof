@@ -339,8 +339,22 @@ io.on('connection', (socket) => {
   });
 });
 
-// Middleware
-app.use(cors());
+// ─── CORS ────────────────────────────────────────────────────────────────────
+// Explicit CORS config — bare cors() without options caused Chrome to block
+// cross-origin image requests from /media (Safari was more lenient).
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow all origins: web browsers, deployed domains, mobile apps, TWAs, etc.
+    callback(null, origin || '*');
+  },
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'Content-Type'],
+  credentials: true,
+  optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Pre-flight for all routes
 // Gzip compress all responses — reduces API payload size by 60-80%
 app.use(compression({ level: 5, threshold: 1024 }));
 app.use(express.json({ limit: '10mb' }));
@@ -353,10 +367,23 @@ if (process.env.NODE_ENV !== 'production') {
     skip: (req) => req.url === '/health' // skip health check noise
   }));
 }
-app.use('/media', express.static('media')); // Serve static media files
-app.use('/api/media', express.static('media')); // Compatibility for Passenger routing
-app.use('/apps', express.static(path.join(__dirname, 'apps'))); // Serve desktop apps
-app.use('/api/apps', express.static(path.join(__dirname, 'apps'))); // Passenger compatibility for apps
+// ─── Static files with explicit CORS headers ────────────────────────────────
+// express.static() bypasses the global cors() middleware, so we must attach
+// CORS headers manually. Without this, Chrome blocks /media images as
+// cross-origin while Safari allows them (Chrome-only bug).
+const staticCors = (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+};
+app.use('/media', staticCors, express.static('media'));          // Serve static media files
+app.use('/api/media', staticCors, express.static('media'));      // Compatibility for Passenger routing
+app.use('/apps', staticCors, express.static(path.join(__dirname, 'apps')));      // Serve desktop apps
+app.use('/api/apps', staticCors, express.static(path.join(__dirname, 'apps'))); // Passenger compatibility for apps
 
 // Routes
 app.use('/api', apiRoutes);

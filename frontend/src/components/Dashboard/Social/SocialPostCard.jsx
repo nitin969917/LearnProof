@@ -3,6 +3,7 @@ import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Star, Trash
 import socialApi from '../../../api/socialApi.js';
 import { useModal } from '../../../context/ModalContext';
 import UserAvatar from '../../Common/UserAvatar.jsx';
+import RenderableImage from '../../Common/RenderableImage.jsx';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 
 export default function SocialPostCard({ post, onLike, currentUserId, onViewProfile }) {
@@ -304,7 +305,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
         
         {post.image && (
           <div className="mt-3 overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 flex justify-center items-center">
-            <img 
+            <RenderableImage 
               src={post.image} 
               alt="Post content" 
               className="w-full h-auto max-h-[600px] object-contain" 

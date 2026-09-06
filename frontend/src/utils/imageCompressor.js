@@ -1,20 +1,14 @@
-import heic2any from 'heic2any';
+import { getHeic2Any, isHeicBlob } from './heicHelper.js';
 
 /**
  * Checks if a file or blob is HEIC/HEIF format (common on Apple/iPhone cameras)
+ * Inspects both file metadata and binary magic bytes (ftypheic, ftypmif1, etc.)
  * @param {File|Blob} file 
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
-export function isHeic(file) {
+export async function isHeic(file) {
   if (!file) return false;
-  const type = (file.type || '').toLowerCase();
-  const name = (file.name || '').toLowerCase();
-  return (
-    type.includes('heic') ||
-    type.includes('heif') ||
-    name.endsWith('.heic') ||
-    name.endsWith('.heif')
-  );
+  return isHeicBlob(file);
 }
 
 /**
@@ -77,20 +71,26 @@ function renderSourceToCompressedBase64(source, maxWidth, maxHeight, quality) {
  * @returns {Promise<Blob|null>}
  */
 async function convertHeicToJpegBlob(file) {
+  const converter = getHeic2Any();
+  if (!converter) {
+    console.warn('heic2any converter unavailable');
+    return null;
+  }
+
   try {
-    const result = await heic2any({
+    const result = await converter({
       blob: file,
       toType: 'image/jpeg',
-      quality: 0.9,
+      quality: 0.92,
     });
     return Array.isArray(result) ? result[0] : result;
   } catch (err1) {
     console.warn('heic2any standard conversion failed, trying multiple option:', err1);
     try {
-      const multiResult = await heic2any({
+      const multiResult = await converter({
         blob: file,
         toType: 'image/jpeg',
-        quality: 0.9,
+        quality: 0.92,
         multiple: true,
       });
       return Array.isArray(multiResult) ? multiResult[0] : multiResult;
@@ -115,44 +115,32 @@ export async function compressImage(file, maxWidth = 1200, maxHeight = 1200, qua
     throw new Error('No file provided for compression');
   }
 
-  const fileIsHeic = isHeic(file);
+  const fileIsHeic = await isHeic(file);
+  let blobToProcess = file;
 
-  // Strategy 1: Modern browser native decoding via createImageBitmap (fastest & handles many OS-native codecs)
+  // If HEIC/HEIF, convert via heic2any WASM first so Chrome and all browsers can decode it
+  if (fileIsHeic) {
+    const convertedBlob = await convertHeicToJpegBlob(file);
+    if (convertedBlob) {
+      blobToProcess = convertedBlob;
+    }
+  }
+
+  // Strategy 1: Modern browser native decoding via createImageBitmap
   if (typeof window !== 'undefined' && 'createImageBitmap' in window) {
     try {
-      const bitmap = await createImageBitmap(file);
+      const bitmap = await createImageBitmap(blobToProcess);
       const base64 = renderSourceToCompressedBase64(bitmap, maxWidth, maxHeight, quality);
       if (bitmap.close) bitmap.close();
       if (base64 && base64.startsWith('data:image/')) {
         return base64;
       }
     } catch (bitmapErr) {
-      // Native decoding failed (e.g. HEIC in Chrome where browser has no native HEIC decoder)
       console.warn('createImageBitmap failed, falling back to next strategy:', bitmapErr);
     }
   }
 
-  // Strategy 2: If HEIC/HEIF, convert via heic2any WASM
-  let blobToProcess = file;
-  if (fileIsHeic) {
-    const convertedBlob = await convertHeicToJpegBlob(file);
-    if (convertedBlob) {
-      blobToProcess = convertedBlob;
-      // Try createImageBitmap on converted JPEG blob
-      if (typeof window !== 'undefined' && 'createImageBitmap' in window) {
-        try {
-          const bitmap = await createImageBitmap(blobToProcess);
-          const base64 = renderSourceToCompressedBase64(bitmap, maxWidth, maxHeight, quality);
-          if (bitmap.close) bitmap.close();
-          if (base64 && base64.startsWith('data:image/')) {
-            return base64;
-          }
-        } catch {}
-      }
-    }
-  }
-
-  // Strategy 3: Standard Image element loading + Canvas rendering
+  // Strategy 2: Standard Image element loading + Canvas rendering
   try {
     const base64Result = await new Promise((resolve, reject) => {
       let objectUrl = '';
@@ -195,9 +183,9 @@ export async function compressImage(file, maxWidth = 1200, maxHeight = 1200, qua
     console.warn('Image element canvas rendering failed, trying final fallback:', imgElementErr);
   }
 
-  // Strategy 4: Direct DataURL read fallback (so the user upload never fails completely)
+  // Strategy 3: Direct DataURL read fallback
   try {
-    const directDataUrl = await readBlobAsDataURL(file);
+    const directDataUrl = await readBlobAsDataURL(blobToProcess);
     if (directDataUrl && typeof directDataUrl === 'string') {
       return directDataUrl;
     }
