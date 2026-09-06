@@ -468,6 +468,7 @@ const updateProfile = async (req, res) => {
         yearOfStudy: data.yearOfStudy,
         phoneNumber: data.phoneNumber,
         phoneVisibility: data.phoneVisibility,
+        emailVisibility: data.emailVisibility,
         whatsappNumber: data.whatsappNumber,
         whatsappVisibility: data.whatsappVisibility,
         instagramHandle: data.instagramHandle,
