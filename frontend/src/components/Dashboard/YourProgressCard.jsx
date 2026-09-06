@@ -163,107 +163,59 @@ const YourProgressCard = () => {
                 </div>
             </div>
 
-            {/* 3 Columns Section */}
-            <div className="grid grid-cols-3 divide-x divide-gray-100 dark:divide-gray-800">
+            {/* 3 Columns Section (No bottom progress bars) */}
+            <div className="grid grid-cols-3 divide-x divide-gray-100 dark:divide-gray-800 py-0.5">
                 {/* Column 1: Screen Time */}
-                <div className="px-2 first:pl-0 flex flex-col justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-orange-50 dark:bg-orange-950/40 border border-orange-100 dark:border-orange-900/30 text-orange-500 flex items-center justify-center shrink-0">
-                            <Clock size={15} />
-                        </div>
-                        <div className="min-w-0 text-left">
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate leading-tight">
-                                Screen Time
-                            </p>
-                            <p className="text-xs sm:text-sm font-black text-gray-900 dark:text-white truncate leading-tight mt-0.5">
-                                {formatScreenTime(todaySeconds)}{' '}
-                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">
-                                    / {targetHours}h
-                                </span>
-                            </p>
-                        </div>
+                <div className="px-1.5 sm:px-2 first:pl-0 flex items-center gap-1.5 sm:gap-2 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-orange-50 dark:bg-orange-950/40 border border-orange-100 dark:border-orange-900/30 text-orange-500 flex items-center justify-center shrink-0">
+                        <Clock size={15} />
                     </div>
-
-                    <div className="flex items-center gap-1.5 mt-2.5">
-                        <div className="flex-1 bg-gray-100 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
-                            <div 
-                                className="bg-orange-500 h-full rounded-full transition-all duration-500"
-                                style={{ width: `${screenTimePercent}%` }}
-                            />
-                        </div>
-                        <span className="text-[10px] font-black text-gray-700 dark:text-gray-300 shrink-0">
-                            {screenTimePercent}%
-                        </span>
+                    <div className="min-w-0 text-left">
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate leading-tight">
+                            Screen Time
+                        </p>
+                        <p className="text-[11px] sm:text-xs font-black text-gray-900 dark:text-white truncate leading-tight mt-0.5">
+                            {formatScreenTime(todaySeconds)}
+                            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 ml-0.5">
+                                /{targetHours}h
+                            </span>
+                        </p>
                     </div>
                 </div>
 
                 {/* Column 2: Daily Goals */}
-                <div className="px-2 flex flex-col justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/30 text-blue-500 flex items-center justify-center shrink-0">
-                            <Target size={15} />
-                        </div>
-                        <div className="min-w-0 text-left">
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate leading-tight">
-                                Daily Goals
-                            </p>
-                            <p className="text-xs sm:text-sm font-black text-gray-900 dark:text-white truncate leading-tight mt-0.5">
-                                {completedTasksCount}{' '}
-                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">
-                                    / {totalTasksCount}
-                                </span>
-                            </p>
-                        </div>
+                <div className="px-1.5 sm:px-2 flex items-center gap-1.5 sm:gap-2 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/30 text-blue-500 flex items-center justify-center shrink-0">
+                        <Target size={15} />
                     </div>
-
-                    <div className="flex items-center gap-1.5 mt-2.5">
-                        <div className="flex-1 bg-gray-100 dark:bg-gray-700 h-1.5 rounded-full overflow-hidden">
-                            <div 
-                                className="bg-blue-500 h-full rounded-full transition-all duration-500"
-                                style={{ width: `${tasksPercent}%` }}
-                            />
-                        </div>
-                        <span className="text-[10px] font-black text-gray-700 dark:text-gray-300 shrink-0">
-                            {tasksPercent}%
-                        </span>
+                    <div className="min-w-0 text-left">
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate leading-tight">
+                            Daily Goals
+                        </p>
+                        <p className="text-[11px] sm:text-xs font-black text-gray-900 dark:text-white truncate leading-tight mt-0.5">
+                            {completedTasksCount}
+                            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 ml-0.5">
+                                /{totalTasksCount}
+                            </span>
+                        </p>
                     </div>
                 </div>
 
                 {/* Column 3: Current Streak */}
-                <div className="px-2 last:pr-0 flex flex-col justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/30 text-red-500 flex items-center justify-center shrink-0">
-                            <Flame size={15} />
-                        </div>
-                        <div className="min-w-0 text-left">
-                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate leading-tight">
-                                Current Streak
-                            </p>
-                            <p className="text-xs sm:text-sm font-black text-gray-900 dark:text-white truncate leading-tight mt-0.5">
-                                {streak}{' '}
-                                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">
-                                    day{streak === 1 ? '' : 's'}
-                                </span>
-                            </p>
-                        </div>
+                <div className="px-1.5 sm:px-2 last:pr-0 flex items-center gap-1.5 sm:gap-2 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/30 text-red-500 flex items-center justify-center shrink-0">
+                        <Flame size={15} />
                     </div>
-
-                    <div className="flex flex-col gap-1 mt-2">
-                        <div className="flex items-center justify-between w-full px-0.5">
-                            {weekDays.map((d, i) => (
-                                <div 
-                                    key={i} 
-                                    className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                                        d.active ? 'bg-orange-500 shadow-xs' : 'bg-gray-200 dark:bg-gray-700'
-                                    }`} 
-                                />
-                            ))}
-                        </div>
-                        <div className="flex items-center justify-between w-full px-0.5 text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase leading-none">
-                            {weekDays.map((d, i) => (
-                                <span key={i}>{d.label}</span>
-                            ))}
-                        </div>
+                    <div className="min-w-0 text-left">
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate leading-tight">
+                            Current Streak
+                        </p>
+                        <p className="text-[11px] sm:text-xs font-black text-gray-900 dark:text-white truncate leading-tight mt-0.5">
+                            {streak}
+                            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 ml-0.5">
+                                day{streak === 1 ? '' : 's'}
+                            </span>
+                        </p>
                     </div>
                 </div>
             </div>
