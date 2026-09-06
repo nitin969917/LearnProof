@@ -62,6 +62,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
             items: [
                 { name: 'Live Rooms', icon: <Globe size={20} />, path: '/dashboard/live-rooms' },
                 { name: 'Social Hub', icon: <Users size={20} />, path: '/dashboard/social' },
+                { name: 'Ambassador', icon: <Gift size={20} />, path: '/dashboard/ambassador' },
             ]
         },
         {
