@@ -691,47 +691,55 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
         {/* ── RIGHT COLUMN (Tab Navigation & Feed Stream) ── */}
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
-          {/* Top Activity Tab Strip */}
-          <div className="bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-1.5 shadow-2xs flex items-center justify-around sm:justify-start gap-2">
+          {/* Top Activity Tab Strip - Clean Underline Style matching Reference UI */}
+          <div className="bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 px-4 sm:px-6 shadow-2xs flex items-center justify-around sm:justify-start gap-4 sm:gap-8">
             <button
               onClick={() => setActiveTab('posts')}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition cursor-pointer ${
+              className={`flex items-center gap-2 py-3.5 sm:py-4 border-b-2 font-black text-xs sm:text-sm transition-all cursor-pointer ${
                 activeTab === 'posts'
-                  ? 'bg-orange-500 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50/50'
+                  ? 'border-orange-500 text-orange-600 dark:text-orange-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
-              <FileText size={16} />
+              <FileText size={17} className={activeTab === 'posts' ? 'text-orange-500' : 'text-gray-400'} />
               <span>Posts</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeTab === 'posts' ? 'bg-white/30 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                activeTab === 'posts'
+                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+              }`}>
                 {postCount}
               </span>
             </button>
 
             <button
               onClick={() => setActiveTab('likes')}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition cursor-pointer ${
+              className={`flex items-center gap-2 py-3.5 sm:py-4 border-b-2 font-black text-xs sm:text-sm transition-all cursor-pointer ${
                 activeTab === 'likes'
-                  ? 'bg-orange-500 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50/50'
+                  ? 'border-orange-500 text-orange-600 dark:text-orange-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
-              <Heart size={16} />
+              <Heart size={17} className={activeTab === 'likes' ? 'text-orange-500' : 'text-gray-400'} />
               <span>Likes</span>
             </button>
 
             <button
               onClick={() => setActiveTab('friends')}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition cursor-pointer ${
+              className={`flex items-center gap-2 py-3.5 sm:py-4 border-b-2 font-black text-xs sm:text-sm transition-all cursor-pointer ${
                 activeTab === 'friends'
-                  ? 'bg-orange-500 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50/50'
+                  ? 'border-orange-500 text-orange-600 dark:text-orange-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
-              <UsersIcon size={16} />
+              <UsersIcon size={17} className={activeTab === 'friends' ? 'text-orange-500' : 'text-gray-400'} />
               <span>Friends</span>
               {isOwnProfile && friendCount > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeTab === 'friends' ? 'bg-white/30 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  activeTab === 'friends'
+                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                }`}>
                   {friendCount}
                 </span>
               )}
@@ -873,22 +881,24 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
       {/* ── Edit Profile Modal with Full Visibility Controls ── */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white dark:bg-gray-850 rounded-3xl max-w-2xl w-full p-6 sm:p-7 border border-orange-100 dark:border-gray-700 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-750 pb-3">
-              <h3 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 pb-24 sm:pb-6 overflow-y-auto">
+          <div className="relative bg-white dark:bg-gray-850 rounded-3xl max-w-2xl w-full flex flex-col max-h-[85vh] sm:max-h-[90vh] shadow-2xl border border-orange-100 dark:border-gray-700 overflow-hidden my-auto">
+            {/* Sticky Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-750 flex items-center justify-between bg-white dark:bg-gray-850 shrink-0">
+              <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
                 <Edit3 className="text-orange-500" size={20} />
                 <span>Edit Profile & Privacy</span>
               </h3>
               <button
                 onClick={() => setIsEditing(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-750 cursor-pointer text-lg"
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-750 transition cursor-pointer"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-5 text-left">
+            {/* Scrollable Form Body */}
+            <form id="edit-profile-form" onSubmit={handleSave} className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar text-left">
               {/* Basic Academic Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -1093,24 +1103,26 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                   </div>
                 </div>
               </div>
-
-              {/* Submit & Cancel */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-750">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/20 active:scale-95 transition cursor-pointer"
-                >
-                  Save Profile & Privacy
-                </button>
-              </div>
             </form>
+
+            {/* Sticky Modal Footer - Always Visible Above Mobile Nav */}
+            <div className="p-3.5 sm:p-4 border-t border-gray-100 dark:border-gray-750 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md flex items-center justify-end gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-750 rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="edit-profile-form"
+                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 active:scale-95 transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Save size={15} />
+                <span>Save Profile</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
