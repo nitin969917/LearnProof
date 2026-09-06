@@ -185,12 +185,18 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+    const fileName = (file.name || '').toLowerCase();
+    const isLikelyImage = 
+      file.type.startsWith('image/') || 
+      /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif)$/i.test(fileName) ||
+      file.type === '';
+
+    if (!isLikelyImage) {
+      toast.error('Please select a valid image file');
       return;
     }
 
-    const toastId = toast.loading('Compressing & updating profile photo...');
+    const toastId = toast.loading('Processing & updating profile photo...');
     try {
       // Compress avatar with high-quality preservation (~50-80KB, 600x600)
       const compressedBase64 = await compressImage(file, 600, 600, 0.88);
@@ -447,7 +453,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     type="file"
                     ref={avatarInputRef}
                     onChange={handleAvatarChange}
-                    accept="image/*"
+                    accept="image/*,.heic,.heif,.HEIC,.HEIF"
                     className="hidden"
                   />
                   <button

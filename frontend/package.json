@@ -18,6 +18,7 @@
     "axios": "^1.10.0",
     "firebase": "^12.15.0",
     "framer-motion": "^12.19.1",
+    "heic2any": "^0.0.4",
     "jwt-decode": "^4.0.0",
     "livekit-client": "^2.19.2",
     "lucide-react": "^0.469.0",

@@ -228,7 +228,13 @@ export default function SocialDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
+    const fileName = (file.name || '').toLowerCase();
+    const isLikelyImage = 
+      file.type.startsWith('image/') || 
+      /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif)$/i.test(fileName) ||
+      file.type === '';
+
+    if (!isLikelyImage) {
       alert("Please select a valid image file");
       return;
     }
@@ -240,7 +246,7 @@ export default function SocialDashboard() {
       setSelectedImage(compressedBase64);
     } catch (err) {
       console.error('Failed to compress post image:', err);
-      alert('Failed to process image');
+      alert('Failed to process image. Please ensure the image is not corrupted.');
     } finally {
       setCompressingImage(false);
     }
@@ -516,7 +522,7 @@ export default function SocialDashboard() {
                     type="file" 
                     ref={fileInputRef} 
                     onChange={handleFileChange} 
-                    accept="image/*" 
+                    accept="image/*,.heic,.heif,.HEIC,.HEIF" 
                     className="hidden" 
                   />
                   <button
