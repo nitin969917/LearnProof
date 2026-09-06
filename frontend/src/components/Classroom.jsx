@@ -291,6 +291,13 @@ const Classroom = () => {
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
+  const handleSelectVideo = (targetVid) => {
+    setShowNextOverlay(false);
+    setHasCancelledOverlay(false);
+    setPlayer(null);
+    navigate(`/classroom/${targetVid}`);
+  };
+
   const currentIdx = playlist?.videos && video ? playlist.videos.findIndex(v => v.vid === video.vid) : -1;
   const nextVideo = (playlist?.videos && currentIdx !== -1 && currentIdx < playlist.videos.length - 1)
     ? playlist.videos[currentIdx + 1]
@@ -660,14 +667,15 @@ const Classroom = () => {
       }
     };
     if (token && videoId) {
+      setPlayer(null); // Reset player reference so stale progress doesn't trigger overlays
+      setShowNextOverlay(false); // Reset next video overlay
+      setHasCancelledOverlay(false); // Reset next video cancel state
       setIntuitionContent(""); // Clear previous intuition when video changes
       setQuizData(null);
       setQuizResult(null);
       setQuizHistory([]);
       setSelectedHistoryQuiz(null);
       setPlayerError(false); // Reset player error on video change
-      setShowNextOverlay(false); // Reset next video overlay
-      setHasCancelledOverlay(false); // Reset next video cancel state
       fetchClassroom();
       fetchDiscussionData();
     }
@@ -845,21 +853,30 @@ const Classroom = () => {
 
   useEffect(() => {
     let interval;
-    if (player && video) {
+    if (player && player.getCurrentTime && video && video.vid === videoId) {
       interval = setInterval(async () => {
         try {
+          if (!player || !player.getCurrentTime) return;
           const currentTime = await player.getCurrentTime();
           const duration = await player.getDuration();
 
-          if (duration > 0) {
+          if (duration > 0 && currentTime > 0) {
             const percentRaw = (currentTime / duration) * 100;
             const percentage = Math.round(percentRaw);
 
             setLiveProgress(percentage);
 
             // Auto-trigger next overlay to block YouTube annotations (which can start up to 20s before the end)
+            // Ensure video has actually played past 50% and is for current videoId
             const triggerOffset = duration > 60 ? 20 : (duration * 0.1);
-            if (duration - currentTime <= triggerOffset && nextVideo && !showNextOverlay && !hasCancelledOverlay) {
+            if (
+              duration - currentTime <= triggerOffset && 
+              currentTime >= duration * 0.5 && 
+              nextVideo && 
+              !showNextOverlay && 
+              !hasCancelledOverlay &&
+              video.vid === videoId
+            ) {
               console.log(`Auto-triggering next overlay ${triggerOffset}s before end to block annotations`);
               setShowNextOverlay(true);
             }
@@ -915,7 +932,7 @@ const Classroom = () => {
         }).catch(() => { });
       }
     };
-  }, [player, video, lastSavedProgress, token, nextVideo, showNextOverlay, hasCancelledOverlay]);
+  }, [player, video, videoId, lastSavedProgress, token, nextVideo, showNextOverlay, hasCancelledOverlay]);
 
   const handlePlayerStateChange = async (event) => {
     // YT.PlayerState.PLAYING is 1
@@ -1116,7 +1133,7 @@ const Classroom = () => {
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
-                      <div className="w-12 h-12 bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center transition-all transform hover:scale-110 shadow-lg cursor-pointer" onClick={() => { setShowNextOverlay(false); navigate(`/classroom/${nextVideo.vid}`); }}>
+                      <div className="w-12 h-12 bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center transition-all transform hover:scale-110 shadow-lg cursor-pointer" onClick={() => handleSelectVideo(nextVideo.vid)}>
                         <Play size={18} className="text-white fill-white ml-1" />
                       </div>
                     </div>
@@ -1139,7 +1156,7 @@ const Classroom = () => {
                       Cancel
                     </button>
                     <button 
-                      onClick={() => { setShowNextOverlay(false); navigate(`/classroom/${nextVideo.vid}`); }}
+                      onClick={() => handleSelectVideo(nextVideo.vid)}
                       className="flex-1 py-2 sm:py-3 bg-orange-500 hover:bg-orange-600 text-white font-black text-[9px] sm:text-[10px] uppercase tracking-widest rounded-lg sm:rounded-xl transition-all shadow-lg shadow-orange-500/25"
                     >
                       Play Next
@@ -1242,7 +1259,7 @@ const Classroom = () => {
                               <div
                                 key={v.vid}
                                 ref={isActive ? activeVideoRef : null}
-                                onClick={() => navigate(`/classroom/${v.vid}`)}
+                                onClick={() => handleSelectVideo(v.vid)}
                                 className={`group flex gap-3 p-3 cursor-pointer transition-all duration-200 rounded-xl ${isActive
                                     ? 'bg-orange-50 dark:bg-orange-900/10 ring-1 ring-orange-200 dark:ring-orange-900/50'
                                     : 'hover:bg-gray-50 dark:hover:bg-slate-800/60'
@@ -2089,7 +2106,7 @@ const Classroom = () => {
                       <div
                         key={v.vid}
                         ref={isActive ? activeVideoRef : null}
-                        onClick={() => navigate(`/classroom/${v.vid}`)}
+                        onClick={() => handleSelectVideo(v.vid)}
                         className={`group flex gap-3 p-3 cursor-pointer transition-all duration-200 ${isActive
                           ? 'bg-orange-50 dark:bg-orange-900/10 border-r-2 border-orange-500'
                           : 'hover:bg-gray-50 dark:hover:bg-slate-800/60'
