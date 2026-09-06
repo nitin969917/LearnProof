@@ -539,9 +539,9 @@ const RoadmapDetail = () => {
                                             />
                                         </div>
 
-                                        {/* Day's Video List - Compact Rows */}
-                                        <div className="space-y-1.5 pt-0.5">
-                                            {dayPlan.videos.map((vid) => {
+                                        {/* Day's Lesson Cards - Multi-Column Grid without Thumbnails */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
+                                            {dayPlan.videos.map((vid, vidIdx) => {
                                                 const isVidCompleted = vid.is_completed;
                                                 const hasQuizPassed = vid.passed_quiz;
 
@@ -549,43 +549,21 @@ const RoadmapDetail = () => {
                                                     <div
                                                         key={vid.vid}
                                                         onClick={() => navigate(`/classroom/${vid.vid}`)}
-                                                        className={`group flex items-center justify-between gap-2 p-1.5 sm:p-2 rounded-xl border transition-all cursor-pointer select-none ${
+                                                        className={`group flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
                                                             isVidCompleted
-                                                                ? 'bg-white/80 dark:bg-gray-800/80 border-emerald-100 dark:border-emerald-900/30 hover:border-emerald-300'
+                                                                ? 'bg-white/90 dark:bg-gray-800/90 border-emerald-100 dark:border-emerald-900/30 hover:border-emerald-300'
                                                                 : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-xs'
                                                         }`}
                                                     >
-                                                        {/* Thumbnail + Details */}
+                                                        {/* Number Icon + Title & Meta */}
                                                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                            {/* Compact Thumbnail without time label */}
-                                                            <div className="relative w-14 sm:w-16 aspect-video rounded-md overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 border border-black/5 dark:border-white/5">
-                                                                <img
-                                                                    src={`https://i.ytimg.com/vi/${vid.vid}/mqdefault.jpg`}
-                                                                    alt={vid.name}
-                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                                    loading="lazy"
-                                                                    onError={(e) => {
-                                                                        e.target.style.display = 'none';
-                                                                    }}
-                                                                />
-                                                                {isVidCompleted && (
-                                                                    <div className="absolute inset-0 bg-emerald-950/40 flex items-center justify-center">
-                                                                        <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
-                                                                            <CheckCircle size={10} />
-                                                                        </div>
-                                                                    </div>
-                                                                )}
-                                                                {/* YouTube Timeline Progress Bar on Thumbnail */}
-                                                                {isVidCompleted ? (
-                                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />
-                                                                ) : typeof vid.watch_progress === 'number' && vid.watch_progress > 0 ? (
-                                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black/50 overflow-hidden">
-                                                                        <div
-                                                                            className="bg-orange-500 h-full rounded-r-full"
-                                                                            style={{ width: `${Math.min(100, Math.max(0, vid.watch_progress))}%` }}
-                                                                        />
-                                                                    </div>
-                                                                ) : null}
+                                                            {/* Lesson Number Badge */}
+                                                            <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center font-black text-[10px] sm:text-xs shrink-0 transition-colors ${
+                                                                isVidCompleted
+                                                                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
+                                                                    : 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 group-hover:bg-orange-500 group-hover:text-white'
+                                                            }`}>
+                                                                {isVidCompleted ? <CheckCircle size={13} className="text-emerald-500" /> : vidIdx + 1}
                                                             </div>
 
                                                             {/* Title and Meta */}
@@ -599,8 +577,8 @@ const RoadmapDetail = () => {
                                                                 </p>
                                                                 <div className="flex items-center gap-1.5 mt-0.5">
                                                                     {isVidCompleted ? (
-                                                                        <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                                                                            <CheckCircle size={9} /> Done
+                                                                        <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                                                            Completed
                                                                         </span>
                                                                     ) : (
                                                                         <span className="text-[9px] sm:text-[10px] font-semibold text-gray-400 dark:text-gray-400">

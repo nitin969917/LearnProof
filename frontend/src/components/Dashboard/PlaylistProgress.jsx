@@ -11,6 +11,17 @@ import {
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 
+const formatVideoDuration = (seconds) => {
+    if (!seconds || seconds <= 0) return null;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) {
+        return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+};
+
 const PlaylistProgress = () => {
     const { id: playlistId } = useParams();
     const { token } = useAuth();
@@ -452,16 +463,21 @@ const PlaylistProgress = () => {
                                                     </div>
                                                 ) : null}
 
-                                                {/* Lesson Index Tag */}
-                                                <div className="absolute bottom-1 right-1 px-1 sm:px-1.5 py-0.2 sm:py-0.5 bg-black/80 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-black rounded sm:rounded-md leading-none z-10">
+                                                {/* Lesson Index Tag on Top Left */}
+                                                <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/75 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-bold rounded sm:rounded-md leading-none z-10 shadow-xs">
                                                     #{absoluteIndex + 1}
+                                                </div>
+
+                                                {/* Video Duration / Timestamp on Bottom Right */}
+                                                <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/85 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-black rounded sm:rounded-md leading-none z-10 shadow-xs">
+                                                    {formatVideoDuration(video.duration_seconds) || `#${absoluteIndex + 1}`}
                                                 </div>
 
                                                 {/* YouTube Timeline Progress Bar on Thumbnail */}
                                                 {isCompleted ? (
-                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-emerald-500" />
+                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-emerald-500 z-10" />
                                                 ) : typeof video.watch_progress === 'number' && video.watch_progress > 0 ? (
-                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-black/50 overflow-hidden">
+                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-black/50 overflow-hidden z-10">
                                                         <div
                                                             className="bg-orange-500 h-full rounded-r-full"
                                                             style={{ width: `${Math.min(100, Math.max(0, video.watch_progress))}%` }}
