@@ -15,9 +15,6 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
   const hasMorePosts = useSocialFeedStore(state => state.hasMorePosts);
   
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
-  const onlineFriends = friends.filter(friend => 
-    onlineUserIds.some(id => id.toString() === friend.id.toString())
-  );
 
   const loaderRef = useRef(null);
 
@@ -90,24 +87,6 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
             <ImageIcon size={20} className="stroke-[1.75]" />
           </div>
         </div>
-
-        {/* ── Mobile Friends Strip (visible only on small screens, positioned below What's on your mind) ── */}
-        {onlineFriends.length > 0 && (
-          <div className="lg:hidden bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 px-4 py-3 shadow-sm">
-            <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Friends Online</h3>
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {onlineFriends.map(friend => (
-                <div key={friend.id} className="flex flex-col items-center gap-1 flex-shrink-0 cursor-pointer" onClick={() => onViewProfile(friend.id)}>
-                  <div className="relative">
-                    <UserAvatar src={friend.profilePicture} name={friend.name} className="w-11 h-11 rounded-full border-2 border-white dark:border-gray-800" />
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-10"></div>
-                  </div>
-                  <span className="text-[10px] font-semibold text-gray-600 dark:text-gray-300 max-w-[48px] truncate">{friend.name.split(' ')[0]}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Posts Feed */}
         <div className="flex flex-col gap-6">
