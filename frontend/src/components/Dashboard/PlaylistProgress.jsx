@@ -103,34 +103,80 @@ const PlaylistProgress = () => {
     const isFullyCompleted = totalVideos > 0 && completedVideos === totalVideos;
     const isNotStarted = completedVideos === 0;
 
+    const getPageNumbers = (current, total) => {
+        if (total <= 7) {
+            return Array.from({ length: total }, (_, i) => i + 1);
+        }
+        if (current <= 4) {
+            return [1, 2, 3, 4, 5, '...', total];
+        }
+        if (current >= total - 3) {
+            return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+        }
+        return [1, '...', current - 1, current, current + 1, '...', total];
+    };
+
     const renderPagination = (isTop = false) => {
         if (totalPages <= 1) return null;
+        const pageNumbers = getPageNumbers(currentPage, totalPages);
+
         return (
-            <div className={`flex items-center justify-between px-1 ${isTop ? 'pb-3 border-b' : 'pt-3 border-t'} border-gray-100 dark:border-gray-700/60 shrink-0`}>
+            <div className={`flex flex-wrap items-center justify-between gap-2 px-1 ${isTop ? 'pb-3 border-b' : 'pt-3 border-t'} border-gray-100 dark:border-gray-700/60 shrink-0`}>
+                {/* Previous Button */}
                 <button
                     disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(p => p - 1)}
-                    className={`group flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-bold text-xs uppercase transition-all cursor-pointer ${
+                    onClick={() => {
+                        setCurrentPage(p => Math.max(1, p - 1));
+                    }}
+                    className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs uppercase transition-all cursor-pointer ${
                         currentPage === 1
                             ? 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed border border-transparent'
-                            : 'bg-white dark:bg-gray-850 text-orange-500 border border-orange-200 dark:border-gray-700 hover:bg-orange-50/50 dark:hover:bg-gray-700 shadow-xs'
+                            : 'bg-white dark:bg-gray-800 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-gray-700 hover:bg-orange-50 dark:hover:bg-gray-700 shadow-xs'
                     }`}
                 >
                     <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-0.5" />
                     <span>Previous</span>
                 </button>
 
-                <div className="text-xs font-bold text-gray-500 dark:text-gray-400">
-                    Page <span className="text-orange-600 dark:text-orange-400 font-black">{currentPage}</span> of {totalPages}
+                {/* Numbered Page Buttons */}
+                <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                    {pageNumbers.map((page, idx) => {
+                        if (page === '...') {
+                            return (
+                                <span key={`ellipsis-${idx}`} className="px-1 text-xs font-bold text-gray-400 select-none">
+                                    ...
+                                </span>
+                            );
+                        }
+                        const isPageActive = currentPage === page;
+                        return (
+                            <button
+                                key={`page-${page}`}
+                                onClick={() => {
+                                    setCurrentPage(page);
+                                }}
+                                className={`min-w-8 h-8 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
+                                    isPageActive
+                                        ? 'bg-orange-500 text-white font-black shadow-md shadow-orange-500/25 scale-105'
+                                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-gray-700/60 border border-gray-200 dark:border-gray-700'
+                                }`}
+                            >
+                                {page}
+                            </button>
+                        );
+                    })}
                 </div>
 
+                {/* Next Button */}
                 <button
                     disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(p => p + 1)}
-                    className={`group flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-bold text-xs uppercase transition-all cursor-pointer ${
+                    onClick={() => {
+                        setCurrentPage(p => Math.min(totalPages, p + 1));
+                    }}
+                    className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs uppercase transition-all cursor-pointer ${
                         currentPage === totalPages
                             ? 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed border border-transparent'
-                            : 'bg-orange-500 hover:bg-orange-600 text-white shadow-xs'
+                            : 'bg-orange-500 hover:bg-orange-600 text-white shadow-xs font-bold'
                     }`}
                 >
                     <span>Next</span>
@@ -141,14 +187,14 @@ const PlaylistProgress = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto space-y-4">
+        <div className="max-w-[1400px] mx-auto">
             {/* ── YOUTUBE-STYLE DESKTOP 2-COLUMN LAYOUT ── */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
                 {/* ══════════════════════════════════════════════
                     LEFT COLUMN: Dedicated YouTube Playlist Hero Card
                    ══════════════════════════════════════════════ */}
-                <div className="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-20 space-y-4">
+                <div className="lg:col-span-5 xl:col-span-4 space-y-4">
                     <motion.div
                         initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
