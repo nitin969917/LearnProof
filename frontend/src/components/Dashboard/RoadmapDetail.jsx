@@ -483,7 +483,7 @@ const RoadmapDetail = () => {
                         </div>
 
                         {/* Scrollable Day-by-Day Schedule List */}
-                        <div className="flex-1 lg:overflow-y-auto space-y-4 pr-0 lg:pr-1 min-h-0">
+                        <div className="flex-1 lg:overflow-y-auto space-y-3 pr-0 lg:pr-1 min-h-0">
                             {schedule.map((dayPlan, dayIndex) => {
                                 const completedInDay = dayPlan.videos.filter(v => v.is_completed).length;
                                 const totalInDay = dayPlan.videos.length;
@@ -493,44 +493,44 @@ const RoadmapDetail = () => {
                                 return (
                                     <motion.div
                                         key={`day-${dayPlan.day}`}
-                                        initial={{ opacity: 0, y: 10 }}
+                                        initial={{ opacity: 0, y: 8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: dayIndex * 0.03 }}
-                                        className={`rounded-2xl border transition-all p-3.5 sm:p-4 space-y-3 ${
+                                        transition={{ delay: dayIndex * 0.02 }}
+                                        className={`rounded-2xl border transition-all p-2.5 sm:p-3 space-y-2 ${
                                             isDayDone
                                                 ? 'bg-[#F4FAF6] dark:bg-emerald-950/15 border-emerald-200 dark:border-emerald-900/40'
                                                 : 'bg-gray-50/60 dark:bg-gray-900/30 border-gray-100 dark:border-gray-800'
                                         }`}
                                     >
                                         {/* Day Banner Header */}
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center font-black text-[11px] sm:text-xs shrink-0 ${
                                                     isDayDone
-                                                        ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
-                                                        : 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
+                                                        ? 'bg-emerald-500 text-white shadow-xs'
+                                                        : 'bg-orange-500 text-white shadow-xs'
                                                 }`}>
-                                                    {isDayDone ? <CheckCircle size={16} /> : dayPlan.day}
+                                                    {isDayDone ? <CheckCircle size={14} /> : dayPlan.day}
                                                 </div>
-                                                <div>
+                                                <div className="flex items-center gap-2">
                                                     <h3 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white">
                                                         Day {dayPlan.day}
                                                     </h3>
-                                                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-400">
-                                                        {completedInDay} of {totalInDay} Lessons Completed
-                                                    </p>
+                                                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400">
+                                                        • {completedInDay} of {totalInDay} Lessons Done
+                                                    </span>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                <span className="px-2.5 py-1 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg text-[10px] font-black uppercase tracking-wider border border-gray-100 dark:border-gray-700 shadow-2xs">
-                                                    {formatDuration(dayPlan.totalDuration)}
+                                            {isDayDone && (
+                                                <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-black uppercase tracking-wider rounded-md">
+                                                    Completed
                                                 </span>
-                                            </div>
+                                            )}
                                         </div>
 
                                         {/* Micro Day Progress Bar */}
-                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-500 ${
                                                     isDayDone ? 'bg-emerald-500' : 'bg-orange-500'
@@ -539,9 +539,9 @@ const RoadmapDetail = () => {
                                             />
                                         </div>
 
-                                        {/* Day's Video List styled like YouTube rows */}
-                                        <div className="space-y-2 pt-1">
-                                            {dayPlan.videos.map((vid, vidIdx) => {
+                                        {/* Day's Video List - Compact Rows */}
+                                        <div className="space-y-1.5 pt-0.5">
+                                            {dayPlan.videos.map((vid) => {
                                                 const isVidCompleted = vid.is_completed;
                                                 const hasQuizPassed = vid.passed_quiz;
 
@@ -549,16 +549,16 @@ const RoadmapDetail = () => {
                                                     <div
                                                         key={vid.vid}
                                                         onClick={() => navigate(`/classroom/${vid.vid}`)}
-                                                        className={`group flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                                                        className={`group flex items-center justify-between gap-2 p-1.5 sm:p-2 rounded-xl border transition-all cursor-pointer select-none ${
                                                             isVidCompleted
                                                                 ? 'bg-white/80 dark:bg-gray-800/80 border-emerald-100 dark:border-emerald-900/30 hover:border-emerald-300'
                                                                 : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-xs'
                                                         }`}
                                                     >
                                                         {/* Thumbnail + Details */}
-                                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                                            {/* Thumbnail with overlay duration */}
-                                                            <div className="relative w-20 sm:w-24 aspect-video rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 shadow-2xs border border-black/5 dark:border-white/5">
+                                                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                            {/* Compact Thumbnail without time label */}
+                                                            <div className="relative w-14 sm:w-16 aspect-video rounded-md overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 border border-black/5 dark:border-white/5">
                                                                 <img
                                                                     src={`https://i.ytimg.com/vi/${vid.vid}/mqdefault.jpg`}
                                                                     alt={vid.name}
@@ -569,41 +569,36 @@ const RoadmapDetail = () => {
                                                                     }}
                                                                 />
                                                                 {isVidCompleted && (
-                                                                    <div className="absolute inset-0 bg-emerald-950/35 flex items-center justify-center">
-                                                                        <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
-                                                                            <CheckCircle size={12} />
+                                                                    <div className="absolute inset-0 bg-emerald-950/40 flex items-center justify-center">
+                                                                        <div className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+                                                                            <CheckCircle size={10} />
                                                                         </div>
-                                                                    </div>
-                                                                )}
-                                                                {vid.duration_seconds > 0 && (
-                                                                    <div className="absolute bottom-0.5 right-0.5 px-1 py-0.2 bg-black/80 text-white text-[8px] font-black rounded">
-                                                                        {formatDuration(vid.duration_seconds)}
                                                                     </div>
                                                                 )}
                                                             </div>
 
                                                             {/* Title and Meta */}
                                                             <div className="min-w-0 flex-1">
-                                                                <p className={`text-xs font-bold line-clamp-2 leading-snug transition-colors ${
+                                                                <p className={`text-[11px] sm:text-xs font-bold truncate transition-colors ${
                                                                     isVidCompleted
                                                                         ? 'text-gray-500 dark:text-gray-400'
                                                                         : 'text-gray-800 dark:text-gray-200 group-hover:text-orange-600 dark:group-hover:text-orange-400'
                                                                 }`}>
                                                                     {vid.name}
                                                                 </p>
-                                                                <div className="flex items-center gap-1.5 mt-1">
+                                                                <div className="flex items-center gap-1.5 mt-0.5">
                                                                     {isVidCompleted ? (
-                                                                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                                                                            <CheckCircle size={10} /> Done
+                                                                        <span className="text-[9px] sm:text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                                                                            <CheckCircle size={9} /> Done
                                                                         </span>
                                                                     ) : (
-                                                                        <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-400">
+                                                                        <span className="text-[9px] sm:text-[10px] font-semibold text-gray-400 dark:text-gray-400">
                                                                             Scheduled
                                                                         </span>
                                                                     )}
                                                                     {hasQuizPassed && (
                                                                         <span className="inline-flex items-center gap-0.5 px-1 py-0.2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[8px] font-black rounded">
-                                                                            <Trophy size={8} /> Quiz Passed
+                                                                            <Trophy size={8} /> Quiz
                                                                         </span>
                                                                     )}
                                                                 </div>
@@ -615,12 +610,12 @@ const RoadmapDetail = () => {
                                                             {isVidCompleted ? (
                                                                 <span className="text-[10px] font-bold text-emerald-600 hidden xs:inline">Review</span>
                                                             ) : (
-                                                                <div className="px-2 py-0.5 rounded-lg bg-orange-500 text-white text-[9px] font-black uppercase flex items-center gap-0.5 shadow-2xs">
+                                                                <div className="px-2 py-0.5 rounded-md bg-orange-500 text-white text-[9px] font-black uppercase flex items-center gap-0.5 shadow-2xs">
                                                                     <Play size={8} className="fill-white" />
                                                                     <span>Play</span>
                                                                 </div>
                                                             )}
-                                                            <ChevronRight size={14} className="text-gray-400 group-hover:translate-x-0.5 transition-transform" />
+                                                            <ChevronRight size={13} className="text-gray-400 group-hover:translate-x-0.5 transition-transform" />
                                                         </div>
                                                     </div>
                                                 );
