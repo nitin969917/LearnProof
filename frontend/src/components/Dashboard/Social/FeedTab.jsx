@@ -97,7 +97,14 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
           <div className="flex-1 text-sm text-gray-400 dark:text-gray-500 font-medium select-none truncate">
             What's on your mind?
           </div>
-          <div className="p-2 rounded-xl text-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors shrink-0">
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenCreatePost && onOpenCreatePost(true);
+            }}
+            className="p-2 rounded-xl text-green-500 hover:bg-green-50 dark:hover:bg-green-950/30 transition-colors shrink-0"
+            title="Add photo"
+          >
             <ImageIcon size={20} className="stroke-[1.75]" />
           </div>
         </div>

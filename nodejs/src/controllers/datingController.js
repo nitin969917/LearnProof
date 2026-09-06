@@ -462,6 +462,7 @@ const updateProfile = async (req, res) => {
       where: { id: userId },
       data: {
         name: data.name,
+        profilePicture: data.profilePicture !== undefined ? data.profilePicture : (data.avatar !== undefined ? data.avatar : undefined),
         bio: bioVal,
         collegeName: data.collegeName,
         department: data.department,

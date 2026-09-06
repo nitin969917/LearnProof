@@ -13,6 +13,7 @@ import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 import { motion } from 'framer-motion';
+import { compressImage } from '../../../utils/imageCompressor.js';
 
 export default function SocialDashboard() {
   const { user } = useAuth();
@@ -73,6 +74,7 @@ export default function SocialDashboard() {
   const [postCreatedTrigger, setPostCreatedTrigger] = useState(0);
   const [content, setContent] = useState('');
   const [loadingPost, setLoadingPost] = useState(false);
+  const [compressingImage, setCompressingImage] = useState(false);
   const [visibility, setVisibility] = useState('public');
   const [selectedImage, setSelectedImage] = useState(null);
   const [showDevBanner, setShowDevBanner] = useState(true);
@@ -202,14 +204,15 @@ export default function SocialDashboard() {
 
   const handlePost = async (e) => {
     e.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() && !selectedImage) return;
     setLoadingPost(true);
 
     try {
-      const response = await socialApi.post('/posts', { content, image: null, visibility });
+      const response = await socialApi.post('/posts', { content, image: selectedImage, visibility });
       addPostLocally(response.data);
       setContent('');
       setSelectedImage(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setVisibility('public');
       setPostCreatedTrigger(prev => prev + 1);
       setShowCreatePostModal(false);
@@ -221,20 +224,35 @@ export default function SocialDashboard() {
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      alert("Image size should be less than 10MB");
+    if (!file.type.startsWith('image/')) {
+      alert("Please select a valid image file");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setSelectedImage(reader.result);
-    };
-    reader.readAsDataURL(file);
+    setCompressingImage(true);
+    try {
+      // Compress post images maintaining high clarity at ~100-200KB max (1200x1200 max box, 0.86 quality)
+      const compressedBase64 = await compressImage(file, 1200, 1200, 0.86);
+      setSelectedImage(compressedBase64);
+    } catch (err) {
+      console.error('Failed to compress post image:', err);
+      alert('Failed to process image');
+    } finally {
+      setCompressingImage(false);
+    }
+  };
+
+  const openCreatePostModal = (withImagePicker = false) => {
+    setShowCreatePostModal(true);
+    if (withImagePicker) {
+      setTimeout(() => {
+        fileInputRef.current?.click();
+      }, 150);
+    }
   };
 
   const viewUserProfile = (userId) => {
@@ -372,7 +390,7 @@ export default function SocialDashboard() {
                 onViewProfile={viewUserProfile} 
                 onSelectChatUser={startDirectChat} 
                 postCreatedTrigger={postCreatedTrigger}
-                onOpenCreatePost={() => setShowCreatePostModal(true)}
+                onOpenCreatePost={openCreatePostModal}
               />
             </div>
             <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
@@ -445,10 +463,14 @@ export default function SocialDashboard() {
       {/* Create Post Modal Overlay */}
       {showCreatePostModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl relative p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl relative p-5 sm:p-6">
             <button 
               type="button"
-              onClick={() => setShowCreatePostModal(false)}
+              onClick={() => {
+                setShowCreatePostModal(false);
+                setSelectedImage(null);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }}
               className="absolute top-4 right-4 p-2 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition cursor-pointer"
             >
               <X size={18} />
@@ -462,16 +484,55 @@ export default function SocialDashboard() {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={4}
-                className="w-full bg-transparent text-gray-900 dark:text-white text-base md:text-lg outline-none resize-none border-b border-gray-100 dark:border-gray-700 pb-4 mb-4 focus:border-orange-500 transition-colors"
+                className="w-full bg-transparent text-gray-900 dark:text-white text-base outline-none resize-none border-b border-gray-100 dark:border-gray-700 pb-3 mb-3 focus:border-orange-500 transition-colors"
                 autoFocus
               />
+
+              {/* Selected Image Preview with Remove Button */}
+              {selectedImage && (
+                <div className="relative mb-4 rounded-2xl overflow-hidden border border-gray-200/80 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-center max-h-64">
+                  <img 
+                    src={selectedImage} 
+                    alt="Post preview" 
+                    className="w-full h-auto max-h-64 object-contain" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedImage(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-black text-white rounded-full transition shadow-md cursor-pointer"
+                    title="Remove image"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
               
               <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileChange} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={compressingImage}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-orange-50 hover:text-orange-600 dark:bg-gray-700 dark:hover:bg-gray-650 transition cursor-pointer"
+                  >
+                    <ImageIcon size={16} className="text-emerald-500" />
+                    <span>{compressingImage ? 'Processing...' : selectedImage ? 'Change Photo' : 'Photo'}</span>
+                  </button>
+
                   <select 
                     value={visibility}
                     onChange={(e) => setVisibility(e.target.value)}
-                    className="bg-transparent border-none text-gray-500 dark:text-gray-400 font-semibold text-xs md:text-sm cursor-pointer outline-none focus:text-orange-500"
+                    className="bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-2 text-gray-600 dark:text-gray-300 font-bold text-xs cursor-pointer outline-none focus:border-orange-500"
                   >
                     <option value="public" className="bg-white dark:bg-gray-800">🌐 Public</option>
                     <option value="friends" className="bg-white dark:bg-gray-800">👥 Friends</option>
@@ -482,18 +543,22 @@ export default function SocialDashboard() {
                 <div className="flex gap-2">
                   <button 
                     type="button"
-                    onClick={() => setShowCreatePostModal(false)}
-                    className="px-5 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold transition cursor-pointer"
+                    onClick={() => {
+                      setShowCreatePostModal(false);
+                      setSelectedImage(null);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold text-xs transition cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit" 
-                    disabled={loadingPost || !content.trim()}
-                    className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-orange-500 text-white font-bold flex items-center gap-2 transition shadow-md shadow-orange-500/20 cursor-pointer"
+                    disabled={loadingPost || (!content.trim() && !selectedImage) || compressingImage}
+                    className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-orange-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-md shadow-orange-500/20 cursor-pointer"
                   >
-                    <Send size={16} />
-                    <span>Post</span>
+                    <Send size={15} />
+                    <span>{loadingPost ? 'Posting...' : 'Post'}</span>
                   </button>
                 </div>
               </div>

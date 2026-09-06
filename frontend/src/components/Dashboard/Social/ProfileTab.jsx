@@ -16,6 +16,7 @@ import { useModal } from '../../../context/ModalContext.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 import { motion, AnimatePresence } from 'framer-motion';
+import { compressImage } from '../../../utils/imageCompressor.js';
 
 const VISIBILITY_OPTIONS = [
   { value: 'public', label: 'Public', icon: Globe, desc: 'Anyone can see' },
@@ -102,6 +103,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
   const fileInputRef = useRef(null);
   const coverInputRef = useRef(null);
+  const avatarInputRef = useRef(null);
+  const modalAvatarInputRef = useRef(null);
 
   const effectiveCurrentUserId = currentUserId || socialUser?.id || user?.id;
   const targetId = viewUserId ? parseInt(viewUserId, 10) : effectiveCurrentUserId;
@@ -177,6 +180,43 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     }
   };
 
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    const toastId = toast.loading('Compressing & updating profile photo...');
+    try {
+      // Compress avatar with high-quality preservation (~50-80KB, 600x600)
+      const compressedBase64 = await compressImage(file, 600, 600, 0.88);
+      
+      setProfile(prev => ({ ...prev, profilePicture: compressedBase64 }));
+      setFormData(prev => ({ ...prev, profilePicture: compressedBase64 }));
+
+      await socialApi.put('/users/profile', {
+        ...formData,
+        profilePicture: compressedBase64,
+      });
+
+      if (updateUser && isOwnProfile) {
+        updateUser({
+          picture: compressedBase64
+        });
+      }
+
+      toast.dismiss(toastId);
+      toast.success('Profile picture updated!');
+    } catch (err) {
+      console.error('Failed to update avatar:', err);
+      toast.dismiss(toastId);
+      toast.error('Failed to update profile picture');
+    }
+  };
+
   const handleSave = async (e) => {
     e?.preventDefault?.();
     const toastId = toast.loading('Saving profile...');
@@ -202,7 +242,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       }
 
       toast.dismiss(toastId);
-      toast.success('Profile and privacy updated successfully!');
+      toast.success('Profile updated successfully!');
     } catch (err) {
       console.error('Failed to update profile', err);
       toast.dismiss(toastId);
@@ -305,10 +345,12 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
   const postCount = posts.length || profile._count?.posts || 0;
   const friendCount = friendsList.length || profile._count?.friends || 0;
+  
+  // Clean headline & quote without fake predefined placeholders
   const headline = profile.department 
-    ? `${profile.department} ${profile.yearOfStudy ? `• ${profile.yearOfStudy}` : ''}`
-    : 'Learner • Always curious';
-  const quoteText = profile.bio || '“Learning today for a better tomorrow.”';
+    ? `${profile.department}${profile.yearOfStudy ? ` • ${profile.yearOfStudy}` : ''}`
+    : (profile.collegeName || '');
+  const quoteText = (profile.bio || '').trim();
 
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-28 font-sans">
@@ -357,48 +399,78 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         
         {/* ── LEFT COLUMN (Profile Card & Accordion Sections) ── */}
         <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4">
-          {/* Main User Card */}
+          {/* Main User Card with Top-Right Corner Pencil Button */}
           <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-sm flex flex-col items-center text-center relative">
-            {/* Avatar overlapping banner */}
-            <div className="relative -mt-14 sm:-mt-16 mb-3 select-none">
+            
+            {/* Top-Right Corner Edit Pencil Button (Only on own profile) */}
+            {isOwnProfile && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="absolute top-4 right-4 p-2 sm:p-2.5 rounded-2xl bg-orange-50 hover:bg-orange-100 dark:bg-gray-800 dark:hover:bg-gray-750 text-orange-600 dark:text-orange-400 border border-orange-200/80 dark:border-gray-700 shadow-2xs transition active:scale-95 cursor-pointer z-10"
+                title="Edit Profile"
+              >
+                <Edit3 size={16} />
+              </button>
+            )}
+
+            {/* Avatar overlapping banner with Photo Upload Support */}
+            <div className="relative -mt-14 sm:-mt-16 mb-3 select-none group">
               <UserAvatar
                 src={profile.profilePicture || profile.avatar}
                 name={profile.name}
-                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white dark:border-gray-850 shadow-lg text-4xl font-black"
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white dark:border-gray-850 shadow-lg text-4xl font-black object-cover"
                 textClassName="text-3xl sm:text-4xl font-extrabold"
               />
               {isOnline && (
                 <div
                   title="Online"
-                  className="absolute bottom-1 right-1 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 border-2 sm:border-3 border-white dark:border-gray-850 rounded-full shadow-xs"
+                  className="absolute bottom-1 right-1 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 border-2 sm:border-3 border-white dark:border-gray-850 rounded-full shadow-xs z-10"
                 />
+              )}
+
+              {/* Avatar Photo Upload Camera Trigger */}
+              {isOwnProfile && (
+                <>
+                  <input
+                    type="file"
+                    ref={avatarInputRef}
+                    onChange={handleAvatarChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => avatarInputRef.current?.click()}
+                    title="Change Profile Photo"
+                    className="absolute bottom-0 left-0 p-1.5 sm:p-2 bg-gray-900/80 hover:bg-orange-600 text-white rounded-full border-2 border-white dark:border-gray-850 shadow-md transition active:scale-95 cursor-pointer z-10"
+                  >
+                    <Camera size={13} />
+                  </button>
+                </>
               )}
             </div>
 
-            {/* Name & Headline */}
+            {/* Name */}
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
               {profile.name}
             </h2>
-            <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 mt-0.5">
-              {headline}
-            </p>
 
-            {/* Bio / Quote Statement */}
-            <p className="text-xs text-gray-600 dark:text-gray-300 font-medium italic mt-2.5 px-3 leading-relaxed">
-              {quoteText}
-            </p>
+            {/* Headline - only rendered when user actually has info */}
+            {headline ? (
+              <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 mt-0.5">
+                {headline}
+              </p>
+            ) : null}
 
-            {/* Action Buttons: Edit Profile or Connect/Message */}
-            <div className="w-full mt-4 pt-4 border-t border-gray-100 dark:border-gray-750">
-              {isOwnProfile ? (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs sm:text-sm shadow-md shadow-orange-500/20 active:scale-98 transition cursor-pointer"
-                >
-                  <Edit3 size={15} />
-                  <span>Edit Profile</span>
-                </button>
-              ) : (
+            {/* Bio / Quote - only rendered when user actually entered a bio */}
+            {quoteText ? (
+              <p className="text-xs text-gray-600 dark:text-gray-300 font-medium italic mt-2.5 px-3 leading-relaxed">
+                “{quoteText}”
+              </p>
+            ) : null}
+
+            {/* Action Buttons for other users' profiles */}
+            {!isOwnProfile && (
+              <div className="w-full mt-4 pt-4 border-t border-gray-100 dark:border-gray-750">
                 <div className="flex items-center gap-2 w-full">
                   <button
                     onClick={handleFriendAction}
@@ -428,8 +500,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     </button>
                   )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* ── Accordion Info Cards ── */}
@@ -850,12 +922,12 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                           <UserAvatar
                             src={friendUser.avatar || friendUser.profilePicture}
                             name={friendUser.name}
-                            className="w-10 h-10 rounded-full border border-orange-200 shrink-0"
+                            className="w-10 h-10 rounded-full border border-orange-200 shrink-0 object-cover"
                             textClassName="text-sm font-bold"
                           />
                           <div className="min-w-0 text-left">
                             <p className="font-extrabold text-xs text-gray-900 dark:text-white truncate">{friendUser.name}</p>
-                            <p className="text-[10px] text-gray-400 truncate">{friendUser.collegeName || 'Student'}</p>
+                            <p className="text-[10px] text-gray-400 truncate">{friendUser.collegeName || ''}</p>
                           </div>
                         </div>
                         <button
@@ -879,7 +951,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         </div>
       </div>
 
-      {/* ── Edit Profile Modal with Full Visibility Controls ── */}
+      {/* ── Edit Profile Modal with Full Visibility & Photo Upload Controls ── */}
       {isEditing && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 pb-24 sm:pb-6 overflow-y-auto">
           <div className="relative bg-white dark:bg-gray-850 rounded-3xl max-w-2xl w-full flex flex-col max-h-[85vh] sm:max-h-[90vh] shadow-2xl border border-orange-100 dark:border-gray-700 overflow-hidden my-auto">
@@ -899,6 +971,40 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
             {/* Scrollable Form Body */}
             <form id="edit-profile-form" onSubmit={handleSave} className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar text-left">
+              {/* Profile Photo Upload inside Edit Modal */}
+              <div className="p-4 bg-orange-50/40 dark:bg-gray-900 rounded-2xl border border-orange-100/70 dark:border-gray-700/80 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <UserAvatar
+                    src={formData.profilePicture || profile.profilePicture || profile.avatar}
+                    name={formData.name || profile.name}
+                    className="w-14 h-14 rounded-full border-2 border-orange-300 shadow-sm shrink-0 object-cover"
+                    textClassName="text-xl font-bold"
+                  />
+                  <div>
+                    <h5 className="text-xs font-black text-gray-900 dark:text-white">Profile Photo</h5>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">High-quality image compressed automatically</p>
+                  </div>
+                </div>
+
+                <div>
+                  <input
+                    type="file"
+                    ref={modalAvatarInputRef}
+                    onChange={handleAvatarChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => modalAvatarInputRef.current?.click()}
+                    className="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <Camera size={14} />
+                    <span>Upload Photo</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Basic Academic Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
