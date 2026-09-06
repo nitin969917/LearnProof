@@ -53,24 +53,63 @@ const DashboardHome = () => {
         }
     };
 
-    const handleShare = async () => {
-        const shareData = {
-            title: 'LearnProof AI',
-            text: 'Join me on LearnProof AI — the smartest way to learn from YouTube videos and study notes!',
-            url: window.location.origin,
+    const [referralCode, setReferralCode] = useState(user?.referralCode || "");
+
+    useEffect(() => {
+        const fetchReferralCode = async () => {
+            if (!token) return;
+            try {
+                const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/my-code`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.data?.success && res.data?.referralCode) {
+                    setReferralCode(res.data.referralCode);
+                }
+            } catch (err) {
+                console.debug('Failed to fetch referral code:', err);
+            }
         };
-        if (navigator.share) {
+        fetchReferralCode();
+    }, [token]);
+
+    const handleShare = async () => {
+        const origin = window.location.origin;
+        const shareUrl = referralCode ? `${origin}/?ref=${referralCode}` : origin;
+        const shareText = referralCode
+            ? `Hey! Join me on LearnProof AI to learn from any YouTube playlist with AI notes, quizzes, and live study rooms! Use my invite link: ${shareUrl}`
+            : `Join me on LearnProof AI — the smartest way to learn from YouTube videos and study notes! ${shareUrl}`;
+
+        const shareData = {
+            title: 'LearnProof AI - Master Any Subject',
+            text: shareText,
+            url: shareUrl,
+        };
+
+        if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
             try {
                 await navigator.share(shareData);
+                return;
             } catch (err) {
                 if (err.name !== 'AbortError') {
-                    navigator.clipboard.writeText(window.location.origin);
-                    toast.success('Link copied to clipboard!');
+                    navigator.clipboard.writeText(shareUrl);
+                    toast.success('Referral link copied to clipboard!');
                 }
+                return;
+            }
+        } else if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+                return;
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    navigator.clipboard.writeText(shareUrl);
+                    toast.success('Referral link copied to clipboard!');
+                }
+                return;
             }
         } else {
-            navigator.clipboard.writeText(window.location.origin);
-            toast.success('Link copied to clipboard!');
+            navigator.clipboard.writeText(shareUrl);
+            toast.success('Referral link copied to clipboard!');
         }
     };
 
@@ -465,7 +504,7 @@ const DashboardHome = () => {
                                 Share LearnProof AI
                             </h3>
                             <p className="text-[10px] sm:text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-0.5 line-clamp-1">
-                                Invite your friends and learn together.
+                                {referralCode ? `Code: ${referralCode} • Invite friends & learn together` : 'Invite your friends and learn together.'}
                             </p>
                         </div>
                     </div>
@@ -581,10 +620,12 @@ const DashboardHome = () => {
                 </div>
             </div>
 
-            {/* Right column (Desktop only, fixed width, flex-col layout) */}
-            <div className="hidden lg:flex lg:w-[310px] shrink-0 flex-col gap-4">
-                <ScreenTimeCard />
-                <DailyTasksCard />
+            {/* Right column on desktop / Bottom widgets on mobile (Screen time, daily tasks, calendar) */}
+            <div className="w-full lg:w-[310px] shrink-0 flex flex-col gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
+                    <ScreenTimeCard />
+                    <DailyTasksCard />
+                </div>
                 <CalendarCard />
             </div>
 
