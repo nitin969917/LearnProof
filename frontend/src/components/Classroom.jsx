@@ -243,6 +243,69 @@ const Classroom = () => {
     toast.success('Started a new conversation!');
   };
 
+  // Touch swipe handling for switching Classroom tabs on mobile
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const minSwipeDistance = 50;
+
+  const classroomTabs = useMemo(() => [
+    ...(playlist ? [{ id: 'playlist', label: 'Playlist', icon: PlayCircle, hideOnDesktop: true }] : []),
+    { id: 'overview', label: 'Overview', icon: BookOpen },
+    { id: 'intuition', label: 'AI Notes', icon: Sparkles },
+    { id: 'ai-chat', label: 'Ask AI Chatbot', icon: Bot },
+    { id: 'quiz', label: 'AI Quiz', icon: CheckCircle },
+    { id: 'notes', label: 'Notes', icon: FileText },
+    { id: 'discussion', label: `Discussion (${comments.length})`, icon: MessageSquare },
+  ], [playlist, comments.length]);
+
+  const visibleClassroomTabs = useMemo(() => {
+    return classroomTabs.filter(t => !t.hideOnDesktop || (typeof window !== 'undefined' && window.innerWidth < 1024));
+  }, [classroomTabs]);
+
+  const handleTouchStart = (e) => {
+    setTouchEnd(null);
+    if (e.targetTouches?.[0]) {
+      setTouchStart({
+        x: e.targetTouches[0].clientX,
+        y: e.targetTouches[0].clientY
+      });
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.targetTouches?.[0]) {
+      setTouchEnd({
+        x: e.targetTouches[0].clientX,
+        y: e.targetTouches[0].clientY
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    if (Math.abs(distanceX) > Math.abs(distanceY) * 1.25 && Math.abs(distanceX) > minSwipeDistance) {
+      const idx = visibleClassroomTabs.findIndex(t => t.id === activeTab);
+      if (idx !== -1) {
+        if (distanceX > 0 && idx < visibleClassroomTabs.length - 1) {
+          // Swipe Left -> next tab
+          setActiveTab(visibleClassroomTabs[idx + 1].id);
+        } else if (distanceX < 0 && idx > 0) {
+          // Swipe Right -> previous tab
+          setActiveTab(visibleClassroomTabs[idx - 1].id);
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    const el = document.getElementById(`classroom-tab-${activeTab}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [activeTab]);
+
   const handleSendAiQuestion = async (customQuestion) => {
     const question = (customQuestion || aiChatInput).trim();
     if (!question || aiChatLoading || !video?.vid) return;
@@ -1120,32 +1183,30 @@ const Classroom = () => {
                 </span>
               </div>
 
-              {/* Premium Tabs */}
+              {/* Premium Tabs Switcher */}
               <div className="mt-4">
-                <div className="flex items-center bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl p-1.5 gap-1.5 border border-gray-200/70 dark:border-slate-700/60 overflow-x-auto scrollbar-none scroll-smooth snap-x snap-mandatory">
-                  {[
-                    { id: 'playlist', label: 'Playlist', icon: PlayCircle, hideOnDesktop: true },
-                    { id: 'overview', label: 'Overview', icon: BookOpen },
-                    { id: 'intuition', label: 'AI Notes', icon: Sparkles },
-                    { id: 'ai-chat', label: 'Ask AI Chatbot', icon: Bot },
-                    { id: 'quiz', label: 'AI Quiz', icon: CheckCircle },
-                    { id: 'notes', label: 'Notes', icon: FileText },
-                    { id: 'discussion', label: `Discussion (${comments.length})`, icon: MessageSquare },
-                  ].filter(t => {
-                    if (t.id === 'playlist' && !playlist) return false;
-                    return !t.hideOnDesktop || window.innerWidth < 1024;
-                  }).map(tab => {
+                <div className="flex items-center bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl p-1 sm:p-1.5 gap-1 border border-gray-200/70 dark:border-slate-700/60 overflow-x-auto scrollbar-none scroll-smooth">
+                  {visibleClassroomTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
                     return (
                       <button
                         key={tab.id}
+                        id={`classroom-tab-${tab.id}`}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative flex items-center justify-center gap-1.5 py-2 px-3 sm:px-3.5 rounded-xl text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider transition-all duration-200 shrink-0 snap-start cursor-pointer select-none active:scale-95 ${isActive
-                            ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/25 font-black'
-                            : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-slate-700/70 font-bold'
-                          }`}
+                        className={`relative flex items-center justify-center gap-1.5 py-2 px-3 sm:px-4 rounded-xl text-xs font-bold transition-all duration-200 shrink-0 select-none cursor-pointer z-10 ${
+                          isActive
+                            ? 'text-white font-extrabold'
+                            : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
+                        }`}
                       >
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeClassroomTabPill"
+                            className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl shadow-md shadow-orange-500/25 -z-10"
+                            transition={{ type: "spring", bounce: 0.15, duration: 0.45 }}
+                          />
+                        )}
                         <Icon size={15} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
                         <span className="whitespace-nowrap">{tab.label}</span>
                       </button>
@@ -1153,7 +1214,12 @@ const Classroom = () => {
                   })}
                 </div>
 
-                <div className="py-6">
+                <div 
+                  className="py-6 min-h-[350px] touch-pan-y"
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                >
                   {activeTab === 'playlist' && playlist && (() => {
                     const allVideos = playlist.videos || [];
                     const totalPages = Math.ceil(allVideos.length / ITEMS_PER_PAGE);
