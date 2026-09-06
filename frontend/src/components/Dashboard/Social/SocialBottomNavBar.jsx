@@ -88,7 +88,7 @@ export default function SocialBottomNavBar() {
                     {tab.id === 'profile' ? (
                       <div className="w-[22px] h-[22px] rounded-full overflow-hidden border border-gray-300 dark:border-gray-600 transition-all">
                         <UserAvatar 
-                          src={socialUser?.avatar} 
+                          src={socialUser?.profilePicture || socialUser?.avatar} 
                           name={socialUser?.name} 
                           className="w-full h-full rounded-full" 
                           textClassName="text-[10px] font-bold"

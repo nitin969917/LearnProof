@@ -488,42 +488,51 @@ const getProfile = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   const userId = req.user.id;
+  const userEmail = req.user.email;
   const data = req.body;
 
   try {
-    // Enforce 50-word limit on bio
-    let bioVal = data.bio || '';
-    const bioWords = bioVal.trim().split(/\s+/).filter(Boolean);
-    if (bioWords.length > 50) {
-      bioVal = bioWords.slice(0, 50).join(' ');
+    const updateData = {};
+
+    if (data.name !== undefined) updateData.name = data.name;
+
+    const pic = data.profilePicture !== undefined ? data.profilePicture : data.avatar;
+    if (pic !== undefined) {
+      updateData.profilePicture = pic;
     }
+
+    if (data.bio !== undefined) {
+      let bioVal = data.bio || '';
+      const bioWords = bioVal.trim().split(/\s+/).filter(Boolean);
+      if (bioWords.length > 50) {
+        bioVal = bioWords.slice(0, 50).join(' ');
+      }
+      updateData.bio = bioVal;
+    }
+
+    if (data.collegeName !== undefined) updateData.collegeName = data.collegeName;
+    if (data.department !== undefined) updateData.department = data.department;
+    if (data.yearOfStudy !== undefined) updateData.yearOfStudy = data.yearOfStudy;
+    if (data.phoneNumber !== undefined) updateData.phoneNumber = data.phoneNumber;
+    if (data.phoneVisibility !== undefined) updateData.phoneVisibility = data.phoneVisibility;
+    if (data.emailVisibility !== undefined) updateData.emailVisibility = data.emailVisibility;
+    if (data.whatsappNumber !== undefined) updateData.whatsappNumber = data.whatsappNumber;
+    if (data.whatsappVisibility !== undefined) updateData.whatsappVisibility = data.whatsappVisibility;
+    if (data.instagramHandle !== undefined) updateData.instagramHandle = data.instagramHandle;
+    if (data.instagramVisibility !== undefined) updateData.instagramVisibility = data.instagramVisibility;
+    if (data.facebookUrl !== undefined) updateData.facebookUrl = data.facebookUrl;
+    if (data.facebookVisibility !== undefined) updateData.facebookVisibility = data.facebookVisibility;
+    if (data.snapchatUsername !== undefined) updateData.snapchatUsername = data.snapchatUsername;
+    if (data.snapchatVisibility !== undefined) updateData.snapchatVisibility = data.snapchatVisibility;
+    if (data.linkedinUrl !== undefined) updateData.linkedinUrl = data.linkedinUrl;
+    if (data.linkedinVisibility !== undefined) updateData.linkedinVisibility = data.linkedinVisibility;
 
     const updatedUser = await datingPrisma.user.update({
       where: { id: userId },
-      data: {
-        name: data.name,
-        profilePicture: data.profilePicture !== undefined ? data.profilePicture : (data.avatar !== undefined ? data.avatar : undefined),
-        bio: bioVal,
-        collegeName: data.collegeName,
-        department: data.department,
-        yearOfStudy: data.yearOfStudy,
-        phoneNumber: data.phoneNumber,
-        phoneVisibility: data.phoneVisibility,
-        emailVisibility: data.emailVisibility,
-        whatsappNumber: data.whatsappNumber,
-        whatsappVisibility: data.whatsappVisibility,
-        instagramHandle: data.instagramHandle,
-        instagramVisibility: data.instagramVisibility,
-        facebookUrl: data.facebookUrl,
-        facebookVisibility: data.facebookVisibility,
-        snapchatUsername: data.snapchatUsername,
-        snapchatVisibility: data.snapchatVisibility,
-        linkedinUrl: data.linkedinUrl,
-        linkedinVisibility: data.linkedinVisibility,
-      },
+      data: updateData,
     });
 
-    await invalidateProfileCache(); // Clear cached profiles for this user
+    await invalidateProfileCache(userId, userEmail); // Clear cached profiles for this user
     res.json(updatedUser);
   } catch (error) {
     console.error(error);

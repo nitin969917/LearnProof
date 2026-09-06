@@ -377,7 +377,7 @@ export default function SocialDashboard() {
           }`}
         >
           <div className="w-6 h-6 rounded-full overflow-hidden border border-current">
-            <UserAvatar src={socialUser?.avatar} name={socialUser?.name} className="w-full h-full" textClassName="text-[9px]" />
+            <UserAvatar src={socialUser?.profilePicture || socialUser?.avatar || user?.picture} name={socialUser?.name || user?.name} className="w-full h-full" textClassName="text-[9px]" />
           </div>
           <span>My Profile</span>
         </button>

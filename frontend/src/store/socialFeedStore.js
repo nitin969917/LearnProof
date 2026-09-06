@@ -42,6 +42,20 @@ export const useSocialFeedStore = create((set, get) => ({
     set({ pendingFriendCount: 0 });
   },
 
+  updateSocialUser: (partialData) => {
+    set((state) => {
+      if (!state.socialUser) return {};
+      const updated = {
+        ...state.socialUser,
+        ...partialData
+      };
+      try {
+        localStorage.setItem('learnproof_social_user', JSON.stringify(updated));
+      } catch (e) {}
+      return { socialUser: updated };
+    });
+  },
+
   fetchSocialUser: async (force = false) => {
     if (get().socialUser && !force) return;
     set({ loadingSocialUser: true });

@@ -86,6 +86,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const navigate = useNavigate();
   const { confirm } = useModal();
   const socialUser = useSocialFeedStore((state) => state.socialUser);
+  const updateSocialUser = useSocialFeedStore((state) => state.updateSocialUser);
   const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
 
   const [profile, setProfile] = useState(null);
@@ -202,17 +203,30 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       // Compress avatar with high-quality preservation (~50-80KB, 600x600)
       const compressedBase64 = await compressImage(file, 600, 600, 0.88);
       
+      // Optimistically update local profile and form data
       setProfile(prev => ({ ...prev, profilePicture: compressedBase64 }));
       setFormData(prev => ({ ...prev, profilePicture: compressedBase64 }));
 
-      await socialApi.put('/users/profile', {
-        ...formData,
+      // Send ONLY profilePicture to backend without altering other fields
+      const response = await socialApi.put('/users/profile', {
         profilePicture: compressedBase64,
       });
 
+      const updatedPic = response.data?.profilePicture || compressedBase64;
+      setProfile(prev => ({ ...prev, profilePicture: updatedPic }));
+      setFormData(prev => ({ ...prev, profilePicture: updatedPic }));
+
+      if (updateSocialUser) {
+        updateSocialUser({
+          profilePicture: updatedPic,
+          avatar: updatedPic,
+        });
+      }
+
       if (updateUser && isOwnProfile) {
         updateUser({
-          picture: compressedBase64
+          picture: updatedPic,
+          profilePicture: updatedPic,
         });
       }
 
@@ -242,10 +256,14 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       });
       setIsEditing(false);
 
+      if (updateSocialUser) {
+        updateSocialUser(response.data);
+      }
+
       if (updateUser && isOwnProfile) {
         updateUser({
           name: response.data.name,
-          picture: response.data.avatar || response.data.profilePicture
+          picture: response.data.profilePicture || response.data.avatar
         });
       }
 

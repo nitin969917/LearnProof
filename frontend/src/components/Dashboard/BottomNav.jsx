@@ -95,7 +95,7 @@ const BottomNav = () => {
                                     {item.name === 'Profile' ? (
                                         <div className={`w-[22px] h-[22px] rounded-full overflow-hidden border transition-all ${isActive ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-gray-300 dark:border-gray-600'}`}>
                                             <UserAvatar 
-                                                src={socialUser?.avatar} 
+                                                src={socialUser?.profilePicture || socialUser?.avatar} 
                                                 name={socialUser?.name} 
                                                 className="w-full h-full rounded-full" 
                                                 textClassName="text-[10px] font-bold"
