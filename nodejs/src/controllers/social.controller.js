@@ -1,5 +1,5 @@
 const prisma = require('../lib/prisma');
-const { generateIntuition, translateText } = require('../services/ai.service');
+const { generateIntuition, translateText, answerVideoDoubt } = require('../services/ai.service');
 const cacheService = require('../services/cache.service');
 
 /**
@@ -257,6 +257,36 @@ const getIntuition = async (req, res) => {
     }
 };
 
+const askVideoDoubt = async (req, res) => {
+    const { videoId, question, chatHistory, language } = req.body;
+    if (!question || !question.trim()) {
+        return res.status(400).json({ error: 'Question is required' });
+    }
+
+    try {
+        const video = await prisma.video.findFirst({ where: { vid: videoId } });
+        const intuition = await prisma.videoIntuition.findUnique({ where: { vid: videoId } });
+
+        const answer = await answerVideoDoubt({
+            videoId,
+            title: video ? video.name : 'Educational Video',
+            description: video ? video.description : '',
+            intuition: intuition ? intuition.content : '',
+            question: question.trim(),
+            chatHistory: Array.isArray(chatHistory) ? chatHistory : [],
+            language: language || 'English'
+        });
+
+        res.status(200).json({
+            success: true,
+            answer
+        });
+    } catch (error) {
+        console.error('Error in askVideoDoubt:', error);
+        res.status(500).json({ error: error.message || 'Failed to answer doubt' });
+    }
+};
+
 module.exports = {
     getNote,
     saveNote,
@@ -264,4 +294,5 @@ module.exports = {
     postComment,
     deleteComment,
     getIntuition,
+    askVideoDoubt
 };

@@ -760,11 +760,67 @@ const benchmarkAllModels = async (title, description, url = null) => {
     return results;
 };
 
+/**
+ * Answer student doubt / questions regarding the video lecture in real-time
+ */
+const answerVideoDoubt = async ({ videoId, title, description, intuition, question, chatHistory = [], language = 'English' }) => {
+    const prompt = `
+You are an expert AI Professor and Teaching Assistant for LearnProof AI.
+A student is watching this educational lecture and asking a doubt or question about the concept.
+
+Video Title: "${title || 'Educational Lecture'}"
+Video Description: "${description || 'None'}"
+${intuition ? `\nLecture Core Notes & AI Intuition Summary:\n${intuition}\n` : ''}
+
+Student's Question: "${question}"
+
+Conversation Context so far:
+${chatHistory.map(m => `${m.role === 'user' ? 'Student' : 'AI Tutor'}: ${m.content}`).join('\n')}
+
+Guidelines:
+1. Provide a direct, crystal-clear, pedagogically sound, and engaging answer.
+2. Ground your explanation directly in the subject matter of the video.
+3. If relevant, provide intuitive analogies, step-by-step logic, code snippets (if programming related), or LaTeX mathematical formulas (inline $...$ or block $$...$$).
+4. Keep the tone encouraging, concise (around 150-250 words), structured with bold headings and bullet points where helpful.
+5. If the student asks in Hindi, Marathi, or another language, or if specified as ${language}, respond naturally in ${language}.
+`;
+
+    const chain = [
+        { type: 'gemini', model: MODELS.GEMINI_2_5 },
+        { type: 'cerebras' },
+        { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
+        { type: 'openrouter' }
+    ];
+
+    for (const provider of chain) {
+        try {
+            if (provider.type === 'gemini') {
+                const text = await generateGeminiContent(provider.model, prompt, {
+                    maxOutputTokens: 1500,
+                    temperature: 0.3
+                });
+                if (text && text.trim()) return text.trim();
+            } else if (provider.type === 'cerebras') {
+                const text = await callCerebras(prompt, false, 0.3);
+                if (text && text.trim()) return text.trim();
+            } else if (provider.type === 'groq') {
+                const text = await callGroq(prompt, false, provider.model, 0.3);
+                if (text && text.trim()) return text.trim();
+            }
+        } catch (err) {
+            console.warn(`[Video Doubt AI] ${provider.type} failed, falling back:`, err.message);
+        }
+    }
+
+    throw new Error('Unable to generate answer right now. Please try again.');
+};
+
 module.exports = {
     generateQuiz,
     generateIntuition,
     translateText,
     benchmarkAllModels,
     generateGeminiContent,
+    answerVideoDoubt,
     MODELS
 };

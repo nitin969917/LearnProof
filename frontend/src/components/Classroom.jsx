@@ -8,6 +8,7 @@ import {
   Play,
   ArrowLeft,
   CheckCircle,
+  Check,
   Clock,
   BookOpen,
   MessageSquare,
@@ -19,7 +20,9 @@ import {
   X,
   Reply,
   Trash2,
-  ChevronRight
+  ChevronRight,
+  Bot,
+  Copy
 } from "lucide-react";
 import { useModal } from "../context/ModalContext";
 import YouTube from 'react-youtube';
@@ -194,6 +197,66 @@ const Classroom = () => {
   // Playlist Pagination State
   const [playlistPage, setPlaylistPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
+
+  // AI Doubt Chatbot State (Inside AI Intuition Tab)
+  const [aiChatMessages, setAiChatMessages] = useState([]);
+  const [aiChatInput, setAiChatInput] = useState('');
+  const [aiChatLoading, setAiChatLoading] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState(null);
+
+  useEffect(() => {
+    // Reset AI chat when changing videos
+    setAiChatMessages([]);
+    setAiChatInput('');
+    setAiChatLoading(false);
+  }, [videoId]);
+
+  const handleSendAiQuestion = async (customQuestion) => {
+    const question = (customQuestion || aiChatInput).trim();
+    if (!question || aiChatLoading || !video?.vid) return;
+
+    const userMsg = { role: 'user', content: question, timestamp: new Date() };
+    setAiChatMessages(prev => [...prev, userMsg]);
+    setAiChatInput('');
+    setAiChatLoading(true);
+
+    try {
+      const token = localStorage.getItem('google_token');
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/video-ask-ai/`, {
+        videoId: video.vid,
+        question,
+        chatHistory: aiChatMessages.slice(-6).map(m => ({ role: m.role, content: m.content })),
+        language: selectedLanguage || 'English'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.data?.success && res.data.answer) {
+        const aiMsg = { role: 'assistant', content: res.data.answer, timestamp: new Date() };
+        setAiChatMessages(prev => [...prev, aiMsg]);
+      } else {
+        throw new Error('No answer received');
+      }
+    } catch (err) {
+      console.error('Error asking AI doubt:', err);
+      toast.error('Failed to get answer from AI. Please try again.');
+      setAiChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '⚠️ I encountered an issue connecting to the AI tutor. Please check your network and try asking again.',
+        isError: true,
+        timestamp: new Date()
+      }]);
+    } finally {
+      setAiChatLoading(false);
+    }
+  };
+
+  const handleCopyText = (text, idx) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(idx);
+    toast.success('Copied to clipboard!');
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
 
   const currentIdx = playlist?.videos && video ? playlist.videos.findIndex(v => v.vid === video.vid) : -1;
   const nextVideo = (playlist?.videos && currentIdx !== -1 && currentIdx < playlist.videos.length - 1)
@@ -1082,6 +1145,11 @@ const Classroom = () => {
                                     alt={v.name}
                                     className={`w-20 h-12 object-cover rounded-lg shadow-sm ${isActive ? 'ring-2 ring-orange-400' : ''}`}
                                   />
+                                  {(v.is_completed || (v.watch_progress || 0) >= 90) && !isActive && (
+                                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-slate-800 z-10" title="Completed">
+                                      <Check size={11} strokeWidth={3.5} />
+                                    </div>
+                                  )}
                                   <div className="absolute -bottom-1.5 -left-1.5 w-5 h-5 bg-gray-800 dark:bg-slate-700 text-white rounded-full flex items-center justify-center text-[9px] font-black shadow-sm">
                                     {absoluteIndex + 1}
                                   </div>
@@ -1142,76 +1210,230 @@ const Classroom = () => {
 
                   {/* Intuition Tab */}
                   {activeTab === 'intuition' && (
-                    <div className="prose max-w-none bg-indigo-50/50 dark:bg-indigo-900/20 p-4 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
-                      <div className="flex flex-row items-center justify-between gap-2 mb-3 pb-3 border-b border-indigo-200 dark:border-indigo-800">
-                        <div className="flex items-center gap-2">
-                          <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-md">
-                            <Sparkles className="text-indigo-600 dark:text-indigo-400" size={16} />
+                    <div className="space-y-6">
+                      {/* Top: AI Notes & Core Intuition */}
+                      <div className="prose max-w-none bg-indigo-50/50 dark:bg-indigo-900/20 p-4 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
+                        <div className="flex flex-row items-center justify-between gap-2 mb-3 pb-3 border-b border-indigo-200 dark:border-indigo-800">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-md">
+                              <Sparkles className="text-indigo-600 dark:text-indigo-400" size={16} />
+                            </div>
+                            <h3 className="text-base font-bold text-indigo-900 dark:text-indigo-100 m-0">AI Notes & Core Intuition</h3>
                           </div>
-                          <h3 className="text-base font-bold text-indigo-900 dark:text-indigo-100 m-0">AI Notes</h3>
-                        </div>
 
-                        {/* Language Picker Dropdown */}
-                        <div className="relative">
-                          <select
-                            disabled={loadingIntuition}
-                            onChange={(e) => fetchIntuition(e.target.value)}
-                            value={selectedLanguage}
-                            className="appearance-none px-3 py-1 pr-8 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/20 cursor-pointer shadow-sm transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
-                          >
-                            <option value="" disabled>Select Language</option>
-                            {INDIAN_LANGS.map((lang) => (
-                              <option key={lang} value={lang} className="text-gray-700 dark:text-slate-200">
-                                {lang}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
-                            <ChevronRight size={12} className="rotate-90" />
-                          </div>
-                        </div>
-                      </div>
-
-                      {loadingIntuition ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-indigo-400">
-                          <div className="relative mb-6">
-                            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
-                            <div className="absolute inset-0 flex items-center justify-center font-bold text-indigo-600 text-lg">
-                              {intuitionCountdown}
+                          {/* Language Picker Dropdown */}
+                          <div className="relative">
+                            <select
+                              disabled={loadingIntuition}
+                              onChange={(e) => fetchIntuition(e.target.value)}
+                              value={selectedLanguage}
+                              className="appearance-none px-3 py-1 pr-8 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/20 cursor-pointer shadow-sm transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
+                            >
+                              <option value="" disabled>Select Language</option>
+                              {INDIAN_LANGS.map((lang) => (
+                                <option key={lang} value={lang} className="text-gray-700 dark:text-slate-200">
+                                  {lang}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
+                              <ChevronRight size={12} className="rotate-90" />
                             </div>
                           </div>
-                          <p className="font-medium animate-pulse text-indigo-600 dark:text-indigo-400">Generating brilliant insights...</p>
-                          <p className="text-xs text-indigo-500/60 mt-2">Our AI is analyzing the video content for you</p>
                         </div>
-                      ) : (
-                        <div className="text-gray-800 dark:text-gray-300 leading-relaxed intuition-markdown">
-                          {intuitionContent
-                            ? <ReactMarkdown
-                              remarkPlugins={[remarkMath, remarkGfm]}
-                              rehypePlugins={[rehypeKatex]}
-                              components={{
-                                h3: ({ node, ...props }) => <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-300 mt-6 mb-3 break-words" {...props} />,
-                                strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
-                                ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
-                                pre: ({ node, ...props }) => <div className="overflow-x-auto my-4 p-4 rounded-xl bg-gray-900/5 dark:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/50 font-mono text-sm leading-relaxed"><pre className="whitespace-pre" {...props} /></div>,
-                                code: ({ node, inline, ...props }) => inline
-                                  ? <code className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-semibold text-sm break-all" {...props} />
-                                  : <code className="break-all" {...props} />,
-                                table: ({ node, ...props }) => <div className="overflow-x-auto my-6"><table className="w-full text-sm text-left border-collapse border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" {...props} /></div>,
-                                thead: ({ node, ...props }) => <thead className="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-900 dark:text-indigo-200 uppercase text-xs font-semibold" {...props} />,
-                                tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-gray-700/50" {...props} />,
-                                tr: ({ node, ...props }) => <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors" {...props} />,
-                                th: ({ node, ...props }) => <th className="px-4 py-3 border border-gray-200 dark:border-gray-700/50" {...props} />,
-                                td: ({ node, ...props }) => <td className="px-4 py-3 border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 break-words" {...props} />
-                              }}
+
+                        {loadingIntuition ? (
+                          <div className="flex flex-col items-center justify-center py-12 text-indigo-400">
+                            <div className="relative mb-6">
+                              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
+                              <div className="absolute inset-0 flex items-center justify-center font-bold text-indigo-600 text-lg">
+                                {intuitionCountdown}
+                              </div>
+                            </div>
+                            <p className="font-medium animate-pulse text-indigo-600 dark:text-indigo-400">Generating brilliant insights...</p>
+                            <p className="text-xs text-indigo-500/60 mt-2">Our AI is analyzing the video content for you</p>
+                          </div>
+                        ) : (
+                          <div className="text-gray-800 dark:text-gray-300 leading-relaxed intuition-markdown">
+                            {intuitionContent
+                              ? <ReactMarkdown
+                                remarkPlugins={[remarkMath, remarkGfm]}
+                                rehypePlugins={[rehypeKatex]}
+                                components={{
+                                  h3: ({ node, ...props }) => <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-300 mt-6 mb-3 break-words" {...props} />,
+                                  strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
+                                  ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                  li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                  p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
+                                  pre: ({ node, ...props }) => <div className="overflow-x-auto my-4 p-4 rounded-xl bg-gray-900/5 dark:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/50 font-mono text-sm leading-relaxed"><pre className="whitespace-pre" {...props} /></div>,
+                                  code: ({ node, inline, ...props }) => inline
+                                    ? <code className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-semibold text-sm break-all" {...props} />
+                                    : <code className="break-all" {...props} />,
+                                  table: ({ node, ...props }) => <div className="overflow-x-auto my-6"><table className="w-full text-sm text-left border-collapse border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" {...props} /></div>,
+                                  thead: ({ node, ...props }) => <thead className="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-900 dark:text-indigo-200 uppercase text-xs font-semibold" {...props} />,
+                                  tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-gray-700/50" {...props} />,
+                                  tr: ({ node, ...props }) => <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors" {...props} />,
+                                  th: ({ node, ...props }) => <th className="px-4 py-3 border border-gray-200 dark:border-gray-700/50" {...props} />,
+                                  td: ({ node, ...props }) => <td className="px-4 py-3 border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 break-words" {...props} />
+                                }}
+                              >
+                                {preprocessMarkdown(intuitionContent)}
+                              </ReactMarkdown>
+                              : "No intuition could be generated for this video."}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Bottom: Interactive AI Doubt & Q&A Chatbot */}
+                      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 p-4 sm:p-6 shadow-sm">
+                        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-slate-800">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm">
+                              <Bot size={18} />
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5 m-0">
+                                <span>AI Doubt Solver & Lecture Q&A</span>
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                                  Live Tutor
+                                </span>
+                              </h4>
+                              <p className="text-xs text-gray-500 dark:text-slate-400 m-0 mt-0.5">
+                                Ask any doubt or question from this video for an instant, step-by-step academic explanation.
+                              </p>
+                            </div>
+                          </div>
+                          {aiChatMessages.length > 0 && (
+                            <button
+                              onClick={() => setAiChatMessages([])}
+                              className="text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
+                              title="Clear conversation"
                             >
-                              {preprocessMarkdown(intuitionContent)}
-                            </ReactMarkdown>
-                            : "No intuition could be generated for this video."}
+                              Clear Chat
+                            </button>
+                          )}
                         </div>
-                      )}
+
+                        {/* Quick Doubt Suggestion Prompts */}
+                        {aiChatMessages.length === 0 && (
+                          <div className="mb-4">
+                            <p className="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                              Suggested Questions:
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {[
+                                "Can you explain this in simpler words with an analogy?",
+                                "What are the most common exam questions from this topic?",
+                                "Give a real-world application or code example.",
+                                "Summarize the key mathematical formulas and definitions."
+                              ].map((promptText, pIdx) => (
+                                <button
+                                  key={pIdx}
+                                  onClick={() => handleSendAiQuestion(promptText)}
+                                  className="text-xs text-left px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 transition cursor-pointer font-medium active:scale-95"
+                                >
+                                  💬 {promptText}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Message Stream */}
+                        {aiChatMessages.length > 0 && (
+                          <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1 mb-4 custom-scrollbar">
+                            {aiChatMessages.map((msg, mIdx) => (
+                              <div
+                                key={mIdx}
+                                className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                              >
+                                {msg.role !== 'user' && (
+                                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                                    <Bot size={15} />
+                                  </div>
+                                )}
+                                <div
+                                  className={`max-w-[85%] rounded-2xl p-3.5 text-sm ${
+                                    msg.role === 'user'
+                                      ? 'bg-orange-500 text-white rounded-tr-xs shadow-sm font-medium'
+                                      : 'bg-gray-50 dark:bg-slate-800/80 text-gray-800 dark:text-slate-200 rounded-tl-xs border border-gray-100 dark:border-slate-700 shadow-xs'
+                                  }`}
+                                >
+                                  {msg.role === 'user' ? (
+                                    <p className="whitespace-pre-wrap leading-relaxed m-0">{msg.content}</p>
+                                  ) : (
+                                    <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed intuition-markdown">
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkMath, remarkGfm]}
+                                        rehypePlugins={[rehypeKatex]}
+                                        components={{
+                                          p: ({ node, ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
+                                          ul: ({ node, ...props }) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
+                                          li: ({ node, ...props }) => <li className="break-words" {...props} />,
+                                          code: ({ node, inline, ...props }) => inline
+                                            ? <code className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded font-mono text-xs font-semibold" {...props} />
+                                            : <pre className="p-3 my-2 rounded-xl bg-gray-900 text-white font-mono text-xs overflow-x-auto"><code {...props} /></pre>
+                                        }}
+                                      >
+                                        {preprocessMarkdown(msg.content)}
+                                      </ReactMarkdown>
+                                      <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50 flex items-center justify-end">
+                                        <button
+                                          onClick={() => handleCopyText(msg.content, mIdx)}
+                                          className="text-[10px] font-bold text-gray-400 hover:text-indigo-500 flex items-center gap-1 transition cursor-pointer"
+                                        >
+                                          {copiedIndex === mIdx ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                                          <span>{copiedIndex === mIdx ? 'Copied' : 'Copy answer'}</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+
+                            {aiChatLoading && (
+                              <div className="flex gap-3 items-center text-gray-400 dark:text-slate-400">
+                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                  <Bot size={15} />
+                                </div>
+                                <div className="bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-gray-100 dark:border-slate-700">
+                                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce"></div>
+                                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.2s]"></div>
+                                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.4s]"></div>
+                                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 ml-1">AI Tutor is thinking...</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Input Area */}
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSendAiQuestion();
+                          }}
+                          className="flex items-center gap-2 mt-2"
+                        >
+                          <input
+                            type="text"
+                            placeholder="Ask any doubt about this lecture..."
+                            value={aiChatInput}
+                            onChange={(e) => setAiChatInput(e.target.value)}
+                            disabled={aiChatLoading}
+                            className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!aiChatInput.trim() || aiChatLoading}
+                            className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer"
+                          >
+                            <span>Ask AI</span>
+                            <Send size={13} />
+                          </button>
+                        </form>
+                      </div>
                     </div>
                   )}
 
@@ -1744,9 +1966,9 @@ const Classroom = () => {
                               </div>
                             </div>
                           )}
-                          {v.is_completed && !isActive && (
-                            <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
-                              <CheckCircle size={10} className="text-white fill-white" />
+                          {(v.is_completed || (v.watch_progress || 0) >= 90) && !isActive && (
+                            <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-md border-2 border-white dark:border-slate-800 z-10" title="Completed">
+                              <Check size={11} strokeWidth={3.5} />
                             </div>
                           )}
                           <div className="absolute -bottom-1.5 -left-1.5 w-5 h-5 bg-gray-800 dark:bg-slate-700 text-white rounded-full flex items-center justify-center text-[9px] font-black shadow-sm">
