@@ -99,7 +99,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const [formData, setFormData] = useState({});
   const [expandedSection, setExpandedSection] = useState(null); // 'academics', 'contact', 'social', 'settings'
   const [activeTab, setActiveTab] = useState('posts'); // 'posts', 'likes', 'friends'
-  const [showAvatarLightbox, setShowAvatarLightbox] = useState(false);
+  const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const [coverUrl, setCoverUrl] = useState(() => localStorage.getItem('user_cover_image') || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80');
 
   const fileInputRef = useRef(null);
@@ -192,6 +192,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
     const toastId = toast.loading('Compressing & updating profile photo...');
     try {
+      // Compress avatar with high-quality preservation (~50-80KB, 600x600)
       const compressedBase64 = await compressImage(file, 600, 600, 0.88);
       
       setProfile(prev => ({ ...prev, profilePicture: compressedBase64 }));
@@ -346,6 +347,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const postCount = posts.length || profile._count?.posts || 0;
   const friendCount = friendsList.length || profile._count?.friends || 0;
   
+  // Clean headline & quote without fake predefined placeholders
   const headline = profile.department 
     ? `${profile.department}${profile.yearOfStudy ? ` • ${profile.yearOfStudy}` : ''}`
     : (profile.collegeName || '');
@@ -396,8 +398,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       {/* ── Main 2-Column Layout Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start -mt-16 sm:-mt-20 px-2 sm:px-4">
         
-        {/* ── LEFT COLUMN (Profile Card & Accordion Sections in 2x2 Grid) ── */}
-        <div className="lg:col-span-5 xl:col-span-5 flex flex-col gap-4">
+        {/* ── LEFT COLUMN (Profile Card & Accordion Sections) ── */}
+        <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4">
           {/* Main User Card with Top-Right Corner Pencil Button */}
           <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-sm flex flex-col items-center text-center relative">
             
@@ -412,29 +414,31 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               </button>
             )}
 
-            {/* Avatar overlapping banner with Preview & Photo Upload Support */}
-            <div 
-              onClick={() => setShowAvatarLightbox(true)}
-              title="Click to preview profile picture"
-              className="relative -mt-14 sm:-mt-16 mb-3 select-none group cursor-pointer"
-            >
-              <UserAvatar
-                src={profile.profilePicture || profile.avatar}
-                name={profile.name}
-                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white dark:border-gray-850 shadow-lg text-4xl font-black object-cover group-hover:scale-105 transition-transform duration-200"
-                textClassName="text-3xl sm:text-4xl font-extrabold"
-              />
+            {/* Avatar overlapping banner with Lightbox Preview and Photo Upload Support */}
+            <div className="relative -mt-14 sm:-mt-16 mb-3 select-none group">
+              <div
+                onClick={() => {
+                  if (profile.profilePicture || profile.avatar) {
+                    setShowAvatarPreview(true);
+                  }
+                }}
+                className="cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                title="Click to preview photo"
+              >
+                <UserAvatar
+                  src={profile.profilePicture || profile.avatar}
+                  name={profile.name}
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white dark:border-gray-850 shadow-lg text-4xl font-black object-cover"
+                  textClassName="text-3xl sm:text-4xl font-extrabold"
+                />
+              </div>
+
               {isOnline && (
                 <div
                   title="Online"
-                  className="absolute bottom-1 right-1 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 border-2 sm:border-3 border-white dark:border-gray-850 rounded-full shadow-xs z-10"
+                  className="absolute bottom-1 right-1 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 border-2 sm:border-3 border-white dark:border-gray-850 rounded-full shadow-xs z-10 pointer-events-none"
                 />
               )}
-
-              {/* Hover overlay hint */}
-              <div className="absolute inset-0 rounded-full bg-black/25 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white pointer-events-none">
-                <Eye size={20} className="drop-shadow-sm" />
-              </div>
 
               {/* Avatar Photo Upload Camera Trigger */}
               {isOwnProfile && (
@@ -447,13 +451,12 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     className="hidden"
                   />
                   <button
-                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       avatarInputRef.current?.click();
                     }}
                     title="Change Profile Photo"
-                    className="absolute bottom-0 left-0 p-1.5 sm:p-2 bg-gray-900/85 hover:bg-orange-600 text-white rounded-full border-2 border-white dark:border-gray-850 shadow-md transition active:scale-95 cursor-pointer z-10"
+                    className="absolute bottom-0 left-0 p-1.5 sm:p-2 bg-gray-900/80 hover:bg-orange-600 text-white rounded-full border-2 border-white dark:border-gray-850 shadow-md transition active:scale-95 cursor-pointer z-10"
                   >
                     <Camera size={13} />
                   </button>
@@ -466,14 +469,14 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               {profile.name}
             </h2>
 
-            {/* Headline */}
+            {/* Headline - only rendered when user actually has info */}
             {headline ? (
               <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 mt-0.5">
                 {headline}
               </p>
             ) : null}
 
-            {/* Bio / Quote */}
+            {/* Bio / Quote - only rendered when user actually entered a bio */}
             {quoteText ? (
               <p className="text-xs text-gray-600 dark:text-gray-300 font-medium italic mt-2.5 px-3 leading-relaxed">
                 “{quoteText}”
@@ -516,35 +519,38 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             )}
           </div>
 
-          {/* ── 2x2 Grid for Info / Settings Cards ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+          {/* ── 2x2 Grid on Mobile, Vertical Stack on Laptop/Desktop ── */}
+          <div className="grid grid-cols-2 lg:flex lg:flex-col gap-2.5 sm:gap-3">
             {/* Card 1: Academics */}
             <div
               onClick={() => setExpandedSection(expandedSection === 'academics' ? null : 'academics')}
-              className={`bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-3.5 shadow-2xs hover:shadow-xs transition cursor-pointer ${
-                expandedSection === 'academics' ? 'sm:col-span-2' : ''
-              }`}
+              className={`bg-white dark:bg-gray-850 rounded-2xl border transition cursor-pointer select-none ${
+                expandedSection === 'academics'
+                  ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
+                  : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
+              } p-3 sm:p-4 flex flex-col justify-between`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
-                    <GraduationCap size={19} />
+              <div className="flex items-start lg:items-center justify-between gap-2">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3.5 min-w-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
+                    <GraduationCap size={18} />
                   </div>
                   <div className="min-w-0 text-left">
                     <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white">Academics</h4>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">
-                      {profile.collegeName || 'Add your college, major and year'}
+                    <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                      {profile.collegeName || 'College, major & year'}
                     </p>
                   </div>
                 </div>
                 <ChevronRight
-                  size={16}
-                  className={`text-orange-500 transition-transform duration-300 shrink-0 ${
+                  size={15}
+                  className={`text-orange-500 transition-transform duration-300 shrink-0 mt-1 lg:mt-0 ${
                     expandedSection === 'academics' ? 'rotate-90' : ''
                   }`}
                 />
               </div>
 
+              {/* Desktop embedded accordion */}
               <AnimatePresence>
                 {expandedSection === 'academics' && (
                   <motion.div
@@ -552,7 +558,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="overflow-hidden pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-2 text-left"
+                    className="hidden lg:block overflow-hidden pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-2 text-left"
                   >
                     <div className="bg-orange-50/40 dark:bg-gray-900 p-3 rounded-xl border border-orange-100/60 dark:border-gray-800">
                       <span className="text-[10px] uppercase font-bold text-gray-400 block">College / University</span>
@@ -571,33 +577,36 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               </AnimatePresence>
             </div>
 
-            {/* Card 2: Contact with Visibility Indicators */}
+            {/* Card 2: Contact */}
             <div
               onClick={() => setExpandedSection(expandedSection === 'contact' ? null : 'contact')}
-              className={`bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-3.5 shadow-2xs hover:shadow-xs transition cursor-pointer ${
-                expandedSection === 'contact' ? 'sm:col-span-2' : ''
-              }`}
+              className={`bg-white dark:bg-gray-850 rounded-2xl border transition cursor-pointer select-none ${
+                expandedSection === 'contact'
+                  ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
+                  : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
+              } p-3 sm:p-4 flex flex-col justify-between`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
-                    <User size={19} />
+              <div className="flex items-start lg:items-center justify-between gap-2">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3.5 min-w-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
+                    <User size={18} />
                   </div>
                   <div className="min-w-0 text-left">
                     <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white">Contact</h4>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">
-                      {profile.phoneNumber || profile.email || 'Add your phone and email'}
+                    <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                      {profile.phoneNumber || profile.email || 'Phone & email'}
                     </p>
                   </div>
                 </div>
                 <ChevronRight
-                  size={16}
-                  className={`text-orange-500 transition-transform duration-300 shrink-0 ${
+                  size={15}
+                  className={`text-orange-500 transition-transform duration-300 shrink-0 mt-1 lg:mt-0 ${
                     expandedSection === 'contact' ? 'rotate-90' : ''
                   }`}
                 />
               </div>
 
+              {/* Desktop embedded accordion */}
               <AnimatePresence>
                 {expandedSection === 'contact' && (
                   <motion.div
@@ -605,9 +614,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="overflow-hidden pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-2.5 text-left"
+                    className="hidden lg:block overflow-hidden pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-2.5 text-left"
                   >
-                    {/* Phone Row */}
                     <div className="bg-orange-50/40 dark:bg-gray-900 p-3 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -625,7 +633,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       )}
                     </div>
 
-                    {/* Email Row */}
                     <div className="bg-orange-50/40 dark:bg-gray-900 p-3 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -647,33 +654,36 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               </AnimatePresence>
             </div>
 
-            {/* Card 3: Social Links with Visibility Indicators */}
+            {/* Card 3: Social Links */}
             <div
               onClick={() => setExpandedSection(expandedSection === 'social' ? null : 'social')}
-              className={`bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-3.5 shadow-2xs hover:shadow-xs transition cursor-pointer ${
-                expandedSection === 'social' ? 'sm:col-span-2' : ''
-              }`}
+              className={`bg-white dark:bg-gray-850 rounded-2xl border transition cursor-pointer select-none ${
+                expandedSection === 'social'
+                  ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
+                  : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
+              } p-3 sm:p-4 flex flex-col justify-between`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
-                    <Share2 size={19} />
+              <div className="flex items-start lg:items-center justify-between gap-2">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3.5 min-w-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
+                    <Share2 size={18} />
                   </div>
                   <div className="min-w-0 text-left">
                     <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white">Social Links</h4>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">
-                      Connect your social accounts
+                    <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                      Social media accounts
                     </p>
                   </div>
                 </div>
                 <ChevronRight
-                  size={16}
-                  className={`text-orange-500 transition-transform duration-300 shrink-0 ${
+                  size={15}
+                  className={`text-orange-500 transition-transform duration-300 shrink-0 mt-1 lg:mt-0 ${
                     expandedSection === 'social' ? 'rotate-90' : ''
                   }`}
                 />
               </div>
 
+              {/* Desktop embedded accordion */}
               <AnimatePresence>
                 {expandedSection === 'social' && (
                   <motion.div
@@ -681,7 +691,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="overflow-hidden pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-2 text-left"
+                    className="hidden lg:block overflow-hidden pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-2 text-left"
                   >
                     {[
                       { label: 'Instagram', val: profile.instagramHandle, vis: profile.instagramVisibility, icon: Instagram, color: 'text-pink-500' },
@@ -711,30 +721,33 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {isOwnProfile && (
               <div
                 onClick={() => setExpandedSection(expandedSection === 'settings' ? null : 'settings')}
-                className={`bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-3.5 shadow-2xs hover:shadow-xs transition cursor-pointer ${
-                  expandedSection === 'settings' ? 'sm:col-span-2' : ''
-                }`}
+                className={`bg-white dark:bg-gray-850 rounded-2xl border transition cursor-pointer select-none ${
+                  expandedSection === 'settings'
+                    ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
+                    : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
+                } p-3 sm:p-4 flex flex-col justify-between`}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
-                      <Settings size={19} />
+                <div className="flex items-start lg:items-center justify-between gap-2">
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3.5 min-w-0">
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
+                      <Settings size={18} />
                     </div>
                     <div className="min-w-0 text-left">
                       <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white">Account Settings</h4>
-                      <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">
+                      <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
                         Privacy & visibility
                       </p>
                     </div>
                   </div>
                   <ChevronRight
-                    size={16}
-                    className={`text-orange-500 transition-transform duration-300 shrink-0 ${
+                    size={15}
+                    className={`text-orange-500 transition-transform duration-300 shrink-0 mt-1 lg:mt-0 ${
                       expandedSection === 'settings' ? 'rotate-90' : ''
                     }`}
                   />
                 </div>
 
+                {/* Desktop embedded accordion */}
                 <AnimatePresence>
                   {expandedSection === 'settings' && (
                     <motion.div
@@ -742,13 +755,13 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="overflow-hidden pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-3 text-left"
+                      className="hidden lg:block overflow-hidden pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-3 text-left"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex items-center justify-between pb-1">
                         <div>
                           <h5 className="font-extrabold text-xs text-gray-900 dark:text-white">Quick Privacy & Visibility</h5>
-                          <p className="text-[10px] text-gray-400">Choose who can view your contact info</p>
+                          <p className="text-[10px] text-gray-400">Choose who can view your contact & social info</p>
                         </div>
                         <button
                           onClick={() => setIsEditing(true)}
@@ -779,6 +792,127 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               </div>
             )}
           </div>
+
+          {/* ── Mobile-Only Expanded Detail Panel (Renders cleanly below 2x2 grid) ── */}
+          <AnimatePresence>
+            {expandedSection && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                className="block lg:hidden bg-white dark:bg-gray-850 rounded-2xl border border-orange-200/90 dark:border-gray-750 p-4 shadow-sm text-left"
+              >
+                <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-2 mb-3">
+                  <h5 className="font-black text-xs uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                    {expandedSection === 'academics' && 'Academic Details'}
+                    {expandedSection === 'contact' && 'Contact Information'}
+                    {expandedSection === 'social' && 'Social Media Accounts'}
+                    {expandedSection === 'settings' && 'Privacy & Visibility'}
+                  </h5>
+                  <button
+                    onClick={() => setExpandedSection(null)}
+                    className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+
+                {expandedSection === 'academics' && (
+                  <div className="space-y-2">
+                    <div className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">College / University</span>
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">{profile.collegeName || 'Not Set'}</span>
+                    </div>
+                    <div className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Major / Branch</span>
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">{profile.department || 'Not Set'}</span>
+                    </div>
+                    <div className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800">
+                      <span className="text-[10px] uppercase font-bold text-gray-400 block">Year of Study</span>
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">{profile.yearOfStudy || 'Not Set'}</span>
+                    </div>
+                  </div>
+                )}
+
+                {expandedSection === 'contact' && (
+                  <div className="space-y-2">
+                    <div className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 block">Phone</span>
+                          {isOwnProfile && <VisibilityBadge visibility={profile.phoneVisibility} />}
+                        </div>
+                        <span className="text-xs font-bold text-gray-900 dark:text-white truncate block">
+                          {profile.phoneNumber || (isOwnProfile ? 'Not Set' : 'Private')}
+                        </span>
+                      </div>
+                      {profile.phoneNumber && (
+                        <a href={`tel:${profile.phoneNumber}`} className="p-1.5 bg-orange-500 text-white rounded-xl">
+                          <Phone size={12} />
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 block">Email</span>
+                          {isOwnProfile && <VisibilityBadge visibility={profile.emailVisibility} />}
+                        </div>
+                        <span className="text-xs font-bold text-gray-900 dark:text-white truncate block">
+                          {profile.email || (isOwnProfile ? 'Not Set' : 'Private')}
+                        </span>
+                      </div>
+                      {profile.email && (
+                        <a href={`mailto:${profile.email}`} className="p-1.5 bg-orange-500 text-white rounded-xl">
+                          <Mail size={12} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {expandedSection === 'social' && (
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Instagram', val: profile.instagramHandle, vis: profile.instagramVisibility, icon: Instagram, color: 'text-pink-500' },
+                      { label: 'LinkedIn', val: profile.linkedinUrl, vis: profile.linkedinVisibility, icon: Linkedin, color: 'text-blue-600' },
+                      { label: 'WhatsApp', val: profile.whatsappNumber, vis: profile.whatsappVisibility, icon: MessageSquare, color: 'text-emerald-500' },
+                      { label: 'Facebook', val: profile.facebookUrl, vis: profile.facebookVisibility, icon: Facebook, color: 'text-indigo-600' }
+                    ].map((s) => (
+                      <div key={s.label} className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between text-xs gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <s.icon size={14} className={s.color} />
+                          <span className="font-bold text-gray-700 dark:text-gray-200 truncate">{s.val || 'Not Connected'}</span>
+                        </div>
+                        {isOwnProfile && <VisibilityBadge visibility={s.vis} />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {expandedSection === 'settings' && isOwnProfile && (
+                  <div className="space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                    {[
+                      { key: 'phoneVisibility', label: 'Phone', current: profile.phoneVisibility || 'public' },
+                      { key: 'emailVisibility', label: 'Email', current: profile.emailVisibility || 'private' },
+                      { key: 'whatsappVisibility', label: 'WhatsApp', current: profile.whatsappVisibility || 'public' },
+                      { key: 'instagramVisibility', label: 'Instagram', current: profile.instagramVisibility || 'public' },
+                      { key: 'linkedinVisibility', label: 'LinkedIn', current: profile.linkedinVisibility || 'public' },
+                    ].map((item) => (
+                      <div key={item.key} className="bg-orange-50/40 dark:bg-gray-900 p-2 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{item.label}</span>
+                        <VisibilityPill
+                          value={item.current}
+                          onChange={(newVal) => handleQuickVisibilityChange(item.key, newVal)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* ── RIGHT COLUMN (Tab Navigation & Feed Stream) ── */}
@@ -1252,68 +1386,50 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           </div>
         </div>
       )}
-      {/* ── Profile Picture Lightbox Preview Modal ── */}
+
+      {/* ── Avatar Lightbox Preview Modal (Clean view without extra background) ── */}
       <AnimatePresence>
-        {showAvatarLightbox && (
-          <div 
-            className="fixed inset-0 bg-black/85 backdrop-blur-md z-[2000] flex items-center justify-center p-4 select-none"
-            onClick={() => setShowAvatarLightbox(false)}
+        {showAvatarPreview && (profile.profilePicture || profile.avatar) && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowAvatarPreview(false)}
+            className="fixed inset-0 z-[2000] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="relative max-w-sm sm:max-w-md w-full bg-white dark:bg-gray-850 rounded-3xl p-6 sm:p-7 shadow-2xl border border-gray-100 dark:border-gray-700 flex flex-col items-center text-center"
-              onClick={(e) => e.stopPropagation()}
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowAvatarPreview(false)}
+              className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer z-10"
+              title="Close"
             >
-              {/* Close Button */}
-              <button
-                type="button"
-                onClick={() => setShowAvatarLightbox(false)}
-                className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-750 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition cursor-pointer"
-                title="Close"
-              >
-                <X size={18} />
-              </button>
+              <X size={22} />
+            </button>
 
-              <div className="w-44 h-44 sm:w-56 sm:h-56 rounded-full overflow-hidden border-4 border-orange-500/30 shadow-xl mb-4 bg-gray-100 dark:bg-gray-800 flex items-center justify-center shrink-0">
-                <UserAvatar
-                  src={profile.profilePicture || profile.avatar}
-                  name={profile.name}
-                  className="w-full h-full object-cover"
-                  textClassName="text-6xl font-black"
-                />
+            {/* Profile Image View */}
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative flex flex-col items-center max-w-[90vw] max-h-[85vh] cursor-default"
+            >
+              <img
+                src={profile.profilePicture || profile.avatar}
+                alt={profile.name}
+                className="max-w-full max-h-[75vh] w-auto h-auto rounded-3xl object-contain shadow-2xl border border-white/15"
+              />
+              <div className="mt-3 text-center">
+                <h4 className="text-white font-black text-base drop-shadow-md">{profile.name}</h4>
+                {headline && <p className="text-gray-300 text-xs mt-0.5 drop-shadow">{headline}</p>}
               </div>
-
-              <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">
-                {profile.name}
-              </h3>
-              {headline && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {headline}
-                </p>
-              )}
-
-              {isOwnProfile && (
-                <div className="mt-5 w-full flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAvatarLightbox(false);
-                      avatarInputRef.current?.click();
-                    }}
-                    className="flex-1 py-2.5 px-4 bg-[#FF5722] hover:bg-[#F4511E] text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Camera size={14} />
-                    <span>Change Photo</span>
-                  </button>
-                </div>
-              )}
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
 }
+
