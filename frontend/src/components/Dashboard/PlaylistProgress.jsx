@@ -103,25 +103,45 @@ const PlaylistProgress = () => {
     const isFullyCompleted = totalVideos > 0 && completedVideos === totalVideos;
     const isNotStarted = completedVideos === 0;
 
-    return (
-        <div className="max-w-[1400px] mx-auto space-y-4">
-            {/* Top Navigation Bar */}
-            <div className="flex items-center justify-between">
+    const renderPagination = (isTop = false) => {
+        if (totalPages <= 1) return null;
+        return (
+            <div className={`flex items-center justify-between px-1 ${isTop ? 'pb-3 border-b' : 'pt-3 border-t'} border-gray-100 dark:border-gray-700/60 shrink-0`}>
                 <button
-                    onClick={() => navigate('/dashboard/library')}
-                    className="flex items-center gap-2 text-gray-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors font-bold text-xs uppercase tracking-wider cursor-pointer"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => p - 1)}
+                    className={`group flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-bold text-xs uppercase transition-all cursor-pointer ${
+                        currentPage === 1
+                            ? 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed border border-transparent'
+                            : 'bg-white dark:bg-gray-850 text-orange-500 border border-orange-200 dark:border-gray-700 hover:bg-orange-50/50 dark:hover:bg-gray-700 shadow-xs'
+                    }`}
                 >
-                    <ArrowLeft size={16} />
-                    <span>Back to Library</span>
+                    <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-0.5" />
+                    <span>Previous</span>
                 </button>
 
-                <div className="flex items-center gap-2">
-                    <span className="hidden sm:inline-flex text-xs font-bold text-gray-400 dark:text-gray-400">
-                        {completedVideos} of {totalVideos} Completed ({overallProgress}%)
-                    </span>
+                <div className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                    Page <span className="text-orange-600 dark:text-orange-400 font-black">{currentPage}</span> of {totalPages}
                 </div>
-            </div>
 
+                <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => p + 1)}
+                    className={`group flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-bold text-xs uppercase transition-all cursor-pointer ${
+                        currentPage === totalPages
+                            ? 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed border border-transparent'
+                            : 'bg-orange-500 hover:bg-orange-600 text-white shadow-xs'
+                    }`}
+                >
+                    <span>Next</span>
+                    <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+                </button>
+            </div>
+        );
+    };
+
+    return (
+        <div className="max-w-[1400px] mx-auto space-y-4">
             {/* ── YOUTUBE-STYLE DESKTOP 2-COLUMN LAYOUT ── */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 
@@ -287,12 +307,12 @@ const PlaylistProgress = () => {
                 </div>
 
                 {/* ══════════════════════════════════════════════
-                    RIGHT COLUMN: YouTube Playlist Video Lesson List
+                    RIGHT COLUMN: Fixed Height YouTube Playlist Lessons
                    ══════════════════════════════════════════════ */}
-                <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-4 sm:p-6 space-y-4">
+                <div className="lg:col-span-7 xl:col-span-8">
+                    <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-4 sm:p-5 flex flex-col lg:h-[calc(100vh-100px)] space-y-3">
                         {/* Section Header */}
-                        <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700/60">
+                        <div className="flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-orange-50 dark:bg-orange-950/40 text-orange-500 rounded-xl flex items-center justify-center shrink-0">
                                     <FileText size={20} className="stroke-[2.5]" />
@@ -311,8 +331,29 @@ const PlaylistProgress = () => {
                             </span>
                         </div>
 
-                        {/* YouTube Style Video Rows */}
-                        <div className="space-y-2.5">
+                        {/* Top Progress Bar on Right Side */}
+                        <div className="space-y-1.5 pb-3 border-b border-gray-100 dark:border-gray-700/60 shrink-0">
+                            <div className="flex justify-between items-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                                <span>Progress</span>
+                                <span className="text-orange-600 dark:text-orange-400 font-black">
+                                    {completedVideos} of {totalVideos} Completed ({overallProgress}%)
+                                </span>
+                            </div>
+                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${overallProgress}%` }}
+                                    transition={{ duration: 0.8, ease: "easeOut" }}
+                                    className="h-full bg-gradient-to-r from-orange-500 to-[#FF5100] rounded-full"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Top Pagination Controls */}
+                        {renderPagination(true)}
+
+                        {/* Scrollable YouTube Style Video Rows */}
+                        <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-0">
                             {paginatedVideos.map((video, index) => {
                                 const absoluteIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
                                 const isCompleted = video.is_completed;
@@ -414,40 +455,8 @@ const PlaylistProgress = () => {
                             })}
                         </div>
 
-                        {/* Pagination Controls */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-between px-2 pt-4 border-t border-gray-100 dark:border-gray-700/60">
-                                <button
-                                    disabled={currentPage === 1}
-                                    onClick={() => { setCurrentPage(p => p - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                    className={`group flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all cursor-pointer ${
-                                        currentPage === 1
-                                        ? 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-700 cursor-not-allowed'
-                                        : 'bg-white dark:bg-gray-800 text-orange-500 border border-orange-100 dark:border-gray-700 hover:shadow-md'
-                                    }`}
-                                >
-                                    <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
-                                    <span>Previous</span>
-                                </button>
-
-                                <div className="text-xs font-bold text-gray-500 dark:text-gray-400">
-                                    Page <span className="text-orange-600 font-black">{currentPage}</span> of {totalPages}
-                                </div>
-
-                                <button
-                                    disabled={currentPage === totalPages}
-                                    onClick={() => { setCurrentPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                                    className={`group flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all cursor-pointer ${
-                                        currentPage === totalPages
-                                        ? 'bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-700 cursor-not-allowed'
-                                        : 'bg-orange-500 text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/30'
-                                    }`}
-                                >
-                                    <span>Next</span>
-                                    <ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" />
-                                </button>
-                            </div>
-                        )}
+                        {/* Bottom Pagination Controls */}
+                        {renderPagination(false)}
                     </div>
                 </div>
 
