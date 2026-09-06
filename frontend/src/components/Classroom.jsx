@@ -211,6 +211,14 @@ const Classroom = () => {
   const [aiChatInput, setAiChatInput] = useState('');
   const [aiChatLoading, setAiChatLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  const aiChatBottomRef = useRef(null);
+
+  useEffect(() => {
+    // Auto-scroll to bottom of AI chat when new messages arrive or loading
+    if (activeTab === 'ai-chat') {
+      aiChatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [aiChatMessages, aiChatLoading, activeTab]);
 
   useEffect(() => {
     // Load persisted AI chat when changing videos
@@ -1441,8 +1449,8 @@ const Classroom = () => {
 
                   {/* Ask AI Chatbot Tab */}
                   {activeTab === 'ai-chat' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 p-4 sm:p-6 shadow-sm">
-                      <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-slate-800">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 p-4 sm:p-6 shadow-sm flex flex-col h-[560px] sm:h-[620px] max-h-[82vh] relative">
+                      <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-slate-800 shrink-0">
                         <div className="flex items-center gap-2.5">
                           <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm">
                             <Bot size={20} />
@@ -1475,7 +1483,7 @@ const Classroom = () => {
 
                       {/* Quick Doubt Suggestion Prompts */}
                       {aiChatMessages.length === 0 && (
-                        <div className="mb-6 p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-800/40">
+                        <div className="mb-4 p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-800/40 flex-1 flex flex-col justify-center">
                           <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                             <Sparkles size={13} />
                             <span>Quick Questions you can ask:</span>
@@ -1502,22 +1510,17 @@ const Classroom = () => {
 
                       {/* Message Stream */}
                       {aiChatMessages.length > 0 && (
-                        <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1 mb-4 custom-scrollbar">
+                        <div className="space-y-4 overflow-y-auto pr-1 mb-2 custom-scrollbar flex-1 min-h-0">
                           {aiChatMessages.map((msg, mIdx) => (
                             <div
                               key={mIdx}
-                              className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start w-full'}`}
                             >
-                              {msg.role !== 'user' && (
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-                                  <Bot size={15} />
-                                </div>
-                              )}
                               <div
-                                className={`max-w-[85%] rounded-2xl p-3.5 text-sm ${
+                                className={`rounded-2xl p-3.5 sm:p-4 text-sm ${
                                   msg.role === 'user'
-                                    ? 'bg-orange-500 text-white rounded-tr-xs shadow-sm font-medium'
-                                    : 'bg-gray-50 dark:bg-slate-800/80 text-gray-800 dark:text-slate-200 rounded-tl-xs border border-gray-100 dark:border-slate-700 shadow-xs'
+                                    ? 'max-w-[85%] bg-orange-500 text-white rounded-tr-xs shadow-sm font-medium'
+                                    : 'w-full bg-gray-50 dark:bg-slate-800/80 text-gray-800 dark:text-slate-200 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-xs'
                                 }`}
                               >
                                 {msg.role === 'user' ? (
@@ -1554,11 +1557,8 @@ const Classroom = () => {
                           ))}
 
                           {aiChatLoading && (
-                            <div className="flex gap-3 items-center text-gray-400 dark:text-slate-400">
-                              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                                <Bot size={15} />
-                              </div>
-                              <div className="bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-gray-100 dark:border-slate-700">
+                            <div className="flex justify-start w-full text-gray-400 dark:text-slate-400">
+                              <div className="bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-gray-100 dark:border-slate-700 shadow-xs">
                                 <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce"></div>
                                 <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.2s]"></div>
                                 <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.4s]"></div>
@@ -1566,34 +1566,37 @@ const Classroom = () => {
                               </div>
                             </div>
                           )}
+                          <div ref={aiChatBottomRef} />
                         </div>
                       )}
 
-                      {/* Input Area */}
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          handleSendAiQuestion();
-                        }}
-                        className="flex items-center gap-2 mt-2"
-                      >
-                        <input
-                          type="text"
-                          placeholder="Ask any doubt about this lecture..."
-                          value={aiChatInput}
-                          onChange={(e) => setAiChatInput(e.target.value)}
-                          disabled={aiChatLoading}
-                          className="flex-1 px-4 py-3 bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
-                        />
-                        <button
-                          type="submit"
-                          disabled={!aiChatInput.trim() || aiChatLoading}
-                          className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer"
+                      {/* Sticky Input Area */}
+                      <div className="sticky bottom-0 pt-3 mt-auto bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800/80 shrink-0 z-10">
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSendAiQuestion();
+                          }}
+                          className="flex items-center gap-2"
                         >
-                          <span>Ask AI</span>
-                          <Send size={13} />
-                        </button>
-                      </form>
+                          <input
+                            type="text"
+                            placeholder="Ask any doubt about this lecture..."
+                            value={aiChatInput}
+                            onChange={(e) => setAiChatInput(e.target.value)}
+                            disabled={aiChatLoading}
+                            className="flex-1 px-4 py-3 bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!aiChatInput.trim() || aiChatLoading}
+                            className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer"
+                          >
+                            <span>Ask AI</span>
+                            <Send size={13} />
+                          </button>
+                        </form>
+                      </div>
                     </div>
                   )}
 
