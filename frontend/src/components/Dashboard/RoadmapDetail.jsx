@@ -446,33 +446,33 @@ const RoadmapDetail = () => {
                     <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-3.5 sm:p-5 flex flex-col lg:h-[calc(100vh-100px)] space-y-3">
                         {/* Section Header */}
                         <div className="flex items-center justify-between shrink-0">
-                            <div className="flex items-center gap-2.5 sm:gap-3">
-                                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-50 dark:bg-orange-950/40 text-orange-500 rounded-xl flex items-center justify-center shrink-0">
-                                    <Clock size={18} className="stroke-[2.5]" />
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-50 dark:bg-orange-950/40 text-orange-500 rounded-xl flex items-center justify-center shrink-0">
+                                    <Clock size={16} className="sm:size-[18px] stroke-[2.5]" />
                                 </div>
                                 <div>
-                                    <h2 className="text-sm sm:text-lg font-black text-gray-900 dark:text-white">
+                                    <h2 className="text-xs sm:text-lg font-black text-gray-900 dark:text-white leading-tight">
                                         Daily Action Plan & Schedule
                                     </h2>
-                                    <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">
+                                    <p className="hidden sm:block text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">
                                         Follow your step-by-step daily schedule to complete on time.
                                     </p>
                                 </div>
                             </div>
-                            <span className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider shrink-0">
+                            <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-wider shrink-0">
                                 {playlist.duration_goal} Days Target
                             </span>
                         </div>
 
                         {/* Top Progress Bar */}
-                        <div className="space-y-1.5 pb-2.5 sm:pb-3 border-b border-gray-100 dark:border-gray-700/60 shrink-0">
-                            <div className="flex justify-between items-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                        <div className="space-y-1 sm:space-y-1.5 pb-2 sm:pb-3 border-b border-gray-100 dark:border-gray-700/60 shrink-0">
+                            <div className="flex justify-between items-center text-[11px] sm:text-xs font-bold text-gray-600 dark:text-gray-300">
                                 <span>Mastery Progress</span>
                                 <span className="text-orange-600 dark:text-orange-400 font-black">
-                                    {completedVideosCount} of {totalVideos} Completed ({percentComplete}%)
+                                    {completedVideosCount} of {totalVideos} ({percentComplete}%)
                                 </span>
                             </div>
-                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 sm:h-2 overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${percentComplete}%` }}
@@ -483,7 +483,7 @@ const RoadmapDetail = () => {
                         </div>
 
                         {/* Scrollable Day-by-Day Schedule List */}
-                        <div className="flex-1 lg:overflow-y-auto space-y-3 pr-0 lg:pr-1 min-h-0">
+                        <div className="flex-1 lg:overflow-y-auto space-y-2 sm:space-y-3 pr-0 lg:pr-1 min-h-0">
                             {schedule.map((dayPlan, dayIndex) => {
                                 const completedInDay = dayPlan.videos.filter(v => v.is_completed).length;
                                 const totalInDay = dayPlan.videos.length;
@@ -575,6 +575,17 @@ const RoadmapDetail = () => {
                                                                         </div>
                                                                     </div>
                                                                 )}
+                                                                {/* YouTube Timeline Progress Bar on Thumbnail */}
+                                                                {isVidCompleted ? (
+                                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />
+                                                                ) : typeof vid.watch_progress === 'number' && vid.watch_progress > 0 ? (
+                                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black/50 overflow-hidden">
+                                                                        <div
+                                                                            className="bg-orange-500 h-full rounded-r-full"
+                                                                            style={{ width: `${Math.min(100, Math.max(0, vid.watch_progress))}%` }}
+                                                                        />
+                                                                    </div>
+                                                                ) : null}
                                                             </div>
 
                                                             {/* Title and Meta */}

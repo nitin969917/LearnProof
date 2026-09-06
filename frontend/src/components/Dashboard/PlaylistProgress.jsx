@@ -359,33 +359,33 @@ const PlaylistProgress = () => {
                     <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-3.5 sm:p-5 flex flex-col lg:h-[calc(100vh-100px)] space-y-3">
                         {/* Section Header */}
                         <div className="flex items-center justify-between shrink-0">
-                            <div className="flex items-center gap-2.5 sm:gap-3">
-                                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-50 dark:bg-orange-950/40 text-orange-500 rounded-xl flex items-center justify-center shrink-0">
-                                    <FileText size={18} className="stroke-[2.5]" />
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-orange-50 dark:bg-orange-950/40 text-orange-500 rounded-xl flex items-center justify-center shrink-0">
+                                    <FileText size={16} className="sm:size-[18px] stroke-[2.5]" />
                                 </div>
                                 <div>
-                                    <h2 className="text-sm sm:text-lg font-black text-gray-900 dark:text-white">
+                                    <h2 className="text-xs sm:text-lg font-black text-gray-900 dark:text-white leading-tight">
                                         Course Lessons & Curriculum
                                     </h2>
-                                    <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">
+                                    <p className="hidden sm:block text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">
                                         Click any lesson to open interactive AI notes, video, and quizzes.
                                     </p>
                                 </div>
                             </div>
-                            <span className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider shrink-0">
+                            <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-wider shrink-0">
                                 {totalVideos} Lessons
                             </span>
                         </div>
 
                         {/* Top Progress Bar on Right Side */}
-                        <div className="space-y-1.5 pb-2.5 sm:pb-3 border-b border-gray-100 dark:border-gray-700/60 shrink-0">
-                            <div className="flex justify-between items-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                        <div className="space-y-1 sm:space-y-1.5 pb-2 sm:pb-3 border-b border-gray-100 dark:border-gray-700/60 shrink-0">
+                            <div className="flex justify-between items-center text-[11px] sm:text-xs font-bold text-gray-600 dark:text-gray-300">
                                 <span>Progress</span>
                                 <span className="text-orange-600 dark:text-orange-400 font-black">
-                                    {completedVideos} of {totalVideos} Completed ({overallProgress}%)
+                                    {completedVideos} of {totalVideos} ({overallProgress}%)
                                 </span>
                             </div>
-                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 sm:h-2 overflow-hidden">
                                 <motion.div
                                     initial={{ width: 0 }}
                                     animate={{ width: `${overallProgress}%` }}
@@ -395,11 +395,13 @@ const PlaylistProgress = () => {
                             </div>
                         </div>
 
-                        {/* Top Pagination Controls */}
-                        {renderPagination(true)}
+                        {/* Top Pagination Controls - Desktop Only (Hidden on Mobile to save space) */}
+                        <div className="hidden sm:block">
+                            {renderPagination(true)}
+                        </div>
 
                         {/* Scrollable YouTube Style Video Rows with Thumbnails */}
-                        <div className="flex-1 lg:overflow-y-auto space-y-2 sm:space-y-2.5 pr-0 lg:pr-1 min-h-0">
+                        <div className="flex-1 lg:overflow-y-auto space-y-1.5 sm:space-y-2.5 pr-0 lg:pr-1 min-h-0">
                             {paginatedVideos.map((video, index) => {
                                 const absoluteIndex = (currentPage - 1) * ITEMS_PER_PAGE + index;
                                 const isCompleted = video.is_completed;
@@ -413,7 +415,7 @@ const PlaylistProgress = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: index * 0.015 }}
                                         onClick={() => navigate(`/classroom/${video.vid}`)}
-                                        className={`group flex items-center justify-between gap-2.5 sm:gap-4 p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer select-none ${
+                                        className={`group flex items-center justify-between gap-2 sm:gap-4 p-1.5 sm:p-3 rounded-xl sm:rounded-2xl border transition-all cursor-pointer select-none ${
                                             isCompleted
                                                 ? 'bg-[#F4FAF6] dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/30 hover:border-emerald-300'
                                                 : isCurrent
@@ -422,9 +424,9 @@ const PlaylistProgress = () => {
                                         }`}
                                     >
                                         {/* Left Side: Real YouTube Video Thumbnail + Info */}
-                                        <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
-                                            {/* YouTube Video Thumbnail */}
-                                            <div className="relative w-24 sm:w-32 aspect-video rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 shadow-xs border border-black/5 dark:border-white/5">
+                                        <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 flex-1">
+                                            {/* YouTube Video Thumbnail with Timeline Progress Bar */}
+                                            <div className="relative w-20 xs:w-24 sm:w-32 aspect-video rounded-lg sm:rounded-xl overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 shadow-xs border border-black/5 dark:border-white/5">
                                                 <img
                                                     src={`https://i.ytimg.com/vi/${video.vid}/mqdefault.jpg`}
                                                     alt={video.name}
@@ -438,22 +440,34 @@ const PlaylistProgress = () => {
                                                 {/* Overlay badge for completed / current */}
                                                 {isCompleted ? (
                                                     <div className="absolute inset-0 bg-emerald-950/35 backdrop-blur-[0.5px] flex items-center justify-center">
-                                                        <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md">
-                                                            <Check size={13} className="stroke-[3]" />
+                                                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md">
+                                                            <Check size={11} className="sm:size-[13px] stroke-[3]" />
                                                         </div>
                                                     </div>
                                                 ) : isCurrent ? (
                                                     <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
-                                                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-md animate-pulse">
-                                                            <Play size={11} className="fill-white ml-0.5" />
+                                                        <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-md animate-pulse">
+                                                            <Play size={9} className="sm:size-[11px] fill-white ml-0.5" />
                                                         </div>
                                                     </div>
                                                 ) : null}
 
                                                 {/* Lesson Index Tag */}
-                                                <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/80 backdrop-blur-xs text-white text-[9px] font-black rounded-md leading-none">
+                                                <div className="absolute bottom-1 right-1 px-1 sm:px-1.5 py-0.2 sm:py-0.5 bg-black/80 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-black rounded sm:rounded-md leading-none z-10">
                                                     #{absoluteIndex + 1}
                                                 </div>
+
+                                                {/* YouTube Timeline Progress Bar on Thumbnail */}
+                                                {isCompleted ? (
+                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-emerald-500" />
+                                                ) : typeof video.watch_progress === 'number' && video.watch_progress > 0 ? (
+                                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 sm:h-1 bg-black/50 overflow-hidden">
+                                                        <div
+                                                            className="bg-orange-500 h-full rounded-r-full"
+                                                            style={{ width: `${Math.min(100, Math.max(0, video.watch_progress))}%` }}
+                                                        />
+                                                    </div>
+                                                ) : null}
                                             </div>
 
                                             {/* Video Title and Status Badges */}
