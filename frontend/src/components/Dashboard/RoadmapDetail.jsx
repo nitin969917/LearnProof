@@ -246,304 +246,393 @@ const RoadmapDetail = () => {
     const videosPerDay = Math.ceil(totalVideos / playlist.duration_goal);
 
     return (
-        <div className="max-w-[1200px] mx-auto space-y-6">
-            {/* Back Button (Desktop only - mobile uses TopBar subtabs) */}
-            <button
-                onClick={() => navigate('/dashboard/library')}
-                className="hidden lg:flex group items-center gap-2 text-gray-400 dark:text-slate-500 hover:text-orange-500 transition-all font-black text-xs uppercase tracking-widest cursor-pointer"
-            >
-                <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-                Back to Library
-            </button>
+        <div className="max-w-[1400px] mx-auto pb-6">
+            {/* ── YOUTUBE-STYLE 2-COLUMN LAYOUT ── */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
+                
+                {/* ══════════════════════════════════════════════
+                    LEFT COLUMN / HERO: YouTube Mastery Roadmap Hero Card
+                   ══════════════════════════════════════════════ */}
+                <div className="lg:col-span-5 xl:col-span-4 space-y-3.5 sm:space-y-4">
+                    <motion.div
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#FF5100] via-[#F04700] to-[#D83600] border border-orange-400/40 text-white shadow-xl shadow-orange-500/20 p-4 sm:p-6"
+                    >
+                        {/* Background subtle glow discs */}
+                        <div className="absolute -top-24 -right-24 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-black/20 rounded-full blur-3xl pointer-events-none" />
 
-            {/* ── 1. SIGNATURE ORANGE HERO CARD ── */}
-            <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-3xl sm:rounded-[2rem] bg-gradient-to-br from-[#FF5100] via-[#F04700] to-[#D83600] border border-orange-400/30 text-white shadow-xl shadow-orange-500/20 p-4 sm:p-6"
-            >
-                {/* Subtle soft lighting */}
-                <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-black/15 rounded-full blur-3xl pointer-events-none" />
+                        <div className="relative z-10 space-y-3.5 sm:space-y-4">
+                            {/* Prominent Playlist Video Thumbnail */}
+                            {playlist.thumbnail && (
+                                <div
+                                    onClick={() => playlist.videos?.find(v => !v.is_completed) && navigate(`/classroom/${playlist.videos.find(v => !v.is_completed).vid}`)}
+                                    className="relative group cursor-pointer w-full aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/30 transition-transform duration-300 hover:scale-[1.01]"
+                                >
+                                    <img
+                                        src={playlist.thumbnail}
+                                        alt={playlist.name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-black/25 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                        <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/95 text-[#FF5100] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                                            <Play size={20} className="fill-[#FF5100] ml-0.5 sm:size-6" />
+                                        </div>
+                                    </div>
+                                    <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 bg-black/75 backdrop-blur-sm rounded-md text-[10px] font-black text-white flex items-center gap-1 border border-white/20">
+                                        <Clock size={11} />
+                                        <span>{playlist.duration_goal} Days Target</span>
+                                    </div>
+                                </div>
+                            )}
 
-                <div className="relative z-10 space-y-3.5">
-                    {/* Header Row: Title & Badges + Big Prominent Thumbnail */}
-                    <div className="flex items-center justify-between gap-3 sm:gap-6">
-                        <div className="flex-1 min-w-0 space-y-1.5 sm:space-y-2">
-                            {/* Status Tag */}
-                            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-black/20 backdrop-blur-md text-white border border-white/20 font-black text-[9px] sm:text-[10px] uppercase tracking-wider rounded-lg shadow-xs">
-                                <Sparkles size={11} className="text-amber-200" /> ACTIVE MASTERY PLAN
-                            </div>
-
-                            {/* Main Title */}
-                            <h1 className="text-sm sm:text-xl lg:text-2xl font-black text-white leading-tight tracking-tight uppercase line-clamp-2 drop-shadow-sm">
-                                {playlist.name}
-                            </h1>
-
-                            {/* Tags row */}
-                            <div className="flex items-center flex-wrap gap-1.5 pt-0.5">
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-black/20 backdrop-blur-md rounded-lg text-[9px] sm:text-[10px] font-bold text-white/95 border border-white/15">
-                                    <Clock size={11} className="text-white" />
-                                    {playlist.duration_goal} DAYS TARGET
-                                </span>
-                                {totalVideos > 0 && (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-black/20 backdrop-blur-md rounded-lg text-[9px] sm:text-[10px] font-bold text-white/95 border border-white/15">
+                            {/* Playlist Meta Header */}
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-black/20 backdrop-blur-md text-white border border-white/20 font-black text-[10px] uppercase tracking-wider rounded-lg shadow-xs">
+                                        <Sparkles size={11} className="text-amber-200" />
+                                        ACTIVE ROADMAP
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-black/20 backdrop-blur-md rounded-lg text-[10px] font-bold text-white/95 border border-white/15">
                                         <BookOpen size={11} className="text-white" />
                                         {totalVideos} LESSONS
                                     </span>
-                                )}
-                            </div>
-                        </div>
+                                </div>
 
-                        {/* Large, High-Def Thumbnail Card */}
-                        {playlist.thumbnail && (
-                            <div 
-                                onClick={() => playlist.videos?.find(v => !v.is_completed) && navigate(`/classroom/${playlist.videos.find(v => !v.is_completed).vid}`)}
-                                className="relative group cursor-pointer w-40 sm:w-56 md:w-64 lg:w-72 aspect-video rounded-2xl overflow-hidden shadow-2xl border-2 border-white/30 shrink-0 transition-transform duration-200 hover:scale-[1.02] ring-2 ring-black/10"
-                            >
-                                <img
-                                    src={playlist.thumbnail}
-                                    alt={playlist.name}
-                                    className="w-full h-full object-cover"
-                                />
-                                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 transition-colors flex items-center justify-center">
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/95 text-[#FF5100] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
-                                        <Play size={16} className="sm:w-5 sm:h-5 fill-[#FF5100] ml-0.5" />
-                                    </div>
+                                <h1 className="text-base sm:text-xl font-black text-white leading-snug tracking-tight uppercase line-clamp-2 drop-shadow-sm">
+                                    {playlist.name}
+                                </h1>
+                            </div>
+
+                            {/* Overall Mastery Progress Bar */}
+                            <div className="space-y-1.5 pt-0.5">
+                                <div className="flex justify-between items-center text-xs font-bold text-white/90">
+                                    <span>Mastery Progress</span>
+                                    <span className="text-sm sm:text-base font-black text-white">{percentComplete}%</span>
+                                </div>
+                                <div className="w-full bg-black/25 rounded-full h-2 sm:h-2.5 backdrop-blur-sm overflow-hidden p-0.5">
+                                    <motion.div
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${percentComplete}%` }}
+                                        transition={{ duration: 0.8, ease: "easeOut" }}
+                                        className="h-full bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,0.9)]"
+                                    />
+                                </div>
+                                <div className="flex justify-between text-[10px] sm:text-[11px] font-semibold text-white/80 pt-0.5">
+                                    <span>{completedVideosCount} completed</span>
+                                    <span>~{videosPerDay} lessons/day</span>
                                 </div>
                             </div>
-                        )}
-                    </div>
 
-                    {/* Progress Bar Row */}
-                    <div className="pt-0.5">
-                        <div className="flex justify-between items-center text-[11px] sm:text-xs font-bold text-white/90 mb-1.5">
-                            <span>Mastery Progress</span>
-                            <span className="text-sm sm:text-base font-black text-white">{percentComplete}%</span>
-                        </div>
-                        <div className="w-full bg-black/20 rounded-full h-2 sm:h-2.5 backdrop-blur-sm overflow-hidden p-0.5">
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${percentComplete}%` }}
-                                transition={{ duration: 0.9, ease: "easeOut" }}
-                                className="h-full bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,0.9)]"
-                            />
-                        </div>
-                        <p className="text-[10px] sm:text-[11px] font-bold text-white/80 mt-1.5">
-                            Total {totalVideos} Lessons • {completedVideosCount} Completed • ~{videosPerDay} Lessons/Day Target
-                        </p>
-                    </div>
-
-                    {/* Compact, User-Friendly Action Buttons Row */}
-                    <div className="flex items-center flex-wrap gap-2 sm:gap-2.5 pt-0.5">
-                        {playlist.videos?.find(v => !v.is_completed) && (
-                            <button
-                                onClick={() => navigate(`/classroom/${playlist.videos.find(v => !v.is_completed).vid}`)}
-                                className="h-9 sm:h-10 px-4 sm:px-5 bg-white text-[#FF5100] hover:bg-orange-50 active:scale-95 shadow-sm hover:shadow-md rounded-full font-black text-xs inline-flex items-center justify-center gap-1.5 transition-all cursor-pointer whitespace-nowrap"
-                            >
-                                <Play size={13} className="fill-[#FF5100] shrink-0" />
-                                <span>Continue Roadmap</span>
-                            </button>
-                        )}
-
-                        <button
-                            onClick={() => setIsEditingGoal(!isEditingGoal)}
-                            className={`h-9 sm:h-10 px-4 sm:px-5 ${isEditingGoal ? 'bg-white text-[#FF5100]' : 'bg-black/20 hover:bg-black/35 text-white border border-white/25'} active:scale-95 rounded-full font-black text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer whitespace-nowrap`}
-                        >
-                            <Sparkles size={13} className={isEditingGoal ? 'text-[#FF5100] shrink-0' : 'text-amber-200 shrink-0'} />
-                            <span>{isEditingGoal ? "Cancel Edit" : "Recalculate Roadmap"}</span>
-                        </button>
-                    </div>
-
-                    {/* Inline Re-calculation Form */}
-                    <AnimatePresence>
-                        {isEditingGoal && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="pt-2 overflow-hidden"
-                            >
-                                <form onSubmit={handleUpdateGoal} className="flex items-center gap-3 bg-black/25 backdrop-blur-md p-2.5 sm:p-3 rounded-2xl border border-white/20 w-fit">
-                                    <div className="flex flex-col px-3">
-                                        <span className="text-[8px] font-black uppercase text-white/70 tracking-widest">New Target</span>
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="number"
-                                                autoFocus
-                                                className="w-16 bg-transparent border-none p-0 text-lg sm:text-xl font-black text-white outline-none placeholder:text-white/30"
-                                                placeholder="Days"
-                                                value={roadmapDaysInput}
-                                                onChange={(e) => setRoadmapDaysInput(e.target.value)}
-                                            />
-                                            <span className="text-xs font-black text-white/60 uppercase">Days</span>
-                                        </div>
-                                    </div>
+                            {/* Primary Action Buttons */}
+                            <div className="space-y-2 pt-1">
+                                {playlist.videos?.find(v => !v.is_completed) && (
                                     <button
-                                        type="submit"
-                                        disabled={settingGoal}
-                                        className="px-5 py-2.5 bg-white text-[#FF5100] rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
+                                        onClick={() => navigate(`/classroom/${playlist.videos.find(v => !v.is_completed).vid}`)}
+                                        className="w-full h-10 sm:h-11 px-4 sm:px-5 bg-white text-[#FF5100] hover:bg-orange-50 active:scale-[0.98] shadow-md hover:shadow-lg rounded-xl font-black text-xs sm:text-sm inline-flex items-center justify-center gap-2 transition-all cursor-pointer"
                                     >
-                                        {settingGoal ? <Sparkles size={14} className="animate-spin" /> : "Apply Changes"}
+                                        <Play size={15} className="fill-[#FF5100]" />
+                                        <span>Continue Roadmap</span>
                                     </button>
-                                </form>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-            </motion.div>
+                                )}
 
-            {/* ── 2. FOUR METRICS STATS CARD ── */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-sm border border-gray-100 dark:border-gray-700/60 grid grid-cols-4 divide-x divide-gray-100 dark:divide-gray-700/60">
-                {/* 1. Target Days */}
-                <div className="flex flex-col items-center text-center px-1 sm:px-3">
-                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center mb-1.5 sm:mb-2 shadow-sm">
-                        <Clock size={16} className="sm:w-5 sm:h-5 stroke-[2.5]" />
-                    </div>
-                    <span className="text-base sm:text-2xl font-black text-gray-900 dark:text-white leading-tight">
-                        {playlist.duration_goal}
-                    </span>
-                    <span className="text-[8px] sm:text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider mt-0.5">
-                        TARGET DAYS
-                    </span>
-                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => navigate(`/dashboard/playlist/${pid}`)}
+                                        className="h-9 sm:h-10 px-3 bg-black/20 hover:bg-black/35 text-white border border-white/20 active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer truncate"
+                                    >
+                                        <BookOpen size={13} className="text-white/80 shrink-0" />
+                                        <span className="truncate">Playlist View</span>
+                                    </button>
 
-                {/* 2. Total Lessons */}
-                <div className="flex flex-col items-center text-center px-1 sm:px-3">
-                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center mb-1.5 sm:mb-2 shadow-sm">
-                        <BookOpen size={16} className="sm:w-5 sm:h-5 stroke-[2.5]" />
-                    </div>
-                    <span className="text-base sm:text-2xl font-black text-gray-900 dark:text-white leading-tight">
-                        {totalVideos}
-                    </span>
-                    <span className="text-[8px] sm:text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider mt-0.5">
-                        TOTAL LESSONS
-                    </span>
-                </div>
+                                    <button
+                                        onClick={() => setIsEditingGoal(!isEditingGoal)}
+                                        className={`h-9 sm:h-10 px-3 ${isEditingGoal ? 'bg-white text-[#FF5100]' : 'bg-black/20 hover:bg-black/35 text-white border border-white/20'} active:scale-95 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1.5 backdrop-blur-md transition-all cursor-pointer truncate`}
+                                    >
+                                        <Sparkles size={13} className={isEditingGoal ? 'text-[#FF5100] shrink-0' : 'text-amber-200 shrink-0'} />
+                                        <span className="truncate">{isEditingGoal ? "Close" : "Adjust Goal"}</span>
+                                    </button>
+                                </div>
+                            </div>
 
-                {/* 3. Lessons / Day */}
-                <div className="flex flex-col items-center text-center px-1 sm:px-3">
-                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mb-1.5 sm:mb-2 shadow-sm">
-                        <BarChart2 size={16} className="sm:w-5 sm:h-5 stroke-[2.5]" />
-                    </div>
-                    <span className="text-base sm:text-2xl font-black text-orange-500 leading-tight">
-                        ~{videosPerDay}
-                    </span>
-                    <span className="text-[8px] sm:text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider mt-0.5">
-                        LESSONS / DAY
-                    </span>
-                </div>
-
-                {/* 4. Effort Level */}
-                <div className="flex flex-col items-center text-center px-1 sm:px-3">
-                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center mb-1.5 sm:mb-2 shadow-sm">
-                        <Trophy size={16} className="sm:w-5 sm:h-5 stroke-[2.5]" />
-                    </div>
-                    <span className="text-sm sm:text-xl font-black text-amber-500 leading-tight">
-                        {videosPerDay > 10 ? "Intense" : videosPerDay > 5 ? "Steady" : "Relaxed"}
-                    </span>
-                    <span className="text-[8px] sm:text-[10px] font-extrabold text-gray-400 dark:text-gray-400 uppercase tracking-wider mt-0.5">
-                        EFFORT LEVEL
-                    </span>
-                </div>
-            </div>
-
-            {/* Day by Day Schedule Grid */}
-                <div>
-                    <h2 className="text-xl font-black text-gray-800 dark:text-white mb-6 flex items-center gap-3">
-                        <div className="p-2 bg-orange-500/10 text-orange-500 rounded-xl">
-                            <Clock size={22} />
-                        </div>
-                        Daily Action Plan
-                        <span className="ml-auto text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
-                            {playlist.duration_goal} Days Scheduled
-                        </span>
-                    </h2>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {schedule.map((dayPlan, index) => {
-                            const dayCompleted = dayPlan.videos.every(v => v.is_completed);
-                            
-                            return (
-                                <motion.div 
-                                    key={`day-${dayPlan.day}`}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.05 }}
-                                    className={`bg-white dark:bg-gray-800 rounded-3xl p-5 border shadow-sm flex flex-col h-full ${
-                                        dayCompleted 
-                                        ? "border-green-500/30 dark:border-green-500/20 bg-green-50/30 dark:bg-green-900/5" 
-                                        : "border-gray-100 dark:border-gray-700 hover:border-orange-500/30 dark:hover:border-orange-500/30 transition-colors"
-                                    }`}
-                                >
-                                    {/* Day Header */}
-                                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-50 dark:border-gray-700">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${
-                                                dayCompleted ? "bg-green-500 text-white shadow-lg shadow-green-500/30" : "bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400"
-                                            }`}>
-                                                {dayCompleted ? <CheckCircle size={20} /> : dayPlan.day}
+                            {/* Inline Goal Editing Form */}
+                            <AnimatePresence>
+                                {isEditingGoal && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="pt-2 overflow-hidden"
+                                    >
+                                        <form onSubmit={handleUpdateGoal} className="flex items-center gap-2 bg-black/30 backdrop-blur-md p-2.5 rounded-2xl border border-white/20">
+                                            <div className="flex-1 min-w-0 px-2">
+                                                <span className="text-[9px] font-black uppercase text-white/70 tracking-wider block">Target Days</span>
+                                                <input
+                                                    type="number"
+                                                    autoFocus
+                                                    min="1"
+                                                    max="365"
+                                                    className="w-full bg-transparent border-none p-0 text-base font-black text-white outline-none placeholder:text-white/40"
+                                                    placeholder="e.g. 14"
+                                                    value={roadmapDaysInput}
+                                                    onChange={(e) => setRoadmapDaysInput(e.target.value)}
+                                                />
                                             </div>
-                                            <div>
-                                                <h3 className="text-sm font-bold text-gray-900 dark:text-white">Day {dayPlan.day}</h3>
-                                                <p className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">
-                                                    {dayPlan.videos.length} Lessons
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-inner">
-                                            <span className="text-[10px] font-black uppercase text-gray-600 dark:text-gray-300">
-                                                {formatDuration(dayPlan.totalDuration)}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Video List */}
-                                    <div className="space-y-2 flex-grow">
-                                        {dayPlan.videos.map((vid) => (
-                                            <div 
-                                                key={vid.vid}
-                                                onClick={() => navigate(`/classroom/${vid.vid}`)}
-                                                className="group flex flex-col p-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 rounded-2xl cursor-pointer transition-all border border-transparent hover:border-gray-200 dark:hover:border-gray-600 hover:shadow-md"
+                                            <button
+                                                type="submit"
+                                                disabled={settingGoal}
+                                                className="px-4 py-2 bg-white text-[#FF5100] rounded-xl font-black text-xs uppercase tracking-wider hover:bg-orange-50 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shadow-md shrink-0"
                                             >
-                                                <div className="flex gap-3">
-                                                    <div className="mt-1 flex-shrink-0">
-                                                        {vid.is_completed ? (
-                                                            <CheckCircle size={16} className="text-green-500" />
-                                                        ) : (
-                                                            <Play size={16} className="text-orange-500 opacity-100 sm:opacity-50 sm:group-hover:opacity-100 transition-opacity" />
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className={`text-sm font-semibold line-clamp-2 leading-snug ${
-                                                            vid.is_completed ? "text-gray-400 dark:text-gray-500 line-through decoration-gray-300 dark:decoration-gray-600" : "text-gray-800 dark:text-gray-200 group-hover:text-orange-500 transition-colors"
-                                                        }`}>
-                                                            {vid.name}
-                                                        </p>
-                                                        {vid.duration_seconds > 0 && (
-                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mt-1">
-                                                                {formatDuration(vid.duration_seconds)}
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                {settingGoal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Save"}
+                                            </button>
+                                        </form>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </motion.div>
+
+                    {/* 4 Quick Stat Metric Tiles */}
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100 dark:border-gray-700/60 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2.5 sm:gap-3">
+                        <div className="p-2.5 sm:p-3 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 flex items-center gap-2.5">
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-500 text-white flex items-center justify-center shrink-0">
+                                <Clock size={15} />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="text-base sm:text-lg font-black text-gray-900 dark:text-white leading-tight">{playlist.duration_goal}</div>
+                                <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate">Target Days</div>
+                            </div>
+                        </div>
+
+                        <div className="p-2.5 sm:p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 flex items-center gap-2.5">
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                                <BookOpen size={15} />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="text-base sm:text-lg font-black text-gray-900 dark:text-white leading-tight">{totalVideos}</div>
+                                <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate">Total Lessons</div>
+                            </div>
+                        </div>
+
+                        <div className="p-2.5 sm:p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 flex items-center gap-2.5">
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                <BarChart2 size={15} />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="text-base sm:text-lg font-black text-gray-900 dark:text-white leading-tight">~{videosPerDay}</div>
+                                <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate">Lessons / Day</div>
+                            </div>
+                        </div>
+
+                        <div className="p-2.5 sm:p-3 rounded-xl bg-orange-50/60 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 flex items-center gap-2.5">
+                            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-orange-500 text-white flex items-center justify-center shrink-0">
+                                <Trophy size={15} />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="text-base sm:text-lg font-black text-orange-600 dark:text-orange-400 leading-tight truncate">
+                                    {videosPerDay > 10 ? "Intense" : videosPerDay > 5 ? "Steady" : "Relaxed"}
+                                </div>
+                                <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate">Effort Level</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ══════════════════════════════════════════════
+                    RIGHT COLUMN: Daily Schedule & Curriculum List
+                   ══════════════════════════════════════════════ */}
+                <div className="lg:col-span-7 xl:col-span-8">
+                    <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-3.5 sm:p-5 flex flex-col lg:h-[calc(100vh-100px)] space-y-3">
+                        {/* Section Header */}
+                        <div className="flex items-center justify-between shrink-0">
+                            <div className="flex items-center gap-2.5 sm:gap-3">
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-50 dark:bg-orange-950/40 text-orange-500 rounded-xl flex items-center justify-center shrink-0">
+                                    <Clock size={18} className="stroke-[2.5]" />
+                                </div>
+                                <div>
+                                    <h2 className="text-sm sm:text-lg font-black text-gray-900 dark:text-white">
+                                        Daily Action Plan & Schedule
+                                    </h2>
+                                    <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">
+                                        Follow your step-by-step daily schedule to complete on time.
+                                    </p>
+                                </div>
+                            </div>
+                            <span className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider shrink-0">
+                                {playlist.duration_goal} Days Target
+                            </span>
+                        </div>
+
+                        {/* Top Progress Bar */}
+                        <div className="space-y-1.5 pb-2.5 sm:pb-3 border-b border-gray-100 dark:border-gray-700/60 shrink-0">
+                            <div className="flex justify-between items-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                                <span>Mastery Progress</span>
+                                <span className="text-orange-600 dark:text-orange-400 font-black">
+                                    {completedVideosCount} of {totalVideos} Completed ({percentComplete}%)
+                                </span>
+                            </div>
+                            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${percentComplete}%` }}
+                                    transition={{ duration: 0.8, ease: "easeOut" }}
+                                    className="h-full bg-gradient-to-r from-orange-500 to-[#FF5100] rounded-full"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Scrollable Day-by-Day Schedule List */}
+                        <div className="flex-1 lg:overflow-y-auto space-y-4 pr-0 lg:pr-1 min-h-0">
+                            {schedule.map((dayPlan, dayIndex) => {
+                                const completedInDay = dayPlan.videos.filter(v => v.is_completed).length;
+                                const totalInDay = dayPlan.videos.length;
+                                const isDayDone = totalInDay > 0 && completedInDay === totalInDay;
+                                const dayProgressPercent = totalInDay > 0 ? Math.round((completedInDay / totalInDay) * 100) : 0;
+
+                                return (
+                                    <motion.div
+                                        key={`day-${dayPlan.day}`}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: dayIndex * 0.03 }}
+                                        className={`rounded-2xl border transition-all p-3.5 sm:p-4 space-y-3 ${
+                                            isDayDone
+                                                ? 'bg-[#F4FAF6] dark:bg-emerald-950/15 border-emerald-200 dark:border-emerald-900/40'
+                                                : 'bg-gray-50/60 dark:bg-gray-900/30 border-gray-100 dark:border-gray-800'
+                                        }`}
+                                    >
+                                        {/* Day Banner Header */}
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${
+                                                    isDayDone
+                                                        ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
+                                                        : 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
+                                                }`}>
+                                                    {isDayDone ? <CheckCircle size={16} /> : dayPlan.day}
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white">
+                                                        Day {dayPlan.day}
+                                                    </h3>
+                                                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-400">
+                                                        {completedInDay} of {totalInDay} Lessons Completed
+                                                    </p>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                    
-                                    {/* Day Progress visual */}
-                                    <div className="mt-4 pt-4">
-                                        <div className="w-full h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                            <div 
-                                                className="h-full bg-green-500 transition-all duration-500"
-                                                style={{ width: `${(dayPlan.videos.filter(v => v.is_completed).length / dayPlan.videos.length) * 100}%` }}
+
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <span className="px-2.5 py-1 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg text-[10px] font-black uppercase tracking-wider border border-gray-100 dark:border-gray-700 shadow-2xs">
+                                                    {formatDuration(dayPlan.totalDuration)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Micro Day Progress Bar */}
+                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full transition-all duration-500 ${
+                                                    isDayDone ? 'bg-emerald-500' : 'bg-orange-500'
+                                                }`}
+                                                style={{ width: `${dayProgressPercent}%` }}
                                             />
                                         </div>
-                                    </div>
-                                </motion.div>
-                            );
-                        })}
+
+                                        {/* Day's Video List styled like YouTube rows */}
+                                        <div className="space-y-2 pt-1">
+                                            {dayPlan.videos.map((vid, vidIdx) => {
+                                                const isVidCompleted = vid.is_completed;
+                                                const hasQuizPassed = vid.passed_quiz;
+
+                                                return (
+                                                    <div
+                                                        key={vid.vid}
+                                                        onClick={() => navigate(`/classroom/${vid.vid}`)}
+                                                        className={`group flex items-center justify-between gap-2.5 p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                                                            isVidCompleted
+                                                                ? 'bg-white/80 dark:bg-gray-800/80 border-emerald-100 dark:border-emerald-900/30 hover:border-emerald-300'
+                                                                : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-xs'
+                                                        }`}
+                                                    >
+                                                        {/* Thumbnail + Details */}
+                                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                            {/* Thumbnail with overlay duration */}
+                                                            <div className="relative w-20 sm:w-24 aspect-video rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0 shadow-2xs border border-black/5 dark:border-white/5">
+                                                                <img
+                                                                    src={`https://i.ytimg.com/vi/${vid.vid}/mqdefault.jpg`}
+                                                                    alt={vid.name}
+                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                                    loading="lazy"
+                                                                    onError={(e) => {
+                                                                        e.target.style.display = 'none';
+                                                                    }}
+                                                                />
+                                                                {isVidCompleted && (
+                                                                    <div className="absolute inset-0 bg-emerald-950/35 flex items-center justify-center">
+                                                                        <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-xs">
+                                                                            <CheckCircle size={12} />
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                {vid.duration_seconds > 0 && (
+                                                                    <div className="absolute bottom-0.5 right-0.5 px-1 py-0.2 bg-black/80 text-white text-[8px] font-black rounded">
+                                                                        {formatDuration(vid.duration_seconds)}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Title and Meta */}
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className={`text-xs font-bold line-clamp-2 leading-snug transition-colors ${
+                                                                    isVidCompleted
+                                                                        ? 'text-gray-500 dark:text-gray-400'
+                                                                        : 'text-gray-800 dark:text-gray-200 group-hover:text-orange-600 dark:group-hover:text-orange-400'
+                                                                }`}>
+                                                                    {vid.name}
+                                                                </p>
+                                                                <div className="flex items-center gap-1.5 mt-1">
+                                                                    {isVidCompleted ? (
+                                                                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                                                                            <CheckCircle size={10} /> Done
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-400">
+                                                                            Scheduled
+                                                                        </span>
+                                                                    )}
+                                                                    {hasQuizPassed && (
+                                                                        <span className="inline-flex items-center gap-0.5 px-1 py-0.2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[8px] font-black rounded">
+                                                                            <Trophy size={8} /> Quiz Passed
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Action Trigger */}
+                                                        <div className="flex items-center gap-1 shrink-0">
+                                                            {isVidCompleted ? (
+                                                                <span className="text-[10px] font-bold text-emerald-600 hidden xs:inline">Review</span>
+                                                            ) : (
+                                                                <div className="px-2 py-0.5 rounded-lg bg-orange-500 text-white text-[9px] font-black uppercase flex items-center gap-0.5 shadow-2xs">
+                                                                    <Play size={8} className="fill-white" />
+                                                                    <span>Play</span>
+                                                                </div>
+                                                            )}
+                                                            <ChevronRight size={14} className="text-gray-400 group-hover:translate-x-0.5 transition-transform" />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
                     </div>
+                </div>
+
             </div>
         </div>
     );
