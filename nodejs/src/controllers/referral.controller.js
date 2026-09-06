@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const cacheService = require('../services/cache.service');
 
 /**
  * Clean and normalize referral code format
@@ -170,6 +171,12 @@ const getMyReferralCode = async (req, res) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
+        const cacheKey = `referral:mycode:${userId}`;
+        const cached = await cacheService.get(cacheKey);
+        if (cached) {
+            return res.status(200).json(cached);
+        }
+
         let referral = await prisma.referralCode.findFirst({
             where: { referrerId: userId }
         });
@@ -218,7 +225,7 @@ const getMyReferralCode = async (req, res) => {
             }
         });
 
-        return res.status(200).json({
+        const responsePayload = {
             success: true,
             referralCode: referral.code,
             category: referral.category,
@@ -235,7 +242,11 @@ const getMyReferralCode = async (req, res) => {
                 profile_pic: a.referredUser.profile_pic,
                 joinedAt: a.createdAt
             }))
-        });
+        };
+
+        await cacheService.set(cacheKey, responsePayload, 600); // 10 mins cache
+
+        return res.status(200).json(responsePayload);
     } catch (error) {
         console.error('Error in getMyReferralCode:', error);
         return res.status(500).json({ error: 'Failed to retrieve personal referral code' });
@@ -300,6 +311,7 @@ const updateMyReferralCode = async (req, res) => {
                 }
             });
         }
+        await cacheService.del(`referral:mycode:${userId}`);
 
         return res.status(200).json({
             success: true,

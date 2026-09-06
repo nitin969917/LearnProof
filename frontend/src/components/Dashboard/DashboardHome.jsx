@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRef } from "react";
+import apiCache from "../../utils/apiCache";
 import CalendarCard from "./CalendarCard";
 import CompletedSection from "./CompletedSection";
 import ContinueWatching from "./ContinueWatching";
@@ -33,11 +34,15 @@ const DashboardHome = () => {
     const [isNewUser, setIsNewUser] = useState(false);
     const [hasCheckedStatus, setHasCheckedStatus] = useState(false);
 
-    const [playlists, setPlaylists] = useState([]);
-    const [videos, setVideos] = useState([]);
-    const [continueVideos, setContinueVideos] = useState([]);
-    const [loadingLearnings, setLoadingLearnings] = useState(true);
-    const [loadingContinue, setLoadingContinue] = useState(true);
+    const userKey = user?.id || user?.uid || 'me';
+    const cachedLearnings = token ? apiCache.get(`user:dashboard:learnings:${userKey}`) : null;
+    const cachedContinue = token ? apiCache.get(`user:dashboard:continue:${userKey}`) : null;
+
+    const [playlists, setPlaylists] = useState(cachedLearnings?.playlists || []);
+    const [videos, setVideos] = useState(cachedLearnings?.videos?.results || []);
+    const [continueVideos, setContinueVideos] = useState(cachedContinue?.videos || []);
+    const [loadingLearnings, setLoadingLearnings] = useState(!cachedLearnings);
+    const [loadingContinue, setLoadingContinue] = useState(!cachedContinue);
     const [fetchFailed, setFetchFailed] = useState(false);
 
     const playlistContainerRef = useRef(null);
@@ -56,21 +61,25 @@ const DashboardHome = () => {
     const [referralCode, setReferralCode] = useState(user?.referralCode || "");
 
     useEffect(() => {
-        const fetchReferralCode = async () => {
-            if (!token) return;
-            try {
+        if (!token) return;
+        apiCache.fetchSWR({
+            key: `user:referral:${userKey}`,
+            fetcher: async () => {
                 const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/my-code`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                if (res.data?.success && res.data?.referralCode) {
-                    setReferralCode(res.data.referralCode);
+                return res.data;
+            },
+            onSuccess: (data) => {
+                if (data?.success && data?.referralCode) {
+                    setReferralCode(data.referralCode);
                 }
-            } catch (err) {
+            },
+            onError: (err) => {
                 console.debug('Failed to fetch referral code:', err);
             }
-        };
-        fetchReferralCode();
-    }, [token]);
+        });
+    }, [token, userKey]);
 
     const handleShare = async () => {
         const origin = window.location.origin;
@@ -115,70 +124,64 @@ const DashboardHome = () => {
 
     useEffect(() => {
         let active = true;
+        const userKey = user?.id || user?.uid || 'me';
 
-        const fetchLearnings = async (retries = 2) => {
-            for (let i = 0; i <= retries; i++) {
-                try {
+        const fetchLearnings = async () => {
+            await apiCache.fetchSWR({
+                key: `user:dashboard:learnings:${userKey}`,
+                fetcher: async () => {
                     const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/my-learnings/`, {
                         idToken: token,
                         page: 1,
                         searchQuery: ""
                     });
+                    return res.data;
+                },
+                onSuccess: (data) => {
                     if (active) {
-                        setPlaylists(res.data?.playlists || []);
-                        setVideos(res.data?.videos?.results || []);
+                        setPlaylists(data?.playlists || []);
+                        setVideos(data?.videos?.results || []);
                         setFetchFailed(false);
+                        setLoadingLearnings(false);
                     }
-                    if (active) setLoadingLearnings(false);
-                    return; // Success, exit
-                } catch (err) {
-                    console.warn(`Dashboard learnings fetch attempt ${i + 1} failed:`, err);
-                    if (i === retries) {
-                        console.error("Dashboard learnings data fetch failed after retries", err);
-                        if (active) {
-                            setFetchFailed(true);
-                            setLoadingLearnings(false);
-                        }
-                    } else {
-                        // Wait 500ms before retrying
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                },
+                onError: (err) => {
+                    console.warn("Dashboard learnings fetch error:", err);
+                    if (active && !apiCache.get(`user:dashboard:learnings:${userKey}`)) {
+                        setFetchFailed(true);
+                        setLoadingLearnings(false);
                     }
                 }
-            }
+            });
         };
 
-        const fetchContinueWatching = async (retries = 2) => {
-            for (let i = 0; i <= retries; i++) {
-                try {
+        const fetchContinueWatching = async () => {
+            await apiCache.fetchSWR({
+                key: `user:dashboard:continue:${userKey}`,
+                fetcher: async () => {
                     const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/continue-watch/`, {
                         idToken: token
                     });
+                    return res.data;
+                },
+                onSuccess: (data) => {
                     if (active) {
-                        setContinueVideos(res.data?.videos || []);
+                        setContinueVideos(data?.videos || []);
                         setFetchFailed(false);
+                        setLoadingContinue(false);
                     }
-                    if (active) setLoadingContinue(false);
-                    return; // Success, exit
-                } catch (err) {
-                    console.warn(`Dashboard continue watch fetch attempt ${i + 1} failed:`, err);
-                    if (i === retries) {
-                        console.error("Dashboard continue watch fetch failed after retries", err);
-                        if (active) {
-                            setFetchFailed(true);
-                            setLoadingContinue(false);
-                        }
-                    } else {
-                        // Wait 500ms before retrying
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                },
+                onError: (err) => {
+                    console.warn("Dashboard continue watch fetch error:", err);
+                    if (active && !apiCache.get(`user:dashboard:continue:${userKey}`)) {
+                        setFetchFailed(true);
+                        setLoadingContinue(false);
                     }
                 }
-            }
+            });
         };
 
         if (token) {
-            setLoadingLearnings(true);
-            setLoadingContinue(true);
-            setFetchFailed(false);
             fetchLearnings();
             fetchContinueWatching();
         }
@@ -186,7 +189,7 @@ const DashboardHome = () => {
         return () => {
             active = false;
         };
-    }, [token]);
+    }, [token, userKey]);
 
     // Check if new user after both finished loading
     useEffect(() => {

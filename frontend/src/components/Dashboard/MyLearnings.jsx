@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Play, Library, Video, Search, Trash2, Plus, Clock, ChevronRight, Sparkles, BookOpen, ArrowLeft, CheckCircle, Compass } from 'lucide-react';
 import { useModal } from "../../context/ModalContext";
+import apiCache from "../../utils/apiCache";
 
 function useDebouncedValue(value, delay = 500) {
     const [debounced, setDebounced] = useState(value);
@@ -28,18 +29,22 @@ const MyLearnings = () => {
         localStorage.setItem("libraryActiveTab", activeTab);
     }, [activeTab]);
 
-    const [videos, setVideos] = useState([]);
-    const [playlists, setPlaylists] = useState([]);
-    const [videoPagination, setVideoPagination] = useState({});
     const [searchQuery, setSearchQuery] = useState("");
-    const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
+    const debouncedSearch = useDebouncedValue(searchQuery);
+
+    const cacheKey = `user:learnings:page:${page}:${debouncedSearch}`;
+    const cachedData = token ? apiCache.get(cacheKey) : null;
+
+    const [videos, setVideos] = useState(cachedData?.videos?.results || []);
+    const [playlists, setPlaylists] = useState(cachedData?.playlists || []);
+    const [videoPagination, setVideoPagination] = useState(cachedData?.videos || {});
+    const [loading, setLoading] = useState(!cachedData);
     const [roadmapDaysUpdate, setRoadmapDaysUpdate] = useState({});
     const [isSavingRoadmap, setIsSavingRoadmap] = useState({});
     const [expandedRoadmap, setExpandedRoadmap] = useState(null);
 
     const navigate = useNavigate();
-    const debouncedSearch = useDebouncedValue(searchQuery);
 
     useEffect(() => {
         if (!token) return;
@@ -50,29 +55,37 @@ const MyLearnings = () => {
         if (!token) return;
 
         const fetchLearnings = async () => {
-            setLoading(true);
-            try {
-                const res = await axios.post(
-                    `${import.meta.env.VITE_BACKEND_URL}/api/my-learnings/`,
-                    {
-                        idToken: token,
-                        page: page,
-                        searchQuery: debouncedSearch,
+            apiCache.fetchSWR({
+                key: cacheKey,
+                fetcher: async () => {
+                    const res = await axios.post(
+                        `${import.meta.env.VITE_BACKEND_URL}/api/my-learnings/`,
+                        {
+                            idToken: token,
+                            page: page,
+                            searchQuery: debouncedSearch,
+                        }
+                    );
+                    return res.data;
+                },
+                onSuccess: (data) => {
+                    setVideos(data?.videos?.results || []);
+                    setVideoPagination(data?.videos || {});
+                    setPlaylists(data?.playlists || []);
+                    setLoading(false);
+                },
+                onError: (err) => {
+                    console.error(err);
+                    if (!apiCache.get(cacheKey)) {
+                        toast.error("Failed to fetch learnings");
+                        setLoading(false);
                     }
-                );
-                setVideos(res.data.videos.results);
-                setVideoPagination(res.data.videos);
-                setPlaylists(res.data.playlists);
-            } catch (err) {
-                console.error(err);
-                toast.error("Failed to fetch learnings");
-            } finally {
-                setLoading(false);
-            }
+                }
+            });
         };
 
         fetchLearnings();
-    }, [token, page, debouncedSearch]);
+    }, [token, page, debouncedSearch, cacheKey]);
 
     const handleVideoDelete = async (videoId) => {
         if (!token) return;
@@ -92,6 +105,8 @@ const MyLearnings = () => {
                 videoId,
             });
             toast.success("Video deleted!");
+            apiCache.invalidate('learnings');
+            apiCache.invalidate('continue');
 
             setVideos(prev => prev.filter(v => v.vid !== videoId));
 
@@ -126,6 +141,8 @@ const MyLearnings = () => {
                 playlistId,
             });
             toast.success("Playlist deleted!");
+            apiCache.invalidate('learnings');
+            apiCache.invalidate('continue');
 
             setPlaylists(prev => prev.filter(p => p.pid !== playlistId));
             setVideos(prev => prev.filter(v => !playlist.videos.some(pv => pv.vid === v.vid)));
