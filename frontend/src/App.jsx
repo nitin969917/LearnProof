@@ -197,7 +197,6 @@ const App = () => {
                                 <Route path='ask-my-notes-dev/:subjectId/quiz' element={<WorkspaceQuizPage />} />
                                 <Route path='support' element={<Support />} />
                                 <Route path='ambassador' element={<AmbassadorDashboard />} />
-                                <Route path='ambassador/portal' element={<AmbassadorDashboard />} />
                                 
                                 {/* Social / Social Hub Features */}
                                 <Route path='social/*' element={<SocialDashboard />} />
