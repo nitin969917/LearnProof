@@ -469,17 +469,14 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
             </div>
 
             {/* Friend Cards List */}
-            <div className="space-y-3">
+            <div className="space-y-1 sm:space-y-1.5">
               {filteredFriends.map((friend) => {
                 const isFriendOnline = onlineUserIds.some(id => id.toString() === friend.id.toString());
-                const friendSubtitle = friend.department 
-                  ? `${friend.department}${friend.collegeName ? ` • ${friend.collegeName}` : ''}`
-                  : (friend.collegeName || 'Student • LearnProof Community');
 
                 return (
                   <div 
                     key={friend.id}
-                    className="flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-150 dark:border-gray-750 hover:border-orange-200 dark:hover:border-gray-650 hover:shadow-xs transition relative group"
+                    className="flex items-center justify-between gap-3 p-3 sm:p-3.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-900/70 transition relative group"
                   >
                     {/* User Profile Info with Online Badge */}
                     <div 
@@ -509,9 +506,6 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                             ● {isFriendOnline ? 'Online' : 'Offline'}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                          {friendSubtitle}
-                        </p>
                       </div>
                     </div>
 
