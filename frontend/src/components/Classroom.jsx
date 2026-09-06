@@ -243,69 +243,6 @@ const Classroom = () => {
     toast.success('Started a new conversation!');
   };
 
-  // Touch swipe handling for switching Classroom tabs on mobile
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
-  const minSwipeDistance = 50;
-
-  const classroomTabs = useMemo(() => [
-    ...(playlist ? [{ id: 'playlist', label: 'Playlist', icon: PlayCircle, hideOnDesktop: true }] : []),
-    { id: 'overview', label: 'Overview', icon: BookOpen },
-    { id: 'intuition', label: 'AI Notes', icon: Sparkles },
-    { id: 'ai-chat', label: 'Ask AI Chatbot', icon: Bot },
-    { id: 'quiz', label: 'AI Quiz', icon: CheckCircle },
-    { id: 'notes', label: 'Notes', icon: FileText },
-    { id: 'discussion', label: `Discussion (${comments.length})`, icon: MessageSquare },
-  ], [playlist, comments.length]);
-
-  const visibleClassroomTabs = useMemo(() => {
-    return classroomTabs.filter(t => !t.hideOnDesktop || (typeof window !== 'undefined' && window.innerWidth < 1024));
-  }, [classroomTabs]);
-
-  const handleTouchStart = (e) => {
-    setTouchEnd(null);
-    if (e.targetTouches?.[0]) {
-      setTouchStart({
-        x: e.targetTouches[0].clientX,
-        y: e.targetTouches[0].clientY
-      });
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (e.targetTouches?.[0]) {
-      setTouchEnd({
-        x: e.targetTouches[0].clientX,
-        y: e.targetTouches[0].clientY
-      });
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distanceX = touchStart.x - touchEnd.x;
-    const distanceY = touchStart.y - touchEnd.y;
-    if (Math.abs(distanceX) > Math.abs(distanceY) * 1.25 && Math.abs(distanceX) > minSwipeDistance) {
-      const idx = visibleClassroomTabs.findIndex(t => t.id === activeTab);
-      if (idx !== -1) {
-        if (distanceX > 0 && idx < visibleClassroomTabs.length - 1) {
-          // Swipe Left -> next tab
-          setActiveTab(visibleClassroomTabs[idx + 1].id);
-        } else if (distanceX < 0 && idx > 0) {
-          // Swipe Right -> previous tab
-          setActiveTab(visibleClassroomTabs[idx - 1].id);
-        }
-      }
-    }
-  };
-
-  useEffect(() => {
-    const el = document.getElementById(`classroom-tab-${activeTab}`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
-  }, [activeTab]);
-
   const handleSendAiQuestion = async (customQuestion) => {
     const question = (customQuestion || aiChatInput).trim();
     if (!question || aiChatLoading || !video?.vid) return;
@@ -446,6 +383,69 @@ const Classroom = () => {
   // - History List: Both the Dashboard and Classroom Video Quiz tab display a list of "Previous Attempts" (filtered for the specific video), which users can click to see a detailed, interactive test review.
   const [quizHistory, setQuizHistory] = useState([]);
   const [selectedHistoryQuiz, setSelectedHistoryQuiz] = useState(null);
+
+  // Touch swipe handling for switching Classroom tabs on mobile
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const minSwipeDistance = 50;
+
+  const classroomTabs = useMemo(() => [
+    ...(playlist ? [{ id: 'playlist', label: 'Playlist', icon: PlayCircle, hideOnDesktop: true }] : []),
+    { id: 'overview', label: 'Overview', icon: BookOpen },
+    { id: 'intuition', label: 'AI Notes', icon: Sparkles },
+    { id: 'ai-chat', label: 'Ask AI Chatbot', icon: Bot },
+    { id: 'quiz', label: 'AI Quiz', icon: CheckCircle },
+    { id: 'notes', label: 'Notes', icon: FileText },
+    { id: 'discussion', label: `Discussion (${(comments && comments.length) || 0})`, icon: MessageSquare },
+  ], [playlist, comments]);
+
+  const visibleClassroomTabs = useMemo(() => {
+    return classroomTabs.filter(t => !t.hideOnDesktop || (typeof window !== 'undefined' && window.innerWidth < 1024));
+  }, [classroomTabs]);
+
+  const handleTouchStart = (e) => {
+    setTouchEnd(null);
+    if (e.targetTouches?.[0]) {
+      setTouchStart({
+        x: e.targetTouches[0].clientX,
+        y: e.targetTouches[0].clientY
+      });
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.targetTouches?.[0]) {
+      setTouchEnd({
+        x: e.targetTouches[0].clientX,
+        y: e.targetTouches[0].clientY
+      });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    if (Math.abs(distanceX) > Math.abs(distanceY) * 1.25 && Math.abs(distanceX) > minSwipeDistance) {
+      const idx = visibleClassroomTabs.findIndex(t => t.id === activeTab);
+      if (idx !== -1) {
+        if (distanceX > 0 && idx < visibleClassroomTabs.length - 1) {
+          // Swipe Left -> next tab
+          setActiveTab(visibleClassroomTabs[idx + 1].id);
+        } else if (distanceX < 0 && idx > 0) {
+          // Swipe Right -> previous tab
+          setActiveTab(visibleClassroomTabs[idx - 1].id);
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    const el = document.getElementById(`classroom-tab-${activeTab}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [activeTab]);
 
   const fetchDiscussionData = async () => {
     try {
