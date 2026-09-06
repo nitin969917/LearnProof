@@ -1087,14 +1087,15 @@ const Classroom = () => {
 
               {/* Premium Tabs */}
               <div className="mt-4">
-                <div className="flex bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-1 sm:p-1.5 gap-0.5 sm:gap-1 border border-gray-100 dark:border-slate-700/50">
+                <div className="flex bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-1 sm:p-1.5 gap-0.5 sm:gap-1 border border-gray-100 dark:border-slate-700/50 overflow-x-auto">
                   {[
                     { id: 'playlist', label: 'Playlist', icon: PlayCircle, hideOnDesktop: true },
                     { id: 'overview', label: 'Overview', icon: BookOpen },
                     { id: 'intuition', label: 'AI Notes', icon: Sparkles },
+                    { id: 'ai-chat', label: 'Ask AI Chatbot', icon: Bot },
                     { id: 'quiz', label: 'AI Quiz', icon: CheckCircle },
                     { id: 'notes', label: 'Notes', icon: FileText },
-                    { id: 'discussion', label: `Chat (${comments.length})`, icon: MessageSquare },
+                    { id: 'discussion', label: `Discussion (${comments.length})`, icon: MessageSquare },
                   ].filter(t => {
                     if (t.id === 'playlist' && !playlist) return false;
                     return !t.hideOnDesktop || window.innerWidth < 1024;
@@ -1104,13 +1105,13 @@ const Classroom = () => {
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-0.5 sm:px-3 rounded-xl text-[8px] sm:text-[11px] font-black uppercase tracking-tight sm:tracking-widest transition-all flex-1 ${activeTab === tab.id
+                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-3 rounded-xl text-[8px] sm:text-[11px] font-black uppercase tracking-tight sm:tracking-widest transition-all flex-1 min-w-fit ${activeTab === tab.id
                             ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                             : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800'
                           }`}
                       >
                         <Icon size={16} className="sm:w-[14px] sm:h-[14px] flex-shrink-0" />
-                        <span className="mt-0.5 sm:mt-0">{tab.label}</span>
+                        <span className="mt-0.5 sm:mt-0 whitespace-nowrap">{tab.label}</span>
                       </button>
                     );
                   })}
@@ -1211,7 +1212,34 @@ const Classroom = () => {
                   {/* Intuition Tab */}
                   {activeTab === 'intuition' && (
                     <div className="space-y-6">
-                      {/* Top: AI Notes & Core Intuition */}
+                      {/* Top Action Card: Ask AI Doubt */}
+                      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-950/40 dark:via-purple-950/40 dark:to-pink-950/30 border border-indigo-200 dark:border-indigo-800/80 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm shrink-0">
+                            <Bot size={20} />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white m-0 flex items-center gap-2">
+                              <span>Have doubts from this lecture?</span>
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-500 text-white shadow-xs">
+                                AI Tutor
+                              </span>
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-slate-300 m-0 mt-0.5">
+                              Ask any question or get a simplified explanation directly from our AI professor.
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setActiveTab('ai-chat')}
+                          className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md shadow-indigo-500/20 transition hover:scale-105 active:scale-95 flex items-center gap-2 shrink-0 cursor-pointer"
+                        >
+                          <Sparkles size={14} />
+                          <span>Open AI Chatbot</span>
+                        </button>
+                      </div>
+
+                      {/* AI Notes & Core Intuition Card */}
                       <div className="prose max-w-none bg-indigo-50/50 dark:bg-indigo-900/20 p-4 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
                         <div className="flex flex-row items-center justify-between gap-2 mb-3 pb-3 border-b border-indigo-200 dark:border-indigo-800">
                           <div className="flex items-center gap-2">
@@ -1283,157 +1311,161 @@ const Classroom = () => {
                           </div>
                         )}
                       </div>
+                    </div>
+                  )}
 
-                      {/* Bottom: Interactive AI Doubt & Q&A Chatbot */}
-                      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 p-4 sm:p-6 shadow-sm">
-                        <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-slate-800">
-                          <div className="flex items-center gap-2.5">
-                            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm">
-                              <Bot size={18} />
-                            </div>
-                            <div>
-                              <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5 m-0">
-                                <span>AI Doubt Solver & Lecture Q&A</span>
-                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
-                                  Live Tutor
-                                </span>
-                              </h4>
-                              <p className="text-xs text-gray-500 dark:text-slate-400 m-0 mt-0.5">
-                                Ask any doubt or question from this video for an instant, step-by-step academic explanation.
-                              </p>
-                            </div>
+                  {/* Ask AI Chatbot Tab */}
+                  {activeTab === 'ai-chat' && (
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 p-4 sm:p-6 shadow-sm">
+                      <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-slate-800">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm">
+                            <Bot size={20} />
                           </div>
-                          {aiChatMessages.length > 0 && (
-                            <button
-                              onClick={() => setAiChatMessages([])}
-                              className="text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
-                              title="Clear conversation"
-                            >
-                              Clear Chat
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Quick Doubt Suggestion Prompts */}
-                        {aiChatMessages.length === 0 && (
-                          <div className="mb-4">
-                            <p className="text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-                              Suggested Questions:
+                          <div>
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5 m-0">
+                              <span>AI Lecture Doubt Solver & Chatbot</span>
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                                Live Tutor
+                              </span>
+                            </h4>
+                            <p className="text-xs text-gray-500 dark:text-slate-400 m-0 mt-0.5">
+                              Ask any doubt or question from <strong className="text-gray-700 dark:text-slate-200 font-semibold">{video?.name}</strong>.
                             </p>
-                            <div className="flex flex-wrap gap-2">
-                              {[
-                                "Can you explain this in simpler words with an analogy?",
-                                "What are the most common exam questions from this topic?",
-                                "Give a real-world application or code example.",
-                                "Summarize the key mathematical formulas and definitions."
-                              ].map((promptText, pIdx) => (
-                                <button
-                                  key={pIdx}
-                                  onClick={() => handleSendAiQuestion(promptText)}
-                                  className="text-xs text-left px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60 transition cursor-pointer font-medium active:scale-95"
-                                >
-                                  💬 {promptText}
-                                </button>
-                              ))}
-                            </div>
                           </div>
-                        )}
-
-                        {/* Message Stream */}
+                        </div>
                         {aiChatMessages.length > 0 && (
-                          <div className="space-y-4 max-h-[420px] overflow-y-auto pr-1 mb-4 custom-scrollbar">
-                            {aiChatMessages.map((msg, mIdx) => (
-                              <div
-                                key={mIdx}
-                                className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                              >
-                                {msg.role !== 'user' && (
-                                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-                                    <Bot size={15} />
-                                  </div>
-                                )}
-                                <div
-                                  className={`max-w-[85%] rounded-2xl p-3.5 text-sm ${
-                                    msg.role === 'user'
-                                      ? 'bg-orange-500 text-white rounded-tr-xs shadow-sm font-medium'
-                                      : 'bg-gray-50 dark:bg-slate-800/80 text-gray-800 dark:text-slate-200 rounded-tl-xs border border-gray-100 dark:border-slate-700 shadow-xs'
-                                  }`}
-                                >
-                                  {msg.role === 'user' ? (
-                                    <p className="whitespace-pre-wrap leading-relaxed m-0">{msg.content}</p>
-                                  ) : (
-                                    <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed intuition-markdown">
-                                      <ReactMarkdown
-                                        remarkPlugins={[remarkMath, remarkGfm]}
-                                        rehypePlugins={[rehypeKatex]}
-                                        components={{
-                                          p: ({ node, ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
-                                          ul: ({ node, ...props }) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
-                                          li: ({ node, ...props }) => <li className="break-words" {...props} />,
-                                          code: ({ node, inline, ...props }) => inline
-                                            ? <code className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded font-mono text-xs font-semibold" {...props} />
-                                            : <pre className="p-3 my-2 rounded-xl bg-gray-900 text-white font-mono text-xs overflow-x-auto"><code {...props} /></pre>
-                                        }}
-                                      >
-                                        {preprocessMarkdown(msg.content)}
-                                      </ReactMarkdown>
-                                      <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50 flex items-center justify-end">
-                                        <button
-                                          onClick={() => handleCopyText(msg.content, mIdx)}
-                                          className="text-[10px] font-bold text-gray-400 hover:text-indigo-500 flex items-center gap-1 transition cursor-pointer"
-                                        >
-                                          {copiedIndex === mIdx ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                                          <span>{copiedIndex === mIdx ? 'Copied' : 'Copy answer'}</span>
-                                        </button>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                          <button
+                            onClick={() => setAiChatMessages([])}
+                            className="text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
+                            title="Clear conversation"
+                          >
+                            Clear Chat
+                          </button>
+                        )}
+                      </div>
 
-                            {aiChatLoading && (
-                              <div className="flex gap-3 items-center text-gray-400 dark:text-slate-400">
-                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      {/* Quick Doubt Suggestion Prompts */}
+                      {aiChatMessages.length === 0 && (
+                        <div className="mb-6 p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-800/40">
+                          <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                            <Sparkles size={13} />
+                            <span>Quick Questions you can ask:</span>
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {[
+                              "Can you explain this in simpler words with an intuitive analogy?",
+                              "What are the most common exam questions asked on this topic?",
+                              "Give a practical real-world application or code example.",
+                              "Summarize the key mathematical formulas and definitions."
+                            ].map((promptText, pIdx) => (
+                              <button
+                                key={pIdx}
+                                onClick={() => handleSendAiQuestion(promptText)}
+                                className="text-xs text-left px-3.5 py-2 rounded-xl bg-white hover:bg-indigo-50 text-indigo-800 dark:bg-slate-800 dark:hover:bg-indigo-900/30 dark:text-indigo-200 border border-indigo-100 dark:border-slate-700 shadow-xs transition cursor-pointer font-medium active:scale-95 flex items-center gap-2"
+                              >
+                                <span className="text-orange-500">💬</span>
+                                <span className="line-clamp-2">{promptText}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Message Stream */}
+                      {aiChatMessages.length > 0 && (
+                        <div className="space-y-4 max-h-[480px] overflow-y-auto pr-1 mb-4 custom-scrollbar">
+                          {aiChatMessages.map((msg, mIdx) => (
+                            <div
+                              key={mIdx}
+                              className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                            >
+                              {msg.role !== 'user' && (
+                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
                                   <Bot size={15} />
                                 </div>
-                                <div className="bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-gray-100 dark:border-slate-700">
-                                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce"></div>
-                                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.2s]"></div>
-                                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.4s]"></div>
-                                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 ml-1">AI Tutor is thinking...</span>
-                                </div>
+                              )}
+                              <div
+                                className={`max-w-[85%] rounded-2xl p-3.5 text-sm ${
+                                  msg.role === 'user'
+                                    ? 'bg-orange-500 text-white rounded-tr-xs shadow-sm font-medium'
+                                    : 'bg-gray-50 dark:bg-slate-800/80 text-gray-800 dark:text-slate-200 rounded-tl-xs border border-gray-100 dark:border-slate-700 shadow-xs'
+                                }`}
+                              >
+                                {msg.role === 'user' ? (
+                                  <p className="whitespace-pre-wrap leading-relaxed m-0">{msg.content}</p>
+                                ) : (
+                                  <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed intuition-markdown">
+                                    <ReactMarkdown
+                                      remarkPlugins={[remarkMath, remarkGfm]}
+                                      rehypePlugins={[rehypeKatex]}
+                                      components={{
+                                        p: ({ node, ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
+                                        ul: ({ node, ...props }) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
+                                        li: ({ node, ...props }) => <li className="break-words" {...props} />,
+                                        code: ({ node, inline, ...props }) => inline
+                                          ? <code className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded font-mono text-xs font-semibold" {...props} />
+                                          : <pre className="p-3 my-2 rounded-xl bg-gray-900 text-white font-mono text-xs overflow-x-auto"><code {...props} /></pre>
+                                      }}
+                                    >
+                                      {preprocessMarkdown(msg.content)}
+                                    </ReactMarkdown>
+                                    <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50 flex items-center justify-end">
+                                      <button
+                                        onClick={() => handleCopyText(msg.content, mIdx)}
+                                        className="text-[10px] font-bold text-gray-400 hover:text-indigo-500 flex items-center gap-1 transition cursor-pointer"
+                                      >
+                                        {copiedIndex === mIdx ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                                        <span>{copiedIndex === mIdx ? 'Copied' : 'Copy answer'}</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        )}
+                            </div>
+                          ))}
 
-                        {/* Input Area */}
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            handleSendAiQuestion();
-                          }}
-                          className="flex items-center gap-2 mt-2"
+                          {aiChatLoading && (
+                            <div className="flex gap-3 items-center text-gray-400 dark:text-slate-400">
+                              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                <Bot size={15} />
+                              </div>
+                              <div className="bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-gray-100 dark:border-slate-700">
+                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce"></div>
+                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.2s]"></div>
+                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.4s]"></div>
+                                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 ml-1">AI Tutor is thinking...</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Input Area */}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleSendAiQuestion();
+                        }}
+                        className="flex items-center gap-2 mt-2"
+                      >
+                        <input
+                          type="text"
+                          placeholder="Ask any doubt about this lecture..."
+                          value={aiChatInput}
+                          onChange={(e) => setAiChatInput(e.target.value)}
+                          disabled={aiChatLoading}
+                          className="flex-1 px-4 py-3 bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
+                        />
+                        <button
+                          type="submit"
+                          disabled={!aiChatInput.trim() || aiChatLoading}
+                          className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer"
                         >
-                          <input
-                            type="text"
-                            placeholder="Ask any doubt about this lecture..."
-                            value={aiChatInput}
-                            onChange={(e) => setAiChatInput(e.target.value)}
-                            disabled={aiChatLoading}
-                            className="flex-1 px-4 py-2.5 bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
-                          />
-                          <button
-                            type="submit"
-                            disabled={!aiChatInput.trim() || aiChatLoading}
-                            className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer"
-                          >
-                            <span>Ask AI</span>
-                            <Send size={13} />
-                          </button>
-                        </form>
-                      </div>
+                          <span>Ask AI</span>
+                          <Send size={13} />
+                        </button>
+                      </form>
                     </div>
                   )}
 
