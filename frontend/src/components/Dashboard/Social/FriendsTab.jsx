@@ -655,34 +655,6 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                 </div>
               )}
             </div>
-
-            {/* Bottom Promo Card: "Find More People" */}
-            <div 
-              onClick={() => navigate('/dashboard/social/discover')}
-              className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-orange-50/70 to-amber-50/50 dark:from-gray-900 dark:to-gray-900 border border-orange-100 dark:border-gray-800 flex items-center justify-between gap-4 cursor-pointer hover:border-orange-200 transition group"
-            >
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-500 flex items-center justify-center border border-orange-500/20 shrink-0">
-                  <Users size={19} className="stroke-[2.2]" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white group-hover:text-orange-500 transition-colors">
-                    Find More People
-                  </h4>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                    Discover learners from your college, major or areas of interest.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="hidden sm:flex px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-xs shadow-sm transition items-center gap-1.5 shrink-0 cursor-pointer"
-              >
-                <span>Explore Community</span>
-                <ArrowRight size={13} />
-              </button>
-              <ChevronRight size={18} className="sm:hidden text-orange-500 shrink-0" />
-            </div>
           </div>
         </div>
       </div>
