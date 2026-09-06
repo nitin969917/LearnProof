@@ -947,7 +947,9 @@ const Classroom = () => {
                   autoplay: 1,
                   playsinline: 1,
                   rel: 0,
-                  modestbranding: 0, // YouTube policy: Don't hide the logo if attributing
+                  modestbranding: 0,
+                  enablejsapi: 1,
+                  origin: typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com'
                 }
               }}
               className="absolute top-0 left-0 w-full h-full"
