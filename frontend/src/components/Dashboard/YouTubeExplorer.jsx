@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Youtube, Play, Plus, Loader, Sparkles, SlidersHorizontal, X } from 'lucide-react';
+import { Search, Youtube, Play, Plus, Loader, Sparkles, SlidersHorizontal, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 const autocompleteCache = new Map();
+const ITEMS_PER_PAGE = 10;
 
 const YouTubeExplorer = () => {
     const { token } = useAuth();
@@ -14,6 +15,7 @@ const YouTubeExplorer = () => {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Autocomplete & Filter States
     const [suggestions, setSuggestions] = useState([]);
@@ -28,6 +30,7 @@ const YouTubeExplorer = () => {
     const skipNextAutocompleteRef = useRef(false);
 
     const searchRef = useRef(null);
+    const resultsRef = useRef(null);
 
     // Import modal state
     const [importLoading, setImportLoading] = useState(false);
@@ -97,6 +100,7 @@ const YouTubeExplorer = () => {
         if (!searchQuery.trim()) return;
         setLoading(true);
         setShowSuggestions(false);
+        setCurrentPage(1);
         try {
             const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/youtube-search/`, {
                 idToken: token,
@@ -107,6 +111,7 @@ const YouTubeExplorer = () => {
             });
             if (res.data.results) {
                 setResults(res.data.results);
+                setCurrentPage(1);
             } else {
                 toast.error("No results found.");
             }
@@ -149,6 +154,19 @@ const YouTubeExplorer = () => {
             setShowSuggestions(false);
         }
     };
+
+    const handlePageChange = (newPage) => {
+        const totalPages = Math.ceil(results.length / ITEMS_PER_PAGE) || 1;
+        if (newPage < 1 || newPage > totalPages) return;
+        setCurrentPage(newPage);
+        if (resultsRef.current) {
+            resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    const totalPages = Math.ceil(results.length / ITEMS_PER_PAGE) || 1;
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const currentResults = results.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
     const handleGetRecommendations = async (e) => {
         if (e) e.preventDefault();
@@ -235,7 +253,7 @@ const YouTubeExplorer = () => {
 
     const handleCancel = () => {
         setImportData(null);
-    }
+    };
 
     return (
         <div className="max-w-[1360px] mx-auto px-4 sm:px-8 lg:px-12 space-y-8 md:space-y-10 pb-20">
@@ -401,7 +419,10 @@ const YouTubeExplorer = () => {
                                                 <button
                                                     key={t}
                                                     type="button"
-                                                    onClick={() => setFilters(prev => ({ ...prev, type: t }))}
+                                                    onClick={() => {
+                                                        setFilters(prev => ({ ...prev, type: t }));
+                                                        setCurrentPage(1);
+                                                    }}
                                                     className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider ${
                                                         filters.type === t 
                                                             ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
@@ -426,7 +447,10 @@ const YouTubeExplorer = () => {
                                                 <button
                                                     key={s.id}
                                                     type="button"
-                                                    onClick={() => setFilters(prev => ({ ...prev, sortBy: s.id }))}
+                                                    onClick={() => {
+                                                        setFilters(prev => ({ ...prev, sortBy: s.id }));
+                                                        setCurrentPage(1);
+                                                    }}
                                                     className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider ${
                                                         filters.sortBy === s.id 
                                                             ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
@@ -455,7 +479,10 @@ const YouTubeExplorer = () => {
                                                     key={d.id}
                                                     type="button"
                                                     disabled={filters.type === 'playlist'}
-                                                    onClick={() => setFilters(prev => ({ ...prev, duration: d.id }))}
+                                                    onClick={() => {
+                                                        setFilters(prev => ({ ...prev, duration: d.id }));
+                                                        setCurrentPage(1);
+                                                    }}
                                                     className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider disabled:opacity-40 disabled:hover:bg-gray-50 ${
                                                         filters.duration === d.id && filters.type !== 'playlist'
                                                             ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
@@ -474,7 +501,164 @@ const YouTubeExplorer = () => {
                 </div>
             </div>
 
-            {/* Quick YouTube Import Section */}
+            {/* Search Results / Loading / Empty State */}
+            {loading ? (
+                <div className="space-y-4">
+                    <div className="h-5 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                        {[...Array(12).keys()].map(i => (
+                            <div key={i} className="animate-pulse bg-white dark:bg-gray-800 rounded-2xl p-3 border border-gray-100 dark:border-gray-700/60 space-y-3">
+                                <div className="w-full aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
+                                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ) : results.length > 0 ? (
+                <div ref={resultsRef} className="space-y-6 pb-4">
+                    {/* Header with Results Count and Page indicator */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center gap-2.5">
+                            <h2 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">
+                                Showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, results.length)} of {results.length} Results
+                            </h2>
+                            {totalPages > 1 && (
+                                <span className="px-2.5 py-0.5 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-[10px] font-bold">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                            )}
+                        </div>
+                        <span className="text-[11px] font-bold text-gray-400">
+                            YouTube Search
+                        </span>
+                    </div>
+
+                    {/* Paginated 10-Item Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+                        {currentResults.map((item, idx) => (
+                            <motion.div
+                                key={item.id}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: Math.min(0.2, idx * 0.02) }}
+                                className="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col"
+                            >
+                                <div className="relative aspect-video overflow-hidden border-b border-gray-100 dark:border-gray-700/50 cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
+                                    <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                                    <div className="absolute inset-0 bg-black/40 xl:bg-gradient-to-t xl:from-black/60 xl:via-transparent xl:to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
+                                        <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500 shadow-xl">
+                                            <Play size={20} className="fill-white ml-0.5" />
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Type badge */}
+                                    <div className={`absolute top-2.5 right-2.5 px-2 py-0.5 text-white text-[8px] sm:text-[9px] font-black uppercase tracking-wider rounded-md shadow-md z-10 ${
+                                        item.type === 'playlist' ? 'bg-red-500' : 'bg-blue-600'
+                                    }`}>
+                                        {item.type}
+                                    </div>
+
+                                    {/* Video count badge for playlist */}
+                                    {item.type === 'playlist' && item.video_count > 0 && (
+                                        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-xs text-white text-[9px] font-bold rounded leading-none z-10">
+                                            {item.video_count} Videos
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-3 sm:p-3.5 space-y-2.5 flex flex-col flex-1 justify-between">
+                                    <div className="space-y-0.5">
+                                        <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-orange-500 transition-colors text-xs sm:text-sm" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
+                                        <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider block truncate">{item.channel}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => handleImportClick(item.url)}
+                                        className="w-full py-1.5 sm:py-2 bg-orange-50/70 hover:bg-orange-500 dark:bg-orange-950/20 dark:hover:bg-orange-500 text-orange-600 dark:text-orange-400 hover:text-white dark:hover:text-white font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-1 border border-orange-100/80 dark:border-orange-950/50 hover:border-transparent shadow-xs cursor-pointer active:scale-95 shrink-0"
+                                    >
+                                        <Plus size={13} strokeWidth={3} /> Add to Platform
+                                    </button>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    {/* Numbered 10's Page Navigation */}
+                    {totalPages > 1 && (
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-100 dark:border-gray-800">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium order-2 sm:order-1">
+                                Showing <span className="font-bold text-gray-900 dark:text-white">{startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, results.length)}</span> of <span className="font-bold text-gray-900 dark:text-white">{results.length}</span> results
+                            </p>
+                            <div className="flex items-center gap-1.5 order-1 sm:order-2 flex-wrap justify-center">
+                                <button
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className="px-3 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 disabled:opacity-40 disabled:pointer-events-none transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                                >
+                                    <ChevronLeft size={16} />
+                                    <span className="hidden sm:inline">Previous</span>
+                                </button>
+
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => handlePageChange(pageNum)}
+                                        className={`w-9 h-9 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                            currentPage === pageNum
+                                                ? 'bg-gradient-to-r from-red-600 to-orange-500 text-white shadow-md shadow-red-500/20 scale-105'
+                                                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                        }`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                ))}
+
+                                <button
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className="px-3 py-2 rounded-xl text-xs font-bold border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 disabled:opacity-40 disabled:pointer-events-none transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                                >
+                                    <span className="hidden sm:inline">Next</span>
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : null}
+
+            {results.length === 0 && !loading && (
+                <div className="text-center py-12 sm:py-20 bg-gray-50/50 dark:bg-gray-700/20 rounded-3xl sm:rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-700 max-w-4xl mx-auto w-full">
+                    <div className="flex flex-col items-center justify-center p-8 text-center space-y-6">
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-red-500/20 rounded-full blur-2xl group-hover:blur-3xl transition-all duration-500"></div>
+                            <div className="relative w-24 h-24 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-2xl border border-gray-100 dark:border-gray-700">
+                                <Youtube size={48} className="text-red-500" />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Ready to Discover?</h3>
+                            <p className="max-w-md mx-auto text-sm text-gray-500 dark:text-slate-400 font-medium leading-relaxed">
+                                Use the command center above to search for tutorials, courses, and playlists. 
+                                Everything you find can be imported directly into your dashboard.
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 justify-center pt-4">
+                            {['ReactJS', 'Python', 'AI', 'UI/UX'].map(tag => (
+                                <button 
+                                    key={tag}
+                                    onClick={() => { setQuery(tag); handleSearch(); }}
+                                    className="px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-500 hover:border-red-100 transition-all shadow-sm"
+                                >
+                                    {tag}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Quick YouTube Import Section - Positioned at end */}
             <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -530,81 +714,6 @@ const YouTubeExplorer = () => {
                     </div>
                 </div>
             </motion.div>
-
-            {/* Search Results / Loading / Empty State */}
-            {loading ? (
-                <div className="space-y-4">
-                    <div className="h-5 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                        {[...Array(12).keys()].map(i => (
-                            <div key={i} className="animate-pulse bg-white dark:bg-gray-800 rounded-2xl p-3 border border-gray-100 dark:border-gray-700/60 space-y-3">
-                                <div className="w-full aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-                                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
-                                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-                                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-xl"></div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            ) : results.length > 0 ? (
-                <div className="space-y-4 pb-8">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">
-                            Showing {results.length} Results
-                        </h2>
-                        <span className="text-[11px] font-bold text-gray-400">
-                            YouTube Search
-                        </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                        {results.map((item, idx) => (
-                            <motion.div
-                                key={item.id}
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: Math.min(0.3, idx * 0.02) }}
-                                className="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col"
-                            >
-                                <div className="relative aspect-video overflow-hidden border-b border-gray-100 dark:border-gray-700/50 cursor-pointer" onClick={() => setActivePreview({ id: item.id, type: item.type })}>
-                                    <img src={item.thumbnail} alt={item.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                                    <div className="absolute inset-0 bg-black/40 xl:bg-gradient-to-t xl:from-black/60 xl:via-transparent xl:to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                                        <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500 shadow-xl">
-                                            <Play size={20} className="fill-white ml-0.5" />
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Type badge */}
-                                    <div className={`absolute top-2.5 right-2.5 px-2 py-0.5 text-white text-[8px] sm:text-[9px] font-black uppercase tracking-wider rounded-md shadow-md z-10 ${
-                                        item.type === 'playlist' ? 'bg-red-500' : 'bg-blue-600'
-                                    }`}>
-                                        {item.type}
-                                    </div>
-
-                                    {/* Video count badge for playlist */}
-                                    {item.type === 'playlist' && item.video_count > 0 && (
-                                        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-xs text-white text-[9px] font-bold rounded leading-none z-10">
-                                            {item.video_count} Videos
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="p-3 sm:p-3.5 space-y-2.5 flex flex-col flex-1 justify-between">
-                                    <div className="space-y-0.5">
-                                        <h3 className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-orange-500 transition-colors text-xs sm:text-sm" dangerouslySetInnerHTML={{ __html: item.title }}></h3>
-                                        <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider block truncate">{item.channel}</span>
-                                    </div>
-                                    <button
-                                        onClick={() => handleImportClick(item.url)}
-                                        className="w-full py-1.5 sm:py-2 bg-orange-50/70 hover:bg-orange-500 dark:bg-orange-950/20 dark:hover:bg-orange-500 text-orange-600 dark:text-orange-400 hover:text-white dark:hover:text-white font-bold text-[10px] uppercase tracking-wider rounded-xl transition-all duration-300 flex items-center justify-center gap-1 border border-orange-100/80 dark:border-orange-950/50 hover:border-transparent shadow-xs cursor-pointer active:scale-95 shrink-0"
-                                    >
-                                        <Plus size={13} strokeWidth={3} /> Add to Platform
-                                    </button>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            ) : null}
 
 
             {results.length === 0 && !loading && (

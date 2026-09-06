@@ -11,8 +11,8 @@ const search = async (req, res) => {
     const { query, type = 'all', sortBy = 'relevance', duration = 'any' } = req.body;
     if (!query) return res.status(400).json({ error: 'Missing query' });
 
-    // Request up to 36 results for rich, full YouTube-style discovery
-    const result = await searchYoutube(query, 36, { type, sortBy, duration });
+    // Request up to 50 results for comprehensive YouTube-style discovery
+    const result = await searchYoutube(query, 50, { type, sortBy, duration });
     if (result.error) return res.status(500).json({ error: result.error });
 
     res.status(200).json(result);
