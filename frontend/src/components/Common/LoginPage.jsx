@@ -166,7 +166,43 @@ const LoginPage = () => {
         }
     };
 
-    const handleManualGoogleLogin = () => {
+    const handleManualGoogleLogin = async () => {
+        // 1. Check if running in Capacitor Native app (Android or iOS)
+        try {
+            const { Capacitor } = await import('@capacitor/core');
+            if (Capacitor && Capacitor.isNativePlatform()) {
+                console.log("Triggering native Google Sign-In sheet via Capacitor...");
+                setIsAuthenticating(true);
+                const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+                await GoogleAuth.initialize({
+                    clientId: '549492309059-crnp91q3v5ej09givjr6b10re7189ks9.apps.googleusercontent.com',
+                    scopes: ['profile', 'email'],
+                    grantOfflineAccess: true,
+                });
+                const googleUser = await GoogleAuth.signIn();
+                console.log("Capacitor Google Sign-In response:", googleUser);
+                const idToken = googleUser?.authentication?.idToken || googleUser?.idToken;
+                if (idToken) {
+                    await handleLoginFlow(idToken);
+                    return;
+                } else {
+                    setIsAuthenticating(false);
+                    toast.error("Google Sign-In failed: No ID token returned.");
+                    return;
+                }
+            }
+        } catch (capErr) {
+            console.error("Capacitor native Google Sign-In error:", capErr);
+            setIsAuthenticating(false);
+            const errStr = capErr?.message || (typeof capErr === 'object' ? JSON.stringify(capErr) : String(capErr));
+            if (errStr.includes('canceled') || errStr.includes('12501') || errStr.includes('CANCELED')) {
+                // User dismissed the native bottom sheet
+                return;
+            }
+            toast.error(errStr || "Google Sign-In failed.");
+            return;
+        }
+
         const isFlutter = navigator.userAgent.includes('LearnProofApp') || !!window.GoogleSignInChannel;
         
         if (isFlutter) {

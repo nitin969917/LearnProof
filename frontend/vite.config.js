@@ -15,6 +15,30 @@ export default defineConfig({
     }
   },
   build: {
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1200,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/mermaid')) {
+            return 'mermaid';
+          }
+          if (id.includes('node_modules/recharts')) {
+            return 'recharts';
+          }
+          if (id.includes('node_modules/livekit') || id.includes('node_modules/@livekit')) {
+            return 'livekit';
+          }
+          if (id.includes('node_modules/katex') || id.includes('node_modules/rehype-katex')) {
+            return 'katex';
+          }
+          if (id.includes('node_modules/react-quill-new')) {
+            return 'quill';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'lucide';
+          }
+        }
+      }
+    }
   }
 })

@@ -5,6 +5,8 @@ import AdminRoute from "./routes/AdminRoute";
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ModalProvider } from './context/ModalContext';
 import { initializeLaunch } from './utils/launch';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 // Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
 const lazyWithRetry = (componentImport) => {
@@ -79,6 +81,24 @@ const PageLoader = () => (
     </div>
 );
 
+// Native mobile entry handler: In the mobile app, default directly to login or dashboard
+const RootRoute = () => {
+    const { user, loading } = useAuth();
+    const isNativeApp = typeof window !== 'undefined' && (
+        window.Capacitor?.isNativePlatform?.() || 
+        navigator.userAgent.includes('LearnProofApp') ||
+        window.location.hostname === 'localhost'
+    );
+
+    if (isNativeApp) {
+        if (loading) return <PageLoader />;
+        if (user) return <Navigate to="/dashboard" replace />;
+        return <LoginPage />;
+    }
+
+    return <LandingPage />;
+};
+
 // Global OAuth Hash & Redirect Interceptor
 const OAuthRedirectHandler = () => {
     const navigate = React.useRef(null);
@@ -126,6 +146,29 @@ const App = () => {
     React.useEffect(() => {
         initializeLaunch();
 
+        if (Capacitor.isNativePlatform()) {
+            const updateStatusBar = () => {
+                const isDark = document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark';
+                if (isDark) {
+                    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+                    StatusBar.setBackgroundColor({ color: '#0F172A' }).catch(() => {});
+                } else {
+                    StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+                    StatusBar.setBackgroundColor({ color: '#FFFFFF' }).catch(() => {});
+                }
+            };
+            updateStatusBar();
+
+            const observer = new MutationObserver((mutations) => {
+                for (const mutation of mutations) {
+                    if (mutation.attributeName === 'class') {
+                        updateStatusBar();
+                    }
+                }
+            });
+            observer.observe(document.documentElement, { attributes: true });
+        }
+
         const trackScreenTime = () => {
             if (document.visibilityState === 'visible') {
                 const d = new Date();
@@ -152,7 +195,7 @@ const App = () => {
                     <OAuthRedirectHandler />
                     <Suspense fallback={<PageLoader />}>
                         <Routes>
-                            <Route path='/' element={<LandingPage />} />
+                            <Route path='/' element={<RootRoute />} />
                             <Route path='/youtube-learning' element={<LandingPage />} />
                             <Route path='/ai-video-notes' element={<LandingPage />} />
                             <Route path='/youtube-certificates' element={<LandingPage />} />

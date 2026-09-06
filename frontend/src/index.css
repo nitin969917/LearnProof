@@ -347,3 +347,31 @@ h1, h2, h3, h4 {
     font-size: 1.05em !important;
 }
 
+/* Mobile App Native Enhancements (Capacitor) */
+:root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+}
+
+html, body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe area utility classes */
+.pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.mt-safe {
+    margin-top: env(safe-area-inset-top, 0px);
+}
+.mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+

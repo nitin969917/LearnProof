@@ -206,6 +206,48 @@ if (typeof window !== 'undefined') {
       await saveNativeFcmToken(token);
     }
   });
+
+  // Capacitor Native Push Notifications Handler (Android & iOS)
+  (async () => {
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor && Capacitor.isNativePlatform()) {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+        if (permStatus.receive === 'granted') {
+          await PushNotifications.register();
+          
+          PushNotifications.addListener('registration', async (token) => {
+            console.log('Capacitor native FCM token registered:', token.value);
+            localStorage.setItem('native_fcm_token', token.value);
+            await saveAnonymousFcmToken(token.value);
+            await saveNativeFcmToken(token.value);
+          });
+
+          PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            console.log('Push notification received in foreground:', notification);
+            if (notification.title) {
+              toast(() => React.createElement('div', { className: "font-semibold text-sm" },
+                React.createElement('div', { className: "font-bold text-orange-600" }, notification.title),
+                React.createElement('div', { className: "text-xs text-gray-500" }, notification.body)
+              ), { icon: '🔔' });
+            }
+          });
+
+          PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+            const data = action.notification?.data || {};
+            const targetPath = data.clickAction || data.click_action || '/dashboard';
+            window.location.href = targetPath;
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Native Capacitor push initialization bypassed:', e);
+    }
+  })();
 }
 
 

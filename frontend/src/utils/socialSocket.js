@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import { Capacitor } from '@capacitor/core';
 
 let socket = null;
 let currentSocketUserId = null;
@@ -9,7 +10,12 @@ export const getSocialSocket = (userId) => {
   }
 
   if (!socket) {
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isNativePlatform = typeof window !== 'undefined' && (
+      window.Capacitor?.isNativePlatform?.() ||
+      Capacitor.isNativePlatform() ||
+      navigator.userAgent.includes('LearnProofApp')
+    );
+    const isLocalhost = !isNativePlatform && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
     let backendUrl = isLocalhost
       ? `http://${window.location.hostname}:8000`
       : (import.meta.env.VITE_BACKEND_URL || `${window.location.protocol}//${window.location.host}`);

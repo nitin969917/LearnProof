@@ -47,3 +47,21 @@ Thumbs.db
 # Synapse Local
 synapse-local/
 .synapse-venv/
+
+# Mobile App (Capacitor / Android / iOS - local only, never on VM)
+frontend/android/
+frontend/ios/
+frontend/capacitor.config.json
+*.apk
+*.aab
+*.ipa
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+key.properties
+local.properties
+.gradle/
+Pods/
+DerivedData/
+
