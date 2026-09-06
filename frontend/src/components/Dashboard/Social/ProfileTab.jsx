@@ -184,6 +184,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (e.target) e.target.value = '';
 
     const fileName = (file.name || '').toLowerCase();
     const isLikelyImage = 
@@ -216,11 +217,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       }
 
       toast.dismiss(toastId);
-      toast.success('Profile picture updated!');
+      toast.success('Profile picture updated successfully!');
     } catch (err) {
       console.error('Failed to update avatar:', err);
       toast.dismiss(toastId);
-      toast.error('Failed to update profile picture');
+      toast.error(err.message || 'Failed to update profile picture');
     }
   };
 
@@ -1151,7 +1152,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     type="file"
                     ref={modalAvatarInputRef}
                     onChange={handleAvatarChange}
-                    accept="image/*"
+                    accept="image/*,.heic,.heif,.HEIC,.HEIF"
                     className="hidden"
                   />
                   <button
