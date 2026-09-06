@@ -519,8 +519,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             )}
           </div>
 
-          {/* ── 2x2 Grid on Mobile, Vertical Stack on Laptop/Desktop ── */}
-          <div className="grid grid-cols-2 lg:flex lg:flex-col gap-2.5 sm:gap-3">
+          {/* ── 3-col (other profile) or 2x2 (own profile) on Mobile, Vertical Stack on Laptop/Desktop ── */}
+          <div className={`${isOwnProfile ? 'grid grid-cols-2' : 'grid grid-cols-3'} lg:flex lg:flex-col gap-2 sm:gap-2.5 lg:gap-3`}>
             {/* Card 1: Academics */}
             <div
               onClick={() => setExpandedSection(expandedSection === 'academics' ? null : 'academics')}
@@ -528,22 +528,22 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                 expandedSection === 'academics'
                   ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
                   : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
-              } p-3 sm:p-4 flex flex-col justify-between`}
+              } p-2.5 sm:p-3.5 lg:p-4 flex flex-col justify-between`}
             >
-              <div className="flex items-start lg:items-center justify-between gap-2">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3.5 min-w-0">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
-                    <GraduationCap size={18} />
+              <div className="flex items-start lg:items-center justify-between gap-1 sm:gap-2">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-1.5 sm:gap-2.5 lg:gap-3.5 min-w-0">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-xl sm:rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
+                    <GraduationCap className="w-4 h-4 sm:w-4.5 sm:h-4.5 lg:w-[18px] lg:h-[18px]" />
                   </div>
                   <div className="min-w-0 text-left">
-                    <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white">Academics</h4>
-                    <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
-                      {profile.collegeName || 'College, major & year'}
+                    <h4 className="font-extrabold text-[11px] sm:text-xs lg:text-sm text-gray-900 dark:text-white truncate">Academics</h4>
+                    <p className="text-[9px] sm:text-[10px] lg:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                      {profile.collegeName || 'College & year'}
                     </p>
                   </div>
                 </div>
                 <ChevronRight
-                  size={15}
+                  size={14}
                   className={`text-orange-500 transition-transform duration-300 shrink-0 mt-1 lg:mt-0 ${
                     expandedSection === 'academics' ? 'rotate-90' : ''
                   }`}
@@ -584,22 +584,22 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                 expandedSection === 'contact'
                   ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
                   : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
-              } p-3 sm:p-4 flex flex-col justify-between`}
+              } p-2.5 sm:p-3.5 lg:p-4 flex flex-col justify-between`}
             >
-              <div className="flex items-start lg:items-center justify-between gap-2">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3.5 min-w-0">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
-                    <User size={18} />
+              <div className="flex items-start lg:items-center justify-between gap-1 sm:gap-2">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-1.5 sm:gap-2.5 lg:gap-3.5 min-w-0">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-xl sm:rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
+                    <User className="w-4 h-4 sm:w-4.5 sm:h-4.5 lg:w-[18px] lg:h-[18px]" />
                   </div>
                   <div className="min-w-0 text-left">
-                    <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white">Contact</h4>
-                    <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                    <h4 className="font-extrabold text-[11px] sm:text-xs lg:text-sm text-gray-900 dark:text-white truncate">Contact</h4>
+                    <p className="text-[9px] sm:text-[10px] lg:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
                       {profile.phoneNumber || profile.email || 'Phone & email'}
                     </p>
                   </div>
                 </div>
                 <ChevronRight
-                  size={15}
+                  size={14}
                   className={`text-orange-500 transition-transform duration-300 shrink-0 mt-1 lg:mt-0 ${
                     expandedSection === 'contact' ? 'rotate-90' : ''
                   }`}
@@ -661,22 +661,22 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                 expandedSection === 'social'
                   ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
                   : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
-              } p-3 sm:p-4 flex flex-col justify-between`}
+              } p-2.5 sm:p-3.5 lg:p-4 flex flex-col justify-between`}
             >
-              <div className="flex items-start lg:items-center justify-between gap-2">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3.5 min-w-0">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
-                    <Share2 size={18} />
+              <div className="flex items-start lg:items-center justify-between gap-1 sm:gap-2">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-1.5 sm:gap-2.5 lg:gap-3.5 min-w-0">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-xl sm:rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
+                    <Share2 className="w-4 h-4 sm:w-4.5 sm:h-4.5 lg:w-[18px] lg:h-[18px]" />
                   </div>
                   <div className="min-w-0 text-left">
-                    <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white">Social Links</h4>
-                    <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
-                      Social media accounts
+                    <h4 className="font-extrabold text-[11px] sm:text-xs lg:text-sm text-gray-900 dark:text-white truncate">Social Links</h4>
+                    <p className="text-[9px] sm:text-[10px] lg:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                      Social media
                     </p>
                   </div>
                 </div>
                 <ChevronRight
-                  size={15}
+                  size={14}
                   className={`text-orange-500 transition-transform duration-300 shrink-0 mt-1 lg:mt-0 ${
                     expandedSection === 'social' ? 'rotate-90' : ''
                   }`}
@@ -725,22 +725,22 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                   expandedSection === 'settings'
                     ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
                     : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
-                } p-3 sm:p-4 flex flex-col justify-between`}
+                } p-2.5 sm:p-3.5 lg:p-4 flex flex-col justify-between`}
               >
-                <div className="flex items-start lg:items-center justify-between gap-2">
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 lg:gap-3.5 min-w-0">
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
-                      <Settings size={18} />
+                <div className="flex items-start lg:items-center justify-between gap-1 sm:gap-2">
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-1.5 sm:gap-2.5 lg:gap-3.5 min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 rounded-xl sm:rounded-2xl bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30 shrink-0">
+                      <Settings className="w-4 h-4 sm:w-4.5 sm:h-4.5 lg:w-[18px] lg:h-[18px]" />
                     </div>
                     <div className="min-w-0 text-left">
-                      <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white">Account Settings</h4>
-                      <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
+                      <h4 className="font-extrabold text-[11px] sm:text-xs lg:text-sm text-gray-900 dark:text-white truncate">Account Settings</h4>
+                      <p className="text-[9px] sm:text-[10px] lg:text-[11px] text-gray-400 dark:text-gray-500 truncate mt-0.5">
                         Privacy & visibility
                       </p>
                     </div>
                   </div>
                   <ChevronRight
-                    size={15}
+                    size={14}
                     className={`text-orange-500 transition-transform duration-300 shrink-0 mt-1 lg:mt-0 ${
                       expandedSection === 'settings' ? 'rotate-90' : ''
                     }`}
