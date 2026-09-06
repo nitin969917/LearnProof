@@ -1122,7 +1122,7 @@ const Classroom = () => {
 
               {/* Premium Tabs */}
               <div className="mt-4">
-                <div className="flex bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-1 sm:p-1.5 gap-0.5 sm:gap-1 border border-gray-100 dark:border-slate-700/50 overflow-x-auto">
+                <div className="flex items-center bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl p-1.5 gap-1.5 border border-gray-200/70 dark:border-slate-700/60 overflow-x-auto scrollbar-none scroll-smooth snap-x snap-mandatory">
                   {[
                     { id: 'playlist', label: 'Playlist', icon: PlayCircle, hideOnDesktop: true },
                     { id: 'overview', label: 'Overview', icon: BookOpen },
@@ -1136,17 +1136,18 @@ const Classroom = () => {
                     return !t.hideOnDesktop || window.innerWidth < 1024;
                   }).map(tab => {
                     const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
                     return (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 sm:px-3 rounded-xl text-[8px] sm:text-[11px] font-black uppercase tracking-tight sm:tracking-widest transition-all flex-1 min-w-fit ${activeTab === tab.id
-                            ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
-                            : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800'
+                        className={`relative flex items-center justify-center gap-1.5 py-2 px-3 sm:px-3.5 rounded-xl text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider transition-all duration-200 shrink-0 snap-start cursor-pointer select-none active:scale-95 ${isActive
+                            ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/25 font-black'
+                            : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/80 dark:hover:bg-slate-700/70 font-bold'
                           }`}
                       >
-                        <Icon size={16} className="sm:w-[14px] sm:h-[14px] flex-shrink-0" />
-                        <span className="mt-0.5 sm:mt-0 whitespace-nowrap">{tab.label}</span>
+                        <Icon size={15} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                        <span className="whitespace-nowrap">{tab.label}</span>
                       </button>
                     );
                   })}

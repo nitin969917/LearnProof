@@ -204,10 +204,10 @@ const DailyGoalsPage = () => {
                     <button
                         type="submit"
                         disabled={!newTask.trim()}
-                        className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:opacity-50 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                        className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/20 transition-all cursor-pointer shrink-0 text-sm"
                     >
-                        <Plus size={16} />
-                        Add
+                        <Plus size={16} strokeWidth={2.5} />
+                        <span>Add</span>
                     </button>
                 </form>
 
