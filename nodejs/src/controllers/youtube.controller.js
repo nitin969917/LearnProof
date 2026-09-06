@@ -3,6 +3,7 @@ const { generateGeminiContent, MODELS } = require('../services/ai.service');
 const axios = require('axios');
 
 const autocompleteCache = new Map();
+const searchCache = new Map();
 
 /**
  * YouTube Controller
@@ -11,9 +12,20 @@ const search = async (req, res) => {
     const { query, type = 'all', sortBy = 'relevance', duration = 'any' } = req.body;
     if (!query) return res.status(400).json({ error: 'Missing query' });
 
+    const cacheKey = `${query.trim().toLowerCase()}_${type}_${sortBy}_${duration}`;
+    if (searchCache.has(cacheKey)) {
+        return res.status(200).json(searchCache.get(cacheKey));
+    }
+
     // Request up to 50 results for comprehensive YouTube-style discovery
     const result = await searchYoutube(query, 50, { type, sortBy, duration });
     if (result.error) return res.status(500).json({ error: result.error });
+
+    if (searchCache.size > 300) {
+        const firstKey = searchCache.keys().next().value;
+        searchCache.delete(firstKey);
+    }
+    searchCache.set(cacheKey, result);
 
     res.status(200).json(result);
 };

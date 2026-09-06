@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
 const autocompleteCache = new Map();
+const searchResultsCache = new Map();
 const ITEMS_PER_PAGE = 10;
 
 const YouTubeExplorer = () => {
@@ -98,9 +99,19 @@ const YouTubeExplorer = () => {
 
     const handleSearchWithQuery = async (searchQuery) => {
         if (!searchQuery.trim()) return;
-        setLoading(true);
+        const cacheKey = `${searchQuery.trim().toLowerCase()}_${filters.type}_${filters.sortBy}_${filters.duration}`;
+        
         setShowSuggestions(false);
         setCurrentPage(1);
+
+        // Instant 0ms cache hit
+        if (searchResultsCache.has(cacheKey)) {
+            setResults(searchResultsCache.get(cacheKey));
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
         try {
             const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/youtube-search/`, {
                 idToken: token,
@@ -110,6 +121,7 @@ const YouTubeExplorer = () => {
                 duration: filters.duration
             });
             if (res.data.results) {
+                searchResultsCache.set(cacheKey, res.data.results);
                 setResults(res.data.results);
                 setCurrentPage(1);
             } else {

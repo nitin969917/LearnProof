@@ -329,8 +329,11 @@ const parseRawItem = (item, results, seenIds) => {
     }
 };
 
+const https = require('https');
+const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 50 });
+
 /**
- * Search YouTube for videos and playlists
+ * Search YouTube for videos and playlists (Fast Innertube + Fallback)
  */
 const searchYoutube = async (query, maxResults = 50, optionsOrType = {}, order = 'relevance') => {
     let options = {};
@@ -345,7 +348,6 @@ const searchYoutube = async (query, maxResults = 50, optionsOrType = {}, order =
     }
 
     const { type = 'all', sortBy = 'relevance', duration = 'any' } = options;
-    let endpoint = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
 
     const getSpParam = (t, s, d) => {
         if (t === 'playlist') {
@@ -377,22 +379,102 @@ const searchYoutube = async (query, maxResults = 50, optionsOrType = {}, order =
     };
 
     const sp = getSpParam(type, sortBy, duration);
-    if (sp) {
-        endpoint += `&sp=${sp}`;
-    }
 
+    // Fast Path: Innertube Direct JSON API
     try {
-        const page = await axios.get(endpoint, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
+        const payload = {
+            context: {
+                client: {
+                    clientName: 'WEB',
+                    clientVersion: '2.20240101.00.00',
+                    hl: 'en',
+                    gl: 'US'
+                }
+            },
+            query: query
+        };
+        if (sp) payload.params = sp;
+
+        const res = await axios.post('https://www.youtube.com/youtubei/v1/search?prettyPrint=false', payload, {
+            httpsAgent,
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 3500
         });
-        const ytInitData = page.data.split("var ytInitialData =");
-        if (!ytInitData || ytInitData.length <= 1) {
-            return { error: "Failed to parse YouTube page data" };
+
+        const contents = res.data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents;
+        const results = [];
+        const seenIds = new Set();
+        let continuationToken = null;
+
+        if (contents && Array.isArray(contents)) {
+            contents.forEach(section => {
+                if (section.itemSectionRenderer?.contents) {
+                    section.itemSectionRenderer.contents.forEach(item => parseRawItem(item, results, seenIds));
+                }
+                if (section.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token) {
+                    continuationToken = section.continuationItemRenderer.continuationEndpoint.continuationCommand.token;
+                }
+            });
         }
 
-        const dataStr = ytInitData[1].split("</script>")[0].trim();
+        // Fetch 1 fast continuation if available and results count < 35
+        if (continuationToken && results.length < 35) {
+            try {
+                const contRes = await axios.post('https://www.youtube.com/youtubei/v1/search?prettyPrint=false', {
+                    context: {
+                        client: {
+                            clientName: 'WEB',
+                            clientVersion: '2.20240101.00.00',
+                            hl: 'en',
+                            gl: 'US'
+                        }
+                    },
+                    continuation: continuationToken
+                }, {
+                    httpsAgent,
+                    headers: { 'Content-Type': 'application/json' },
+                    timeout: 2500
+                });
+
+                const nextActions = contRes.data?.onResponseReceivedCommands?.[0]?.appendContinuationItemsAction?.continuationItems;
+                if (nextActions && Array.isArray(nextActions)) {
+                    nextActions.forEach(c => {
+                        if (c.itemSectionRenderer?.contents) {
+                            c.itemSectionRenderer.contents.forEach(item => parseRawItem(item, results, seenIds));
+                        }
+                    });
+                }
+            } catch (contErr) {
+                // Continue with initial results on timeout
+            }
+        }
+
+        if (results.length > 0) {
+            const sliced = maxResults ? results.slice(0, maxResults) : results;
+            return { results: sliced };
+        }
+    } catch (innertubeErr) {
+        console.warn('Innertube search error, falling back to HTML:', innertubeErr.message);
+    }
+
+    // Fallback: HTML page scraping
+    try {
+        let endpoint = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+        if (sp) endpoint += `&sp=${sp}`;
+
+        const page = await axios.get(endpoint, {
+            httpsAgent,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            },
+            timeout: 5000
+        });
+        const ytInitData = page.data.split('var ytInitialData =');
+        if (!ytInitData || ytInitData.length <= 1) {
+            return { error: 'Failed to parse YouTube page data' };
+        }
+
+        const dataStr = ytInitData[1].split('</script>')[0].trim();
         const cleanedData = dataStr.endsWith(';') ? dataStr.slice(0, -1) : dataStr;
         const initdata = JSON.parse(cleanedData);
 
@@ -403,53 +485,11 @@ const searchYoutube = async (query, maxResults = 50, optionsOrType = {}, order =
 
         const results = [];
         const seenIds = new Set();
-        let continuationToken = null;
-
         contents.forEach(section => {
             if (section.itemSectionRenderer?.contents) {
                 section.itemSectionRenderer.contents.forEach(item => parseRawItem(item, results, seenIds));
             }
-            if (section.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token) {
-                continuationToken = section.continuationItemRenderer.continuationEndpoint.continuationCommand.token;
-            }
         });
-
-        // If we want more results, fetch 1-2 continuation chunks
-        const targetCount = maxResults || 50;
-        let iteration = 0;
-        while (continuationToken && results.length < targetCount && iteration < 2) {
-            iteration++;
-            try {
-                const contRes = await axios.post("https://www.youtube.com/youtubei/v1/search?prettyPrint=false", {
-                    context: {
-                        client: {
-                            clientName: "WEB",
-                            clientVersion: "2.20240101.00.00",
-                            hl: "en",
-                            gl: "US"
-                        }
-                    },
-                    continuation: continuationToken
-                }, { timeout: 4000 });
-
-                const nextActions = contRes.data?.onResponseReceivedCommands?.[0]?.appendContinuationItemsAction?.continuationItems;
-                let nextContToken = null;
-                if (nextActions && Array.isArray(nextActions)) {
-                    nextActions.forEach(c => {
-                        if (c.itemSectionRenderer?.contents) {
-                            c.itemSectionRenderer.contents.forEach(item => parseRawItem(item, results, seenIds));
-                        }
-                        if (c.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token) {
-                            nextContToken = c.continuationItemRenderer.continuationEndpoint.continuationCommand.token;
-                        }
-                    });
-                }
-                continuationToken = nextContToken;
-            } catch (contErr) {
-                console.warn("YouTube continuation fetch skipped:", contErr.message);
-                break;
-            }
-        }
 
         const slicedResults = maxResults ? results.slice(0, maxResults) : results;
         return { results: slicedResults };
