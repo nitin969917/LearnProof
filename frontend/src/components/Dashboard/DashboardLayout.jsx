@@ -447,8 +447,8 @@ const DashboardLayout = () => {
                 serverUrl={activeRoom.serverUrl}
                 token={activeRoom.token}
                 connect={true}
-                video={activeRoom.dbRoom?.mediaType === 'video'}
-                audio={true}
+                video={false}
+                audio={false}
                 onDisconnected={clearActiveRoom}
             >
                 <RoomAudioRenderer />
