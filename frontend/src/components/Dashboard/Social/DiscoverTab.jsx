@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Compass, GraduationCap, MapPin, ArrowRight, ArrowLeft, UserCheck, Check, UserPlus, Users, MessageSquare, Lock, Unlock, Sparkles, MessageSquareMore, ChevronRight } from 'lucide-react';
+import { Search, Gift, Users, Share2, Copy, Check, MoreVertical, ArrowRight, ArrowLeft, ChevronRight, Lock, Unlock, MessageSquareMore } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
 import UserAvatar from '../../Common/UserAvatar.jsx';
-import ReferralInviteCard from '../ReferralInviteCard.jsx';
 
 export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const [searchType, setSearchType] = useState('students'); // 'students' or 'groups'
@@ -15,9 +15,14 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const [hasSearched, setHasSearched] = useState(false);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [loadingSuggested, setLoadingSuggested] = useState(false);
+  const [viewAllSuggested, setViewAllSuggested] = useState(false);
   const searchInputRef = useRef(null);
 
-  // Groups from shared store (pre-fetched by GroupsTab/ChatsTab)
+  // Referral code state
+  const [referralData, setReferralData] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  // Groups from shared store
   const storeGroups = useSocialGroupsStore(state => state.groups);
   const fetchStoreGroups = useSocialGroupsStore(state => state.fetchGroups);
   const hasLoadedGroups = useSocialGroupsStore(state => state.hasLoadedGroups);
@@ -26,12 +31,12 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const [showJoinGroupModal, setShowJoinGroupModal] = useState(null);
   const [joinKey, setJoinKey] = useState('');
 
-  // Fetch suggested users on mount
+  // Fetch suggested users & referral info on mount
   useEffect(() => {
     const fetchSuggested = async () => {
       setLoadingSuggested(true);
       try {
-        const response = await socialApi.get('/users/suggested?limit=8');
+        const response = await socialApi.get('/users/suggested?limit=20');
         setSuggestedUsers(Array.isArray(response.data) ? response.data : []);
       } catch (err) {
         console.error('Failed to fetch suggested users:', err);
@@ -39,32 +44,75 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
         setLoadingSuggested(false);
       }
     };
+
+    const fetchReferralCode = async () => {
+      try {
+        const res = await socialApi.get('/referrals/my-code');
+        if (res.data?.success) {
+          setReferralData(res.data);
+        }
+      } catch (err) {
+        console.debug('Failed to fetch personal referral code:', err?.message);
+      }
+    };
+
     fetchSuggested();
+    fetchReferralCode();
   }, []);
 
-  // Trigger search or fetch when query or searchType changes
-  useEffect(() => {
-    if (searchType === 'groups') {
-      // Use store if already loaded, else fetch
-      if (!hasLoadedGroups) {
-        fetchStoreGroups();
-      }
-    } else {
-      // Clear results, let typing trigger students search
-      if (!query.trim()) {
-        setResults([]);
+  const getShareUrl = () => {
+    if (!referralData?.referralCode) return '';
+    const origin = window.location.origin;
+    return `${origin}/?ref=${referralData.referralCode}`;
+  };
+
+  const handleCopyCode = (e) => {
+    e.stopPropagation();
+    const code = referralData?.referralCode;
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    toast.success('Referral code copied to clipboard!');
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleShare = async (e) => {
+    e.stopPropagation();
+    const shareUrl = getShareUrl();
+    const code = referralData?.referralCode;
+    if (!code) return;
+
+    const shareData = {
+      title: 'LearnProof AI - Master Any Subject',
+      text: `Hey! Join me on LearnProof AI to learn from any YouTube playlist with AI notes, quizzes, and live study rooms. Use my invite code: ${code}`,
+      url: shareUrl || window.location.origin,
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.debug('Native share error:', err);
+        }
       }
     }
-  }, [searchType]);
+
+    // Fallback: Copy link & open WhatsApp
+    navigator.clipboard.writeText(shareUrl || code);
+    toast.success('Referral link copied!');
+    const text = encodeURIComponent(`Hey! Join me on LearnProof AI to learn from any YouTube playlist with AI notes, quizzes, and live study rooms: ${shareUrl || code}`);
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  };
 
   const handleSearch = async (searchQuery = query) => {
-    if (searchType !== 'students') return;
     if (!searchQuery.trim()) return;
     setLoading(true);
     setHasSearched(true);
     try {
       const response = await socialApi.get(`/users/search?q=${encodeURIComponent(searchQuery)}`);
-      setResults(response.data);
+      setResults(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Failed to search community:', err);
     } finally {
@@ -77,9 +125,10 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
     try {
       await socialApi.post('/social/friend-request', { receiverId: studentId });
       setSentRequests(prev => [...prev, studentId]);
+      toast.success('Friend request sent!');
     } catch (err) {
       console.error('Failed to send friend request:', err);
-      alert(err.response?.data?.error || 'Failed to send request');
+      toast.error(err.response?.data?.error || 'Failed to send request');
     }
   };
 
@@ -91,15 +140,14 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
       });
       setShowJoinGroupModal(null);
       setJoinKey('');
-      // Refresh shared groups store to reflect "joined" state
+      toast.success('Joined group!');
       await fetchStoreGroups(true);
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || 'Failed to join group');
+      toast.error(err.response?.data?.error || 'Failed to join group');
     }
   };
 
-  // Filter groups locally based on query (from shared store)
   const filteredGroups = storeGroups.filter(g =>
     g.name.toLowerCase().includes(query.toLowerCase()) ||
     (g.description && g.description.toLowerCase().includes(query.toLowerCase()))
@@ -108,100 +156,72 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const getFriendshipState = (student) => {
     const isSent = sentRequests.includes(student.id);
     if (isSent) {
-      return { isConnected: false, isPending: true, label: "Request Sent", icon: <Check size={16} /> };
+      return { isConnected: false, isPending: true, label: "Requested" };
     }
     
     if (student.friendshipStatus === 'accepted') {
-      return { isConnected: true, isPending: false, label: "Connected", icon: <UserCheck size={16} /> };
+      return { isConnected: true, isPending: false, label: "Connected" };
     }
     
     if (student.friendshipStatus === 'pending') {
-      if (student.isFriendshipSender) {
-        return { isConnected: false, isPending: true, label: "Request Sent", icon: <Check size={16} /> };
-      } else {
-        return { isConnected: false, isPending: true, label: "Incoming Request", icon: <Check size={16} /> };
-      }
+      return { isConnected: false, isPending: true, label: "Requested" };
     }
     
-    return { isConnected: false, isPending: false, label: "Connect", icon: <UserPlus size={16} /> };
+    return { isConnected: false, isPending: false, label: "Follow" };
   };
 
   const getGroupInitials = (name) => {
     return name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'GP';
   };
 
-  const isSearching = (searchType === 'students' ? hasSearched : (hasSearched || (searchType === 'groups' && hasLoadedGroups)));
+  const isSearching = hasSearched || (searchType === 'groups' && hasLoadedGroups);
+  const displayedSuggestedUsers = viewAllSuggested ? suggestedUsers : suggestedUsers.slice(0, 6);
 
   return (
-    <div className={`flex flex-col gap-5 sm:gap-6 w-full ${isSearching ? 'max-w-md lg:max-w-5xl' : 'max-w-md lg:max-w-4xl'} mx-auto py-2 sm:py-4 px-3 sm:px-0`}>
+    <div className="flex flex-col gap-4 w-full max-w-md lg:max-w-xl mx-auto py-1 px-3 sm:px-0">
       
       {/* ── LANDING VIEW: MATCHING TARGET SCREENSHOT ── */}
       {!isSearching && (
-        <div className="flex flex-col gap-6 w-full">
+        <div className="flex flex-col gap-4 w-full">
           
-          {/* Header Section (Desktop only - mobile uses TopBar subtabs) */}
-          <div className="hidden lg:flex flex-col items-center text-center gap-4 mt-2">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/10 shrink-0">
-              <Users size={26} />
-            </div>
-            
-            <div className="text-center">
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900 dark:text-white mt-1">
-                Social <span className="text-orange-500">Explorer</span>
-              </h2>
-              <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm font-semibold leading-relaxed mt-2 max-w-xs mx-auto">
-                Find people in the community to connect and collaborate.
-              </p>
-            </div>
-          </div>
-
-          {/* ── Search Bar (Identical style & size to Learning Hub Explorer) ── */}
+          {/* 1. Search Bar */}
           <form 
-            onSubmit={(e) => { e.preventDefault(); if (searchType === 'students') handleSearch(); }}
-            className="relative w-full group"
+            onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
+            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-1.5 pl-3.5 shadow-sm flex items-center gap-2.5 transition-all focus-within:ring-2 focus-within:ring-orange-500/20 focus-within:border-orange-300"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-2xl sm:rounded-[2rem] blur-xl group-focus-within:blur-2xl transition-all duration-500 opacity-60"></div>
-            <div className="relative flex items-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl sm:rounded-[2rem] p-1.5 sm:p-2 shadow-xl shadow-gray-200/50 dark:shadow-none transition-all duration-500 focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30">
-              <div className="pl-3 sm:pl-4 text-gray-400 group-focus-within:text-orange-500 transition-colors">
-                <Search size={20} className="sm:w-[22px] sm:h-[22px]" />
-              </div>
-              <input 
-                ref={searchInputRef}
-                type="text" 
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search people, colleges, interests..."
-                className="flex-1 min-w-0 bg-transparent border-none py-2.5 sm:py-3.5 px-2 sm:px-4 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-0 outline-none text-sm sm:text-base font-semibold"
-              />
-              <div className="flex items-center gap-1.5 shrink-0 pr-1">
-                {query && (
-                  <button 
-                    type="button"
-                    onClick={() => { setQuery(''); setResults([]); setHasSearched(false); }}
-                    className="px-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer"
-                  >
-                    Clear
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="bg-orange-500 hover:bg-orange-600 text-white p-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-[1.25rem] font-black text-xs sm:text-sm tracking-wide transition-all flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
-                >
-                  {loading ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <span className="hidden sm:inline">Search</span>
-                      <span className="sm:hidden"><Search size={16} /></span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
+            <Search size={18} className="text-gray-400 shrink-0" />
+            <input 
+              ref={searchInputRef}
+              type="text" 
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search people, colleges, interests..."
+              className="flex-1 min-w-0 bg-transparent border-none text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none font-medium"
+            />
+            {query && (
+              <button 
+                type="button"
+                onClick={() => { setQuery(''); setResults([]); setHasSearched(false); }}
+                className="px-1 text-gray-400 hover:text-gray-600 text-xs font-semibold cursor-pointer"
+              >
+                ✕
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-9 h-9 rounded-xl bg-[#FF5722] hover:bg-[#F4511E] text-white flex items-center justify-center shrink-0 shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+              title="Search"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Search size={16} strokeWidth={2.25} />
+              )}
+            </button>
           </form>
 
-          {/* Card 2: Build your network */}
+          {/* 2. Build your network Card */}
           <div 
             onClick={() => {
               setSearchType('groups');
@@ -209,138 +229,194 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                 fetchStoreGroups();
               }
             }}
-            className="bg-white dark:bg-gray-900 hover:bg-orange-50/5 dark:hover:bg-gray-800/20 rounded-3xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow transition-all duration-300 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group"
+            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-between gap-3 group"
           >
-            <div className="flex items-center gap-4 text-left min-w-0 flex-1">
-              <div className="w-12 h-12 rounded-full bg-orange-50 dark:bg-orange-950/20 text-orange-500 flex items-center justify-center shrink-0 border border-orange-100/50 dark:border-orange-500/10">
-                <Users size={20} />
+            <div className="flex items-center gap-3.5 min-w-0 flex-1">
+              <div className="w-12 h-12 rounded-full bg-[#FFF0E6] dark:bg-orange-950/40 text-[#FF5722] flex items-center justify-center shrink-0">
+                <Users size={22} className="stroke-[1.75]" />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-extrabold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
-                  Build your <span className="text-orange-500">network</span>
+                <h3 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base">
+                  Build your network
                 </h3>
-                <p className="text-gray-405 dark:text-gray-500 text-xs mt-0.5 font-bold leading-normal">Explore the community and make meaningful connections.</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5 leading-snug">
+                  Explore the community and make meaningful connections.
+                </p>
               </div>
             </div>
-            <div className="flex sm:justify-end w-full sm:w-auto pl-16 sm:pl-0">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchType('groups');
+                if (!hasLoadedGroups) {
+                  fetchStoreGroups();
+                }
+              }}
+              className="border border-[#FF5722] text-[#FF5722] hover:bg-[#FF5722] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1 transition shrink-0 cursor-pointer"
+            >
+              <span>Explore</span>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+
+          {/* 3. Refer & Learn Card */}
+          <div className="bg-[#FFF7F2] dark:bg-gray-800/90 rounded-2xl border border-orange-100/70 dark:border-gray-700 p-4 sm:p-4.5 flex flex-col gap-3.5 shadow-xs">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-[#FFEAE0] dark:bg-orange-950/50 text-[#FF5722] flex items-center justify-center shrink-0">
+                <Gift size={20} className="stroke-[1.75]" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-bold text-gray-900 dark:text-white text-sm sm:text-base leading-snug">
+                  Refer & Learn
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">
+                  Invite friends and learn together.
+                </p>
+              </div>
+            </div>
+
+            {/* Code Box + Share Button */}
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="bg-white dark:bg-gray-850 border border-orange-100/90 dark:border-gray-700 rounded-2xl px-3.5 py-2 flex items-center justify-between flex-1 shadow-xs min-w-0">
+                <div className="min-w-0">
+                  <div className="text-[10px] text-gray-400 font-medium leading-none">Your code</div>
+                  <div className="text-sm sm:text-base font-black text-[#FF5722] tracking-wider font-mono uppercase mt-0.5 truncate">
+                    {referralData?.referralCode || 'LPVIP'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyCode}
+                  className="p-1.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-400 hover:text-[#FF5722] transition cursor-pointer shrink-0 ml-2"
+                  title="Copy code"
+                >
+                  {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                </button>
+              </div>
+
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSearchType('groups');
-                  if (!hasLoadedGroups) {
-                    fetchStoreGroups();
-                  }
-                }}
-                className="text-[10px] sm:text-xs border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white font-extrabold px-3.5 py-1.5 rounded-xl transition cursor-pointer flex items-center gap-1 shrink-0 w-fit"
+                type="button"
+                onClick={handleShare}
+                className="bg-[#FF5722] hover:bg-[#F4511E] text-white font-bold text-xs sm:text-sm px-5 py-3 rounded-2xl flex items-center justify-center gap-2 shadow-sm shadow-orange-500/20 active:scale-95 transition cursor-pointer shrink-0"
               >
-                <span>Start Exploring</span>
-                <ChevronRight size={12} strokeWidth={3} />
+                <Share2 size={16} />
+                <span>Share</span>
               </button>
             </div>
           </div>
 
-          {/* ── REFERRAL & INVITE CARD ── */}
-          <ReferralInviteCard />
-
-          {/* ── SUGGESTED USERS SECTION ── */}
-          {(loadingSuggested || suggestedUsers.length > 0) && (
-            <div className="flex flex-col gap-3.5 mt-2">
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-orange-50 dark:bg-orange-950/30 text-orange-500 flex items-center justify-center border border-orange-100/60 dark:border-orange-500/10">
-                    <Sparkles size={14} />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-gray-900 dark:text-gray-100 text-sm sm:text-base">
-                      Suggested Users
-                    </h3>
-                  </div>
-                </div>
-                {suggestedUsers.length > 0 && (
-                  <span className="text-[10px] font-extrabold text-orange-500 bg-orange-50 dark:bg-orange-950/20 px-2.5 py-1 rounded-full border border-orange-100/50 dark:border-orange-500/10">
-                    {suggestedUsers.length} People
-                  </span>
-                )}
-              </div>
-
-              {loadingSuggested ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                  {[1, 2, 3, 4].map((n) => (
-                    <div key={n} className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-4 animate-pulse flex items-center gap-3.5">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gray-200 dark:bg-gray-800 shrink-0"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4"></div>
-                        <div className="h-3 bg-gray-100 dark:bg-gray-850 rounded w-1/2"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-                  {suggestedUsers.map((student) => {
-                    const fState = getFriendshipState(student);
-                    return (
-                      <div
-                        key={student.id}
-                        onClick={() => onViewProfile && onViewProfile(student.id)}
-                        className="bg-white dark:bg-gray-900 hover:bg-orange-50/10 dark:hover:bg-gray-800/40 rounded-3xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer flex items-center gap-3.5 group relative overflow-hidden"
-                      >
-                        <UserAvatar
-                          src={student.profilePicture}
-                          name={student.name}
-                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl shrink-0"
-                          textClassName="text-base sm:text-lg"
-                        />
-
-                        <div className="min-w-0 flex-1">
-                          <h4 className="font-extrabold text-gray-900 dark:text-gray-100 group-hover:text-orange-500 transition-colors text-sm sm:text-base truncate">
-                            {student.name}
-                          </h4>
-                          {student.department && (
-                            <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs mt-0.5 truncate font-semibold">
-                              <GraduationCap size={12} className="text-orange-400 shrink-0" />
-                              <span className="truncate">{student.department}</span>
-                            </div>
-                          )}
-                          {student.collegeName && (
-                            <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 text-[11px] mt-0.5 truncate font-medium">
-                              <MapPin size={11} className="text-orange-400 shrink-0" />
-                              <span className="truncate">{student.collegeName}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <button
-                          onClick={(e) => handleConnect(e, student.id)}
-                          disabled={fState.isConnected || fState.isPending}
-                          className={`z-10 p-2 sm:px-3 sm:py-2 rounded-2xl transition-all cursor-pointer shrink-0 font-extrabold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 ${
-                            fState.isConnected
-                              ? 'bg-indigo-50 bg-opacity-20 text-indigo-650 dark:text-indigo-400 border border-indigo-200/25'
-                              : fState.isPending
-                                ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 border border-green-200/25'
-                                : 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/20'
-                          }`}
-                          title={fState.label}
-                        >
-                          {fState.icon}
-                          <span className="hidden sm:inline">{fState.label}</span>
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
+          {/* 4. Suggested Users Section */}
+          <div className="flex flex-col gap-2.5 mt-1">
+            {/* Section Header */}
+            <div className="flex items-center justify-between px-1">
+              <h3 className="font-bold text-gray-900 dark:text-white text-base">
+                Suggested Users
+              </h3>
+              {suggestedUsers.length > 3 && (
+                <button 
+                  type="button"
+                  onClick={() => setViewAllSuggested(!viewAllSuggested)}
+                  className="text-[#FF5722] hover:text-orange-600 font-semibold text-xs flex items-center gap-0.5 cursor-pointer transition"
+                >
+                  <span>{viewAllSuggested ? 'Show Less' : 'View All'}</span>
+                  <ChevronRight size={14} />
+                </button>
               )}
             </div>
-          )}
+
+            {/* Users List */}
+            {loadingSuggested ? (
+              <div className="flex flex-col gap-2.5">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-3.5 px-4 animate-pulse flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                      <div className="h-3 bg-gray-100 dark:bg-gray-750 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : suggestedUsers.length === 0 ? (
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-8 text-center text-gray-400 text-xs">
+                No suggested learners at the moment.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {displayedSuggestedUsers.map((student) => {
+                  const fState = getFriendshipState(student);
+                  const subtitle = [student.department, student.collegeName].filter(Boolean).join(' • ') || student.bio || 'Learner';
+
+                  return (
+                    <div
+                      key={student.id}
+                      onClick={() => onViewProfile && onViewProfile(student.id)}
+                      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-3 px-3.5 shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                    >
+                      {/* Avatar */}
+                      <UserAvatar
+                        src={student.profilePicture}
+                        name={student.name}
+                        className="w-12 h-12 rounded-full shrink-0"
+                        textClassName="text-base font-bold"
+                      />
+
+                      {/* Name & Subtitle */}
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm group-hover:text-[#FF5722] transition-colors truncate">
+                          {student.name}
+                        </h4>
+                        <p className="text-gray-400 dark:text-gray-500 text-xs font-normal mt-0.5 truncate max-w-[190px] sm:max-w-xs">
+                          {subtitle}
+                        </p>
+                      </div>
+
+                      {/* Right Actions */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => handleConnect(e, student.id)}
+                          disabled={fState.isConnected || fState.isPending}
+                          className={`font-semibold text-xs px-4 py-1.5 rounded-full transition active:scale-95 ${
+                            fState.isConnected
+                              ? 'bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 cursor-default'
+                              : fState.isPending
+                                ? 'border border-gray-200 dark:border-gray-700 text-gray-400 cursor-default'
+                                : 'border border-[#FF5722] text-[#FF5722] hover:bg-[#FF5722] hover:text-white cursor-pointer'
+                          }`}
+                        >
+                          {fState.label}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewProfile && onViewProfile(student.id);
+                          }}
+                          className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition cursor-pointer"
+                          title="View options"
+                        >
+                          <MoreVertical size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
         </div>
       )}
 
-      {/* ── ACTIVE SEARCH RESULTS VIEW ── */}
+      {/* ── ACTIVE SEARCH RESULTS OR GROUPS VIEW ── */}
       {isSearching && (
         <div className="flex flex-col gap-4 w-full">
           
-          {/* Back action and selector header row */}
+          {/* Header Row */}
           <div className="flex items-center justify-between gap-3">
             <button
               onClick={() => {
@@ -349,13 +425,13 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                 setSearchType('students');
                 setHasSearched(false);
               }}
-              className="flex items-center gap-1.5 text-[11px] font-extrabold text-gray-500 hover:text-orange-500 dark:text-gray-400 dark:hover:text-orange-400 transition cursor-pointer bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 px-3.5 py-2 rounded-xl shadow-sm hover:shadow"
+              className="flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-[#FF5722] dark:text-gray-400 dark:hover:text-[#FF5722] transition cursor-pointer bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 px-3.5 py-2 rounded-xl shadow-xs"
             >
-              <ArrowLeft size={13} />
-              <span>Back to Explorer</span>
+              <ArrowLeft size={14} />
+              <span>Back to Discover</span>
             </button>
             
-            <div className="flex gap-1 p-0.5 bg-gray-100 dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800">
+            <div className="flex gap-1 p-0.5 bg-gray-100 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-750">
               <button
                 onClick={() => {
                   setSearchType('students');
@@ -363,13 +439,13 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                   setResults([]);
                   setHasSearched(false);
                 }}
-                className={`px-3 py-1 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   searchType === 'students'
-                    ? 'bg-white dark:bg-gray-850 text-orange-500 dark:text-orange-400 shadow-sm'
-                    : 'text-gray-500 dark:text-gray-450 hover:text-gray-800'
+                    ? 'bg-white dark:bg-gray-800 text-[#FF5722] shadow-xs'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800'
                 }`}
               >
-                Students
+                People
               </button>
               <button
                 onClick={() => {
@@ -379,10 +455,10 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                     fetchStoreGroups();
                   }
                 }}
-                className={`px-3 py-1 rounded-lg text-[10px] font-black transition cursor-pointer ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
                   searchType === 'groups'
-                    ? 'bg-white dark:bg-gray-850 text-orange-500 dark:text-orange-400 shadow-sm'
-                    : 'text-gray-500 dark:text-gray-450 hover:text-gray-800'
+                    ? 'bg-white dark:bg-gray-800 text-[#FF5722] shadow-xs'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800'
                 }`}
               >
                 Groups
@@ -390,236 +466,197 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
             </div>
           </div>
 
-          {/* ── Active Search Bar (Identical style & size to Learning Hub Explorer) ── */}
+          {/* Search Input Bar */}
           <form 
             onSubmit={(e) => { e.preventDefault(); if (searchType === 'students') handleSearch(); }}
-            className="relative w-full group"
+            className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-1.5 pl-3.5 shadow-sm flex items-center gap-2.5 transition-all focus-within:ring-2 focus-within:ring-orange-500/20 focus-within:border-orange-300"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-2xl sm:rounded-[2rem] blur-xl group-focus-within:blur-2xl transition-all duration-500 opacity-60"></div>
-            <div className="relative flex items-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl sm:rounded-[2rem] p-1.5 sm:p-2 shadow-xl shadow-gray-200/50 dark:shadow-none transition-all duration-500 focus-within:ring-4 focus-within:ring-orange-500/10 focus-within:border-orange-500/30">
-              <div className="pl-3 sm:pl-4 text-gray-400 group-focus-within:text-orange-500 transition-colors">
-                <Search size={20} className="sm:w-[22px] sm:h-[22px]" />
-              </div>
-              <input 
-                ref={searchInputRef}
-                type="text" 
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={searchType === 'students' ? "Search people, colleges, interests..." : "Search groups by name or description..."}
-                className="flex-1 min-w-0 bg-transparent border-none py-2.5 sm:py-3.5 px-2 sm:px-4 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-0 outline-none text-sm sm:text-base font-semibold"
-              />
-              <div className="flex items-center gap-1.5 shrink-0 pr-1">
-                {query && (
-                  <button 
-                    type="button"
-                    onClick={() => { 
-                      setQuery(''); 
-                      if (searchType === 'students') {
-                        setResults([]); 
-                        setHasSearched(false);
-                      }
-                    }}
-                    className="px-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs font-bold transition cursor-pointer"
-                  >
-                    Clear
-                  </button>
+            <Search size={18} className="text-gray-400 shrink-0" />
+            <input 
+              ref={searchInputRef}
+              type="text" 
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchType === 'students' ? "Search people, colleges, interests..." : "Search groups..."}
+              className="flex-1 min-w-0 bg-transparent border-none text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none font-medium"
+            />
+            {query && (
+              <button 
+                type="button"
+                onClick={() => { 
+                  setQuery(''); 
+                  if (searchType === 'students') {
+                    setResults([]); 
+                    setHasSearched(false);
+                  }
+                }}
+                className="px-1 text-gray-400 hover:text-gray-600 text-xs font-semibold cursor-pointer"
+              >
+                ✕
+              </button>
+            )}
+            {searchType === 'students' && (
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-9 h-9 rounded-xl bg-[#FF5722] hover:bg-[#F4511E] text-white flex items-center justify-center shrink-0 shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                {loading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Search size={16} strokeWidth={2.25} />
                 )}
-                {searchType === 'students' && (
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-orange-500 hover:bg-orange-600 text-white p-2.5 sm:px-6 sm:py-3 rounded-xl sm:rounded-[1.25rem] font-black text-xs sm:text-sm tracking-wide transition-all flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <>
-                        <span className="hidden sm:inline">Search</span>
-                        <span className="sm:hidden"><Search size={16} /></span>
-                      </>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
+              </button>
+            )}
           </form>
-        </div>
-      )}
 
-      {/* ── RESULTS SECTION ── */}
-      {isSearching && (
-        <div className="flex flex-col gap-4">
+          {/* Results List */}
           {loading && (
-            <div className="text-center py-16 text-gray-500">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent mx-auto mb-3"></div>
-              <span className="text-sm font-bold text-gray-400">
-                {searchType === 'students' ? 'Searching community members...' : 'Loading community groups...'}
-              </span>
+            <div className="text-center py-12 text-gray-500">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#FF5722] border-t-transparent mx-auto mb-2"></div>
+              <span className="text-xs font-semibold text-gray-400">Searching community members...</span>
             </div>
           )}
 
-          {/* --- STUDENTS SEARCH RESULTS --- */}
+          {/* People Results */}
           {!loading && searchType === 'students' && results.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <h3 className="text-sm font-black text-gray-400 dark:text-gray-550 uppercase tracking-wider">
-                Search Results ({results.length})
+            <div className="flex flex-col gap-2.5">
+              <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1">
+                Results ({results.length})
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {results.map((student) => {
-                  const isSent = sentRequests.includes(student.id);
-                  return (
-                    <div 
-                      key={student.id} 
-                      onClick={() => onViewProfile(student.id)}
-                      className="bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-800/40 rounded-3xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer flex gap-4 items-center group relative overflow-hidden"
-                    >
-                      <UserAvatar 
-                        src={student.profilePicture} 
-                        name={student.name} 
-                        className="w-14 h-14 rounded-2xl shrink-0" 
-                        textClassName="text-xl"
-                      />
-                      
-                      <div className="min-w-0 flex-1">
-                        <h3 className="font-extrabold text-gray-800 dark:text-gray-100 group-hover:text-orange-500 transition-colors text-base truncate">{student.name}</h3>
-                        {student.department && (
-                          <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs mt-1 truncate font-semibold">
-                            <GraduationCap size={13} className="text-orange-400 shrink-0" />
-                            <span className="truncate">{student.department}</span>
-                          </div>
-                        )}
-                        {student.collegeName && (
-                          <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs mt-0.5 truncate font-semibold">
-                            <MapPin size={13} className="text-orange-400 shrink-0" />
-                            <span className="truncate">{student.collegeName}</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {(() => {
-                        const fState = getFriendshipState(student);
-                        return (
-                          <button
-                            onClick={(e) => handleConnect(e, student.id)}
-                            disabled={fState.isConnected || fState.isPending}
-                            className={`z-10 p-2.5 rounded-2xl transition-all cursor-pointer shrink-0 ${
-                              fState.isConnected
-                                ? 'bg-indigo-50 bg-opacity-20 text-indigo-650 dark:text-indigo-400 border border-indigo-200/25'
-                                : fState.isPending 
-                                  ? 'bg-green-50 bg-opacity-20 text-green-600 dark:text-green-400 border border-green-200/25' 
-                                  : 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white border border-transparent'
-                            }`}
-                            title={fState.label}
-                          >
-                            {fState.icon}
-                          </button>
-                        );
-                      })()}
+              {results.map((student) => {
+                const fState = getFriendshipState(student);
+                const subtitle = [student.department, student.collegeName].filter(Boolean).join(' • ') || student.bio || 'Learner';
+
+                return (
+                  <div 
+                    key={student.id} 
+                    onClick={() => onViewProfile && onViewProfile(student.id)}
+                    className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-3 px-3.5 shadow-xs hover:shadow-sm transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                  >
+                    <UserAvatar 
+                      src={student.profilePicture} 
+                      name={student.name} 
+                      className="w-12 h-12 rounded-full shrink-0" 
+                      textClassName="text-base font-bold"
+                    />
+                    
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm group-hover:text-[#FF5722] transition-colors truncate">
+                        {student.name}
+                      </h4>
+                      <p className="text-gray-400 dark:text-gray-500 text-xs font-normal mt-0.5 truncate max-w-[190px] sm:max-w-xs">
+                        {subtitle}
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
+                    
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => handleConnect(e, student.id)}
+                        disabled={fState.isConnected || fState.isPending}
+                        className={`font-semibold text-xs px-4 py-1.5 rounded-full transition active:scale-95 ${
+                          fState.isConnected
+                            ? 'bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 cursor-default'
+                            : fState.isPending 
+                              ? 'border border-gray-200 dark:border-gray-700 text-gray-400 cursor-default' 
+                              : 'border border-[#FF5722] text-[#FF5722] hover:bg-[#FF5722] hover:text-white cursor-pointer'
+                        }`}
+                      >
+                        {fState.label}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onViewProfile && onViewProfile(student.id);
+                        }}
+                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition cursor-pointer"
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
-          {/* --- GROUPS SEARCH RESULTS --- */}
+          {/* Groups Results */}
           {!loading && searchType === 'groups' && filteredGroups.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <h3 className="text-sm font-black text-gray-400 dark:text-gray-550 uppercase tracking-wider">
+            <div className="flex flex-col gap-2.5">
+              <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-1">
                 Discussion Groups ({filteredGroups.length})
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredGroups.map((group) => {
-                  const initials = getGroupInitials(group.name);
-                  return (
-                    <div 
-                      key={group.id} 
-                      className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden"
-                    >
-                      <div>
-                        <div className="flex items-start gap-3.5 mb-3">
-                          <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base text-white bg-gradient-to-tr from-emerald-400 to-teal-500 shrink-0 shadow-sm">
-                            {initials}
-                          </div>
-                          
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <h3 className="font-black text-gray-800 dark:text-gray-100 text-base truncate">{group.name}</h3>
-                              {group.isPrivate ? (
-                                <span className="flex items-center gap-0.5 text-[9px] text-red-500 bg-red-50 dark:bg-red-950/20 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
-                                  <Lock size={8} /> Private
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-0.5 text-[9px] text-green-600 bg-green-50 dark:bg-green-950/20 px-1.5 py-0.5 rounded-md font-black uppercase tracking-wider">
-                                  <Unlock size={8} /> Public
-                                </span>
-                              )}
-                            </div>
-                            
-                            <p className="text-xs text-gray-400 dark:text-gray-500 font-bold mt-0.5">
-                              {group.memberCount} members
-                            </p>
-                          </div>
+              {filteredGroups.map((group) => {
+                const initials = getGroupInitials(group.name);
+                return (
+                  <div 
+                    key={group.id} 
+                    className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-3.5 shadow-xs flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center font-bold text-sm text-white bg-gradient-to-tr from-emerald-500 to-teal-600 shrink-0 shadow-xs">
+                        {initials}
+                      </div>
+                      
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm truncate">{group.name}</h4>
+                          {group.isPrivate ? (
+                            <span className="flex items-center gap-0.5 text-[9px] text-red-500 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded font-bold uppercase">
+                              <Lock size={8} /> Private
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-0.5 text-[9px] text-green-600 bg-green-50 dark:bg-green-950/30 px-1.5 py-0.5 rounded font-bold uppercase">
+                              <Unlock size={8} /> Public
+                            </span>
+                          )}
                         </div>
-
-                        <p className="text-xs text-gray-600 dark:text-gray-400 font-semibold line-clamp-2 leading-relaxed min-h-[2rem]">
-                          {group.description || 'No description provided.'}
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">
+                          {group.memberCount} members • {group.description || 'Community discussion group'}
                         </p>
                       </div>
-
-                      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-50 dark:border-gray-800/50 flex-wrap">
-                        {group.isJoined ? (
-                          <>
-                            <span className="flex items-center gap-1 text-[10px] text-green-600 bg-green-50 dark:bg-green-950/20 px-3 py-1.5 rounded-xl font-black uppercase tracking-wider whitespace-nowrap">
-                              <Check size={12} strokeWidth={3} /> Joined
-                            </span>
-                            <button
-                              onClick={() => onSelectChatUser && onSelectChatUser({ ...group, type: 'group' })}
-                              className="flex items-center gap-1.5 text-[10px] text-orange-500 hover:text-white hover:bg-orange-500 border border-orange-500 bg-transparent px-3 py-1.5 rounded-xl font-black uppercase tracking-wider transition cursor-pointer whitespace-nowrap active:scale-95"
-                            >
-                              <MessageSquareMore size={12} /> Open Chat
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              if (group.isPrivate) {
-                                setShowJoinGroupModal(group);
-                              } else {
-                                handleJoinGroup(group);
-                              }
-                            }}
-                            className="text-[10px] bg-orange-500 hover:bg-orange-600 text-white font-black px-4 py-2 rounded-xl transition shadow-md shadow-orange-500/10 cursor-pointer uppercase tracking-wider whitespace-nowrap active:scale-95"
-                          >
-                            Join Group
-                          </button>
-                        )}
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div className="shrink-0">
+                      {group.isJoined ? (
+                        <button
+                          onClick={() => onSelectChatUser && onSelectChatUser({ ...group, type: 'group' })}
+                          className="border border-[#FF5722] text-[#FF5722] hover:bg-[#FF5722] hover:text-white font-semibold text-xs px-3 py-1.5 rounded-full transition flex items-center gap-1"
+                        >
+                          <MessageSquareMore size={12} />
+                          <span>Chat</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (group.isPrivate) {
+                              setShowJoinGroupModal(group);
+                            } else {
+                              handleJoinGroup(group);
+                            }
+                          }}
+                          className="bg-[#FF5722] hover:bg-[#F4511E] text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition shadow-xs"
+                        >
+                          Join
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
-          {/* Empty results message */}
+          {/* Empty Results */}
           {!loading && (
             (searchType === 'students' && query && results.length === 0) ||
             (searchType === 'groups' && filteredGroups.length === 0)
           ) && (
-            <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-12 text-center text-gray-500 dark:text-gray-400 shadow-sm max-w-md mx-auto mt-4">
-               <div className="w-12 h-12 bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-550 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                 <Search size={22} />
-               </div>
-               <p className="font-extrabold text-sm mb-1 text-gray-800 dark:text-gray-200">
-                 {searchType === 'students' ? 'No users found' : 'No groups found'}
-               </p>
-               <p className="text-xs text-gray-400 dark:text-gray-550 font-bold leading-relaxed">
-                 {searchType === 'students' 
-                   ? 'Try searching for another name, major, college, or location keyword.'
-                   : 'Try searching for another group name or keyword.'
-                 }
-               </p>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-8 text-center text-gray-400 text-xs">
+              No results found for "{query}". Try a different name, major, or college.
             </div>
           )}
         </div>
@@ -671,7 +708,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-orange-500/10 transition cursor-pointer"
+                    className="flex-1 px-4 py-2.5 bg-[#FF5722] hover:bg-[#F4511E] text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-orange-500/10 transition cursor-pointer"
                   >
                     Verify Key
                   </button>
