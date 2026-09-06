@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Mail, Award, Activity, Zap } from 'lucide-react';
+import { X, User, Mail, Award, Activity, Zap, ExternalLink } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 
 const ProfileModal = ({ isOpen, onClose }) => {
     const { user, token } = useAuth();
+    const navigate = useNavigate();
     const [profileData, setProfileData] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -51,7 +53,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                     <div className="h-32 bg-gradient-to-r from-orange-400 via-red-500 to-pink-500 relative">
                         <button
                             onClick={onClose}
-                            className="absolute top-4 right-4 bg-black/20 hover:bg-black/40 text-white rounded-full p-1.5 transition-colors"
+                            className="absolute top-4 right-4 bg-black/20 hover:bg-black/40 text-white rounded-full p-1.5 transition-colors cursor-pointer"
                         >
                             <X size={20} />
                         </button>
@@ -65,7 +67,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                 <img src={user.picture} alt="Profile" className="w-24 h-24 rounded-full object-cover" />
                             ) : (
                                 <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-orange-100 dark:from-gray-800 to-red-100 dark:to-gray-700 flex items-center justify-center text-orange-600 dark:text-orange-400 shadow-inner">
-                                    <User size={40} />
+                                  <User size={40} />
                                 </div>
                             )}
                         </div>
@@ -85,7 +87,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
                             </div>
                         ) : profileData ? (
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-4 w-full">
                                 {/* Level Card */}
                                 <div className="bg-orange-50 dark:bg-gray-800 rounded-xl p-4 border border-orange-100 dark:border-gray-700 flex flex-col items-center justify-center text-center">
                                     <div className="bg-orange-100 dark:bg-gray-700 p-2 rounded-full text-orange-600 dark:text-orange-400 mb-2">
@@ -127,10 +129,22 @@ const ProfileModal = ({ isOpen, onClose }) => {
                             </div>
                         )}
 
-                        <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 w-full">
+                        {/* Action Buttons */}
+                        <div className="mt-6 pt-5 border-t border-gray-100 dark:border-gray-800 w-full flex flex-col gap-2.5">
+                            <button
+                                onClick={() => {
+                                    onClose();
+                                    navigate('/dashboard/social?tab=profile');
+                                }}
+                                className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold text-sm rounded-xl shadow-lg shadow-orange-500/25 hover:shadow-orange-500/35 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+                            >
+                                <User size={16} />
+                                <span>View Detailed Profile</span>
+                                <ExternalLink size={14} className="opacity-75" />
+                            </button>
                             <button
                                 onClick={onClose}
-                                className="w-full py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                className="w-full py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-xl transition-colors cursor-pointer text-sm"
                             >
                                 Close Profile
                             </button>

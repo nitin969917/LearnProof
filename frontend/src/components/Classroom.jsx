@@ -22,7 +22,8 @@ import {
   Trash2,
   ChevronRight,
   Bot,
-  Copy
+  Copy,
+  Plus
 } from "lucide-react";
 import { useModal } from "../context/ModalContext";
 import YouTube from 'react-youtube';
@@ -198,25 +199,57 @@ const Classroom = () => {
   const [playlistPage, setPlaylistPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
 
-  // AI Doubt Chatbot State (Inside AI Intuition Tab)
-  const [aiChatMessages, setAiChatMessages] = useState([]);
+  // AI Doubt Chatbot State (Inside AI Intuition / Chatbot Tab)
+  const [aiChatMessages, setAiChatMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`learnproof_ai_chat_${videoId}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [aiChatInput, setAiChatInput] = useState('');
   const [aiChatLoading, setAiChatLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
 
   useEffect(() => {
-    // Reset AI chat when changing videos
-    setAiChatMessages([]);
-    setAiChatInput('');
-    setAiChatLoading(false);
+    // Load persisted AI chat when changing videos
+    if (videoId) {
+      try {
+        const saved = localStorage.getItem(`learnproof_ai_chat_${videoId}`);
+        setAiChatMessages(saved ? JSON.parse(saved) : []);
+      } catch {
+        setAiChatMessages([]);
+      }
+      setAiChatInput('');
+      setAiChatLoading(false);
+    }
   }, [videoId]);
+
+  const updateAiMessages = (newMessages) => {
+    setAiChatMessages(newMessages);
+    if (videoId) {
+      try {
+        localStorage.setItem(`learnproof_ai_chat_${videoId}`, JSON.stringify(newMessages));
+      } catch (e) {
+        console.error('Failed to save AI chat to storage', e);
+      }
+    }
+  };
+
+  const handleStartNewChat = () => {
+    updateAiMessages([]);
+    setAiChatInput('');
+    toast.success('Started a new conversation!');
+  };
 
   const handleSendAiQuestion = async (customQuestion) => {
     const question = (customQuestion || aiChatInput).trim();
     if (!question || aiChatLoading || !video?.vid) return;
 
     const userMsg = { role: 'user', content: question, timestamp: new Date() };
-    setAiChatMessages(prev => [...prev, userMsg]);
+    const updatedWithUser = [...aiChatMessages, userMsg];
+    updateAiMessages(updatedWithUser);
     setAiChatInput('');
     setAiChatLoading(true);
 
@@ -233,14 +266,14 @@ const Classroom = () => {
 
       if (res.data?.success && res.data.answer) {
         const aiMsg = { role: 'assistant', content: res.data.answer, timestamp: new Date() };
-        setAiChatMessages(prev => [...prev, aiMsg]);
+        updateAiMessages([...updatedWithUser, aiMsg]);
       } else {
         throw new Error('No answer received');
       }
     } catch (err) {
       console.error('Error asking AI doubt:', err);
       toast.error('Failed to get answer from AI. Please try again.');
-      setAiChatMessages(prev => [...prev, {
+      updateAiMessages([...updatedWithUser, {
         role: 'assistant',
         content: '⚠️ I encountered an issue connecting to the AI tutor. Please check your network and try asking again.',
         isError: true,
@@ -1337,13 +1370,16 @@ const Classroom = () => {
                           </div>
                         </div>
                         {aiChatMessages.length > 0 && (
-                          <button
-                            onClick={() => setAiChatMessages([])}
-                            className="text-xs font-semibold text-gray-400 hover:text-red-500 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800"
-                            title="Clear conversation"
-                          >
-                            Clear Chat
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={handleStartNewChat}
+                              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs"
+                              title="Start a new chat conversation"
+                            >
+                              <Plus size={14} />
+                              <span>New Chat</span>
+                            </button>
+                          </div>
                         )}
                       </div>
 

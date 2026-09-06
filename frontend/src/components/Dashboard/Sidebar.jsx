@@ -44,8 +44,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
         {
             title: 'Portal',
             items: [
-                { name: 'Home', icon: <Home size={20} />, path: '/dashboard' },
-                { name: 'Ambassador', icon: <Crown size={20} className="text-amber-500" />, path: '/ambassador/dashboard' }
+                { name: 'Home', icon: <Home size={20} />, path: '/dashboard' }
             ]
         },
         {
