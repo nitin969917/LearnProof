@@ -328,16 +328,19 @@ const submitStageRequest = async (req, res) => {
       requestedAt: Date.now(),
     });
 
-    // Real-time Push via Socket.IO directly to the host
+    // Real-time Push via Socket.IO directly to the host and live room
     try {
       const io = req.app.get('io');
-      if (io && dbRoom.creatorId) {
-        const hostId = String(dbRoom.creatorId);
-        io.to(hostId).emit('speak_request', {
+      if (io) {
+        const payload = {
           roomName,
           identity: userId,
           name: userName,
-        });
+        };
+        if (dbRoom.creatorId) {
+          io.to(String(dbRoom.creatorId)).emit('speak_request', payload);
+        }
+        io.to(`live_room_${roomName}`).emit('speak_request', payload);
       }
     } catch (sockErr) {
       console.warn('Socket stage request emit error:', sockErr.message);
@@ -393,15 +396,18 @@ const dismissStageRequest = async (req, res) => {
 
     clearStageRequest(roomName, identity);
 
-    // Real-time Push via Socket.IO directly to the host
+    // Real-time Push via Socket.IO directly to the host and live room
     try {
       const io = req.app.get('io');
-      if (io && dbRoom.creatorId) {
-        const hostId = String(dbRoom.creatorId);
-        io.to(hostId).emit('withdraw_stage_request', {
+      if (io) {
+        const payload = {
           roomName,
           identity: String(identity),
-        });
+        };
+        if (dbRoom.creatorId) {
+          io.to(String(dbRoom.creatorId)).emit('withdraw_stage_request', payload);
+        }
+        io.to(`live_room_${roomName}`).emit('withdraw_stage_request', payload);
       }
     } catch (sockErr) {
       console.warn('Socket stage request withdraw emit error:', sockErr.message);

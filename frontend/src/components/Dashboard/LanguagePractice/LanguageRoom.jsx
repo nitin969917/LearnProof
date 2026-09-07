@@ -1023,9 +1023,24 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       type: 'request_to_speak',
       identity: myIdentity,
       name: myName,
+      roomName,
     };
 
-    // 1. Instant Data channel fast-path signal: send directly to host AND broadcast to room (0ms latency)
+    // 1. Instant Socket.IO push (direct real-time delivery to host and room)
+    try {
+      const socket = getSocialSocket(user?.id);
+      if (socket) {
+        socket.emit('speak_request', {
+          roomName,
+          identity: myIdentity,
+          name: myName,
+        });
+      }
+    } catch (sockErr) {
+      console.warn('Socket speak_request emit error:', sockErr);
+    }
+
+    // 2. Instant Data channel fast-path signal: send directly to host AND broadcast to room (0ms latency)
     try {
       if (hostIdentity) {
         sendSignal(requestPayload, [hostIdentity]);
@@ -1035,7 +1050,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       console.warn('[Signal] Fast-path signal failed:', sigErr);
     }
 
-    // 2. Submit to backend in background (async non-blocking fallback)
+    // 3. Submit to backend in background (async non-blocking fallback)
     socialApi.post(`/livekit/rooms/${roomName}/stage-requests`).catch(err => {
       console.warn('[StageRequest] Background API submit error:', err);
     });
@@ -1051,8 +1066,23 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       const withdrawPayload = {
         type: 'withdraw_stage_request',
         identity: myId,
+        roomName,
       };
-      // 1. Instant data channel signal directly to host + broadcast
+
+      // 1. Instant Socket.IO withdraw push
+      try {
+        const socket = getSocialSocket(user?.id);
+        if (socket) {
+          socket.emit('withdraw_stage_request', {
+            roomName,
+            identity: myId,
+          });
+        }
+      } catch (sockErr) {
+        console.warn('Socket withdraw_stage_request emit error:', sockErr);
+      }
+
+      // 2. Instant data channel signal directly to host + broadcast
       try {
         if (hostIdentity) {
           sendSignal(withdrawPayload, [hostIdentity]);
@@ -1060,7 +1090,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         sendSignal(withdrawPayload);
       } catch (_) { }
 
-      // 2. Background backend store removal
+      // 3. Background backend store removal
       socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${myId}`).catch(() => { });
     }
   };
@@ -2884,7 +2914,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
                       {isHost && !isMe && (
                         <div className="flex items-center gap-2 shrink-0">
-                          {!pCanPublish ? (
+                          {!isSpeaker ? (
                             <button
                               onClick={() => handleInviteToStage(p.identity, p.name || 'User')}
                               className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[10px] font-black rounded-full shadow-md shadow-orange-500/10 transition-all cursor-pointer active:scale-95 border-none"

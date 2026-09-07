@@ -509,6 +509,19 @@ io.on('connection', (socket) => {
     // Broadcast packet to peers in whiteboard room
     socket.to(`whiteboard_room_${roomName}`).emit('whiteboardPacket', payload);
   });
+
+  // Stage Speak Requests Real-Time Relay
+  socket.on('speak_request', (data) => {
+    if (data && data.roomName) {
+      io.to(`live_room_${data.roomName}`).emit('speak_request', data);
+    }
+  });
+
+  socket.on('withdraw_stage_request', (data) => {
+    if (data && data.roomName) {
+      io.to(`live_room_${data.roomName}`).emit('withdraw_stage_request', data);
+    }
+  });
 });
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
