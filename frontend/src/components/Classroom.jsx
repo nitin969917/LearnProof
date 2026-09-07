@@ -560,6 +560,8 @@ const Classroom = () => {
   const [activeChapterIndex, setActiveChapterIndex] = useState(0);
   const [isContinuousView, setIsContinuousView] = useState(false);
   const [copiedChapter, setCopiedChapter] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const pdfPrintRef = useRef(null);
 
   const parsedIntuition = useMemo(() => parseIntuitionData(intuitionContent), [intuitionContent]);
 
@@ -694,19 +696,56 @@ const Classroom = () => {
     setTimeout(() => setCopiedChapter(false), 2000);
   };
 
-  const handleDownloadFullNotes = (notes) => {
-    if (!notes || !notes.pages) return;
-    const titleStr = video?.name || 'Lecture Notes';
-    const fullText = `# ${titleStr}\n\n` +
-      notes.pages.map(p => `## ${p.title}\n\n${p.content}`).join('\n\n---\n\n');
-    const blob = new Blob([fullText], { type: 'text/markdown;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${titleStr.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_notes.md`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success("Downloaded digital study notes!");
+  const handleDownloadVisualPdf = async () => {
+    if (!parsedIntuition || !parsedIntuition.pages || parsedIntuition.pages.length === 0) return;
+    setDownloadingPdf(true);
+    const toastId = toast.loading("Generating high-interactive visual PDF...");
+
+    try {
+      // Small pause to ensure offscreen DOM is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 350));
+
+      const element = pdfPrintRef.current;
+      if (!element) throw new Error("Printable template element not found");
+
+      const titleStr = video?.name || 'Lecture_Notes';
+      const sanitized = titleStr.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').toLowerCase();
+
+      const html2pdfModule = await import('html2pdf.js');
+      const html2pdf = html2pdfModule.default || html2pdfModule;
+
+      const opt = {
+        margin: [10, 10, 12, 10],
+        filename: `${sanitized}_study_guide.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollY: 0
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait'
+        },
+        pagebreak: {
+          mode: ['avoid-all', 'css', 'legacy'],
+          before: '.pdf-page-break'
+        }
+      };
+
+      await html2pdf().set(opt).from(element).save();
+      toast.success("Downloaded visual PDF study notes!", { id: toastId });
+    } catch (err) {
+      console.error("Visual PDF generation failed:", err);
+      toast.error("Direct PDF export failed. Opening print view...", { id: toastId });
+      if (pdfPrintRef.current) {
+        window.print();
+      }
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
 
@@ -1610,14 +1649,20 @@ const Classroom = () => {
 
                           {/* Top Controls: Language Picker & Actions */}
                           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                            {/* Download Notes */}
+                            {/* Download Visual PDF */}
                             {parsedIntuition && (
                               <button
-                                onClick={() => handleDownloadFullNotes(parsedIntuition)}
-                                title="Download Notes as Markdown (.md)"
-                                className="p-1 sm:p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-gray-600 dark:text-slate-300 hover:text-indigo-600 hover:border-indigo-400 transition cursor-pointer shadow-2xs"
+                                disabled={downloadingPdf}
+                                onClick={handleDownloadVisualPdf}
+                                title="Download High-Interactive Visual PDF Study Guide"
+                                className="px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[9px] sm:text-xs shadow-2xs transition hover:scale-105 active:scale-95 flex items-center gap-1 cursor-pointer disabled:opacity-50 shrink-0"
                               >
-                                <Download size={12} />
+                                {downloadingPdf ? (
+                                  <RefreshCw size={11} className="animate-spin" />
+                                ) : (
+                                  <FileText size={11} />
+                                )}
+                                <span>{downloadingPdf ? 'Exporting...' : 'PDF'}</span>
                               </button>
                             )}
 
@@ -1881,6 +1926,138 @@ const Classroom = () => {
                           </div>
                         )}
                       </div>
+
+                      {/* Off-screen Printable Template for High-Interactive Visual PDF Export */}
+                      {parsedIntuition && (
+                        <div
+                          ref={pdfPrintRef}
+                          style={{
+                            position: 'fixed',
+                            left: '-9999px',
+                            top: 0,
+                            width: '800px',
+                            backgroundColor: '#ffffff',
+                            color: '#0f172a',
+                            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                            zIndex: -999,
+                            padding: '28px 32px'
+                          }}
+                        >
+                          {/* PDF Header & Brand Cover Banner */}
+                          <div style={{ borderBottom: '2px solid #6366f1', paddingBottom: '16px', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ backgroundColor: '#4f46e5', color: '#ffffff', padding: '6px 12px', borderRadius: '8px', fontWeight: '900', fontSize: '12px', letterSpacing: '1px' }}>
+                                  LEARNPROOF AI
+                                </div>
+                                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  Digital Study Guide & Intuition
+                                </span>
+                              </div>
+                              <div style={{ textAlign: 'right', fontSize: '10px', color: '#64748b' }}>
+                                <span>{new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                                <span style={{ margin: '0 6px' }}>•</span>
+                                <span style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
+                                  {parsedIntuition.totalPages} {parsedIntuition.totalPages === 1 ? 'Topic' : 'Topics'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <h1 style={{ fontSize: '20px', fontWeight: '900', color: '#1e1b4b', margin: '0 0 6px 0', lineHeight: 1.3 }}>
+                              {video?.name || 'Lecture Study Notes'}
+                            </h1>
+                            <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>
+                              Mastery-Grade Visual Study Notes • Optimized for Rapid Revision & Deep Concept Retention
+                            </p>
+
+                            {/* Topics Summary Bar */}
+                            {parsedIntuition.pages.length > 1 && (
+                              <div style={{ marginTop: '14px', padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                                  📚 Quick Topic Index
+                                </div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                  {parsedIntuition.pages.map((p, i) => (
+                                    <span key={i} style={{ fontSize: '10px', fontWeight: '600', backgroundColor: '#ffffff', color: '#4338ca', border: '1px solid #c7d2fe', padding: '3px 8px', borderRadius: '6px' }}>
+                                      {p.title}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* All Topics Content */}
+                          {parsedIntuition.pages.map((page, idx) => (
+                            <div key={idx} className={idx > 0 ? "pdf-page-break" : ""} style={{ marginTop: idx > 0 ? '24px' : '0', marginBottom: '24px' }}>
+                              {/* Topic Banner */}
+                              <div style={{ backgroundColor: '#eef2ff', borderLeft: '4px solid #4f46e5', padding: '8px 12px', borderRadius: '0 8px 8px 0', marginBottom: '14px' }}>
+                                <span style={{ fontSize: '9px', fontWeight: '900', color: '#4338ca', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block' }}>
+                                  TOPIC {page.pageNumber || idx + 1} OF {parsedIntuition.totalPages}
+                                </span>
+                                <h2 style={{ fontSize: '16px', fontWeight: '800', color: '#1e1b4b', margin: '2px 0 0 0' }}>
+                                  {page.title}
+                                </h2>
+                              </div>
+
+                              {/* Markdown Content */}
+                              <div className="prose max-w-none text-slate-800 leading-relaxed intuition-markdown" style={{ fontSize: '12px' }}>
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkMath, remarkGfm]}
+                                  rehypePlugins={[rehypeKatex]}
+                                  components={{
+                                    h1: ({ node, ...props }) => <h1 style={{ fontSize: '16px', fontWeight: '800', color: '#1e1b4b', marginTop: '16px', marginBottom: '8px' }} {...props} />,
+                                    h2: ({ node, ...props }) => <h2 style={{ fontSize: '14px', fontWeight: '700', color: '#312e81', marginTop: '14px', marginBottom: '6px' }} {...props} />,
+                                    h3: ({ node, ...props }) => <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#3730a3', marginTop: '12px', marginBottom: '4px' }} {...props} />,
+                                    h4: ({ node, ...props }) => <h4 style={{ fontSize: '12px', fontWeight: '600', color: '#4338ca', marginTop: '10px', marginBottom: '4px' }} {...props} />,
+                                    p: ({ node, ...props }) => <p style={{ fontSize: '11.5px', color: '#334155', lineHeight: '1.6', marginBottom: '8px' }} {...props} />,
+                                    ul: ({ node, ...props }) => <ul style={{ listStyleType: 'disc', paddingLeft: '20px', marginBottom: '8px', fontSize: '11.5px', color: '#334155' }} {...props} />,
+                                    ol: ({ node, ...props }) => <ol style={{ listStyleType: 'decimal', paddingLeft: '20px', marginBottom: '8px', fontSize: '11.5px', color: '#334155' }} {...props} />,
+                                    li: ({ node, ...props }) => <li style={{ marginBottom: '4px' }} {...props} />,
+                                    strong: ({ node, ...props }) => <strong style={{ fontWeight: '700', color: '#0f172a' }} {...props} />,
+                                    pre: ({ node, ...props }) => (
+                                      <div style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: '10px 12px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '10.5px', margin: '10px 0', border: '1px solid #1e293b', overflowX: 'auto' }}>
+                                        <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }} {...props} />
+                                      </div>
+                                    ),
+                                    code: ({ node, inline, ...props }) => inline
+                                      ? <code style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 4px', borderRadius: '4px', fontSize: '10.5px', fontWeight: '600' }} {...props} />
+                                      : <code style={{ fontFamily: 'monospace' }} {...props} />,
+                                    table: ({ node, ...props }) => (
+                                      <div style={{ margin: '12px 0', overflowX: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: '1px solid #cbd5e1' }} {...props} />
+                                      </div>
+                                    ),
+                                    thead: ({ node, ...props }) => <thead style={{ backgroundColor: '#eef2ff', color: '#1e1b4b', fontWeight: '700' }} {...props} />,
+                                    th: ({ node, ...props }) => <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'left' }} {...props} />,
+                                    td: ({ node, ...props }) => <td style={{ border: '1px solid #e2e8f0', padding: '6px 10px', color: '#334155' }} {...props} />,
+                                    blockquote: ({ node, ...props }) => (
+                                      <blockquote style={{ borderLeft: '4px solid #6366f1', padding: '6px 12px', backgroundColor: '#f5f3ff', color: '#3730a3', fontStyle: 'italic', margin: '10px 0', borderRadius: '0 6px 6px 0', fontSize: '11.5px' }} {...props} />
+                                    )
+                                  }}
+                                >
+                                  {preprocessMarkdown(page.content)}
+                                </ReactMarkdown>
+                              </div>
+
+                              {/* Topic Footer */}
+                              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', marginTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#94a3b8' }}>
+                                <span>LearnProof AI Study Companion</span>
+                                <span>Topic {page.pageNumber || idx + 1} • {page.title}</span>
+                              </div>
+                            </div>
+                          ))}
+
+                          {/* Revision Verification Banner at Bottom */}
+                          <div style={{ marginTop: '24px', padding: '12px 14px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                              <div style={{ fontSize: '11px', fontWeight: '800', color: '#166534' }}>🎓 Study Revision Checklist</div>
+                              <div style={{ fontSize: '10px', color: '#15803d', marginTop: '2px' }}>Review core concepts above • Re-test intuition with LearnProof AI Quiz</div>
+                            </div>
+                            <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#16a34a' }}>learnproofai.com</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
