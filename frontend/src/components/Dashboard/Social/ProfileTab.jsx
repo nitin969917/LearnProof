@@ -127,9 +127,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       fetchUserPosts();
       if (isOwnProfile) {
         fetchFriends();
+      } else {
+        setActiveTab('posts');
       }
     }
-  }, [targetId]);
+  }, [targetId, isOwnProfile]);
 
   const fetchUserPosts = async () => {
     if (!targetId) return;
@@ -960,38 +962,42 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               </span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('likes')}
-              className={`flex items-center gap-2 py-3.5 sm:py-4 border-b-2 font-black text-xs sm:text-sm transition-all cursor-pointer ${
-                activeTab === 'likes'
-                  ? 'border-orange-500 text-orange-600 dark:text-orange-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
-            >
-              <Heart size={17} className={activeTab === 'likes' ? 'text-orange-500' : 'text-gray-400'} />
-              <span>Likes</span>
-            </button>
+            {isOwnProfile && (
+              <button
+                onClick={() => setActiveTab('likes')}
+                className={`flex items-center gap-2 py-3.5 sm:py-4 border-b-2 font-black text-xs sm:text-sm transition-all cursor-pointer ${
+                  activeTab === 'likes'
+                    ? 'border-orange-500 text-orange-600 dark:text-orange-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+              >
+                <Heart size={17} className={activeTab === 'likes' ? 'text-orange-500' : 'text-gray-400'} />
+                <span>Likes</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => setActiveTab('friends')}
-              className={`flex items-center gap-2 py-3.5 sm:py-4 border-b-2 font-black text-xs sm:text-sm transition-all cursor-pointer ${
-                activeTab === 'friends'
-                  ? 'border-orange-500 text-orange-600 dark:text-orange-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
-            >
-              <UsersIcon size={17} className={activeTab === 'friends' ? 'text-orange-500' : 'text-gray-400'} />
-              <span>Friends</span>
-              {isOwnProfile && friendCount > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+            {isOwnProfile && (
+              <button
+                onClick={() => setActiveTab('friends')}
+                className={`flex items-center gap-2 py-3.5 sm:py-4 border-b-2 font-black text-xs sm:text-sm transition-all cursor-pointer ${
                   activeTab === 'friends'
-                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
-                }`}>
-                  {friendCount}
-                </span>
-              )}
-            </button>
+                    ? 'border-orange-500 text-orange-600 dark:text-orange-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+              >
+                <UsersIcon size={17} className={activeTab === 'friends' ? 'text-orange-500' : 'text-gray-400'} />
+                <span>Friends</span>
+                {friendCount > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                    activeTab === 'friends'
+                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                  }`}>
+                    {friendCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
 
           {/* ── Tab Content ── */}
@@ -1069,7 +1075,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             </div>
           )}
 
-          {activeTab === 'likes' && (
+          {isOwnProfile && activeTab === 'likes' && (
             <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-8 sm:p-12 text-center text-gray-500 space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/30 text-rose-500 flex items-center justify-center mx-auto border border-rose-100">
                 <Heart size={24} />
@@ -1079,7 +1085,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             </div>
           )}
 
-          {activeTab === 'friends' && (
+          {isOwnProfile && activeTab === 'friends' && (
             <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-750 pb-3">
                 <h4 className="font-black text-sm text-gray-900 dark:text-white flex items-center gap-2">

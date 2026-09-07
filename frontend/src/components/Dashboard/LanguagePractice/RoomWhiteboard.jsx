@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { RoomEvent } from 'livekit-client';
 import toast from 'react-hot-toast';
+import { getSocialSocket } from '../../../utils/socialSocket.js';
 
 const PALETTE = [
   '#000000', // Black
@@ -29,6 +30,8 @@ const STROKE_WIDTHS = [
 
 export default function RoomWhiteboard({
   room,
+  roomName,
+  userId,
   localParticipant,
   isHost,
   canPublish = false,
@@ -97,25 +100,46 @@ export default function RoomWhiteboard({
     };
   }, [showPermissionMenu]);
 
-  // ── Helper: Broadcast packet over LiveKit Data Channel ───────────────────────
+  // ── Helper: Broadcast packet over LiveKit Data Channel & Socket.IO Relay ────
   const broadcastPacket = useCallback((payload, reliable = true) => {
     const participant = room?.localParticipant || localParticipant;
-    if (!participant) return;
-    try {
-      const dataStr = JSON.stringify(payload);
-      const encoder = new TextEncoder();
-      const encoded = encoder.encode(dataStr);
-      participant.publishData(encoded, {
-        reliable,
-        topic: 'whiteboard'
-      }).catch(() => {
-        // Fallback without topic for maximum compatibility
-        participant.publishData(encoded, { reliable }).catch(() => {});
-      });
-    } catch (e) {
-      console.error('Failed to broadcast whiteboard packet:', e);
+    const myId = String(userId || participant?.identity || '');
+    const packetWithMeta = {
+      ...payload,
+      _senderId: myId,
+      _seq: payload.seq || `${payload.type}_${payload.strokeId || ''}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+    };
+
+    // 1. Broadcast via LiveKit Data Channel (WebRTC fast-path)
+    if (participant && typeof participant.publishData === 'function') {
+      try {
+        const dataStr = JSON.stringify(packetWithMeta);
+        const encoder = new TextEncoder();
+        const encoded = encoder.encode(dataStr);
+        participant.publishData(encoded, {
+          reliable,
+          topic: 'whiteboard'
+        }).catch(() => {
+          // Fallback without topic
+          participant.publishData(encoded, { reliable }).catch(() => {});
+        });
+      } catch (e) {
+        console.warn('Failed to broadcast whiteboard packet via LiveKit:', e);
+      }
     }
-  }, [room, localParticipant]);
+
+    // 2. Broadcast via Socket.IO Relay (100% guaranteed delivery for all mobile/web peers)
+    if (roomName) {
+      try {
+        const socket = getSocialSocket(userId);
+        if (socket && socket.connected) {
+          socket.emit('whiteboardPacket', { roomName, payload: packetWithMeta });
+        }
+      } catch (sockErr) {
+        console.warn('Failed to broadcast whiteboard packet via Socket.IO:', sockErr);
+      }
+    }
+  }, [room, localParticipant, roomName, userId]);
 
   // Host updates permission mode
   const handleSetPermissionMode = (mode) => {
@@ -401,7 +425,237 @@ export default function RoomWhiteboard({
     };
   }, [setupCanvas]);
 
-  // ── LiveKit Real-Time WebRTC Data Event Listener ────────────────────────────
+  // ── Unified Incoming Packet Handler & Deduplication Cache ────────────────
+  const seenPacketsRef = useRef(new Set());
+  const isPacketDuplicate = (packetKey) => {
+    if (!packetKey) return false;
+    if (seenPacketsRef.current.has(packetKey)) return true;
+    seenPacketsRef.current.add(packetKey);
+    if (seenPacketsRef.current.size > 3000) {
+      const arr = Array.from(seenPacketsRef.current);
+      seenPacketsRef.current = new Set(arr.slice(arr.length - 1500));
+    }
+    return false;
+  };
+
+  const handleIncomingPacket = useCallback((message, rawSenderId) => {
+    if (!message || !message.type) return;
+
+    // Reject packets originally sent by this local client
+    const myId = String(userId || localParticipant?.identity || '');
+    const senderId = String(message._senderId || rawSenderId || 'peer');
+    if (myId && senderId === myId) return;
+
+    // Deduplicate packets arriving over both LiveKit and Socket.IO
+    if (message._seq && isPacketDuplicate(message._seq)) return;
+    if (message.type === 'STROKE_START' && message.strokeId && isPacketDuplicate(`strk_start_${message.strokeId}`)) return;
+    if (message.type === 'STROKE_END' && message.strokeId && isPacketDuplicate(`strk_end_${message.strokeId}`)) return;
+
+    switch (message.type) {
+      // ⚡ Real-time Live Stroke Start
+      case 'STROKE_START': {
+        const initialPoints = message.point ? [message.point] : [];
+        peerActiveStrokes.current.set(message.strokeId, {
+          tool: message.tool || 'pen',
+          color: message.color || '#f97316',
+          width: message.width || 4,
+          points: initialPoints,
+        });
+
+        // Immediately render starting dot on peer canvas
+        if (message.point && contextRef.current) {
+          const canvas = canvasRef.current;
+          const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
+          const w = Math.max(1, rect.width);
+          const h = Math.max(1, rect.height);
+          const x0 = toX(message.point.nx, message.point.x, w);
+          const y0 = toY(message.point.ny, message.point.y, h);
+
+          const ctx = contextRef.current;
+          ctx.save();
+          ctx.fillStyle = message.color || '#f97316';
+          ctx.globalAlpha = message.tool === 'highlighter' ? 0.35 : 1.0;
+          if (message.tool === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+          }
+          ctx.beginPath();
+          ctx.arc(x0, y0, Math.max(1, (message.width || 4) / 2), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        break;
+      }
+
+      // ⚡ Real-time Live Stroke Streaming Chunk
+      case 'STROKE_CHUNK': {
+        let activeStroke = peerActiveStrokes.current.get(message.strokeId);
+        if (!activeStroke) {
+          activeStroke = {
+            tool: message.tool || 'pen',
+            color: message.color || '#f97316',
+            width: message.width || 4,
+            points: [],
+          };
+          peerActiveStrokes.current.set(message.strokeId, activeStroke);
+        }
+
+        if (Array.isArray(message.points) && message.points.length > 0) {
+          const canvas = canvasRef.current;
+          const ctx = contextRef.current;
+          const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
+          const w = Math.max(1, rect.width);
+          const h = Math.max(1, rect.height);
+
+          if (ctx) {
+            const prev = activeStroke.points.length > 0
+              ? activeStroke.points[activeStroke.points.length - 1]
+              : message.points[0];
+
+            const prevX = toX(prev.nx, prev.x, w);
+            const prevY = toY(prev.ny, prev.y, h);
+
+            ctx.save();
+            ctx.strokeStyle = activeStroke.color;
+            ctx.fillStyle = activeStroke.color;
+            ctx.lineWidth = activeStroke.width;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.globalAlpha = activeStroke.tool === 'highlighter' ? 0.35 : 1.0;
+
+            if (activeStroke.tool === 'eraser') {
+              ctx.globalCompositeOperation = 'destination-out';
+              ctx.lineWidth = activeStroke.width * 2;
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(prevX, prevY);
+
+            for (let i = 0; i < message.points.length; i++) {
+              const pt = message.points[i];
+              const curX = toX(pt.nx, pt.x, w);
+              const curY = toY(pt.ny, pt.y, h);
+              ctx.lineTo(curX, curY);
+              activeStroke.points.push(pt);
+            }
+
+            ctx.stroke();
+            ctx.restore();
+          } else {
+            activeStroke.points.push(...message.points);
+          }
+        }
+        break;
+      }
+
+      // ⚡ Real-time Live Stroke Completion
+      case 'STROKE_END': {
+        peerActiveStrokes.current.delete(message.strokeId);
+        if (message.element) {
+          const elemId = message.element.id || message.element.strokeId;
+          const exists = elemId && elementsRef.current.some(e => (e.id || e.strokeId) === elemId);
+          if (!exists) {
+            elementsRef.current.push(message.element);
+          }
+        }
+        redrawAllElements();
+        break;
+      }
+
+      // ⚡ Live Shape Drag Preview
+      case 'SHAPE_PREVIEW': {
+        if (message.shape) {
+          peerPreviewShapes.current.set(senderId, message.shape);
+        } else {
+          peerPreviewShapes.current.delete(senderId);
+        }
+        redrawAllElements();
+        break;
+      }
+
+      // Direct element draw
+      case 'DRAW_ELEMENT': {
+        peerPreviewShapes.current.delete(senderId);
+        if (message.element) {
+          const elemId = message.element.id || message.element.strokeId;
+          const exists = elemId && elementsRef.current.some(e => (e.id || e.strokeId) === elemId);
+          if (!exists) {
+            elementsRef.current.push(message.element);
+          }
+        }
+        redrawAllElements();
+        break;
+      }
+
+      case 'CLEAR': {
+        elementsRef.current = [];
+        undoStackRef.current = [];
+        peerActiveStrokes.current.clear();
+        peerPreviewShapes.current.clear();
+        currentShapePreview.current = null;
+        redrawAllElements();
+        toast('Whiteboard was cleared', { icon: '🧹', id: 'board_cleared' });
+        break;
+      }
+
+      case 'UNDO': {
+        if (message.id) {
+          elementsRef.current = elementsRef.current.filter(e => (e.id || e.strokeId) !== message.id);
+        } else {
+          elementsRef.current.pop();
+        }
+        redrawAllElements();
+        break;
+      }
+
+      case 'DRAW_PERMISSIONS_UPDATE': {
+        if (message.mode) setDrawPermissionMode(message.mode);
+        if (Array.isArray(message.allowedIds)) setCustomAllowedIds(message.allowedIds);
+        break;
+      }
+
+      case 'SYNC_REQUEST': {
+        if (elementsRef.current.length > 0) {
+          broadcastPacket({
+            type: 'SYNC_RESPONSE',
+            elements: elementsRef.current,
+            mode: drawPermissionModeRef.current,
+            allowedIds: customAllowedIdsRef.current,
+          }, true);
+        }
+        break;
+      }
+
+      case 'SYNC_RESPONSE': {
+        if (Array.isArray(message.elements) && message.elements.length > 0) {
+          const existingIds = new Set(elementsRef.current.map(e => e.id || e.strokeId).filter(Boolean));
+          const newItems = message.elements.filter(e => !(e.id || e.strokeId) || !existingIds.has(e.id || e.strokeId));
+          if (elementsRef.current.length === 0) {
+            elementsRef.current = message.elements;
+          } else if (newItems.length > 0) {
+            elementsRef.current = [...elementsRef.current, ...newItems];
+          }
+          redrawAllElements();
+        }
+        if (message.mode) {
+          setDrawPermissionMode(message.mode);
+        }
+        if (Array.isArray(message.allowedIds)) {
+          setCustomAllowedIds(message.allowedIds);
+        }
+        break;
+      }
+
+      default:
+        break;
+    }
+  }, [redrawAllElements, broadcastPacket, toX, toY, userId, localParticipant]);
+
+  const handleIncomingPacketRef = useRef(handleIncomingPacket);
+  useEffect(() => {
+    handleIncomingPacketRef.current = handleIncomingPacket;
+  }, [handleIncomingPacket]);
+
+  // ── 1. LiveKit Real-Time WebRTC Data Event Listener (Single Stable Attachment) ────
   useEffect(() => {
     if (!room) return;
 
@@ -411,7 +665,6 @@ export default function RoomWhiteboard({
         const message = JSON.parse(decoder.decode(payload));
         if (!message) return;
 
-        // Accept if topic is whiteboard OR if message type is whiteboard-related
         const isWhiteboardMsg = topic === 'whiteboard' || [
           'STROKE_START', 'STROKE_CHUNK', 'STROKE_END',
           'SHAPE_PREVIEW', 'DRAW_ELEMENT', 'CLEAR', 'UNDO',
@@ -419,224 +672,41 @@ export default function RoomWhiteboard({
         ].includes(message.type);
 
         if (!isWhiteboardMsg) return;
-
-        const senderId = participant?.identity || 'peer';
-
-        switch (message.type) {
-          // ⚡ Real-time Live Stroke Start
-          case 'STROKE_START': {
-            const initialPoints = message.point ? [message.point] : [];
-            peerActiveStrokes.current.set(message.strokeId, {
-              tool: message.tool || 'pen',
-              color: message.color || '#f97316',
-              width: message.width || 4,
-              points: initialPoints,
-            });
-
-            // Immediately render starting dot on peer canvas
-            if (message.point && contextRef.current) {
-              const canvas = canvasRef.current;
-              const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
-              const w = Math.max(1, rect.width);
-              const h = Math.max(1, rect.height);
-              const x0 = toX(message.point.nx, message.point.x, w);
-              const y0 = toY(message.point.ny, message.point.y, h);
-
-              const ctx = contextRef.current;
-              ctx.save();
-              ctx.fillStyle = message.color || '#f97316';
-              ctx.globalAlpha = message.tool === 'highlighter' ? 0.35 : 1.0;
-              if (message.tool === 'eraser') {
-                ctx.globalCompositeOperation = 'destination-out';
-              }
-              ctx.beginPath();
-              ctx.arc(x0, y0, Math.max(1, (message.width || 4) / 2), 0, Math.PI * 2);
-              ctx.fill();
-              ctx.restore();
-            }
-            break;
-          }
-
-          // ⚡ Real-time Live Stroke Streaming Chunk
-          case 'STROKE_CHUNK': {
-            let activeStroke = peerActiveStrokes.current.get(message.strokeId);
-            if (!activeStroke) {
-              activeStroke = {
-                tool: message.tool || 'pen',
-                color: message.color || '#f97316',
-                width: message.width || 4,
-                points: [],
-              };
-              peerActiveStrokes.current.set(message.strokeId, activeStroke);
-            }
-
-            if (Array.isArray(message.points) && message.points.length > 0) {
-              const canvas = canvasRef.current;
-              const ctx = contextRef.current;
-              const rect = canvas ? canvas.getBoundingClientRect() : { width: 1, height: 1 };
-              const w = Math.max(1, rect.width);
-              const h = Math.max(1, rect.height);
-
-              if (ctx) {
-                const prev = activeStroke.points.length > 0
-                  ? activeStroke.points[activeStroke.points.length - 1]
-                  : message.points[0];
-
-                const prevX = toX(prev.nx, prev.x, w);
-                const prevY = toY(prev.ny, prev.y, h);
-
-                ctx.save();
-                ctx.strokeStyle = activeStroke.color;
-                ctx.fillStyle = activeStroke.color;
-                ctx.lineWidth = activeStroke.width;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.globalAlpha = activeStroke.tool === 'highlighter' ? 0.35 : 1.0;
-
-                if (activeStroke.tool === 'eraser') {
-                  ctx.globalCompositeOperation = 'destination-out';
-                  ctx.lineWidth = activeStroke.width * 2;
-                }
-
-                ctx.beginPath();
-                ctx.moveTo(prevX, prevY);
-
-                for (let i = 0; i < message.points.length; i++) {
-                  const pt = message.points[i];
-                  const curX = toX(pt.nx, pt.x, w);
-                  const curY = toY(pt.ny, pt.y, h);
-                  ctx.lineTo(curX, curY);
-                  activeStroke.points.push(pt);
-                }
-
-                ctx.stroke();
-                ctx.restore();
-              } else {
-                activeStroke.points.push(...message.points);
-              }
-            }
-            break;
-          }
-
-          // ⚡ Real-time Live Stroke Completion
-          case 'STROKE_END': {
-            peerActiveStrokes.current.delete(message.strokeId);
-            if (message.element) {
-              const elemId = message.element.id || message.element.strokeId;
-              const exists = elemId && elementsRef.current.some(e => (e.id || e.strokeId) === elemId);
-              if (!exists) {
-                elementsRef.current.push(message.element);
-              }
-            }
-            redrawAllElements();
-            break;
-          }
-
-          // ⚡ Live Shape Drag Preview
-          case 'SHAPE_PREVIEW': {
-            if (message.shape) {
-              peerPreviewShapes.current.set(senderId, message.shape);
-            } else {
-              peerPreviewShapes.current.delete(senderId);
-            }
-            redrawAllElements();
-            break;
-          }
-
-          // Direct element draw
-          case 'DRAW_ELEMENT': {
-            peerPreviewShapes.current.delete(senderId);
-            if (message.element) {
-              const elemId = message.element.id || message.element.strokeId;
-              const exists = elemId && elementsRef.current.some(e => (e.id || e.strokeId) === elemId);
-              if (!exists) {
-                elementsRef.current.push(message.element);
-              }
-            }
-            redrawAllElements();
-            break;
-          }
-
-          case 'CLEAR': {
-            elementsRef.current = [];
-            undoStackRef.current = [];
-            peerActiveStrokes.current.clear();
-            peerPreviewShapes.current.clear();
-            currentShapePreview.current = null;
-            redrawAllElements();
-            toast('Whiteboard was cleared', { icon: '🧹', id: 'board_cleared' });
-            break;
-          }
-
-          case 'UNDO': {
-            if (message.id) {
-              elementsRef.current = elementsRef.current.filter(e => (e.id || e.strokeId) !== message.id);
-            } else {
-              elementsRef.current.pop();
-            }
-            redrawAllElements();
-            break;
-          }
-
-          case 'DRAW_PERMISSIONS_UPDATE': {
-            if (message.mode) setDrawPermissionMode(message.mode);
-            if (Array.isArray(message.allowedIds)) setCustomAllowedIds(message.allowedIds);
-            break;
-          }
-
-          // Answer SYNC_REQUEST if we have elements to share
-          case 'SYNC_REQUEST': {
-            if (elementsRef.current.length > 0) {
-              broadcastPacket({
-                type: 'SYNC_RESPONSE',
-                elements: elementsRef.current,
-                mode: drawPermissionModeRef.current,
-                allowedIds: customAllowedIdsRef.current,
-              }, true);
-            }
-            break;
-          }
-
-          // Safely merge existing elements on late join
-          case 'SYNC_RESPONSE': {
-            if (Array.isArray(message.elements) && message.elements.length > 0) {
-              const existingIds = new Set(elementsRef.current.map(e => e.id || e.strokeId).filter(Boolean));
-              const newItems = message.elements.filter(e => !(e.id || e.strokeId) || !existingIds.has(e.id || e.strokeId));
-              if (elementsRef.current.length === 0) {
-                elementsRef.current = message.elements;
-              } else if (newItems.length > 0) {
-                elementsRef.current = [...elementsRef.current, ...newItems];
-              }
-              redrawAllElements();
-            }
-            if (message.mode) {
-              setDrawPermissionMode(message.mode);
-            }
-            if (Array.isArray(message.allowedIds)) {
-              setCustomAllowedIds(message.allowedIds);
-            }
-            break;
-          }
-
-          default:
-            break;
-        }
+        handleIncomingPacketRef.current?.(message, participant?.identity);
       } catch (err) {
-        console.error('Error handling whiteboard packet:', err);
+        console.warn('Error handling LiveKit whiteboard packet:', err);
       }
     };
 
     room.on(RoomEvent.DataReceived, handleDataReceived);
-    room.on('dataReceived', handleDataReceived);
 
-    // Request initial sync once upon mount
+    // Initial sync request on mount
     broadcastPacket({ type: 'SYNC_REQUEST' }, true);
 
     return () => {
       room.off(RoomEvent.DataReceived, handleDataReceived);
-      room.off('dataReceived', handleDataReceived);
     };
-  }, [room, broadcastPacket, redrawAllElements, drawElement]);
+  }, [room, broadcastPacket]);
+
+  // ── 2. Socket.IO Real-Time Dual Relay Listener (Guaranteed for All Mobile Peers) ──
+  useEffect(() => {
+    if (!roomName) return;
+    const socket = getSocialSocket(userId);
+    if (!socket) return;
+
+    socket.emit('joinRoomWhiteboard', roomName);
+
+    const handleSocketWhiteboardPacket = (packet) => {
+      handleIncomingPacketRef.current?.(packet, packet?._senderId);
+    };
+
+    socket.on('whiteboardPacket', handleSocketWhiteboardPacket);
+
+    return () => {
+      socket.emit('leaveRoomWhiteboard', roomName);
+      socket.off('whiteboardPacket', handleSocketWhiteboardPacket);
+    };
+  }, [roomName, userId]);
 
   // ── Coordinates Helper (Accurate 1:1 Pixel Mapping for Touch & Mouse) ───────
   const getCoords = (e) => {

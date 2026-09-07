@@ -317,10 +317,6 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
             </button>
           </div>
 
-          {/* 3. Mobile-only Refer & Learn Card (Keeps mobile view identical) */}
-          <div className="block lg:hidden">
-            {renderReferralCard()}
-          </div>
 
           {/* 4. CONTENT SECTIONS */}
           {/* ── A) PEOPLE TAB / SEARCH RESULTS ── */}
@@ -520,6 +516,11 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
               )}
             </div>
           )}
+
+          {/* Mobile-only Refer & Learn Card (Positioned below search results) */}
+          <div className="block lg:hidden mt-2">
+            {renderReferralCard()}
+          </div>
         </div>
 
         {/* Desktop Sidebar (4 cols on desktop: Refer & Learn Card + Community info) */}

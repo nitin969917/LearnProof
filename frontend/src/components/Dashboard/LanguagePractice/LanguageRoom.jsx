@@ -520,6 +520,24 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // Toggle Screen Sharing (Enforce 1 person at a time & Host permission)
   const toggleScreenShare = async () => {
+    // Check for mobile / unsupported browser display media support
+    const isGetDisplayMediaSupported = typeof navigator !== 'undefined' && 
+      navigator.mediaDevices && 
+      typeof navigator.mediaDevices.getDisplayMedia === 'function';
+
+    const isMobileDevice = typeof navigator !== 'undefined' && 
+      (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '') || 
+       (navigator.userAgent || '').includes('LearnProofApp'));
+
+    if (!isGetDisplayMediaSupported || isMobileDevice) {
+      toast.error('Screen sharing is supported on desktop browsers. On mobile, you can view shared screens and use the interactive Whiteboard!', {
+        id: 'screen_share_mobile_info',
+        duration: 4500,
+        icon: '💻'
+      });
+      return;
+    }
+
     if (!localParticipant || !canPublish) {
       toast.error('You need speaking permissions on stage to share your screen.');
       return;
@@ -550,7 +568,16 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       }
     } catch (err) {
       console.error('Failed to toggle screen share:', err);
-      if (err.name !== 'NotAllowedError') {
+      const isNotSupported = err.name === 'NotSupportedError' || 
+        (err.message && err.message.toLowerCase().includes('getdisplaymedia not supported'));
+
+      if (isNotSupported) {
+        toast.error('Screen sharing is not supported on this device/browser. Please use a desktop browser.', {
+          id: 'screen_share_unsupported',
+          duration: 4000,
+          icon: '💻'
+        });
+      } else if (err.name !== 'NotAllowedError') {
         toast.error('Could not share screen: ' + (err.message || 'Permission denied'));
       }
       setIsScreenSharing(localParticipant?.isScreenShareEnabled || false);
@@ -2304,6 +2331,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                 {isWhiteboardOpen ? (
                   <RoomWhiteboard
                     room={room}
+                    roomName={roomName}
+                    userId={user?.id}
                     localParticipant={localParticipant}
                     isHost={isHost}
                     canPublish={canPublish}

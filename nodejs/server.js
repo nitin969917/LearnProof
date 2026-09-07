@@ -337,6 +337,25 @@ io.on('connection', (socket) => {
       }
     }
   });
+
+  // Live Room Whiteboard Dual-Layer Relay Channel
+  socket.on('joinRoomWhiteboard', (roomName) => {
+    if (roomName) {
+      socket.join(`whiteboard_room_${roomName}`);
+    }
+  });
+
+  socket.on('leaveRoomWhiteboard', (roomName) => {
+    if (roomName) {
+      socket.leave(`whiteboard_room_${roomName}`);
+    }
+  });
+
+  socket.on('whiteboardPacket', (data) => {
+    if (data && data.roomName && data.payload) {
+      socket.to(`whiteboard_room_${data.roomName}`).emit('whiteboardPacket', data.payload);
+    }
+  });
 });
 
 // ─── CORS ────────────────────────────────────────────────────────────────────

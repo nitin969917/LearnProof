@@ -17,13 +17,17 @@ function generateToken(roomName, userId, userName, isAdmin = false, canPublish =
     ttl: '3h',
   });
 
+  const isStageSpeaker = isAdmin || canPublish;
+
   token.addGrant({
     room: roomName,
     roomJoin: true,
-    canPublish: canPublish,
+    canPublish: true, // Always allow publishing so WebRTC data channels (whiteboard, chat, signals) work for all peers
     canSubscribe: true,
     canPublishData: true,
     roomAdmin: isAdmin,
+    // Restrict media track publishing so listeners cannot broadcast mic/camera without host promotion
+    canPublishSources: isStageSpeaker ? undefined : [],
   });
 
   return token.toJwt();
