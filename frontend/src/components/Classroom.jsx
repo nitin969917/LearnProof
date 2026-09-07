@@ -56,6 +56,17 @@ import 'prismjs/components/prism-json';
 import 'prismjs/components/prism-css';
 import 'prismjs/components/prism-markup';
 
+const formatVideoDuration = (seconds) => {
+  if (!seconds || seconds <= 0) return null;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  }
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+};
+
 const INDIAN_LANGS = [
   'English', 'Hindi', 'Marathi', 'Bengali', 'Telugu',
   'Tamil', 'Gujarati', 'Urdu', 'Kannada', 'Odia', 'Malayalam'
@@ -583,7 +594,10 @@ const Classroom = () => {
   // Tabs State
   const [activeTab, setActiveTab] = useState(() => {
     try {
-      return localStorage.getItem(`learnproof_active_tab_${videoId}`) || 'overview';
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+      const saved = localStorage.getItem(`learnproof_active_tab_${videoId}`);
+      if (saved) return saved;
+      return isMobile ? 'playlist' : 'overview';
     } catch {
       return 'overview';
     }
@@ -1247,13 +1261,15 @@ const Classroom = () => {
         setHasSeeked(false);
         setPlaylist(res.data.playlist);
 
-        const savedTab = localStorage.getItem(`learnproof_active_tab_${videoId}`);
-        if (savedTab) {
-          setActiveTab(savedTab);
-        } else if (res.data.playlist && window.innerWidth < 1024) {
+        if (res.data.playlist && window.innerWidth < 1024) {
           setActiveTab('playlist');
         } else if (!res.data.playlist && activeTab === 'playlist') {
           setActiveTab('overview');
+        } else {
+          const savedTab = localStorage.getItem(`learnproof_active_tab_${videoId}`);
+          if (savedTab) {
+            setActiveTab(savedTab);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -1881,13 +1897,27 @@ const Classroom = () => {
                                   <div className="absolute -bottom-1.5 -left-1.5 w-5 h-5 bg-gray-800 dark:bg-slate-700 text-white rounded-full flex items-center justify-center text-[9px] font-black shadow-sm">
                                     {absoluteIndex + 1}
                                   </div>
+                                  {v.duration_seconds > 0 && (
+                                    <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/85 backdrop-blur-xs text-white text-[8px] sm:text-[9px] font-black rounded leading-none z-10 shadow-xs">
+                                      {formatVideoDuration(v.duration_seconds)}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h3 className={`text-xs font-bold line-clamp-2 mb-1 leading-snug ${isActive ? 'text-orange-600' : 'text-gray-700 dark:text-slate-300'}`}>
+                                  <h3 className={`text-xs font-bold line-clamp-2 mb-1 leading-snug ${isActive ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-slate-300'}`}>
                                     {v.name}
                                   </h3>
                                   <div className="h-1 w-full bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden">
                                     <div style={{ width: `${progress}%` }} className={`h-1 rounded-full ${v.is_completed ? 'bg-green-500' : 'bg-orange-500'}`} />
+                                  </div>
+                                  <div className="flex items-center justify-between text-[9px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mt-1">
+                                    <span>{progress}% watched</span>
+                                    {v.duration_seconds > 0 && (
+                                      <span className="flex items-center gap-0.5 text-gray-500 dark:text-slate-400">
+                                        <Clock size={10} />
+                                        {formatVideoDuration(v.duration_seconds)}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -3106,9 +3136,15 @@ const Classroom = () => {
                                 }`}
                             ></div>
                           </div>
-                          <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mt-0.5 block">
-                            {progress}% watched
-                          </span>
+                          <div className="flex items-center justify-between text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mt-1">
+                            <span>{progress}% watched</span>
+                            {v.duration_seconds > 0 && (
+                              <span className="flex items-center gap-0.5 text-gray-500 dark:text-slate-400">
+                                <Clock size={10} />
+                                {formatVideoDuration(v.duration_seconds)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );

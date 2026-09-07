@@ -58,8 +58,26 @@ const RoadmapDetail = () => {
     const navigate = useNavigate();
     const { token } = useAuth();
     
-    const [playlist, setPlaylist] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [playlist, setPlaylist] = useState(() => {
+        try {
+            const cached = sessionStorage.getItem(`learnproof_pl_detail_${pid}`);
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                return { ...parsed.playlist, videos: parsed.videos || [] };
+            }
+            return null;
+        } catch {
+            return null;
+        }
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const cached = sessionStorage.getItem(`learnproof_pl_detail_${pid}`);
+            return !cached;
+        } catch {
+            return true;
+        }
+    });
     const [themeStyle, setThemeStyle] = useState({
         background: 'linear-gradient(135deg, rgba(243, 244, 246, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%)',
         borderColor: 'rgba(229, 231, 235, 0.8)',
@@ -124,7 +142,10 @@ const RoadmapDetail = () => {
                         pid: pid
                     });
                     
-                    if (active) {
+                    if (active && response.data) {
+                        try {
+                            sessionStorage.setItem(`learnproof_pl_detail_${pid}`, JSON.stringify(response.data));
+                        } catch (e) {}
                         const { playlist: plData, videos } = response.data;
                         setPlaylist({ ...plData, videos: videos || [] });
                         setLoading(false);
@@ -134,7 +155,7 @@ const RoadmapDetail = () => {
                     console.warn(`RoadmapDetail fetch attempt ${i + 1} failed:`, error);
                     if (i === retries) {
                         console.error("Failed to fetch playlist details after retries:", error);
-                        if (active) {
+                        if (active && !playlist) {
                             toast.error("Failed to load roadmap details.");
                             setLoading(false);
                         }
@@ -146,8 +167,9 @@ const RoadmapDetail = () => {
             }
         };
 
-        setLoading(true);
-        fetchDetails();
+        if (token && pid) {
+            fetchDetails();
+        }
 
         return () => {
             active = false;

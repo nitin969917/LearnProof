@@ -27,11 +27,39 @@ const PlaylistProgress = () => {
     const { token } = useAuth();
     const navigate = useNavigate();
 
-    const [playlist, setPlaylist] = useState(null);
-    const [videos, setVideos] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [playlist, setPlaylist] = useState(() => {
+        try {
+            const cached = sessionStorage.getItem(`learnproof_pl_detail_${playlistId}`);
+            return cached ? JSON.parse(cached).playlist : null;
+        } catch {
+            return null;
+        }
+    });
+    const [videos, setVideos] = useState(() => {
+        try {
+            const cached = sessionStorage.getItem(`learnproof_pl_detail_${playlistId}`);
+            return cached ? (JSON.parse(cached).videos || []) : [];
+        } catch {
+            return [];
+        }
+    });
+    const [loading, setLoading] = useState(() => {
+        try {
+            const cached = sessionStorage.getItem(`learnproof_pl_detail_${playlistId}`);
+            return !cached;
+        } catch {
+            return true;
+        }
+    });
     const [currentPage, setCurrentPage] = useState(1);
-    const [roadmapDays, setRoadmapDays] = useState("");
+    const [roadmapDays, setRoadmapDays] = useState(() => {
+        try {
+            const cached = sessionStorage.getItem(`learnproof_pl_detail_${playlistId}`);
+            return cached?.playlist?.duration_goal ? String(cached.playlist.duration_goal) : "";
+        } catch {
+            return "";
+        }
+    });
     const [themeStyle, setThemeStyle] = useState({
         background: 'linear-gradient(135deg, rgba(243, 244, 246, 0.9) 0%, rgba(255, 255, 255, 0.95) 100%)',
         borderColor: 'rgba(229, 231, 235, 0.8)',
@@ -96,8 +124,11 @@ const PlaylistProgress = () => {
                         pid: playlistId
                     });
                     if (active && res.data) {
+                        try {
+                            sessionStorage.setItem(`learnproof_pl_detail_${playlistId}`, JSON.stringify(res.data));
+                        } catch (e) {}
                         setPlaylist(res.data.playlist);
-                        setVideos(res.data.videos);
+                        setVideos(res.data.videos || []);
                         if (res.data.playlist.duration_goal) {
                             setRoadmapDays(res.data.playlist.duration_goal.toString());
                         }
@@ -108,7 +139,7 @@ const PlaylistProgress = () => {
                     console.warn(`PlaylistProgress fetch attempt ${i + 1} failed:`, err);
                     if (i === retries) {
                         console.error("Failed to fetch playlist details after retries", err);
-                        if (active) {
+                        if (active && !playlist) {
                             toast.error("Failed to load playlist.");
                             navigate('/dashboard/library');
                             setLoading(false);
@@ -121,7 +152,6 @@ const PlaylistProgress = () => {
         };
 
         if (token && playlistId) {
-            setLoading(true);
             fetchPlaylistDetails();
         }
 
