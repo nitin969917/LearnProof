@@ -202,9 +202,11 @@ const getIntuition = async (req, res) => {
         // Force master regeneration only if missing, generated without transcript (and not multimodal),
         // or if deep visual analysis is requested but the existing version is transcript-based.
         const isMultimodal = englishIntuition && englishIntuition.model_name && englishIntuition.model_name.includes('(multimodal)');
+        const isForceRefresh = req.query.refresh === 'true' || req.query.refresh === true;
         const isStale = englishIntuition && (
             (!englishIntuition.transcript_used && !isMultimodal) ||
-            (isDeepVisual && !isMultimodal)
+            (isDeepVisual && !isMultimodal) ||
+            isForceRefresh
         );
 
         if (!englishIntuition || isStale) {
@@ -212,9 +214,10 @@ const getIntuition = async (req, res) => {
             const title = video ? video.name : 'Unknown Title';
             const description = video ? video.description : 'No description available.';
             const url = video ? video.url : null;
+            const durationSeconds = video ? (video.duration_seconds || 0) : 0;
 
-            console.log(`[Intuition] 🔥 Zero-to-Master English generation for ${videoId}...`);
-            const { content, isSystemFallback, model_name, transcript_used } = await generateIntuition(title, description, url, 'English', isDeepVisual);
+            console.log(`[Intuition] 🔥 Zero-to-Master English generation for ${videoId} (duration: ${durationSeconds}s)...`);
+            const { content, isSystemFallback, model_name, transcript_used } = await generateIntuition(title, description, url, 'English', isDeepVisual, durationSeconds);
             const isTranscriptUsed = !!transcript_used;
             
             if (!isSystemFallback) {

@@ -21,9 +21,13 @@ import {
   Reply,
   Trash2,
   ChevronRight,
+  ChevronLeft,
   Bot,
   Copy,
-  Plus
+  Plus,
+  Download,
+  Layers,
+  RefreshCw
 } from "lucide-react";
 import { useModal } from "../context/ModalContext";
 import YouTube from 'react-youtube';
@@ -159,6 +163,79 @@ const preprocessMarkdown = (text) => {
   }).join('\n');
 
   return processed;
+};
+
+const parseIntuitionData = (raw) => {
+  if (!raw) return null;
+  if (typeof raw === 'object' && Array.isArray(raw.pages)) return raw;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && Array.isArray(parsed.pages) && parsed.pages.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        // Fallback to plain markdown string
+      }
+    }
+    // Backward-compatibility fallback for legacy single-block markdown notes
+    return {
+      subjectCategory: 'theory_humanities',
+      categoryLabel: 'Study Notes & Core Intuition',
+      estimatedReadTimeMinutes: Math.max(3, Math.round(trimmed.split(/\s+/).length / 180)),
+      totalPages: 1,
+      pages: [
+        {
+          pageNumber: 1,
+          title: 'Comprehensive Study Notes',
+          content: trimmed
+        }
+      ]
+    };
+  }
+  return null;
+};
+
+const getCategoryStyle = (category) => {
+  switch (category) {
+    case 'coding':
+      return {
+        badgeBg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+        icon: '💻',
+        activePill: 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-emerald-500/20',
+        accentBorder: 'border-emerald-500/30'
+      };
+    case 'math_science':
+      return {
+        badgeBg: 'bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20',
+        icon: '📐',
+        activePill: 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-sky-500/20',
+        accentBorder: 'border-sky-500/30'
+      };
+    case 'business_finance':
+      return {
+        badgeBg: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20',
+        icon: '📈',
+        activePill: 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-amber-500/20',
+        accentBorder: 'border-amber-500/30'
+      };
+    case 'tutorial_workflow':
+      return {
+        badgeBg: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-500/20',
+        icon: '🛠️',
+        activePill: 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-cyan-500/20',
+        accentBorder: 'border-cyan-500/30'
+      };
+    default:
+      return {
+        badgeBg: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20',
+        icon: '📚',
+        activePill: 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-indigo-500/20',
+        accentBorder: 'border-indigo-500/30'
+      };
+  }
 };
 
 const Classroom = () => {
@@ -383,6 +460,11 @@ const Classroom = () => {
   const [loadingIntuition, setLoadingIntuition] = useState(false);
   const [intuitionCountdown, setIntuitionCountdown] = useState(15);
   const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
+  const [isContinuousView, setIsContinuousView] = useState(false);
+  const [copiedChapter, setCopiedChapter] = useState(false);
+
+  const parsedIntuition = useMemo(() => parseIntuitionData(intuitionContent), [intuitionContent]);
 
 
   // Quiz State
@@ -483,19 +565,22 @@ const Classroom = () => {
     }
   };
 
-  const fetchIntuition = async (lang = null) => {
-    // If a specific language is requested, we ALWAYS fetch (or rely on backend cache-key)
-    // If no lang and content exists, we skip.
-    if (!lang && intuitionContent) return;
+  const fetchIntuition = async (lang = null, forceRefresh = false) => {
+    // If a specific language is requested or forceRefresh, we fetch
+    if (!lang && !forceRefresh && intuitionContent) return;
 
     setLoadingIntuition(true);
     if (lang) setSelectedLanguage(lang); // Track the user's choice
 
     try {
-      const url = `${import.meta.env.VITE_BACKEND_URL}/api/video-intuition/?idToken=${token}&videoId=${videoId}${lang ? `&targetLanguage=${lang}` : ''}`;
+      const url = `${import.meta.env.VITE_BACKEND_URL}/api/video-intuition/?idToken=${token}&videoId=${videoId}${lang ? `&targetLanguage=${lang}` : ''}${forceRefresh ? '&refresh=true' : ''}`;
       const res = await axios.get(url);
       setIntuitionContent(res.data.content);
       setModelName(res.data.model_name || "");
+      setActiveChapterIndex(0);
+      if (forceRefresh) {
+        toast.success("Regenerated deep, multi-chapter study notes!");
+      }
     } catch (err) {
       console.error("Failed to fetch intuition", err);
       toast.error("Failed to generate intuition.");
@@ -503,6 +588,30 @@ const Classroom = () => {
       setLoadingIntuition(false);
     }
   };
+
+  const handleCopyChapter = (content) => {
+    if (!content) return;
+    navigator.clipboard.writeText(content);
+    setCopiedChapter(true);
+    toast.success("Chapter notes copied to clipboard!");
+    setTimeout(() => setCopiedChapter(false), 2000);
+  };
+
+  const handleDownloadFullNotes = (notes) => {
+    if (!notes || !notes.pages) return;
+    const titleStr = video?.name || 'Lecture Notes';
+    const fullText = `# ${titleStr}\n\nSubject Category: ${notes.categoryLabel}\nEstimated Reading Time: ${notes.estimatedReadTimeMinutes} minutes\n\n` +
+      notes.pages.map(p => `## ${p.title}\n\n${p.content}`).join('\n\n---\n\n');
+    const blob = new Blob([fullText], { type: 'text/markdown;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${titleStr.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_notes.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Downloaded digital study notes!");
+  };
+
 
   const fetchQuizHistory = async () => {
     try {
@@ -1390,32 +1499,72 @@ const Classroom = () => {
                       </div>
 
                       {/* AI Notes & Core Intuition Card */}
-                      <div className="bg-indigo-50/50 dark:bg-indigo-900/20 p-3.5 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
-                        <div className="flex flex-row items-center justify-between gap-2 mb-3.5 pb-3 sm:mb-5 sm:pb-4 border-b border-indigo-200 dark:border-indigo-800">
-                          <div className="flex items-center gap-2 min-w-0">
+                      <div className="bg-indigo-50/50 dark:bg-indigo-900/20 p-3.5 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/80 transition-colors duration-200 break-words overflow-hidden shadow-xs">
+                        {/* Top Header Bar */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3.5 border-b border-indigo-200/80 dark:border-indigo-800">
+                          <div className="flex flex-wrap items-center gap-2">
                             <div className="p-1 sm:p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-md shrink-0">
-                              <Sparkles className="text-indigo-600 dark:text-indigo-400" size={14} />
+                              <Sparkles className="text-indigo-600 dark:text-indigo-400" size={15} />
                             </div>
-                            <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-100 leading-tight">AI Notes & Core Intuition</h3>
+                            <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-100 leading-tight m-0">
+                              AI Notes & Study Guide
+                            </h3>
+
+                            {parsedIntuition && (
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getCategoryStyle(parsedIntuition.subjectCategory).badgeBg}`}>
+                                  <span>{getCategoryStyle(parsedIntuition.subjectCategory).icon}</span>
+                                  <span className="truncate max-w-[160px] sm:max-w-none">{parsedIntuition.categoryLabel}</span>
+                                </span>
+                                <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                                  <Clock size={12} />
+                                  <span>{parsedIntuition.estimatedReadTimeMinutes || 5} min read</span>
+                                </span>
+                              </div>
+                            )}
                           </div>
 
-                          {/* Language Picker Dropdown */}
-                          <div className="relative shrink-0">
-                            <select
+                          {/* Top Controls: Language Picker & Actions */}
+                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                            {/* Download Notes */}
+                            {parsedIntuition && (
+                              <button
+                                onClick={() => handleDownloadFullNotes(parsedIntuition)}
+                                title="Download Notes as Markdown (.md)"
+                                className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-gray-600 dark:text-slate-300 hover:text-indigo-600 hover:border-indigo-400 transition cursor-pointer shadow-2xs"
+                              >
+                                <Download size={13} />
+                              </button>
+                            )}
+
+                            {/* Regenerate / Refresh */}
+                            <button
                               disabled={loadingIntuition}
-                              onChange={(e) => fetchIntuition(e.target.value)}
-                              value={selectedLanguage}
-                              className="appearance-none px-2.5 py-1 pr-6 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/20 cursor-pointer shadow-xs transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
+                              onClick={() => fetchIntuition(selectedLanguage, true)}
+                              title="Regenerate In-Depth Notes"
+                              className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-gray-600 dark:text-slate-300 hover:text-indigo-600 hover:border-indigo-400 disabled:opacity-50 transition cursor-pointer shadow-2xs"
                             >
-                              <option value="" disabled>Select Language</option>
-                              {INDIAN_LANGS.map((lang) => (
-                                <option key={lang} value={lang} className="text-gray-700 dark:text-slate-200">
-                                  {lang}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
-                              <ChevronRight size={10} className="rotate-90" />
+                              <RefreshCw size={13} className={loadingIntuition ? 'animate-spin' : ''} />
+                            </button>
+
+                            {/* Language Picker Dropdown */}
+                            <div className="relative shrink-0">
+                              <select
+                                disabled={loadingIntuition}
+                                onChange={(e) => fetchIntuition(e.target.value)}
+                                value={selectedLanguage}
+                                className="appearance-none px-2.5 py-1 pr-6 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/20 cursor-pointer shadow-2xs transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
+                              >
+                                <option value="" disabled>Select Language</option>
+                                {INDIAN_LANGS.map((lang) => (
+                                  <option key={lang} value={lang} className="text-gray-700 dark:text-slate-200">
+                                    {lang}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
+                                <ChevronRight size={10} className="rotate-90" />
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1428,36 +1577,221 @@ const Classroom = () => {
                                 {intuitionCountdown}
                               </div>
                             </div>
-                            <p className="font-medium animate-pulse text-indigo-600 dark:text-indigo-400">Generating brilliant insights...</p>
-                            <p className="text-xs text-indigo-500/60 mt-2">Our AI is analyzing the video content for you</p>
+                            <p className="font-medium animate-pulse text-indigo-600 dark:text-indigo-400">Synthesizing textbook-quality digital study notes...</p>
+                            <p className="text-xs text-indigo-500/60 mt-2">Classifying subject curriculum & constructing multi-chapter study materials</p>
+                          </div>
+                        ) : parsedIntuition ? (
+                          <div className="space-y-4">
+                            {/* Chapter Pill Navigation & View Switcher (for multi-chapter notes) */}
+                            {parsedIntuition.totalPages > 1 && (
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white/70 dark:bg-slate-800/60 p-2 sm:p-2.5 rounded-xl border border-indigo-100 dark:border-slate-700/60">
+                                {/* Chapter Pill Selector */}
+                                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
+                                  {parsedIntuition.pages.map((p, idx) => {
+                                    const isActive = !isContinuousView && activeChapterIndex === idx;
+                                    return (
+                                      <button
+                                        key={idx}
+                                        onClick={() => {
+                                          setIsContinuousView(false);
+                                          setActiveChapterIndex(idx);
+                                        }}
+                                        className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                                          isActive
+                                            ? `${getCategoryStyle(parsedIntuition.subjectCategory).activePill} shadow-xs`
+                                            : 'bg-indigo-50/60 dark:bg-slate-700/50 text-gray-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-700'
+                                        }`}
+                                      >
+                                        Chapter {p.pageNumber || idx + 1}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                {/* Continuous View Switcher */}
+                                <div className="flex items-center gap-1 self-end sm:self-auto shrink-0">
+                                  <button
+                                    onClick={() => setIsContinuousView(!isContinuousView)}
+                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer border ${
+                                      isContinuousView
+                                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                                        : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-50'
+                                    }`}
+                                  >
+                                    <Layers size={12} />
+                                    <span>{isContinuousView ? 'Continuous View Active' : 'Read All (Continuous)'}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Content Display: Continuous Mode vs Paginated Chapter Mode */}
+                            {isContinuousView && parsedIntuition.totalPages > 1 ? (
+                              <div className="space-y-8">
+                                {parsedIntuition.pages.map((page, idx) => (
+                                  <div key={idx} className="bg-white/80 dark:bg-slate-900/60 p-4 sm:p-6 rounded-xl border border-indigo-100/80 dark:border-slate-800 shadow-2xs">
+                                    <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-100 dark:border-slate-800">
+                                      <h3 className="text-base sm:text-lg font-bold text-indigo-950 dark:text-indigo-200 m-0">
+                                        {page.title}
+                                      </h3>
+                                      <button
+                                        onClick={() => handleCopyChapter(page.content)}
+                                        title="Copy Chapter Notes"
+                                        className="p-1 rounded text-gray-400 hover:text-indigo-600 transition cursor-pointer"
+                                      >
+                                        <Copy size={13} />
+                                      </button>
+                                    </div>
+                                    <div className="prose max-w-none text-gray-800 dark:text-gray-200 leading-relaxed intuition-markdown">
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkMath, remarkGfm]}
+                                        rehypePlugins={[rehypeKatex]}
+                                        components={{
+                                          h1: ({ node, ...props }) => <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-5 mb-2.5 break-words" {...props} />,
+                                          h2: ({ node, ...props }) => <h2 className="text-base sm:text-lg font-bold text-indigo-900 dark:text-indigo-200 mt-4 mb-2 break-words" {...props} />,
+                                          h3: ({ node, ...props }) => <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-300 first:mt-2 mt-4 mb-2 break-words" {...props} />,
+                                          h4: ({ node, ...props }) => <h4 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 mt-3 mb-1.5 break-words" {...props} />,
+                                          strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
+                                          ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
+                                          pre: ({ node, ...props }) => <div className="overflow-x-auto my-4 p-4 rounded-xl bg-gray-950 text-gray-100 border border-gray-800 font-mono text-sm leading-relaxed"><pre className="whitespace-pre" {...props} /></div>,
+                                          code: ({ node, inline, ...props }) => inline
+                                            ? <code className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-semibold text-xs sm:text-sm break-all" {...props} />
+                                            : <code className="break-all" {...props} />,
+                                          table: ({ node, ...props }) => <div className="overflow-x-auto my-5"><table className="w-full text-xs sm:text-sm text-left border-collapse border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" {...props} /></div>,
+                                          thead: ({ node, ...props }) => <thead className="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-900 dark:text-indigo-200 uppercase text-xs font-semibold" {...props} />,
+                                          tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-gray-700/50" {...props} />,
+                                          tr: ({ node, ...props }) => <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors" {...props} />,
+                                          th: ({ node, ...props }) => <th className="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700/50" {...props} />,
+                                          td: ({ node, ...props }) => <td className="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-indigo-500 pl-4 py-1.5 my-3 italic text-gray-700 dark:text-gray-300 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-r-lg" {...props} />
+                                        }}
+                                      >
+                                        {preprocessMarkdown(page.content)}
+                                      </ReactMarkdown>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              /* Single or Active Chapter Card */
+                              (() => {
+                                const currentPage = parsedIntuition.pages[activeChapterIndex] || parsedIntuition.pages[0];
+                                if (!currentPage) return null;
+
+                                return (
+                                  <div className="bg-white/90 dark:bg-slate-900/60 p-4 sm:p-6 rounded-2xl border border-indigo-100/90 dark:border-slate-800 shadow-2xs">
+                                    {/* Chapter Header */}
+                                    <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-100 dark:border-slate-800">
+                                      <div className="min-w-0">
+                                        {parsedIntuition.totalPages > 1 && (
+                                          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                                            Chapter {activeChapterIndex + 1} of {parsedIntuition.totalPages}
+                                          </span>
+                                        )}
+                                        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white m-0 truncate">
+                                          {currentPage.title}
+                                        </h3>
+                                      </div>
+
+                                      <button
+                                        onClick={() => handleCopyChapter(currentPage.content)}
+                                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:text-indigo-600 transition cursor-pointer shrink-0"
+                                      >
+                                        <Copy size={12} />
+                                        <span>{copiedChapter ? "Copied!" : "Copy"}</span>
+                                      </button>
+                                    </div>
+
+                                    {/* Markdown Content */}
+                                    <div className="prose max-w-none text-gray-800 dark:text-gray-200 leading-relaxed intuition-markdown">
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkMath, remarkGfm]}
+                                        rehypePlugins={[rehypeKatex]}
+                                        components={{
+                                          h1: ({ node, ...props }) => <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-5 mb-2.5 break-words" {...props} />,
+                                          h2: ({ node, ...props }) => <h2 className="text-base sm:text-lg font-bold text-indigo-900 dark:text-indigo-200 mt-4 mb-2 break-words" {...props} />,
+                                          h3: ({ node, ...props }) => <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-300 first:mt-2 mt-4 mb-2 break-words" {...props} />,
+                                          h4: ({ node, ...props }) => <h4 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 mt-3 mb-1.5 break-words" {...props} />,
+                                          strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
+                                          ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
+                                          pre: ({ node, ...props }) => <div className="overflow-x-auto my-4 p-4 rounded-xl bg-gray-950 text-gray-100 border border-gray-800 font-mono text-sm leading-relaxed"><pre className="whitespace-pre" {...props} /></div>,
+                                          code: ({ node, inline, ...props }) => inline
+                                            ? <code className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-semibold text-xs sm:text-sm break-all" {...props} />
+                                            : <code className="break-all" {...props} />,
+                                          table: ({ node, ...props }) => <div className="overflow-x-auto my-5"><table className="w-full text-xs sm:text-sm text-left border-collapse border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" {...props} /></div>,
+                                          thead: ({ node, ...props }) => <thead className="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-900 dark:text-indigo-200 uppercase text-xs font-semibold" {...props} />,
+                                          tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-gray-700/50" {...props} />,
+                                          tr: ({ node, ...props }) => <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors" {...props} />,
+                                          th: ({ node, ...props }) => <th className="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700/50" {...props} />,
+                                          td: ({ node, ...props }) => <td className="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-indigo-500 pl-4 py-1.5 my-3 italic text-gray-700 dark:text-gray-300 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-r-lg" {...props} />
+                                        }}
+                                      >
+                                        {preprocessMarkdown(currentPage.content)}
+                                      </ReactMarkdown>
+                                    </div>
+
+                                    {/* Bottom Chapter Pagination Controls */}
+                                    {parsedIntuition.totalPages > 1 && (
+                                      <div className="flex items-center justify-between pt-4 mt-6 border-t border-gray-100 dark:border-slate-800">
+                                        <button
+                                          disabled={activeChapterIndex === 0}
+                                          onClick={() => {
+                                            setActiveChapterIndex(i => Math.max(0, i - 1));
+                                            window.scrollTo({ top: 400, behavior: 'smooth' });
+                                          }}
+                                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                                        >
+                                          <ChevronLeft size={14} />
+                                          <span>Previous</span>
+                                        </button>
+
+                                        <span className="text-xs font-bold text-gray-400 dark:text-slate-500">
+                                          {activeChapterIndex + 1} / {parsedIntuition.totalPages}
+                                        </span>
+
+                                        {activeChapterIndex < parsedIntuition.totalPages - 1 ? (
+                                          <button
+                                            onClick={() => {
+                                              setActiveChapterIndex(i => Math.min(parsedIntuition.totalPages - 1, i + 1));
+                                              window.scrollTo({ top: 400, behavior: 'smooth' });
+                                            }}
+                                            className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition cursor-pointer"
+                                          >
+                                            <span>Next Chapter</span>
+                                            <ChevronRight size={14} />
+                                          </button>
+                                        ) : (
+                                          <button
+                                            onClick={() => setActiveTab('quiz')}
+                                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-xs transition cursor-pointer"
+                                          >
+                                            <CheckCircle size={13} />
+                                            <span>Take AI Quiz</span>
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()
+                            )}
                           </div>
                         ) : (
-                          <div className="prose max-w-none text-gray-800 dark:text-gray-300 leading-relaxed intuition-markdown">
-                            {intuitionContent
-                              ? <ReactMarkdown
-                                remarkPlugins={[remarkMath, remarkGfm]}
-                                rehypePlugins={[rehypeKatex]}
-                                components={{
-                                  h3: ({ node, ...props }) => <h3 className="text-base sm:text-lg font-bold text-indigo-900 dark:text-indigo-300 first:mt-2.5 mt-5 mb-2.5 break-words" {...props} />,
-                                  strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
-                                  ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                  li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                  p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
-                                  pre: ({ node, ...props }) => <div className="overflow-x-auto my-4 p-4 rounded-xl bg-gray-900/5 dark:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/50 font-mono text-sm leading-relaxed"><pre className="whitespace-pre" {...props} /></div>,
-                                  code: ({ node, inline, ...props }) => inline
-                                    ? <code className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-semibold text-sm break-all" {...props} />
-                                    : <code className="break-all" {...props} />,
-                                  table: ({ node, ...props }) => <div className="overflow-x-auto my-6"><table className="w-full text-sm text-left border-collapse border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" {...props} /></div>,
-                                  thead: ({ node, ...props }) => <thead className="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-900 dark:text-indigo-200 uppercase text-xs font-semibold" {...props} />,
-                                  tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-gray-700/50" {...props} />,
-                                  tr: ({ node, ...props }) => <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors" {...props} />,
-                                  th: ({ node, ...props }) => <th className="px-4 py-3 border border-gray-200 dark:border-gray-700/50" {...props} />,
-                                  td: ({ node, ...props }) => <td className="px-4 py-3 border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 break-words" {...props} />
-                                }}
-                              >
-                                {preprocessMarkdown(intuitionContent)}
-                              </ReactMarkdown>
-                              : "No intuition could be generated for this video."}
+                          <div className="text-center py-10 text-gray-500 dark:text-gray-400">
+                            <p>No study notes generated yet.</p>
+                            <button
+                              onClick={() => fetchIntuition()}
+                              className="mt-3 px-4 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-sm hover:bg-indigo-700 cursor-pointer"
+                            >
+                              Generate Study Notes Now
+                            </button>
                           </div>
                         )}
                       </div>

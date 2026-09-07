@@ -193,7 +193,7 @@ const startQuiz = async (req, res) => {
 
                 console.log(`[Quiz] Missing intuition for ${contentId}. Generating intuition first...`);
                 try {
-                    const intuitionRes = await generateIntuition(title, description, target.url);
+                    const intuitionRes = await generateIntuition(title, description, target.url, 'English', false, target.duration_seconds || 0);
                     intuitionText = intuitionRes.content;
 
                     // Cache Intuition if successful

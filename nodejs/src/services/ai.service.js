@@ -173,6 +173,112 @@ const cleanAIJSON = (text) => {
 };
 
 /**
+ * Detect subject category based on video metadata and transcript.
+ */
+const detectSubjectCategory = (title, description, transcriptText) => {
+    const text = `${title || ''} ${description || ''} ${transcriptText ? transcriptText.slice(0, 4000) : ''}`.toLowerCase();
+
+    const codingKeywords = [
+        'code', 'coding', 'programming', 'python', 'javascript', 'typescript', 'react', 'node', 'java', 'c++',
+        'golang', 'rust', 'html', 'css', 'sql', 'database', 'docker', 'kubernetes', 'api', 'git', 'github',
+        'backend', 'frontend', 'fullstack', 'algorithm', 'data structure', 'leetcode', 'debugging', 'compiler',
+        'machine learning', 'deep learning', 'neural network', 'devops', 'aws', 'cloud', 'linux', 'cybersecurity'
+    ];
+    const mathScienceKeywords = [
+        'math', 'mathematics', 'calculus', 'algebra', 'geometry', 'physics', 'chemistry', 'biology', 'quantum',
+        'theorem', 'equation', 'derivative', 'integral', 'differential', 'astronomy', 'thermodynamics', 'mechanics',
+        'statistics', 'probability', 'linear algebra', 'electromagnetism', 'genetics', 'biochemistry'
+    ];
+    const businessKeywords = [
+        'finance', 'economics', 'stock market', 'investing', 'trading', 'crypto', 'accounting', 'marketing',
+        'startup', 'entrepreneurship', 'business', 'strategy', 'management', 'macroeconomics', 'microeconomics',
+        'valuation', 'venture capital', 'revenue', 'roi'
+    ];
+    const tutorialKeywords = [
+        'tutorial', 'how to', 'guide', 'step by step', 'setup', 'install', 'crash course', 'walkthrough',
+        'photoshop', 'figma', 'blender', 'editing', 'premiere pro', 'workflow', 'build with me'
+    ];
+
+    const scores = {
+        coding: 0,
+        math_science: 0,
+        business_finance: 0,
+        tutorial_workflow: 0,
+        theory_humanities: 0
+    };
+
+    for (const kw of codingKeywords) {
+        if (text.includes(kw)) scores.coding += 1;
+    }
+    for (const kw of mathScienceKeywords) {
+        if (text.includes(kw)) scores.math_science += 1;
+    }
+    for (const kw of businessKeywords) {
+        if (text.includes(kw)) scores.business_finance += 1;
+    }
+    for (const kw of tutorialKeywords) {
+        if (text.includes(kw)) scores.tutorial_workflow += 1;
+    }
+
+    let topCategory = 'theory_humanities';
+    let maxScore = 0;
+    for (const [cat, sc] of Object.entries(scores)) {
+        if (sc > maxScore) {
+            maxScore = sc;
+            topCategory = cat;
+        }
+    }
+
+    const labels = {
+        coding: 'Computer Science & Software Engineering',
+        math_science: 'Mathematics & Natural Sciences',
+        business_finance: 'Business, Economics & Finance',
+        tutorial_workflow: 'Hands-on Applied Workshop & Tutorial',
+        theory_humanities: 'Theoretical Foundations & Humanities'
+    };
+
+    return { category: topCategory, label: labels[topCategory] };
+};
+
+/**
+ * Clean and parse paginated intuition JSON.
+ */
+const cleanIntuitionJSON = (text, defaultCategory = 'theory_humanities', defaultLabel = 'Theoretical Foundations & Humanities') => {
+    if (!text || typeof text !== 'string') return null;
+    try {
+        let cleaned = text.trim();
+        const jsonMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) cleaned = jsonMatch[1].trim();
+
+        const firstBrace = cleaned.indexOf('{');
+        const lastBrace = cleaned.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+        }
+
+        const parsed = JSON.parse(cleaned);
+        if (parsed && typeof parsed === 'object' && Array.isArray(parsed.pages) && parsed.pages.length > 0) {
+            const sanitizedPages = parsed.pages.map((p, idx) => ({
+                pageNumber: p.pageNumber || (idx + 1),
+                title: p.title || `Chapter ${idx + 1}`,
+                content: typeof p.content === 'string' ? p.content.trim() : JSON.stringify(p.content)
+            }));
+            return {
+                subjectCategory: parsed.subjectCategory || defaultCategory,
+                categoryLabel: parsed.categoryLabel || defaultLabel,
+                estimatedReadTimeMinutes: parsed.estimatedReadTimeMinutes || Math.max(3, Math.round(cleaned.split(/\s+/).length / 180)),
+                totalPages: sanitizedPages.length,
+                pages: sanitizedPages
+            };
+        }
+    } catch (e) {
+        console.warn("[Intuition] JSON parse failed:", e.message);
+    }
+    return null;
+};
+
+
+/**
  * Helper to call OpenRouter API (OpenAI compatible)
  */
 async function callOpenRouter(prompt, jsonMode = false, temperature = 0.1) {
@@ -324,6 +430,26 @@ async function callCerebras(prompt, jsonMode = false, temperature = 0.1) {
  * Generate quiz using Gemini. Mimics quiz_generator.py logic but with actual AI.
  */
 const generateQuiz = async (title, description, url = null, intuitionText = null, numQuestions = 10) => {
+    // If intuitionText is JSON with pages, extract all chapters to provide the entire lecture context
+    let parsedNotes = null;
+    try {
+        if (typeof intuitionText === 'string' && intuitionText.trim().startsWith('{')) {
+            parsedNotes = JSON.parse(intuitionText);
+        }
+    } catch (e) {}
+
+    let processedIntuition = intuitionText;
+    let multiChapterInstructions = '';
+    if (parsedNotes && Array.isArray(parsedNotes.pages) && parsedNotes.pages.length > 0) {
+        processedIntuition = parsedNotes.pages
+            .map(p => `### ${p.title}\n${p.content}`)
+            .join('\n\n---\n\n');
+
+        multiChapterInstructions = `
+      - MULTI-CHAPTER COVERAGE: The provided study notes contain ${parsedNotes.pages.length} distinct chapters. You MUST distribute your questions evenly across ALL chapters (e.g., at least 1-2 questions from each chapter) to thoroughly test the student's mastery across the entire video.
+        `;
+    }
+
     const quizPrompt = `
       Act as an expert educator. Based ONLY on the following video/playlist info and specifically the provided "AI Intuition Summary", generate a highly comprehensive and DIVERSE quiz with BETWEEN 8 and 10 multiple-choice questions (STRICTLY AT MOST 10). 
       
@@ -335,13 +461,13 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
         2. 25% Fact-based (Specific details/definitions)
         3. 25% Scenario-based (Applying the knowledge)
         4. 25% Analysis-based (Comparison or troubleshooting)
-      
+      ${multiChapterInstructions}
       It is absolutely critical that every single question is directly derived from the concepts explained in the "AI Intuition Summary" below.
       
       Title: ${title}
       URL: ${url || 'Not provided'}
       Description: ${description}
-      ${intuitionText ? `\nAI Intuition Summary (PRIMARY SOURCE):\n${intuitionText}\n` : ''}
+      ${processedIntuition ? `\nAI Intuition Summary (PRIMARY SOURCE):\n${processedIntuition}\n` : ''}
       
       Format the output as a JSON array of objects, where each object has:
       - "question": The question text
@@ -437,13 +563,11 @@ const dedent = (str) => {
 };
 
 /**
- * Generate intuition/summary using the actual video transcript as the primary source.
- * Falls back to direct YouTube URL multimodal analysis or title+description.
+ * Generate intuition/study notes using the actual video transcript as the primary source.
+ * Dynamically scales depth and chapter count based on lecture duration and subject matter.
  */
-const generateIntuition = async (title, description, url = null, targetLanguage = null, forceDeepVisual = false) => {
+const generateIntuition = async (title, description, url = null, targetLanguage = null, forceDeepVisual = false, durationSeconds = 0) => {
     // --- STEP 1: Determine Routing Path ---
-    // Direct video multimodal analysis is ONLY used if explicitly forced by the user (forceDeepVisual = true).
-    // By default, we always use the text transcript, falling back to title+description if the transcript is unavailable.
     const isMultimodalVideoRouting = forceDeepVisual && !!vertexAIClient && !!url;
     
     let hasTranscript = false;
@@ -468,108 +592,149 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
     const detectedLanguage = transcriptResult.language || 'English';
     const finalLanguage = targetLanguage || detectedLanguage;
 
-    // --- STEP 2: Build Prompt ---
-    const transcriptSection = isMultimodalVideoRouting
-        ? `
-(Using direct YouTube video link multimodal analysis. Do NOT use any transcripts. Analyze the video frames and audio directly.)
-`
-        : (hasTranscript
-            ? `
-=== ACTUAL VIDEO TRANSCRIPT (PRIMARY SOURCE — use this as the ground truth for all content) ===
-${transcriptText}
-=== END OF TRANSCRIPT ===
+    // --- STEP 2: Subject & Duration Classification ---
+    const subjectInfo = detectSubjectCategory(title, description, transcriptText);
+    const durationMin = durationSeconds > 0 ? Math.round(durationSeconds / 60) : 0;
 
-IMPORTANT LANGUAGE INSTRUCTION: You MUST write your entire response in ${finalLanguage}.
-Even though the transcript is in ${detectedLanguage}, the user wants the final explanation in ${finalLanguage}.
-Do NOT translate names of core concepts if they are standardized, but explain everything else in ${finalLanguage}.
-`
-            : `
-(No transcript available. Generate intuition based on the video title and description below in ${finalLanguage}. 
-IMPORTANT: Use ONLY information that can be inferred from the title and description.)
-`);
+    let targetPages = 2;
+    if (durationMin > 0) {
+        if (durationMin <= 15) {
+            targetPages = 1;
+        } else if (durationMin <= 40) {
+            targetPages = 2;
+        } else if (durationMin <= 75) {
+            targetPages = 3;
+        } else if (durationMin <= 120) {
+            targetPages = 4;
+        } else {
+            targetPages = Math.min(6, 4 + Math.floor((durationMin - 120) / 45));
+        }
+    } else if (transcriptText) {
+        const chars = transcriptText.length;
+        if (chars <= 6000) {
+            targetPages = 1;
+        } else if (chars <= 18000) {
+            targetPages = 2;
+        } else if (chars <= 35000) {
+            targetPages = 3;
+        } else if (chars <= 60000) {
+            targetPages = 4;
+        } else {
+            targetPages = 5;
+        }
+    } else {
+        targetPages = 2;
+    }
+
+    // Subject-Specific Pedagogical Guidance
+    let categoryGuidance = '';
+    switch (subjectInfo.category) {
+        case 'coding':
+            categoryGuidance = `
+- SUBJECT SPECIALIZATION: Computer Science & Software Engineering.
+- Provide clean, robust, syntax-highlighted code implementations (with appropriate language tags like \`\`\`python, \`\`\`javascript, etc.).
+- Include algorithmic breakdowns, data structure choices, and time/space complexity analysis using LaTeX $O(n)$ notation.
+- Emphasize edge cases, common pitfalls, debugging tips, and real-world system architecture tradeoffs.`;
+            break;
+        case 'math_science':
+            categoryGuidance = `
+- SUBJECT SPECIALIZATION: Mathematics, Pure Science & Engineering.
+- Use rigorous LaTeX notation for ALL equations, variables, and formulas (using $...$ for inline and $$...$$ for block formulas).
+- Include formal theorems, axioms, intuitive physical/mathematical explanations, step-by-step mathematical proofs or derivations, and worked practice problems.
+- Never write plain text math (e.g. write $\\frac{dy}{dx}$ rather than dy/dx).`;
+            break;
+        case 'business_finance':
+            categoryGuidance = `
+- SUBJECT SPECIALIZATION: Business, Economics, Finance & Management.
+- Provide structured analytical frameworks (e.g., SWOT, Porter's Five Forces, Unit Economics, Cost-Benefit Analysis).
+- Detail financial metrics, formulas (e.g. $ROI = \\frac{\\text{Net Profit}}{\\text{Cost}}$, $LTV/CAC$), and quantitative business dynamics.
+- Include empirical case studies, risk assessments, and executive decision-making tradeoffs.`;
+            break;
+        case 'tutorial_workflow':
+            categoryGuidance = `
+- SUBJECT SPECIALIZATION: Hands-on Workshop & Technical Workflow.
+- Detail prerequisite dependencies, environment configurations, and tools needed.
+- Provide comprehensive, step-by-step execution procedures.
+- Highlight common errors, configuration gotchas, and production best practices checklist.`;
+            break;
+        default:
+            categoryGuidance = `
+- SUBJECT SPECIALIZATION: Academic Theory & Analytical Humanities.
+- Provide rigorous conceptual foundations, historical context, core philosophical paradigms, and schools of thought.
+- Detail cause-and-effect mechanisms, dialectics, and critical perspectives.
+- Include structured synthesis suitable for university exam descriptive answers.`;
+            break;
+    }
+
+    const transcriptSection = isMultimodalVideoRouting
+        ? `\n(Using direct YouTube video link multimodal analysis. Analyze the video frames and audio directly.)\n`
+        : (hasTranscript
+            ? `\n=== ACTUAL VIDEO TRANSCRIPT (PRIMARY SOURCE — ground truth for all concepts) ===\n${transcriptText}\n=== END OF TRANSCRIPT ===\n`
+            : `\n(No transcript available. Synthesize rigorous academic notes based on the video title and description in ${finalLanguage}.)\n`);
+
+    const chapterStructureGuidance = targetPages === 1
+        ? `Generate 1 deeply detailed, comprehensive chapter that leaves nothing out.`
+        : `Generate exactly ${targetPages} distinct, progressive chapters that chronologically and conceptually master the lecture from fundamentals to advanced applications.`;
 
     const intuitionPrompt = dedent(`
-        Act as an Expert Academic Professor and Exam Specialist.
-        Your goal is to provide a STERN, HIGHLY TECHNICAL, and CONCISE academic breakdown of the subject matter.
+        Act as a Distinguished University Professor, Subject Matter Authority, and Master Educator in ${subjectInfo.label}.
+        Your goal is to produce comprehensive, textbook-grade DIGITAL STUDY NOTES for the video lecture below.
         
-        CRITICAL INSTRUCTION: Do NOT just describe what happens in the video (e.g., avoid "The speaker says..."). 
-        Instead, use the video as your secondary source of data to EXPLAIN THE CORE SUBJECT ITSELF with academic authority. 
-        Structure the content such that a student can directly use it to answer descriptive university exam questions.
-        If the video is a tutorial, provide the underlying theory as well.
+        The student should be able to read these notes to achieve total academic mastery and ace advanced examinations.
         
-        STRICT FORMATTING RULES:
-        1. NO HTML TAGS: Do NOT output raw HTML tags (e.g., do NOT use <br>, <b>, <i>, etc.). Use standard Markdown syntax (like double newlines) for line breaks and paragraphs.
-        2. STANDARD MATH FORMATTING: If you write mathematical formulas, variables, equations, or LaTeX commands, you MUST wrap them in standard delimiters:
-           - Wrap the ENTIRE equation, function, or formula (including all variables, operators, spacing commands, and fractions) in a single set of delimiters.
-           - Use single dollar signs ($...$) for inline math (e.g., $t \\ge A_i$, $P(A \\cup B) = P(A) + P(B)$).
-           - Use double dollar signs ($$...$$) for block equations (e.g., $$\\boxed{P(A \\cup B) = P(A) + P(B) - P(A \\cap B)}$$).
-           - CRITICAL: Never write LaTeX commands (like \\frac, \\cup, \\cap, \\boxed, \\qquad, \\Omega, \\varnothing, \\cdot, \\setminus) as plain text outside math delimiters. They will fail to render.
-           - CRITICAL: Never nest dollar signs inside other delimiters (e.g., do NOT write \\boxed{P$A\\cup B$} or P$A\\cup B$. Instead write $\\boxed{P(A\\cup B)}$ or $P(A\\cup B)$).
-           - Do NOT use parenthesis delimiters like (t \\ge A_i) or square brackets like [t \\ge A_i] for math.
-        3. STRICT MARKDOWN BOLDING & HEADERS: Ensure every opening bold marker "**" has a matching closing bold marker "**". Do not leave trailing or loose asterisks. Do NOT use single asterisks (*) for headers or titles; always use double asterisks (**) to bold them.
-        4. BULLET POINT LIST ITEMS & NEWLINES: When writing lists (such as learning objectives/takeaways or exam tip outlines), you MUST format each item on a new line starting with a hyphen and a space (e.g. "- **Concept**: Explanation"). You MUST separate every consecutive list item and every paragraph with double newlines (\\n\\n). Do NOT combine multiple bullet points, lists, or distinct takeaways into a single line or paragraph.
-        5. NO PREAMBLE, GREETINGS, OR TITLE: Start your output immediately with the first heading "### 🎯 Core Technical Definition". Do NOT write any introduction (such as "Here is the summary:", "Sure, here is the breakdown:"), titles (like "# Topic Name"), or horizontal rules at the very beginning of the response.
+        STRICT RULES & GUIDELINES:
+        1. NO TIMELINES OR TIMESTAMPS: Absolutely DO NOT write timestamps or timelines (e.g., do NOT write "[00:14:20]" or "At 12 minutes"). The notes must read like a cohesive, published textbook or lecture companion.
+        2. EXHAUSTIVE ACADEMIC DEPTH: Avoid superficial summaries or brief 2-sentence points. Explain every concept, theorem, algorithm, or principle thoroughly with underlying mechanisms and technical rigor.
+        3. SUBJECT-ADAPTIVE SPECIALIZATION:
+        ${categoryGuidance}
+        4. MATHEMATICAL RIGOR & LATEX:
+           - Wrap ALL mathematical equations, variables, and formulas in standard delimiters.
+           - Inline math: $...$ (e.g., $f(x) = \\int e^{-t^2} dt$, $O(n \\log n)$).
+           - Block math: $$...$$ (e.g., $$\\lim_{n \\to \\infty} \\left(1 + \\frac{1}{n}\\right)^n = e$$).
+           - Never output naked LaTeX commands outside dollar signs.
+        5. CLEAN MARKDOWN: Use Markdown headers (###, ####), lists (- **Term**: Definition), bolding (**text**), and code blocks with syntax tags. NO raw HTML tags (<br>, <b>, <i>).
+        6. MULTI-CHAPTER PAGINATION:
+           - Target chapter count: exactly ${targetPages} chapters.
+           - ${chapterStructureGuidance}
+           - Each chapter must have a clear, descriptive title (e.g., "Chapter 1: Theoretical Foundations of ...", "Chapter 2: Implementation & Optimization").
+           - Each chapter should contain 500-1200 words of rich, high-density study material.
         
         Video Title: '${title}'
         Video URL: '${url || 'Not provided'}'
         Video Description: '${description}'
         ${transcriptSection}
         
-        Format your response in beautiful, highly readable markdown. Technical precision and academic depth are paramount, but keep explanations clear, complete, and concise (avoid unnecessary filler).
+        IMPORTANT: Your entire response MUST be formatted strictly as valid JSON matching this schema:
+        {
+          "subjectCategory": "${subjectInfo.category}",
+          "categoryLabel": "${subjectInfo.label}",
+          "estimatedReadTimeMinutes": <estimated total reading time in minutes as integer>,
+          "totalPages": ${targetPages},
+          "pages": [
+            {
+              "pageNumber": 1,
+              "title": "Chapter 1: ...",
+              "content": "### 🎯 Core Technical Overview\\nDetailed markdown content...\\n\\n### ⚙️ Mechanics & Implementation\\n..."
+            }
+          ]
+        }
         
-        Break it down exactly into these academic headings:
-        ### 🎯 Core Technical Definition
-        (Instruction: Provide a formal, academic definition of the subject. Use standard industry/academic terminology. Around 60-80 words of foundational theory.)
-        
-        ### 💡 Key Learning Objectives & Takeaways
-        (Instruction: Provide a list of key concepts covered. Each point must explain the 'Mechanism', 'Process', or 'Rule'. Exactly 3-4 key points, each formatted as a bullet point starting with a hyphen and separated by double newlines.)
-        
-        ### 🧠 Theoretical Framework & Why It Matters
-        (Instruction: Provide deep intuition, the underlying philosophy, and the scientific/industrial logic behind the concept. Around 60-80 words.)
-        
-        ### 📚 Progressive Deep Dive (The Exam Core)
-        (Instruction: Walk through the content progressively. Explain 'How it works' step-by-step with technical rigor. Around 120-150 words.)
-        
-        ### 🛠️ Practical Scenarios & Comparative Analysis
-        (Instruction: Provide concrete examples, use-cases, or code. Around 60-80 words.)
-        
-        ### 📝 Potential Exam Questions & High-Score Tips
-        (Instruction: List 2 likely descriptive exam questions based on this video. Format each question title strictly in bold using double asterisks: **Question X: [Question Text]**, followed by short 'Bullet-Point' outlines of how the user should answer them to get full marks. Do NOT use single asterisks * for question titles or headers. Separate all elements by double newlines.)
-
-        CRITICAL SPEED INSTRUCTION: Be extremely technical but highly concise. Write at most 450-500 words in total. This is crucial for real-time responsiveness.
-        IMPORTANT: Your entire response MUST be in ${finalLanguage}.
+        Language: All chapter titles and content MUST be written in ${finalLanguage}.
+        Respond ONLY with the JSON object. Do not include markdown code block tags or conversational filler.
     `);
 
     // --- STEP 3: Setup Provider Routing Chain ---
-    let chain = [];
-
-    if (isMultimodalVideoRouting) {
-        chain = [
-            { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
-            { type: 'gemini', model: MODELS.GEMINI_FLASH },
-            { type: 'gemini', model: MODELS.GEMINI_PRO },
-            { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
-        ];
-    } else if (hasTranscript) {
-        chain = [
-            { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
-            { type: 'gemini', model: MODELS.GEMINI_FLASH },
-            { type: 'gemini', model: MODELS.GEMINI_PRO },
-            { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
-        ];
-    } else {
-        chain = [
-            { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
-            { type: 'gemini', model: MODELS.GEMINI_FLASH },
-            { type: 'gemini', model: MODELS.GEMINI_PRO },
-            { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
-        ];
-    }
+    let chain = [
+        { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
+        { type: 'gemini', model: MODELS.GEMINI_FLASH },
+        { type: 'gemini', model: MODELS.GEMINI_PRO },
+        { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
+    ];
 
     for (const provider of chain) {
         try {
             const providerName = provider.type === 'groq' ? provider.model : (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : (provider.type === 'openrouter' ? MODELS.OPENROUTER_MODEL : provider.model));
-            console.log(`[Intuition] Attempting with ${providerName}...`);
+            console.log(`[Intuition] Attempting with ${providerName} (${targetPages} chapters, ${subjectInfo.category})...`);
             let text;
             if (provider.type === 'gemini') {
                 if (isMultimodalVideoRouting && vertexAIClient) {
@@ -585,29 +750,49 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
                         }
                     ];
                     text = await generateGeminiContent(provider.model, contents, {
-                        maxOutputTokens: 2048,
-                        temperature: 0.2
+                        maxOutputTokens: 8192,
+                        temperature: 0.2,
+                        responseMimeType: "application/json"
                     });
                 } else {
                     text = await generateGeminiContent(provider.model, intuitionPrompt, {
-                        maxOutputTokens: 2048,
-                        temperature: 0.2
+                        maxOutputTokens: 8192,
+                        temperature: 0.2,
+                        responseMimeType: "application/json"
                     });
                 }
             } else if (provider.type === 'groq') {
-                text = await callGroq(intuitionPrompt, false, provider.model);
+                text = await callGroq(intuitionPrompt, true, provider.model, 0.2);
             } else if (provider.type === 'cerebras') {
-                text = await callCerebras(intuitionPrompt);
+                text = await callCerebras(intuitionPrompt, true, 0.2);
             } else if (provider.type === 'openrouter') {
-                text = await callOpenRouter(intuitionPrompt);
+                text = await callOpenRouter(intuitionPrompt, true, 0.2);
             }
 
             if (!text || text.trim() === '') {
                 throw new Error("Model returned empty or null content");
             }
 
+            let parsedNotes = cleanIntuitionJSON(text, subjectInfo.category, subjectInfo.label);
+            if (!parsedNotes) {
+                // If model returned markdown directly instead of JSON, wrap it cleanly
+                parsedNotes = {
+                    subjectCategory: subjectInfo.category,
+                    categoryLabel: subjectInfo.label,
+                    estimatedReadTimeMinutes: Math.max(3, Math.round(text.split(/\s+/).length / 180)),
+                    totalPages: 1,
+                    pages: [
+                        {
+                            pageNumber: 1,
+                            title: "Chapter 1: Comprehensive Study Notes",
+                            content: text.trim()
+                        }
+                    ]
+                };
+            }
+
             return {
-                content: text.trim(),
+                content: JSON.stringify(parsedNotes),
                 isFallback: provider.model !== MODELS.GEMINI_2_5,
                 isSystemFallback: false,
                 transcript_used: hasTranscript,
@@ -617,21 +802,34 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
             const providerName = provider.type === 'groq' ? provider.model : (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : (provider.type === 'openrouter' ? MODELS.OPENROUTER_MODEL : provider.model));
             console.warn(`[Intuition] ${providerName} failed:`, error.message);
             if (provider === chain[chain.length - 1]) {
-                return {
-                    content: `
+                const fallbackData = {
+                    subjectCategory: subjectInfo.category,
+                    categoryLabel: subjectInfo.label,
+                    estimatedReadTimeMinutes: 3,
+                    totalPages: 1,
+                    pages: [
+                        {
+                            pageNumber: 1,
+                            title: "Chapter 1: Core Concepts & Overview",
+                            content: `
 ### 🎯 Core Concept
-${title} is a learning resource covering important educational topics. 
+${title} is a learning resource covering important educational topics in ${subjectInfo.label}.
 
 ### 💡 Key Takeaways
-- Fundamental understanding of the subject matter.
-- Practical applications as described in the video.
+- Fundamental principles of the subject matter.
+- Practical applications and core methods introduced in the lecture.
 
 ### 🧠 Why This Matters
-Learning this concept helps build a strong foundation for advanced topics.
+Mastering this topic establishes a solid foundation for advanced studies and examinations.
 
-### 📚 Deep Dive
-*(Note: Detailed AI-generated intuition is temporarily unavailable due to high demand/API limits. Please review the video description for more details: ${description})*
-                    `.trim(),
+### 📚 Additional Study Guidance
+*(Note: Detailed AI-generated study notes are temporarily regenerating due to high demand. Please review the video description for immediate reference: ${description})*
+                            `.trim()
+                        }
+                    ]
+                };
+                return {
+                    content: JSON.stringify(fallbackData),
                     isFallback: true,
                     isSystemFallback: true
                 };
@@ -640,6 +838,45 @@ Learning this concept helps build a strong foundation for advanced topics.
     }
 };
 
+
+/**
+ * Helper to translate a single block of text into a target language.
+ */
+const translateRawBlock = async (text, targetLanguage, targetCode) => {
+    if (!text || text.trim() === '') return text;
+    try {
+        const res = await translate(text, { to: targetCode });
+        if (res.text && (res.text.length >= text.length * 0.2 || text.length < 50)) {
+            return res.text;
+        }
+    } catch (err) {
+        console.warn(`[Translate] Free translator failed for block:`, err.message);
+    }
+
+    // Fallback: Gemini translation
+    const translationPrompt = `
+        Act as a professional polyglot translator. 
+        Translate the following academic content accurately into ${targetLanguage}.
+        IMPORTANT: Keep all Markdown formatting (headings, lists, bold text, code blocks, math) intact.
+        Do NOT summarize. Provide a 1:1 translation.
+        
+        TEXT TO TRANSLATE:
+        ${text}
+    `;
+
+    try {
+        return await generateGeminiContent(MODELS.GEMINI_FLASH_LITE, translationPrompt, {
+            maxOutputTokens: 8192,
+            temperature: 0.2
+        });
+    } catch (e) {
+        try {
+            return await callGroq(translationPrompt, false, MODELS.GROQ_LLAMA_70B, 0.3);
+        } catch (groqErr) {
+            return text; // Return original if fallback fails
+        }
+    }
+};
 
 /**
  * Translate a block of text into a target language using FREE Google Translate.
@@ -668,6 +905,44 @@ const translateText = async (text, targetLanguage) => {
 
     const targetCode = langMap[targetLanguage] || targetLanguage.slice(0, 2).toLowerCase();
 
+    // Check if text is paginated JSON notes
+    let parsedNotes = null;
+    try {
+        if (typeof text === 'string' && text.trim().startsWith('{')) {
+            parsedNotes = JSON.parse(text);
+        }
+    } catch (e) {}
+
+    if (parsedNotes && Array.isArray(parsedNotes.pages) && parsedNotes.pages.length > 0) {
+        console.log(`[Translate] Translating ${parsedNotes.pages.length} chapters to ${targetLanguage}...`);
+        try {
+            const translatedPages = await Promise.all(
+                parsedNotes.pages.map(async (page) => {
+                    const [translatedTitle, translatedContent] = await Promise.all([
+                        translateRawBlock(page.title, targetLanguage, targetCode),
+                        translateRawBlock(page.content, targetLanguage, targetCode)
+                    ]);
+                    return {
+                        ...page,
+                        title: translatedTitle || page.title,
+                        content: translatedContent || page.content
+                    };
+                })
+            );
+            const translatedCategoryLabel = await translateRawBlock(parsedNotes.categoryLabel, targetLanguage, targetCode);
+
+            const translatedJson = {
+                ...parsedNotes,
+                categoryLabel: translatedCategoryLabel || parsedNotes.categoryLabel,
+                pages: translatedPages
+            };
+            return { content: JSON.stringify(translatedJson), model_name: 'Google Translate (Paginated)' };
+        } catch (e) {
+            console.error("[Translate] Paginated translation error:", e.message);
+        }
+    }
+
+    // Default plain text translation for non-JSON strings
     try {
         console.log(`[Translate] Using FREE Google Translate to ${targetLanguage} (${targetCode})...`);
         const res = await translate(text, { to: targetCode });
