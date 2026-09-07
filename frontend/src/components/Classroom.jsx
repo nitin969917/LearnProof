@@ -50,6 +50,11 @@ const preprocessMarkdown = (text) => {
 
   let processed = text;
 
+  // Convert literal escaped newlines (from JSON encoding) to real newlines
+  if (processed.includes('\\n')) {
+    processed = processed.replace(/\\n/g, '\n');
+  }
+
   // Split multiple block math blocks on the same line (e.g. $$ block1 $$ $$ block2 $$) into separate lines
   processed = processed.replace(/\$\$\s+\$\$/g, '$$$$\n$$$$');
 
@@ -167,34 +172,118 @@ const preprocessMarkdown = (text) => {
 
 const parseIntuitionData = (raw) => {
   if (!raw) return null;
-  if (typeof raw === 'object' && Array.isArray(raw.pages)) return raw;
-  if (typeof raw === 'string') {
+
+  const extractWithRegex = (str) => {
+    try {
+      const catMatch = str.match(/"subjectCategory"\s*:\s*"([^"]+)"/);
+      const labelMatch = str.match(/"categoryLabel"\s*:\s*"([^"]+)"/);
+      const timeMatch = str.match(/"estimatedReadTimeMinutes"\s*:\s*(\d+)/);
+
+      const pageRegex = /\{\s*"pageNumber"\s*:\s*(\d+)\s*,\s*"title"\s*:\s*"([^"]+)"\s*,\s*"content"\s*:\s*"([\s\S]*?)(?="\s*\}\s*(?:,|\]))/g;
+      const pages = [];
+      let m;
+      while ((m = pageRegex.exec(str)) !== null) {
+        let content = m[3];
+        content = content
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '')
+          .replace(/\\t/g, '\t')
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, '\\');
+
+        pages.push({
+          pageNumber: parseInt(m[1], 10),
+          title: m[2],
+          content: content.trim()
+        });
+      }
+
+      if (pages.length > 0) {
+        return {
+          subjectCategory: catMatch ? catMatch[1] : 'theory_humanities',
+          categoryLabel: labelMatch ? labelMatch[1] : 'Study Notes & Core Intuition',
+          estimatedReadTimeMinutes: timeMatch ? parseInt(timeMatch[1], 10) : 5,
+          totalPages: pages.length,
+          pages: pages
+        };
+      }
+    } catch (e) {}
+    return null;
+  };
+
+  let obj = null;
+  if (typeof raw === 'object') {
+    obj = raw;
+  } else if (typeof raw === 'string') {
     const trimmed = raw.trim();
-    if (trimmed.startsWith('{')) {
+    if (trimmed.includes('"pages"') || trimmed.startsWith('{')) {
       try {
-        const parsed = JSON.parse(trimmed);
-        if (parsed && Array.isArray(parsed.pages) && parsed.pages.length > 0) {
-          return parsed;
-        }
+        obj = JSON.parse(trimmed);
       } catch (e) {
-        // Fallback to plain markdown string
+        obj = extractWithRegex(trimmed);
       }
     }
-    // Backward-compatibility fallback for legacy single-block markdown notes
+  }
+
+  // Check if obj is double-wrapped (e.g. pages[0].content contains the real JSON)
+  if (obj && Array.isArray(obj.pages) && obj.pages.length === 1 && typeof obj.pages[0].content === 'string') {
+    const innerStr = obj.pages[0].content.trim();
+    if (innerStr.includes('"pages"') && (innerStr.startsWith('{') || innerStr.startsWith('```'))) {
+      try {
+        const cleanedInner = innerStr.replace(/```(?:json)?\s*([\s\S]*?)```/, '$1').trim();
+        const unwrapped = JSON.parse(cleanedInner);
+        if (unwrapped && Array.isArray(unwrapped.pages) && unwrapped.pages.length > 0) {
+          obj = unwrapped;
+        }
+      } catch (e) {
+        const unwrappedRegex = extractWithRegex(innerStr);
+        if (unwrappedRegex && unwrappedRegex.pages.length > 0) {
+          obj = unwrappedRegex;
+        }
+      }
+    }
+  }
+
+  if (obj && Array.isArray(obj.pages) && obj.pages.length > 0) {
+    return {
+      subjectCategory: obj.subjectCategory || 'theory_humanities',
+      categoryLabel: obj.categoryLabel || 'Study Notes & Core Intuition',
+      estimatedReadTimeMinutes: obj.estimatedReadTimeMinutes || 5,
+      totalPages: obj.pages.length,
+      pages: obj.pages.map((p, idx) => {
+        let contentStr = typeof p.content === 'string' ? p.content.trim() : JSON.stringify(p.content);
+        if (contentStr.includes('\\n')) {
+          contentStr = contentStr.replace(/\\n/g, '\n');
+        }
+        return {
+          pageNumber: p.pageNumber || idx + 1,
+          title: p.title || `Chapter ${idx + 1}`,
+          content: contentStr
+        };
+      })
+    };
+  }
+
+  if (typeof raw === 'string') {
+    let plainContent = raw.trim();
+    if (plainContent.includes('\\n')) {
+      plainContent = plainContent.replace(/\\n/g, '\n');
+    }
     return {
       subjectCategory: 'theory_humanities',
       categoryLabel: 'Study Notes & Core Intuition',
-      estimatedReadTimeMinutes: Math.max(3, Math.round(trimmed.split(/\s+/).length / 180)),
+      estimatedReadTimeMinutes: Math.max(3, Math.round(plainContent.split(/\s+/).length / 180)),
       totalPages: 1,
       pages: [
         {
           pageNumber: 1,
           title: 'Comprehensive Study Notes',
-          content: trimmed
+          content: plainContent
         }
       ]
     };
   }
+
   return null;
 };
 

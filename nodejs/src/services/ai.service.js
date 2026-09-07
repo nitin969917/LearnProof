@@ -241,21 +241,66 @@ const detectSubjectCategory = (title, description, transcriptText) => {
 };
 
 /**
+ * Resilient regex extractor to parse intuition JSON when LLMs produce unescaped quotes inside markdown content.
+ */
+const extractIntuitionWithRegex = (text, defaultCategory = 'theory_humanities', defaultLabel = 'Theoretical Foundations & Humanities') => {
+    try {
+        const catMatch = text.match(/"subjectCategory"\s*:\s*"([^"]+)"/);
+        const labelMatch = text.match(/"categoryLabel"\s*:\s*"([^"]+)"/);
+        const timeMatch = text.match(/"estimatedReadTimeMinutes"\s*:\s*(\d+)/);
+
+        const pageRegex = /\{\s*"pageNumber"\s*:\s*(\d+)\s*,\s*"title"\s*:\s*"([^"]+)"\s*,\s*"content"\s*:\s*"([\s\S]*?)(?="\s*\}\s*(?:,|\]))/g;
+        const pages = [];
+        let m;
+        while ((m = pageRegex.exec(text)) !== null) {
+            let content = m[3];
+            content = content
+                .replace(/\\n/g, '\n')
+                .replace(/\\r/g, '')
+                .replace(/\\t/g, '\t')
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\');
+
+            pages.push({
+                pageNumber: parseInt(m[1], 10),
+                title: m[2],
+                content: content.trim()
+            });
+        }
+
+        if (pages.length > 0) {
+            return {
+                subjectCategory: catMatch ? catMatch[1] : defaultCategory,
+                categoryLabel: labelMatch ? labelMatch[1] : defaultLabel,
+                estimatedReadTimeMinutes: timeMatch ? parseInt(timeMatch[1], 10) : Math.max(3, Math.round(text.split(/\s+/).length / 180)),
+                totalPages: pages.length,
+                pages: pages
+            };
+        }
+    } catch (err) {
+        console.warn("[Intuition] Regex extractor error:", err.message);
+    }
+    return null;
+};
+
+/**
  * Clean and parse paginated intuition JSON.
  */
 const cleanIntuitionJSON = (text, defaultCategory = 'theory_humanities', defaultLabel = 'Theoretical Foundations & Humanities') => {
     if (!text || typeof text !== 'string') return null;
+
+    let cleaned = text.trim();
+    const jsonMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) cleaned = jsonMatch[1].trim();
+
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+    }
+
+    // 1. Try standard JSON.parse first
     try {
-        let cleaned = text.trim();
-        const jsonMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (jsonMatch) cleaned = jsonMatch[1].trim();
-
-        const firstBrace = cleaned.indexOf('{');
-        const lastBrace = cleaned.lastIndexOf('}');
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-            cleaned = cleaned.substring(firstBrace, lastBrace + 1);
-        }
-
         const parsed = JSON.parse(cleaned);
         if (parsed && typeof parsed === 'object' && Array.isArray(parsed.pages) && parsed.pages.length > 0) {
             const sanitizedPages = parsed.pages.map((p, idx) => ({
@@ -272,8 +317,16 @@ const cleanIntuitionJSON = (text, defaultCategory = 'theory_humanities', default
             };
         }
     } catch (e) {
-        console.warn("[Intuition] JSON parse failed:", e.message);
+        console.warn("[Intuition] Standard JSON.parse failed, trying resilient regex extraction:", e.message);
     }
+
+    // 2. Fallback to resilient regex extraction
+    const regexParsed = extractIntuitionWithRegex(cleaned, defaultCategory, defaultLabel);
+    if (regexParsed) {
+        console.log(`[Intuition] Regex extractor recovered ${regexParsed.pages.length} chapters successfully!`);
+        return regexParsed;
+    }
+
     return null;
 };
 
