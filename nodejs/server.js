@@ -522,6 +522,22 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Client explicitly requests complete room sync state (for late joiners or reconnects)
+  socket.on('getLiveRoomSyncState', ({ roomName }) => {
+    if (!roomName) return;
+    const wb = getRoomWhiteboard(roomName);
+    const chat = getRoomChat(roomName);
+    const settings = getRoomSettings(roomName);
+    socket.emit('liveRoomSyncState', {
+      isWhiteboardOpen: wb.isOpen,
+      whiteboardMode: wb.mode,
+      whiteboardAllowedIds: wb.allowedIds,
+      chatHistory: chat,
+      allowWhiteboard: settings.allowWhiteboard,
+      allowScreenShare: settings.allowScreenShare,
+    });
+  });
+
   // Client requests full whiteboard state & drawings history
   socket.on('requestWhiteboardSync', ({ roomName }) => {
     if (!roomName) return;
@@ -539,8 +555,8 @@ io.on('connection', (socket) => {
     const { roomName, payload } = data;
     const wb = getRoomWhiteboard(roomName);
 
-    // Save persistent elements/strokes so late joiners can see them
-    if (payload.type === 'DRAW_ELEMENT' && payload.element) {
+    // Save persistent elements/strokes so late joiners can see them (handles both shapes DRAW_ELEMENT and pen STROKE_END)
+    if ((payload.type === 'DRAW_ELEMENT' || payload.type === 'STROKE_END') && payload.element) {
       const elemId = payload.element.id || payload.element.strokeId;
       const exists = elemId && wb.elements.some(e => (e.id || e.strokeId) === elemId);
       if (!exists) {

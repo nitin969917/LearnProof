@@ -672,6 +672,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         }
         if (message.type === 'REQUEST_ROOM_SETTINGS' && isHost) {
           broadcastRoomSettings(allowWhiteboard, allowScreenShare);
+          if (isWhiteboardOpen) {
+            try {
+              const payload = JSON.stringify({ type: 'WHITEBOARD_VISIBILITY', isOpen: true });
+              room.localParticipant?.publishData(new TextEncoder().encode(payload), { reliable: true, topic: 'whiteboard' });
+            } catch (_) {}
+          }
         }
         if (topic === 'room_settings' || message.type === 'ROOM_SETTINGS_UPDATE') {
           if (typeof message.allowWhiteboard === 'boolean') {
@@ -694,19 +700,26 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     const handleParticipantConnected = () => {
       if (isHost) {
         broadcastRoomSettings(allowWhiteboard, allowScreenShare);
+        // Automatically sync whiteboard visibility to newly joined peer
+        if (isWhiteboardOpen) {
+          try {
+            const payload = JSON.stringify({ type: 'WHITEBOARD_VISIBILITY', isOpen: true });
+            room.localParticipant?.publishData(new TextEncoder().encode(payload), { reliable: true, topic: 'whiteboard' });
+          } catch (_) {}
+        }
       }
     };
 
     room.on(RoomEvent.DataReceived, handleDataReceived);
     room.on(RoomEvent.ParticipantConnected, handleParticipantConnected);
 
-    // If not host, request initial settings on connect
+    // If not host, request initial settings on connect from the host
     if (!isHost) {
       try {
         const reqPayload = JSON.stringify({ type: 'REQUEST_ROOM_SETTINGS' });
         room.localParticipant?.publishData(
           new TextEncoder().encode(reqPayload),
-          { reliable: true }
+          { reliable: true, topic: 'room_settings' }
         );
       } catch (e) { }
     }
@@ -715,7 +728,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       room.off(RoomEvent.DataReceived, handleDataReceived);
       room.off(RoomEvent.ParticipantConnected, handleParticipantConnected);
     };
-  }, [room, isScreenSharing, amIHost, localParticipant, isHost, allowWhiteboard, allowScreenShare]);
+  }, [room, isScreenSharing, amIHost, localParticipant, isHost, allowWhiteboard, allowScreenShare, isWhiteboardOpen]);
 
   // ── Click-outside to close participants panel ──────────────────────────────
   useEffect(() => {
@@ -1263,13 +1276,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     const socket = getSocialSocket(user.id);
     if (!socket) return;
 
-    // Join live room channel
-    socket.emit('joinLiveRoom', {
-      roomName,
-      user: { id: user.id, name: user.name || user.email?.split('@')[0] || 'User' },
-      isHost: Boolean(isHostRef.current || isHost || amIHost())
-    });
-
     // Handle room terminated by host
     const handleRoomEnded = () => {
       toast.error('The host has ended this session.', { id: 'room-ended', duration: 4000 });
@@ -1279,14 +1285,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       navigateBack();
     };
 
-    // 1. Initial room state snapshot from server (for late joiners)
+    // 1. Initial room state snapshot from server (for late joiners & reconnects)
     const handleRoomSyncState = (state) => {
       if (!state) return;
       if (Array.isArray(state.chatHistory) && state.chatHistory.length > 0) {
         syncChatHistory(state.chatHistory);
       }
-      if (state.isWhiteboardOpen) {
-        setIsWhiteboardOpen(true);
+      if (typeof state.isWhiteboardOpen === 'boolean') {
+        setIsWhiteboardOpen(state.isWhiteboardOpen);
       }
       if (typeof state.allowWhiteboard === 'boolean') {
         setAllowWhiteboard(state.allowWhiteboard);
@@ -1338,6 +1344,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       }
     };
 
+    // Attach all listeners before sending join/sync packets
     socket.on('liveRoomSyncState', handleRoomSyncState);
     socket.on('liveRoomChatReceived', handleLiveRoomChat);
     socket.on('whiteboardVisibilityChanged', handleWhiteboardVisibility);
@@ -1346,8 +1353,24 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     socket.on('withdraw_stage_request', handleSocketWithdrawReq);
     socket.on('room_ended', handleRoomEnded);
 
+    // Join room channel & pull latest room state snapshot (runs immediately and upon any reconnect)
+    const sendJoinAndSync = () => {
+      socket.emit('joinLiveRoom', {
+        roomName,
+        user: { id: user.id, name: user.name || user.email?.split('@')[0] || 'User' },
+        isHost: Boolean(isHostRef.current || isHost || amIHost())
+      });
+      socket.emit('getLiveRoomSyncState', { roomName });
+    };
+
+    if (socket.connected) {
+      sendJoinAndSync();
+    }
+    socket.on('connect', sendJoinAndSync);
+
     return () => {
       socket.emit('leaveLiveRoom', { roomName });
+      socket.off('connect', sendJoinAndSync);
       socket.off('liveRoomSyncState', handleRoomSyncState);
       socket.off('liveRoomChatReceived', handleLiveRoomChat);
       socket.off('whiteboardVisibilityChanged', handleWhiteboardVisibility);

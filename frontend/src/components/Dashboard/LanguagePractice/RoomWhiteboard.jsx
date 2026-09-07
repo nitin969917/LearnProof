@@ -720,7 +720,16 @@ export default function RoomWhiteboard({
     // Request server-side whiteboard stroke and element history for instant replay
     socket.emit('requestWhiteboardSync', { roomName });
 
+    // Fallback retry for network latency / late socket connect
+    const retryTimer = setTimeout(() => {
+      if (elementsRef.current.length === 0) {
+        socket.emit('requestWhiteboardSync', { roomName });
+        broadcastPacket({ type: 'SYNC_REQUEST' }, true);
+      }
+    }, 1200);
+
     return () => {
+      clearTimeout(retryTimer);
       socket.emit('leaveRoomWhiteboard', roomName);
       socket.off('whiteboardPacket', handleSocketWhiteboardPacket);
       socket.off('whiteboardSyncResponse', handleWhiteboardSyncResponse);

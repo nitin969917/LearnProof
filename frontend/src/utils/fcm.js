@@ -154,14 +154,16 @@ if (messaging) {
     console.log('[FCM] Foreground message received:', payload);
     if (payload.notification) {
       const data = payload.data || {};
-      let targetPath = data.clickAction || data.click_action || '/dashboard';
-      if (!data.clickAction && !data.click_action && data.type) {
+      let targetPath = '/dashboard';
+      if (data.roomName) {
+        targetPath = `/dashboard/live-rooms/${data.roomName}`;
+      } else if (data.clickAction || data.click_action) {
+        targetPath = data.clickAction || data.click_action;
+      } else if (data.type) {
         if (data.type === 'CHAT_MESSAGE' && data.senderId) {
           targetPath = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
         } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
           targetPath = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
-        } else if (data.type === 'LIVE_ROOM_CREATED' && data.roomName) {
-          targetPath = `/dashboard/live-rooms/${data.roomName}`;
         }
       }
 
@@ -230,7 +232,20 @@ if (typeof window !== 'undefined') {
           PushNotifications.addListener('pushNotificationReceived', (notification) => {
             console.log('Push notification received in foreground:', notification);
             if (notification.title) {
-              toast(() => React.createElement('div', { className: "font-semibold text-sm" },
+              const notifData = notification.data || {};
+              let notifPath = '/dashboard';
+              if (notifData.roomName) {
+                notifPath = `/dashboard/live-rooms/${notifData.roomName}`;
+              } else if (notifData.clickAction || notifData.click_action) {
+                notifPath = notifData.clickAction || notifData.click_action;
+              }
+              toast(() => React.createElement('div', { 
+                className: "font-semibold text-sm cursor-pointer",
+                onClick: () => {
+                  toast.dismiss();
+                  window.location.href = notifPath;
+                }
+              },
                 React.createElement('div', { className: "font-bold text-orange-600" }, notification.title),
                 React.createElement('div', { className: "text-xs text-gray-500" }, notification.body)
               ), { icon: '🔔' });
@@ -239,7 +254,16 @@ if (typeof window !== 'undefined') {
 
           PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
             const data = action.notification?.data || {};
-            const targetPath = data.clickAction || data.click_action || '/dashboard';
+            let targetPath = '/dashboard';
+            if (data.roomName) {
+              targetPath = `/dashboard/live-rooms/${data.roomName}`;
+            } else if (data.clickAction || data.click_action) {
+              targetPath = data.clickAction || data.click_action;
+            } else if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+              targetPath = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
+            } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+              targetPath = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
+            }
             window.location.href = targetPath;
           });
         }

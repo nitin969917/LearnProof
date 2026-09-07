@@ -36,15 +36,17 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
       return;
     }
 
-    // 3. Compute relative clickAction URL based on data type
+    // 3. Compute relative clickAction URL based on data type or roomName
     let clickAction = '/dashboard';
-    if (data && data.type) {
-      if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+    if (data) {
+      if (data.roomName) {
+        clickAction = `/dashboard/live-rooms/${data.roomName}`;
+      } else if (data.type === 'CHAT_MESSAGE' && data.senderId) {
         clickAction = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
       } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
         clickAction = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
-      } else if (data.type === 'LIVE_ROOM_CREATED' && data.roomName) {
-        clickAction = `/dashboard/live-rooms/${data.roomName}`;
+      } else if (data.clickAction || data.click_action) {
+        clickAction = data.clickAction || data.click_action;
       }
     }
 
@@ -58,6 +60,9 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
       }
     }
     serializedData.clickAction = clickAction;
+    if (data && data.roomName) {
+      serializedData.roomName = String(data.roomName);
+    }
 
     // 4. Dispatch FCM Push Notifications
     if (admin && admin.apps.length > 0) {
@@ -71,7 +76,14 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
             badge: 'https://learnproofai.com/LP_M_logo.png',
             clickAction: clickAction,
             data: serializedData
+          },
+          fcmOptions: {
+            link: clickAction
           }
+        },
+        android: {
+          priority: 'high',
+          data: serializedData
         }
       });
 

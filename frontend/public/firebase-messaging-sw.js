@@ -27,14 +27,16 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.data?.title || "LearnProof AI";
   
   const data = payload.data || {};
-  let clickAction = data.clickAction || data.click_action;
-  if (!clickAction && data.type) {
+  let clickAction = '/dashboard';
+  if (data.roomName) {
+    clickAction = `/dashboard/live-rooms/${data.roomName}`;
+  } else if (data.clickAction || data.click_action) {
+    clickAction = data.clickAction || data.click_action;
+  } else if (data.type) {
     if (data.type === 'CHAT_MESSAGE' && data.senderId) {
       clickAction = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
     } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
       clickAction = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
-    } else if (data.type === 'LIVE_ROOM_CREATED' && data.roomName) {
-      clickAction = `/dashboard/live-rooms/${data.roomName}`;
     }
   }
 
@@ -58,15 +60,16 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
   const data = event.notification.data || {};
-  let targetPath = data.clickAction || data.click_action || '/dashboard';
-  
-  if (!data.clickAction && !data.click_action && data.type) {
+  let targetPath = '/dashboard';
+  if (data.roomName) {
+    targetPath = `/dashboard/live-rooms/${data.roomName}`;
+  } else if (data.clickAction || data.click_action) {
+    targetPath = data.clickAction || data.click_action;
+  } else if (data.type) {
     if (data.type === 'CHAT_MESSAGE' && data.senderId) {
       targetPath = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
     } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
       targetPath = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
-    } else if (data.type === 'LIVE_ROOM_CREATED' && data.roomName) {
-      targetPath = `/dashboard/live-rooms/${data.roomName}`;
     }
   }
   

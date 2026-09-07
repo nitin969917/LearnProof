@@ -17,6 +17,7 @@ import LiveRoomPipWindow from "./LanguagePractice/LiveRoomPipWindow";
 import { useLiveRoomPipStore } from "../../store/liveRoomPipStore";
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import "@livekit/components-styles";
+import toast from "react-hot-toast";
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -176,8 +177,48 @@ const DashboardLayout = () => {
         const savedState = localStorage.getItem('sidebarExpanded');
         return savedState !== null ? savedState === 'true' : false;
     });
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+    const isMobile = window.innerWidth < 1024;
     const location = useLocation();
+
+    // Listen for live room invitations and live room start notifications to navigate directly to room
+    useEffect(() => {
+        if (!socialUser || !socialUser.id) return;
+        const socket = getSocialSocket(socialUser.id);
+        const handleRoomEvent = (data) => {
+            if (!data || !data.roomName) return;
+            // If already in this room, don't show duplicate alert
+            if (location.pathname.includes(data.roomName)) return;
+
+            toast((t) => (
+                <div 
+                    onClick={() => {
+                        toast.dismiss(t.id);
+                        navigate(`/dashboard/live-rooms/${data.roomName}`);
+                    }}
+                    className="flex items-center gap-3 cursor-pointer select-none"
+                >
+                    <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-black text-xs shrink-0">
+                        🔴
+                    </div>
+                    <div className="flex flex-col text-left">
+                        <span className="text-xs font-bold text-gray-900 dark:text-white">
+                            {data.creatorName ? `${data.creatorName} started a live room` : 'Live Room Started'}
+                        </span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                            {data.topic ? `"${data.topic}"` : 'Tap to join now!'}
+                        </span>
+                    </div>
+                </div>
+            ), { id: `live_room_notif_${data.roomName}`, duration: 8000 });
+        };
+
+        socket.on('ROOM_INVITATION', handleRoomEvent);
+        socket.on('ROOM_STARTED', handleRoomEvent);
+        return () => {
+            socket.off('ROOM_INVITATION', handleRoomEvent);
+            socket.off('ROOM_STARTED', handleRoomEvent);
+        };
+    }, [socialUser, navigate, location.pathname]);
 
     const isAskMyNotes = location.pathname.startsWith('/dashboard/ask-my-notes');
     const isInsideWorkspace = location.pathname.match(/\/dashboard\/ask-my-notes(?:-dev)?\/[^/]+/);
