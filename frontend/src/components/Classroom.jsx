@@ -786,6 +786,7 @@ const Classroom = () => {
   const [copiedChapter, setCopiedChapter] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
+  const [pdfShareModalData, setPdfShareModalData] = useState(null);
 
   const parsedIntuition = useMemo(() => parseIntuitionData(intuitionContent), [intuitionContent]);
   const [suggestionSeed, setSuggestionSeed] = useState(0);
@@ -1021,49 +1022,34 @@ const Classroom = () => {
         }
       }
 
-      // 2. Try Web Share API (native Android system sheet: Share to WhatsApp, Drive, Save to Files/Downloads)
-      let shared = false;
+      // 2. Open interactive Share & Download action sheet
+      setPdfShareModalData({
+        title: titleStr,
+        fileName,
+        downloadUrl: fullDownloadUrl,
+        pdfFile,
+        pdfBlob,
+        viewerUrl: `https://docs.google.com/viewer?url=${encodeURIComponent(fullDownloadUrl)}`
+      });
+
+      toast.dismiss(toastId);
+
+      // Attempt native share directly
       if (pdfFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
         try {
-          toast.dismiss(toastId);
           await navigator.share({
             title: titleStr,
-            text: `Study Notes for ${titleStr}`,
+            text: `Study Notes: ${titleStr}`,
             files: [pdfFile]
           });
-          shared = true;
-          toast.success("PDF ready!");
-          return;
         } catch (shareErr) {
-          if (shareErr && shareErr.name === 'AbortError') {
-            // User dismissed the share dialog
-            return;
+          if (shareErr && shareErr.name !== 'AbortError') {
+            console.warn("navigator.share:", shareErr);
           }
-          console.warn("navigator.share fallback:", shareErr);
         }
       }
-
-      // 3. Fallback: Direct Blob trigger & window download
-      if (pdfBlob) {
-        const blobUrl = URL.createObjectURL(pdfBlob);
-        const downloadLink = document.createElement('a');
-        downloadLink.href = blobUrl;
-        downloadLink.download = fileName;
-        downloadLink.style.display = 'none';
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-
-        setTimeout(() => {
-          if (document.body.contains(downloadLink)) document.body.removeChild(downloadLink);
-          URL.revokeObjectURL(blobUrl);
-        }, 10000);
-      } else {
-        window.open(fullDownloadUrl, '_blank');
-      }
-
-      toast.success("PDF ready!", { id: toastId });
     } catch (err) {
-      console.error("PDF download/share failed:", err);
+      console.error("PDF preparation failed:", err);
       toast.error("Failed to prepare PDF. Please try again.", { id: toastId });
     } finally {
       setDownloadingPdf(false);
@@ -3337,6 +3323,101 @@ const Classroom = () => {
                   <Share2 size={14} />
                 )}
                 <span>{downloadingPdf ? "Preparing..." : "Share / Save PDF"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Share & Download Action Sheet / Modal */}
+      {pdfShareModalData && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-5 animate-scale-up">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                  <FileText size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white m-0">
+                    PDF Ready
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 m-0 truncate max-w-[240px]">
+                    {pdfShareModalData.fileName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setPdfShareModalData(null)}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Actions List */}
+            <div className="space-y-2.5 pt-1">
+              {/* Primary: Native Share Sheet */}
+              <button
+                onClick={async () => {
+                  if (pdfShareModalData.pdfFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfShareModalData.pdfFile] })) {
+                    try {
+                      await navigator.share({
+                        title: pdfShareModalData.title,
+                        text: `Study Notes for ${pdfShareModalData.title}`,
+                        files: [pdfShareModalData.pdfFile]
+                      });
+                      setPdfShareModalData(null);
+                    } catch (e) {
+                      if (e.name !== 'AbortError') {
+                        toast.error("Share failed, try Direct Download.");
+                      }
+                    }
+                  } else {
+                    toast.error("Direct file sharing not supported. Use Direct Download below.");
+                  }
+                }}
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-98 text-white text-sm font-bold rounded-2xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2.5 cursor-pointer transition"
+              >
+                <Share2 size={17} />
+                <span>Share via WhatsApp / Drive / Files</span>
+              </button>
+
+              {/* View Online in PDF Viewer */}
+              <a
+                href={pdfShareModalData.viewerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-98 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition no-underline"
+              >
+                <BookOpen size={16} />
+                <span>Open & Read in Google Docs Viewer</span>
+              </a>
+
+              {/* Direct Download File */}
+              <button
+                onClick={() => {
+                  if (pdfShareModalData.pdfBlob) {
+                    const url = URL.createObjectURL(pdfShareModalData.pdfBlob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = pdfShareModalData.fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                      if (document.body.contains(a)) document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    }, 5000);
+                  } else {
+                    window.open(pdfShareModalData.downloadUrl, '_blank');
+                  }
+                  toast.success("Download started!");
+                }}
+                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-98 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition"
+              >
+                <Download size={16} />
+                <span>Download File Directly</span>
               </button>
             </div>
           </div>
