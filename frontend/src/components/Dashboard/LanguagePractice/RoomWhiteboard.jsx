@@ -110,8 +110,8 @@ export default function RoomWhiteboard({
       _seq: payload.seq || `${payload.type}_${payload.strokeId || ''}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
     };
 
-    // 1. Broadcast via LiveKit Data Channel (WebRTC fast-path)
-    if (participant && typeof participant.publishData === 'function') {
+    // 1. Broadcast via LiveKit Data Channel (WebRTC fast-path, only if connected)
+    if (room && room.state === 'connected' && participant && typeof participant.publishData === 'function') {
       try {
         const dataStr = JSON.stringify(packetWithMeta);
         const encoder = new TextEncoder();
@@ -124,7 +124,7 @@ export default function RoomWhiteboard({
           participant.publishData(encoded, { reliable }).catch(() => {});
         });
       } catch (e) {
-        console.warn('Failed to broadcast whiteboard packet via LiveKit:', e);
+        // Suppress benign connection state errors
       }
     }
 
@@ -132,7 +132,7 @@ export default function RoomWhiteboard({
     if (roomName) {
       try {
         const socket = getSocialSocket(userId);
-        if (socket && socket.connected) {
+        if (socket) {
           socket.emit('whiteboardPacket', { roomName, payload: packetWithMeta });
         }
       } catch (sockErr) {
@@ -694,7 +694,13 @@ export default function RoomWhiteboard({
     const socket = getSocialSocket(userId);
     if (!socket) return;
 
-    socket.emit('joinRoomWhiteboard', roomName);
+    const joinAndSync = () => {
+      socket.emit('joinRoomWhiteboard', roomName);
+      socket.emit('requestWhiteboardSync', { roomName });
+    };
+
+    joinAndSync();
+    socket.on('connect', joinAndSync);
 
     const handleSocketWhiteboardPacket = (packet) => {
       handleIncomingPacketRef.current?.(packet, packet?._senderId);
@@ -705,6 +711,10 @@ export default function RoomWhiteboard({
       if (Array.isArray(data.elements) && data.elements.length > 0) {
         elementsRef.current = data.elements;
         redrawAllElements();
+        // Redraw on next animation frame to guarantee canvas dimensions & DPR are stable
+        requestAnimationFrame(() => {
+          redrawAllElements();
+        });
       }
       if (data.mode) {
         setDrawPermissionMode(data.mode);
@@ -717,19 +727,14 @@ export default function RoomWhiteboard({
     socket.on('whiteboardPacket', handleSocketWhiteboardPacket);
     socket.on('whiteboardSyncResponse', handleWhiteboardSyncResponse);
 
-    // Request server-side whiteboard stroke and element history for instant replay
-    socket.emit('requestWhiteboardSync', { roomName });
-
-    // Fallback retry for network latency / late socket connect
-    const retryTimer = setTimeout(() => {
-      if (elementsRef.current.length === 0) {
-        socket.emit('requestWhiteboardSync', { roomName });
-        broadcastPacket({ type: 'SYNC_REQUEST' }, true);
-      }
-    }, 1200);
+    // Fallback retries to ensure late joiners and slower mobile connections always receive strokes
+    const retryTimer1 = setTimeout(joinAndSync, 500);
+    const retryTimer2 = setTimeout(joinAndSync, 1500);
 
     return () => {
-      clearTimeout(retryTimer);
+      clearTimeout(retryTimer1);
+      clearTimeout(retryTimer2);
+      socket.off('connect', joinAndSync);
       socket.emit('leaveRoomWhiteboard', roomName);
       socket.off('whiteboardPacket', handleSocketWhiteboardPacket);
       socket.off('whiteboardSyncResponse', handleWhiteboardSyncResponse);

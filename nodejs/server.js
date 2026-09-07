@@ -92,12 +92,23 @@ if (workerId === '0' || workerId === 'standalone') {
   syncAllSequences().catch(err => console.error('[Server] Sequence sync failed:', err));
 }
 
-// In-memory state stores for Live Language Rooms
-const roomWhiteboardState = new Map(); // roomName -> { isOpen: boolean, elements: [], mode: 'speakers', allowedIds: [] }
-const roomChatState = new Map(); // roomName -> [ { id, from, text, time } ] (sliding window of 60 messages)
-const roomSettingsState = new Map(); // roomName -> { allowWhiteboard: boolean, allowScreenShare: boolean }
+// Distributed shared state stores for Live Language Rooms (Redis-backed across PM2 cluster)
+const roomWhiteboardState = new Map(); // local cache fallback
+const roomChatState = new Map();
+const roomSettingsState = new Map();
 
-function getRoomWhiteboard(roomName) {
+async function getRoomWhiteboard(roomName) {
+  if (!roomName) return { isOpen: false, elements: [], mode: 'speakers', allowedIds: [] };
+  try {
+    const raw = await redis.get(`live_room:wb:${roomName}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      roomWhiteboardState.set(roomName, parsed);
+      return parsed;
+    }
+  } catch (err) {
+    console.error('[LiveRoom] Redis getRoomWhiteboard error:', err.message);
+  }
   if (!roomWhiteboardState.has(roomName)) {
     roomWhiteboardState.set(roomName, {
       isOpen: false,
@@ -109,14 +120,56 @@ function getRoomWhiteboard(roomName) {
   return roomWhiteboardState.get(roomName);
 }
 
-function getRoomChat(roomName) {
+async function saveRoomWhiteboard(roomName, wb) {
+  if (!roomName || !wb) return;
+  roomWhiteboardState.set(roomName, wb);
+  try {
+    await redis.set(`live_room:wb:${roomName}`, JSON.stringify(wb), 'EX', 86400);
+  } catch (err) {
+    console.error('[LiveRoom] Redis saveRoomWhiteboard error:', err.message);
+  }
+}
+
+async function getRoomChat(roomName) {
+  if (!roomName) return [];
+  try {
+    const raw = await redis.get(`live_room:chat:${roomName}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      roomChatState.set(roomName, parsed);
+      return parsed;
+    }
+  } catch (err) {
+    console.error('[LiveRoom] Redis getRoomChat error:', err.message);
+  }
   if (!roomChatState.has(roomName)) {
     roomChatState.set(roomName, []);
   }
   return roomChatState.get(roomName);
 }
 
-function getRoomSettings(roomName) {
+async function saveRoomChat(roomName, chat) {
+  if (!roomName || !chat) return;
+  roomChatState.set(roomName, chat);
+  try {
+    await redis.set(`live_room:chat:${roomName}`, JSON.stringify(chat), 'EX', 86400);
+  } catch (err) {
+    console.error('[LiveRoom] Redis saveRoomChat error:', err.message);
+  }
+}
+
+async function getRoomSettings(roomName) {
+  if (!roomName) return { allowWhiteboard: false, allowScreenShare: false };
+  try {
+    const raw = await redis.get(`live_room:settings:${roomName}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      roomSettingsState.set(roomName, parsed);
+      return parsed;
+    }
+  } catch (err) {
+    console.error('[LiveRoom] Redis getRoomSettings error:', err.message);
+  }
   if (!roomSettingsState.has(roomName)) {
     roomSettingsState.set(roomName, {
       allowWhiteboard: false,
@@ -124,6 +177,16 @@ function getRoomSettings(roomName) {
     });
   }
   return roomSettingsState.get(roomName);
+}
+
+async function saveRoomSettings(roomName, settings) {
+  if (!roomName || !settings) return;
+  roomSettingsState.set(roomName, settings);
+  try {
+    await redis.set(`live_room:settings:${roomName}`, JSON.stringify(settings), 'EX', 86400);
+  } catch (err) {
+    console.error('[LiveRoom] Redis saveRoomSettings error:', err.message);
+  }
 }
 
 io.on('connection', (socket) => {
@@ -403,11 +466,12 @@ io.on('connection', (socket) => {
   });
 
   // ── Live Room General State & Chat Relay ──
-  socket.on('joinLiveRoom', (payload) => {
+  socket.on('joinLiveRoom', async (payload) => {
     const roomName = typeof payload === 'string' ? payload : payload?.roomName;
     if (!roomName) return;
     const roomChannel = `live_room_${roomName}`;
     socket.join(roomChannel);
+    socket.join(`whiteboard_room_${roomName}`);
     socket.activeLiveRoom = roomName;
 
     // Track host status and cancel disconnect timer if host reloaded/reconnected
@@ -420,9 +484,9 @@ io.on('connection', (socket) => {
       }
     }
 
-    const wb = getRoomWhiteboard(roomName);
-    const chat = getRoomChat(roomName);
-    const settings = getRoomSettings(roomName);
+    const wb = await getRoomWhiteboard(roomName);
+    const chat = await getRoomChat(roomName);
+    const settings = await getRoomSettings(roomName);
 
     // Provide complete synchronization snapshot to the joining client
     socket.emit('liveRoomSyncState', {
@@ -439,6 +503,7 @@ io.on('connection', (socket) => {
     const roomName = typeof payload === 'string' ? payload : payload?.roomName;
     if (!roomName) return;
     socket.leave(`live_room_${roomName}`);
+    socket.leave(`whiteboard_room_${roomName}`);
   });
 
   // Host explicitly left the room / closed browser
@@ -452,6 +517,12 @@ io.on('connection', (socket) => {
     try {
       await datingPrisma.languageRoom.deleteMany({ where: { roomName } });
       await cacheService.delByPattern('user:live-rooms:*');
+      await redis.del(`live_room:wb:${roomName}`);
+      await redis.del(`live_room:chat:${roomName}`);
+      await redis.del(`live_room:settings:${roomName}`);
+      roomWhiteboardState.delete(roomName);
+      roomChatState.delete(roomName);
+      roomSettingsState.delete(roomName);
       io.emit('ROOMS_UPDATED');
     } catch (err) {
       console.error('[LiveRoom] Error cleaning up room on host leave:', err.message);
@@ -459,11 +530,12 @@ io.on('connection', (socket) => {
   });
 
   // Host updates room settings
-  socket.on('updateLiveRoomSettings', ({ roomName, allowWhiteboard, allowScreenShare }) => {
+  socket.on('updateLiveRoomSettings', async ({ roomName, allowWhiteboard, allowScreenShare }) => {
     if (!roomName) return;
-    const settings = getRoomSettings(roomName);
+    const settings = await getRoomSettings(roomName);
     if (typeof allowWhiteboard === 'boolean') settings.allowWhiteboard = allowWhiteboard;
     if (typeof allowScreenShare === 'boolean') settings.allowScreenShare = allowScreenShare;
+    await saveRoomSettings(roomName, settings);
 
     io.to(`live_room_${roomName}`).emit('liveRoomSettingsUpdated', {
       allowWhiteboard: settings.allowWhiteboard,
@@ -472,13 +544,13 @@ io.on('connection', (socket) => {
   });
 
   // Real-time Chat
-  socket.on('sendLiveRoomChat', ({ roomName, message, sender }) => {
+  socket.on('sendLiveRoomChat', async ({ roomName, message, sender }) => {
     if (!roomName || !message || typeof message !== 'string' || !message.trim()) return;
 
     const roomChannel = `live_room_${roomName}`;
     socket.join(roomChannel);
 
-    const chatHistory = getRoomChat(roomName);
+    const chatHistory = await getRoomChat(roomName);
     const senderIdentity = String(sender?.identity || sender?.id || socket.userId || 'anonymous');
     const senderName = sender?.name || sender?.userName || 'User';
 
@@ -497,22 +569,36 @@ io.on('connection', (socket) => {
     if (chatHistory.length > 60) {
       chatHistory.shift();
     }
+    await saveRoomChat(roomName, chatHistory);
 
     // Broadcast message to everyone in the room (including sender)
     io.to(roomChannel).emit('liveRoomChatReceived', chatItem);
   });
 
   // Client requests chat history
-  socket.on('getLiveRoomChatHistory', ({ roomName }) => {
+  socket.on('getLiveRoomChatHistory', async ({ roomName }) => {
     if (!roomName) return;
-    socket.emit('liveRoomChatHistory', getRoomChat(roomName));
+    const chat = await getRoomChat(roomName);
+    socket.emit('liveRoomChatHistory', chat);
   });
 
   // Whiteboard visibility toggle (Host or participant with permission)
-  socket.on('setWhiteboardVisibility', ({ roomName, isOpen }) => {
+  socket.on('setWhiteboardVisibility', async ({ roomName, isOpen }) => {
     if (!roomName) return;
-    const wb = getRoomWhiteboard(roomName);
+    const wb = await getRoomWhiteboard(roomName);
     wb.isOpen = Boolean(isOpen);
+    await saveRoomWhiteboard(roomName, wb);
+
+    if (wb.isOpen) {
+      const settings = await getRoomSettings(roomName);
+      settings.allowWhiteboard = true;
+      await saveRoomSettings(roomName, settings);
+      io.to(`live_room_${roomName}`).emit('liveRoomSettingsUpdated', {
+        allowWhiteboard: true,
+        allowScreenShare: settings.allowScreenShare
+      });
+    }
+
     io.to(`live_room_${roomName}`).emit('whiteboardVisibilityChanged', { isOpen: wb.isOpen });
   });
 
@@ -530,11 +616,13 @@ io.on('connection', (socket) => {
   });
 
   // Client explicitly requests complete room sync state (for late joiners or reconnects)
-  socket.on('getLiveRoomSyncState', ({ roomName }) => {
+  socket.on('getLiveRoomSyncState', async ({ roomName }) => {
     if (!roomName) return;
-    const wb = getRoomWhiteboard(roomName);
-    const chat = getRoomChat(roomName);
-    const settings = getRoomSettings(roomName);
+    socket.join(`live_room_${roomName}`);
+    socket.join(`whiteboard_room_${roomName}`);
+    const wb = await getRoomWhiteboard(roomName);
+    const chat = await getRoomChat(roomName);
+    const settings = await getRoomSettings(roomName);
     socket.emit('liveRoomSyncState', {
       isWhiteboardOpen: wb.isOpen,
       whiteboardMode: wb.mode,
@@ -546,9 +634,10 @@ io.on('connection', (socket) => {
   });
 
   // Client requests full whiteboard state & drawings history
-  socket.on('requestWhiteboardSync', ({ roomName }) => {
+  socket.on('requestWhiteboardSync', async ({ roomName }) => {
     if (!roomName) return;
-    const wb = getRoomWhiteboard(roomName);
+    socket.join(`whiteboard_room_${roomName}`);
+    const wb = await getRoomWhiteboard(roomName);
     socket.emit('whiteboardSyncResponse', {
       elements: wb.elements,
       mode: wb.mode,
@@ -557,11 +646,13 @@ io.on('connection', (socket) => {
     });
   });
 
-  socket.on('whiteboardPacket', (data) => {
+  socket.on('whiteboardPacket', async (data) => {
     if (!data || !data.roomName || !data.payload) return;
     const { roomName, payload } = data;
-    const wb = getRoomWhiteboard(roomName);
+    socket.join(`whiteboard_room_${roomName}`);
+    const wb = await getRoomWhiteboard(roomName);
 
+    let needsSave = false;
     // Save persistent elements/strokes so late joiners can see them (handles both shapes DRAW_ELEMENT and pen STROKE_END)
     if ((payload.type === 'DRAW_ELEMENT' || payload.type === 'STROKE_END') && payload.element) {
       const elemId = payload.element.id || payload.element.strokeId;
@@ -569,22 +660,31 @@ io.on('connection', (socket) => {
       if (!exists) {
         wb.elements.push(payload.element);
         if (wb.elements.length > 2000) wb.elements.shift();
+        needsSave = true;
       }
     } else if (payload.type === 'CLEAR') {
       wb.elements = [];
+      needsSave = true;
     } else if (payload.type === 'UNDO') {
       if (payload.id) {
         wb.elements = wb.elements.filter(e => (e.id || e.strokeId) !== payload.id);
       } else {
         wb.elements.pop();
       }
+      needsSave = true;
     } else if (payload.type === 'DRAW_PERMISSIONS_UPDATE') {
       if (payload.mode) wb.mode = payload.mode;
       if (Array.isArray(payload.allowedIds)) wb.allowedIds = payload.allowedIds;
+      needsSave = true;
     } else if (payload.type === 'SYNC_RESPONSE' && Array.isArray(payload.elements)) {
       wb.elements = payload.elements;
       if (payload.mode) wb.mode = payload.mode;
       if (Array.isArray(payload.allowedIds)) wb.allowedIds = payload.allowedIds;
+      needsSave = true;
+    }
+
+    if (needsSave) {
+      await saveRoomWhiteboard(roomName, wb);
     }
 
     // Broadcast packet to peers in whiteboard room

@@ -516,7 +516,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       console.warn('Socket room settings emit error:', sockErr);
     }
 
-    if (room && localParticipant) {
+    if (room && room.state === 'connected' && localParticipant) {
       try {
         const payload = JSON.stringify({
           type: 'ROOM_SETTINGS_UPDATE',
@@ -524,7 +524,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           allowScreenShare: newAllowScreenShare,
         });
         const encoder = new TextEncoder();
-        localParticipant.publishData(encoder.encode(payload), { reliable: true, topic: 'room_settings' });
+        localParticipant.publishData(encoder.encode(payload), { reliable: true, topic: 'room_settings' }).catch(() => {});
       } catch (e) {
         console.error('Failed to broadcast room settings:', e);
       }
@@ -534,7 +534,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Host toggle for Whiteboard permission
   const handleToggleAllowWhiteboard = (newVal) => {
     setAllowWhiteboard(newVal);
-    if (!newVal && isWhiteboardOpen) {
+    if (!newVal && isWhiteboardOpen && !isHost) {
       toggleWhiteboard(false);
     }
     broadcastRoomSettings(newVal, allowScreenShare);
@@ -625,6 +625,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     }
     setIsWhiteboardOpen(nextState);
 
+    // If host opens whiteboard, automatically enable allowWhiteboard in room settings
+    if (isHost && nextState) {
+      setAllowWhiteboard(true);
+      broadcastRoomSettings(true, allowScreenShare);
+    }
+
     // 1. Broadcast via Socket.IO for server-side persistence & late joiners
     try {
       const socket = getSocialSocket(currentUserId);
@@ -636,11 +642,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     }
 
     // 2. Broadcast via LiveKit Data Channel
-    if (room && localParticipant) {
+    if (room && room.state === 'connected' && localParticipant) {
       try {
         const payload = JSON.stringify({ type: 'WHITEBOARD_VISIBILITY', isOpen: nextState });
         const encoder = new TextEncoder();
-        localParticipant.publishData(encoder.encode(payload), { reliable: true, topic: 'whiteboard' });
+        localParticipant.publishData(encoder.encode(payload), { reliable: true, topic: 'whiteboard' }).catch(() => {});
       } catch (e) {
         console.error('Failed to broadcast whiteboard visibility:', e);
       }
@@ -660,18 +666,20 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           }
         }
         if (message.type === 'REQUEST_ROOM_SETTINGS' && isHost) {
-          broadcastRoomSettings(allowWhiteboard, allowScreenShare);
-          if (isWhiteboardOpen) {
+          const effectiveAllowWb = isWhiteboardOpen || allowWhiteboard;
+          broadcastRoomSettings(effectiveAllowWb, allowScreenShare);
+          if (isWhiteboardOpen && room.state === 'connected' && room.localParticipant) {
             try {
               const payload = JSON.stringify({ type: 'WHITEBOARD_VISIBILITY', isOpen: true });
-              room.localParticipant?.publishData(new TextEncoder().encode(payload), { reliable: true, topic: 'whiteboard' });
+              room.localParticipant?.publishData(new TextEncoder().encode(payload), { reliable: true, topic: 'whiteboard' }).catch(() => {});
             } catch (_) {}
           }
         }
         if (topic === 'room_settings' || message.type === 'ROOM_SETTINGS_UPDATE') {
           if (typeof message.allowWhiteboard === 'boolean') {
             setAllowWhiteboard(message.allowWhiteboard);
-            if (!message.allowWhiteboard) {
+            const amHost = Boolean(isHostRef.current || isHost || amIHost());
+            if (!message.allowWhiteboard && !amHost) {
               setIsWhiteboardOpen(false);
             }
           }
@@ -688,13 +696,22 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     const handleParticipantConnected = () => {
       if (isHost) {
-        broadcastRoomSettings(allowWhiteboard, allowScreenShare);
+        const effectiveAllowWb = isWhiteboardOpen || allowWhiteboard;
+        broadcastRoomSettings(effectiveAllowWb, allowScreenShare);
         // Automatically sync whiteboard visibility to newly joined peer
         if (isWhiteboardOpen) {
           try {
-            const payload = JSON.stringify({ type: 'WHITEBOARD_VISIBILITY', isOpen: true });
-            room.localParticipant?.publishData(new TextEncoder().encode(payload), { reliable: true, topic: 'whiteboard' });
+            const socket = getSocialSocket(currentUserId);
+            if (socket) {
+              socket.emit('setWhiteboardVisibility', { roomName, isOpen: true });
+            }
           } catch (_) {}
+          if (room.state === 'connected' && room.localParticipant) {
+            try {
+              const payload = JSON.stringify({ type: 'WHITEBOARD_VISIBILITY', isOpen: true });
+              room.localParticipant?.publishData(new TextEncoder().encode(payload), { reliable: true, topic: 'whiteboard' }).catch(() => {});
+            } catch (_) {}
+          }
         }
       }
     };
@@ -703,13 +720,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     room.on(RoomEvent.ParticipantConnected, handleParticipantConnected);
 
     // If not host, request initial settings on connect from the host
-    if (!isHost) {
+    if (!isHost && room.state === 'connected') {
       try {
         const reqPayload = JSON.stringify({ type: 'REQUEST_ROOM_SETTINGS' });
         room.localParticipant?.publishData(
           new TextEncoder().encode(reqPayload),
           { reliable: true, topic: 'room_settings' }
-        );
+        ).catch(() => {});
       } catch (e) { }
     }
 
@@ -1293,8 +1310,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       if (Array.isArray(state.chatHistory) && state.chatHistory.length > 0) {
         syncChatHistory(state.chatHistory);
       }
+      const amHost = Boolean(isHostRef.current || isHost || amIHost());
       if (typeof state.isWhiteboardOpen === 'boolean') {
-        setIsWhiteboardOpen(state.isWhiteboardOpen);
+        // Only set whiteboard open if not host or if remote says it's open
+        if (!amHost || state.isWhiteboardOpen) {
+          setIsWhiteboardOpen(state.isWhiteboardOpen);
+        }
       }
       if (typeof state.allowWhiteboard === 'boolean') {
         setAllowWhiteboard(state.allowWhiteboard);
@@ -1312,15 +1333,21 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     // 3. Whiteboard visibility broadcast
     const handleWhiteboardVisibility = ({ isOpen }) => {
-      setIsWhiteboardOpen(Boolean(isOpen));
+      const amHost = Boolean(isHostRef.current || isHost || amIHost());
+      if (!amHost || isOpen) {
+        setIsWhiteboardOpen(Boolean(isOpen));
+      }
     };
 
     // 4. Room settings updated (allowWhiteboard, allowScreenShare)
     const handleRoomSettingsUpdated = (settings) => {
       if (!settings) return;
+      const amHost = Boolean(isHostRef.current || isHost || amIHost());
       if (typeof settings.allowWhiteboard === 'boolean') {
         setAllowWhiteboard(settings.allowWhiteboard);
-        if (!settings.allowWhiteboard) setIsWhiteboardOpen(false);
+        if (!settings.allowWhiteboard && !amHost) {
+          setIsWhiteboardOpen(false);
+        }
       }
       if (typeof settings.allowScreenShare === 'boolean') {
         setAllowScreenShare(settings.allowScreenShare);
