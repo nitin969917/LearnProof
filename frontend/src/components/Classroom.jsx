@@ -3341,7 +3341,7 @@ const Classroom = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900 dark:text-white m-0">
-                    PDF Ready
+                    PDF Study Notes Ready
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 m-0 truncate max-w-[240px]">
                     {pdfShareModalData.fileName}
@@ -3358,30 +3358,51 @@ const Classroom = () => {
 
             {/* Actions List */}
             <div className="space-y-2.5 pt-1">
-              {/* Primary: Native Share Sheet */}
+              {/* Primary: Native Share Sheet (File or Link) */}
               <button
                 onClick={async () => {
-                  if (pdfShareModalData.pdfFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfShareModalData.pdfFile] })) {
+                  if (typeof navigator !== 'undefined' && navigator.share) {
+                    // 1. Try file sharing
+                    if (pdfShareModalData.pdfFile && navigator.canShare && navigator.canShare({ files: [pdfShareModalData.pdfFile] })) {
+                      try {
+                        await navigator.share({
+                          title: pdfShareModalData.title,
+                          text: `Study Notes for ${pdfShareModalData.title}`,
+                          files: [pdfShareModalData.pdfFile]
+                        });
+                        setPdfShareModalData(null);
+                        return;
+                      } catch (fileErr) {
+                        if (fileErr.name === 'AbortError') return;
+                      }
+                    }
+
+                    // 2. Link & text sharing (supported on all mobile WebViews)
                     try {
                       await navigator.share({
                         title: pdfShareModalData.title,
-                        text: `Study Notes for ${pdfShareModalData.title}`,
-                        files: [pdfShareModalData.pdfFile]
+                        text: `Study Notes PDF: ${pdfShareModalData.title}`,
+                        url: pdfShareModalData.downloadUrl
                       });
                       setPdfShareModalData(null);
-                    } catch (e) {
-                      if (e.name !== 'AbortError') {
-                        toast.error("Share failed, try Direct Download.");
-                      }
+                      return;
+                    } catch (shareErr) {
+                      if (shareErr.name === 'AbortError') return;
                     }
-                  } else {
-                    toast.error("Direct file sharing not supported. Use Direct Download below.");
+                  }
+
+                  // 3. Fallback: Copy link
+                  try {
+                    await navigator.clipboard.writeText(pdfShareModalData.downloadUrl);
+                    toast.success("Download link copied to clipboard!");
+                  } catch (e) {
+                    toast.error("Could not share. Please use buttons below.");
                   }
                 }}
                 className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-98 text-white text-sm font-bold rounded-2xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2.5 cursor-pointer transition"
               >
                 <Share2 size={17} />
-                <span>Share via WhatsApp / Drive / Files</span>
+                <span>Share via WhatsApp / Drive / Apps</span>
               </button>
 
               {/* View Online in PDF Viewer */}
@@ -3392,8 +3413,24 @@ const Classroom = () => {
                 className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-98 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition no-underline"
               >
                 <BookOpen size={16} />
-                <span>Open & Read in Google Docs Viewer</span>
+                <span>Open in Google Docs PDF Viewer</span>
               </a>
+
+              {/* Copy Direct Download Link */}
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(pdfShareModalData.downloadUrl);
+                    toast.success("PDF Download link copied to clipboard!");
+                  } catch (err) {
+                    toast.error("Failed to copy link.");
+                  }
+                }}
+                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-98 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition"
+              >
+                <Copy size={16} />
+                <span>Copy Direct Download Link</span>
+              </button>
 
               {/* Direct Download File */}
               <button
@@ -3412,7 +3449,7 @@ const Classroom = () => {
                   } else {
                     window.open(pdfShareModalData.downloadUrl, '_blank');
                   }
-                  toast.success("Download started!");
+                  toast.success("Download initiated!");
                 }}
                 className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-98 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition"
               >
