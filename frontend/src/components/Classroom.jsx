@@ -1468,19 +1468,19 @@ const Classroom = () => {
                   {activeTab === 'ai-chat' && (
                     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm flex flex-col h-[520px] sm:h-[600px] max-h-[82vh] overflow-hidden">
                       {/* Chat Header */}
-                      <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 border-b border-gray-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
+                      <div className="flex items-center justify-between gap-2.5 sm:gap-3 p-3 sm:p-4 border-b border-gray-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm shrink-0">
-                            <Bot size={20} />
+                          <div className="p-2 sm:p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm shrink-0">
+                            <Bot size={18} className="sm:size-5" />
                           </div>
                           <div className="min-w-0">
-                            <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5 m-0 truncate">
-                              <span>AI Lecture Doubt Solver & Chatbot</span>
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 shrink-0">
+                            <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5 m-0">
+                              <span className="truncate">AI Lecture Doubt Solver & Chatbot</span>
+                              <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 shrink-0">
                                 Live Tutor
                               </span>
                             </h4>
-                            <p className="text-xs text-gray-500 dark:text-slate-400 m-0 mt-0.5 truncate">
+                            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 m-0 mt-0.5 truncate">
                               Ask any doubt or question from <strong className="text-gray-700 dark:text-slate-200 font-semibold">{video?.name}</strong>.
                             </p>
                           </div>
@@ -1488,37 +1488,49 @@ const Classroom = () => {
                         <button
                           onClick={handleStartNewChat}
                           disabled={aiChatMessages.length === 0 && !aiChatInput}
-                          className="p-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer rounded-xl flex items-center justify-center shadow-xs active:scale-95 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                          className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer rounded-xl flex items-center justify-center shadow-xs active:scale-95 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                           title="Start New Chat"
                           aria-label="New Chat"
                         >
-                          <Plus size={18} />
+                          <Plus size={16} className="sm:size-[18px]" />
                         </button>
                       </div>
 
-                      {/* Quick Doubt Suggestion Prompts */}
+                      {/* Quick Doubt Suggestion Prompts - Seamlessly touching edges */}
                       {aiChatMessages.length === 0 && (
-                        <div className="p-4 rounded-xl m-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-800/40 flex-1 flex flex-col justify-center overflow-y-auto custom-scrollbar">
-                          <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                            <Sparkles size={13} />
-                            <span>Quick Questions you can ask:</span>
-                          </p>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {[
-                              "Can you explain this in simpler words with an intuitive analogy?",
-                              "What are the most common exam questions asked on this topic?",
-                              "Give a practical real-world application or code example.",
-                              "Summarize the key mathematical formulas and definitions."
-                            ].map((promptText, pIdx) => (
-                              <button
-                                key={pIdx}
-                                onClick={() => handleSendAiQuestion(promptText)}
-                                className="text-xs text-left px-3.5 py-2 rounded-xl bg-white hover:bg-indigo-50 text-indigo-800 dark:bg-slate-800 dark:hover:bg-indigo-900/30 dark:text-indigo-200 border border-indigo-100 dark:border-slate-700 shadow-xs transition cursor-pointer font-medium active:scale-95 flex items-center gap-2"
-                              >
-                                <span className="text-orange-500">💬</span>
-                                <span className="line-clamp-2">{promptText}</span>
-                              </button>
-                            ))}
+                        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3.5 sm:p-6 bg-gradient-to-b from-indigo-50/30 via-white to-white dark:from-slate-900/50 dark:via-slate-900 dark:to-slate-900 flex flex-col justify-start sm:justify-center">
+                          <div className="w-full max-w-2xl mx-auto space-y-3 sm:space-y-4 my-auto">
+                            <div className="text-center space-y-1">
+                              <div className="inline-flex items-center justify-center p-2 sm:p-2.5 bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl mb-1 shadow-xs">
+                                <Sparkles size={18} className="sm:size-5" />
+                              </div>
+                              <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white m-0">
+                                Ask anything about this lecture
+                              </h3>
+                              <p className="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 m-0">
+                                Click a question below to ask instantly or type your own below:
+                              </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
+                              {[
+                                { text: "Can you explain this in simpler words with an intuitive analogy?", icon: "💡" },
+                                { text: "What are the most common exam questions asked on this topic?", icon: "📝" },
+                                { text: "Give a practical real-world application or code example.", icon: "⚡" },
+                                { text: "Summarize the key mathematical formulas and definitions.", icon: "📐" }
+                              ].map((item, pIdx) => (
+                                <button
+                                  key={pIdx}
+                                  onClick={() => handleSendAiQuestion(item.text)}
+                                  className="group flex items-start gap-2.5 p-3 sm:p-3.5 bg-white dark:bg-slate-800/90 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/40 border border-gray-200/80 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600 rounded-xl transition-all duration-200 text-left shadow-xs hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                                >
+                                  <span className="text-base shrink-0 select-none mt-0.5">{item.icon}</span>
+                                  <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 leading-snug">
+                                    {item.text}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
                           </div>
                         </div>
                       )}
