@@ -1002,21 +1002,38 @@ const Classroom = () => {
       const fileName = response.data.fileName || `${titleStr.replace(/[^a-z0-9]/gi, '_').slice(0, 50)}_Study_Notes.pdf`;
       const fullDownloadUrl = `${import.meta.env.VITE_BACKEND_URL}${response.data.downloadUrl}`;
 
-      // 2. Trigger native download via system browser & anchor
-      window.open(fullDownloadUrl, '_system');
+      // 2. Trigger native download via Capacitor App or system browser
+      let nativeHandled = false;
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor && Capacitor.isNativePlatform()) {
+          const { App } = await import('@capacitor/app');
+          if (App && App.openUrl) {
+            await App.openUrl({ url: fullDownloadUrl });
+            nativeHandled = true;
+          }
+        }
+      } catch (nativeErr) {
+        console.warn("Capacitor App.openUrl fallback:", nativeErr);
+      }
 
-      const downloadLink = document.createElement('a');
-      downloadLink.href = fullDownloadUrl;
-      downloadLink.download = fileName;
-      downloadLink.target = '_blank';
-      downloadLink.style.display = 'none';
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
+      if (!nativeHandled) {
+        window.open(fullDownloadUrl, '_system');
+
+        const downloadLink = document.createElement('a');
+        downloadLink.href = fullDownloadUrl;
+        downloadLink.download = fileName;
+        downloadLink.target = '_blank';
+        downloadLink.style.display = 'none';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+
+        setTimeout(() => {
+          if (document.body.contains(downloadLink)) document.body.removeChild(downloadLink);
+        }, 5000);
+      }
 
       toast.success("PDF downloading to your Downloads folder!", { id: toastId });
-      setTimeout(() => {
-        if (document.body.contains(downloadLink)) document.body.removeChild(downloadLink);
-      }, 5000);
     } catch (err) {
       console.error("PDF download failed:", err);
       toast.error("Failed to download PDF. Please try again.", { id: toastId });
