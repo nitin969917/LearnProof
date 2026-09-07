@@ -2043,7 +2043,7 @@ const Classroom = () => {
                                     </div>
                                     <div className="prose max-w-none text-gray-800 dark:text-gray-200 leading-relaxed intuition-markdown">
                                       <ReactMarkdown
-                                        remarkPlugins={[remarkMath, remarkGfm]}
+                                        remarkPlugins={[remarkGfm, remarkMath]}
                                         rehypePlugins={[rehypeKatex]}
                                         components={{
                                           h1: ({ node, ...props }) => <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-5 mb-2.5 break-words" {...props} />,
@@ -2053,7 +2053,7 @@ const Classroom = () => {
                                           strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
                                           ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                           ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                          li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:inline" {...props} />,
                                           p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
                                           code: ({ node, className, children, ...props }) => {
                                              const match = /language-(\w+)/.exec(className || '');
@@ -2126,7 +2126,7 @@ const Classroom = () => {
                                     {/* Markdown Content */}
                                     <div className="prose max-w-none text-gray-800 dark:text-gray-200 leading-relaxed intuition-markdown">
                                       <ReactMarkdown
-                                        remarkPlugins={[remarkMath, remarkGfm]}
+                                        remarkPlugins={[remarkGfm, remarkMath]}
                                         rehypePlugins={[rehypeKatex]}
                                         components={{
                                           h1: ({ node, ...props }) => <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-5 mb-2.5 break-words" {...props} />,
@@ -2136,7 +2136,7 @@ const Classroom = () => {
                                           strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
                                           ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                           ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                          li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:inline" {...props} />,
                                           p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
                                           pre: ({ node, children, ...props }) => <>{children}</>,
                                           code: ({ node, className, children, ...props }) => {
@@ -2341,12 +2341,12 @@ const Classroom = () => {
                                   ) : (
                                     <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed intuition-markdown">
                                       <ReactMarkdown
-                                        remarkPlugins={[remarkMath, remarkGfm]}
+                                        remarkPlugins={[remarkGfm, remarkMath]}
                                         rehypePlugins={[rehypeKatex]}
                                         components={{
                                           p: ({ node, ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
                                           ul: ({ node, ...props }) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
-                                          li: ({ node, ...props }) => <li className="break-words" {...props} />,
+                                          li: ({ node, ...props }) => <li className="break-words leading-relaxed [&>p]:inline" {...props} />,
                                           pre: ({ node, children, ...props }) => <>{children}</>,
                                           code: ({ node, className, children, ...props }) => {
                                             const match = /language-(\w+)/.exec(className || '');
@@ -3211,7 +3211,7 @@ const Classroom = () => {
                   {/* Markdown Content */}
                   <div className="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 text-xs sm:text-sm leading-relaxed">
                     <ReactMarkdown
-                      remarkPlugins={[remarkMath, remarkGfm]}
+                      remarkPlugins={[remarkGfm, remarkMath]}
                       rehypePlugins={[rehypeKatex]}
                       components={{
                         h1: ({ node, ...props }) => <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-3 mb-1.5" {...props} />,
@@ -3220,7 +3220,7 @@ const Classroom = () => {
                         p: ({ node, ...props }) => <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-2.5" {...props} />,
                         ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1" {...props} />,
                         ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1" {...props} />,
-                        li: ({ node, ...props }) => <li className="text-slate-700 dark:text-slate-300" {...props} />,
+                        li: ({ node, ...props }) => <li className="text-slate-700 dark:text-slate-300 leading-relaxed [&>p]:inline" {...props} />,
                         strong: ({ node, ...props }) => <strong className="font-bold text-slate-900 dark:text-white" {...props} />,
                         code: ({ node, className, children, ...props }) => {
                           const match = /language-(\w+)/.exec(className || '');
