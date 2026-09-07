@@ -81,6 +81,9 @@ router.post('/classroom/', authMiddleware, classroomController.getClassroomVideo
 router.post('/mark-completed/', authMiddleware, classroomController.markVideoCompleted);
 router.post('/unmark-completed/', authMiddleware, classroomController.unmarkVideoCompleted);
 router.post('/update-progress/', authMiddleware, classroomController.updateProgress);
+router.post('/classroom/generate-notes-pdf', authMiddleware, classroomController.generateNotesPdf);
+router.post('/generate-notes-pdf', authMiddleware, classroomController.generateNotesPdf);
+
 
 // Social
 router.get('/video-note/', authMiddleware, socialController.getNote);

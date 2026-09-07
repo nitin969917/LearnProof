@@ -9,5 +9,7 @@ router.post('/unmark-completed', authMiddleware, classroomController.unmarkVideo
 router.post('/update-progress', authMiddleware, classroomController.updateProgress);
 router.post('/continue-watching', authMiddleware, classroomController.getContinueWatching);
 router.post('/completed-learnings', authMiddleware, classroomController.getCompletedLearnings);
+router.post('/generate-notes-pdf', authMiddleware, classroomController.generateNotesPdf);
 
 module.exports = router;
+

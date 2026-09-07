@@ -275,13 +275,40 @@ const getCompletedLearnings = async (req, res) => {
     }
 };
 
-module.exports = {
-    getClassroomVideo,
-    markVideoCompleted,
-    unmarkVideoCompleted,
-    updateProgress,
-    getContinueWatching,
-    getCompletedLearnings,
+const generateNotesPdf = async (req, res) => {
+    try {
+        const { title, pages, subjectCategory } = req.body;
+        const { buildStudyNotesPDF } = require('../services/pdfGenerator.service');
+
+        if (!pages || !Array.isArray(pages) || pages.length === 0) {
+            return res.status(400).json({ error: 'No note pages provided' });
+        }
+
+        const sanitizedTitle = (title || 'Lecture_Study_Notes')
+            .replace(/[^a-zA-Z0-9_-]/g, '_')
+            .replace(/_+/g, '_')
+            .slice(0, 60);
+
+        const fileName = `${sanitizedTitle}_Study_Notes.pdf`;
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+
+        const doc = buildStudyNotesPDF({
+            title: title || 'Lecture Study Notes',
+            pages,
+            subjectCategory: subjectCategory || 'Digital Study Guide'
+        });
+
+        doc.pipe(res);
+        doc.end();
+    } catch (error) {
+        console.error('[ClassroomController] Error generating notes PDF:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to generate PDF document' });
+        }
+    }
 };
 
 module.exports = {
@@ -291,4 +318,6 @@ module.exports = {
     updateProgress,
     getContinueWatching,
     getCompletedLearnings,
+    generateNotesPdf
 };
+

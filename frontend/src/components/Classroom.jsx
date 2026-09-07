@@ -1153,11 +1153,41 @@ const Classroom = () => {
     }
 
     setDownloadingPdf(true);
-    const toastId = toast.loading("Compiling high-resolution PDF document...");
+    const toastId = toast.loading("Generating high-resolution Study Notes PDF...");
     try {
-      if (!pdfOffscreenRef.current) throw new Error("Template not mounted");
+      let pdfBlob = null;
 
-      const pdfBlob = await generatePdfBlob(pdfOffscreenRef.current);
+      // Primary: Server-Side Native PDFKit Generation (100% Reliable on Android, iOS, and all Browsers)
+      try {
+        const response = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/classroom/generate-notes-pdf`,
+          {
+            title: video?.name || 'Lecture Study Notes',
+            pages: parsedIntuition?.pages || [],
+            subjectCategory: parsedIntuition?.subjectCategory || parsedIntuition?.categoryLabel || 'Study Guide'
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            responseType: 'blob'
+          }
+        );
+
+        if (response.data && response.data.size > 200) {
+          pdfBlob = response.data;
+        }
+      } catch (serverErr) {
+        console.warn("Backend PDF generator fallback:", serverErr);
+      }
+
+      // Secondary: Client-Side Fallback
+      if (!pdfBlob && pdfOffscreenRef.current) {
+        pdfBlob = await generatePdfBlob(pdfOffscreenRef.current);
+      }
+
+      if (!pdfBlob) {
+        throw new Error("Unable to build PDF document");
+      }
+
       setGeneratedPdfBlob(pdfBlob);
       setGeneratedPdfUrl(URL.createObjectURL(pdfBlob));
       toast.dismiss(toastId);
