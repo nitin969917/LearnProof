@@ -700,13 +700,32 @@ export default function RoomWhiteboard({
       handleIncomingPacketRef.current?.(packet, packet?._senderId);
     };
 
+    const handleWhiteboardSyncResponse = (data) => {
+      if (!data) return;
+      if (Array.isArray(data.elements) && data.elements.length > 0) {
+        elementsRef.current = data.elements;
+        redrawAllElements();
+      }
+      if (data.mode) {
+        setDrawPermissionMode(data.mode);
+      }
+      if (Array.isArray(data.allowedIds)) {
+        setCustomAllowedIds(data.allowedIds);
+      }
+    };
+
     socket.on('whiteboardPacket', handleSocketWhiteboardPacket);
+    socket.on('whiteboardSyncResponse', handleWhiteboardSyncResponse);
+
+    // Request server-side whiteboard stroke and element history for instant replay
+    socket.emit('requestWhiteboardSync', { roomName });
 
     return () => {
       socket.emit('leaveRoomWhiteboard', roomName);
       socket.off('whiteboardPacket', handleSocketWhiteboardPacket);
+      socket.off('whiteboardSyncResponse', handleWhiteboardSyncResponse);
     };
-  }, [roomName, userId]);
+  }, [roomName, userId, redrawAllElements]);
 
   // ── Coordinates Helper (Accurate 1:1 Pixel Mapping for Touch & Mouse) ───────
   const getCoords = (e) => {

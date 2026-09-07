@@ -161,7 +161,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   };
 
   // Role Permissions — use token identity for host check (available before LiveKit connects)
-  const canPublish = localParticipant?.permissions?.canPublish ?? false;
   const isHost = Boolean(
     (dbRoom && user && String(dbRoom.creatorId) === String(user.id)) ||
     (dbRoom && userIdentity && String(dbRoom.creatorId) === String(userIdentity)) ||
@@ -169,6 +168,46 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   );
   const isHostRef = useRef(isHost);
   useEffect(() => { isHostRef.current = isHost; }, [isHost]);
+
+  // Helper: reliably determine whether any participant is on stage as a speaker
+  const isSpeakerParticipant = useCallback((p) => {
+    if (!p) return false;
+    // 1. Host/creator is always a stage speaker
+    const isCreator = Boolean(
+      (dbRoom && (
+        String(dbRoom.creatorId) === String(p.identity) ||
+        String(dbRoom.creator?.id) === String(p.identity)
+      )) ||
+      (user && String(user.id) === String(p.identity) && isHost)
+    );
+    if (isCreator) return true;
+
+    // 2. Check metadata role explicitly assigned by server
+    if (p.metadata) {
+      try {
+        const meta = typeof p.metadata === 'string' ? JSON.parse(p.metadata) : p.metadata;
+        if (meta?.role === 'speaker') return true;
+        if (meta?.role === 'listener') return false;
+      } catch (e) {}
+    }
+
+    // 3. Check canPublishSources (listeners have empty array [])
+    const sources = p.permissions?.canPublishSources;
+    if (Array.isArray(sources)) {
+      return sources.length > 0;
+    }
+
+    // 4. Check canPublish boolean
+    if (p.permissions && p.permissions.canPublish === false) {
+      return false;
+    }
+
+    // Default to audience listener
+    return false;
+  }, [dbRoom, user, isHost]);
+
+  // Local stage permission (true only if host or promoted speaker)
+  const canPublish = Boolean(isSpeakerParticipant(localParticipant));
 
   const hostIdentity = dbRoom?.creatorId != null ? String(dbRoom.creatorId) : null;
   const isVideoRoom = dbRoom?.mediaType === 'video';
@@ -277,8 +316,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     const allParticipants = [room?.localParticipant, ...participantsRef.current].filter(Boolean);
     const isAlreadySpeaker = allParticipants.some(p => {
       if (p.identity !== identity) return false;
-      const isCreator = dbRoomRef.current && dbRoomRef.current.creatorId?.toString() === p.identity;
-      return (p.permissions?.canPublish === true) || isCreator;
+      return isSpeakerParticipant(p);
     });
     if (isAlreadySpeaker) return;
 
@@ -449,10 +487,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Filter tracks to show only participants that are stage speakers (host or has publish permission)
   const stageTracks = tracks.filter(t => {
     const p = t.participant;
-    if (!p) return false;
-    const pCanPublish = p.permissions?.canPublish;
-    const isCreator = dbRoom && dbRoom.creatorId?.toString() === p.identity;
-    return pCanPublish || isCreator;
+    return isSpeakerParticipant(p);
   });
 
   // ── Screen Sharing & Whiteboard States & Host Permissions ─────────────────
@@ -476,6 +511,19 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // Broadcast host settings (allowWhiteboard, allowScreenShare) to all participants
   const broadcastRoomSettings = (newAllowWhiteboard, newAllowScreenShare) => {
+    try {
+      const socket = getSocialSocket(user?.id);
+      if (socket) {
+        socket.emit('updateLiveRoomSettings', {
+          roomName,
+          allowWhiteboard: newAllowWhiteboard,
+          allowScreenShare: newAllowScreenShare,
+        });
+      }
+    } catch (sockErr) {
+      console.warn('Socket room settings emit error:', sockErr);
+    }
+
     if (room && localParticipant) {
       try {
         const payload = JSON.stringify({
@@ -592,6 +640,18 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       return;
     }
     setIsWhiteboardOpen(nextState);
+
+    // 1. Broadcast via Socket.IO for server-side persistence & late joiners
+    try {
+      const socket = getSocialSocket(user?.id);
+      if (socket) {
+        socket.emit('setWhiteboardVisibility', { roomName, isOpen: nextState });
+      }
+    } catch (sockErr) {
+      console.warn('Socket whiteboard visibility emit error:', sockErr);
+    }
+
+    // 2. Broadcast via LiveKit Data Channel
     if (room && localParticipant) {
       try {
         const payload = JSON.stringify({ type: 'WHITEBOARD_VISIBILITY', isOpen: nextState });
@@ -683,8 +743,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   useEffect(() => {
     if (localParticipant && !hasInitializedState.current) {
-      const currentCanPublish = localParticipant.permissions?.canPublish ?? false;
-      if (currentCanPublish) {
+      const isSpeaker = isSpeakerParticipant(localParticipant);
+      if (isSpeaker) {
         if (!isRestoring) {
           const savedMic = localStorage.getItem(`livekit_mic_${roomName}`);
           const targetMic = savedMic !== 'disabled';
@@ -696,11 +756,17 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             localParticipant.setCameraEnabled(targetCam).catch(() => { });
           }
         }
+      } else {
+        // Audience listener: ensure mic and cam are muted
+        localParticipant.setMicrophoneEnabled(false).catch(() => { });
+        localParticipant.setCameraEnabled(false).catch(() => { });
+        setIsMicEnabled(false);
+        setIsCamEnabled(false);
       }
-      prevCanPublish.current = currentCanPublish;
+      prevCanPublish.current = isSpeaker;
       hasInitializedState.current = true;
     }
-  }, [localParticipant, roomName, isVideoRoom, isRestoring]);
+  }, [localParticipant, roomName, isVideoRoom, isRestoring, isSpeakerParticipant]);
 
   // ── Sync permissions changes from server (promote/demote) ─────────────────
   useEffect(() => {
@@ -708,14 +774,15 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     setIsMicEnabled(localParticipant.isMicrophoneEnabled);
     setIsCamEnabled(localParticipant.isCameraEnabled);
 
-    const currentCanPublish = localParticipant.permissions?.canPublish ?? false;
-    if (hasInitializedState.current && currentCanPublish !== prevCanPublish.current) {
-      if (currentCanPublish) {
+    const isSpeaker = isSpeakerParticipant(localParticipant);
+    if (hasInitializedState.current && isSpeaker !== prevCanPublish.current) {
+      if (isSpeaker) {
         setHasRequested(false);
         localParticipant.setMicrophoneEnabled(true).catch(() => { });
         setIsMicEnabled(true);
         localStorage.setItem(`livekit_stage_${roomName}`, 'speaker');
         localStorage.setItem(`livekit_mic_${roomName}`, 'enabled');
+        toast.success('You have been promoted to the stage!', { id: 'promoted-stage-toast', duration: 4000 });
       } else {
         toast.error('You have been moved back to the audience.', { duration: 5000 });
         localParticipant.setMicrophoneEnabled(false).catch(() => { });
@@ -726,13 +793,16 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         localStorage.removeItem(`livekit_mic_${roomName}`);
         localStorage.removeItem(`livekit_cam_${roomName}`);
       }
-      prevCanPublish.current = currentCanPublish;
+      prevCanPublish.current = isSpeaker;
     }
   }, [
     localParticipant,
     localParticipant?.isMicrophoneEnabled,
     localParticipant?.isCameraEnabled,
+    localParticipant?.metadata,
     localParticipant?.permissions?.canPublish,
+    localParticipant?.permissions?.canPublishSources,
+    isSpeakerParticipant,
     roomName,
   ]);
 
@@ -856,9 +926,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     ...chatHistory.map(m => ({
       type: 'chat',
       id: m.id || m.timestamp || Date.now(),
-      time: new Date(m.timestamp || m.sentAt || Date.now()),
-      from: m.from,
-      text: m.message
+      time: new Date(m.timestamp || (m.sentAt ? new Date(m.sentAt).getTime() : Date.now())),
+      from: typeof m.from === 'object' ? (m.from?.name || m.from?.identity || 'User') : (m.from || 'User'),
+      text: m.text || m.message
     })),
     ...systemEvents.map(s => ({
       type: 'system',
@@ -1052,12 +1122,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // ── Host: Approve a speak request (from participants panel) ────────────────
   const handlePromoteSpeaker = async (identity, pName) => {
     // Stage limit check (max 6 speakers)
-    const currentSpeakersCount = uniqueParticipants.filter(p => {
-      if (!p) return false;
-      const pCanPublish = p.permissions?.canPublish;
-      const isCreator = dbRoom && dbRoom.creatorId?.toString() === p.identity;
-      return pCanPublish || isCreator;
-    }).length;
+    const currentSpeakersCount = uniqueParticipants.filter(p => isSpeakerParticipant(p)).length;
 
     if (currentSpeakersCount >= 6) {
       toast.error('The stage is full! Maximum of 6 speakers allowed.', {
@@ -1153,12 +1218,59 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     return () => clearInterval(pollId);
   }, [isHost, roomName]);
 
-  // Real-time Push Listener via Socket.IO directly to Host
+  // Real-time Socket.IO Room Channel (Chat, Whiteboard, Room Sync & Stage Requests)
   useEffect(() => {
-    if (!user?.id || !isHost) return;
+    if (!roomName || !user?.id) return;
     const socket = getSocialSocket(user.id);
     if (!socket) return;
 
+    // Join live room channel
+    socket.emit('joinLiveRoom', {
+      roomName,
+      user: { id: user.id, name: user.name || user.email?.split('@')[0] || 'User' }
+    });
+
+    // 1. Initial room state snapshot from server (for late joiners)
+    const handleRoomSyncState = (state) => {
+      if (!state) return;
+      if (Array.isArray(state.chatHistory) && state.chatHistory.length > 0) {
+        syncChatHistory(state.chatHistory);
+      }
+      if (state.isWhiteboardOpen) {
+        setIsWhiteboardOpen(true);
+      }
+      if (typeof state.allowWhiteboard === 'boolean') {
+        setAllowWhiteboard(state.allowWhiteboard);
+      }
+      if (typeof state.allowScreenShare === 'boolean') {
+        setAllowScreenShare(state.allowScreenShare);
+      }
+    };
+
+    // 2. Real-time in-room chat messages
+    const handleLiveRoomChat = (chatItem) => {
+      if (!chatItem) return;
+      syncChatHistory([chatItem]);
+    };
+
+    // 3. Whiteboard visibility broadcast
+    const handleWhiteboardVisibility = ({ isOpen }) => {
+      setIsWhiteboardOpen(Boolean(isOpen));
+    };
+
+    // 4. Room settings updated (allowWhiteboard, allowScreenShare)
+    const handleRoomSettingsUpdated = (settings) => {
+      if (!settings) return;
+      if (typeof settings.allowWhiteboard === 'boolean') {
+        setAllowWhiteboard(settings.allowWhiteboard);
+        if (!settings.allowWhiteboard) setIsWhiteboardOpen(false);
+      }
+      if (typeof settings.allowScreenShare === 'boolean') {
+        setAllowScreenShare(settings.allowScreenShare);
+      }
+    };
+
+    // 5. Host stage requests via socket
     const handleSocketSpeakReq = (data) => {
       if (!data || (data.roomName && data.roomName !== roomName)) return;
       const hostActive = isHostRef.current || isHost || amIHost();
@@ -1177,14 +1289,23 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       }
     };
 
+    socket.on('liveRoomSyncState', handleRoomSyncState);
+    socket.on('liveRoomChatReceived', handleLiveRoomChat);
+    socket.on('whiteboardVisibilityChanged', handleWhiteboardVisibility);
+    socket.on('liveRoomSettingsUpdated', handleRoomSettingsUpdated);
     socket.on('speak_request', handleSocketSpeakReq);
     socket.on('withdraw_stage_request', handleSocketWithdrawReq);
 
     return () => {
+      socket.emit('leaveLiveRoom', { roomName });
+      socket.off('liveRoomSyncState', handleRoomSyncState);
+      socket.off('liveRoomChatReceived', handleLiveRoomChat);
+      socket.off('whiteboardVisibilityChanged', handleWhiteboardVisibility);
+      socket.off('liveRoomSettingsUpdated', handleRoomSettingsUpdated);
       socket.off('speak_request', handleSocketSpeakReq);
       socket.off('withdraw_stage_request', handleSocketWithdrawReq);
     };
-  }, [user, isHost, roomName, amIHost]);
+  }, [user, isHost, roomName, amIHost, syncChatHistory]);
 
   useEffect(() => {
     if (!room) return;
@@ -1332,15 +1453,58 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     navigate(`/dashboard/social?tab=profile&profileId=${userId}`);
   };
 
-  // ── Chat send ──────────────────────────────────────────────────────────────
+  // ── Chat send (Socket.IO relay with message history + LiveKit data channel) ─
   const handleSendChat = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!chatInput.trim()) return;
-    send(chatInput);
+    const textToSend = chatInput.trim();
     setChatInput('');
+
+    // 1. Send via Socket.io relay
+    try {
+      const socket = getSocialSocket(user?.id);
+      if (socket) {
+        socket.emit('sendLiveRoomChat', {
+          roomName,
+          message: textToSend,
+          sender: {
+            identity: String(user?.id || localParticipant?.identity || ''),
+            name: user?.name || localParticipant?.name || 'User'
+          }
+        });
+      }
+    } catch (sockErr) {
+      console.warn('Socket chat send failed:', sockErr);
+    }
+
+    // 2. Also send via LiveKit data channel for dual redundancy
+    try {
+      send(textToSend);
+    } catch (lkErr) {
+      console.warn('LiveKit chat send failed:', lkErr);
+    }
   };
 
-  const handleQuickSend = (text) => send(text);
+  const handleQuickSend = (text) => {
+    if (!text || !text.trim()) return;
+    const textToSend = text.trim();
+    try {
+      const socket = getSocialSocket(user?.id);
+      if (socket) {
+        socket.emit('sendLiveRoomChat', {
+          roomName,
+          message: textToSend,
+          sender: {
+            identity: String(user?.id || localParticipant?.identity || ''),
+            name: user?.name || localParticipant?.name || 'User'
+          }
+        });
+      }
+    } catch (sockErr) {}
+    try {
+      send(textToSend);
+    } catch (lkErr) {}
+  };
 
   // ── Deduplicate participants ────────────────────────────────────────────────
   const uniqueParticipants = [];
@@ -1356,16 +1520,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     }
   });
 
-  // Stage speakers: host + participants with canPublish
-  const stageSpeakers = uniqueParticipants.filter(p => {
-    if (!p) return false;
-    const pCanPublish = p.permissions?.canPublish;
-    const isCreator = dbRoom && dbRoom.creatorId?.toString() === p.identity;
-    return pCanPublish || isCreator;
-  }).slice(0, 6);
+  // Stage speakers: host + explicitly promoted speakers
+  const stageSpeakers = uniqueParticipants.filter(p => isSpeakerParticipant(p)).slice(0, 6);
 
   // Audience listeners
-  const listeners = uniqueParticipants.filter(p => !stageSpeakers.some(s => s.identity === p.identity));
+  const listeners = uniqueParticipants.filter(p => !isSpeakerParticipant(p));
 
   const getGridClassName = (count) => {
     if (count <= 1) return 'grid-cols-1 grid-rows-1 h-full';
@@ -2698,8 +2857,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                 {uniqueParticipants.map((p) => {
                   const isCreator = dbRoom && dbRoom.creatorId?.toString() === p.identity;
                   const isMe = p.identity === localParticipant?.identity;
-                  const pCanPublish = p.permissions?.canPublish ?? false;
-                  const role = isCreator ? 'Host' : pCanPublish ? 'Speaker' : 'Listener';
+                  const isSpeaker = isSpeakerParticipant(p);
+                  const role = isCreator ? 'Host' : isSpeaker ? 'Speaker' : 'Listener';
                   const roleColors = { Host: 'text-orange-400', Speaker: 'text-green-400', Listener: 'text-gray-500' };
 
                   return (
@@ -2804,9 +2963,9 @@ export default function LanguageRoom() {
           return;
         }
 
-        // Determine if the user should join as a speaker
-        const storedRole = localStorage.getItem(`livekit_stage_${roomName}`);
-        const requestPublish = storedRole === 'speaker' ? 'true' : 'false';
+        // Determine if the user should join as a speaker (host joins as speaker, others start as audience)
+        const isRoomHost = roomInfo && user && String(roomInfo.creatorId) === String(user.id);
+        const requestPublish = isRoomHost ? 'true' : 'false';
 
         const res = await socialApi.get('/livekit/token', {
           params: { room: roomName, requestPublish },

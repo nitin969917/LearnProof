@@ -5,6 +5,8 @@ const datingController = require('./datingController');
 
 // In-memory stage request queue: roomName -> Map(identity -> { identity, name, requestedAt })
 const stageRequestStore = new Map();
+// In-memory approved speakers: roomName -> Set of identities allowed on stage
+const approvedSpeakersStore = new Map();
 const delayedLiveKitDeletions = new Map();
 
 const getStageRequestMap = (roomName) => {
@@ -14,12 +16,20 @@ const getStageRequestMap = (roomName) => {
   return stageRequestStore.get(roomName);
 };
 
+const getApprovedSpeakers = (roomName) => {
+  if (!approvedSpeakersStore.has(roomName)) {
+    approvedSpeakersStore.set(roomName, new Set());
+  }
+  return approvedSpeakersStore.get(roomName);
+};
+
 const clearStageRequest = (roomName, identity) => {
   getStageRequestMap(roomName).delete(String(identity));
 };
 
 const clearAllStageRequests = (roomName) => {
   stageRequestStore.delete(roomName);
+  approvedSpeakersStore.delete(roomName);
 };
 
 /**
@@ -86,8 +96,9 @@ const getToken = async (req, res) => {
     // 2. Ensure room exists in LiveKit server (support up to 500 audience members for "unlimited" feel)
     await livekitService.createRoom(room, 500);
 
-    // 3. Generate the JWT token (hosts and requestPublish speaker state join as speakers)
-    const canPublish = isAdmin || requestPublish === 'true';
+    // 3. Generate the JWT token (only hosts and host-approved speakers join as speakers)
+    const isApprovedSpeaker = isAdmin || getApprovedSpeakers(room).has(String(userId));
+    const canPublish = isApprovedSpeaker;
     const token = await livekitService.generateToken(room, userId, userName, isAdmin, canPublish);
 
     return res.json({
@@ -234,13 +245,15 @@ const promoteParticipant = async (req, res) => {
       });
     }
 
-    // Set canPublish = true in LiveKit server
+    // Set canPublish = true with media sources and metadata role in LiveKit server
     await livekitService.updateParticipantPermissions(roomName, identity, {
       canPublish: true,
       canSubscribe: true,
-      canPublishData: true
-    });
+      canPublishData: true,
+      canPublishSources: ['camera', 'microphone', 'screen_share', 'screen_share_audio']
+    }, JSON.stringify({ role: 'speaker' }));
 
+    getApprovedSpeakers(roomName).add(String(identity));
     clearStageRequest(roomName, identity);
 
     return res.json({ success: true, message: 'Participant promoted to speaker' });
@@ -276,12 +289,15 @@ const demoteParticipant = async (req, res) => {
       return res.status(403).json({ error: 'Only the room host or the participant themselves can demote stage speakers' });
     }
 
-    // Set canPublish = false in LiveKit server
+    // Demote participant: keep canPublish true for chat/whiteboard data packets, but revoke media sources and set role: 'listener'
     await livekitService.updateParticipantPermissions(roomName, identity, {
-      canPublish: false,
+      canPublish: true,
       canSubscribe: true,
-      canPublishData: true
-    });
+      canPublishData: true,
+      canPublishSources: []
+    }, JSON.stringify({ role: 'listener' }));
+
+    getApprovedSpeakers(roomName).delete(String(identity));
 
     return res.json({ success: true, message: 'Participant demoted to listener' });
   } catch (err) {

@@ -10,14 +10,15 @@ const roomService = new RoomServiceClient(LIVEKIT_HOST, API_KEY, API_SECRET);
 /**
  * Generate a LiveKit JWT token for a user to join a room
  */
-function generateToken(roomName, userId, userName, isAdmin = false, canPublish = true) {
+function generateToken(roomName, userId, userName, isAdmin = false, canPublish = false) {
+  const isStageSpeaker = isAdmin || canPublish;
+
   const token = new AccessToken(API_KEY, API_SECRET, {
     identity: String(userId),
     name: userName || `User_${userId}`,
+    metadata: JSON.stringify({ role: isStageSpeaker ? 'speaker' : 'listener' }),
     ttl: '3h',
   });
-
-  const isStageSpeaker = isAdmin || canPublish;
 
   token.addGrant({
     room: roomName,
@@ -129,9 +130,12 @@ async function kickParticipant(roomName, identity) {
 /**
  * Update dynamic permissions for a participant in a room
  */
-async function updateParticipantPermissions(roomName, identity, permissions) {
+async function updateParticipantPermissions(roomName, identity, permissions, metadata) {
   try {
-    await roomService.updateParticipant(roomName, identity, undefined, permissions);
+    await roomService.updateParticipant(roomName, identity, {
+      permission: permissions,
+      metadata: metadata || undefined,
+    });
     return true;
   } catch (err) {
     console.error(`Failed to update permissions for participant ${identity} in room ${roomName}:`, err);

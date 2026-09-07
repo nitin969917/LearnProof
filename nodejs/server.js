@@ -88,6 +88,40 @@ if (workerId === '0' || workerId === 'standalone') {
   syncAllSequences().catch(err => console.error('[Server] Sequence sync failed:', err));
 }
 
+// In-memory state stores for Live Language Rooms
+const roomWhiteboardState = new Map(); // roomName -> { isOpen: boolean, elements: [], mode: 'speakers', allowedIds: [] }
+const roomChatState = new Map(); // roomName -> [ { id, from, text, time } ] (sliding window of 60 messages)
+const roomSettingsState = new Map(); // roomName -> { allowWhiteboard: boolean, allowScreenShare: boolean }
+
+function getRoomWhiteboard(roomName) {
+  if (!roomWhiteboardState.has(roomName)) {
+    roomWhiteboardState.set(roomName, {
+      isOpen: false,
+      elements: [],
+      mode: 'speakers',
+      allowedIds: []
+    });
+  }
+  return roomWhiteboardState.get(roomName);
+}
+
+function getRoomChat(roomName) {
+  if (!roomChatState.has(roomName)) {
+    roomChatState.set(roomName, []);
+  }
+  return roomChatState.get(roomName);
+}
+
+function getRoomSettings(roomName) {
+  if (!roomSettingsState.has(roomName)) {
+    roomSettingsState.set(roomName, {
+      allowWhiteboard: false,
+      allowScreenShare: false
+    });
+  }
+  return roomSettingsState.get(roomName);
+}
+
 io.on('connection', (socket) => {
   console.log('Social Socket connected:', socket.id);
 
@@ -338,6 +372,85 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ── Live Room General State & Chat Relay ──
+  socket.on('joinLiveRoom', (payload) => {
+    const roomName = typeof payload === 'string' ? payload : payload?.roomName;
+    if (!roomName) return;
+    const roomChannel = `live_room_${roomName}`;
+    socket.join(roomChannel);
+
+    const wb = getRoomWhiteboard(roomName);
+    const chat = getRoomChat(roomName);
+    const settings = getRoomSettings(roomName);
+
+    // Provide complete synchronization snapshot to the joining client
+    socket.emit('liveRoomSyncState', {
+      isWhiteboardOpen: wb.isOpen,
+      whiteboardMode: wb.mode,
+      whiteboardAllowedIds: wb.allowedIds,
+      chatHistory: chat,
+      allowWhiteboard: settings.allowWhiteboard,
+      allowScreenShare: settings.allowScreenShare,
+    });
+  });
+
+  socket.on('leaveLiveRoom', (payload) => {
+    const roomName = typeof payload === 'string' ? payload : payload?.roomName;
+    if (!roomName) return;
+    socket.leave(`live_room_${roomName}`);
+  });
+
+  // Host updates room settings
+  socket.on('updateLiveRoomSettings', ({ roomName, allowWhiteboard, allowScreenShare }) => {
+    if (!roomName) return;
+    const settings = getRoomSettings(roomName);
+    if (typeof allowWhiteboard === 'boolean') settings.allowWhiteboard = allowWhiteboard;
+    if (typeof allowScreenShare === 'boolean') settings.allowScreenShare = allowScreenShare;
+
+    io.to(`live_room_${roomName}`).emit('liveRoomSettingsUpdated', {
+      allowWhiteboard: settings.allowWhiteboard,
+      allowScreenShare: settings.allowScreenShare
+    });
+  });
+
+  // Real-time Chat
+  socket.on('sendLiveRoomChat', ({ roomName, message, sender }) => {
+    if (!roomName || !message || typeof message !== 'string' || !message.trim()) return;
+    const chatHistory = getRoomChat(roomName);
+    const chatItem = {
+      id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      roomName,
+      from: sender?.name || sender?.userName || 'User',
+      senderId: sender?.identity || sender?.id || 'anonymous',
+      text: message.trim(),
+      timestamp: Date.now(),
+      sentAt: new Date().toISOString()
+    };
+
+    // Append to sliding window (keep last 60 messages)
+    chatHistory.push(chatItem);
+    if (chatHistory.length > 60) {
+      chatHistory.shift();
+    }
+
+    // Broadcast message to everyone in the room
+    io.to(`live_room_${roomName}`).emit('liveRoomChatReceived', chatItem);
+  });
+
+  // Client requests chat history
+  socket.on('getLiveRoomChatHistory', ({ roomName }) => {
+    if (!roomName) return;
+    socket.emit('liveRoomChatHistory', getRoomChat(roomName));
+  });
+
+  // Whiteboard visibility toggle (Host or participant with permission)
+  socket.on('setWhiteboardVisibility', ({ roomName, isOpen }) => {
+    if (!roomName) return;
+    const wb = getRoomWhiteboard(roomName);
+    wb.isOpen = Boolean(isOpen);
+    io.to(`live_room_${roomName}`).emit('whiteboardVisibilityChanged', { isOpen: wb.isOpen });
+  });
+
   // Live Room Whiteboard Dual-Layer Relay Channel
   socket.on('joinRoomWhiteboard', (roomName) => {
     if (roomName) {
@@ -351,10 +464,50 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Client requests full whiteboard state & drawings history
+  socket.on('requestWhiteboardSync', ({ roomName }) => {
+    if (!roomName) return;
+    const wb = getRoomWhiteboard(roomName);
+    socket.emit('whiteboardSyncResponse', {
+      elements: wb.elements,
+      mode: wb.mode,
+      allowedIds: wb.allowedIds,
+      isOpen: wb.isOpen
+    });
+  });
+
   socket.on('whiteboardPacket', (data) => {
-    if (data && data.roomName && data.payload) {
-      socket.to(`whiteboard_room_${data.roomName}`).emit('whiteboardPacket', data.payload);
+    if (!data || !data.roomName || !data.payload) return;
+    const { roomName, payload } = data;
+    const wb = getRoomWhiteboard(roomName);
+
+    // Save persistent elements/strokes so late joiners can see them
+    if (payload.type === 'DRAW_ELEMENT' && payload.element) {
+      const elemId = payload.element.id || payload.element.strokeId;
+      const exists = elemId && wb.elements.some(e => (e.id || e.strokeId) === elemId);
+      if (!exists) {
+        wb.elements.push(payload.element);
+        if (wb.elements.length > 2000) wb.elements.shift();
+      }
+    } else if (payload.type === 'CLEAR') {
+      wb.elements = [];
+    } else if (payload.type === 'UNDO') {
+      if (payload.id) {
+        wb.elements = wb.elements.filter(e => (e.id || e.strokeId) !== payload.id);
+      } else {
+        wb.elements.pop();
+      }
+    } else if (payload.type === 'DRAW_PERMISSIONS_UPDATE') {
+      if (payload.mode) wb.mode = payload.mode;
+      if (Array.isArray(payload.allowedIds)) wb.allowedIds = payload.allowedIds;
+    } else if (payload.type === 'SYNC_RESPONSE' && Array.isArray(payload.elements)) {
+      wb.elements = payload.elements;
+      if (payload.mode) wb.mode = payload.mode;
+      if (Array.isArray(payload.allowedIds)) wb.allowedIds = payload.allowedIds;
     }
+
+    // Broadcast packet to peers in whiteboard room
+    socket.to(`whiteboard_room_${roomName}`).emit('whiteboardPacket', payload);
   });
 });
 
