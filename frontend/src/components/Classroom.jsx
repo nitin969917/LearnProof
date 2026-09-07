@@ -952,106 +952,22 @@ const Classroom = () => {
     toast.success("All study notes copied to clipboard!");
   };
 
-  const handlePrintStudyNotes = () => {
+  const handlePrintStudyNotes = async () => {
     if (!parsedIntuition || !parsedIntuition.pages || parsedIntuition.pages.length === 0) {
       toast.error("Please generate study notes first.");
       return;
     }
 
-    const title = video?.name || 'Lecture Study Notes';
-    const category = parsedIntuition.subjectCategory || parsedIntuition.categoryLabel || 'Digital Study Guide';
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor && Capacitor.isNativePlatform()) {
+        handleDownloadPdf();
+        return;
+      }
+    } catch (e) {}
 
-    const printFrame = document.createElement('iframe');
-    printFrame.style.position = 'fixed';
-    printFrame.style.right = '0';
-    printFrame.style.bottom = '0';
-    printFrame.style.width = '0';
-    printFrame.style.height = '0';
-    printFrame.style.border = 'none';
-    printFrame.style.visibility = 'hidden';
-    document.body.appendChild(printFrame);
-
-    const pagesHtml = parsedIntuition.pages.map((p, idx) => `
-      <div class="page-container">
-        <div class="page-header">
-          <div class="brand">LEARNPROOF AI &bull; ${category.toUpperCase()}</div>
-          <div class="page-badge">TOPIC ${idx + 1} OF ${parsedIntuition.totalPages}</div>
-        </div>
-        <h1 class="doc-title">${title}</h1>
-        <div class="topic-banner">
-          <div class="topic-counter">TOPIC ${p.pageNumber || idx + 1}</div>
-          <h2 class="topic-title">${p.title}</h2>
-        </div>
-        <div class="topic-body">
-          ${p.content
-            .replace(/### (.*?)\n/g, '<h3>$1</h3>')
-            .replace(/## (.*?)\n/g, '<h2>$1</h2>')
-            .replace(/# (.*?)\n/g, '<h1>$1</h1>')
-            .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-            .replace(/`([^`]+)`/g, '<code>$1</code>')
-            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-            .replace(/\n\n/g, '<p></p>')
-            .replace(/^- (.*)/gm, '<li>$1</li>')
-            .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')}
-        </div>
-        <div class="page-footer">
-          <span>LearnProof AI Study Notes</span>
-          <span>Page ${idx + 1} of ${parsedIntuition.totalPages}</span>
-        </div>
-      </div>
-    `).join('');
-
-    const frameDoc = printFrame.contentWindow.document;
-    frameDoc.open();
-    frameDoc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${title} - Study Notes</title>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>
-            @page { size: A4 portrait; margin: 12mm; }
-            * { box-sizing: border-box; }
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 20px; background: #fff; line-height: 1.6; }
-            .page-container { page-break-after: always; break-after: page; max-width: 800px; margin: 0 auto 30px auto; padding-bottom: 20px; }
-            .page-container:last-child { page-break-after: avoid; break-after: avoid; }
-            .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #4338ca; padding-bottom: 8px; margin-bottom: 16px; }
-            .brand { font-weight: 900; font-size: 13px; color: #4338ca; letter-spacing: 0.5px; }
-            .page-badge { font-weight: 700; font-size: 11px; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 6px; }
-            .doc-title { font-size: 20px; font-weight: 900; color: #1e1b4b; margin: 4px 0 16px 0; }
-            .topic-banner { background: #eef2ff; border-left: 4px solid #4f46e5; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 16px; }
-            .topic-counter { font-size: 10px; font-weight: 800; color: #4338ca; text-transform: uppercase; letter-spacing: 0.5px; }
-            .topic-title { font-size: 16px; font-weight: 800; color: #1e1b4b; margin: 2px 0 0 0; }
-            .topic-body { font-size: 13px; color: #334155; }
-            .topic-body h1, .topic-body h2, .topic-body h3 { color: #1e1b4b; margin-top: 16px; margin-bottom: 6px; }
-            .topic-body pre { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; overflow-x: auto; white-space: pre-wrap; margin: 12px 0; }
-            .topic-body code { font-family: monospace; font-size: 12px; background: #e0e7ff; color: #3730a3; padding: 2px 5px; border-radius: 4px; font-weight: 600; }
-            .topic-body pre code { background: transparent; color: inherit; padding: 0; }
-            .topic-body ul, .topic-body ol { padding-left: 20px; margin: 8px 0; }
-            .topic-body li { margin-bottom: 4px; }
-            .page-footer { display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 24px; font-size: 10px; color: #94a3b8; }
-            @media print {
-              body { padding: 0; }
-              .page-container { margin-bottom: 0; }
-            }
-          </style>
-        </head>
-        <body>
-          ${pagesHtml}
-        </body>
-      </html>
-    `);
-    frameDoc.close();
-
-    setTimeout(() => {
-      printFrame.contentWindow.focus();
-      printFrame.contentWindow.print();
-      setTimeout(() => {
-        if (document.body.contains(printFrame)) {
-          document.body.removeChild(printFrame);
-        }
-      }, 60000);
-    }, 400);
+    // On Desktop / Laptop browsers, trigger native print with print stylesheet
+    window.print();
   };
 
   const handleDownloadPdf = async () => {
@@ -1061,23 +977,25 @@ const Classroom = () => {
     }
 
     setDownloadingPdf(true);
-    const toastId = toast.loading("Generating high-speed Study Notes PDF...");
+    const toastId = toast.loading("Generating Study Notes PDF...");
 
     try {
+      const activeToken = token || localStorage.getItem('google_token') || '';
       const titleStr = video?.name || 'Lecture Study Notes';
       const sanitized = titleStr.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').slice(0, 60);
       const fileName = `${sanitized}_Study_Notes.pdf`;
 
-      // 1. Fetch genuine server-side PDFKit document stream
+      // 1. Fetch server-side PDFKit document stream
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/classroom/generate-notes-pdf`,
         {
           title: titleStr,
           pages: parsedIntuition.pages,
-          subjectCategory: parsedIntuition.subjectCategory || parsedIntuition.categoryLabel || 'Study Guide'
+          subjectCategory: parsedIntuition.subjectCategory || parsedIntuition.categoryLabel || 'Digital Study Notes',
+          idToken: activeToken
         },
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {},
           responseType: 'blob'
         }
       );
@@ -1092,30 +1010,27 @@ const Classroom = () => {
           const reader = new FileReader();
           reader.readAsDataURL(blob);
           reader.onloadend = async () => {
-            const base64data = reader.result.split(',')[1];
-            const saved = await Filesystem.writeFile({
-              path: fileName,
-              data: base64data,
-              directory: Directory.Documents,
-              recursive: true
-            });
-
             try {
+              const base64data = reader.result.split(',')[1];
+              const saved = await Filesystem.writeFile({
+                path: fileName,
+                data: base64data,
+                directory: Directory.Cache,
+                recursive: true
+              });
+
               const { Share } = await import('@capacitor/share');
-              if (await Share.canShare()) {
-                await Share.share({
-                  title: fileName,
-                  text: 'LearnProof AI Study Notes',
-                  url: saved.uri,
-                  dialogTitle: 'Save / Open PDF Notes'
-                });
-                toast.success("PDF saved to device!", { id: toastId });
-                return;
-              }
-            } catch (sErr) {
-              console.warn(sErr);
+              await Share.share({
+                title: fileName,
+                text: 'LearnProof AI Study Notes',
+                url: saved.uri,
+                dialogTitle: 'Save / Open PDF Notes'
+              });
+              toast.success("PDF ready on your device!", { id: toastId });
+            } catch (fsErr) {
+              console.error("Capacitor write/share error:", fsErr);
+              toast.success("PDF generated!", { id: toastId });
             }
-            toast.success("PDF saved to Documents!", { id: toastId });
           };
           return;
         }
@@ -1139,9 +1054,8 @@ const Classroom = () => {
         URL.revokeObjectURL(blobUrl);
       }, 30000);
     } catch (err) {
-      console.error("PDF download failed, falling back to print:", err);
-      toast.error("Opening system Save as PDF...", { id: toastId });
-      handlePrintStudyNotes();
+      console.error("PDF download failed:", err);
+      toast.error("Failed to generate PDF. Please try again.", { id: toastId });
     } finally {
       setDownloadingPdf(false);
     }
@@ -3262,7 +3176,7 @@ const Classroom = () => {
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 shrink-0">
+            <div className="no-print flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 shrink-0">
               <div className="flex items-center gap-2.5 min-w-0 pr-2">
                 <div className="p-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl shrink-0">
                   <FileText size={20} />
@@ -3326,11 +3240,11 @@ const Classroom = () => {
             </div>
 
             {/* Modal Body: High Speed Clean Reader */}
-            <div className="flex-1 w-full bg-slate-100 dark:bg-slate-950 overflow-y-auto p-3 sm:p-6 space-y-6">
+            <div id="printable-study-guide" className="flex-1 w-full bg-slate-100 dark:bg-slate-950 overflow-y-auto p-3 sm:p-6 space-y-6">
               {parsedIntuition?.pages?.map((page, idx) => (
                 <div
                   key={idx}
-                  className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl shadow-sm p-5 sm:p-8 border border-slate-200 dark:border-slate-800"
+                  className="topic-page-card w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl shadow-sm p-5 sm:p-8 border border-slate-200 dark:border-slate-800"
                 >
                   {/* Topic Header */}
                   <div className="border-b border-indigo-100 dark:border-slate-800 pb-3 mb-4 flex items-center justify-between">
@@ -3353,12 +3267,12 @@ const Classroom = () => {
                       remarkPlugins={[remarkMath, remarkGfm]}
                       rehypePlugins={[rehypeKatex]}
                       components={{
-                        h1: ({ node, ...props }) => <h1 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mt-4 mb-2" {...props} />,
-                        h2: ({ node, ...props }) => <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-3 mb-1.5" {...props} />,
-                        h3: ({ node, ...props }) => <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mt-2.5 mb-1" {...props} />,
-                        p: ({ node, ...props }) => <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-3" {...props} />,
-                        ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1" {...props} />,
-                        ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1" {...props} />,
+                        h1: ({ node, ...props }) => <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-3 mb-1.5" {...props} />,
+                        h2: ({ node, ...props }) => <h2 className="text-xs sm:text-sm font-bold text-indigo-900 dark:text-indigo-300 mt-2.5 mb-1" {...props} />,
+                        h3: ({ node, ...props }) => <h3 className="text-xs sm:text-sm font-semibold text-indigo-800 dark:text-indigo-400 mt-2 mb-1" {...props} />,
+                        p: ({ node, ...props }) => <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-2.5" {...props} />,
+                        ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1" {...props} />,
+                        ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1" {...props} />,
                         li: ({ node, ...props }) => <li className="text-slate-700 dark:text-slate-300" {...props} />,
                         strong: ({ node, ...props }) => <strong className="font-bold text-slate-900 dark:text-white" {...props} />,
                         code: ({ node, className, children, ...props }) => {
@@ -3395,7 +3309,7 @@ const Classroom = () => {
             </div>
 
             {/* Mobile Bottom Quick Action Bar */}
-            <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 sm:hidden shrink-0">
+            <div className="no-print p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 sm:hidden shrink-0">
               <button
                 onClick={handlePrintStudyNotes}
                 className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"

@@ -564,13 +564,33 @@ html, body {
     width: 100% !important;
     display: block !important;
     background: #ffffff !important;
-    padding: 24px !important;
+    padding: 20px !important;
     z-index: 999999 !important;
   }
 
-  .pdf-page-break {
-    page-break-before: always !important;
-    break-before: page !important;
+  /* Hide modal buttons and controls during print */
+  .no-print,
+  button,
+  header,
+  nav,
+  select {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .topic-page-card {
+    page-break-after: always !important;
+    break-after: page !important;
+    margin-bottom: 24px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .topic-page-card:last-child {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 
   @page {
@@ -578,5 +598,6 @@ html, body {
     margin: 12mm 10mm;
   }
 }
+
 
 
