@@ -3068,7 +3068,10 @@ export default function LanguageRoom() {
 
   useEffect(() => {
     if (!user) return;
-    if (isRestoring) return;
+    if (activeRoom && activeRoom.roomName === roomName && activeRoom.token) {
+      setLoading(false);
+      return;
+    }
 
     const fetchTokenAndRoom = async () => {
       try {
@@ -3097,17 +3100,19 @@ export default function LanguageRoom() {
           params: { room: roomName, requestPublish },
         });
 
-        setToken(res.data.token);
-        setServerUrl(res.data.serverUrl);
-        setUserIdentity(res.data.identity);
+        if (res.data?.token && res.data?.serverUrl) {
+          setToken(res.data.token);
+          setServerUrl(res.data.serverUrl);
+          setUserIdentity(res.data.identity);
 
-        setActiveRoom({
-          roomName,
-          token: res.data.token,
-          serverUrl: res.data.serverUrl,
-          dbRoom: roomInfo,
-          userIdentity: res.data.identity,
-        });
+          setActiveRoom({
+            roomName,
+            token: res.data.token,
+            serverUrl: res.data.serverUrl,
+            dbRoom: roomInfo,
+            userIdentity: res.data.identity,
+          });
+        }
       } catch (err) {
         console.error('Failed to get LiveKit token:', err);
         setError(err.response?.data?.error || 'Failed to connect to room. The room might be full or inactive.');
@@ -3117,17 +3122,20 @@ export default function LanguageRoom() {
     };
 
     fetchTokenAndRoom();
-  }, [user, roomName, navigate]);
+  }, [user, roomName, navigate, activeRoom]);
 
   useEffect(() => {
     // Hide PiP when inside the room page
     useLiveRoomPipStore.getState().setShowPip(false);
 
     return () => {
-      // Directly leave and never linger in PiP floating window
-      const pip = useLiveRoomPipStore.getState();
-      pip.setShowPip(false);
-      pip.clearActiveRoom();
+      // Only clear if the user actually navigated away from this room URL or explicitly left
+      const currentPath = window.location.pathname;
+      if (hasExplicitlyLeft.current || !currentPath.includes(`/live-rooms/${roomName}`)) {
+        const pip = useLiveRoomPipStore.getState();
+        pip.setShowPip(false);
+        pip.clearActiveRoom();
+      }
     };
   }, [roomName]);
 
