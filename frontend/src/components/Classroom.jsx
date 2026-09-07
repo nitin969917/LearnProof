@@ -170,6 +170,14 @@ const preprocessMarkdown = (text) => {
   return processed;
 };
 
+const cleanTopicTitle = (title, idx) => {
+  if (!title || typeof title !== 'string') return `Topic ${idx + 1}`;
+  let t = title.trim();
+  t = t.replace(/^Chapter\s*(\d+)[:\s-]*/i, 'Topic $1: ');
+  t = t.replace(/^Chapter\s*(\d+)$/i, 'Topic $1');
+  return t;
+};
+
 const parseIntuitionData = (raw) => {
   if (!raw) return null;
 
@@ -193,7 +201,7 @@ const parseIntuitionData = (raw) => {
 
         pages.push({
           pageNumber: parseInt(m[1], 10),
-          title: m[2],
+          title: cleanTopicTitle(m[2], pages.length),
           content: content.trim()
         });
       }
@@ -257,7 +265,7 @@ const parseIntuitionData = (raw) => {
         }
         return {
           pageNumber: p.pageNumber || idx + 1,
-          title: p.title || `Chapter ${idx + 1}`,
+          title: cleanTopicTitle(p.title, idx),
           content: contentStr
         };
       })
@@ -277,7 +285,7 @@ const parseIntuitionData = (raw) => {
       pages: [
         {
           pageNumber: 1,
-          title: 'Comprehensive Study Notes',
+          title: 'Topic 1: Comprehensive Study Notes',
           content: plainContent
         }
       ]
@@ -668,7 +676,7 @@ const Classroom = () => {
       setModelName(res.data.model_name || "");
       setActiveChapterIndex(0);
       if (forceRefresh) {
-        toast.success("Regenerated deep, multi-chapter study notes!");
+        toast.success("Regenerated deep, multi-topic study notes!");
       }
     } catch (err) {
       console.error("Failed to fetch intuition", err);
@@ -682,14 +690,14 @@ const Classroom = () => {
     if (!content) return;
     navigator.clipboard.writeText(content);
     setCopiedChapter(true);
-    toast.success("Chapter notes copied to clipboard!");
+    toast.success("Topic notes copied to clipboard!");
     setTimeout(() => setCopiedChapter(false), 2000);
   };
 
   const handleDownloadFullNotes = (notes) => {
     if (!notes || !notes.pages) return;
     const titleStr = video?.name || 'Lecture Notes';
-    const fullText = `# ${titleStr}\n\nSubject Category: ${notes.categoryLabel}\nEstimated Reading Time: ${notes.estimatedReadTimeMinutes} minutes\n\n` +
+    const fullText = `# ${titleStr}\n\n` +
       notes.pages.map(p => `## ${p.title}\n\n${p.content}`).join('\n\n---\n\n');
     const blob = new Blob([fullText], { type: 'text/markdown;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -1599,18 +1607,7 @@ const Classroom = () => {
                               AI Notes & Study Guide
                             </h3>
 
-                            {parsedIntuition && (
-                              <div className="flex items-center gap-2">
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getCategoryStyle(parsedIntuition.subjectCategory).badgeBg}`}>
-                                  <span>{getCategoryStyle(parsedIntuition.subjectCategory).icon}</span>
-                                  <span className="truncate max-w-[160px] sm:max-w-none">{parsedIntuition.categoryLabel}</span>
-                                </span>
-                                <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-                                  <Clock size={12} />
-                                  <span>{parsedIntuition.estimatedReadTimeMinutes || 5} min read</span>
-                                </span>
-                              </div>
-                            )}
+                            {/* AI Notes Header Title */}
                           </div>
 
                           {/* Top Controls: Language Picker & Actions */}
@@ -1667,14 +1664,14 @@ const Classroom = () => {
                               </div>
                             </div>
                             <p className="font-medium animate-pulse text-indigo-600 dark:text-indigo-400">Synthesizing textbook-quality digital study notes...</p>
-                            <p className="text-xs text-indigo-500/60 mt-2">Classifying subject curriculum & constructing multi-chapter study materials</p>
+                            <p className="text-xs text-indigo-500/60 mt-2">Classifying subject curriculum & constructing comprehensive topic study notes</p>
                           </div>
                         ) : parsedIntuition ? (
                           <div className="space-y-4">
-                            {/* Chapter Pill Navigation & View Switcher (for multi-chapter notes) */}
+                            {/* Topic Pill Navigation & View Switcher (for multi-topic notes) */}
                             {parsedIntuition.totalPages > 1 && (
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white/70 dark:bg-slate-800/60 p-2 sm:p-2.5 rounded-xl border border-indigo-100 dark:border-slate-700/60">
-                                {/* Chapter Pill Selector */}
+                                {/* Topic Pill Selector */}
                                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
                                   {parsedIntuition.pages.map((p, idx) => {
                                     const isActive = !isContinuousView && activeChapterIndex === idx;
@@ -1691,7 +1688,7 @@ const Classroom = () => {
                                             : 'bg-indigo-50/60 dark:bg-slate-700/50 text-gray-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-700'
                                         }`}
                                       >
-                                        Chapter {p.pageNumber || idx + 1}
+                                        Topic {p.pageNumber || idx + 1}
                                       </button>
                                     );
                                   })}
@@ -1714,7 +1711,7 @@ const Classroom = () => {
                               </div>
                             )}
 
-                            {/* Content Display: Continuous Mode vs Paginated Chapter Mode */}
+                            {/* Content Display: Continuous Mode vs Paginated Topic Mode */}
                             {isContinuousView && parsedIntuition.totalPages > 1 ? (
                               <div className="space-y-8">
                                 {parsedIntuition.pages.map((page, idx) => (
@@ -1725,7 +1722,7 @@ const Classroom = () => {
                                       </h3>
                                       <button
                                         onClick={() => handleCopyChapter(page.content)}
-                                        title="Copy Chapter Notes"
+                                        title="Copy Topic Notes"
                                         className="p-1 rounded text-gray-400 hover:text-indigo-600 transition cursor-pointer"
                                       >
                                         <Copy size={13} />
@@ -1765,19 +1762,19 @@ const Classroom = () => {
                                 ))}
                               </div>
                             ) : (
-                              /* Single or Active Chapter Card */
+                              /* Single or Active Topic Card */
                               (() => {
                                 const currentPage = parsedIntuition.pages[activeChapterIndex] || parsedIntuition.pages[0];
                                 if (!currentPage) return null;
 
                                 return (
                                   <div className="bg-white/90 dark:bg-slate-900/60 p-4 sm:p-6 rounded-2xl border border-indigo-100/90 dark:border-slate-800 shadow-2xs">
-                                    {/* Chapter Header */}
+                                    {/* Topic Header */}
                                     <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-100 dark:border-slate-800">
                                       <div className="min-w-0">
                                         {parsedIntuition.totalPages > 1 && (
                                           <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                                            Chapter {activeChapterIndex + 1} of {parsedIntuition.totalPages}
+                                            Topic {activeChapterIndex + 1} of {parsedIntuition.totalPages}
                                           </span>
                                         )}
                                         <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white m-0 truncate">
@@ -1787,6 +1784,7 @@ const Classroom = () => {
 
                                       <button
                                         onClick={() => handleCopyChapter(currentPage.content)}
+                                        title="Copy Topic Notes"
                                         className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:text-indigo-600 transition cursor-pointer shrink-0"
                                       >
                                         <Copy size={12} />
@@ -1826,7 +1824,7 @@ const Classroom = () => {
                                       </ReactMarkdown>
                                     </div>
 
-                                    {/* Bottom Chapter Pagination Controls */}
+                                    {/* Bottom Topic Pagination Controls */}
                                     {parsedIntuition.totalPages > 1 && (
                                       <div className="flex items-center justify-between pt-4 mt-6 border-t border-gray-100 dark:border-slate-800">
                                         <button
@@ -1838,7 +1836,7 @@ const Classroom = () => {
                                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
                                         >
                                           <ChevronLeft size={14} />
-                                          <span>Previous</span>
+                                          <span>Previous Topic</span>
                                         </button>
 
                                         <span className="text-xs font-bold text-gray-400 dark:text-slate-500">
@@ -1853,7 +1851,7 @@ const Classroom = () => {
                                             }}
                                             className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition cursor-pointer"
                                           >
-                                            <span>Next Chapter</span>
+                                            <span>Next Topic</span>
                                             <ChevronRight size={14} />
                                           </button>
                                         ) : (

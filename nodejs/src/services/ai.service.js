@@ -263,7 +263,7 @@ const extractIntuitionWithRegex = (text, defaultCategory = 'theory_humanities', 
 
             pages.push({
                 pageNumber: parseInt(m[1], 10),
-                title: m[2],
+                title: (m[2] || '').replace(/^Chapter\s*(\d+)[:\s-]*/i, 'Topic $1: ').trim() || `Topic ${pages.length + 1}`,
                 content: content.trim()
             });
         }
@@ -305,7 +305,7 @@ const cleanIntuitionJSON = (text, defaultCategory = 'theory_humanities', default
         if (parsed && typeof parsed === 'object' && Array.isArray(parsed.pages) && parsed.pages.length > 0) {
             const sanitizedPages = parsed.pages.map((p, idx) => ({
                 pageNumber: p.pageNumber || (idx + 1),
-                title: p.title || `Chapter ${idx + 1}`,
+                title: p.title ? p.title.replace(/^Chapter\s*(\d+)[:\s-]*/i, 'Topic $1: ').trim() : `Topic ${idx + 1}`,
                 content: typeof p.content === 'string' ? p.content.trim() : JSON.stringify(p.content)
             }));
             return {
@@ -725,18 +725,18 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
             ? `\n=== ACTUAL VIDEO TRANSCRIPT (PRIMARY SOURCE — ground truth for all concepts) ===\n${transcriptText}\n=== END OF TRANSCRIPT ===\n`
             : `\n(No transcript available. Synthesize rigorous academic notes based on the video title and description in ${finalLanguage}.)\n`);
 
-    const chapterStructureGuidance = targetPages === 1
-        ? `Generate 1 deeply detailed, comprehensive chapter that leaves nothing out.`
-        : `Generate exactly ${targetPages} distinct, progressive chapters that chronologically and conceptually master the lecture from fundamentals to advanced applications.`;
+    const topicStructureGuidance = targetPages === 1
+        ? `Generate 1 deeply detailed, comprehensive topic that covers the complete subject matter thoroughly.`
+        : `Generate exactly ${targetPages} distinct, progressive topics that conceptually and practically master the lecture from fundamentals to advanced applications.`;
 
     const intuitionPrompt = dedent(`
         Act as a Distinguished University Professor, Subject Matter Authority, and Master Educator in ${subjectInfo.label}.
-        Your goal is to produce comprehensive, textbook-grade DIGITAL STUDY NOTES for the video lecture below.
+        Your goal is to produce comprehensive, user-friendly, and engaging DIGITAL STUDY NOTES for the video lecture below.
         
-        The student should be able to read these notes to achieve total academic mastery and ace advanced examinations.
+        The student should be able to read these notes to achieve total academic mastery and ace examinations.
         
         STRICT RULES & GUIDELINES:
-        1. NO TIMELINES OR TIMESTAMPS: Absolutely DO NOT write timestamps or timelines (e.g., do NOT write "[00:14:20]" or "At 12 minutes"). The notes must read like a cohesive, published textbook or lecture companion.
+        1. NO TIMELINES OR TIMESTAMPS: Absolutely DO NOT write timestamps or timelines (e.g., do NOT write "[00:14:20]" or "At 12 minutes"). The notes must read like cohesive, structured digital study notes.
         2. EXHAUSTIVE ACADEMIC DEPTH: Avoid superficial summaries or brief 2-sentence points. Explain every concept, theorem, algorithm, or principle thoroughly with underlying mechanisms and technical rigor.
         3. SUBJECT-ADAPTIVE SPECIALIZATION:
         ${categoryGuidance}
@@ -746,11 +746,12 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
            - Block math: $$...$$ (e.g., $$\\lim_{n \\to \\infty} \\left(1 + \\frac{1}{n}\\right)^n = e$$).
            - Never output naked LaTeX commands outside dollar signs.
         5. CLEAN MARKDOWN: Use Markdown headers (###, ####), lists (- **Term**: Definition), bolding (**text**), and code blocks with syntax tags. NO raw HTML tags (<br>, <b>, <i>).
-        6. MULTI-CHAPTER PAGINATION:
-           - Target chapter count: exactly ${targetPages} chapters.
-           - ${chapterStructureGuidance}
-           - Each chapter must have a clear, descriptive title (e.g., "Chapter 1: Theoretical Foundations of ...", "Chapter 2: Implementation & Optimization").
-           - Each chapter should contain 500-1200 words of rich, high-density study material.
+        6. TOPIC-BY-TOPIC BREAKDOWN:
+           - Target topic count: exactly ${targetPages} topics.
+           - ${topicStructureGuidance}
+           - Each topic must have a clear, descriptive title (e.g., "Topic 1: Core Theoretical Foundations", "Topic 2: Implementation & Case Studies").
+           - Each topic should contain 500-1200 words of rich, high-density study material.
+           - CRITICAL JSON ESCAPING: Inside the "content" string, do NOT use unescaped double quotes (use single quotes 'like this' or escaped \\"like this\\").
         
         Video Title: '${title}'
         Video URL: '${url || 'Not provided'}'
@@ -766,13 +767,13 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
           "pages": [
             {
               "pageNumber": 1,
-              "title": "Chapter 1: ...",
+              "title": "Topic 1: ...",
               "content": "### 🎯 Core Technical Overview\\nDetailed markdown content...\\n\\n### ⚙️ Mechanics & Implementation\\n..."
             }
           ]
         }
         
-        Language: All chapter titles and content MUST be written in ${finalLanguage}.
+        Language: All topic titles and content MUST be written in ${finalLanguage}.
         Respond ONLY with the JSON object. Do not include markdown code block tags or conversational filler.
     `);
 
@@ -837,7 +838,7 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
                     pages: [
                         {
                             pageNumber: 1,
-                            title: "Chapter 1: Comprehensive Study Notes",
+                            title: "Topic 1: Comprehensive Study Notes",
                             content: text.trim()
                         }
                     ]
@@ -863,7 +864,7 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
                     pages: [
                         {
                             pageNumber: 1,
-                            title: "Chapter 1: Core Concepts & Overview",
+                            title: "Topic 1: Core Concepts & Overview",
                             content: `
 ### 🎯 Core Concept
 ${title} is a learning resource covering important educational topics in ${subjectInfo.label}.
