@@ -26,6 +26,7 @@ import {
   Copy,
   Plus,
   Download,
+  Share2,
   Layers,
   RefreshCw,
   Shuffle,
@@ -975,13 +976,13 @@ const Classroom = () => {
     }
 
     setDownloadingPdf(true);
-    const toastId = toast.loading("Generating Study Notes PDF...");
+    const toastId = toast.loading("Preparing PDF...");
 
     try {
       const activeToken = token || localStorage.getItem('google_token') || '';
       const titleStr = video?.name || 'Lecture Study Notes';
 
-      // 1. Ask backend to prepare the PDF document and provide a direct download URL
+      // 1. Prepare the PDF document on backend
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/classroom/prepare-notes-pdf`,
         {
@@ -995,15 +996,15 @@ const Classroom = () => {
         }
       );
 
-      if (!response.data || !response.data.downloadUrl) {
-        throw new Error('Failed to obtain download URL');
+      if (!response.data || (!response.data.downloadUrl && !response.data.pdfBase64)) {
+        throw new Error('Failed to obtain PDF data');
       }
 
       const fileName = response.data.fileName || `${titleStr.replace(/[^a-z0-9]/gi, '_').slice(0, 50)}_Study_Notes.pdf`;
       const fullDownloadUrl = `${import.meta.env.VITE_BACKEND_URL}${response.data.downloadUrl}`;
       const pdfBase64 = response.data.pdfBase64;
 
-      // Construct binary blob and File object for native sharing / instant download
+      // Construct binary blob and File object for native file sharing & download
       let pdfBlob = null;
       let pdfFile = null;
       if (pdfBase64) {
@@ -1016,57 +1017,54 @@ const Classroom = () => {
           pdfBlob = new Blob([bytes], { type: 'application/pdf' });
           pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
         } catch (decodeErr) {
-          console.warn("PDF base64 decode error:", decodeErr);
+          console.warn("PDF decode error:", decodeErr);
         }
       }
 
-      const isAndroid = /android/i.test(navigator.userAgent);
-
-      if (isAndroid) {
-        // Android WebView / Mobile: Android Intent URL launches Chrome/System Downloader to save file to /storage/emulated/0/Download
-        const host = window.location.host || 'learnproofai.com';
-        const intentUrl = `intent://${host}/api/classroom/download-file/${response.data.downloadId}/${encodeURIComponent(fileName)}#Intent;scheme=https;action=android.intent.action.VIEW;end`;
-
-        if (pdfBlob) {
-          const blobUrl = URL.createObjectURL(pdfBlob);
-          const link = document.createElement('a');
-          link.href = blobUrl;
-          link.download = fileName;
-          link.style.display = 'none';
-          document.body.appendChild(link);
-          link.click();
-          setTimeout(() => {
-            if (document.body.contains(link)) document.body.removeChild(link);
-            URL.revokeObjectURL(blobUrl);
-          }, 5000);
+      // 2. Try Web Share API (native Android system sheet: Share to WhatsApp, Drive, Save to Files/Downloads)
+      let shared = false;
+      if (pdfFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        try {
+          toast.dismiss(toastId);
+          await navigator.share({
+            title: titleStr,
+            text: `Study Notes for ${titleStr}`,
+            files: [pdfFile]
+          });
+          shared = true;
+          toast.success("PDF ready!");
+          return;
+        } catch (shareErr) {
+          if (shareErr && shareErr.name === 'AbortError') {
+            // User dismissed the share dialog
+            return;
+          }
+          console.warn("navigator.share fallback:", shareErr);
         }
+      }
 
-        // Navigate to Intent URL to trigger system download
-        window.location.href = intentUrl;
+      // 3. Fallback: Direct Blob trigger & window download
+      if (pdfBlob) {
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = blobUrl;
+        downloadLink.download = fileName;
+        downloadLink.style.display = 'none';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+
+        setTimeout(() => {
+          if (document.body.contains(downloadLink)) document.body.removeChild(downloadLink);
+          URL.revokeObjectURL(blobUrl);
+        }, 10000);
       } else {
-        // Desktop / iOS / standard web browsers
-        if (pdfBlob) {
-          const blobUrl = URL.createObjectURL(pdfBlob);
-          const downloadLink = document.createElement('a');
-          downloadLink.href = blobUrl;
-          downloadLink.download = fileName;
-          downloadLink.style.display = 'none';
-          document.body.appendChild(downloadLink);
-          downloadLink.click();
-
-          setTimeout(() => {
-            if (document.body.contains(downloadLink)) document.body.removeChild(downloadLink);
-            URL.revokeObjectURL(blobUrl);
-          }, 10000);
-        } else {
-          window.open(fullDownloadUrl, '_blank');
-        }
+        window.open(fullDownloadUrl, '_blank');
       }
 
-      toast.success("PDF downloading to your device!", { id: toastId });
+      toast.success("PDF ready!", { id: toastId });
     } catch (err) {
-      console.error("PDF download failed:", err);
-      toast.error("Failed to download PDF. Please try again.", { id: toastId });
+      console.error("PDF download/share failed:", err);
+      toast.error("Failed to prepare PDF. Please try again.", { id: toastId });
     } finally {
       setDownloadingPdf(false);
     }
@@ -3224,19 +3222,19 @@ const Classroom = () => {
                   <span className="hidden sm:inline">Print / Save PDF</span>
                 </button>
 
-                {/* Direct Server PDFKit Download */}
+                {/* Share / Save PDF */}
                 <button
                   disabled={downloadingPdf}
                   onClick={handleDownloadPdf}
                   className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  title="Download PDF directly"
+                  title="Share or Save PDF"
                 >
                   {downloadingPdf ? (
                     <RefreshCw size={13} className="animate-spin" />
                   ) : (
-                    <Download size={13} />
+                    <Share2 size={13} />
                   )}
-                  <span>{downloadingPdf ? "Generating..." : "Download PDF"}</span>
+                  <span>{downloadingPdf ? "Preparing..." : "Share / Save PDF"}</span>
                 </button>
 
                 {/* Close Button */}
@@ -3336,9 +3334,9 @@ const Classroom = () => {
                 {downloadingPdf ? (
                   <RefreshCw size={14} className="animate-spin" />
                 ) : (
-                  <Download size={14} />
+                  <Share2 size={14} />
                 )}
-                <span>{downloadingPdf ? "Saving..." : "Download PDF"}</span>
+                <span>{downloadingPdf ? "Preparing..." : "Share / Save PDF"}</span>
               </button>
             </div>
           </div>
