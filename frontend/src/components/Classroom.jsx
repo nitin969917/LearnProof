@@ -699,51 +699,88 @@ const Classroom = () => {
   const handleDownloadVisualPdf = async () => {
     if (!parsedIntuition || !parsedIntuition.pages || parsedIntuition.pages.length === 0) return;
     setDownloadingPdf(true);
-    const toastId = toast.loading("Generating high-interactive visual PDF...");
+    const toastId = toast.loading("Preparing high-quality visual PDF...");
 
     try {
-      // Small pause to ensure offscreen DOM is fully rendered
-      await new Promise(resolve => setTimeout(resolve, 350));
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const element = pdfPrintRef.current || document.getElementById('printable-study-guide');
+      if (!element) throw new Error("Printable study guide element not found");
 
-      const element = pdfPrintRef.current;
-      if (!element) throw new Error("Printable template element not found");
+      const titleStr = video?.name || 'Lecture Study Notes';
 
-      const titleStr = video?.name || 'Lecture_Notes';
-      const sanitized = titleStr.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').toLowerCase();
+      // Create isolated hidden iframe for clean, dedicated PDF export of ONLY the notes
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      iframe.style.border = '0';
+      iframe.style.opacity = '0';
+      iframe.style.pointerEvents = 'none';
+      iframe.style.zIndex = '-99999';
+      document.body.appendChild(iframe);
 
-      const html2pdfModule = await import('html2pdf.js');
-      const html2pdf = html2pdfModule.default || html2pdfModule;
+      const iframeDoc = iframe.contentWindow.document;
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>${titleStr} - LearnProof AI Study Notes</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+            <style>
+              * { box-sizing: border-box; }
+              body {
+                margin: 0;
+                padding: 24px 30px;
+                font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                background-color: #ffffff;
+                color: #0f172a;
+                line-height: 1.6;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              .pdf-page-break {
+                page-break-before: always;
+                break-before: page;
+              }
+              @page {
+                size: A4 portrait;
+                margin: 12mm 10mm;
+              }
+              table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+              th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+              th { background-color: #eef2ff; color: #1e1b4b; font-weight: bold; }
+              code { font-family: monospace; }
+              pre { background-color: #0f172a; color: #f8fafc; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 12px 0; }
+              blockquote { border-left: 4px solid #6366f1; padding: 6px 14px; background-color: #f5f3ff; color: #3730a3; margin: 12px 0; border-radius: 0 6px 6px 0; }
+            </style>
+          </head>
+          <body>
+            ${element.innerHTML}
+          </body>
+        </html>
+      `);
+      iframeDoc.close();
 
-      const opt = {
-        margin: [10, 10, 12, 10],
-        filename: `${sanitized}_study_guide.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          scrollY: 0
-        },
-        jsPDF: {
-          unit: 'mm',
-          format: 'a4',
-          orientation: 'portrait'
-        },
-        pagebreak: {
-          mode: ['avoid-all', 'css', 'legacy'],
-          before: '.pdf-page-break'
-        }
-      };
+      setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        toast.success("Ready! Select 'Save as PDF' to download.", { id: toastId });
+        setDownloadingPdf(false);
 
-      await html2pdf().set(opt).from(element).save();
-      toast.success("Downloaded visual PDF study notes!", { id: toastId });
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+        }, 60000);
+      }, 500);
     } catch (err) {
       console.error("Visual PDF generation failed:", err);
-      toast.error("Direct PDF export failed. Opening print view...", { id: toastId });
-      if (pdfPrintRef.current) {
-        window.print();
-      }
-    } finally {
+      toast.error("Failed to prepare PDF export. Please try again.", { id: toastId });
       setDownloadingPdf(false);
     }
   };
@@ -1930,6 +1967,8 @@ const Classroom = () => {
                       {/* Off-screen Printable Template for High-Interactive Visual PDF Export */}
                       {parsedIntuition && (
                         <div
+                          id="printable-study-guide"
+                          className="printable-study-guide"
                           ref={pdfPrintRef}
                           style={{
                             position: 'fixed',

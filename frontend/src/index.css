@@ -385,3 +385,48 @@ html, body {
     margin-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* ==========================================================================
+   Print / PDF Export Styles: Hide all site UI and print only study notes
+   ========================================================================== */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #printable-study-guide,
+  #printable-study-guide * {
+    visibility: visible !important;
+  }
+
+  #printable-study-guide {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    display: block !important;
+    background: #ffffff !important;
+    padding: 24px !important;
+    z-index: 999999 !important;
+  }
+
+  .pdf-page-break {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm;
+  }
+}
+
+
