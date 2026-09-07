@@ -192,14 +192,14 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
         {/* Desktop Header Promo Banner */}
         <div 
           onClick={() => navigate('/dashboard/social/discover')}
-          className="hidden sm:flex items-center justify-between gap-4 bg-gradient-to-r from-orange-50/90 via-amber-50/60 to-white dark:from-gray-800 dark:via-gray-800/90 dark:to-gray-800 p-3.5 sm:px-4 sm:py-3 rounded-2xl border border-orange-200/70 dark:border-gray-700 shadow-2xs hover:shadow-xs transition cursor-pointer group"
+          className="hidden sm:flex items-center justify-between gap-4 bg-white dark:bg-gray-800 p-3.5 sm:px-4 sm:py-3 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 shadow-xs hover:border-orange-300 dark:hover:border-orange-500/40 hover:shadow-sm transition cursor-pointer group"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-500 flex items-center justify-center border border-orange-500/20 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-sm shadow-orange-500/25 shrink-0">
               <Users size={19} className="stroke-[2.2]" />
             </div>
             <div>
-              <h3 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white group-hover:text-orange-600 transition-colors">
+              <h3 className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
                 Build Your Learning Network
               </h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
@@ -220,20 +220,25 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
       {/* ── Mobile Top Promo Card ── */}
       <div 
         onClick={() => navigate('/dashboard/social/discover')}
-        className="sm:hidden flex items-center justify-between p-4 bg-gradient-to-r from-orange-50/90 via-amber-50/70 to-white dark:from-gray-800 dark:to-gray-800/90 rounded-2xl border border-orange-200/70 dark:border-gray-700 shadow-2xs cursor-pointer active:scale-98 transition"
+        className="sm:hidden flex items-center justify-between p-3.5 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/90 dark:border-gray-700/80 shadow-xs hover:border-orange-300 dark:hover:border-orange-500/40 cursor-pointer active:scale-[0.99] transition-all"
       >
-        <div className="flex items-center gap-3.5 min-w-0">
-          <div className="w-11 h-11 rounded-2xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-500 flex items-center justify-center border border-orange-500/20 shrink-0">
-            <Users size={20} className="stroke-[2.2]" />
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-sm shadow-orange-500/25 shrink-0">
+            <Users size={19} className="stroke-[2.2]" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-extrabold text-sm text-gray-900 dark:text-white">Grow Your Network</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">
-              Connect with fellow learners, share ideas and make progress together.
+            <h3 className="font-bold text-sm text-gray-900 dark:text-white leading-tight">Grow Your Network</h3>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium truncate mt-0.5">
+              Connect with fellow learners, share ideas & collaborate
             </p>
           </div>
         </div>
-        <ChevronRight size={18} className="text-orange-500 shrink-0 ml-2" />
+        <div className="flex items-center gap-1 shrink-0 ml-2">
+          <span className="text-[11px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2.5 py-1 rounded-full border border-orange-200/60 dark:border-orange-900/60 flex items-center gap-0.5">
+            <span>Explore</span>
+            <ChevronRight size={13} />
+          </span>
+        </div>
       </div>
 
       {/* ── Mobile Segmented Control Pills (My Connections vs Pending Requests) ── */}
