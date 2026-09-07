@@ -1361,51 +1361,51 @@ const Classroom = () => {
 
                   {/* Intuition Tab */}
                   {activeTab === 'intuition' && (
-                    <div className="space-y-6">
+                    <div className="space-y-3 sm:space-y-4">
                       {/* Top Action Card: Ask AI Doubt */}
-                      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-950/40 dark:via-purple-950/40 dark:to-pink-950/30 border border-indigo-200 dark:border-indigo-800/80 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm shrink-0">
-                            <Bot size={20} />
+                      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-950/40 dark:via-purple-950/40 dark:to-pink-950/30 border border-indigo-200 dark:border-indigo-800/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                        <div className="flex items-center gap-2.5 sm:gap-3">
+                          <div className="p-2 sm:p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm shrink-0">
+                            <Bot size={18} className="sm:size-5" />
                           </div>
                           <div>
-                            <h4 className="text-sm font-bold text-gray-900 dark:text-white m-0 flex items-center gap-2">
+                            <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white m-0 flex items-center gap-1.5">
                               <span>Have doubts from this lecture?</span>
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-500 text-white shadow-xs">
+                              <span className="px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-wider bg-indigo-500 text-white shadow-xs">
                                 AI Tutor
                               </span>
                             </h4>
-                            <p className="text-xs text-gray-600 dark:text-slate-300 m-0 mt-0.5">
+                            <p className="text-[11px] sm:text-xs text-gray-600 dark:text-slate-300 m-0 mt-0.5">
                               Ask any question or get a simplified explanation directly from our AI professor.
                             </p>
                           </div>
                         </div>
                         <button
                           onClick={() => setActiveTab('ai-chat')}
-                          className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md shadow-indigo-500/20 transition hover:scale-105 active:scale-95 flex items-center gap-2 shrink-0 cursor-pointer"
+                          className="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-xl shadow-md shadow-indigo-500/20 transition hover:scale-105 active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
                         >
-                          <Sparkles size={14} />
+                          <Sparkles size={11} className="shrink-0" />
                           <span>Open AI Chatbot</span>
                         </button>
                       </div>
 
                       {/* AI Notes & Core Intuition Card */}
-                      <div className="prose max-w-none bg-indigo-50/50 dark:bg-indigo-900/20 p-4 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
-                        <div className="flex flex-row items-center justify-between gap-2 mb-3 pb-3 border-b border-indigo-200 dark:border-indigo-800">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-md">
-                              <Sparkles className="text-indigo-600 dark:text-indigo-400" size={16} />
+                      <div className="prose max-w-none bg-indigo-50/50 dark:bg-indigo-900/20 p-3.5 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
+                        <div className="flex flex-row items-center justify-between gap-2 mb-3 pb-2.5 border-b border-indigo-200 dark:border-indigo-800">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="p-1 sm:p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-md shrink-0">
+                              <Sparkles className="text-indigo-600 dark:text-indigo-400" size={14} />
                             </div>
-                            <h3 className="text-base font-bold text-indigo-900 dark:text-indigo-100 m-0">AI Notes & Core Intuition</h3>
+                            <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-100 m-0 leading-tight">AI Notes & Core Intuition</h3>
                           </div>
 
                           {/* Language Picker Dropdown */}
-                          <div className="relative">
+                          <div className="relative shrink-0">
                             <select
                               disabled={loadingIntuition}
                               onChange={(e) => fetchIntuition(e.target.value)}
                               value={selectedLanguage}
-                              className="appearance-none px-3 py-1 pr-8 rounded-md text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/20 cursor-pointer shadow-sm transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
+                              className="appearance-none px-2.5 py-1 pr-6 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/20 cursor-pointer shadow-xs transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
                             >
                               <option value="" disabled>Select Language</option>
                               {INDIAN_LANGS.map((lang) => (
@@ -1414,8 +1414,8 @@ const Classroom = () => {
                                 </option>
                               ))}
                             </select>
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
-                              <ChevronRight size={12} className="rotate-90" />
+                            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
+                              <ChevronRight size={10} className="rotate-90" />
                             </div>
                           </div>
                         </div>
