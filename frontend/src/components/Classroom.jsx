@@ -1390,13 +1390,13 @@ const Classroom = () => {
                       </div>
 
                       {/* AI Notes & Core Intuition Card */}
-                      <div className="prose max-w-none bg-indigo-50/50 dark:bg-indigo-900/20 p-4 sm:p-5 md:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
-                        <div className="flex flex-row items-center justify-between gap-2 mb-3 pb-2.5 border-b border-indigo-200 dark:border-indigo-800">
+                      <div className="bg-indigo-50/50 dark:bg-indigo-900/20 p-3.5 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
+                        <div className="flex flex-row items-center justify-between gap-2 mb-3.5 pb-3 sm:mb-5 sm:pb-4 border-b border-indigo-200 dark:border-indigo-800">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className="p-1 sm:p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-md shrink-0">
                               <Sparkles className="text-indigo-600 dark:text-indigo-400" size={14} />
                             </div>
-                            <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-100 m-0 leading-tight">AI Notes & Core Intuition</h3>
+                            <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-100 leading-tight">AI Notes & Core Intuition</h3>
                           </div>
 
                           {/* Language Picker Dropdown */}
@@ -1432,7 +1432,7 @@ const Classroom = () => {
                             <p className="text-xs text-indigo-500/60 mt-2">Our AI is analyzing the video content for you</p>
                           </div>
                         ) : (
-                          <div className="text-gray-800 dark:text-gray-300 leading-relaxed intuition-markdown">
+                          <div className="prose max-w-none text-gray-800 dark:text-gray-300 leading-relaxed intuition-markdown">
                             {intuitionContent
                               ? <ReactMarkdown
                                 remarkPlugins={[remarkMath, remarkGfm]}
