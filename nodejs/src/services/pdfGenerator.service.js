@@ -21,7 +21,7 @@ function cleanMarkdownLine(line) {
 function buildStudyNotesPDF({ title, pages, subjectCategory }) {
     const doc = new PDFDocument({
         size: 'A4',
-        margins: { top: 50, bottom: 50, left: 45, right: 45 },
+        margins: { top: 50, bottom: 45, left: 45, right: 45 },
         bufferPages: true,
         autoFirstPage: false
     });
@@ -40,18 +40,18 @@ function buildStudyNotesPDF({ title, pages, subjectCategory }) {
         const contentWidth = pageWidth - 90;
 
         // Header Background Banner
-        doc.rect(45, 25, contentWidth, 22).fill(primaryBg);
-        doc.rect(45, 25, 90, 22).fill(primaryColor);
+        doc.rect(45, 20, contentWidth, 22).fill(primaryBg);
+        doc.rect(45, 20, 90, 22).fill(primaryColor);
 
         doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#ffffff')
-            .text('LEARNPROOF AI', 52, 32, { characterSpacing: 0.8 });
+            .text('LEARNPROOF AI', 52, 27, { characterSpacing: 0.8, lineBreak: false });
 
         doc.font('Helvetica-Bold').fontSize(8).fillColor(primaryColor)
-            .text((subjectCategory || 'DIGITAL STUDY NOTES').toUpperCase(), 145, 32, { width: contentWidth - 230 });
+            .text((subjectCategory || 'DIGITAL STUDY NOTES').toUpperCase(), 145, 27, { width: contentWidth - 230, lineBreak: false });
 
         if (topicTitle) {
             doc.font('Helvetica-Bold').fontSize(8).fillColor('#6366f1')
-                .text(`TOPIC ${pageNumber} OF ${totalPagesCount}`, pageWidth - 145, 32, { width: 100, align: 'right' });
+                .text(`TOPIC ${pageNumber} OF ${totalPagesCount}`, pageWidth - 145, 27, { width: 100, align: 'right', lineBreak: false });
         }
     };
 
@@ -64,18 +64,18 @@ function buildStudyNotesPDF({ title, pages, subjectCategory }) {
         drawHeader(pageIdx + 1, page.title);
 
         // Document Title
-        doc.font('Helvetica-Bold').fontSize(15).fillColor('#1e1b4b')
-            .text(title || 'Lecture Study Notes', 45, 58, { width: contentWidth });
+        doc.font('Helvetica-Bold').fontSize(14).fillColor('#1e1b4b')
+            .text(title || 'Lecture Study Notes', 45, 52, { width: contentWidth });
 
         // Topic Banner Box
-        const topicBoxY = doc.y + 6;
-        doc.rect(45, topicBoxY, contentWidth, 24).fill('#f1f5f9');
-        doc.rect(45, topicBoxY, 4, 24).fill(primaryColor);
+        const topicBoxY = doc.y + 4;
+        doc.rect(45, topicBoxY, contentWidth, 22).fill('#f1f5f9');
+        doc.rect(45, topicBoxY, 4, 22).fill(primaryColor);
 
-        doc.font('Helvetica-Bold').fontSize(11).fillColor('#1e1b4b')
-            .text(page.title || `Topic ${pageIdx + 1}`, 56, topicBoxY + 6, { width: contentWidth - 20 });
+        doc.font('Helvetica-Bold').fontSize(10.5).fillColor('#1e1b4b')
+            .text(page.title || `Topic ${pageIdx + 1}`, 56, topicBoxY + 5, { width: contentWidth - 20, lineBreak: false });
 
-        doc.y = topicBoxY + 32;
+        doc.y = topicBoxY + 28;
 
         // Render Page Content
         const rawContent = page.content || '';
@@ -85,10 +85,10 @@ function buildStudyNotesPDF({ title, pages, subjectCategory }) {
         let codeLanguage = '';
 
         const checkOverflow = (requiredHeight = 20) => {
-            if (doc.y + requiredHeight > pageHeight - 55) {
+            if (doc.y + requiredHeight > pageHeight - 50) {
                 doc.addPage();
                 drawHeader(pageIdx + 1, page.title);
-                doc.y = 58;
+                doc.y = 52;
             }
         };
 
@@ -99,26 +99,25 @@ function buildStudyNotesPDF({ title, pages, subjectCategory }) {
             // Code Block Handling
             if (trimmed.startsWith('```')) {
                 if (inCodeBlock) {
-                    // Flush accumulated code block
                     const codeText = codeLines.join('\n') || ' ';
                     doc.font('Courier').fontSize(8);
-                    const textHeight = doc.heightOfString(codeText, { width: contentWidth - 20, lineGap: 2 });
-                    const blockHeight = Math.max(22, textHeight + 14);
+                    const textHeight = doc.heightOfString(codeText, { width: contentWidth - 20, lineGap: 1.5 });
+                    const blockHeight = Math.max(20, textHeight + 12);
 
-                    checkOverflow(blockHeight + 10);
+                    checkOverflow(blockHeight + 8);
 
                     const currentY = doc.y;
                     doc.rect(45, currentY, contentWidth, blockHeight).fillAndStroke(codeBgColor, codeBorderColor);
 
                     if (codeLanguage) {
                         doc.font('Helvetica-Bold').fontSize(7).fillColor('#64748b')
-                            .text(codeLanguage.toUpperCase(), contentWidth + 10, currentY + 3, { align: 'right' });
+                            .text(codeLanguage.toUpperCase(), contentWidth + 10, currentY + 3, { align: 'right', lineBreak: false });
                     }
 
                     doc.font('Courier').fontSize(8).fillColor(darkTextColor)
-                        .text(codeText, 55, currentY + 7, { width: contentWidth - 20, lineGap: 2 });
+                        .text(codeText, 55, currentY + 6, { width: contentWidth - 20, lineGap: 1.5 });
 
-                    doc.y = currentY + blockHeight + 6;
+                    doc.y = currentY + blockHeight + 5;
                     inCodeBlock = false;
                     codeLines = [];
                     codeLanguage = '';
@@ -136,35 +135,35 @@ function buildStudyNotesPDF({ title, pages, subjectCategory }) {
             }
 
             if (!trimmed) {
-                doc.moveDown(0.3);
+                doc.moveDown(0.25);
                 continue;
             }
 
             // Headers
             if (trimmed.startsWith('# ')) {
-                checkOverflow(30);
-                doc.moveDown(0.4);
-                doc.font('Helvetica-Bold').fontSize(13).fillColor('#1e1b4b')
-                    .text(cleanMarkdownLine(trimmed.slice(2)), 45, doc.y, { width: contentWidth });
-                doc.moveDown(0.2);
-            } else if (trimmed.startsWith('## ')) {
                 checkOverflow(26);
-                doc.moveDown(0.35);
-                doc.font('Helvetica-Bold').fontSize(11.5).fillColor('#312e81')
-                    .text(cleanMarkdownLine(trimmed.slice(3)), 45, doc.y, { width: contentWidth });
-                doc.moveDown(0.2);
-            } else if (trimmed.startsWith('### ')) {
-                checkOverflow(22);
                 doc.moveDown(0.3);
-                doc.font('Helvetica-Bold').fontSize(10).fillColor('#3730a3')
-                    .text(cleanMarkdownLine(trimmed.slice(4)), 45, doc.y, { width: contentWidth });
+                doc.font('Helvetica-Bold').fontSize(12).fillColor('#1e1b4b')
+                    .text(cleanMarkdownLine(trimmed.slice(2)), 45, doc.y, { width: contentWidth });
                 doc.moveDown(0.15);
-            } else if (trimmed.startsWith('#### ')) {
-                checkOverflow(20);
+            } else if (trimmed.startsWith('## ')) {
+                checkOverflow(22);
                 doc.moveDown(0.25);
+                doc.font('Helvetica-Bold').fontSize(11).fillColor('#312e81')
+                    .text(cleanMarkdownLine(trimmed.slice(3)), 45, doc.y, { width: contentWidth });
+                doc.moveDown(0.15);
+            } else if (trimmed.startsWith('### ')) {
+                checkOverflow(20);
+                doc.moveDown(0.2);
+                doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#3730a3')
+                    .text(cleanMarkdownLine(trimmed.slice(4)), 45, doc.y, { width: contentWidth });
+                doc.moveDown(0.1);
+            } else if (trimmed.startsWith('#### ')) {
+                checkOverflow(18);
+                doc.moveDown(0.2);
                 doc.font('Helvetica-Bold').fontSize(9).fillColor('#4338ca')
                     .text(cleanMarkdownLine(trimmed.slice(5)), 45, doc.y, { width: contentWidth });
-                doc.moveDown(0.15);
+                doc.moveDown(0.1);
             } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || /^\d+\.\s/.test(trimmed)) {
                 // List items
                 const isNumbered = /^\d+\.\s/.test(trimmed);
@@ -175,27 +174,27 @@ function buildStudyNotesPDF({ title, pages, subjectCategory }) {
 
                 const currentY = doc.y;
                 doc.font('Helvetica-Bold').fontSize(8.5).fillColor(primaryColor)
-                    .text(bullet, 52, currentY);
+                    .text(bullet, 52, currentY, { lineBreak: false });
 
                 doc.font('Helvetica').fontSize(9).fillColor(bodyTextColor)
                     .text(cleanMarkdownLine(textContent), 64, currentY, { width: contentWidth - 20, lineGap: 2 });
 
-                doc.moveDown(0.2);
+                doc.moveDown(0.15);
             } else if (trimmed.startsWith('> ')) {
                 // Blockquote
                 const quoteText = cleanMarkdownLine(trimmed.slice(2));
-                checkOverflow(24);
+                checkOverflow(22);
                 const quoteY = doc.y;
-                doc.rect(45, quoteY, 3, 18).fill('#6366f1');
-                doc.font('Helvetica-Oblique').fontSize(9).fillColor('#3730a3')
+                doc.rect(45, quoteY, 3, 16).fill('#6366f1');
+                doc.font('Helvetica-Oblique').fontSize(8.5).fillColor('#3730a3')
                     .text(quoteText, 54, quoteY + 2, { width: contentWidth - 15 });
-                doc.moveDown(0.3);
+                doc.moveDown(0.2);
             } else {
                 // Standard paragraph
                 checkOverflow(16);
                 doc.font('Helvetica').fontSize(9).fillColor(bodyTextColor)
-                    .text(cleanMarkdownLine(trimmed), 45, doc.y, { width: contentWidth, lineGap: 2.5 });
-                doc.moveDown(0.25);
+                    .text(cleanMarkdownLine(trimmed), 45, doc.y, { width: contentWidth, lineGap: 2 });
+                doc.moveDown(0.2);
             }
         }
 
@@ -203,44 +202,44 @@ function buildStudyNotesPDF({ title, pages, subjectCategory }) {
         if (inCodeBlock && codeLines.length > 0) {
             const codeText = codeLines.join('\n');
             doc.font('Courier').fontSize(8);
-            const blockHeight = Math.max(22, doc.heightOfString(codeText, { width: contentWidth - 20, lineGap: 2 }) + 14);
-            checkOverflow(blockHeight + 10);
+            const blockHeight = Math.max(20, doc.heightOfString(codeText, { width: contentWidth - 20, lineGap: 1.5 }) + 12);
+            checkOverflow(blockHeight + 8);
             const currentY = doc.y;
             doc.rect(45, currentY, contentWidth, blockHeight).fillAndStroke(codeBgColor, codeBorderColor);
             doc.font('Courier').fontSize(8).fillColor(darkTextColor)
-                .text(codeText, 55, currentY + 7, { width: contentWidth - 20, lineGap: 2 });
-            doc.y = currentY + blockHeight + 6;
+                .text(codeText, 55, currentY + 6, { width: contentWidth - 20, lineGap: 1.5 });
+            doc.y = currentY + blockHeight + 5;
         }
 
         // Revision Checklist on final page
         if (pageIdx === totalPagesCount - 1) {
-            checkOverflow(40);
-            const checkY = doc.y + 8;
-            doc.rect(45, checkY, contentWidth, 28).fillAndStroke('#f0fdf4', '#bbf7d0');
-            doc.font('Helvetica-Bold').fontSize(9).fillColor('#166534')
-                .text('Study Revision Checklist', 54, checkY + 6);
-            doc.font('Helvetica').fontSize(8).fillColor('#15803d')
-                .text('Review key concepts & code patterns above • Re-test intuition with LearnProof AI Quiz', 54, checkY + 16);
-            doc.y = checkY + 34;
+            checkOverflow(36);
+            const checkY = doc.y + 6;
+            doc.rect(45, checkY, contentWidth, 24).fillAndStroke('#f0fdf4', '#bbf7d0');
+            doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#166534')
+                .text('Study Revision Checklist', 54, checkY + 4, { lineBreak: false });
+            doc.font('Helvetica').fontSize(7.5).fillColor('#15803d')
+                .text('Review key concepts & code patterns above • Re-test intuition with LearnProof AI Quiz', 54, checkY + 14, { lineBreak: false });
+            doc.y = checkY + 28;
         }
     });
 
-    // Add running footers to all pages
+    // Add running footers to all pages without triggering new page creation
     const range = doc.bufferedPageRange();
     for (let p = range.start; p < range.start + range.count; p++) {
         doc.switchToPage(p);
         const pageHeight = doc.page.height;
         const pageWidth = doc.page.width;
 
-        doc.rect(45, pageHeight - 35, pageWidth - 90, 0.5).fill('#e2e8f0');
+        doc.rect(45, pageHeight - 32, pageWidth - 90, 0.5).fill('#e2e8f0');
         doc.font('Helvetica').fontSize(7.5).fillColor('#94a3b8')
-            .text('LearnProof AI Study Companion', 45, pageHeight - 28);
+            .text('LearnProof AI Study Companion', 45, pageHeight - 24, { lineBreak: false });
 
         doc.font('Helvetica').fontSize(7.5).fillColor('#94a3b8')
-            .text('learnproofai.com', pageWidth / 2 - 30, pageHeight - 28, { align: 'center' });
+            .text('learnproofai.com', pageWidth / 2 - 30, pageHeight - 24, { align: 'center', lineBreak: false });
 
         doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#64748b')
-            .text(`Page ${p + 1} of ${range.count}`, pageWidth - 145, pageHeight - 28, { width: 100, align: 'right' });
+            .text(`Page ${p + 1} of ${range.count}`, pageWidth - 145, pageHeight - 24, { width: 100, align: 'right', lineBreak: false });
     }
 
     return doc;

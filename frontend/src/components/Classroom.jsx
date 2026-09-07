@@ -3208,19 +3208,19 @@ const Classroom = () => {
                   <span className="hidden sm:inline">Print / Save PDF</span>
                 </button>
 
-                {/* Share / Save PDF */}
+                {/* Download / Save PDF */}
                 <button
                   disabled={downloadingPdf}
                   onClick={handleDownloadPdf}
                   className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  title="Share or Save PDF"
+                  title="Download / Save PDF"
                 >
                   {downloadingPdf ? (
                     <RefreshCw size={13} className="animate-spin" />
                   ) : (
-                    <Share2 size={13} />
+                    <Download size={13} />
                   )}
-                  <span>{downloadingPdf ? "Preparing..." : "Share / Save PDF"}</span>
+                  <span>{downloadingPdf ? "Preparing..." : "Download / Save PDF"}</span>
                 </button>
 
                 {/* Close Button */}
@@ -3320,9 +3320,9 @@ const Classroom = () => {
                 {downloadingPdf ? (
                   <RefreshCw size={14} className="animate-spin" />
                 ) : (
-                  <Share2 size={14} />
+                  <Download size={14} />
                 )}
-                <span>{downloadingPdf ? "Preparing..." : "Share / Save PDF"}</span>
+                <span>{downloadingPdf ? "Preparing..." : "Download / Save PDF"}</span>
               </button>
             </div>
           </div>
@@ -3357,80 +3357,18 @@ const Classroom = () => {
             </div>
 
             {/* Actions List */}
-            <div className="space-y-2.5 pt-1">
-              {/* Primary: Native Share Sheet (File or Link) */}
-              <button
-                onClick={async () => {
-                  if (typeof navigator !== 'undefined' && navigator.share) {
-                    // 1. Try file sharing
-                    if (pdfShareModalData.pdfFile && navigator.canShare && navigator.canShare({ files: [pdfShareModalData.pdfFile] })) {
-                      try {
-                        await navigator.share({
-                          title: pdfShareModalData.title,
-                          text: `Study Notes for ${pdfShareModalData.title}`,
-                          files: [pdfShareModalData.pdfFile]
-                        });
-                        setPdfShareModalData(null);
-                        return;
-                      } catch (fileErr) {
-                        if (fileErr.name === 'AbortError') return;
-                      }
-                    }
-
-                    // 2. Link & text sharing (supported on all mobile WebViews)
-                    try {
-                      await navigator.share({
-                        title: pdfShareModalData.title,
-                        text: `Study Notes PDF: ${pdfShareModalData.title}`,
-                        url: pdfShareModalData.downloadUrl
-                      });
-                      setPdfShareModalData(null);
-                      return;
-                    } catch (shareErr) {
-                      if (shareErr.name === 'AbortError') return;
-                    }
-                  }
-
-                  // 3. Fallback: Copy link
-                  try {
-                    await navigator.clipboard.writeText(pdfShareModalData.downloadUrl);
-                    toast.success("Download link copied to clipboard!");
-                  } catch (e) {
-                    toast.error("Could not share. Please use buttons below.");
-                  }
-                }}
-                className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-98 text-white text-sm font-bold rounded-2xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2.5 cursor-pointer transition"
-              >
-                <Share2 size={17} />
-                <span>Share via WhatsApp / Drive / Apps</span>
-              </button>
-
-              {/* View Online in PDF Viewer */}
+            <div className="space-y-3 pt-1">
+              {/* Google Drive / Docs Viewer */}
               <a
                 href={pdfShareModalData.viewerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-98 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition no-underline"
+                onClick={() => setPdfShareModalData(null)}
+                className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-98 text-white text-sm font-bold rounded-2xl shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2.5 cursor-pointer transition no-underline"
               >
-                <BookOpen size={16} />
-                <span>Open in Google Docs PDF Viewer</span>
+                <BookOpen size={18} />
+                <span>Save / Open in Google Drive</span>
               </a>
-
-              {/* Copy Direct Download Link */}
-              <button
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(pdfShareModalData.downloadUrl);
-                    toast.success("PDF Download link copied to clipboard!");
-                  } catch (err) {
-                    toast.error("Failed to copy link.");
-                  }
-                }}
-                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-98 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition"
-              >
-                <Copy size={16} />
-                <span>Copy Direct Download Link</span>
-              </button>
 
               {/* Direct Download File */}
               <button
@@ -3449,12 +3387,12 @@ const Classroom = () => {
                   } else {
                     window.open(pdfShareModalData.downloadUrl, '_blank');
                   }
-                  toast.success("Download initiated!");
+                  toast.success("Download started!");
                 }}
-                className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-98 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-semibold rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition"
+                className="w-full py-3.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 active:scale-98 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-bold rounded-2xl flex items-center justify-center gap-2.5 cursor-pointer transition"
               >
-                <Download size={16} />
-                <span>Download File Directly</span>
+                <Download size={18} />
+                <span>Download PDF File Directly</span>
               </button>
             </div>
           </div>
