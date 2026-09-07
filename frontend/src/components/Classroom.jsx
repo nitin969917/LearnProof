@@ -39,6 +39,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { preprocessMath } from '../utils/mathPreprocessor';
 import 'react-quill-new/dist/quill.snow.css';
 import { motion } from "framer-motion";
 import Prism from 'prismjs';
@@ -72,130 +73,7 @@ const INDIAN_LANGS = [
   'Tamil', 'Gujarati', 'Urdu', 'Kannada', 'Odia', 'Malayalam'
 ];
 
-const preprocessMarkdown = (text) => {
-  if (!text) return "";
-
-  let processed = text;
-
-  // Convert literal escaped newlines (from JSON encoding) to real newlines
-  if (processed.includes('\\n')) {
-    processed = processed.replace(/\\n/g, '\n');
-  }
-
-  // Split multiple block math blocks on the same line (e.g. $$ block1 $$ $$ block2 $$) into separate lines
-  processed = processed.replace(/\$\$\s+\$\$/g, '$$$$\n$$$$');
-
-  // Remove literal newlines and carriage returns inside block math delimiters (KaTeX parsing fixes)
-  processed = processed.replace(/\$\$(.*?)\$\$/gs, (match, math) => {
-    const cleanedMath = math.replace(/[\r\n]+/g, ' ');
-    return `$$${cleanedMath}$$`;
-  });
-
-  // 1. Convert HTML break tags to newlines BEFORE line-by-line processing
-  processed = processed.replace(/<br\s*\/?>/gi, '\n');
-
-  // Fix nested dollar signs inside \boxed{...} (common malformed LaTeX)
-  processed = processed.replace(/\\boxed\{([^{}]*)\}/g, (match, content) => {
-    return `\\boxed{${content.replace(/\$/g, '')}}`;
-  });
-
-  // Repair hybrid/malformed probability expressions like P$A\cap B$=P(A)\,P(B|A) or $P$\Omega$=1$
-  // This matches a variety of P$Event$ = Expression styles and standardizes them to $P(Event) = Expression$
-  // It uses a negative lookahead to avoid eating conversational text like ", where..." or "and..."
-  processed = processed.replace(/(?:\$?P\$([a-zA-Z\\{}_\s\cap\cup\theta\Omega\alpha\beta]+)\$=\s*([a-zA-Z0-9\\|()_\s\\+*/\approx\sim\to{}.,&;!\\~#-]+?)\$?)(?=\s+[a-z]{3,}\b|[\s.,;:!]*$)/g, (match, event, expr) => {
-    const cleanEvent = event.replace(/\$/g, '');
-    const cleanExpr = expr.replace(/\$/g, '');
-    return `$P(${cleanEvent}) = ${cleanExpr}$`;
-  });
-
-  // Convert standalone math lines that contain LaTeX commands but are not wrapped in delimiters
-  processed = processed.split('\n').map(line => {
-    let trimmed = line.trim();
-    if (!trimmed) return line;
-
-    // Clean up mismatched leading/trailing delimiters on the line first
-    if (trimmed.startsWith('$$') && !trimmed.endsWith('$$')) {
-      trimmed = trimmed.substring(2).trim();
-    } else if (!trimmed.startsWith('$$') && trimmed.endsWith('$$')) {
-      trimmed = trimmed.substring(0, trimmed.length - 2).trim();
-    }
-    if (trimmed.startsWith('$') && !trimmed.endsWith('$')) {
-      trimmed = trimmed.substring(1).trim();
-    } else if (!trimmed.startsWith('$') && trimmed.endsWith('$')) {
-      trimmed = trimmed.substring(0, trimmed.length - 1).trim();
-    }
-
-    // Only process if the line contains LaTeX commands OUTSIDE of already delimited math blocks
-    const lineWithoutMath = trimmed.replace(/\$\$.*?\$\$/g, '').replace(/\$.*?\$/g, '');
-    const hasLatex = /\\[a-zA-Z]+/.test(lineWithoutMath);
-
-    if (hasLatex) {
-      const isAlreadyBlock = trimmed.startsWith('$$') && trimmed.endsWith('$$');
-      const isAlreadyInline = trimmed.startsWith('$') && trimmed.endsWith('$');
-
-      if (!isAlreadyBlock && !isAlreadyInline) {
-        // Strip out \text{...} blocks entirely so text descriptions inside math don't count as conversational words
-        let mathOnlyText = trimmed.replace(/\\text\{[^{}]*\}/g, '');
-
-        // Strip all LaTeX commands and math/formatting symbols to count actual English conversational words
-        const cleanText = mathOnlyText
-          .replace(/\\[a-zA-Z]+/g, '')
-          .replace(/[\d$={}+*/<>()\[\]|,\-_.:;?!\s]+/g, ' ');
-
-        const words = cleanText.trim().split(/\s+/).filter(w => {
-          const cleanWord = w.replace(/[^a-zA-Z]/g, '');
-          return cleanWord.length > 2;
-        });
-
-        // If it contains very few non-math English words, it's a math equation block
-        if (words.length <= 3) {
-          const cleanedLine = trimmed.replace(/\$/g, '');
-          if (cleanedLine.includes('=')) {
-            return `$$${cleanedLine.trim()}$$`;
-          } else {
-            return `$${cleanedLine.trim()}$`;
-          }
-        }
-      }
-    }
-    // Return the cleaned line (with mismatched delimiters stripped) if we processed it
-    return trimmed;
-  }).join('\n');
-
-  // 2. Convert block math delimiters: \[ or \\[ or any number of backslashes followed by [ to $$
-  processed = processed
-    .replace(/\\+\[/g, () => '$$')
-    .replace(/\\+\]/g, () => '$$');
-
-  // 3. Convert parenthesized inline math delimiters: \(( math )\) to $ math $
-  processed = processed.replace(/\\+\(\s*\(\s*(.*?)\s*\)\s*\\+\)/g, (_, math) => `$${math}$`);
-
-  // 4. Convert normal inline math delimiters: \( or \\( to $
-  processed = processed
-    .replace(/\\+\(/g, () => '$')
-    .replace(/\\+\)/g, () => '$');
-
-  // 6. Fix list item question headers starting with a single asterisk:
-  processed = processed.replace(/^\*(?=[a-zA-Z0-9])(.*?)\*?$/gm, '**$1**');
-
-  // 7. Fix spaced bold markers at the start of lists like * *Non-negativity : **
-  // Safe lookup: only match if the second asterisk is NOT followed by another asterisk (prevents matching * ** list items)
-  processed = processed.replace(/\*\s+\*(?!\*)(.*?)\s*\*\*/g, '**$1**');
-
-  // 8. Wrap raw/unwrapped math expressions inside conversational lines in inline math delimiters
-  processed = processed.split('\n').map(line => {
-    // This matches equations that start with typical math symbols (\, single uppercase letters, brackets, or numbers),
-    // contain LaTeX commands, and do not include conversational words, ensuring we don't match already delimited math.
-    const regex = /(?<!\$)(?:\\|\b[A-Z]\b|[A-Z]\s*[(_{]|[{([0-9])(?:[a-zA-Z0-9\\|(){}[\]_=<>\-+*/\approx\sim\to&;!~#\s]*?\\[a-zA-Z]+[a-zA-Z0-9\\|(){}[\]_=<>\-+*/\approx\sim\to&;!~#\s]*?)(?=\s+[a-z]{3,}\b|[\s.,;:!]*$)(?!\$)/g;
-    return line.replace(regex, (match) => {
-      // Clean up internal dollar signs if there are any malformed fragments
-      const cleanMatch = match.replace(/\$/g, '');
-      return `$${cleanMatch.trim()}$`;
-    });
-  }).join('\n');
-
-  return processed.trim();
-};
+const preprocessMarkdown = preprocessMath;
 
 // Custom Modern Code Editor Component with Prism Syntax Highlighting
 const CodeEditorBlock = ({ className, children, code, language }) => {
@@ -324,17 +202,37 @@ const parseIntuitionData = (raw) => {
       const labelMatch = str.match(/"categoryLabel"\s*:\s*"([^"]+)"/);
       const timeMatch = str.match(/"estimatedReadTimeMinutes"\s*:\s*(\d+)/);
 
-      const pageRegex = /\{\s*"pageNumber"\s*:\s*(\d+)\s*,\s*"title"\s*:\s*"([^"]+)"\s*,\s*"content"\s*:\s*"([\s\S]*?)(?="\s*\}\s*(?:,|\]))/g;
-      const pages = [];
-      let m;
-      while ((m = pageRegex.exec(str)) !== null) {
-        let content = m[3];
-        content = content
+      const unescapeRegexContent = (rawContent) => {
+        if (!rawContent) return '';
+        let c = rawContent;
+        // Protect LaTeX commands before unescaping
+        c = c.replace(/\\r(ight|ho|angle|oot|rightarrow|vert|Vert)\b/g, '___LATEX_R_$1');
+        c = c.replace(/\\t(imes|heta|au|ext|o)\b/g, '___LATEX_T_$1');
+        c = c.replace(/\\n(abla|u|eq|ot)\b/g, '___LATEX_N_$1');
+        c = c.replace(/\\b(eta|matrix|egin|oldsymbol|ar)\b/g, '___LATEX_B_$1');
+        c = c.replace(/\\f(rac|dots)\b/g, '___LATEX_F_$1');
+
+        c = c
           .replace(/\\n/g, '\n')
           .replace(/\\r/g, '')
           .replace(/\\t/g, '\t')
           .replace(/\\"/g, '"')
           .replace(/\\\\/g, '\\');
+
+        // Restore LaTeX commands
+        c = c.replace(/___LATEX_R_(\w+)/g, '\\r$1');
+        c = c.replace(/___LATEX_T_(\w+)/g, '\\t$1');
+        c = c.replace(/___LATEX_N_(\w+)/g, '\\n$1');
+        c = c.replace(/___LATEX_B_(\w+)/g, '\\b$1');
+        c = c.replace(/___LATEX_F_(\w+)/g, '\\f$1');
+        return c;
+      };
+
+      const pageRegex = /\{\s*"pageNumber"\s*:\s*(\d+)\s*,\s*"title"\s*:\s*"([^"]+)"\s*,\s*"content"\s*:\s*"([\s\S]*?)(?="\s*\}\s*(?:,|\]))/g;
+      const pages = [];
+      let m;
+      while ((m = pageRegex.exec(str)) !== null) {
+        let content = unescapeRegexContent(m[3]);
 
         pages.push({
           pageNumber: parseInt(m[1], 10),
@@ -2339,7 +2237,7 @@ const Classroom = () => {
 
                   {/* Ask AI Chatbot Tab */}
                   {activeTab === 'ai-chat' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm flex flex-col min-h-[520px] sm:min-h-[580px] lg:h-[650px] overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm flex flex-col h-[560px] sm:h-[600px] lg:h-[650px] max-h-[calc(100dvh-200px)] min-h-[460px] overflow-hidden">
                       {/* Chat Header */}
                       <div className="flex items-center justify-between gap-2.5 sm:gap-3 p-3 sm:p-4 border-b border-gray-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
                         <div className="flex items-center gap-2.5 min-w-0">

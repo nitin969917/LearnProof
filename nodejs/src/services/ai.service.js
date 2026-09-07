@@ -273,6 +273,32 @@ const detectSubjectCategory = (title, description, transcriptText) => {
 /**
  * Resilient regex extractor to parse intuition JSON when LLMs produce unescaped quotes inside markdown content.
  */
+const unescapeIntuitionRegexContent = (rawContent) => {
+    if (!rawContent) return '';
+    let c = rawContent;
+    // Protect LaTeX commands before unescaping
+    c = c.replace(/\\r(ight|ho|angle|oot|rightarrow|vert|Vert)\b/g, '___LATEX_R_$1');
+    c = c.replace(/\\t(imes|heta|au|ext|o)\b/g, '___LATEX_T_$1');
+    c = c.replace(/\\n(abla|u|eq|ot)\b/g, '___LATEX_N_$1');
+    c = c.replace(/\\b(eta|matrix|egin|oldsymbol|ar)\b/g, '___LATEX_B_$1');
+    c = c.replace(/\\f(rac|dots)\b/g, '___LATEX_F_$1');
+
+    c = c
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+
+    // Restore LaTeX commands
+    c = c.replace(/___LATEX_R_(\w+)/g, '\\r$1');
+    c = c.replace(/___LATEX_T_(\w+)/g, '\\t$1');
+    c = c.replace(/___LATEX_N_(\w+)/g, '\\n$1');
+    c = c.replace(/___LATEX_B_(\w+)/g, '\\b$1');
+    c = c.replace(/___LATEX_F_(\w+)/g, '\\f$1');
+    return c;
+};
+
 const extractIntuitionWithRegex = (text, defaultCategory = 'theory_humanities', defaultLabel = 'Theoretical Foundations & Humanities') => {
     try {
         const catMatch = text.match(/"subjectCategory"\s*:\s*"([^"]+)"/);
@@ -283,13 +309,7 @@ const extractIntuitionWithRegex = (text, defaultCategory = 'theory_humanities', 
         const pages = [];
         let m;
         while ((m = pageRegex.exec(text)) !== null) {
-            let content = m[3];
-            content = content
-                .replace(/\\n/g, '\n')
-                .replace(/\\r/g, '')
-                .replace(/\\t/g, '\t')
-                .replace(/\\"/g, '"')
-                .replace(/\\\\/g, '\\');
+            let content = unescapeIntuitionRegexContent(m[3]);
 
             pages.push({
                 pageNumber: parseInt(m[1], 10),
@@ -329,20 +349,34 @@ const cleanIntuitionJSON = (text, defaultCategory = 'theory_humanities', default
         cleaned = cleaned.substring(firstBrace, lastBrace + 1);
     }
 
-    // 1. Try standard JSON.parse with backslash escape fixing
+    // 1. Try standard JSON.parse with LaTeX-safe backslash escape fixing
     try {
         let jsonStringToParse = cleaned;
         try {
-            jsonStringToParse = cleaned.replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '\\\\');
+            // Protect LaTeX commands so \f (formfeed), \r (carriage return), \b (backspace), \t (tab) aren't swallowed
+            jsonStringToParse = jsonStringToParse.replace(/\\(frac|right|rho|rangle|root|rightarrow|times|theta|tau|text|to|nabla|nu|neq|not|beta|bmatrix|begin|end|boldsymbol|bar|alpha|gamma|delta|epsilon|zeta|eta|iota|kappa|lambda|mu|xi|pi|sigma|upsilon|phi|chi|psi|omega|int|sum|prod|lim|sqrt|left|pm|mp|cdot|cdots|vdots|ddots|approx|sim|le|ge|leq|geq|subset|subseteq|cup|cap|in|notin|forall|exists|infty|partial|boxed|matrix|pmatrix|vmatrix|Vmatrix|array|align|cases)\b/g, '\\\\$1');
+            jsonStringToParse = jsonStringToParse.replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '\\\\');
         } catch (_) {}
 
         const parsed = JSON.parse(jsonStringToParse);
         if (parsed && typeof parsed === 'object' && Array.isArray(parsed.pages) && parsed.pages.length > 0) {
-            const sanitizedPages = parsed.pages.map((p, idx) => ({
-                pageNumber: p.pageNumber || (idx + 1),
-                title: p.title ? p.title.replace(/^Chapter\s*(\d+)[:\s-]*/i, 'Topic $1: ').trim() : `Topic ${idx + 1}`,
-                content: typeof p.content === 'string' ? p.content.trim() : JSON.stringify(p.content)
-            }));
+            const sanitizedPages = parsed.pages.map((p, idx) => {
+                let pageContent = typeof p.content === 'string' ? p.content.trim() : JSON.stringify(p.content);
+                // Sanitize any accidentally created control chars
+                pageContent = pageContent
+                    .replace(/\x0crac\b/g, '\\frac')
+                    .replace(/\x0crac\{/g, '\\frac{')
+                    .replace(/\x0c/g, '')
+                    .replace(/\x08eta\b/g, '\\beta')
+                    .replace(/\x08/g, '')
+                    .replace(/\0/g, '');
+
+                return {
+                    pageNumber: p.pageNumber || (idx + 1),
+                    title: p.title ? p.title.replace(/^Chapter\s*(\d+)[:\s-]*/i, 'Topic $1: ').trim() : `Topic ${idx + 1}`,
+                    content: pageContent
+                };
+            });
             return {
                 subjectCategory: parsed.subjectCategory || defaultCategory,
                 categoryLabel: parsed.categoryLabel || defaultLabel,

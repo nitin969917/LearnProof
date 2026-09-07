@@ -6,39 +6,11 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { preprocessMath } from '../../utils/mathPreprocessor';
 import { Sparkles, Send, Loader2, Cpu, Zap, Brain, Globe, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const preprocessMarkdown = (text) => {
-  if (!text) return "";
-
-  let processed = text;
-
-  // 1. Convert block math delimiters: \[ or \\[ or any number of backslashes followed by [ to $$
-  processed = processed
-    .replace(/\\+\[/g, () => '$$')
-    .replace(/\\+\]/g, () => '$$');
-
-  // 2. Convert parenthesized inline math delimiters: \(( math )\) to $ math $
-  processed = processed.replace(/\\+\(\s*\(\s*(.*?)\s*\)\s*\\+\)/g, (_, math) => `$${math}$`);
-
-  // 3. Convert normal inline math delimiters: \( or \\( to $
-  processed = processed
-    .replace(/\\+\(/g, () => '$')
-    .replace(/\\+\)/g, () => '$');
-
-  // 4. Convert literal parentheses containing LaTeX commands to math delimiters:
-  // e.g. ( \overline{W} ) -> $ \overline{W} $
-  processed = processed.replace(/\(\s*([^)]*?\\[a-zA-Z][^)]*?)\s*\)/g, (_, math) => `$${math}$`);
-
-  // 5. Convert HTML break tags to newlines
-  processed = processed.replace(/<br\s*\/?>/gi, '\n');
-
-  // 6. Fix list item question headers starting with a single asterisk:
-  processed = processed.replace(/^\*(?=[a-zA-Z0-9])(.*?)\*?$/gm, '**$1**');
-
-  return processed;
-};
+const preprocessMarkdown = preprocessMath;
 
 const AIBenchmark = () => {
     const { token } = useAuth();

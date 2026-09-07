@@ -10,6 +10,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { preprocessMath } from '../../utils/mathPreprocessor';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -469,63 +470,7 @@ const ThinkingIndicator = () => {
 };
 
 
-const preprocessMath = (text) => {
-    if (!text) return '';
-    
-    // Split the text into segments: math blocks (inside $ or $$) and plain text blocks.
-    const tokens = text.split(/(\$\$[\s\S]*?\$\$|\$.*?\$)/g);
-    
-    const processedTokens = tokens.map((token, index) => {
-        if (index % 2 === 0) {
-            // Out-of-math block: replace standalone LaTeX symbols with inline math
-            let t = token;
-            
-            const symbolsToWrap = [
-                'vee', 'wedge', 'neg', 'in', 'notin', 'forall', 'exists', 
-                'cup', 'cap', 'subset', 'subseteq', 'varnothing', 'emptyset',
-                'to', 'gets', 'iff', 'implies', 'impliedby', 'oplus', 'otimes',
-                'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta',
-                'theta', 'iota', 'kappa', 'lambda', 'mu', 'nu', 'xi', 'pi',
-                'rho', 'sigma', 'tau', 'upsilon', 'phi', 'chi', 'psi', 'omega'
-            ];
-            
-            symbolsToWrap.forEach(sym => {
-                const regex = new RegExp(`\\\\${sym}\\b`, 'g');
-                t = t.replace(regex, `$ \\\\${sym} $`);
-            });
-            
-            // Auto-wrap unwrapped LaTeX math environments
-            t = t.replace(/\\begin\{(bmatrix|matrix|pmatrix|array|align|equation|cases|split)\}([\s\S]*?)\\end\{\1\}/g, (match) => {
-                let mathContent = match;
-                // Clean up any nested inline wrappers inside the environment
-                mathContent = mathContent.replace(/\$\s*\\(\w+)\s*\$/g, '\\$1');
-                return `\n$$\n${mathContent.trim()}\n$$\n`;
-            });
-            
-            return t;
-        } else {
-            return token;
-        }
-    });
-    
-    let result = processedTokens.join('');
-    
-    // Merge contiguous math blocks separated only by logic symbols/connectives
-    let prevResult;
-    do {
-        prevResult = result;
-        result = result.replace(/\$\$\s*([\s\S]*?)\s*\$\$\s*([\s\S]*?)\s*\$\$\s*([\s\S]*?)\s*\$\$/g, (match, g1, g2, g3) => {
-            const isMathConnective = /^[\s\n\r,=+\-*\\a-zA-Z$()]*$/.test(g2) && !/[a-zA-Z]{5,}/.test(g2);
-            if (isMathConnective) {
-                const cleanConnective = g2.replace(/\$/g, '');
-                return `$$\n${g1.trim()}\n${cleanConnective.trim()}\n${g3.trim()}\n$$`;
-            }
-            return match;
-        });
-    } while (result !== prevResult);
-    
-    return result;
-};
+
 
 const AskMyNotes = () => {
     // Reusable Custom Confirmation Modal State
