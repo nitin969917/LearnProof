@@ -495,16 +495,28 @@ h1, h2, h3, h4 {
     background-color: rgba(30, 41, 59, 0.2);
 }
 
-/* Math blocks styling */
+/* Math blocks styling - Textbook / Academic Presentation */
 .katex-display {
-    margin: 1.5rem 0 !important;
+    margin: 1.25rem 0 !important;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 0.5rem 0;
+    padding: 0.85rem 1.25rem;
+    background: rgba(248, 250, 252, 0.75);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    text-align: center;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark .katex-display {
+    background: rgba(15, 23, 42, 0.45);
+    border-color: rgba(51, 65, 85, 0.6);
+    box-shadow: none;
 }
 
 .katex {
-    font-size: 1.05em !important;
+    font-size: 1.06em !important;
+    text-rendering: optimizeLegibility;
 }
 
 /* Mobile App Native Enhancements (Capacitor) */

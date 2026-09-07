@@ -2053,21 +2053,20 @@ const Classroom = () => {
                                           strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
                                           ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                           ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                          li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:inline" {...props} />,
-                                          p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
+                                          li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:my-1" {...props} />,
+                                          p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words leading-relaxed" {...props} />,
+                                          pre: ({ node, children, ...props }) => <>{children}</>,
                                           code: ({ node, className, children, ...props }) => {
-                                             const match = /language-(\w+)/.exec(className || '');
-                                             const codeContent = String(children || '').replace(/\n$/, '');
-                                             const isBlock = match || codeContent.includes('\n');
-                                             if (!isBlock) {
-                                               return (
-                                                 <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>
-                                                   {children}
-                                                 </code>
-                                               );
-                                             }
-                                             return <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>;
-                                           },
+                                            const match = /language-(\w+)/.exec(className || '');
+                                            if (!match) {
+                                              return (
+                                                <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>
+                                                  {children}
+                                                </code>
+                                              );
+                                            }
+                                            return <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>;
+                                          },
                                           table: ({ node, ...props }) => (
                                             <div 
                                               className="overflow-x-auto my-4 rounded-xl border border-gray-200 dark:border-slate-700/80 shadow-2xs no-tab-swipe"
@@ -2136,14 +2135,12 @@ const Classroom = () => {
                                           strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
                                           ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                           ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                          li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:inline" {...props} />,
-                                          p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
+                                          li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:my-1" {...props} />,
+                                          p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words leading-relaxed" {...props} />,
                                           pre: ({ node, children, ...props }) => <>{children}</>,
                                           code: ({ node, className, children, ...props }) => {
-                                            const match = /language-(\w+)/.exec(className || '');
-                                            const codeContent = String(children || '').replace(/\n$/, '');
-                                            const isBlock = match || codeContent.includes('\n');
-                                            if (!isBlock) {
+                                            const match = /language-(\w+)/.exec(className || "");
+                                            if (!match) {
                                               return (
                                                 <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>
                                                   {children}
@@ -2346,13 +2343,11 @@ const Classroom = () => {
                                         components={{
                                           p: ({ node, ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
                                           ul: ({ node, ...props }) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
-                                          li: ({ node, ...props }) => <li className="break-words leading-relaxed [&>p]:inline" {...props} />,
+                                          li: ({ node, ...props }) => <li className="break-words leading-relaxed [&>p]:my-1" {...props} />,
                                           pre: ({ node, children, ...props }) => <>{children}</>,
                                           code: ({ node, className, children, ...props }) => {
                                             const match = /language-(\w+)/.exec(className || '');
-                                            const codeContent = String(children || '').replace(/\n$/, '');
-                                            const isBlock = match || codeContent.includes('\n');
-                                            if (!isBlock) {
+                                            if (!match) {
                                               return (
                                                 <code className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded font-mono text-xs font-semibold" {...props}>
                                                   {children}
@@ -3220,19 +3215,20 @@ const Classroom = () => {
                         p: ({ node, ...props }) => <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-2.5" {...props} />,
                         ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1" {...props} />,
                         ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2.5 text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1" {...props} />,
-                        li: ({ node, ...props }) => <li className="text-slate-700 dark:text-slate-300 leading-relaxed [&>p]:inline" {...props} />,
+                        li: ({ node, ...props }) => <li className="text-slate-700 dark:text-slate-300 leading-relaxed [&>p]:my-1" {...props} />,
                         strong: ({ node, ...props }) => <strong className="font-bold text-slate-900 dark:text-white" {...props} />,
+                        pre: ({ node, children, ...props }) => <>{children}</>,
                         code: ({ node, className, children, ...props }) => {
                           const match = /language-(\w+)/.exec(className || '');
-                          const codeContent = String(children || '').replace(/\n$/, '');
-                          const isBlock = match || codeContent.includes('\n');
-                          if (!isBlock) {
+                          const isExplicitBlock = Boolean(match);
+                          if (!isExplicitBlock) {
                             return (
                               <code className="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold" {...props}>
                                 {children}
                               </code>
                             );
                           }
+                          const codeContent = String(children || '').replace(/\n$/, '');
                           return <CodeEditorBlock code={codeContent} language={match ? match[1] : ''} />;
                         },
                         table: ({ node, ...props }) => (

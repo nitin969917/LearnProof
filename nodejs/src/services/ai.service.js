@@ -369,7 +369,8 @@ const cleanIntuitionJSON = (text, defaultCategory = 'theory_humanities', default
                     .replace(/\x0c/g, '')
                     .replace(/\x08eta\b/g, '\\beta')
                     .replace(/\x08/g, '')
-                    .replace(/\0/g, '');
+                    .replace(/\0/g, '')
+                    .replace(/\\{2,}(?=(?:frac|to|text|lim|sum|int|cos|sin|tan|cot|sec|csc|ln|log|exp|infty|cdot|cdots|vdots|ddots|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|varpi|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|left|right|quad|qquad|sqrt|times|div|pm|mp|le|ge|leq|geq|ne|neq|approx|sim|simeq|cong|partial|nabla|subset|subseteq|supset|supseteq|in|notin|cap|cup|forall|exists|neg|vee|wedge|boxed|begin|end|over|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases|align|aligned|gather|gathered|equiv|parallel|perp|circ|bullet|star|ast|prime|hat|bar|tilde|vec|dot|ddot)\b)/g, () => '\\');
 
                 return {
                     pageNumber: p.pageNumber || (idx + 1),
