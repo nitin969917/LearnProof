@@ -1569,57 +1569,55 @@ const Classroom = () => {
                   {activeTab === 'intuition' && (
                     <div className="space-y-3 sm:space-y-3.5">
                       {/* Top Action Card: Ask AI Doubt */}
-                      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-950/40 dark:via-purple-950/40 dark:to-pink-950/30 border border-indigo-200 dark:border-indigo-800/80 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5 sm:gap-3">
-                          <div className="p-1.5 sm:p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm shrink-0">
-                            <Bot size={16} className="sm:size-[18px]" />
+                      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-950/40 dark:via-purple-950/40 dark:to-pink-950/30 border border-indigo-200 dark:border-indigo-800/80 rounded-xl sm:rounded-2xl p-2 sm:p-3.5 shadow-2xs flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                          <div className="p-1 sm:p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg sm:rounded-xl text-white shadow-2xs shrink-0">
+                            <Bot size={15} className="sm:size-[18px]" />
                           </div>
-                          <div>
-                            <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white m-0 flex items-center gap-1.5">
-                              <span>Have doubts from this lecture?</span>
-                              <span className="px-1.5 py-0.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-wider bg-indigo-500 text-white shadow-xs">
+                          <div className="min-w-0">
+                            <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white m-0 flex items-center gap-1.5 truncate">
+                              <span>Have doubts?</span>
+                              <span className="px-1.5 py-0.2 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-wider bg-indigo-500 text-white shadow-2xs shrink-0">
                                 AI Tutor
                               </span>
                             </h4>
-                            <p className="text-[11px] sm:text-xs text-gray-600 dark:text-slate-300 m-0 mt-0.5">
-                              Ask any question or get a simplified explanation directly from our AI professor.
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-slate-300 m-0 mt-0.5 truncate hidden xs:block sm:block">
+                              Ask questions or get explanations directly from our AI professor.
                             </p>
                           </div>
                         </div>
                         <button
                           onClick={() => setActiveTab('ai-chat')}
-                          className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-xl shadow-md shadow-indigo-500/20 transition hover:scale-105 active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
+                          className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-lg sm:rounded-xl shadow-xs transition hover:scale-105 active:scale-95 flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
                         >
                           <Sparkles size={11} className="shrink-0" />
-                          <span>Open AI Chatbot</span>
+                          <span>AI Chatbot</span>
                         </button>
                       </div>
 
                       {/* AI Notes & Core Intuition Card */}
-                      <div className="bg-indigo-50/50 dark:bg-indigo-900/20 p-3.5 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/80 transition-colors duration-200 break-words overflow-hidden shadow-xs">
+                      <div className="bg-indigo-50/50 dark:bg-indigo-900/20 p-2.5 sm:p-6 rounded-xl sm:rounded-2xl border border-indigo-100 dark:border-indigo-800/80 transition-colors duration-200 break-words overflow-hidden shadow-xs">
                         {/* Top Header Bar */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3.5 border-b border-indigo-200/80 dark:border-indigo-800">
-                          <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center justify-between gap-2 mb-2.5 sm:mb-4 pb-2 sm:pb-3.5 border-b border-indigo-200/80 dark:border-indigo-800">
+                          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                             <div className="p-1 sm:p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-md shrink-0">
-                              <Sparkles className="text-indigo-600 dark:text-indigo-400" size={15} />
+                              <Sparkles className="text-indigo-600 dark:text-indigo-400" size={13} />
                             </div>
-                            <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-100 leading-tight m-0">
+                            <h3 className="text-xs sm:text-base font-bold text-indigo-900 dark:text-indigo-100 leading-tight m-0 truncate">
                               AI Notes & Study Guide
                             </h3>
-
-                            {/* AI Notes Header Title */}
                           </div>
 
                           {/* Top Controls: Language Picker & Actions */}
-                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                             {/* Download Notes */}
                             {parsedIntuition && (
                               <button
                                 onClick={() => handleDownloadFullNotes(parsedIntuition)}
                                 title="Download Notes as Markdown (.md)"
-                                className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-gray-600 dark:text-slate-300 hover:text-indigo-600 hover:border-indigo-400 transition cursor-pointer shadow-2xs"
+                                className="p-1 sm:p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-gray-600 dark:text-slate-300 hover:text-indigo-600 hover:border-indigo-400 transition cursor-pointer shadow-2xs"
                               >
-                                <Download size={13} />
+                                <Download size={12} />
                               </button>
                             )}
 
@@ -1628,9 +1626,9 @@ const Classroom = () => {
                               disabled={loadingIntuition}
                               onClick={() => fetchIntuition(selectedLanguage, true)}
                               title="Regenerate In-Depth Notes"
-                              className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-gray-600 dark:text-slate-300 hover:text-indigo-600 hover:border-indigo-400 disabled:opacity-50 transition cursor-pointer shadow-2xs"
+                              className="p-1 sm:p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-gray-600 dark:text-slate-300 hover:text-indigo-600 hover:border-indigo-400 disabled:opacity-50 transition cursor-pointer shadow-2xs"
                             >
-                              <RefreshCw size={13} className={loadingIntuition ? 'animate-spin' : ''} />
+                              <RefreshCw size={12} className={loadingIntuition ? 'animate-spin' : ''} />
                             </button>
 
                             {/* Language Picker Dropdown */}
@@ -1639,7 +1637,7 @@ const Classroom = () => {
                                 disabled={loadingIntuition}
                                 onChange={(e) => fetchIntuition(e.target.value)}
                                 value={selectedLanguage}
-                                className="appearance-none px-2.5 py-1 pr-6 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/20 cursor-pointer shadow-2xs transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
+                                className="appearance-none px-2 py-1 pr-5 rounded-lg text-[9px] sm:text-xs font-bold uppercase tracking-wider bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500/20 cursor-pointer shadow-2xs transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
                               >
                                 <option value="" disabled>Select Language</option>
                                 {INDIAN_LANGS.map((lang) => (
@@ -1648,8 +1646,8 @@ const Classroom = () => {
                                   </option>
                                 ))}
                               </select>
-                              <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
-                                <ChevronRight size={10} className="rotate-90" />
+                              <div className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400">
+                                <ChevronRight size={9} className="rotate-90" />
                               </div>
                             </div>
                           </div>
@@ -1667,12 +1665,12 @@ const Classroom = () => {
                             <p className="text-xs text-indigo-500/60 mt-2">Classifying subject curriculum & constructing comprehensive topic study notes</p>
                           </div>
                         ) : parsedIntuition ? (
-                          <div className="space-y-4">
+                          <div className="space-y-3 sm:space-y-4">
                             {/* Topic Pill Navigation & View Switcher (for multi-topic notes) */}
                             {parsedIntuition.totalPages > 1 && (
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-white/70 dark:bg-slate-800/60 p-2 sm:p-2.5 rounded-xl border border-indigo-100 dark:border-slate-700/60">
+                              <div className="flex items-center justify-between gap-2 bg-white/80 dark:bg-slate-800/70 p-1 sm:p-2.5 rounded-xl border border-indigo-100 dark:border-slate-700/60">
                                 {/* Topic Pill Selector */}
-                                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-thin">
+                                <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none py-0.5 min-w-0">
                                   {parsedIntuition.pages.map((p, idx) => {
                                     const isActive = !isContinuousView && activeChapterIndex === idx;
                                     return (
@@ -1682,7 +1680,7 @@ const Classroom = () => {
                                           setIsContinuousView(false);
                                           setActiveChapterIndex(idx);
                                         }}
-                                        className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer ${
+                                        className={`px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
                                           isActive
                                             ? `${getCategoryStyle(parsedIntuition.subjectCategory).activePill} shadow-xs`
                                             : 'bg-indigo-50/60 dark:bg-slate-700/50 text-gray-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-700'
@@ -1695,17 +1693,18 @@ const Classroom = () => {
                                 </div>
 
                                 {/* Continuous View Switcher */}
-                                <div className="flex items-center gap-1 self-end sm:self-auto shrink-0">
+                                <div className="flex items-center shrink-0">
                                   <button
                                     onClick={() => setIsContinuousView(!isContinuousView)}
-                                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer border ${
+                                    title={isContinuousView ? "Switch to single topic view" : "Read all topics continuously"}
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition cursor-pointer border whitespace-nowrap ${
                                       isContinuousView
                                         ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
                                         : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-50'
                                     }`}
                                   >
-                                    <Layers size={12} />
-                                    <span>{isContinuousView ? 'Continuous View Active' : 'Read All (Continuous)'}</span>
+                                    <Layers size={11} className="shrink-0" />
+                                    <span>{isContinuousView ? 'Continuous' : 'Read All'}</span>
                                   </button>
                                 </div>
                               </div>
@@ -1713,11 +1712,11 @@ const Classroom = () => {
 
                             {/* Content Display: Continuous Mode vs Paginated Topic Mode */}
                             {isContinuousView && parsedIntuition.totalPages > 1 ? (
-                              <div className="space-y-8">
+                              <div className="space-y-4 sm:space-y-8">
                                 {parsedIntuition.pages.map((page, idx) => (
-                                  <div key={idx} className="bg-white/80 dark:bg-slate-900/60 p-4 sm:p-6 rounded-xl border border-indigo-100/80 dark:border-slate-800 shadow-2xs">
-                                    <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-100 dark:border-slate-800">
-                                      <h3 className="text-base sm:text-lg font-bold text-indigo-950 dark:text-indigo-200 m-0">
+                                  <div key={idx} className="bg-white/80 dark:bg-slate-900/60 p-3 sm:p-6 rounded-xl border border-indigo-100/80 dark:border-slate-800 shadow-2xs">
+                                    <div className="flex items-center justify-between pb-2 sm:pb-3 mb-2.5 sm:mb-4 border-b border-gray-100 dark:border-slate-800">
+                                      <h3 className="text-sm sm:text-lg font-bold text-indigo-950 dark:text-indigo-200 m-0">
                                         {page.title}
                                       </h3>
                                       <button
@@ -1725,7 +1724,7 @@ const Classroom = () => {
                                         title="Copy Topic Notes"
                                         className="p-1 rounded text-gray-400 hover:text-indigo-600 transition cursor-pointer"
                                       >
-                                        <Copy size={13} />
+                                        <Copy size={12} />
                                       </button>
                                     </div>
                                     <div className="prose max-w-none text-gray-800 dark:text-gray-200 leading-relaxed intuition-markdown">
@@ -1768,16 +1767,16 @@ const Classroom = () => {
                                 if (!currentPage) return null;
 
                                 return (
-                                  <div className="bg-white/90 dark:bg-slate-900/60 p-4 sm:p-6 rounded-2xl border border-indigo-100/90 dark:border-slate-800 shadow-2xs">
+                                  <div className="bg-white/90 dark:bg-slate-900/60 p-3 sm:p-6 rounded-xl sm:rounded-2xl border border-indigo-100/90 dark:border-slate-800 shadow-2xs">
                                     {/* Topic Header */}
-                                    <div className="flex items-center justify-between pb-3 mb-4 border-b border-gray-100 dark:border-slate-800">
-                                      <div className="min-w-0">
+                                    <div className="flex items-center justify-between pb-2 sm:pb-3 mb-2.5 sm:mb-4 border-b border-gray-100 dark:border-slate-800">
+                                      <div className="min-w-0 pr-2">
                                         {parsedIntuition.totalPages > 1 && (
-                                          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                                          <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-0.5">
                                             Topic {activeChapterIndex + 1} of {parsedIntuition.totalPages}
                                           </span>
                                         )}
-                                        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white m-0 truncate">
+                                        <h3 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white m-0 truncate">
                                           {currentPage.title}
                                         </h3>
                                       </div>
@@ -1785,9 +1784,9 @@ const Classroom = () => {
                                       <button
                                         onClick={() => handleCopyChapter(currentPage.content)}
                                         title="Copy Topic Notes"
-                                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:text-indigo-600 transition cursor-pointer shrink-0"
+                                        className="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:text-indigo-600 transition cursor-pointer shrink-0"
                                       >
-                                        <Copy size={12} />
+                                        <Copy size={11} className="sm:size-[12px]" />
                                         <span>{copiedChapter ? "Copied!" : "Copy"}</span>
                                       </button>
                                     </div>
@@ -1826,20 +1825,20 @@ const Classroom = () => {
 
                                     {/* Bottom Topic Pagination Controls */}
                                     {parsedIntuition.totalPages > 1 && (
-                                      <div className="flex items-center justify-between pt-4 mt-6 border-t border-gray-100 dark:border-slate-800">
+                                      <div className="flex items-center justify-between pt-3 mt-4 sm:pt-4 sm:mt-6 border-t border-gray-100 dark:border-slate-800">
                                         <button
                                           disabled={activeChapterIndex === 0}
                                           onClick={() => {
                                             setActiveChapterIndex(i => Math.max(0, i - 1));
                                             window.scrollTo({ top: 400, behavior: 'smooth' });
                                           }}
-                                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-gray-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                                          className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-gray-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
                                         >
-                                          <ChevronLeft size={14} />
-                                          <span>Previous Topic</span>
+                                          <ChevronLeft size={13} className="sm:size-[14px]" />
+                                          <span>Previous</span>
                                         </button>
 
-                                        <span className="text-xs font-bold text-gray-400 dark:text-slate-500">
+                                        <span className="text-[11px] sm:text-xs font-bold text-gray-400 dark:text-slate-500">
                                           {activeChapterIndex + 1} / {parsedIntuition.totalPages}
                                         </span>
 
@@ -1849,18 +1848,18 @@ const Classroom = () => {
                                               setActiveChapterIndex(i => Math.min(parsedIntuition.totalPages - 1, i + 1));
                                               window.scrollTo({ top: 400, behavior: 'smooth' });
                                             }}
-                                            className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition cursor-pointer"
+                                            className="flex items-center gap-1 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition cursor-pointer"
                                           >
                                             <span>Next Topic</span>
-                                            <ChevronRight size={14} />
+                                            <ChevronRight size={13} className="sm:size-[14px]" />
                                           </button>
                                         ) : (
                                           <button
                                             onClick={() => setActiveTab('quiz')}
-                                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-xs transition cursor-pointer"
+                                            className="flex items-center gap-1 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-xs transition cursor-pointer"
                                           >
-                                            <CheckCircle size={13} />
-                                            <span>Take AI Quiz</span>
+                                            <CheckCircle size={12} className="sm:size-[13px]" />
+                                            <span>Take Quiz</span>
                                           </button>
                                         )}
                                       </div>
