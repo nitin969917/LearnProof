@@ -1,11 +1,12 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoute from "./routes/AdminRoute";
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ModalProvider } from './context/ModalContext';
 import { initializeLaunch } from './utils/launch';
 import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 
 // Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
@@ -81,7 +82,32 @@ const PageLoader = () => (
     </div>
 );
 
-// Native mobile entry handler: In the mobile app, default directly to login or dashboard
+// RouteTracker: Automatically keeps track of the active user location in localStorage
+const RouteTracker = () => {
+    const location = useLocation();
+
+    React.useEffect(() => {
+        const fullPath = location.pathname + location.search + location.hash;
+        const isExcluded = (
+            !fullPath ||
+            location.pathname === '/' ||
+            location.pathname === '/login' ||
+            location.pathname === '/download' ||
+            location.pathname.startsWith('/verify') ||
+            location.pathname.startsWith('/privacy') ||
+            location.pathname.startsWith('/terms') ||
+            location.pathname.startsWith('/delete-account')
+        );
+
+        if (!isExcluded) {
+            localStorage.setItem('learnproof_last_route', fullPath);
+        }
+    }, [location]);
+
+    return null;
+};
+
+// Native mobile entry handler: In the mobile app, restore the last active route or default to login/dashboard
 const RootRoute = () => {
     const { user, loading } = useAuth();
     const isNativeApp = typeof window !== 'undefined' && (
@@ -90,9 +116,25 @@ const RootRoute = () => {
         window.location.hostname === 'localhost'
     );
 
+    if (loading) return <PageLoader />;
+
+    if (user) {
+        const lastRoute = localStorage.getItem('learnproof_last_route');
+        const isValidRoute = (
+            lastRoute && 
+            lastRoute !== '/' && 
+            lastRoute !== '/login' &&
+            lastRoute !== '/download' &&
+            !lastRoute.startsWith('/verify') &&
+            !lastRoute.startsWith('/privacy') &&
+            !lastRoute.startsWith('/terms') &&
+            !lastRoute.startsWith('/delete-account')
+        );
+        const targetRoute = isValidRoute ? lastRoute : '/dashboard';
+        return <Navigate to={targetRoute} replace />;
+    }
+
     if (isNativeApp) {
-        if (loading) return <PageLoader />;
-        if (user) return <Navigate to="/dashboard" replace />;
         return <LoginPage />;
     }
 
@@ -198,14 +240,37 @@ const App = () => {
             }
         };
 
+        let appStateListener = null;
+        if (Capacitor.isNativePlatform()) {
+            CapApp.addListener('appStateChange', ({ isActive }) => {
+                console.log('[App Lifecycle] App state changed. isActive:', isActive);
+                if (isActive) {
+                    const currentPath = window.location.pathname;
+                    const lastRoute = localStorage.getItem('learnproof_last_route');
+                    if (currentPath === '/' && lastRoute && lastRoute !== '/') {
+                        window.history.replaceState(null, '', lastRoute);
+                    }
+                }
+            }).then(handle => {
+                appStateListener = handle;
+            }).catch(() => {});
+        }
+
         const interval = setInterval(trackScreenTime, 1000);
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+            if (appStateListener) {
+                appStateListener.remove();
+            }
+        };
     }, []);
 
     return (
         <AuthProvider>
             <ModalProvider>
                 <Router>
+                    <RouteTracker />
                     <OAuthRedirectHandler />
                     <Suspense fallback={<PageLoader />}>
                         <Routes>

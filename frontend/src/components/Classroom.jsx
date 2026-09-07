@@ -581,7 +581,21 @@ const Classroom = () => {
   const [lastSavedProgress, setLastSavedProgress] = useState(0);
 
   // Tabs State
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      return localStorage.getItem(`learnproof_active_tab_${videoId}`) || 'overview';
+    } catch {
+      return 'overview';
+    }
+  });
+
+  useEffect(() => {
+    if (videoId && activeTab) {
+      try {
+        localStorage.setItem(`learnproof_active_tab_${videoId}`, activeTab);
+      } catch (e) {}
+    }
+  }, [videoId, activeTab]);
   const [noteContent, setNoteContent] = useState("");
   const [noteFiles, setNoteFiles] = useState([]); // Saved files from server
   const [newNoteFiles, setNewNoteFiles] = useState([]); // Pending files to upload
@@ -1232,7 +1246,11 @@ const Classroom = () => {
         setLastSavedProgress(res.data.video.watch_progress || 0);
         setHasSeeked(false);
         setPlaylist(res.data.playlist);
-        if (res.data.playlist && window.innerWidth < 1024) {
+
+        const savedTab = localStorage.getItem(`learnproof_active_tab_${videoId}`);
+        if (savedTab) {
+          setActiveTab(savedTab);
+        } else if (res.data.playlist && window.innerWidth < 1024) {
           setActiveTab('playlist');
         } else if (!res.data.playlist && activeTab === 'playlist') {
           setActiveTab('overview');
@@ -1443,6 +1461,9 @@ const Classroom = () => {
             const percentage = Math.round(percentRaw);
 
             setLiveProgress(percentage);
+            try {
+              localStorage.setItem(`learnproof_seek_${videoId}`, String(currentTime));
+            } catch (e) {}
 
             // Auto-trigger next overlay to block YouTube annotations (which can start up to 20s before the end)
             // Ensure video has actually played past 50% and is for current videoId
@@ -1515,10 +1536,13 @@ const Classroom = () => {
   const handlePlayerStateChange = async (event) => {
     // YT.PlayerState.PLAYING is 1
     if (event.data === 1) {
-      if (!hasSeeked && video?.watch_progress > 0 && video?.watch_progress < 98) {
+      if (!hasSeeked) {
         setHasSeeked(true);
         const duration = await event.target.getDuration();
-        if (duration > 0) {
+        const savedSeekSeconds = parseFloat(localStorage.getItem(`learnproof_seek_${videoId}`) || '0');
+        if (savedSeekSeconds > 3 && duration > 0 && savedSeekSeconds < duration - 5) {
+          event.target.seekTo(savedSeekSeconds);
+        } else if (video?.watch_progress > 0 && video?.watch_progress < 98 && duration > 0) {
           const seekSeconds = (video.watch_progress / 100) * duration;
           event.target.seekTo(seekSeconds);
           setLastSavedProgress(video.watch_progress);
