@@ -145,7 +145,7 @@ const authMiddleware = async (req, res, next) => {
 
         // Generate a new custom session token for the client if it was a Google login
         const newSessionToken = jwt.sign(
-            { uid, email, name, picture },
+            { uid, email, name, picture, id: user.id },
             JWT_SECRET,
             { expiresIn: '30d' }
         );

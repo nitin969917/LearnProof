@@ -94,6 +94,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const chatHistory = useLiveRoomPipStore(state => state.chatHistory);
   const syncChatHistory = useLiveRoomPipStore(state => state.syncChatHistory);
 
+  // Robust current user resolution (handles uid, id, userIdentity, localParticipant)
+  const currentUserId = String(userIdentity || user?.id || user?.uid || localParticipant?.identity || '');
+  const currentUserName = user?.name || localParticipant?.name || user?.email?.split('@')[0] || 'User';
+
   useEffect(() => {
     syncChatHistory(rawChatMessages);
   }, [rawChatMessages, syncChatHistory]);
@@ -147,7 +151,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // Role Permissions — use token identity for host check (available before LiveKit connects)
   const isHost = Boolean(
-    (dbRoom && user && String(dbRoom.creatorId) === String(user.id)) ||
+    (dbRoom && currentUserId && String(dbRoom.creatorId) === String(currentUserId)) ||
     (dbRoom && userIdentity && String(dbRoom.creatorId) === String(userIdentity)) ||
     (dbRoom && localParticipant?.identity && String(dbRoom.creatorId) === String(localParticipant.identity))
   );
@@ -163,7 +167,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         String(dbRoom.creatorId) === String(p.identity) ||
         String(dbRoom.creator?.id) === String(p.identity)
       )) ||
-      (user && String(user.id) === String(p.identity) && isHost)
+      (currentUserId && String(currentUserId) === String(p.identity) && isHost)
     );
     if (isCreator) return true;
 
@@ -183,7 +187,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     // Default to audience listener
     return false;
-  }, [dbRoom, user, isHost]);
+  }, [dbRoom, currentUserId, isHost]);
 
   // Local stage permission (true only if host or promoted speaker)
   const canPublish = Boolean(isSpeakerParticipant(localParticipant));
@@ -200,9 +204,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   const amIHost = useCallback(() => {
     const hostId = dbRoomRef.current?.creatorId;
-    const myId = userIdentityRef.current || (user?.id ? String(user.id) : null);
+    const myId = userIdentityRef.current || currentUserId;
     return (hostId != null && myId != null && String(hostId) === String(myId)) || isHostRef.current;
-  }, [user]);
+  }, [currentUserId]);
 
   // Keep refs so the data channel handler closure never goes stale
   const canPublishRef = useRef(canPublish);
@@ -500,7 +504,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Broadcast host settings (allowWhiteboard, allowScreenShare) to all participants
   const broadcastRoomSettings = (newAllowWhiteboard, newAllowScreenShare) => {
     try {
-      const socket = getSocialSocket(user?.id);
+      const socket = getSocialSocket(currentUserId);
       if (socket) {
         socket.emit('updateLiveRoomSettings', {
           roomName,
@@ -623,7 +627,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     // 1. Broadcast via Socket.IO for server-side persistence & late joiners
     try {
-      const socket = getSocialSocket(user?.id);
+      const socket = getSocialSocket(currentUserId);
       if (socket) {
         socket.emit('setWhiteboardVisibility', { roomName, isOpen: nextState });
       }
@@ -859,7 +863,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       // 2. If host, request meeting termination
       if (isHost) {
         try {
-          const socket = getSocialSocket(user?.id);
+          const socket = getSocialSocket(currentUserId);
           if (socket && socket.connected) {
             socket.emit('hostLeftLiveRoom', { roomName });
           }
@@ -931,16 +935,23 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // ── Combine and sort chat messages + system events ─────────────────────────
   const timelineItems = [
-    ...chatHistory.map(m => ({
-      type: 'chat',
-      id: m.id || m.timestamp || Date.now(),
-      time: new Date(m.timestamp || (m.sentAt ? new Date(m.sentAt).getTime() : Date.now())),
-      // Preserve from as object so render can access .identity and .name
-      from: typeof m.from === 'object'
-        ? { identity: m.from?.identity || m.from?.senderId || m.senderId || '', name: m.from?.name || m.from?.userName || 'User' }
-        : { identity: m.senderId || '', name: m.from || 'User' },
-      text: m.text || m.message
-    })),
+    ...chatHistory.map(m => {
+      const fromIdentity = String(
+        (typeof m.from === 'object' ? (m.from?.identity || m.from?.senderId) : null) ||
+        m.senderId ||
+        (typeof m.from === 'string' ? m.from : '') ||
+        ''
+      );
+      const fromName = (typeof m.from === 'object' ? (m.from?.name || m.from?.userName) : m.from) || 'User';
+      return {
+        type: 'chat',
+        id: m.id || m.timestamp || Date.now(),
+        time: new Date(m.timestamp || (m.sentAt ? new Date(m.sentAt).getTime() : Date.now())),
+        from: { identity: fromIdentity, name: fromName },
+        senderId: fromIdentity,
+        text: m.text || m.message || ''
+      };
+    }),
     ...systemEvents.map(s => ({
       type: 'system',
       id: s.id,
@@ -1033,8 +1044,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     setHasRequested(true);
     // No toast - the button changes to "Withdraw" which shows the pending state
 
-    const myIdentity = localParticipant?.identity || userIdentity || (user?.id ? String(user.id) : null);
-    const myName = localParticipant?.name || user?.name || 'User';
+    const myIdentity = localParticipant?.identity || currentUserId;
+    const myName = currentUserName;
 
     const requestPayload = {
       type: 'request_to_speak',
@@ -1045,7 +1056,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     // 1. Instant Socket.IO push (direct real-time delivery to host and room)
     try {
-      const socket = getSocialSocket(user?.id);
+      const socket = getSocialSocket(currentUserId);
       if (socket) {
         socket.emit('speak_request', {
           roomName,
@@ -1075,7 +1086,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     setHasRequested(false);
     // No toast - button resets to "Raise Hand" which shows the state
 
-    const myId = localParticipant?.identity || userIdentity || (user?.id ? String(user.id) : null);
+    const myId = localParticipant?.identity || currentUserId;
     if (myId) {
       const withdrawPayload = {
         type: 'withdraw_stage_request',
@@ -1085,7 +1096,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
       // 1. Instant Socket.IO withdraw push
       try {
-        const socket = getSocialSocket(user?.id);
+        const socket = getSocialSocket(currentUserId);
         if (socket) {
           socket.emit('withdraw_stage_request', {
             roomName,
@@ -1263,8 +1274,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // Real-time Socket.IO Room Channel (Chat, Whiteboard, Room Sync & Stage Requests)
   useEffect(() => {
-    if (!roomName || !user?.id) return;
-    const socket = getSocialSocket(user.id);
+    if (!roomName) return;
+    const socket = getSocialSocket(currentUserId);
     if (!socket) return;
 
     // Handle room terminated by host
@@ -1348,7 +1359,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     const sendJoinAndSync = () => {
       socket.emit('joinLiveRoom', {
         roomName,
-        user: { id: user.id, name: user.name || user.email?.split('@')[0] || 'User' },
+        user: { id: currentUserId, name: currentUserName },
         isHost: Boolean(isHostRef.current || isHost || amIHost())
       });
       socket.emit('getLiveRoomSyncState', { roomName });
@@ -1370,7 +1381,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       socket.off('withdraw_stage_request', handleSocketWithdrawReq);
       socket.off('room_ended', handleRoomEnded);
     };
-  }, [user, isHost, roomName, amIHost, syncChatHistory]);
+  }, [roomName, currentUserId, currentUserName, isHost, amIHost, syncChatHistory]);
 
   useEffect(() => {
     if (!room) return;
@@ -1525,16 +1536,38 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     const textToSend = chatInput.trim();
     setChatInput('');
 
-    // 1. Send via Socket.io relay
+    const effectiveId = currentUserId || 'anonymous';
+    const effectiveName = currentUserName;
+
+    const optimisticChatItem = {
+      id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      roomName,
+      from: { identity: effectiveId, name: effectiveName },
+      senderId: effectiveId,
+      text: textToSend,
+      timestamp: Date.now(),
+      sentAt: new Date().toISOString()
+    };
+
+    // 1. Immediately append to chat history so the user sees their sent message with 0ms latency!
+    syncChatHistory([optimisticChatItem]);
+
+    // 2. Send via Socket.io relay
     try {
-      const socket = getSocialSocket(user?.id);
+      const socket = getSocialSocket(effectiveId);
       if (socket) {
+        // Ensure the socket is joined in this room
+        socket.emit('joinLiveRoom', {
+          roomName,
+          user: { id: effectiveId, name: effectiveName },
+          isHost: Boolean(isHostRef.current || isHost || amIHost())
+        });
         socket.emit('sendLiveRoomChat', {
           roomName,
           message: textToSend,
           sender: {
-            identity: String(user?.id || localParticipant?.identity || ''),
-            name: user?.name || localParticipant?.name || 'User'
+            identity: effectiveId,
+            name: effectiveName
           }
         });
       }
@@ -1542,32 +1575,57 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       console.warn('Socket chat send failed:', sockErr);
     }
 
-    // 2. Also send via LiveKit data channel for dual redundancy
+    // 3. Also send via LiveKit data channel for stage speakers/hosts
     try {
-      send(textToSend);
+      if (typeof send === 'function') {
+        send(textToSend);
+      }
     } catch (lkErr) {
-      console.warn('LiveKit chat send failed:', lkErr);
+      console.debug('LiveKit chat send (expected for audience listeners):', lkErr);
     }
   };
 
   const handleQuickSend = (text) => {
     if (!text || !text.trim()) return;
     const textToSend = text.trim();
+
+    const effectiveId = currentUserId || 'anonymous';
+    const effectiveName = currentUserName;
+
+    const optimisticChatItem = {
+      id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      roomName,
+      from: { identity: effectiveId, name: effectiveName },
+      senderId: effectiveId,
+      text: textToSend,
+      timestamp: Date.now(),
+      sentAt: new Date().toISOString()
+    };
+
+    syncChatHistory([optimisticChatItem]);
+
     try {
-      const socket = getSocialSocket(user?.id);
+      const socket = getSocialSocket(effectiveId);
       if (socket) {
+        socket.emit('joinLiveRoom', {
+          roomName,
+          user: { id: effectiveId, name: effectiveName },
+          isHost: Boolean(isHostRef.current || isHost || amIHost())
+        });
         socket.emit('sendLiveRoomChat', {
           roomName,
           message: textToSend,
           sender: {
-            identity: String(user?.id || localParticipant?.identity || ''),
-            name: user?.name || localParticipant?.name || 'User'
+            identity: effectiveId,
+            name: effectiveName
           }
         });
       }
     } catch (sockErr) {}
     try {
-      send(textToSend);
+      if (typeof send === 'function') {
+        send(textToSend);
+      }
     } catch (lkErr) {}
   };
 
@@ -1739,7 +1797,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                 </div>
               );
             }
-            const isMe = item.from?.identity === localParticipant?.identity;
+            const myIdStr = String(localParticipant?.identity || currentUserId || '');
+            const fromIdStr = String(item.from?.identity || item.senderId || '');
+            const isMe = Boolean(myIdStr && fromIdStr && myIdStr === fromIdStr);
             return (
               <div key={item.id} className="flex gap-2 flex-row items-end">
                 <div
@@ -2556,7 +2616,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                   <RoomWhiteboard
                     room={room}
                     roomName={roomName}
-                    userId={user?.id}
+                    userId={currentUserId}
                     localParticipant={localParticipant}
                     isHost={isHost}
                     canPublish={canPublish}
@@ -3029,7 +3089,8 @@ export default function LanguageRoom() {
         }
 
         // Determine if the user should join as a speaker (host joins as speaker, others start as audience)
-        const isRoomHost = roomInfo && user && String(roomInfo.creatorId) === String(user.id);
+        const userIdentifier = user?.id || user?.uid;
+        const isRoomHost = roomInfo && userIdentifier && String(roomInfo.creatorId) === String(userIdentifier);
         const requestPublish = isRoomHost ? 'true' : 'false';
 
         const res = await socialApi.get('/livekit/token', {

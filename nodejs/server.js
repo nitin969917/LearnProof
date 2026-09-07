@@ -474,12 +474,19 @@ io.on('connection', (socket) => {
   // Real-time Chat
   socket.on('sendLiveRoomChat', ({ roomName, message, sender }) => {
     if (!roomName || !message || typeof message !== 'string' || !message.trim()) return;
+
+    const roomChannel = `live_room_${roomName}`;
+    socket.join(roomChannel);
+
     const chatHistory = getRoomChat(roomName);
+    const senderIdentity = String(sender?.identity || sender?.id || socket.userId || 'anonymous');
+    const senderName = sender?.name || sender?.userName || 'User';
+
     const chatItem = {
       id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       roomName,
-      from: sender?.name || sender?.userName || 'User',
-      senderId: sender?.identity || sender?.id || 'anonymous',
+      from: { identity: senderIdentity, name: senderName },
+      senderId: senderIdentity,
       text: message.trim(),
       timestamp: Date.now(),
       sentAt: new Date().toISOString()
@@ -491,8 +498,8 @@ io.on('connection', (socket) => {
       chatHistory.shift();
     }
 
-    // Broadcast message to everyone in the room
-    io.to(`live_room_${roomName}`).emit('liveRoomChatReceived', chatItem);
+    // Broadcast message to everyone in the room (including sender)
+    io.to(roomChannel).emit('liveRoomChatReceived', chatItem);
   });
 
   // Client requests chat history

@@ -28,14 +28,46 @@ export const useLiveRoomPipStore = create((set) => ({
   })),
   syncChatHistory: (messages) => set((state) => {
     if (!messages || messages.length === 0) return state;
-    const map = new Map(state.chatHistory.map(m => [m.id || m.timestamp, m]));
-    messages.forEach(m => map.set(m.id || m.timestamp, m));
-    return { 
-      chatHistory: Array.from(map.values()).sort((a,b) => {
+    const existing = [...state.chatHistory];
+
+    messages.forEach((m) => {
+      if (!m) return;
+      const text = (m.text || m.message || '').trim();
+      const senderId = String(
+        (typeof m.from === 'object' ? (m.from?.identity || m.from?.senderId) : null) ||
+        m.senderId ||
+        (typeof m.from === 'string' ? m.from : '') ||
+        ''
+      );
+      const time = m.timestamp || (m.sentAt ? new Date(m.sentAt).getTime() : Date.now());
+
+      // Deduplicate by explicit ID, or by identical sender + text within 4 seconds
+      const existingIdx = existing.findIndex((ex) => {
+        if (m.id && ex.id && String(m.id) === String(ex.id)) return true;
+        const exText = (ex.text || ex.message || '').trim();
+        const exSender = String(
+          (typeof ex.from === 'object' ? (ex.from?.identity || ex.from?.senderId) : null) ||
+          ex.senderId ||
+          (typeof ex.from === 'string' ? ex.from : '') ||
+          ''
+        );
+        const exTime = ex.timestamp || (ex.sentAt ? new Date(ex.sentAt).getTime() : 0);
+        return text && exText === text && senderId && exSender === senderId && Math.abs(exTime - time) < 4000;
+      });
+
+      if (existingIdx >= 0) {
+        existing[existingIdx] = { ...existing[existingIdx], ...m };
+      } else {
+        existing.push(m);
+      }
+    });
+
+    return {
+      chatHistory: existing.sort((a, b) => {
         const timeA = a.timestamp || (a.sentAt ? new Date(a.sentAt).getTime() : 0);
         const timeB = b.timestamp || (b.sentAt ? new Date(b.sentAt).getTime() : 0);
         return timeA - timeB;
-      }) 
+      })
     };
   })
 }));

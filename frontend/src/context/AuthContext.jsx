@@ -58,6 +58,7 @@ export const AuthProvider = ({ children }) => {
                         }
                     }
                     setUser({
+                        id: decoded.id || decoded.uid || decoded.sub,
                         uid: decoded.uid || decoded.sub,
                         email: decoded.email,
                         name: decoded.name,
@@ -112,6 +113,7 @@ export const AuthProvider = ({ children }) => {
             
             const decoded = jwtDecode(sessionToken);
             setUser({
+                id: decoded.id || decoded.uid || decoded.sub,
                 uid: decoded.uid || decoded.sub,
                 email: decoded.email,
                 name: decoded.name,
@@ -133,6 +135,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem("google_token", idToken);
             const decoded = jwtDecode(idToken);
             setUser({
+                id: decoded.id || decoded.sub || decoded.uid,
                 uid: decoded.sub,
                 email: decoded.email,
                 name: decoded.name,
