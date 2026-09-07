@@ -800,7 +800,7 @@ const Classroom = () => {
   const handleDownloadVisualPdf = async () => {
     if (!parsedIntuition || !parsedIntuition.pages || parsedIntuition.pages.length === 0) return;
     setDownloadingPdf(true);
-    const toastId = toast.loading("Preparing high-quality visual PDF...");
+    const toastId = toast.loading("Preparing high-quality PDF study notes...");
 
     try {
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -808,8 +808,65 @@ const Classroom = () => {
       if (!element) throw new Error("Printable study guide element not found");
 
       const titleStr = video?.name || 'Lecture Study Notes';
+      const sanitized = titleStr.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').slice(0, 60);
+      const fileName = `${sanitized}_Study_Notes.pdf`;
 
-      // Create isolated hidden iframe for clean, dedicated PDF export of ONLY the notes
+      // 1. Direct PDF file generation using html2pdf.js (ideal for Mobile/Android/iOS & Web direct download)
+      try {
+        const html2pdfModule = await import('html2pdf.js');
+        const html2pdf = html2pdfModule.default || html2pdfModule;
+
+        // Create a clean temporary container positioned in standard flow so html2canvas computes positive bounds
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'fixed';
+        tempContainer.style.left = '0';
+        tempContainer.style.top = '0';
+        tempContainer.style.width = '794px'; // Standard A4 pixel width at 96 DPI
+        tempContainer.style.zIndex = '-99999';
+        tempContainer.style.background = '#ffffff';
+        tempContainer.style.color = '#0f172a';
+        tempContainer.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        tempContainer.style.padding = '24px 28px';
+        tempContainer.innerHTML = element.innerHTML;
+        document.body.appendChild(tempContainer);
+
+        const opt = {
+          margin: [10, 10, 12, 10],
+          filename: fileName,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: 794
+          },
+          jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait'
+          },
+          pagebreak: {
+            mode: ['avoid-all', 'css', 'legacy'],
+            before: '.pdf-page-break'
+          }
+        };
+
+        await html2pdf().set(opt).from(tempContainer).save();
+
+        if (document.body.contains(tempContainer)) {
+          document.body.removeChild(tempContainer);
+        }
+
+        toast.success("Downloaded PDF study notes successfully!", { id: toastId });
+        setDownloadingPdf(false);
+        return;
+      } catch (html2pdfErr) {
+        console.warn("Direct html2pdf generation fallback to iframe print:", html2pdfErr);
+      }
+
+      // 2. Desktop Fallback: Isolated Iframe Print
       const iframe = document.createElement('iframe');
       iframe.style.position = 'fixed';
       iframe.style.right = '0';
@@ -1577,7 +1634,7 @@ const Classroom = () => {
 
           {/* Video Details */}
           <div className="bg-white dark:bg-gray-900 flex-1 min-w-0 transition-colors duration-200">
-            <div className="max-w-5xl mx-auto p-4 sm:p-6 pb-20 lg:pb-6 text-gray-900 dark:text-white">
+            <div className="max-w-5xl mx-auto p-3 sm:p-6 pb-3 sm:pb-6 text-gray-900 dark:text-white">
               <div className="flex items-start gap-2 mb-4">
                 <h1 className="text-sm md:text-base font-bold leading-snug flex-1 text-gray-800 dark:text-white line-clamp-2">{video.name}</h1>
                 <a
@@ -1646,7 +1703,7 @@ const Classroom = () => {
                 </div>
 
                 <div 
-                  className="pt-2.5 pb-6 sm:pt-4 sm:pb-6 min-h-[350px] touch-pan-y"
+                  className="pt-2.5 pb-2 sm:pt-4 sm:pb-6 min-h-[350px] touch-pan-y"
                   onTouchStart={handleTouchStart}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={handleTouchEnd}
@@ -1837,15 +1894,19 @@ const Classroom = () => {
                         </div>
 
                         {loadingIntuition ? (
-                          <div className="flex flex-col items-center justify-center py-12 text-indigo-400">
+                          <div className="flex flex-col items-center justify-center py-12 px-4 text-center max-w-md mx-auto">
                             <div className="relative mb-6">
                               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
                               <div className="absolute inset-0 flex items-center justify-center font-bold text-indigo-600 text-lg">
                                 {intuitionCountdown}
                               </div>
                             </div>
-                            <p className="font-medium animate-pulse text-indigo-600 dark:text-indigo-400">Synthesizing textbook-quality digital study notes...</p>
-                            <p className="text-xs text-indigo-500/60 mt-2">Classifying subject curriculum & constructing comprehensive topic study notes</p>
+                            <p className="font-semibold text-sm sm:text-base animate-pulse text-indigo-600 dark:text-indigo-400 text-center m-0">
+                              Synthesizing textbook-quality digital study notes...
+                            </p>
+                            <p className="text-xs text-indigo-500/70 dark:text-indigo-400/70 mt-2 text-center max-w-sm m-0">
+                              Classifying subject curriculum & constructing comprehensive topic study notes
+                            </p>
                           </div>
                         ) : parsedIntuition ? (
                           <div className="space-y-3 sm:space-y-4">
@@ -2203,7 +2264,7 @@ const Classroom = () => {
 
                   {/* Ask AI Chatbot Tab */}
                   {activeTab === 'ai-chat' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm flex flex-col h-[520px] sm:h-[600px] max-h-[82vh] overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm flex flex-col h-[580px] sm:h-[650px] max-h-[85vh] overflow-hidden">
                       {/* Chat Header */}
                       <div className="flex items-center justify-between gap-2.5 sm:gap-3 p-3 sm:p-4 border-b border-gray-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -2235,8 +2296,8 @@ const Classroom = () => {
 
                       {/* Quick Doubt Suggestion Prompts - Dynamically Tailored to Lecture */}
                       {aiChatMessages.length === 0 && (
-                        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3.5 sm:p-6 bg-gradient-to-b from-indigo-50/30 via-white to-white dark:from-slate-900/50 dark:via-slate-900 dark:to-slate-900 flex flex-col justify-start sm:justify-center">
-                          <div className="w-full max-w-2xl mx-auto space-y-3 sm:space-y-4 my-auto">
+                        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 sm:p-5 bg-gradient-to-b from-indigo-50/30 via-white to-white dark:from-slate-900/50 dark:via-slate-900 dark:to-slate-900 flex flex-col justify-start">
+                          <div className="w-full max-w-2xl mx-auto space-y-2.5 sm:space-y-4">
                             <div className="text-center space-y-1">
                               <div className="inline-flex items-center justify-center p-2 sm:p-2.5 bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl mb-1 shadow-xs">
                                 <Sparkles size={18} className="sm:size-5" />
