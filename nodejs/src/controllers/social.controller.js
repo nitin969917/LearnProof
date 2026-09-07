@@ -213,10 +213,10 @@ const getIntuition = async (req, res) => {
             const video = await prisma.video.findFirst({ where: { vid: videoId } });
             const title = video ? video.name : 'Unknown Title';
             const description = video ? video.description : 'No description available.';
-            const url = video ? video.url : null;
+            const url = (video && video.url) ? video.url : (videoId ? `https://www.youtube.com/watch?v=${videoId}` : null);
             const durationSeconds = video ? (video.duration_seconds || 0) : 0;
 
-            console.log(`[Intuition] 🔥 Zero-to-Master English generation for ${videoId} (duration: ${durationSeconds}s)...`);
+            console.log(`[Intuition] 🔥 Zero-to-Master English generation for ${videoId} (duration: ${durationSeconds}s, url: ${url})...`);
             const { content, isSystemFallback, model_name, transcript_used } = await generateIntuition(title, description, url, 'English', isDeepVisual, durationSeconds);
             const isTranscriptUsed = !!transcript_used;
             

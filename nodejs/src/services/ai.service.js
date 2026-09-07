@@ -10,7 +10,7 @@ const { translate } = require('google-translate-api-x');
 // Legacy AI Studio client
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-// Modern Google GenAI client (Vertex AI / Unified)
+// Modern Google GenAI clients
 let vertexAIClient = null;
 if (process.env.GCP_PROJECT_ID) {
     if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && process.env.GCP_SERVICE_ACCOUNT_KEY) {
@@ -31,16 +31,23 @@ if (process.env.GCP_PROJECT_ID) {
     });
 }
 
+// Google AI Studio unified GenAI client with API key (fast, reliable backup)
+let aiStudioGenAIClient = null;
+if (process.env.GEMINI_API_KEY) {
+    aiStudioGenAIClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+}
+
 /**
- * Helper to call Gemini content generation using either Vertex AI (if configured) or Google AI Studio.
+ * Helper to call Gemini content generation using Vertex AI or Google AI Studio GenAI SDK.
  */
 const generateGeminiContent = async (modelName, contents, config = {}) => {
-    const timeoutMs = config.timeout || 30000; // 30 seconds timeout for full reliable generations on Google Cloud
+    const timeoutMs = config.timeout || 60000; // 60 seconds timeout for full reliable generations
     
     const callPromise = (async () => {
+        // 1. Try Google Vertex AI (Credits) if configured
         if (vertexAIClient) {
-            console.log(`[Google Vertex AI Credits] Calling model: ${modelName}`);
             try {
+                console.log(`[Google Vertex AI Credits] Calling model: ${modelName}`);
                 const response = await vertexAIClient.models.generateContent({
                     model: modelName,
                     contents: contents,
@@ -50,9 +57,28 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
                         responseMimeType: config.responseMimeType
                     }
                 });
-                return response.text;
+                if (response && response.text) return response.text;
             } catch (vertexErr) {
-                console.warn(`[Google Vertex AI Credits] ${modelName} call failed:`, vertexErr.message);
+                console.warn(`[Google Vertex AI Credits] ${modelName} failed (${vertexErr.message}), falling back to Google AI Studio GenAI SDK...`);
+            }
+        }
+
+        // 2. Google AI Studio GenAI Client (Fast API Key fallback)
+        if (aiStudioGenAIClient) {
+            console.log(`[Google AI Studio] Calling model: ${modelName}`);
+            try {
+                const response = await aiStudioGenAIClient.models.generateContent({
+                    model: modelName,
+                    contents: contents,
+                    config: {
+                        maxOutputTokens: config.maxOutputTokens || 8192,
+                        temperature: config.temperature,
+                        responseMimeType: config.responseMimeType
+                    }
+                });
+                if (response && response.text) return response.text;
+            } catch (studioErr) {
+                console.warn(`[Google AI Studio] ${modelName} failed:`, studioErr.message);
                 if (genAI) {
                     const model = genAI.getGenerativeModel({
                         model: modelName,
@@ -65,10 +91,12 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
                     const result = await model.generateContent(contents);
                     return result.response.text();
                 }
-                throw vertexErr;
+                throw studioErr;
             }
-        } else {
-            console.log(`[Gemini AI Studio] Calling model: ${modelName}`);
+        }
+
+        // 3. Legacy genAI client fallback
+        if (genAI) {
             const model = genAI.getGenerativeModel({
                 model: modelName,
                 generationConfig: {
@@ -80,10 +108,12 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
             const result = await model.generateContent(contents);
             return result.response.text();
         }
+
+        throw new Error(`All Gemini providers failed for ${modelName}`);
     })();
 
     const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`Vertex AI request timed out after ${timeoutMs}ms`)), timeoutMs);
+        setTimeout(() => reject(new Error(`Gemini request timed out after ${timeoutMs}ms`)), timeoutMs);
     });
 
     return Promise.race([callPromise, timeoutPromise]);
@@ -299,9 +329,14 @@ const cleanIntuitionJSON = (text, defaultCategory = 'theory_humanities', default
         cleaned = cleaned.substring(firstBrace, lastBrace + 1);
     }
 
-    // 1. Try standard JSON.parse first
+    // 1. Try standard JSON.parse with backslash escape fixing
     try {
-        const parsed = JSON.parse(cleaned);
+        let jsonStringToParse = cleaned;
+        try {
+            jsonStringToParse = cleaned.replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, '\\\\');
+        } catch (_) {}
+
+        const parsed = JSON.parse(jsonStringToParse);
         if (parsed && typeof parsed === 'object' && Array.isArray(parsed.pages) && parsed.pages.length > 0) {
             const sanitizedPages = parsed.pages.map((p, idx) => ({
                 pageNumber: p.pageNumber || (idx + 1),
@@ -651,32 +686,38 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
 
     let targetPages = 2;
     if (durationMin > 0) {
-        if (durationMin <= 15) {
+        if (durationMin <= 20) {
             targetPages = 1;
-        } else if (durationMin <= 40) {
+        } else if (durationMin <= 60) {
             targetPages = 2;
-        } else if (durationMin <= 75) {
+        } else if (durationMin <= 150) {
             targetPages = 3;
-        } else if (durationMin <= 120) {
-            targetPages = 4;
         } else {
-            targetPages = Math.min(6, 4 + Math.floor((durationMin - 120) / 45));
+            targetPages = 4; // 4 rich, progressive topics covering the entire long/mega lecture
         }
     } else if (transcriptText) {
         const chars = transcriptText.length;
-        if (chars <= 6000) {
+        if (chars <= 12000) {
             targetPages = 1;
-        } else if (chars <= 18000) {
+        } else if (chars <= 45000) {
             targetPages = 2;
-        } else if (chars <= 35000) {
+        } else if (chars <= 90000) {
             targetPages = 3;
-        } else if (chars <= 60000) {
-            targetPages = 4;
         } else {
-            targetPages = 5;
+            targetPages = 4;
         }
     } else {
         targetPages = 2;
+    }
+
+    // Smart sampling for mega transcripts to ensure start, middle, and end are all covered with high generation speed
+    let effectiveTranscript = transcriptText;
+    if (transcriptText && transcriptText.length > 90000) {
+        const third = Math.floor(transcriptText.length / 3);
+        const startChunk = transcriptText.slice(0, 35000);
+        const middleChunk = transcriptText.slice(third, third + 30000);
+        const endChunk = transcriptText.slice(-25000);
+        effectiveTranscript = `${startChunk}\n\n[... Lecture Progression ...]\n\n${middleChunk}\n\n[... Lecture Conclusion ...]\n\n${endChunk}`;
     }
 
     // Subject-Specific Pedagogical Guidance
@@ -722,7 +763,7 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
     const transcriptSection = isMultimodalVideoRouting
         ? `\n(Using direct YouTube video link multimodal analysis. Analyze the video frames and audio directly.)\n`
         : (hasTranscript
-            ? `\n=== ACTUAL VIDEO TRANSCRIPT (PRIMARY SOURCE — ground truth for all concepts) ===\n${transcriptText}\n=== END OF TRANSCRIPT ===\n`
+            ? `\n=== ACTUAL VIDEO TRANSCRIPT (PRIMARY SOURCE — ground truth for all concepts) ===\n${effectiveTranscript}\n=== END OF TRANSCRIPT ===\n`
             : `\n(No transcript available. Synthesize rigorous academic notes based on the video title and description in ${finalLanguage}.)\n`);
 
     const topicStructureGuidance = targetPages === 1
