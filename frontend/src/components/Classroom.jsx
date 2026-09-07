@@ -27,7 +27,8 @@ import {
   Plus,
   Download,
   Layers,
-  RefreshCw
+  RefreshCw,
+  Shuffle
 } from "lucide-react";
 import { useModal } from "../context/ModalContext";
 import YouTube from 'react-youtube';
@@ -293,6 +294,104 @@ const parseIntuitionData = (raw) => {
   }
 
   return null;
+};
+
+const getDynamicSuggestedQuestions = (video, parsedIntuition, seed = 0) => {
+  const rawTitle = video?.name || '';
+  // Clean title: remove chapter numbers, prefixes like "5.5 ", "1.2 - ", "#10 "
+  const cleanTitle = rawTitle.replace(/^[0-9]+(\.[0-9]+)*[\s\-:]+/, '').replace(/^#\d+[\s\-:]*/, '').trim() || 'this lecture';
+  
+  // Extract topic titles if available
+  const topics = (parsedIntuition?.pages || [])
+    .map(p => p.title?.replace(/^Topic\s*\d+[:\s-]*/i, '').trim())
+    .filter(Boolean);
+    
+  const t1 = topics[0] || cleanTitle;
+  const t2 = topics[1] || topics[0] || cleanTitle;
+  const category = parsedIntuition?.subjectCategory || 'theory';
+
+  // Construct a rich, topic-grounded question pool
+  const pool = [
+    {
+      icon: "💡",
+      text: `Can you explain ${cleanTitle} in simple terms with an intuitive analogy?`,
+      badge: "Core Intuition"
+    },
+    {
+      icon: "⚙️",
+      text: `How does ${t1} work step-by-step under the hood?`,
+      badge: "Deep Dive"
+    },
+    {
+      icon: "📝",
+      text: `What are the most common exam and technical interview questions on ${cleanTitle}?`,
+      badge: "Exam Prep"
+    },
+    category === 'coding' || /code|python|java|c\+\+|javascript|sql|os|algorithm|deadlock|thread|process|database/i.test(rawTitle)
+      ? {
+          icon: "💻",
+          text: `Can you give a clean code / pseudo-code implementation demonstrating ${t1}?`,
+          badge: "Practical Code"
+        }
+      : category === 'math_science' || /math|calculus|algebra|physics|chemistry|equation|theorem/i.test(rawTitle)
+      ? {
+          icon: "📐",
+          text: `Summarize the key mathematical formulas, variables, and step-by-step proofs for this lecture.`,
+          badge: "Formulas"
+        }
+      : {
+          icon: "⚡",
+          text: `What are the practical real-world applications and industrial trade-offs of ${t1}?`,
+          badge: "Applications"
+        },
+    {
+      icon: "⚠️",
+      text: `What common misconceptions or mistakes do students make when answering questions on ${cleanTitle}?`,
+      badge: "Common Pitfalls"
+    },
+    {
+      icon: "🔄",
+      text: `How does ${t1} compare with alternative approaches or related concepts?`,
+      badge: "Trade-offs"
+    },
+    {
+      icon: "🎯",
+      text: `What core problem does ${cleanTitle} solve and why is it important in real systems?`,
+      badge: "Big Picture"
+    },
+    {
+      icon: "🧠",
+      text: `Can you provide a quick 2-minute revision summary covering ${t2}?`,
+      badge: "Quick Revision"
+    }
+  ];
+
+  const start = (seed * 4) % pool.length;
+  const selected = [];
+  for (let i = 0; i < 4; i++) {
+    selected.push(pool[(start + i) % pool.length]);
+  }
+  return selected;
+};
+
+const extractFollowUpQuestions = (content) => {
+  if (!content) return [];
+  const followUpMatch = content.match(/(?:Suggested Next Questions|Next Recommended Questions|Recommended Follow-ups)[\s\S]*?(?:$)/i);
+  if (!followUpMatch) return [];
+  
+  const section = followUpMatch[0];
+  const questions = [];
+  const lines = section.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('-') || trimmed.startsWith('*') || /^\d+\./.test(trimmed)) {
+      const q = trimmed.replace(/^[-*\d.]+\s*/, '').replace(/[*_`#]/g, '').trim();
+      if (q && q.length > 5 && q.length < 160 && (q.endsWith('?') || q.includes('How') || q.includes('What') || q.includes('Why') || q.includes('Explain') || q.includes('Can') || q.includes('Compare') || q.includes('Give'))) {
+        questions.push(q);
+      }
+    }
+  }
+  return questions.slice(0, 3);
 };
 
 const getCategoryStyle = (category) => {
@@ -564,6 +663,8 @@ const Classroom = () => {
   const pdfPrintRef = useRef(null);
 
   const parsedIntuition = useMemo(() => parseIntuitionData(intuitionContent), [intuitionContent]);
+  const [suggestionSeed, setSuggestionSeed] = useState(0);
+  const dynamicSuggestions = useMemo(() => getDynamicSuggestedQuestions(video, parsedIntuition, suggestionSeed), [video, parsedIntuition, suggestionSeed]);
 
 
   // Quiz State
@@ -2132,7 +2233,7 @@ const Classroom = () => {
                         </button>
                       </div>
 
-                      {/* Quick Doubt Suggestion Prompts - Seamlessly touching edges */}
+                      {/* Quick Doubt Suggestion Prompts - Dynamically Tailored to Lecture */}
                       {aiChatMessages.length === 0 && (
                         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3.5 sm:p-6 bg-gradient-to-b from-indigo-50/30 via-white to-white dark:from-slate-900/50 dark:via-slate-900 dark:to-slate-900 flex flex-col justify-start sm:justify-center">
                           <div className="w-full max-w-2xl mx-auto space-y-3 sm:space-y-4 my-auto">
@@ -2144,26 +2245,45 @@ const Classroom = () => {
                                 Ask anything about this lecture
                               </h3>
                               <p className="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 m-0">
-                                Click a question below to ask instantly or type your own below:
+                                Click a tailored question below to ask instantly or type your own:
                               </p>
                             </div>
 
+                            {/* Header Bar with Subject Badge & Shuffle Action */}
+                            <div className="flex items-center justify-between pt-1">
+                              <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 px-2.5 py-1 rounded-lg">
+                                <Sparkles size={12} className="text-indigo-500" />
+                                <span className="truncate max-w-[200px] sm:max-w-xs">{parsedIntuition?.categoryLabel || 'Topic Doubt Solver'}</span>
+                              </div>
+
+                              <button
+                                onClick={() => setSuggestionSeed(s => s + 1)}
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 bg-white dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 px-2.5 py-1 rounded-lg transition shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
+                                title="Shuffle suggested questions"
+                              >
+                                <Shuffle size={12} />
+                                <span>Shuffle Questions</span>
+                              </button>
+                            </div>
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
-                              {[
-                                { text: "Can you explain this in simpler words with an intuitive analogy?", icon: "💡" },
-                                { text: "What are the most common exam questions asked on this topic?", icon: "📝" },
-                                { text: "Give a practical real-world application or code example.", icon: "⚡" },
-                                { text: "Summarize the key mathematical formulas and definitions.", icon: "📐" }
-                              ].map((item, pIdx) => (
+                              {dynamicSuggestions.map((item, pIdx) => (
                                 <button
                                   key={pIdx}
                                   onClick={() => handleSendAiQuestion(item.text)}
-                                  className="group flex items-start gap-2.5 p-3 sm:p-3.5 bg-white dark:bg-slate-800/90 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/40 border border-gray-200/80 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600 rounded-xl transition-all duration-200 text-left shadow-xs hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                                  className="group flex flex-col justify-between p-3 sm:p-3.5 bg-white dark:bg-slate-800/90 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/40 border border-gray-200/80 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600 rounded-xl transition-all duration-200 text-left shadow-xs hover:shadow-sm active:scale-[0.98] cursor-pointer"
                                 >
-                                  <span className="text-base shrink-0 select-none mt-0.5">{item.icon}</span>
-                                  <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 leading-snug">
-                                    {item.text}
-                                  </span>
+                                  <div className="flex items-start gap-2.5">
+                                    <span className="text-base shrink-0 select-none mt-0.5">{item.icon}</span>
+                                    <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 leading-snug">
+                                      {item.text}
+                                    </span>
+                                  </div>
+                                  {item.badge && (
+                                    <span className="self-end mt-2 text-[9px] font-bold uppercase tracking-wider text-indigo-500/90 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/60 px-1.5 py-0.5 rounded">
+                                      {item.badge}
+                                    </span>
+                                  )}
                                 </button>
                               ))}
                             </div>
@@ -2174,50 +2294,76 @@ const Classroom = () => {
                       {/* Message Stream Directly Connected to Input */}
                       {aiChatMessages.length > 0 && (
                         <div className="space-y-4 overflow-y-auto p-3.5 sm:p-4 custom-scrollbar flex-1 min-h-0">
-                          {aiChatMessages.map((msg, mIdx) => (
-                            <div
-                              key={mIdx}
-                              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start w-full'}`}
-                            >
+                          {aiChatMessages.map((msg, mIdx) => {
+                            const followUps = msg.role === 'assistant' ? extractFollowUpQuestions(msg.content) : [];
+                            return (
                               <div
-                                className={`rounded-2xl p-3.5 sm:p-4 text-sm ${
-                                  msg.role === 'user'
-                                    ? 'max-w-[85%] bg-orange-500 text-white rounded-tr-xs shadow-sm font-medium'
-                                    : 'w-full bg-gray-50 dark:bg-slate-800/80 text-gray-800 dark:text-slate-200 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-xs'
-                                }`}
+                                key={mIdx}
+                                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start w-full'}`}
                               >
-                                {msg.role === 'user' ? (
-                                  <p className="whitespace-pre-wrap leading-relaxed m-0">{msg.content}</p>
-                                ) : (
-                                  <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed intuition-markdown">
-                                    <ReactMarkdown
-                                      remarkPlugins={[remarkMath, remarkGfm]}
-                                      rehypePlugins={[rehypeKatex]}
-                                      components={{
-                                        p: ({ node, ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
-                                        ul: ({ node, ...props }) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
-                                        li: ({ node, ...props }) => <li className="break-words" {...props} />,
-                                        code: ({ node, inline, ...props }) => inline
-                                          ? <code className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded font-mono text-xs font-semibold" {...props} />
-                                          : <pre className="p-3 my-2 rounded-xl bg-gray-900 text-white font-mono text-xs overflow-x-auto"><code {...props} /></pre>
-                                      }}
-                                    >
-                                      {preprocessMarkdown(msg.content)}
-                                    </ReactMarkdown>
-                                    <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50 flex items-center justify-end">
-                                      <button
-                                        onClick={() => handleCopyText(msg.content, mIdx)}
-                                        className="text-[10px] font-bold text-gray-400 hover:text-indigo-500 flex items-center gap-1 transition cursor-pointer"
+                                <div
+                                  className={`rounded-2xl p-3.5 sm:p-4 text-sm ${
+                                    msg.role === 'user'
+                                      ? 'max-w-[85%] bg-orange-500 text-white rounded-tr-xs shadow-sm font-medium'
+                                      : 'w-full bg-gray-50 dark:bg-slate-800/80 text-gray-800 dark:text-slate-200 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-xs'
+                                  }`}
+                                >
+                                  {msg.role === 'user' ? (
+                                    <p className="whitespace-pre-wrap leading-relaxed m-0">{msg.content}</p>
+                                  ) : (
+                                    <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed intuition-markdown">
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkMath, remarkGfm]}
+                                        rehypePlugins={[rehypeKatex]}
+                                        components={{
+                                          p: ({ node, ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
+                                          ul: ({ node, ...props }) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
+                                          li: ({ node, ...props }) => <li className="break-words" {...props} />,
+                                          code: ({ node, inline, ...props }) => inline
+                                            ? <code className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded font-mono text-xs font-semibold" {...props} />
+                                            : <pre className="p-3 my-2 rounded-xl bg-gray-900 text-white font-mono text-xs overflow-x-auto"><code {...props} /></pre>
+                                        }}
                                       >
-                                        {copiedIndex === mIdx ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
-                                        <span>{copiedIndex === mIdx ? 'Copied' : 'Copy answer'}</span>
-                                      </button>
+                                        {preprocessMarkdown(msg.content)}
+                                      </ReactMarkdown>
+
+                                      {/* Interactive Follow-Up Questions Chips */}
+                                      {followUps.length > 0 && (
+                                        <div className="mt-3 pt-2.5 border-t border-indigo-100 dark:border-slate-700/80">
+                                          <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                            <Sparkles size={11} />
+                                            <span>Suggested Follow-ups (click to ask):</span>
+                                          </div>
+                                          <div className="flex flex-wrap gap-1.5">
+                                            {followUps.map((fq, fIdx) => (
+                                              <button
+                                                key={fIdx}
+                                                onClick={() => handleSendAiQuestion(fq)}
+                                                disabled={aiChatLoading}
+                                                className="text-left text-[11px] sm:text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-400 transition cursor-pointer active:scale-95 shadow-2xs disabled:opacity-50"
+                                              >
+                                                💡 {fq}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50 flex items-center justify-end">
+                                        <button
+                                          onClick={() => handleCopyText(msg.content, mIdx)}
+                                          className="text-[10px] font-bold text-gray-400 hover:text-indigo-500 flex items-center gap-1 transition cursor-pointer"
+                                        >
+                                          {copiedIndex === mIdx ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                                          <span>{copiedIndex === mIdx ? 'Copied' : 'Copy answer'}</span>
+                                        </button>
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
 
                           {aiChatLoading && (
                             <div className="flex justify-start w-full text-gray-400 dark:text-slate-400">

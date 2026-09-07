@@ -1105,25 +1105,82 @@ const benchmarkAllModels = async (title, description, url = null) => {
  * Answer student doubt / questions regarding the video lecture in real-time
  */
 const answerVideoDoubt = async ({ videoId, title, description, intuition, question, chatHistory = [], language = 'English' }) => {
-    const prompt = `
-You are an expert AI Professor and Teaching Assistant for LearnProof AI.
-A student is watching this educational lecture and asking a doubt or question about the concept.
+    // 1. Cleanly parse the intuition content if it is JSON
+    let parsedNotes = '';
+    let subjectCategory = 'theory_humanities';
+    let categoryLabel = 'Academic Theory';
+    if (intuition && typeof intuition === 'string') {
+        try {
+            const parsed = JSON.parse(intuition);
+            if (parsed && typeof parsed === 'object') {
+                if (parsed.subjectCategory) subjectCategory = parsed.subjectCategory;
+                if (parsed.categoryLabel) categoryLabel = parsed.categoryLabel;
+                if (Array.isArray(parsed.pages)) {
+                    parsedNotes = parsed.pages
+                        .map(p => `### ${p.title}\n${p.content}`)
+                        .join('\n\n')
+                        .slice(0, 16000); // ample grounded knowledge
+                }
+            }
+        } catch (e) {
+            parsedNotes = intuition.slice(0, 10000);
+        }
+    }
 
-Video Title: "${title || 'Educational Lecture'}"
+    if (!parsedNotes && intuition) {
+        parsedNotes = typeof intuition === 'string' ? intuition.slice(0, 10000) : '';
+    }
+
+    // 2. Build Subject-Adaptive Guidance
+    let specializationGuidance = '';
+    const cleanTitleLower = (title || '').toLowerCase();
+    if (subjectCategory === 'coding' || /code|python|java|c\+\+|javascript|react|sql|algorithm|data structure|os|operating system|linux|mutex|deadlock|thread|concurrency/i.test(cleanTitleLower)) {
+        specializationGuidance = `
+- SUBJECT SPECIALIZATION: Computer Science & Software Engineering.
+- Provide clean, robust, syntax-highlighted code implementations (\`\`\`python, \`\`\`cpp, \`\`\`javascript, \`\`\`c, etc.) where appropriate.
+- Include execution flow, memory/process dynamics, and computational complexity ($O(1)$, $O(n)$) where relevant.`;
+    } else if (subjectCategory === 'math_science' || /math|calculus|algebra|physics|chemistry|equation|theorem|derivative|integral/i.test(cleanTitleLower)) {
+        specializationGuidance = `
+- SUBJECT SPECIALIZATION: Mathematics, Science & Engineering.
+- Use rigorous LaTeX formatting for all formulas (inline $...$ and display $$...$$).
+- Provide step-by-step mathematical logic and intuitive physical explanations.`;
+    } else {
+        specializationGuidance = `
+- SUBJECT SPECIALIZATION: Academic Theory & Conceptual Foundations.
+- Provide structured analytical points, cause-and-effect mechanisms, and clear distinctions.`;
+    }
+
+    const prompt = `
+You are a World-Class University Professor and Elite 1-on-1 AI Tutor for LearnProof AI.
+A student is watching this educational video lecture and asking a doubt or question.
+
+Video Lecture Title: "${title || 'Educational Lecture'}"
 Video Description: "${description || 'None'}"
-${intuition ? `\nLecture Core Notes & AI Intuition Summary:\n${intuition}\n` : ''}
+${parsedNotes ? `\n=== LECTURE KNOWLEDGE BASE & DETAILED STUDY NOTES ===\n${parsedNotes}\n=== END OF NOTES ===\n` : ''}
 
 Student's Question: "${question}"
 
 Conversation Context so far:
 ${chatHistory.map(m => `${m.role === 'user' ? 'Student' : 'AI Tutor'}: ${m.content}`).join('\n')}
 
-Guidelines:
-1. Provide a direct, crystal-clear, pedagogically sound, and engaging answer.
-2. Ground your explanation directly in the subject matter of the video.
-3. If relevant, provide intuitive analogies, step-by-step logic, code snippets (if programming related), or LaTeX mathematical formulas (inline $...$ or block $$...$$).
-4. Keep the tone encouraging, concise (around 150-250 words), structured with bold headings and bullet points where helpful.
-5. If the student asks in Hindi, Marathi, or another language, or if specified as ${language}, respond naturally in ${language}.
+TEACHING & FORMATTING GUIDELINES:
+1. DIRECT & ENGAGING: Begin with a direct, crystal-clear conceptual answer. Ground your explanation directly in the specific subject matter and lecture context.
+2. PEDAGOGICAL STRUCTURE:
+   - 🎯 **Core Concept**: Direct answer to the student's question in simple, crisp terms.
+   - 💡 **Intuitive Analogy / Real-World Explanation**: Make it click immediately using an intuitive, memorable real-world analogy.
+   - ⚙️ **Detailed Breakdown / Code / Formulas**: Provide the technical mechanism, step-by-step trace, commented code snippet (with language identifier like \`\`\`cpp or \`\`\`python), or LaTeX formulas ($...$ and $$...$$).
+   - 🎓 **Exam & Interview Takeaway**: Highlight a common trap, exam tip, or key distinction.
+3. ADAPTIVE SPECIALIZATION:
+${specializationGuidance}
+4. INTERACTIVE NEXT QUESTIONS:
+   At the very end of your response, provide exactly 2-3 relevant, highly specific follow-up questions formatted as:
+---
+💡 **Suggested Next Questions:**
+- [Question 1]
+- [Question 2]
+- [Question 3]
+
+5. LANGUAGE: Respond naturally in ${language || 'English'}. Keep equations and code variable names standard.
 `;
 
     // Priority: Google Cloud Vertex AI (funded by startup credits)
@@ -1138,18 +1195,18 @@ Guidelines:
         try {
             if (provider.type === 'gemini') {
                 const text = await generateGeminiContent(provider.model, prompt, {
-                    maxOutputTokens: 1500,
-                    temperature: 0.3
+                    maxOutputTokens: 2500,
+                    temperature: 0.2
                 });
                 if (text && text.trim()) return text.trim();
             } else if (provider.type === 'groq') {
-                const text = await callGroq(prompt, false, provider.model, 0.3);
+                const text = await callGroq(prompt, false, provider.model, 0.2);
                 if (text && text.trim()) return text.trim();
             } else if (provider.type === 'openrouter') {
-                const text = await callOpenRouter(prompt, false, 0.3);
+                const text = await callOpenRouter(prompt, false, 0.2);
                 if (text && text.trim()) return text.trim();
             } else if (provider.type === 'cerebras') {
-                const text = await callCerebras(prompt, false, 0.3);
+                const text = await callCerebras(prompt, false, 0.2);
                 if (text && text.trim()) return text.trim();
             }
         } catch (err) {
