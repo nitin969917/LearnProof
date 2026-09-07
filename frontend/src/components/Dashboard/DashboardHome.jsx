@@ -496,6 +496,11 @@ const DashboardHome = () => {
                         </div>
                     </div>
                 </div>
+                {/* ── MOBILE VIEW ONLY: YOUR PROGRESS CARD ── */}
+                <div className="block lg:hidden">
+                    <YourProgressCard />
+                </div>
+
                 {/* 4. SHARE CARD SECTION */}
                 <div className="bg-[#FFFBF7] dark:bg-gray-800/40 rounded-2xl border border-orange-200 dark:border-gray-700/50 p-3 flex flex-row items-center justify-between gap-3 shadow-sm hover:shadow-md transition-all">
                     <div className="flex items-center gap-3 min-w-0">
@@ -517,11 +522,6 @@ const DashboardHome = () => {
                     >
                         <Share2 size={12} /> Share
                     </button>
-                </div>
-
-                {/* ── MOBILE VIEW ONLY: YOUR PROGRESS CARD ── */}
-                <div className="block lg:hidden">
-                    <YourProgressCard />
                 </div>
 
                 {/* 5. PLAYLISTS SECTION */}
