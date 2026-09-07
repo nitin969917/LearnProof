@@ -311,7 +311,8 @@ const prepareNotesPdf = async (req, res) => {
                     success: true,
                     downloadId,
                     fileName,
-                    downloadUrl: `/api/classroom/download-file/${downloadId}/${fileName}`
+                    downloadUrl: `/api/classroom/download-file/${downloadId}/${fileName}`,
+                    pdfBase64: base64Data
                 });
             } catch (err) {
                 console.error('[ClassroomController] Error caching PDF buffer:', err);

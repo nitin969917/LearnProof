@@ -1001,9 +1001,28 @@ const Classroom = () => {
 
       const fileName = response.data.fileName || `${titleStr.replace(/[^a-z0-9]/gi, '_').slice(0, 50)}_Study_Notes.pdf`;
       const fullDownloadUrl = `${import.meta.env.VITE_BACKEND_URL}${response.data.downloadUrl}`;
+      const pdfBase64 = response.data.pdfBase64;
 
-      // 2. Trigger native download via Capacitor App or system browser
+      // Construct binary blob and File object for native sharing / instant download
+      let pdfBlob = null;
+      let pdfFile = null;
+      if (pdfBase64) {
+        try {
+          const binaryStr = atob(pdfBase64);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          pdfBlob = new Blob([bytes], { type: 'application/pdf' });
+          pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        } catch (decodeErr) {
+          console.warn("PDF base64 decode error:", decodeErr);
+        }
+      }
+
       let nativeHandled = false;
+
+      // 1. Try Native Capacitor App intent
       try {
         const { Capacitor } = await import('@capacitor/core');
         if (Capacitor && Capacitor.isNativePlatform()) {
@@ -1017,23 +1036,39 @@ const Classroom = () => {
         console.warn("Capacitor App.openUrl fallback:", nativeErr);
       }
 
-      if (!nativeHandled) {
-        window.open(fullDownloadUrl, '_system');
+      // 2. Try Web Share API (native Android system sheet: Save to Device / Downloads / Drive / PDF Reader)
+      if (!nativeHandled && pdfFile && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        try {
+          await navigator.share({
+            title: titleStr,
+            text: `Study Notes for ${titleStr}`,
+            files: [pdfFile]
+          });
+          nativeHandled = true;
+        } catch (shareErr) {
+          console.warn("Web Share API skipped/cancelled:", shareErr);
+        }
+      }
 
+      // 3. Trigger direct Blob / browser download
+      if (pdfBlob) {
+        const blobUrl = URL.createObjectURL(pdfBlob);
         const downloadLink = document.createElement('a');
-        downloadLink.href = fullDownloadUrl;
+        downloadLink.href = blobUrl;
         downloadLink.download = fileName;
-        downloadLink.target = '_blank';
         downloadLink.style.display = 'none';
         document.body.appendChild(downloadLink);
         downloadLink.click();
 
         setTimeout(() => {
           if (document.body.contains(downloadLink)) document.body.removeChild(downloadLink);
-        }, 5000);
+          URL.revokeObjectURL(blobUrl);
+        }, 10000);
+      } else if (!nativeHandled) {
+        window.location.href = fullDownloadUrl;
       }
 
-      toast.success("PDF downloading to your Downloads folder!", { id: toastId });
+      toast.success("PDF ready & downloaded!", { id: toastId });
     } catch (err) {
       console.error("PDF download failed:", err);
       toast.error("Failed to download PDF. Please try again.", { id: toastId });
