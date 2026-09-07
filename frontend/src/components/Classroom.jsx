@@ -958,13 +958,11 @@ const Classroom = () => {
       return;
     }
 
-    try {
-      const { Capacitor } = await import('@capacitor/core');
-      if (Capacitor && Capacitor.isNativePlatform()) {
-        handleDownloadPdf();
-        return;
-      }
-    } catch (e) {}
+    const isMobile = (typeof window !== 'undefined' && window.innerWidth < 768) || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      handleDownloadPdf();
+      return;
+    }
 
     // On Desktop / Laptop browsers, trigger native print with print stylesheet
     window.print();
@@ -977,7 +975,7 @@ const Classroom = () => {
     }
 
     setDownloadingPdf(true);
-    const toastId = toast.loading("Generating Study Notes PDF...");
+    const toastId = toast.loading("Preparing Study Notes PDF...");
 
     try {
       const activeToken = token || localStorage.getItem('google_token') || '';
@@ -1002,48 +1000,73 @@ const Classroom = () => {
 
       const blob = new Blob([response.data], { type: 'application/pdf' });
 
-      // Native Capacitor Android / iOS Support
+      // 2. Try Standard HTML5 Web Share API (100% native on Android without plugins)
+      try {
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: fileName,
+            text: 'LearnProof AI Study Notes'
+          });
+          toast.success("PDF ready!", { id: toastId });
+          return;
+        }
+      } catch (shareErr) {
+        if (shareErr.name === 'AbortError') {
+          toast.dismiss(toastId);
+          return;
+        }
+        console.warn("Web Share bypassed:", shareErr);
+      }
+
+      // 3. Try Native Capacitor Filesystem ONLY if plugin is actually available in APK
       try {
         const { Capacitor } = await import('@capacitor/core');
-        if (Capacitor && Capacitor.isNativePlatform()) {
+        if (Capacitor && Capacitor.isPluginAvailable && Capacitor.isPluginAvailable('Filesystem')) {
           const { Filesystem, Directory } = await import('@capacitor/filesystem');
           const reader = new FileReader();
           reader.readAsDataURL(blob);
-          reader.onloadend = async () => {
-            try {
-              const base64data = reader.result.split(',')[1];
-              const saved = await Filesystem.writeFile({
-                path: fileName,
-                data: base64data,
-                directory: Directory.Cache,
-                recursive: true
-              });
+          await new Promise((resolve) => {
+            reader.onloadend = async () => {
+              try {
+                const base64data = reader.result.split(',')[1];
+                const saved = await Filesystem.writeFile({
+                  path: fileName,
+                  data: base64data,
+                  directory: Directory.Cache,
+                  recursive: true
+                });
 
-              const { Share } = await import('@capacitor/share');
-              await Share.share({
-                title: fileName,
-                text: 'LearnProof AI Study Notes',
-                url: saved.uri,
-                dialogTitle: 'Save / Open PDF Notes'
-              });
-              toast.success("PDF ready on your device!", { id: toastId });
-            } catch (fsErr) {
-              console.error("Capacitor write/share error:", fsErr);
-              toast.success("PDF generated!", { id: toastId });
-            }
-          };
+                if (Capacitor.isPluginAvailable('Share')) {
+                  const { Share } = await import('@capacitor/share');
+                  await Share.share({
+                    title: fileName,
+                    text: 'LearnProof AI Study Notes',
+                    url: saved.uri,
+                    dialogTitle: 'Save / Open PDF Notes'
+                  });
+                }
+              } catch (fsErr) {
+                console.warn("Capacitor write fallback:", fsErr);
+              }
+              resolve();
+            };
+          });
+          toast.success("PDF ready on your device!", { id: toastId });
           return;
         }
       } catch (capErr) {
         console.warn("Capacitor check bypassed:", capErr);
       }
 
-      // Universal Browser Download
+      // 4. Universal Direct Browser Download (Mobile & Desktop)
       const blobUrl = URL.createObjectURL(blob);
       const downloadLink = document.createElement('a');
       downloadLink.href = blobUrl;
       downloadLink.download = fileName;
       downloadLink.setAttribute('download', fileName);
+      downloadLink.target = '_blank';
       downloadLink.style.display = 'none';
       document.body.appendChild(downloadLink);
       downloadLink.click();
