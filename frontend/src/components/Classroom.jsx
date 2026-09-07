@@ -948,21 +948,56 @@ const Classroom = () => {
 
   const downloadPdfBlob = async (blob, fileName) => {
     try {
-      // 1. Native Capacitor app handling (Android/iOS)
-      if (window.Capacitor?.isNativePlatform?.()) {
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'application/pdf' })] })) {
-          const file = new File([blob], fileName, { type: 'application/pdf' });
-          await navigator.share({
-            files: [file],
-            title: fileName,
-            text: 'Here are your LearnProof AI Study Notes'
+      const blobToBase64 = (b) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(b);
+        });
+      };
+
+      // 1. Native Capacitor Android / iOS App Handling
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor && Capacitor.isNativePlatform()) {
+          const { Filesystem, Directory } = await import('@capacitor/filesystem');
+          const dataUrl = await blobToBase64(blob);
+          const base64String = dataUrl.split(',')[1];
+
+          // Write actual PDF file to device Documents directory
+          const savedFile = await Filesystem.writeFile({
+            path: fileName,
+            data: base64String,
+            directory: Directory.Documents,
+            recursive: true
           });
-          toast.success("PDF saved / shared successfully!");
+
+          // Open Android native Save / Open dialog
+          try {
+            const { Share } = await import('@capacitor/share');
+            if (await Share.canShare()) {
+              await Share.share({
+                title: fileName,
+                text: 'LearnProof AI Study Notes',
+                url: savedFile.uri,
+                dialogTitle: 'Save / Open PDF Notes'
+              });
+              toast.success("PDF saved to device!");
+              return;
+            }
+          } catch (shareErr) {
+            console.warn("Native share fallback:", shareErr);
+          }
+
+          toast.success("PDF saved to Documents folder!");
           return;
         }
+      } catch (nativeErr) {
+        console.warn("Capacitor native filesystem handling bypassed:", nativeErr);
       }
 
-      // 2. Direct browser download for mobile & desktop
+      // 2. Direct Browser Download for Mobile Chrome, Safari, and Desktop
       const blobUrl = URL.createObjectURL(blob);
       const downloadLink = document.createElement('a');
       downloadLink.href = blobUrl;
@@ -972,7 +1007,7 @@ const Classroom = () => {
       document.body.appendChild(downloadLink);
       downloadLink.click();
       
-      toast.success("PDF saved directly to Downloads folder!");
+      toast.success("PDF download started!");
       setTimeout(() => {
         if (document.body.contains(downloadLink)) {
           document.body.removeChild(downloadLink);
