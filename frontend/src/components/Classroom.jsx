@@ -958,6 +958,83 @@ const Classroom = () => {
     }, 1500);
   };
 
+  const getPdfConversionOptions = (fileName) => ({
+    margin: [10, 10, 12, 10],
+    filename: fileName,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      letterRendering: true,
+      logging: false,
+      scrollY: 0,
+      scrollX: 0,
+      backgroundColor: '#ffffff',
+      onclone: (clonedDoc) => {
+        // Tailwind v4 uses modern CSS oklch() color functions which html2canvas cannot parse natively.
+        // Convert any oklch / lab / color() computed or inline CSS values to standard RGB/HEX via 2D canvas context.
+        const canvas = clonedDoc.createElement('canvas');
+        canvas.width = 1;
+        canvas.height = 1;
+        const ctx = canvas.getContext('2d');
+
+        const sanitizeColorValue = (val) => {
+          if (!val || typeof val !== 'string') return val;
+          if (!val.includes('oklch') && !val.includes('lab') && !val.includes('color(')) return val;
+          try {
+            ctx.fillStyle = '#000000';
+            ctx.fillStyle = val;
+            return ctx.fillStyle;
+          } catch (e) {
+            return '#000000';
+          }
+        };
+
+        const target = clonedDoc.getElementById('pdf-preview-printable');
+        if (target) {
+          const elements = [target, ...target.querySelectorAll('*')];
+          const colorProps = [
+            'color',
+            'backgroundColor',
+            'borderColor',
+            'borderTopColor',
+            'borderBottomColor',
+            'borderLeftColor',
+            'borderRightColor',
+            'outlineColor',
+            'textDecorationColor',
+            'fill',
+            'stroke'
+          ];
+
+          elements.forEach((el) => {
+            const computed = clonedDoc.defaultView ? clonedDoc.defaultView.getComputedStyle(el) : null;
+            colorProps.forEach((prop) => {
+              if (el.style && el.style[prop] && (el.style[prop].includes('oklch') || el.style[prop].includes('lab') || el.style[prop].includes('color('))) {
+                el.style[prop] = sanitizeColorValue(el.style[prop]);
+              } else if (computed && computed[prop] && (computed[prop].includes('oklch') || computed[prop].includes('lab') || computed[prop].includes('color('))) {
+                el.style[prop] = sanitizeColorValue(computed[prop]);
+              }
+            });
+
+            if (el.style && el.style.boxShadow && (el.style.boxShadow.includes('oklch') || el.style.boxShadow.includes('lab'))) {
+              el.style.boxShadow = 'none';
+            }
+          });
+        }
+      }
+    },
+    jsPDF: {
+      unit: 'mm',
+      format: 'a4',
+      orientation: 'portrait'
+    },
+    pagebreak: {
+      mode: ['avoid-all', 'css', 'legacy'],
+      before: '.pdf-page-break'
+    }
+  });
+
   const handleOpenPdfPreview = () => {
     if (!parsedIntuition || !parsedIntuition.pages || parsedIntuition.pages.length === 0) {
       toast.error("Please generate study notes first.");
@@ -980,29 +1057,7 @@ const Classroom = () => {
         const html2pdfModule = await import('html2pdf.js');
         const html2pdf = html2pdfModule.default || html2pdfModule;
 
-        const opt = {
-          margin: [10, 10, 12, 10],
-          filename: fileName,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            letterRendering: true,
-            logging: false,
-            scrollY: 0,
-            scrollX: 0,
-            backgroundColor: '#ffffff'
-          },
-          jsPDF: {
-            unit: 'mm',
-            format: 'a4',
-            orientation: 'portrait'
-          },
-          pagebreak: {
-            mode: ['avoid-all', 'css', 'legacy'],
-            before: '.pdf-page-break'
-          }
-        };
+        const opt = getPdfConversionOptions(fileName);
 
         const pdfBlob = await html2pdf().set(opt).from(pdfOffscreenRef.current).output('blob');
         const blobUrl = URL.createObjectURL(pdfBlob);
@@ -1010,6 +1065,7 @@ const Classroom = () => {
         setGeneratedPdfUrl(blobUrl);
       } catch (err) {
         console.error("PDF compilation error:", err);
+        toast.error("Failed to compile PDF preview: " + (err?.message || 'Unsupported format'));
       } finally {
         setGeneratingPdf(false);
       }
@@ -1034,29 +1090,7 @@ const Classroom = () => {
       const html2pdfModule = await import('html2pdf.js');
       const html2pdf = html2pdfModule.default || html2pdfModule;
 
-      const opt = {
-        margin: [10, 10, 12, 10],
-        filename: fileName,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          letterRendering: true,
-          logging: false,
-          scrollY: 0,
-          scrollX: 0,
-          backgroundColor: '#ffffff'
-        },
-        jsPDF: {
-          unit: 'mm',
-          format: 'a4',
-          orientation: 'portrait'
-        },
-        pagebreak: {
-          mode: ['avoid-all', 'css', 'legacy'],
-          before: '.pdf-page-break'
-        }
-      };
+      const opt = getPdfConversionOptions(fileName);
 
       const pdfBlob = await html2pdf().set(opt).from(pdfOffscreenRef.current).output('blob');
       downloadPdfBlob(pdfBlob, fileName);
@@ -1066,7 +1100,8 @@ const Classroom = () => {
       try {
         const html2pdfModule = await import('html2pdf.js');
         const html2pdf = html2pdfModule.default || html2pdfModule;
-        await html2pdf().from(pdfOffscreenRef.current).save(fileName);
+        const opt = getPdfConversionOptions(fileName);
+        await html2pdf().set(opt).from(pdfOffscreenRef.current).save(fileName);
         toast.success("PDF saved!", { id: toastId });
       } catch (e) {
         toast.error("Download encountered an issue. Opening print dialog...", { id: toastId });
@@ -3228,7 +3263,7 @@ const Classroom = () => {
               </div>
 
               {/* Markdown Content */}
-              <div className="prose max-w-none text-slate-800 leading-relaxed" style={{ fontSize: '12px' }}>
+              <div style={{ fontSize: '12px', color: '#1e293b', lineHeight: '1.6' }}>
                 <ReactMarkdown
                   remarkPlugins={[remarkMath, remarkGfm]}
                   rehypePlugins={[rehypeKatex]}
