@@ -1570,6 +1570,7 @@ const deleteLanguageRoomByName = async (req, res) => {
           await invalidateRoomsCache();
           const io = req.app.get('io');
           if (io) {
+            io.to(`live_room_${roomName}`).emit('room_ended');
             io.emit('ROOMS_UPDATED');
           }
           console.log(`[Dating] Delayed room database deletion executed for: ${roomName}`);
@@ -1596,6 +1597,7 @@ const deleteLanguageRoomByName = async (req, res) => {
     try {
       const io = req.app.get('io');
       if (io) {
+        io.to(`live_room_${roomName}`).emit('room_ended');
         io.emit('ROOMS_UPDATED');
       }
     } catch (ioErr) {

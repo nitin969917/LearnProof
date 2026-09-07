@@ -84,6 +84,7 @@ router.post('/language-rooms', datingAuth, createLanguageRoom);
 router.post('/language-rooms/:roomName/invite', datingAuth, inviteToLanguageRoom);
 router.delete('/language-rooms/:id', datingAuth, deleteLanguageRoom);
 router.delete('/language-rooms/by-name/:roomName', datingAuth, deleteLanguageRoomByName);
+router.post('/language-rooms/by-name/:roomName/end', datingAuth, deleteLanguageRoomByName);
 router.get('/language-rooms', datingAuth, getLanguageRooms);
 router.get('/language-rooms/by-name/:roomName', datingAuth, getLanguageRoomByName);
 

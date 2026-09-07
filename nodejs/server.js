@@ -52,7 +52,11 @@ app.set('io', io);
 const datingPrisma = require('./src/utils/datingPrisma');
 const { sendPushNotification } = require('./src/utils/pushNotifier');
 const cacheService = require('./src/services/cache.service');
+const livekitService = require('./src/services/livekit.service');
 const redis = require('./src/lib/redis');
+
+// In-memory grace period timers for host disconnects (roomName -> timer)
+const hostDisconnectTimers = new Map();
 
 const workerId = process.env.NODE_APP_INSTANCE || 'standalone';
 console.log(`[Socket.io] Initializing worker ${workerId}`);
@@ -370,6 +374,32 @@ io.on('connection', (socket) => {
         console.error('[Socket.io] Error in disconnect handler:', err);
       }
     }
+
+    // If this socket was the host of an active live room, trigger delayed room closure
+    if (socket.isLiveRoomHost && socket.activeLiveRoom) {
+      const roomName = socket.activeLiveRoom;
+      if (hostDisconnectTimers.has(roomName)) {
+        clearTimeout(hostDisconnectTimers.get(roomName));
+      }
+
+      const timer = setTimeout(async () => {
+        hostDisconnectTimers.delete(roomName);
+        console.log(`[LiveRoom] Host disconnected timeout (8s) expired for room: ${roomName}. Ending meeting.`);
+        io.to(`live_room_${roomName}`).emit('room_ended');
+        try {
+          await livekitService.deleteRoom(roomName);
+        } catch (_) {}
+        try {
+          await datingPrisma.languageRoom.deleteMany({ where: { roomName } });
+          await cacheService.delByPattern('user:live-rooms:*');
+          io.emit('ROOMS_UPDATED');
+        } catch (err) {
+          console.error('[LiveRoom] Error cleaning up room on host disconnect:', err.message);
+        }
+      }, 8000);
+
+      hostDisconnectTimers.set(roomName, timer);
+    }
   });
 
   // ── Live Room General State & Chat Relay ──
@@ -378,6 +408,17 @@ io.on('connection', (socket) => {
     if (!roomName) return;
     const roomChannel = `live_room_${roomName}`;
     socket.join(roomChannel);
+    socket.activeLiveRoom = roomName;
+
+    // Track host status and cancel disconnect timer if host reloaded/reconnected
+    if (payload?.isHost) {
+      socket.isLiveRoomHost = true;
+      if (hostDisconnectTimers.has(roomName)) {
+        clearTimeout(hostDisconnectTimers.get(roomName));
+        hostDisconnectTimers.delete(roomName);
+        console.log(`[LiveRoom] Host reconnected to ${roomName}, cancelled disconnect timer.`);
+      }
+    }
 
     const wb = getRoomWhiteboard(roomName);
     const chat = getRoomChat(roomName);
@@ -398,6 +439,23 @@ io.on('connection', (socket) => {
     const roomName = typeof payload === 'string' ? payload : payload?.roomName;
     if (!roomName) return;
     socket.leave(`live_room_${roomName}`);
+  });
+
+  // Host explicitly left the room / closed browser
+  socket.on('hostLeftLiveRoom', async ({ roomName }) => {
+    if (!roomName) return;
+    console.log(`[LiveRoom] Host explicitly left room ${roomName}, ending session.`);
+    io.to(`live_room_${roomName}`).emit('room_ended');
+    try {
+      await livekitService.deleteRoom(roomName);
+    } catch (_) {}
+    try {
+      await datingPrisma.languageRoom.deleteMany({ where: { roomName } });
+      await cacheService.delByPattern('user:live-rooms:*');
+      io.emit('ROOMS_UPDATED');
+    } catch (err) {
+      console.error('[LiveRoom] Error cleaning up room on host leave:', err.message);
+    }
   });
 
   // Host updates room settings

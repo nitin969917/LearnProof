@@ -23,12 +23,10 @@ function generateToken(roomName, userId, userName, isAdmin = false, canPublish =
   token.addGrant({
     room: roomName,
     roomJoin: true,
-    canPublish: true, // Always allow publishing so WebRTC data channels (whiteboard, chat, signals) work for all peers
+    canPublish: isStageSpeaker,
     canSubscribe: true,
     canPublishData: true,
     roomAdmin: isAdmin,
-    // Restrict media track publishing so listeners cannot broadcast mic/camera without host promotion
-    canPublishSources: isStageSpeaker ? undefined : [],
   });
 
   return token.toJwt();

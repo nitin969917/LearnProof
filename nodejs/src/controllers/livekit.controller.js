@@ -140,6 +140,10 @@ const deleteRoom = async (req, res) => {
       const timeoutId = setTimeout(async () => {
         try {
           delayedLiveKitDeletions.delete(roomName);
+          const io = req.app.get('io');
+          if (io) {
+            io.to(`live_room_${roomName}`).emit('room_ended');
+          }
           await livekitService.deleteRoom(roomName);
           clearAllStageRequests(roomName);
           console.log(`[LiveKit] Delayed LiveKit room deletion executed for: ${roomName}`);
@@ -156,6 +160,11 @@ const deleteRoom = async (req, res) => {
     if (delayedLiveKitDeletions.has(roomName)) {
       clearTimeout(delayedLiveKitDeletions.get(roomName));
       delayedLiveKitDeletions.delete(roomName);
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`live_room_${roomName}`).emit('room_ended');
     }
 
     await livekitService.deleteRoom(roomName);
@@ -245,12 +254,11 @@ const promoteParticipant = async (req, res) => {
       });
     }
 
-    // Set canPublish = true with media sources and metadata role in LiveKit server
+    // Set canPublish = true with metadata role in LiveKit server
     await livekitService.updateParticipantPermissions(roomName, identity, {
       canPublish: true,
       canSubscribe: true,
       canPublishData: true,
-      canPublishSources: ['camera', 'microphone', 'screen_share', 'screen_share_audio']
     }, JSON.stringify({ role: 'speaker' }));
 
     getApprovedSpeakers(roomName).add(String(identity));
@@ -289,12 +297,11 @@ const demoteParticipant = async (req, res) => {
       return res.status(403).json({ error: 'Only the room host or the participant themselves can demote stage speakers' });
     }
 
-    // Demote participant: keep canPublish true for chat/whiteboard data packets, but revoke media sources and set role: 'listener'
+    // Demote participant: set canPublish false for media, keep canPublishData true, and set role: 'listener'
     await livekitService.updateParticipantPermissions(roomName, identity, {
-      canPublish: true,
+      canPublish: false,
       canSubscribe: true,
       canPublishData: true,
-      canPublishSources: []
     }, JSON.stringify({ role: 'listener' }));
 
     getApprovedSpeakers(roomName).delete(String(identity));
@@ -328,7 +335,7 @@ const submitStageRequest = async (req, res) => {
       requestedAt: Date.now(),
     });
 
-    // Real-time Push via Socket.IO directly to the host and live room
+    // Real-time Push via Socket.IO directly to the live room
     try {
       const io = req.app.get('io');
       if (io) {
@@ -337,9 +344,6 @@ const submitStageRequest = async (req, res) => {
           identity: userId,
           name: userName,
         };
-        if (dbRoom.creatorId) {
-          io.to(String(dbRoom.creatorId)).emit('speak_request', payload);
-        }
         io.to(`live_room_${roomName}`).emit('speak_request', payload);
       }
     } catch (sockErr) {
@@ -396,7 +400,7 @@ const dismissStageRequest = async (req, res) => {
 
     clearStageRequest(roomName, identity);
 
-    // Real-time Push via Socket.IO directly to the host and live room
+    // Real-time Push via Socket.IO directly to the live room
     try {
       const io = req.app.get('io');
       if (io) {
@@ -404,9 +408,6 @@ const dismissStageRequest = async (req, res) => {
           roomName,
           identity: String(identity),
         };
-        if (dbRoom.creatorId) {
-          io.to(String(dbRoom.creatorId)).emit('withdraw_stage_request', payload);
-        }
         io.to(`live_room_${roomName}`).emit('withdraw_stage_request', payload);
       }
     } catch (sockErr) {

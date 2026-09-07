@@ -6,7 +6,7 @@ const cacheService = require('../services/cache.service');
 const JWT_SECRET = process.env.JWT_SECRET || 'learnproof_default_secret_9988';
 
 const datingAuth = async (req, res, next) => {
-  let idToken = req.body.idToken || req.query.idToken || req.headers['authorization']?.split('Bearer ')[1];
+  let idToken = req.body.idToken || req.query.idToken || req.query.token || req.body.token || req.headers['authorization']?.split('Bearer ')[1];
   
   if (!idToken) {
     return res.status(401).json({ error: 'Unauthorized: No token provided' });

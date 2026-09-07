@@ -191,15 +191,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       } catch (e) {}
     }
 
-    // 3. Check canPublishSources (listeners have empty array [])
-    const sources = p.permissions?.canPublishSources;
-    if (Array.isArray(sources)) {
-      return sources.length > 0;
-    }
-
-    // 4. Check canPublish boolean
-    if (p.permissions && p.permissions.canPublish === false) {
-      return false;
+    // 3. Check canPublish boolean
+    if (p.permissions?.canPublish) {
+      return true;
     }
 
     // Default to audience listener
@@ -309,77 +303,86 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const participantsRef = useRef([]);
   useEffect(() => { participantsRef.current = participants; }, [participants]);
 
+  const lastToastAtRef = useRef(new Map());
+
   const addSpeakRequest = useCallback((identity, name) => {
     if (!identity) return;
 
     // If the user is already on stage as a speaker, ignore the request
     const allParticipants = [room?.localParticipant, ...participantsRef.current].filter(Boolean);
     const isAlreadySpeaker = allParticipants.some(p => {
-      if (p.identity !== identity) return false;
+      if (String(p.identity) !== String(identity)) return false;
       return isSpeakerParticipant(p);
     });
     if (isAlreadySpeaker) return;
 
     // Immediately add to pending speak requests list
     setSpeakRequests(prev => {
-      if (prev.some(r => r.identity === identity)) return prev;
-      return [...prev, { identity, name: name || 'User' }];
+      if (prev.some(r => String(r.identity) === String(identity))) return prev;
+      return [...prev, { identity: String(identity), name: name || 'User' }];
     });
 
-    if (!notifiedRequestsRef.current.has(identity)) {
-      notifiedRequestsRef.current.add(identity);
-
-      toast((t) => (
-        <div className="flex items-center gap-3.5 p-3.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-orange-500/15 dark:border-orange-500/25 min-w-[320px] pointer-events-auto">
-          {/* Mic Icon Bubble */}
-          <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
-            <Mic size={18} className="animate-pulse" />
-          </div>
-
-          {/* Request Text info */}
-          <div className="flex-1 min-w-0 flex flex-col text-left">
-            <span className="text-xs font-black text-gray-900 dark:text-white truncate">
-              {name || 'Someone'}
-            </span>
-            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-550 mt-0.5">
-              wants to join stage
-            </span>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1.5 shrink-0 ml-2">
-            <button
-              onClick={() => {
-                toast.dismiss(t.id);
-                notifiedRequestsRef.current.delete(identity);
-                if (handlePromoteSpeakerRef.current) {
-                  handlePromoteSpeakerRef.current(identity, name || 'User');
-                }
-              }}
-              className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-[10px] rounded-lg transition cursor-pointer active:scale-95 shadow-sm shadow-orange-500/10 border-none"
-            >
-              Approve
-            </button>
-            <button
-              onClick={() => {
-                toast.dismiss(t.id);
-                notifiedRequestsRef.current.delete(identity);
-                setSpeakRequests(prev => prev.filter(r => r.identity !== identity));
-                socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`).catch(() => { });
-              }}
-              className="px-2.5 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold text-[10px] rounded-lg transition cursor-pointer active:scale-95 border border-gray-200 dark:border-white/5"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      ), {
-        id: `speak_req_${identity}`,
-        duration: 8000,
-        style: { background: 'transparent', boxShadow: 'none', border: 'none', padding: 0 },
-      });
+    const now = Date.now();
+    const lastToast = lastToastAtRef.current.get(String(identity)) || 0;
+    if (now - lastToast < 12000) {
+      // Cooldown: skip showing duplicate toast within 12s
+      return;
     }
-  }, [room, roomName]);
+    lastToastAtRef.current.set(String(identity), now);
+    notifiedRequestsRef.current.add(identity);
+
+    toast((t) => (
+      <div className="flex items-center gap-3.5 p-3.5 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-xl border border-orange-500/15 dark:border-orange-500/25 min-w-[320px] pointer-events-auto">
+        {/* Mic Icon Bubble */}
+        <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0">
+          <Mic size={18} className="animate-pulse" />
+        </div>
+
+        {/* Request Text info */}
+        <div className="flex-1 min-w-0 flex flex-col text-left">
+          <span className="text-xs font-black text-gray-900 dark:text-white truncate">
+            {name || 'Someone'}
+          </span>
+          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-550 mt-0.5">
+            wants to join stage
+          </span>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+              lastToastAtRef.current.delete(String(identity));
+              notifiedRequestsRef.current.delete(identity);
+              if (handlePromoteSpeakerRef.current) {
+                handlePromoteSpeakerRef.current(identity, name || 'User');
+              }
+            }}
+            className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-[10px] rounded-lg transition cursor-pointer active:scale-95 shadow-sm shadow-orange-500/10 border-none"
+          >
+            Approve
+          </button>
+          <button
+            onClick={() => {
+              toast.dismiss(t.id);
+              lastToastAtRef.current.delete(String(identity));
+              notifiedRequestsRef.current.delete(identity);
+              setSpeakRequests(prev => prev.filter(r => String(r.identity) !== String(identity)));
+              socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`).catch(() => { });
+            }}
+            className="px-2.5 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold text-[10px] rounded-lg transition cursor-pointer active:scale-95 border border-gray-200 dark:border-white/5"
+          >
+            Dismiss
+          </button>
+        </div>
+      </div>
+    ), {
+      id: `speak_req_${identity}`,
+      duration: 8000,
+      style: { background: 'transparent', boxShadow: 'none', border: 'none', padding: 0 },
+    });
+  }, [room, roomName, isSpeakerParticipant]);
 
   const addSpeakRequestRef = useRef(addSpeakRequest);
   useEffect(() => { addSpeakRequestRef.current = addSpeakRequest; }, [addSpeakRequest]);
@@ -801,7 +804,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     localParticipant?.isCameraEnabled,
     localParticipant?.metadata,
     localParticipant?.permissions?.canPublish,
-    localParticipant?.permissions?.canPublishSources,
     isSpeakerParticipant,
     roomName,
   ]);
@@ -864,14 +866,26 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         }
       }
 
-      // 2. If host, request a delayed room/meeting deletion (source=unload)
-      // If the host is only reloading the page, the new mount token call cancels this scheduled deletion.
+      // 2. If host, request meeting termination
       if (isHost) {
+        try {
+          const socket = getSocialSocket(user?.id);
+          if (socket && socket.connected) {
+            socket.emit('hostLeftLiveRoom', { roomName });
+          }
+        } catch (_) {}
+
         const token = localStorage.getItem('google_token');
         const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
 
+        // Send beacon to POST end endpoint (guaranteed delivery without preflight)
+        const beaconUrl = `${backendUrl}/api/language-rooms/by-name/${roomName}/end?source=unload&token=${token}&idToken=${token}`;
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon(beaconUrl);
+        }
+
         // Delete database room record (delayed)
-        const dbUrl = `${backendUrl}/api/language-rooms/by-name/${roomName}?source=unload`;
+        const dbUrl = `${backendUrl}/api/language-rooms/by-name/${roomName}?source=unload&token=${token}&idToken=${token}`;
         fetch(dbUrl, {
           method: 'DELETE',
           headers: {
@@ -882,7 +896,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         }).catch(() => { });
 
         // Delete LiveKit server room (delayed)
-        const lkUrl = `${backendUrl}/api/livekit/rooms/${roomName}?source=unload`;
+        const lkUrl = `${backendUrl}/api/livekit/rooms/${roomName}?source=unload&token=${token}&idToken=${token}`;
         fetch(lkUrl, {
           method: 'DELETE',
           headers: {
@@ -895,8 +909,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     };
 
     window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
-  }, [room, isHost, roomName]);
+    window.addEventListener('pagehide', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      window.removeEventListener('pagehide', handleUnload);
+    };
+  }, [room, isHost, roomName, user]);
 
   // ── Browser back button blocker ───────────────────────────────────────────
   useEffect(() => {
@@ -1040,11 +1058,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       console.warn('Socket speak_request emit error:', sockErr);
     }
 
-    // 2. Instant Data channel fast-path signal: send directly to host AND broadcast to room (0ms latency)
+    // 2. Instant Data channel fast-path signal: broadcast to room
     try {
-      if (hostIdentity) {
-        sendSignal(requestPayload, [hostIdentity]);
-      }
       sendSignal(requestPayload);
     } catch (sigErr) {
       console.warn('[Signal] Fast-path signal failed:', sigErr);
@@ -1082,11 +1097,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         console.warn('Socket withdraw_stage_request emit error:', sockErr);
       }
 
-      // 2. Instant data channel signal directly to host + broadcast
+      // 2. Instant data channel signal broadcast
       try {
-        if (hostIdentity) {
-          sendSignal(withdrawPayload, [hostIdentity]);
-        }
         sendSignal(withdrawPayload);
       } catch (_) { }
 
@@ -1164,7 +1176,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     try {
       await socialApi.post(`/livekit/rooms/${roomName}/participants/${identity}/promote`);
-      setSpeakRequests(prev => prev.filter(r => r.identity !== identity));
+      setSpeakRequests(prev => prev.filter(r => String(r.identity) !== String(identity)));
+      notifiedRequestsRef.current.delete(identity);
+      lastToastAtRef.current.delete(String(identity));
+      toast.dismiss(`speak_req_${identity}`);
       try {
         await socialApi.delete(`/livekit/rooms/${roomName}/stage-requests/${identity}`);
       } catch (_) { }
@@ -1257,8 +1272,18 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     // Join live room channel
     socket.emit('joinLiveRoom', {
       roomName,
-      user: { id: user.id, name: user.name || user.email?.split('@')[0] || 'User' }
+      user: { id: user.id, name: user.name || user.email?.split('@')[0] || 'User' },
+      isHost: Boolean(isHostRef.current || isHost || amIHost())
     });
+
+    // Handle room terminated by host
+    const handleRoomEnded = () => {
+      toast.error('The host has ended this session.', { id: 'room-ended', duration: 4000 });
+      localStorage.removeItem(`livekit_stage_${roomName}`);
+      localStorage.removeItem(`livekit_mic_${roomName}`);
+      localStorage.removeItem(`livekit_cam_${roomName}`);
+      navigateBack();
+    };
 
     // 1. Initial room state snapshot from server (for late joiners)
     const handleRoomSyncState = (state) => {
@@ -1325,6 +1350,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     socket.on('liveRoomSettingsUpdated', handleRoomSettingsUpdated);
     socket.on('speak_request', handleSocketSpeakReq);
     socket.on('withdraw_stage_request', handleSocketWithdrawReq);
+    socket.on('room_ended', handleRoomEnded);
 
     return () => {
       socket.emit('leaveLiveRoom', { roomName });
@@ -1334,6 +1360,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       socket.off('liveRoomSettingsUpdated', handleRoomSettingsUpdated);
       socket.off('speak_request', handleSocketSpeakReq);
       socket.off('withdraw_stage_request', handleSocketWithdrawReq);
+      socket.off('room_ended', handleRoomEnded);
     };
   }, [user, isHost, roomName, amIHost, syncChatHistory]);
 
