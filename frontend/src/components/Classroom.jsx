@@ -946,19 +946,45 @@ const Classroom = () => {
     setTimeout(() => setCopiedChapter(false), 2000);
   };
 
-  const downloadPdfBlob = (blob, fileName) => {
-    const blobUrl = URL.createObjectURL(blob);
-    const downloadLink = document.createElement('a');
-    downloadLink.href = blobUrl;
-    downloadLink.download = fileName;
-    downloadLink.style.display = 'none';
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    toast.success("PDF saved directly to Downloads folder!");
-    setTimeout(() => {
-      document.body.removeChild(downloadLink);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-    }, 1500);
+  const downloadPdfBlob = async (blob, fileName) => {
+    try {
+      // 1. Native Capacitor app handling (Android/iOS)
+      if (window.Capacitor?.isNativePlatform?.()) {
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'application/pdf' })] })) {
+          const file = new File([blob], fileName, { type: 'application/pdf' });
+          await navigator.share({
+            files: [file],
+            title: fileName,
+            text: 'Here are your LearnProof AI Study Notes'
+          });
+          toast.success("PDF saved / shared successfully!");
+          return;
+        }
+      }
+
+      // 2. Direct browser download for mobile & desktop
+      const blobUrl = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+      downloadLink.download = fileName;
+      downloadLink.setAttribute('download', fileName);
+      downloadLink.style.display = 'none';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      
+      toast.success("PDF saved directly to Downloads folder!");
+      setTimeout(() => {
+        if (document.body.contains(downloadLink)) {
+          document.body.removeChild(downloadLink);
+        }
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      }, 2000);
+    } catch (err) {
+      console.error("Direct download error:", err);
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+      toast.success("PDF opened in new tab");
+    }
   };
 
   const generatePdfBlob = async (containerElement) => {
@@ -1017,18 +1043,32 @@ const Classroom = () => {
       for (let i = 0; i < pageCards.length; i++) {
         const card = pageCards[i];
         const canvas = await html2canvas(card, {
-          scale: 2,
+          scale: 1.5,
           useCORS: true,
+          allowTaint: true,
           logging: false,
           backgroundColor: '#ffffff',
           windowWidth: 794,
+          scrollX: 0,
+          scrollY: 0,
           onclone: (clonedDoc) => {
+            const clonedWrapper = clonedDoc.getElementById('pdf-offscreen-wrapper');
+            if (clonedWrapper) {
+              clonedWrapper.style.position = 'static';
+              clonedWrapper.style.left = '0';
+              clonedWrapper.style.top = '0';
+              clonedWrapper.style.opacity = '1';
+            }
+            const clonedEl = clonedDoc.getElementById('pdf-preview-printable');
+            if (clonedEl) {
+              clonedEl.style.opacity = '1';
+            }
             sanitizeColorsInDoc(clonedDoc);
           }
         });
 
         const cardHeightMm = (canvas.height * imgWidth) / canvas.width;
-        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
         if (i > 0) pdf.addPage();
 
@@ -1049,12 +1089,22 @@ const Classroom = () => {
       }
     } else {
       const canvas = await html2canvas(containerElement, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
+        allowTaint: true,
         logging: false,
         backgroundColor: '#ffffff',
         windowWidth: 794,
+        scrollX: 0,
+        scrollY: 0,
         onclone: (clonedDoc) => {
+          const clonedWrapper = clonedDoc.getElementById('pdf-offscreen-wrapper');
+          if (clonedWrapper) {
+            clonedWrapper.style.position = 'static';
+            clonedWrapper.style.left = '0';
+            clonedWrapper.style.top = '0';
+            clonedWrapper.style.opacity = '1';
+          }
           sanitizeColorsInDoc(clonedDoc);
         }
       });
@@ -1062,7 +1112,7 @@ const Classroom = () => {
       const totalHeightMm = (canvas.height * imgWidth) / canvas.width;
       let remaining = totalHeightMm;
       let pos = 0;
-      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
       pdf.addImage(imgData, 'JPEG', 0, pos, imgWidth, totalHeightMm, '', 'FAST');
       remaining -= pageHeight;
@@ -3228,12 +3278,13 @@ const Classroom = () => {
       {/* Hidden Container for High-Quality PDF Compilation */}
       {parsedIntuition && (
         <div
+          id="pdf-offscreen-wrapper"
           style={{
-            position: 'absolute',
-            left: 0,
+            position: 'fixed',
+            left: '-99999px',
             top: 0,
             width: '794px',
-            opacity: 0,
+            opacity: 1,
             pointerEvents: 'none',
             zIndex: -9999
           }}
