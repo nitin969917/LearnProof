@@ -83,6 +83,10 @@ router.post('/unmark-completed/', authMiddleware, classroomController.unmarkVide
 router.post('/update-progress/', authMiddleware, classroomController.updateProgress);
 router.post('/classroom/generate-notes-pdf', authMiddleware, classroomController.generateNotesPdf);
 router.post('/generate-notes-pdf', authMiddleware, classroomController.generateNotesPdf);
+router.post('/classroom/prepare-notes-pdf', authMiddleware, classroomController.prepareNotesPdf);
+router.post('/prepare-notes-pdf', authMiddleware, classroomController.prepareNotesPdf);
+router.get('/classroom/download-file/:downloadId/:fileName', classroomController.downloadNotesFile);
+router.get('/download-file/:downloadId/:fileName', classroomController.downloadNotesFile);
 
 
 // Social
