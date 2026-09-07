@@ -1449,8 +1449,8 @@ const Classroom = () => {
 
                   {/* Ask AI Chatbot Tab */}
                   {activeTab === 'ai-chat' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 p-4 sm:p-6 shadow-sm flex flex-col h-[560px] sm:h-[620px] max-h-[82vh] relative">
-                      <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-100 dark:border-slate-800 shrink-0">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 p-3.5 sm:p-6 shadow-sm flex flex-col min-h-[480px] h-[calc(100dvh-230px)] sm:h-[620px] max-h-[85vh] relative overflow-hidden pb-16 lg:pb-4">
+                      <div className="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-gray-100 dark:border-slate-800 shrink-0">
                         <div className="flex items-center gap-2.5">
                           <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm">
                             <Bot size={20} />
@@ -1483,7 +1483,7 @@ const Classroom = () => {
 
                       {/* Quick Doubt Suggestion Prompts */}
                       {aiChatMessages.length === 0 && (
-                        <div className="mb-4 p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-800/40 flex-1 flex flex-col justify-center">
+                        <div className="mb-4 p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-800/40 flex-1 flex flex-col justify-center pb-24 lg:pb-4 overflow-y-auto custom-scrollbar">
                           <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                             <Sparkles size={13} />
                             <span>Quick Questions you can ask:</span>
@@ -1510,7 +1510,7 @@ const Classroom = () => {
 
                       {/* Message Stream */}
                       {aiChatMessages.length > 0 && (
-                        <div className="space-y-4 overflow-y-auto pr-1 mb-2 custom-scrollbar flex-1 min-h-0">
+                        <div className="space-y-4 overflow-y-auto pr-1 mb-2 custom-scrollbar flex-1 min-h-0 pb-24 lg:pb-2">
                           {aiChatMessages.map((msg, mIdx) => (
                             <div
                               key={mIdx}
@@ -1570,32 +1570,34 @@ const Classroom = () => {
                         </div>
                       )}
 
-                      {/* Sticky Input Area */}
-                      <div className="sticky bottom-0 pt-3 mt-auto bg-white dark:bg-slate-900 border-t border-gray-100 dark:border-slate-800/80 shrink-0 z-10">
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            handleSendAiQuestion();
-                          }}
-                          className="flex items-center gap-2"
-                        >
-                          <input
-                            type="text"
-                            placeholder="Ask any doubt about this lecture..."
-                            value={aiChatInput}
-                            onChange={(e) => setAiChatInput(e.target.value)}
-                            disabled={aiChatLoading}
-                            className="flex-1 px-4 py-3 bg-gray-50 dark:bg-slate-800/80 border border-gray-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
-                          />
-                          <button
-                            type="submit"
-                            disabled={!aiChatInput.trim() || aiChatLoading}
-                            className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer"
+                      {/* Chat Message Entering Section - Fixed at Bottom on Mobile, Docked on Desktop */}
+                      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-200/90 dark:border-slate-800/90 p-2.5 sm:p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_25px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_25px_rgba(0,0,0,0.4)] lg:static lg:bg-transparent dark:lg:bg-transparent lg:shadow-none lg:p-0 lg:pt-3 lg:mt-auto lg:border-t lg:border-gray-100 dark:lg:border-slate-800/80 shrink-0">
+                        <div className="max-w-5xl mx-auto w-full px-2 sm:px-4 lg:px-0">
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              handleSendAiQuestion();
+                            }}
+                            className="flex items-center gap-2"
                           >
-                            <span>Ask AI</span>
-                            <Send size={13} />
-                          </button>
-                        </form>
+                            <input
+                              type="text"
+                              placeholder="Ask any doubt about this lecture..."
+                              value={aiChatInput}
+                              onChange={(e) => setAiChatInput(e.target.value)}
+                              disabled={aiChatLoading}
+                              className="flex-1 px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition shadow-inner"
+                            />
+                            <button
+                              type="submit"
+                              disabled={!aiChatInput.trim() || aiChatLoading}
+                              className="px-4 sm:px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
+                            >
+                              <span>Ask AI</span>
+                              <Send size={13} />
+                            </button>
+                          </form>
+                        </div>
                       </div>
                     </div>
                   )}
