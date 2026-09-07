@@ -38,9 +38,23 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
-import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { motion } from "framer-motion";
+import Prism from 'prismjs';
+import 'prismjs/themes/prism-tomorrow.min.css';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-jsx';
+import 'prismjs/components/prism-tsx';
+import 'prismjs/components/prism-c';
+import 'prismjs/components/prism-cpp';
+import 'prismjs/components/prism-java';
+import 'prismjs/components/prism-sql';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-css';
+import 'prismjs/components/prism-markup';
 
 const INDIAN_LANGS = [
   'English', 'Hindi', 'Marathi', 'Bengali', 'Telugu',
@@ -169,7 +183,117 @@ const preprocessMarkdown = (text) => {
     });
   }).join('\n');
 
-  return processed;
+  return processed.trim();
+};
+
+// Custom Modern Code Editor Component with Prism Syntax Highlighting
+const CodeEditorBlock = ({ className, children }) => {
+  const [copied, setCopied] = useState(false);
+  const match = /language-(\w+)/.exec(className || '');
+  const rawLang = match ? match[1].toLowerCase() : '';
+  const langAliases = {
+    py: 'python',
+    js: 'javascript',
+    ts: 'typescript',
+    tsx: 'tsx',
+    jsx: 'jsx',
+    cpp: 'cpp',
+    'c++': 'cpp',
+    c: 'c',
+    cs: 'csharp',
+    sh: 'bash',
+    bash: 'bash',
+    shell: 'bash',
+    zsh: 'bash',
+    sql: 'sql',
+    html: 'markup',
+    xml: 'markup',
+    css: 'css',
+    json: 'json',
+    yaml: 'yaml',
+    yml: 'yaml'
+  };
+  const lang = langAliases[rawLang] || rawLang || 'javascript';
+  const rawCode = String(children || '').replace(/\n$/, '');
+
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(rawCode);
+    setCopied(true);
+    toast.success('Code copied to clipboard!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const highlightedCode = useMemo(() => {
+    try {
+      if (Prism.languages[lang]) {
+        return Prism.highlight(rawCode, Prism.languages[lang], lang);
+      }
+      return Prism.highlight(rawCode, Prism.languages.clike || Prism.languages.javascript, 'javascript');
+    } catch {
+      return null;
+    }
+  }, [rawCode, lang]);
+
+  return (
+    <div 
+      className="my-3 sm:my-4 rounded-xl overflow-hidden bg-[#181825] border border-slate-800 shadow-md text-left no-tab-swipe"
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+      onTouchEnd={(e) => e.stopPropagation()}
+    >
+      {/* Code Editor Header */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-[#11111b] border-b border-slate-800/90 text-xs select-none">
+        <div className="flex items-center gap-2">
+          {/* Mac OS Window Dots */}
+          <div className="flex items-center gap-1.5 opacity-90">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#f38ba8] inline-block"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#f9e2af] inline-block"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#a6e3a1] inline-block"></span>
+          </div>
+          {/* Language Badge */}
+          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-400 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60 ml-1">
+            {rawLang || 'code'}
+          </span>
+        </div>
+
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+          title="Copy Code"
+        >
+          {copied ? (
+            <>
+              <Check size={11} className="text-emerald-400" />
+              <span className="text-emerald-400 font-semibold">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy size={11} />
+              <span>Copy</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Code Body */}
+      <div 
+        className="p-3 sm:p-4 overflow-x-auto text-[11.5px] sm:text-xs leading-relaxed font-mono text-slate-100"
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        onTouchEnd={(e) => e.stopPropagation()}
+      >
+        {highlightedCode ? (
+          <pre 
+            className="m-0 p-0 bg-transparent font-mono whitespace-pre"
+            dangerouslySetInnerHTML={{ __html: highlightedCode }} 
+          />
+        ) : (
+          <pre className="m-0 p-0 bg-transparent font-mono whitespace-pre">{rawCode}</pre>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const cleanTopicTitle = (title, idx) => {
@@ -704,6 +828,17 @@ const Classroom = () => {
   }, [classroomTabs]);
 
   const handleTouchStart = (e) => {
+    // Never switch tabs via swipe when on AI Notes, AI Chat, or touching any scrollable elements/tables/code/buttons
+    if (activeTab === 'intuition' || activeTab === 'ai-chat') {
+      setTouchStart(null);
+      setTouchEnd(null);
+      return;
+    }
+    if (e.target?.closest?.('.no-tab-swipe, .overflow-x-auto, table, pre, code, select, button, input, textarea, .intuition-markdown')) {
+      setTouchStart(null);
+      setTouchEnd(null);
+      return;
+    }
     setTouchEnd(null);
     if (e.targetTouches?.[0]) {
       setTouchStart({
@@ -714,6 +849,8 @@ const Classroom = () => {
   };
 
   const handleTouchMove = (e) => {
+    if (activeTab === 'intuition' || activeTab === 'ai-chat') return;
+    if (e.target?.closest?.('.no-tab-swipe, .overflow-x-auto, table, pre, code, select, button, input, textarea, .intuition-markdown')) return;
     if (e.targetTouches?.[0]) {
       setTouchEnd({
         x: e.targetTouches[0].clientX,
@@ -723,10 +860,15 @@ const Classroom = () => {
   };
 
   const handleTouchEnd = () => {
+    if (activeTab === 'intuition' || activeTab === 'ai-chat') {
+      setTouchStart(null);
+      setTouchEnd(null);
+      return;
+    }
     if (!touchStart || !touchEnd) return;
     const distanceX = touchStart.x - touchEnd.x;
     const distanceY = touchStart.y - touchEnd.y;
-    if (Math.abs(distanceX) > Math.abs(distanceY) * 1.25 && Math.abs(distanceX) > minSwipeDistance) {
+    if (Math.abs(distanceX) > Math.abs(distanceY) * 1.5 && Math.abs(distanceX) > minSwipeDistance) {
       const idx = visibleClassroomTabs.findIndex(t => t.id === activeTab);
       if (idx !== -1) {
         if (distanceX > 0 && idx < visibleClassroomTabs.length - 1) {
@@ -738,6 +880,8 @@ const Classroom = () => {
         }
       }
     }
+    setTouchStart(null);
+    setTouchEnd(null);
   };
 
   useEffect(() => {
@@ -1729,7 +1873,12 @@ const Classroom = () => {
 
                   {/* Intuition Tab */}
                   {activeTab === 'intuition' && (
-                    <div className="space-y-3 sm:space-y-3.5">
+                    <div 
+                      className="space-y-3 sm:space-y-3.5 no-tab-swipe"
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onTouchMove={(e) => e.stopPropagation()}
+                      onTouchEnd={(e) => e.stopPropagation()}
+                    >
                       {/* Top Action Card: Ask AI Doubt */}
                       <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-950/40 dark:via-purple-950/40 dark:to-pink-950/30 border border-indigo-200 dark:border-indigo-800/80 rounded-xl sm:rounded-2xl p-2 sm:p-3.5 shadow-2xs flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -1837,7 +1986,12 @@ const Classroom = () => {
                             {parsedIntuition.totalPages > 1 && (
                               <div className="flex items-center justify-between gap-2 bg-white/80 dark:bg-slate-800/70 p-1 sm:p-2.5 rounded-xl border border-indigo-100 dark:border-slate-700/60">
                                 {/* Topic Pill Selector */}
-                                <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none py-0.5 min-w-0">
+                                <div 
+                                  className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none py-0.5 min-w-0 no-tab-swipe"
+                                  onTouchStart={(e) => e.stopPropagation()}
+                                  onTouchMove={(e) => e.stopPropagation()}
+                                  onTouchEnd={(e) => e.stopPropagation()}
+                                >
                                   {parsedIntuition.pages.map((p, idx) => {
                                     const isActive = !isContinuousView && activeChapterIndex === idx;
                                     return (
@@ -1908,16 +2062,25 @@ const Classroom = () => {
                                           ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                           li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                           p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
-                                          pre: ({ node, ...props }) => <div className="overflow-x-auto my-4 p-4 rounded-xl bg-gray-950 text-gray-100 border border-gray-800 font-mono text-sm leading-relaxed"><pre className="whitespace-pre" {...props} /></div>,
-                                          code: ({ node, inline, ...props }) => inline
-                                            ? <code className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-semibold text-xs sm:text-sm break-all" {...props} />
-                                            : <code className="break-all" {...props} />,
-                                          table: ({ node, ...props }) => <div className="overflow-x-auto my-5"><table className="w-full text-xs sm:text-sm text-left border-collapse border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" {...props} /></div>,
-                                          thead: ({ node, ...props }) => <thead className="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-900 dark:text-indigo-200 uppercase text-xs font-semibold" {...props} />,
-                                          tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-gray-700/50" {...props} />,
+                                          pre: ({ node, children, ...props }) => <>{children}</>,
+                                          code: ({ node, inline, className, children, ...props }) => inline
+                                            ? <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>{children}</code>
+                                            : <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>,
+                                          table: ({ node, ...props }) => (
+                                            <div 
+                                              className="overflow-x-auto my-4 rounded-xl border border-gray-200 dark:border-slate-700/80 shadow-2xs no-tab-swipe"
+                                              onTouchStart={(e) => e.stopPropagation()}
+                                              onTouchMove={(e) => e.stopPropagation()}
+                                              onTouchEnd={(e) => e.stopPropagation()}
+                                            >
+                                              <table className="w-full text-xs sm:text-sm text-left border-collapse" {...props} />
+                                            </div>
+                                          ),
+                                          thead: ({ node, ...props }) => <thead className="bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 font-bold border-b border-gray-200 dark:border-slate-700" {...props} />,
+                                          tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-slate-800 bg-white dark:bg-slate-900/70" {...props} />,
                                           tr: ({ node, ...props }) => <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors" {...props} />,
-                                          th: ({ node, ...props }) => <th className="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700/50" {...props} />,
-                                          td: ({ node, ...props }) => <td className="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          th: ({ node, ...props }) => <th className="px-3.5 py-2.5 font-semibold text-indigo-900 dark:text-indigo-200 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
+                                          td: ({ node, ...props }) => <td className="px-3.5 py-2.5 text-gray-700 dark:text-slate-300 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
                                           blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-indigo-500 pl-4 py-1.5 my-3 italic text-gray-700 dark:text-gray-300 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-r-lg" {...props} />
                                         }}
                                       >
@@ -1973,16 +2136,25 @@ const Classroom = () => {
                                           ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                           li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                           p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
-                                          pre: ({ node, ...props }) => <div className="overflow-x-auto my-4 p-4 rounded-xl bg-gray-950 text-gray-100 border border-gray-800 font-mono text-sm leading-relaxed"><pre className="whitespace-pre" {...props} /></div>,
-                                          code: ({ node, inline, ...props }) => inline
-                                            ? <code className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-semibold text-xs sm:text-sm break-all" {...props} />
-                                            : <code className="break-all" {...props} />,
-                                          table: ({ node, ...props }) => <div className="overflow-x-auto my-5"><table className="w-full text-xs sm:text-sm text-left border-collapse border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" {...props} /></div>,
-                                          thead: ({ node, ...props }) => <thead className="bg-indigo-50 dark:bg-indigo-900/40 text-indigo-900 dark:text-indigo-200 uppercase text-xs font-semibold" {...props} />,
-                                          tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-gray-700/50" {...props} />,
+                                          pre: ({ node, children, ...props }) => <>{children}</>,
+                                          code: ({ node, inline, className, children, ...props }) => inline
+                                            ? <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>{children}</code>
+                                            : <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>,
+                                          table: ({ node, ...props }) => (
+                                            <div 
+                                              className="overflow-x-auto my-4 rounded-xl border border-gray-200 dark:border-slate-700/80 shadow-2xs no-tab-swipe"
+                                              onTouchStart={(e) => e.stopPropagation()}
+                                              onTouchMove={(e) => e.stopPropagation()}
+                                              onTouchEnd={(e) => e.stopPropagation()}
+                                            >
+                                              <table className="w-full text-xs sm:text-sm text-left border-collapse" {...props} />
+                                            </div>
+                                          ),
+                                          thead: ({ node, ...props }) => <thead className="bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 font-bold border-b border-gray-200 dark:border-slate-700" {...props} />,
+                                          tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-slate-800 bg-white dark:bg-slate-900/70" {...props} />,
                                           tr: ({ node, ...props }) => <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors" {...props} />,
-                                          th: ({ node, ...props }) => <th className="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700/50" {...props} />,
-                                          td: ({ node, ...props }) => <td className="px-3.5 py-2.5 border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                          th: ({ node, ...props }) => <th className="px-3.5 py-2.5 font-semibold text-indigo-900 dark:text-indigo-200 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
+                                          td: ({ node, ...props }) => <td className="px-3.5 py-2.5 text-gray-700 dark:text-slate-300 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
                                           blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-indigo-500 pl-4 py-1.5 my-3 italic text-gray-700 dark:text-gray-300 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-r-lg" {...props} />
                                         }}
                                       >
@@ -2169,9 +2341,10 @@ const Classroom = () => {
                                           p: ({ node, ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
                                           ul: ({ node, ...props }) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
                                           li: ({ node, ...props }) => <li className="break-words" {...props} />,
-                                          code: ({ node, inline, ...props }) => inline
-                                            ? <code className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded font-mono text-xs font-semibold" {...props} />
-                                            : <pre className="p-3 my-2 rounded-xl bg-gray-900 text-white font-mono text-xs overflow-x-auto"><code {...props} /></pre>
+                                          pre: ({ node, children, ...props }) => <>{children}</>,
+                                          code: ({ node, inline, className, children, ...props }) => inline
+                                            ? <code className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded font-mono text-xs font-semibold" {...props}>{children}</code>
+                                            : <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>
                                         }}
                                       >
                                         {preprocessMarkdown(msg.content)}
@@ -3064,14 +3237,10 @@ const Classroom = () => {
                           ol: ({ node, ...props }) => <ol style={{ listStyleType: 'decimal', paddingLeft: '20px', marginBottom: '8px', fontSize: '11.5px', color: '#334155' }} {...props} />,
                           li: ({ node, ...props }) => <li style={{ marginBottom: '4px' }} {...props} />,
                           strong: ({ node, ...props }) => <strong style={{ fontWeight: '700', color: '#0f172a' }} {...props} />,
-                          pre: ({ node, ...props }) => (
-                            <div style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: '10px 12px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '10.5px', margin: '10px 0', border: '1px solid #1e293b', overflowX: 'auto' }}>
-                              <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }} {...props} />
-                            </div>
-                          ),
-                          code: ({ node, inline, ...props }) => inline
-                            ? <code style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 4px', borderRadius: '4px', fontSize: '10.5px', fontWeight: '600' }} {...props} />
-                            : <code style={{ fontFamily: 'monospace' }} {...props} />,
+                          pre: ({ node, children, ...props }) => <>{children}</>,
+                          code: ({ node, inline, className, children, ...props }) => inline
+                            ? <code style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 4px', borderRadius: '4px', fontSize: '10.5px', fontWeight: '600' }} {...props}>{children}</code>
+                            : <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>,
                           table: ({ node, ...props }) => (
                             <div style={{ margin: '12px 0', overflowX: 'auto' }}>
                               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: '1px solid #cbd5e1' }} {...props} />
