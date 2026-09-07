@@ -115,6 +115,156 @@ h1, h2, h3, h4 {
     user-select: text;
 }
 
+/* ── Print Styles for Clean PDF Paper Sheet ───────────────────────────────── */
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    #pdf-preview-printable,
+    #pdf-preview-printable * {
+        visibility: visible !important;
+    }
+    #pdf-preview-printable {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 12mm 15mm !important;
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+}
+
+/* ── Theme-Adaptive Prism Syntax Highlighting ───────────────────────────────── */
+/* Light Mode (default) */
+.code-editor-body pre,
+.code-editor-body code {
+    color: #24292f !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+}
+
+.code-editor-body .token.comment,
+.code-editor-body .token.prolog,
+.code-editor-body .token.doctype,
+.code-editor-body .token.cdata {
+    color: #6e7781 !important;
+    font-style: italic;
+}
+
+.code-editor-body .token.punctuation {
+    color: #57606a !important;
+}
+
+.code-editor-body .token.property,
+.code-editor-body .token.tag,
+.code-editor-body .token.boolean,
+.code-editor-body .token.number,
+.code-editor-body .token.constant,
+.code-editor-body .token.symbol,
+.code-editor-body .token.deleted {
+    color: #0550ae !important;
+}
+
+.code-editor-body .token.selector,
+.code-editor-body .token.attr-name,
+.code-editor-body .token.string,
+.code-editor-body .token.char,
+.code-editor-body .token.builtin,
+.code-editor-body .token.inserted {
+    color: #116329 !important;
+}
+
+.code-editor-body .token.operator,
+.code-editor-body .token.entity,
+.code-editor-body .token.url,
+.code-editor-body .token.variable {
+    color: #953800 !important;
+}
+
+.code-editor-body .token.atrule,
+.code-editor-body .token.attr-value,
+.code-editor-body .token.keyword {
+    color: #cf222e !important;
+    font-weight: 600;
+}
+
+.code-editor-body .token.function,
+.code-editor-body .token.class-name {
+    color: #8250df !important;
+    font-weight: 600;
+}
+
+.code-editor-body .token.regex,
+.code-editor-body .token.important {
+    color: #e36209 !important;
+}
+
+/* Dark Mode (.dark) */
+.dark .code-editor-body pre,
+.dark .code-editor-body code {
+    color: #cdd6f4 !important;
+}
+
+.dark .code-editor-body .token.comment,
+.dark .code-editor-body .token.prolog,
+.dark .code-editor-body .token.doctype,
+.dark .code-editor-body .token.cdata {
+    color: #767c94 !important;
+    font-style: italic;
+}
+
+.dark .code-editor-body .token.punctuation {
+    color: #9399b2 !important;
+}
+
+.dark .code-editor-body .token.property,
+.dark .code-editor-body .token.tag,
+.dark .code-editor-body .token.boolean,
+.dark .code-editor-body .token.number,
+.dark .code-editor-body .token.constant,
+.dark .code-editor-body .token.symbol,
+.dark .code-editor-body .token.deleted {
+    color: #fab387 !important;
+}
+
+.dark .code-editor-body .token.selector,
+.dark .code-editor-body .token.attr-name,
+.dark .code-editor-body .token.string,
+.dark .code-editor-body .token.char,
+.dark .code-editor-body .token.builtin,
+.dark .code-editor-body .token.inserted {
+    color: #a6e3a1 !important;
+}
+
+.dark .code-editor-body .token.operator,
+.dark .code-editor-body .token.entity,
+.dark .code-editor-body .token.url,
+.dark .code-editor-body .token.variable {
+    color: #89dceb !important;
+}
+
+.dark .code-editor-body .token.atrule,
+.dark .code-editor-body .token.attr-value,
+.dark .code-editor-body .token.keyword {
+    color: #f38ba8 !important;
+    font-weight: 600;
+}
+
+.dark .code-editor-body .token.function,
+.dark .code-editor-body .token.class-name {
+    color: #89b4fa !important;
+    font-weight: 600;
+}
+
+.dark .code-editor-body .token.regex,
+.dark .code-editor-body .token.important {
+    color: #f9e2af !important;
+}
+
 /* ── LiveKit Elements Theme Overrides ────────────────────────────────────── */
 
 /* Base tile */

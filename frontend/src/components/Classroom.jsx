@@ -41,7 +41,6 @@ import 'katex/dist/katex.min.css';
 import 'react-quill-new/dist/quill.snow.css';
 import { motion } from "framer-motion";
 import Prism from 'prismjs';
-import 'prismjs/themes/prism-tomorrow.min.css';
 import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/components/prism-typescript';
@@ -237,13 +236,13 @@ const CodeEditorBlock = ({ className, children }) => {
 
   return (
     <div 
-      className="my-3 sm:my-4 rounded-xl overflow-hidden bg-[#181825] border border-slate-800 shadow-md text-left no-tab-swipe"
+      className="my-3 sm:my-4 rounded-xl overflow-hidden bg-slate-50 dark:bg-[#181825] border border-slate-200 dark:border-slate-800 shadow-xs text-left no-tab-swipe"
       onTouchStart={(e) => e.stopPropagation()}
       onTouchMove={(e) => e.stopPropagation()}
       onTouchEnd={(e) => e.stopPropagation()}
     >
       {/* Code Editor Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-[#11111b] border-b border-slate-800/90 text-xs select-none">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-100 dark:bg-[#11111b] border-b border-slate-200 dark:border-slate-800/90 text-xs select-none">
         <div className="flex items-center gap-2">
           {/* Mac OS Window Dots */}
           <div className="flex items-center gap-1.5 opacity-90">
@@ -252,20 +251,20 @@ const CodeEditorBlock = ({ className, children }) => {
             <span className="w-2.5 h-2.5 rounded-full bg-[#a6e3a1] inline-block"></span>
           </div>
           {/* Language Badge */}
-          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-400 px-2 py-0.5 rounded bg-slate-800/80 border border-slate-700/60 ml-1">
+          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 ml-1">
             {rawLang || 'code'}
           </span>
         </div>
 
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+          className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800 transition cursor-pointer"
           title="Copy Code"
         >
           {copied ? (
             <>
-              <Check size={11} className="text-emerald-400" />
-              <span className="text-emerald-400 font-semibold">Copied!</span>
+              <Check size={11} className="text-emerald-600 dark:text-emerald-400" />
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Copied!</span>
             </>
           ) : (
             <>
@@ -278,18 +277,18 @@ const CodeEditorBlock = ({ className, children }) => {
 
       {/* Code Body */}
       <div 
-        className="p-3 sm:p-4 overflow-x-auto text-[11.5px] sm:text-xs leading-relaxed font-mono text-slate-100"
+        className="code-editor-body p-3 sm:p-4 overflow-x-auto text-[11.5px] sm:text-xs leading-relaxed font-mono text-slate-800 dark:text-slate-100"
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
       >
         {highlightedCode ? (
           <pre 
-            className="m-0 p-0 bg-transparent font-mono whitespace-pre"
+            className="m-0 p-0 bg-transparent font-mono whitespace-pre text-slate-800 dark:text-slate-100"
             dangerouslySetInnerHTML={{ __html: highlightedCode }} 
           />
         ) : (
-          <pre className="m-0 p-0 bg-transparent font-mono whitespace-pre">{rawCode}</pre>
+          <pre className="m-0 p-0 bg-transparent font-mono whitespace-pre text-slate-800 dark:text-slate-100">{rawCode}</pre>
         )}
       </div>
     </div>
@@ -973,8 +972,11 @@ const Classroom = () => {
         html2canvas: {
           scale: 2,
           useCORS: true,
+          letterRendering: true,
           logging: false,
-          scrollY: 0
+          scrollY: 0,
+          scrollX: 0,
+          backgroundColor: '#ffffff'
         },
         jsPDF: {
           unit: 'mm',
@@ -987,25 +989,25 @@ const Classroom = () => {
         }
       };
 
-      // Generate PDF as Blob
-      const worker = html2pdf().set(opt).from(element);
-      const pdfBlob = await worker.output('blob');
-
-      // Create download trigger
-      const blobUrl = URL.createObjectURL(pdfBlob);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = blobUrl;
-      downloadLink.download = fileName;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
-
+      await html2pdf().set(opt).from(element).save();
       toast.success("PDF downloaded to your device successfully!", { id: toastId });
     } catch (err) {
-      console.error("PDF download error:", err);
-      toast.error("Direct download encountered an issue. Opening print / save dialog...", { id: toastId });
-      handlePrintPdfWindow();
+      console.error("PDF direct download error:", err);
+      try {
+        const html2pdfModule = await import('html2pdf.js');
+        const html2pdf = html2pdfModule.default || html2pdfModule;
+        const titleStr = video?.name || 'Lecture Study Notes';
+        const sanitized = titleStr.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').slice(0, 60);
+        const fileName = `${sanitized}_Study_Notes.pdf`;
+        const element = pdfPreviewContentRef.current;
+        const pdf = await html2pdf().from(element).toPdf().get('pdf');
+        pdf.save(fileName);
+        toast.success("PDF downloaded to your device successfully!", { id: toastId });
+      } catch (fallbackErr) {
+        console.error("PDF fallback error:", fallbackErr);
+        toast.error("Download encountered an issue. Opening print / save dialog...", { id: toastId });
+        handlePrintPdfWindow();
+      }
     } finally {
       setDownloadingPdf(false);
     }
@@ -3155,12 +3157,14 @@ const Classroom = () => {
             </div>
 
             {/* Modal Body - Scrollable Paper Sheet */}
-            <div className="flex-1 overflow-y-auto p-2 sm:p-6 bg-slate-950 flex justify-center">
+            <div className="flex-1 overflow-y-auto p-2 sm:p-6 bg-slate-200 dark:bg-slate-950 flex justify-center">
               <div
+                id="pdf-preview-printable"
                 ref={pdfPreviewContentRef}
-                className="w-full max-w-[800px] bg-white text-slate-900 rounded-xl shadow-2xl p-6 sm:p-10 border border-slate-200"
+                className="w-full max-w-[800px] bg-white text-slate-900 rounded-xl shadow-2xl p-5 sm:p-10 border border-slate-300"
                 style={{
                   fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                  backgroundColor: '#ffffff',
                   color: '#0f172a',
                   lineHeight: 1.6
                 }}
@@ -3235,19 +3239,25 @@ const Classroom = () => {
                           p: ({ node, ...props }) => <p style={{ fontSize: '11.5px', color: '#334155', lineHeight: '1.6', marginBottom: '8px' }} {...props} />,
                           ul: ({ node, ...props }) => <ul style={{ listStyleType: 'disc', paddingLeft: '20px', marginBottom: '8px', fontSize: '11.5px', color: '#334155' }} {...props} />,
                           ol: ({ node, ...props }) => <ol style={{ listStyleType: 'decimal', paddingLeft: '20px', marginBottom: '8px', fontSize: '11.5px', color: '#334155' }} {...props} />,
-                          li: ({ node, ...props }) => <li style={{ marginBottom: '4px' }} {...props} />,
+                          li: ({ node, ...props }) => <li style={{ marginBottom: '4px', color: '#334155' }} {...props} />,
                           strong: ({ node, ...props }) => <strong style={{ fontWeight: '700', color: '#0f172a' }} {...props} />,
                           pre: ({ node, children, ...props }) => <>{children}</>,
                           code: ({ node, inline, className, children, ...props }) => inline
                             ? <code style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 4px', borderRadius: '4px', fontSize: '10.5px', fontWeight: '600' }} {...props}>{children}</code>
-                            : <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>,
+                            : (
+                              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', margin: '12px 0', overflowX: 'auto' }}>
+                                <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '11px', color: '#1e293b', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                                  {String(children || '').replace(/\n$/, '')}
+                                </pre>
+                              </div>
+                            ),
                           table: ({ node, ...props }) => (
                             <div style={{ margin: '12px 0', overflowX: 'auto' }}>
                               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: '1px solid #cbd5e1' }} {...props} />
                             </div>
                           ),
                           thead: ({ node, ...props }) => <thead style={{ backgroundColor: '#eef2ff', color: '#1e1b4b', fontWeight: '700' }} {...props} />,
-                          th: ({ node, ...props }) => <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'left' }} {...props} />,
+                          th: ({ node, ...props }) => <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'left', color: '#1e1b4b' }} {...props} />,
                           td: ({ node, ...props }) => <td style={{ border: '1px solid #e2e8f0', padding: '6px 10px', color: '#334155' }} {...props} />,
                           blockquote: ({ node, ...props }) => (
                             <blockquote style={{ borderLeft: '4px solid #6366f1', padding: '6px 12px', backgroundColor: '#f5f3ff', color: '#3730a3', fontStyle: 'italic', margin: '10px 0', borderRadius: '0 6px 6px 0', fontSize: '11.5px' }} {...props} />
