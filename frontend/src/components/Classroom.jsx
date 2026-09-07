@@ -1020,55 +1020,50 @@ const Classroom = () => {
         }
       }
 
-      let nativeHandled = false;
+      const isAndroid = /android/i.test(navigator.userAgent);
 
-      // 1. Try Native Capacitor App intent
-      try {
-        const { Capacitor } = await import('@capacitor/core');
-        if (Capacitor && Capacitor.isNativePlatform()) {
-          const { App } = await import('@capacitor/app');
-          if (App && App.openUrl) {
-            await App.openUrl({ url: fullDownloadUrl });
-            nativeHandled = true;
-          }
+      if (isAndroid) {
+        // Android WebView / Mobile: Android Intent URL launches Chrome/System Downloader to save file to /storage/emulated/0/Download
+        const host = window.location.host || 'learnproofai.com';
+        const intentUrl = `intent://${host}/api/classroom/download-file/${response.data.downloadId}/${encodeURIComponent(fileName)}#Intent;scheme=https;action=android.intent.action.VIEW;end`;
+
+        if (pdfBlob) {
+          const blobUrl = URL.createObjectURL(pdfBlob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = fileName;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            if (document.body.contains(link)) document.body.removeChild(link);
+            URL.revokeObjectURL(blobUrl);
+          }, 5000);
         }
-      } catch (nativeErr) {
-        console.warn("Capacitor App.openUrl fallback:", nativeErr);
-      }
 
-      // 2. Try Web Share API (native Android system sheet: Save to Device / Downloads / Drive / PDF Reader)
-      if (!nativeHandled && pdfFile && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-        try {
-          await navigator.share({
-            title: titleStr,
-            text: `Study Notes for ${titleStr}`,
-            files: [pdfFile]
-          });
-          nativeHandled = true;
-        } catch (shareErr) {
-          console.warn("Web Share API skipped/cancelled:", shareErr);
+        // Navigate to Intent URL to trigger system download
+        window.location.href = intentUrl;
+      } else {
+        // Desktop / iOS / standard web browsers
+        if (pdfBlob) {
+          const blobUrl = URL.createObjectURL(pdfBlob);
+          const downloadLink = document.createElement('a');
+          downloadLink.href = blobUrl;
+          downloadLink.download = fileName;
+          downloadLink.style.display = 'none';
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+
+          setTimeout(() => {
+            if (document.body.contains(downloadLink)) document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(blobUrl);
+          }, 10000);
+        } else {
+          window.open(fullDownloadUrl, '_blank');
         }
       }
 
-      // 3. Trigger direct Blob / browser download
-      if (pdfBlob) {
-        const blobUrl = URL.createObjectURL(pdfBlob);
-        const downloadLink = document.createElement('a');
-        downloadLink.href = blobUrl;
-        downloadLink.download = fileName;
-        downloadLink.style.display = 'none';
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-
-        setTimeout(() => {
-          if (document.body.contains(downloadLink)) document.body.removeChild(downloadLink);
-          URL.revokeObjectURL(blobUrl);
-        }, 10000);
-      } else if (!nativeHandled) {
-        window.location.href = fullDownloadUrl;
-      }
-
-      toast.success("PDF ready & downloaded!", { id: toastId });
+      toast.success("PDF downloading to your device!", { id: toastId });
     } catch (err) {
       console.error("PDF download failed:", err);
       toast.error("Failed to download PDF. Please try again.", { id: toastId });
