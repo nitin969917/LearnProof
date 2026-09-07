@@ -35,11 +35,11 @@ if (process.env.GCP_PROJECT_ID) {
  * Helper to call Gemini content generation using either Vertex AI (if configured) or Google AI Studio.
  */
 const generateGeminiContent = async (modelName, contents, config = {}) => {
-    const timeoutMs = config.timeout || 10000; // 10 seconds timeout for faster Cerebras failover
+    const timeoutMs = config.timeout || 30000; // 30 seconds timeout for full reliable generations on Google Cloud
     
     const callPromise = (async () => {
         if (vertexAIClient) {
-            console.log(`[Gemini] Calling Vertex AI client with model: ${modelName}`);
+            console.log(`[Google Vertex AI Credits] Calling model: ${modelName}`);
             try {
                 const response = await vertexAIClient.models.generateContent({
                     model: modelName,
@@ -52,7 +52,7 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
                 });
                 return response.text;
             } catch (vertexErr) {
-                console.warn(`[Gemini] Vertex AI generateContent failed, falling back to Google AI Studio:`, vertexErr.message);
+                console.warn(`[Google Vertex AI Credits] ${modelName} call failed:`, vertexErr.message);
                 if (genAI) {
                     const model = genAI.getGenerativeModel({
                         model: modelName,
@@ -68,7 +68,7 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
                 throw vertexErr;
             }
         } else {
-            console.log(`[Gemini] Calling Google AI Studio client with model: ${modelName}`);
+            console.log(`[Gemini AI Studio] Calling model: ${modelName}`);
             const model = genAI.getGenerativeModel({
                 model: modelName,
                 generationConfig: {
@@ -83,7 +83,7 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
     })();
 
     const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error(`Gemini request timed out after ${timeoutMs}ms`)), timeoutMs);
+        setTimeout(() => reject(new Error(`Vertex AI request timed out after ${timeoutMs}ms`)), timeoutMs);
     });
 
     return Promise.race([callPromise, timeoutPromise]);
@@ -91,14 +91,18 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
 
 
 const MODELS = {
-    GEMINI_2_5: 'gemini-2.5-flash-lite', // Optimized for low latency & higher rate limits
+    GEMINI_FLASH_LITE: 'gemini-2.5-flash-lite', // Primary fast model under Google Cloud startup credits
+    GEMINI_FLASH: 'gemini-2.5-flash',           // Balanced model under Google Cloud startup credits
+    GEMINI_PRO: 'gemini-2.5-pro',               // Deep reasoning model under Google Cloud startup credits
+    // Backward compatibility aliases
+    GEMINI_2_5: 'gemini-2.5-flash-lite',
     GEMINI_3: 'gemini-2.5-flash',
-    GEMINI_2_5_LITE: 'gemini-2.5-flash', // Full flash model as fallback
-    GROQ_LLAMA_70B: 'openai/gpt-oss-120b', // High-quality 120B reasoning model on Groq
-    GROQ_LLAMA_8B: 'qwen/qwen3.8-27b', // Fast 27B model on Groq
-    GROQ_QWEN_32B: 'qwen/qwen3.6-27b', // Fast 27B model on Groq
+    GEMINI_2_5_LITE: 'gemini-2.5-flash',
+    GROQ_LLAMA_70B: 'openai/gpt-oss-120b',
+    GROQ_LLAMA_8B: 'qwen/qwen3.8-27b',
+    GROQ_QWEN_32B: 'qwen/qwen3.6-27b',
     GROQ_LLAMA_4_MAVERICK: 'openai/gpt-oss-20b',
-    OPENROUTER_MODEL: 'openrouter/free', // Free model router
+    OPENROUTER_MODEL: 'openrouter/free',
     CEREBRAS_MODEL: 'gpt-oss-120b'
 };
 
@@ -362,15 +366,12 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
         });
     };
 
-    // Priority Strategy for Speed (<3s): Gemini 2.5 (Vertex AI/Studio) -> Groq (120B) -> Groq (27B) -> Gemini Flash -> OpenRouter
+    // Priority: Google Cloud Vertex AI (funded by Google Cloud startup credits)
     const chain = [
-        { type: 'gemini', model: MODELS.GEMINI_2_5 },
-        { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-        { type: 'groq', model: MODELS.GROQ_LLAMA_8B },
-        { type: 'gemini', model: MODELS.GEMINI_2_5_LITE },
-        { type: 'groq', model: MODELS.GROQ_QWEN_32B },
-        { type: 'openrouter' },
-        { type: 'cerebras' }
+        { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
+        { type: 'gemini', model: MODELS.GEMINI_FLASH },
+        { type: 'gemini', model: MODELS.GEMINI_PRO },
+        { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
     ];
 
     for (const provider of chain) {
@@ -544,27 +545,24 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
 
     if (isMultimodalVideoRouting) {
         chain = [
-            { type: 'gemini', model: MODELS.GEMINI_2_5 },
-            { type: 'gemini', model: MODELS.GEMINI_3 },
-            { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-            { type: 'cerebras' }
+            { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
+            { type: 'gemini', model: MODELS.GEMINI_FLASH },
+            { type: 'gemini', model: MODELS.GEMINI_PRO },
+            { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
         ];
     } else if (hasTranscript) {
         chain = [
-            { type: 'gemini', model: MODELS.GEMINI_2_5 },
-            { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-            { type: 'groq', model: MODELS.GROQ_LLAMA_8B },
-            { type: 'gemini', model: MODELS.GEMINI_3 },
-            { type: 'openrouter' },
-            { type: 'cerebras' }
+            { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
+            { type: 'gemini', model: MODELS.GEMINI_FLASH },
+            { type: 'gemini', model: MODELS.GEMINI_PRO },
+            { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
         ];
     } else {
         chain = [
-            { type: 'gemini', model: MODELS.GEMINI_2_5 },
-            { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-            { type: 'groq', model: MODELS.GROQ_LLAMA_8B },
-            { type: 'openrouter' },
-            { type: 'cerebras' }
+            { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
+            { type: 'gemini', model: MODELS.GEMINI_FLASH },
+            { type: 'gemini', model: MODELS.GEMINI_PRO },
+            { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
         ];
     }
 
@@ -695,12 +693,22 @@ const translateText = async (text, targetLanguage) => {
         `;
 
         try {
-            // Using higher temperature and penalty for translation fallback to ensure flow
-            const translated = await callCerebras(translationPrompt, false, 0.5);
-            return { content: translated, model_name: `${MODELS.CEREBRAS_MODEL} (LLM Translation)` };
-        } catch (llmErr) {
-            const translated = await callGroq(translationPrompt, false, MODELS.GROQ_LLAMA_70B, 0.5);
-            return { content: translated, model_name: `${MODELS.GROQ_LLAMA_70B} (LLM Translation)` };
+            const translated = await generateGeminiContent(MODELS.GEMINI_FLASH_LITE, translationPrompt, {
+                maxOutputTokens: 8192,
+                temperature: 0.2
+            });
+            return { content: translated, model_name: `${MODELS.GEMINI_FLASH_LITE} (Vertex AI Translation)` };
+        } catch (vertexErr) {
+            try {
+                const translated = await generateGeminiContent(MODELS.GEMINI_FLASH, translationPrompt, {
+                    maxOutputTokens: 8192,
+                    temperature: 0.2
+                });
+                return { content: translated, model_name: `${MODELS.GEMINI_FLASH} (Vertex AI Translation)` };
+            } catch (llmErr) {
+                const translated = await callGroq(translationPrompt, false, MODELS.GROQ_LLAMA_70B, 0.5);
+                return { content: translated, model_name: `${MODELS.GROQ_LLAMA_70B} (LLM Translation)` };
+            }
         }
     }
 };
@@ -789,12 +797,12 @@ Guidelines:
 5. If the student asks in Hindi, Marathi, or another language, or if specified as ${language}, respond naturally in ${language}.
 `;
 
+    // Priority: Google Cloud Vertex AI (funded by startup credits)
     const chain = [
-        { type: 'gemini', model: MODELS.GEMINI_2_5 },
-        { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-        { type: 'groq', model: MODELS.GROQ_LLAMA_8B },
-        { type: 'openrouter' },
-        { type: 'cerebras' }
+        { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
+        { type: 'gemini', model: MODELS.GEMINI_FLASH },
+        { type: 'gemini', model: MODELS.GEMINI_PRO },
+        { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
     ];
 
     for (const provider of chain) {
