@@ -958,26 +958,24 @@ const Classroom = () => {
     }, 1500);
   };
 
-  const getPdfConversionOptions = (fileName) => ({
-    margin: [10, 10, 12, 10],
-    filename: fileName,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: {
+  const generatePdfBlob = async (element) => {
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf')
+    ]);
+
+    const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
-      letterRendering: true,
       logging: false,
-      scrollY: 0,
-      scrollX: 0,
-      windowWidth: 794,
       backgroundColor: '#ffffff',
+      windowWidth: 794,
       onclone: (clonedDoc) => {
-        // Tailwind v4 uses modern CSS oklch() color functions which html2canvas cannot parse natively.
-        // Convert any oklch / lab / color() computed or inline CSS values to standard RGB/HEX via 2D canvas context.
-        const canvas = clonedDoc.createElement('canvas');
-        canvas.width = 1;
-        canvas.height = 1;
-        const ctx = canvas.getContext('2d');
+        // Convert any modern CSS oklch / lab / color() computed or inline colors to standard RGB/HEX
+        const dummyCanvas = clonedDoc.createElement('canvas');
+        dummyCanvas.width = 1;
+        dummyCanvas.height = 1;
+        const ctx = dummyCanvas.getContext('2d');
 
         const sanitizeColorValue = (val) => {
           if (!val || typeof val !== 'string') return val;
@@ -1006,6 +1004,7 @@ const Classroom = () => {
           target.style.top = '0px';
           target.style.visibility = 'visible';
           target.style.display = 'block';
+          target.style.width = '794px';
 
           const elements = [target, ...target.querySelectorAll('*')];
           const colorProps = [
@@ -1038,17 +1037,29 @@ const Classroom = () => {
           });
         }
       }
-    },
-    jsPDF: {
-      unit: 'mm',
-      format: 'a4',
-      orientation: 'portrait'
-    },
-    pagebreak: {
-      mode: ['avoid-all', 'css', 'legacy'],
-      before: '.pdf-page-break'
+    });
+
+    const imgWidth = 210; // A4 mm
+    const pageHeight = 297; // A4 mm
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, '', 'FAST');
+    heightLeft -= pageHeight;
+
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, '', 'FAST');
+      heightLeft -= pageHeight;
     }
-  });
+
+    return pdf.output('blob');
+  };
 
   const handleOpenPdfPreview = () => {
     if (!parsedIntuition || !parsedIntuition.pages || parsedIntuition.pages.length === 0) {
@@ -1069,12 +1080,7 @@ const Classroom = () => {
       try {
         if (!pdfOffscreenRef.current) throw new Error("Print container not ready");
 
-        const html2pdfModule = await import('html2pdf.js');
-        const html2pdf = html2pdfModule.default || html2pdfModule;
-
-        const opt = getPdfConversionOptions(fileName);
-
-        const pdfBlob = await html2pdf().set(opt).from(pdfOffscreenRef.current).output('blob');
+        const pdfBlob = await generatePdfBlob(pdfOffscreenRef.current);
         const blobUrl = URL.createObjectURL(pdfBlob);
         setGeneratedPdfBlob(pdfBlob);
         setGeneratedPdfUrl(blobUrl);
@@ -1084,7 +1090,7 @@ const Classroom = () => {
       } finally {
         setGeneratingPdf(false);
       }
-    }, 200);
+    }, 250);
   };
 
   const handleDownloadGeneratedPdf = async () => {
@@ -1102,26 +1108,14 @@ const Classroom = () => {
     const toastId = toast.loading("Compiling & downloading PDF notes...");
     try {
       if (!pdfOffscreenRef.current) throw new Error("Template not mounted");
-      const html2pdfModule = await import('html2pdf.js');
-      const html2pdf = html2pdfModule.default || html2pdfModule;
 
-      const opt = getPdfConversionOptions(fileName);
-
-      const pdfBlob = await html2pdf().set(opt).from(pdfOffscreenRef.current).output('blob');
+      const pdfBlob = await generatePdfBlob(pdfOffscreenRef.current);
       downloadPdfBlob(pdfBlob, fileName);
       toast.success("PDF downloaded to your device successfully!", { id: toastId });
     } catch (err) {
       console.error("Download fallback error:", err);
-      try {
-        const html2pdfModule = await import('html2pdf.js');
-        const html2pdf = html2pdfModule.default || html2pdfModule;
-        const opt = getPdfConversionOptions(fileName);
-        await html2pdf().set(opt).from(pdfOffscreenRef.current).save(fileName);
-        toast.success("PDF saved!", { id: toastId });
-      } catch (e) {
-        toast.error("Download encountered an issue. Opening print dialog...", { id: toastId });
-        window.print();
-      }
+      toast.error("Download encountered an issue. Opening print dialog...", { id: toastId });
+      window.print();
     } finally {
       setDownloadingPdf(false);
     }
