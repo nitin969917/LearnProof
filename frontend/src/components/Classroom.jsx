@@ -2377,19 +2377,24 @@ const Classroom = () => {
                                 <button
                                   key={pIdx}
                                   onClick={() => handleSendAiQuestion(item.text)}
-                                  className="group flex flex-col justify-between p-3 sm:p-3.5 bg-white dark:bg-slate-800/90 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/40 border border-gray-200/80 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600 rounded-xl transition-all duration-200 text-left shadow-xs hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                                  className="group flex flex-col p-2.5 sm:p-3 bg-white dark:bg-slate-800/90 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/40 border border-gray-200/80 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600 rounded-xl transition-all duration-200 text-left shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
                                 >
-                                  <div className="flex items-start gap-2.5">
-                                    <span className="text-base shrink-0 select-none mt-0.5">{item.icon}</span>
-                                    <span className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 leading-snug">
-                                      {item.text}
+                                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className="text-sm shrink-0 select-none">{item.icon}</span>
+                                      {item.badge && (
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-100 dark:border-indigo-900/60 px-1.5 py-0.5 rounded shrink-0">
+                                          {item.badge}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[11px] font-semibold text-indigo-500/70 group-hover:text-indigo-600 dark:text-indigo-400 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0">
+                                      Ask →
                                     </span>
                                   </div>
-                                  {item.badge && (
-                                    <span className="self-end mt-2 text-[9px] font-bold uppercase tracking-wider text-indigo-500/90 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/60 px-1.5 py-0.5 rounded">
-                                      {item.badge}
-                                    </span>
-                                  )}
+                                  <p className="text-xs sm:text-[13px] font-medium text-gray-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 leading-snug">
+                                    {item.text}
+                                  </p>
                                 </button>
                               ))}
                             </div>
