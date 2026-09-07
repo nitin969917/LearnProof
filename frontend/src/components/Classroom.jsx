@@ -946,116 +946,151 @@ const Classroom = () => {
     setTimeout(() => setCopiedChapter(false), 2000);
   };
 
-  const downloadPdfBlob = (blob, fileName) => {
+  const downloadPdfBlob = async (blob, fileName) => {
+    // 1. If Web Share API is available (iOS Safari, Android Chrome, Capacitor WebViews), open native Save/Share Sheet
+    try {
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: fileName,
+          text: 'LearnProof AI Study Notes'
+        });
+        toast.success("PDF saved / shared successfully!");
+        return;
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return; // User dismissed share sheet
+      console.warn('Share API fallback to browser download:', e);
+    }
+
+    // 2. Standard browser anchor download
     const blobUrl = URL.createObjectURL(blob);
     const downloadLink = document.createElement('a');
     downloadLink.href = blobUrl;
     downloadLink.download = fileName;
+    downloadLink.target = '_blank';
     document.body.appendChild(downloadLink);
     downloadLink.click();
+    toast.success("PDF downloaded to your device!");
     setTimeout(() => {
       document.body.removeChild(downloadLink);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
     }, 1500);
   };
 
-  const generatePdfBlob = async (element) => {
+  const generatePdfBlob = async (containerElement) => {
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
       import('html2canvas'),
       import('jspdf')
     ]);
 
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      windowWidth: 794,
-      onclone: (clonedDoc) => {
-        // Convert any modern CSS oklch / lab / color() computed or inline colors to standard RGB/HEX
-        const dummyCanvas = clonedDoc.createElement('canvas');
-        dummyCanvas.width = 1;
-        dummyCanvas.height = 1;
-        const ctx = dummyCanvas.getContext('2d');
+    const sanitizeColorsInDoc = (clonedDoc) => {
+      const dummyCanvas = clonedDoc.createElement('canvas');
+      dummyCanvas.width = 1;
+      dummyCanvas.height = 1;
+      const ctx = dummyCanvas.getContext('2d');
 
-        const sanitizeColorValue = (val) => {
-          if (!val || typeof val !== 'string') return val;
-          if (!val.includes('oklch') && !val.includes('lab') && !val.includes('color(')) return val;
-          try {
-            ctx.fillStyle = '#000000';
-            ctx.fillStyle = val;
-            return ctx.fillStyle;
-          } catch (e) {
-            return '#000000';
-          }
-        };
-
-        const target = clonedDoc.getElementById('pdf-preview-printable');
-        if (target) {
-          if (target.parentElement) {
-            target.parentElement.style.opacity = '1';
-            target.parentElement.style.position = 'static';
-            target.parentElement.style.zIndex = '1';
-            target.parentElement.style.display = 'block';
-            target.parentElement.style.visibility = 'visible';
-          }
-          target.style.opacity = '1';
-          target.style.position = 'static';
-          target.style.left = '0px';
-          target.style.top = '0px';
-          target.style.visibility = 'visible';
-          target.style.display = 'block';
-          target.style.width = '794px';
-
-          const elements = [target, ...target.querySelectorAll('*')];
-          const colorProps = [
-            'color',
-            'backgroundColor',
-            'borderColor',
-            'borderTopColor',
-            'borderBottomColor',
-            'borderLeftColor',
-            'borderRightColor',
-            'outlineColor',
-            'textDecorationColor',
-            'fill',
-            'stroke'
-          ];
-
-          elements.forEach((el) => {
-            const computed = clonedDoc.defaultView ? clonedDoc.defaultView.getComputedStyle(el) : null;
-            colorProps.forEach((prop) => {
-              if (el.style && el.style[prop] && (el.style[prop].includes('oklch') || el.style[prop].includes('lab') || el.style[prop].includes('color('))) {
-                el.style[prop] = sanitizeColorValue(el.style[prop]);
-              } else if (computed && computed[prop] && (computed[prop].includes('oklch') || computed[prop].includes('lab') || computed[prop].includes('color('))) {
-                el.style[prop] = sanitizeColorValue(computed[prop]);
-              }
-            });
-
-            if (el.style && el.style.boxShadow && (el.style.boxShadow.includes('oklch') || el.style.boxShadow.includes('lab'))) {
-              el.style.boxShadow = 'none';
-            }
-          });
+      const sanitizeColorValue = (val) => {
+        if (!val || typeof val !== 'string') return val;
+        if (!val.includes('oklch') && !val.includes('lab') && !val.includes('color(')) return val;
+        try {
+          ctx.fillStyle = '#000000';
+          ctx.fillStyle = val;
+          return ctx.fillStyle;
+        } catch (e) {
+          return '#000000';
         }
-      }
-    });
+      };
 
+      const allElements = clonedDoc.querySelectorAll('*');
+      const colorProps = [
+        'color', 'backgroundColor', 'borderColor',
+        'borderTopColor', 'borderBottomColor', 'borderLeftColor', 'borderRightColor',
+        'outlineColor', 'textDecorationColor', 'fill', 'stroke'
+      ];
+
+      allElements.forEach((el) => {
+        const computed = clonedDoc.defaultView ? clonedDoc.defaultView.getComputedStyle(el) : null;
+        colorProps.forEach((prop) => {
+          if (el.style && el.style[prop] && (el.style[prop].includes('oklch') || el.style[prop].includes('lab') || el.style[prop].includes('color('))) {
+            el.style[prop] = sanitizeColorValue(el.style[prop]);
+          } else if (computed && computed[prop] && (computed[prop].includes('oklch') || computed[prop].includes('lab') || computed[prop].includes('color('))) {
+            el.style[prop] = sanitizeColorValue(computed[prop]);
+          }
+        });
+
+        if (el.style && el.style.boxShadow && (el.style.boxShadow.includes('oklch') || el.style.boxShadow.includes('lab'))) {
+          el.style.boxShadow = 'none';
+        }
+      });
+    };
+
+    const pageCards = containerElement.querySelectorAll('.pdf-topic-page-card');
+    const pdf = new jsPDF('p', 'mm', 'a4');
     const imgWidth = 210; // A4 mm
     const pageHeight = 297; // A4 mm
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
-    let position = 0;
 
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+    if (pageCards && pageCards.length > 0) {
+      for (let i = 0; i < pageCards.length; i++) {
+        const card = pageCards[i];
+        const canvas = await html2canvas(card, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+          windowWidth: 794,
+          onclone: (clonedDoc) => {
+            sanitizeColorsInDoc(clonedDoc);
+          }
+        });
 
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, '', 'FAST');
-    heightLeft -= pageHeight;
+        const cardHeightMm = (canvas.height * imgWidth) / canvas.width;
+        const imgData = canvas.toDataURL('image/jpeg', 0.98);
 
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, '', 'FAST');
-      heightLeft -= pageHeight;
+        if (i > 0) pdf.addPage();
+
+        if (cardHeightMm <= pageHeight) {
+          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, cardHeightMm, '', 'FAST');
+        } else {
+          let remainingHeight = cardHeightMm;
+          let currentPos = 0;
+          pdf.addImage(imgData, 'JPEG', 0, currentPos, imgWidth, cardHeightMm, '', 'FAST');
+          remainingHeight -= pageHeight;
+          while (remainingHeight > 0) {
+            currentPos -= pageHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'JPEG', 0, currentPos, imgWidth, cardHeightMm, '', 'FAST');
+            remainingHeight -= pageHeight;
+          }
+        }
+      }
+    } else {
+      const canvas = await html2canvas(containerElement, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        windowWidth: 794,
+        onclone: (clonedDoc) => {
+          sanitizeColorsInDoc(clonedDoc);
+        }
+      });
+
+      const totalHeightMm = (canvas.height * imgWidth) / canvas.width;
+      let remaining = totalHeightMm;
+      let pos = 0;
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+      pdf.addImage(imgData, 'JPEG', 0, pos, imgWidth, totalHeightMm, '', 'FAST');
+      remaining -= pageHeight;
+
+      while (remaining > 0) {
+        pos -= pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, pos, imgWidth, totalHeightMm, '', 'FAST');
+        remaining -= pageHeight;
+      }
     }
 
     return pdf.output('blob');
@@ -1073,24 +1108,6 @@ const Classroom = () => {
     setGeneratedPdfName(fileName);
 
     setShowPdfPreviewModal(true);
-    setGeneratingPdf(true);
-
-    // Give offscreen DOM element time to render
-    setTimeout(async () => {
-      try {
-        if (!pdfOffscreenRef.current) throw new Error("Print container not ready");
-
-        const pdfBlob = await generatePdfBlob(pdfOffscreenRef.current);
-        const blobUrl = URL.createObjectURL(pdfBlob);
-        setGeneratedPdfBlob(pdfBlob);
-        setGeneratedPdfUrl(blobUrl);
-      } catch (err) {
-        console.error("PDF compilation error:", err);
-        toast.error("Failed to compile PDF preview: " + (err?.message || 'Unsupported format'));
-      } finally {
-        setGeneratingPdf(false);
-      }
-    }, 250);
   };
 
   const handleDownloadGeneratedPdf = async () => {
@@ -1099,21 +1116,22 @@ const Classroom = () => {
     const fileName = `${sanitized}_Study_Notes.pdf`;
 
     if (generatedPdfBlob) {
-      downloadPdfBlob(generatedPdfBlob, fileName);
-      toast.success("PDF downloaded to your device successfully!");
+      await downloadPdfBlob(generatedPdfBlob, fileName);
       return;
     }
 
     setDownloadingPdf(true);
-    const toastId = toast.loading("Compiling & downloading PDF notes...");
+    const toastId = toast.loading("Compiling high-resolution PDF document...");
     try {
       if (!pdfOffscreenRef.current) throw new Error("Template not mounted");
 
       const pdfBlob = await generatePdfBlob(pdfOffscreenRef.current);
-      downloadPdfBlob(pdfBlob, fileName);
-      toast.success("PDF downloaded to your device successfully!", { id: toastId });
+      setGeneratedPdfBlob(pdfBlob);
+      setGeneratedPdfUrl(URL.createObjectURL(pdfBlob));
+      toast.dismiss(toastId);
+      await downloadPdfBlob(pdfBlob, fileName);
     } catch (err) {
-      console.error("Download fallback error:", err);
+      console.error("PDF download error:", err);
       toast.error("Download encountered an issue. Opening print dialog...", { id: toastId });
       window.print();
     } finally {
@@ -3216,130 +3234,130 @@ const Classroom = () => {
               width: '794px',
               backgroundColor: '#ffffff',
               color: '#0f172a',
-              fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              padding: '32px 36px'
+              fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
             }}
           >
-          {/* PDF Header & Brand Cover Banner */}
-          <div style={{ borderBottom: '2px solid #4f46e5', paddingBottom: '16px', marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ backgroundColor: '#4f46e5', color: '#ffffff', padding: '6px 14px', borderRadius: '8px', fontWeight: '900', fontSize: '13px', letterSpacing: '1px' }}>
-                  LEARNPROOF AI
+            {/* Each Topic as a Standalone Page Card with Safe Top and Bottom Margins */}
+            {parsedIntuition.pages.map((page, idx) => (
+              <div
+                key={idx}
+                className="pdf-topic-page-card"
+                style={{
+                  width: '794px',
+                  backgroundColor: '#ffffff',
+                  color: '#0f172a',
+                  padding: '36px 40px 48px 40px',
+                  boxSizing: 'border-box',
+                  marginBottom: '16px'
+                }}
+              >
+                {/* PDF Header & Brand Cover Banner on Every Page */}
+                <div style={{ borderBottom: '2px solid #4f46e5', paddingBottom: '14px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ backgroundColor: '#4f46e5', color: '#ffffff', padding: '5px 12px', borderRadius: '6px', fontWeight: '900', fontSize: '12px', letterSpacing: '0.8px' }}>
+                        LEARNPROOF AI
+                      </div>
+                      <span style={{ fontSize: '10.5px', fontWeight: 'bold', color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Digital Study Guide & Notes
+                      </span>
+                    </div>
+                    <div style={{ textAlign: 'right', fontSize: '10px', color: '#64748b' }}>
+                      <span style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
+                        PAGE {idx + 1} OF {parsedIntuition.totalPages}
+                      </span>
+                    </div>
+                  </div>
+
+                  <h1 style={{ fontSize: '18px', fontWeight: '900', color: '#1e1b4b', margin: '4px 0', lineHeight: 1.3 }}>
+                    {video?.name || 'Lecture Study Notes'}
+                  </h1>
                 </div>
-                <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                  Digital Study Guide & Notes
-                </span>
-              </div>
-              <div style={{ textAlign: 'right', fontSize: '10px', color: '#64748b' }}>
-                <span>{new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                <span style={{ margin: '0 6px' }}>•</span>
-                <span style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
-                  {parsedIntuition.totalPages} {parsedIntuition.totalPages === 1 ? 'Topic' : 'Topics'}
-                </span>
-              </div>
-            </div>
 
-            <h1 style={{ fontSize: '20px', fontWeight: '900', color: '#1e1b4b', margin: '0 0 6px 0', lineHeight: 1.3 }}>
-              {video?.name || 'Lecture Study Notes'}
-            </h1>
-            <p style={{ fontSize: '11px', color: '#64748b', margin: 0 }}>
-              Mastery-Grade Visual Study Notes • Optimized for Rapid Revision & Concept Retention
-            </p>
-
-            {/* Topics Summary Bar */}
-            {parsedIntuition.pages.length > 1 && (
-              <div style={{ marginTop: '14px', padding: '10px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                  📚 Quick Topic Index
+                {/* Topic Banner */}
+                <div style={{ backgroundColor: '#eef2ff', borderLeft: '4px solid #4f46e5', padding: '8px 12px', borderRadius: '0 8px 8px 0', marginBottom: '14px' }}>
+                  <span style={{ fontSize: '9px', fontWeight: '900', color: '#4338ca', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block' }}>
+                    TOPIC {page.pageNumber || idx + 1} OF {parsedIntuition.totalPages}
+                  </span>
+                  <h2 style={{ fontSize: '15px', fontWeight: '800', color: '#1e1b4b', margin: '2px 0 0 0' }}>
+                    {page.title}
+                  </h2>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {parsedIntuition.pages.map((p, i) => (
-                    <span key={i} style={{ fontSize: '10px', fontWeight: '600', backgroundColor: '#ffffff', color: '#4338ca', border: '1px solid #c7d2fe', padding: '3px 8px', borderRadius: '6px' }}>
-                      {p.title}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
 
-          {/* All Topics Content */}
-          {parsedIntuition.pages.map((page, idx) => (
-            <div key={idx} className={idx > 0 ? "pdf-page-break" : ""} style={{ marginTop: idx > 0 ? '28px' : '0', marginBottom: '28px' }}>
-              {/* Topic Banner */}
-              <div style={{ backgroundColor: '#eef2ff', borderLeft: '4px solid #4f46e5', padding: '8px 12px', borderRadius: '0 8px 8px 0', marginBottom: '14px' }}>
-                <span style={{ fontSize: '9px', fontWeight: '900', color: '#4338ca', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block' }}>
-                  TOPIC {page.pageNumber || idx + 1} OF {parsedIntuition.totalPages}
-                </span>
-                <h2 style={{ fontSize: '16px', fontWeight: '800', color: '#1e1b4b', margin: '2px 0 0 0' }}>
-                  {page.title}
-                </h2>
-              </div>
-
-              {/* Markdown Content */}
-              <div style={{ fontSize: '12px', color: '#1e293b', lineHeight: '1.6' }}>
-                <ReactMarkdown
-                  remarkPlugins={[remarkMath, remarkGfm]}
-                  rehypePlugins={[rehypeKatex]}
-                  components={{
-                    h1: ({ node, ...props }) => <h1 style={{ fontSize: '16px', fontWeight: '800', color: '#1e1b4b', marginTop: '16px', marginBottom: '8px' }} {...props} />,
-                    h2: ({ node, ...props }) => <h2 style={{ fontSize: '14px', fontWeight: '700', color: '#312e81', marginTop: '14px', marginBottom: '6px' }} {...props} />,
-                    h3: ({ node, ...props }) => <h3 style={{ fontSize: '13px', fontWeight: '700', color: '#3730a3', marginTop: '12px', marginBottom: '4px' }} {...props} />,
-                    h4: ({ node, ...props }) => <h4 style={{ fontSize: '12px', fontWeight: '600', color: '#4338ca', marginTop: '10px', marginBottom: '4px' }} {...props} />,
-                    p: ({ node, ...props }) => <p style={{ fontSize: '11.5px', color: '#334155', lineHeight: '1.6', marginBottom: '8px' }} {...props} />,
-                    ul: ({ node, ...props }) => <ul style={{ listStyleType: 'disc', paddingLeft: '20px', marginBottom: '8px', fontSize: '11.5px', color: '#334155' }} {...props} />,
-                    ol: ({ node, ...props }) => <ol style={{ listStyleType: 'decimal', paddingLeft: '20px', marginBottom: '8px', fontSize: '11.5px', color: '#334155' }} {...props} />,
-                    li: ({ node, ...props }) => <li style={{ marginBottom: '4px', color: '#334155' }} {...props} />,
-                    strong: ({ node, ...props }) => <strong style={{ fontWeight: '700', color: '#0f172a' }} {...props} />,
-                    pre: ({ node, children, ...props }) => <>{children}</>,
-                    code: ({ node, inline, className, children, ...props }) => inline
-                      ? <code style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 4px', borderRadius: '4px', fontSize: '10.5px', fontWeight: '600' }} {...props}>{children}</code>
-                      : (
-                        <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 14px', margin: '12px 0', overflowX: 'auto' }}>
-                          <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '11px', color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                            {String(children || '').replace(/\n$/, '')}
-                          </pre>
+                {/* Markdown Content */}
+                <div style={{ fontSize: '12px', color: '#1e293b', lineHeight: '1.6' }}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkMath, remarkGfm]}
+                    rehypePlugins={[rehypeKatex]}
+                    components={{
+                      h1: ({ node, ...props }) => <h1 style={{ fontSize: '15px', fontWeight: '800', color: '#1e1b4b', marginTop: '14px', marginBottom: '8px' }} {...props} />,
+                      h2: ({ node, ...props }) => <h2 style={{ fontSize: '13.5px', fontWeight: '700', color: '#312e81', marginTop: '12px', marginBottom: '6px' }} {...props} />,
+                      h3: ({ node, ...props }) => <h3 style={{ fontSize: '12.5px', fontWeight: '700', color: '#3730a3', marginTop: '10px', marginBottom: '4px' }} {...props} />,
+                      h4: ({ node, ...props }) => <h4 style={{ fontSize: '11.5px', fontWeight: '600', color: '#4338ca', marginTop: '8px', marginBottom: '4px' }} {...props} />,
+                      p: ({ node, ...props }) => <p style={{ fontSize: '11.5px', color: '#334155', lineHeight: '1.6', marginBottom: '8px' }} {...props} />,
+                      ul: ({ node, ...props }) => <ul style={{ listStyleType: 'disc', paddingLeft: '20px', marginBottom: '8px', fontSize: '11.5px', color: '#334155' }} {...props} />,
+                      ol: ({ node, ...props }) => <ol style={{ listStyleType: 'decimal', paddingLeft: '20px', marginBottom: '8px', fontSize: '11.5px', color: '#334155' }} {...props} />,
+                      li: ({ node, ...props }) => <li style={{ marginBottom: '4px', color: '#334155' }} {...props} />,
+                      strong: ({ node, ...props }) => <strong style={{ fontWeight: '700', color: '#0f172a' }} {...props} />,
+                      pre: ({ node, children, ...props }) => <>{children}</>,
+                      code: ({ node, inline, className, children, ...props }) => inline
+                        ? <code style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 4px', borderRadius: '4px', fontSize: '10.5px', fontWeight: '600' }} {...props}>{children}</code>
+                        : (
+                          <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 14px', margin: '12px 0', overflowX: 'auto' }}>
+                            <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '11px', color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                              {String(children || '').replace(/\n$/, '')}
+                            </pre>
+                          </div>
+                        ),
+                      table: ({ node, ...props }) => (
+                        <div style={{ margin: '12px 0', overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: '1px solid #cbd5e1' }} {...props} />
                         </div>
                       ),
-                    table: ({ node, ...props }) => (
-                      <div style={{ margin: '12px 0', overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: '1px solid #cbd5e1' }} {...props} />
-                      </div>
-                    ),
-                    thead: ({ node, ...props }) => <thead style={{ backgroundColor: '#eef2ff', color: '#1e1b4b', fontWeight: '700' }} {...props} />,
-                    th: ({ node, ...props }) => <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'left', color: '#1e1b4b' }} {...props} />,
-                    td: ({ node, ...props }) => <td style={{ border: '1px solid #e2e8f0', padding: '6px 10px', color: '#334155' }} {...props} />,
-                    blockquote: ({ node, ...props }) => (
-                      <blockquote style={{ borderLeft: '4px solid #6366f1', padding: '6px 12px', backgroundColor: '#f5f3ff', color: '#3730a3', fontStyle: 'italic', margin: '10px 0', borderRadius: '0 6px 6px 0', fontSize: '11.5px' }} {...props} />
-                    )
-                  }}
-                >
-                  {preprocessMarkdown(page.content)}
-                </ReactMarkdown>
-              </div>
+                      thead: ({ node, ...props }) => <thead style={{ backgroundColor: '#eef2ff', color: '#1e1b4b', fontWeight: '700' }} {...props} />,
+                      th: ({ node, ...props }) => <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'left', color: '#1e1b4b' }} {...props} />,
+                      td: ({ node, ...props }) => <td style={{ border: '1px solid #e2e8f0', padding: '6px 10px', color: '#334155' }} {...props} />,
+                      blockquote: ({ node, ...props }) => (
+                        <blockquote style={{ borderLeft: '4px solid #6366f1', padding: '6px 12px', backgroundColor: '#f5f3ff', color: '#3730a3', fontStyle: 'italic', margin: '10px 0', borderRadius: '0 6px 6px 0', fontSize: '11.5px' }} {...props} />
+                      )
+                    }}
+                  >
+                    {preprocessMarkdown(page.content)}
+                  </ReactMarkdown>
+                </div>
 
-              {/* Topic Footer */}
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '8px', marginTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#94a3b8' }}>
-                <span>LearnProof AI Study Companion</span>
-                <span>Topic {page.pageNumber || idx + 1} • {page.title}</span>
+                {/* Topic Page Footer */}
+                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#94a3b8' }}>
+                  <span>LearnProof AI Study Notes</span>
+                  <span>Topic {page.pageNumber || idx + 1} • {page.title}</span>
+                  <span>Page {idx + 1} of {parsedIntuition.totalPages}</span>
+                </div>
+              </div>
+            ))}
+
+            {/* Revision Checklist Page at Bottom */}
+            <div
+              className="pdf-topic-page-card"
+              style={{
+                width: '794px',
+                backgroundColor: '#ffffff',
+                padding: '36px 40px 48px 40px',
+                boxSizing: 'border-box'
+              }}
+            >
+              <div style={{ padding: '16px 18px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: '800', color: '#166534' }}>🎓 Study Revision Checklist</div>
+                  <div style={{ fontSize: '11px', color: '#15803d', marginTop: '3px' }}>Review core concepts above • Re-test intuition with LearnProof AI Quiz</div>
+                </div>
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#16a34a' }}>learnproofai.com</div>
               </div>
             </div>
-          ))}
-
-          {/* Revision Verification Banner at Bottom */}
-          <div style={{ marginTop: '24px', padding: '12px 14px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: '800', color: '#166534' }}>🎓 Study Revision Checklist</div>
-              <div style={{ fontSize: '10px', color: '#15803d', marginTop: '2px' }}>Review core concepts above • Re-test intuition with LearnProof AI Quiz</div>
-            </div>
-            <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#16a34a' }}>learnproofai.com</div>
           </div>
-        </div>
         </div>
       )}
 
-      {/* Real PDF Document Preview & Download Modal */}
+      {/* Real Multi-Page Visual PDF Document Preview & Download Modal */}
       {showPdfPreviewModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm transition-opacity"
@@ -3360,7 +3378,7 @@ const Classroom = () => {
                     {generatedPdfName || `${video?.name || 'Lecture'}_Study_Notes.pdf`}
                   </h3>
                   <p className="text-[10px] text-slate-400 m-0 truncate">
-                    PDF Document Viewer • {parsedIntuition?.totalPages || 1} {(parsedIntuition?.totalPages || 1) === 1 ? 'Topic' : 'Topics'}
+                    Study Notes Document • {parsedIntuition?.totalPages || 1} {(parsedIntuition?.totalPages || 1) === 1 ? 'Page' : 'Pages'}
                   </p>
                 </div>
               </div>
@@ -3369,31 +3387,18 @@ const Classroom = () => {
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 {/* Download PDF Button */}
                 <button
-                  disabled={generatingPdf || downloadingPdf}
+                  disabled={downloadingPdf}
                   onClick={handleDownloadGeneratedPdf}
                   className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  title="Download PDF to device"
+                  title="Download PDF file to device"
                 >
-                  {generatingPdf || downloadingPdf ? (
+                  {downloadingPdf ? (
                     <RefreshCw size={13} className="animate-spin" />
                   ) : (
                     <Download size={13} />
                   )}
-                  <span>{generatingPdf ? "Compiling PDF..." : "Download PDF"}</span>
+                  <span>{downloadingPdf ? "Saving PDF..." : "Download PDF"}</span>
                 </button>
-
-                {/* Open in Tab */}
-                {generatedPdfUrl && (
-                  <a
-                    href={generatedPdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hidden xs:flex px-2.5 py-1.5 sm:px-3 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active:scale-95 text-xs font-semibold rounded-xl transition items-center gap-1.5 cursor-pointer"
-                    title="Open full PDF in new tab"
-                  >
-                    <span>Open Tab</span>
-                  </a>
-                )}
 
                 {/* Close Button */}
                 <button
@@ -3406,43 +3411,112 @@ const Classroom = () => {
               </div>
             </div>
 
-            {/* Modal Body - Actual PDF Viewer */}
-            <div className="flex-1 w-full bg-slate-950 overflow-hidden relative flex flex-col items-center justify-center">
-              {generatingPdf ? (
-                <div className="flex flex-col items-center justify-center p-8 text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
-                  <p className="text-white font-semibold text-sm">Compiling complete PDF document...</p>
-                  <p className="text-slate-400 text-xs mt-1">Formatting formulas, diagrams, and study notes</p>
-                </div>
-              ) : generatedPdfUrl ? (
-                <div className="w-full h-full flex flex-col">
-                  <iframe
-                    src={generatedPdfUrl}
-                    className="w-full flex-1 bg-white border-0"
-                    title="PDF Document Viewer"
-                  />
-                  {/* Mobile Download Bar at bottom */}
-                  <div className="p-3 bg-slate-900 border-t border-slate-800 text-center sm:hidden flex items-center justify-center gap-3">
-                    <button
-                      onClick={handleDownloadGeneratedPdf}
-                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-1.5 cursor-pointer"
+            {/* Modal Body - Interactive Multi-Page Document Viewer */}
+            <div className="flex-1 w-full bg-slate-950 overflow-y-auto p-3 sm:p-6 flex flex-col items-center gap-6">
+              {parsedIntuition?.pages?.map((page, idx) => (
+                <div
+                  key={idx}
+                  className="w-full max-w-[760px] bg-white text-slate-900 rounded-2xl shadow-2xl p-6 sm:p-10 border border-slate-200/80 relative"
+                >
+                  {/* Page Top Header Bar */}
+                  <div className="border-b-2 border-indigo-600 pb-3 mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-indigo-600 text-white px-2.5 py-1 rounded-md font-black text-xs tracking-wider">
+                        LEARNPROOF AI
+                      </div>
+                      <span className="text-xs font-bold text-indigo-700 uppercase tracking-wide truncate max-w-[200px] sm:max-w-md">
+                        {video?.name || 'Lecture Study Notes'}
+                      </span>
+                    </div>
+                    <span className="text-xs font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200">
+                      Page {idx + 1} of {parsedIntuition.totalPages}
+                    </span>
+                  </div>
+
+                  {/* Topic Title Banner */}
+                  <div className="bg-indigo-50 border-l-4 border-indigo-600 p-3 rounded-r-xl mb-5">
+                    <span className="text-[10px] font-black text-indigo-700 uppercase tracking-wider block">
+                      TOPIC {page.pageNumber || idx + 1} OF {parsedIntuition.totalPages}
+                    </span>
+                    <h2 className="text-base sm:text-lg font-extrabold text-indigo-950 m-0 mt-0.5">
+                      {page.title}
+                    </h2>
+                  </div>
+
+                  {/* Markdown Content */}
+                  <div className="prose max-w-none text-slate-800 text-xs sm:text-sm leading-relaxed">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkMath, remarkGfm]}
+                      rehypePlugins={[rehypeKatex]}
+                      components={{
+                        h1: ({ node, ...props }) => <h1 className="text-base sm:text-lg font-extrabold text-indigo-950 mt-4 mb-2" {...props} />,
+                        h2: ({ node, ...props }) => <h2 className="text-sm sm:text-base font-bold text-indigo-900 mt-3 mb-1.5" {...props} />,
+                        h3: ({ node, ...props }) => <h3 className="text-xs sm:text-sm font-bold text-indigo-800 mt-2.5 mb-1" {...props} />,
+                        h4: ({ node, ...props }) => <h4 className="text-xs font-semibold text-indigo-700 mt-2 mb-1" {...props} />,
+                        p: ({ node, ...props }) => <p className="text-xs sm:text-sm text-slate-700 leading-relaxed mb-3" {...props} />,
+                        ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-3 text-xs sm:text-sm text-slate-700 space-y-1" {...props} />,
+                        ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-3 text-xs sm:text-sm text-slate-700 space-y-1" {...props} />,
+                        li: ({ node, ...props }) => <li className="text-slate-700" {...props} />,
+                        strong: ({ node, ...props }) => <strong className="font-bold text-slate-900" {...props} />,
+                        code: ({ node, inline, className, children, ...props }) => inline
+                          ? <code className="bg-indigo-100/70 text-indigo-800 px-1.5 py-0.5 rounded text-[11px] font-semibold" {...props}>{children}</code>
+                          : <CodeEditorBlock code={String(children || '').replace(/\n$/, '')} />,
+                        table: ({ node, ...props }) => (
+                          <div className="my-3 overflow-x-auto rounded-lg border border-slate-200">
+                            <table className="w-full border-collapse text-xs" {...props} />
+                          </div>
+                        ),
+                        thead: ({ node, ...props }) => <thead className="bg-indigo-50/80 text-indigo-950 font-bold border-b border-slate-200" {...props} />,
+                        th: ({ node, ...props }) => <th className="border border-slate-200 px-3 py-2 text-left font-bold" {...props} />,
+                        td: ({ node, ...props }) => <td className="border border-slate-200 px-3 py-2 text-slate-700" {...props} />,
+                        blockquote: ({ node, ...props }) => (
+                          <blockquote className="border-l-4 border-indigo-500 bg-indigo-50/50 p-3 my-3 text-xs text-indigo-900 italic rounded-r-lg" {...props} />
+                        )
+                      }}
                     >
-                      <Download size={14} />
-                      <span>Download PDF to Phone</span>
-                    </button>
+                      {preprocessMarkdown(page.content)}
+                    </ReactMarkdown>
+                  </div>
+
+                  {/* Page Footer */}
+                  <div className="border-t border-slate-200 pt-3 mt-6 flex items-center justify-between text-[10px] text-slate-400">
+                    <span>LearnProof AI Study Companion</span>
+                    <span>Topic {page.pageNumber || idx + 1} • {page.title}</span>
+                    <span>Page {idx + 1} of {parsedIntuition.totalPages}</span>
                   </div>
                 </div>
-              ) : (
-                <div className="p-6 text-center text-slate-400">
-                  <p className="mb-3">Preview loading...</p>
-                  <button
-                    onClick={handleDownloadGeneratedPdf}
-                    className="px-4 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow"
-                  >
-                    Download PDF File
-                  </button>
+              ))}
+
+              {/* Revision Checklist Card at Bottom */}
+              <div className="w-full max-w-[760px] bg-emerald-50 text-emerald-950 rounded-2xl border border-emerald-200 p-5 shadow-lg flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-xs sm:text-sm font-black text-emerald-800">🎓 Study Revision Checklist</div>
+                  <div className="text-[11px] text-emerald-700 mt-0.5">Review core intuition above • Re-test intuition with LearnProof AI Quiz</div>
                 </div>
-              )}
+                <button
+                  onClick={handleDownloadGeneratedPdf}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow cursor-pointer active:scale-95 flex items-center gap-1.5 shrink-0"
+                >
+                  <Download size={13} />
+                  <span>Download PDF</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile Bottom Download Action Bar */}
+            <div className="p-3 bg-slate-900 border-t border-slate-800 text-center sm:hidden flex items-center justify-center gap-3 shrink-0">
+              <button
+                disabled={downloadingPdf}
+                onClick={handleDownloadGeneratedPdf}
+                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {downloadingPdf ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  <Download size={14} />
+                )}
+                <span>{downloadingPdf ? "Saving PDF..." : "Download Complete PDF"}</span>
+              </button>
             </div>
           </div>
         </div>
