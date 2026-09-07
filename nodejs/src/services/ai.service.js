@@ -92,12 +92,12 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
 
 const MODELS = {
     GEMINI_2_5: 'gemini-2.5-flash-lite', // Optimized for low latency & higher rate limits
-    GEMINI_3: 'gemini-3-flash-preview',
+    GEMINI_3: 'gemini-2.5-flash',
     GEMINI_2_5_LITE: 'gemini-2.5-flash', // Full flash model as fallback
-    GROQ_LLAMA_70B: 'llama-3.3-70b-versatile',
-    GROQ_LLAMA_8B: 'llama-3.1-8b-instant',
-    GROQ_QWEN_32B: 'qwen/qwen3-32b',
-    GROQ_LLAMA_4_MAVERICK: 'meta-llama/llama-4-maverick-17b-128e-instruct',
+    GROQ_LLAMA_70B: 'openai/gpt-oss-120b', // High-quality 120B reasoning model on Groq
+    GROQ_LLAMA_8B: 'qwen/qwen3.8-27b', // Fast 27B model on Groq
+    GROQ_QWEN_32B: 'qwen/qwen3.6-27b', // Fast 27B model on Groq
+    GROQ_LLAMA_4_MAVERICK: 'openai/gpt-oss-20b',
     OPENROUTER_MODEL: 'openrouter/free', // Free model router
     CEREBRAS_MODEL: 'gpt-oss-120b'
 };
@@ -209,6 +209,9 @@ async function callOpenRouter(prompt, jsonMode = false, temperature = 0.1) {
         }
 
         const data = await response.json();
+        if (!data || !data.choices || !data.choices[0] || !data.choices[0].message || typeof data.choices[0].message.content !== 'string') {
+            throw new Error(`OpenRouter returned unexpected format: ${JSON.stringify(data)}`);
+        }
         return data.choices[0].message.content;
     } catch (error) {
         clearTimeout(timeoutId);
@@ -359,16 +362,15 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
         });
     };
 
-    // Priority Strategy for Speed (<5s): Cerebras -> Gemini 2.5 -> Groq (70B) -> Groq (8B) -> Gemini 3 -> OpenRouter
+    // Priority Strategy for Speed (<3s): Gemini 2.5 (Vertex AI/Studio) -> Groq (120B) -> Groq (27B) -> Gemini Flash -> OpenRouter
     const chain = [
-        { type: 'cerebras' },
         { type: 'gemini', model: MODELS.GEMINI_2_5 },
         { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
         { type: 'groq', model: MODELS.GROQ_LLAMA_8B },
-        { type: 'gemini', model: MODELS.GEMINI_3 },
+        { type: 'gemini', model: MODELS.GEMINI_2_5_LITE },
         { type: 'groq', model: MODELS.GROQ_QWEN_32B },
         { type: 'openrouter' },
-        { type: 'gemini', model: MODELS.GEMINI_2_5_LITE }
+        { type: 'cerebras' }
     ];
 
     for (const provider of chain) {
@@ -544,23 +546,25 @@ IMPORTANT: Use ONLY information that can be inferred from the title and descript
         chain = [
             { type: 'gemini', model: MODELS.GEMINI_2_5 },
             { type: 'gemini', model: MODELS.GEMINI_3 },
-            { type: 'cerebras' },
-            { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
+            { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
+            { type: 'cerebras' }
         ];
     } else if (hasTranscript) {
         chain = [
             { type: 'gemini', model: MODELS.GEMINI_2_5 },
-            { type: 'cerebras' },
             { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
+            { type: 'groq', model: MODELS.GROQ_LLAMA_8B },
             { type: 'gemini', model: MODELS.GEMINI_3 },
-            { type: 'openrouter' }
+            { type: 'openrouter' },
+            { type: 'cerebras' }
         ];
     } else {
         chain = [
             { type: 'gemini', model: MODELS.GEMINI_2_5 },
-            { type: 'cerebras' },
             { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-            { type: 'openrouter' }
+            { type: 'groq', model: MODELS.GROQ_LLAMA_8B },
+            { type: 'openrouter' },
+            { type: 'cerebras' }
         ];
     }
 
@@ -787,9 +791,10 @@ Guidelines:
 
     const chain = [
         { type: 'gemini', model: MODELS.GEMINI_2_5 },
-        { type: 'cerebras' },
         { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
-        { type: 'openrouter' }
+        { type: 'groq', model: MODELS.GROQ_LLAMA_8B },
+        { type: 'openrouter' },
+        { type: 'cerebras' }
     ];
 
     for (const provider of chain) {
@@ -800,11 +805,14 @@ Guidelines:
                     temperature: 0.3
                 });
                 if (text && text.trim()) return text.trim();
-            } else if (provider.type === 'cerebras') {
-                const text = await callCerebras(prompt, false, 0.3);
-                if (text && text.trim()) return text.trim();
             } else if (provider.type === 'groq') {
                 const text = await callGroq(prompt, false, provider.model, 0.3);
+                if (text && text.trim()) return text.trim();
+            } else if (provider.type === 'openrouter') {
+                const text = await callOpenRouter(prompt, false, 0.3);
+                if (text && text.trim()) return text.trim();
+            } else if (provider.type === 'cerebras') {
+                const text = await callCerebras(prompt, false, 0.3);
                 if (text && text.trim()) return text.trim();
             }
         } catch (err) {
