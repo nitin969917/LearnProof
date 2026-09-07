@@ -2339,7 +2339,7 @@ const Classroom = () => {
 
                   {/* Ask AI Chatbot Tab */}
                   {activeTab === 'ai-chat' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm flex flex-col h-[580px] sm:h-[650px] max-h-[85vh] overflow-hidden">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm flex flex-col min-h-[520px] sm:min-h-[580px] lg:h-[650px] overflow-hidden">
                       {/* Chat Header */}
                       <div className="flex items-center justify-between gap-2.5 sm:gap-3 p-3 sm:p-4 border-b border-gray-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -2354,7 +2354,7 @@ const Classroom = () => {
                               </span>
                             </h4>
                             <p className="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 m-0 mt-0.5 truncate">
-                              Ask any doubt or question from <strong className="text-gray-700 dark:text-slate-200 font-semibold">{video?.name}</strong>.
+                              Ask any doubt or question from <strong className="text-gray-700 dark:text-slate-200 font-semibold">{video?.name}</strong>
                             </p>
                           </div>
                         </div>
@@ -2371,25 +2371,13 @@ const Classroom = () => {
 
                       {/* Quick Doubt Suggestion Prompts - Dynamically Tailored to Lecture */}
                       {aiChatMessages.length === 0 && (
-                        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 sm:p-5 bg-gradient-to-b from-indigo-50/30 via-white to-white dark:from-slate-900/50 dark:via-slate-900 dark:to-slate-900 flex flex-col justify-start">
-                          <div className="w-full max-w-2xl mx-auto space-y-2.5 sm:space-y-4">
-                            <div className="text-center space-y-1">
-                              <div className="inline-flex items-center justify-center p-2 sm:p-2.5 bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl mb-1 shadow-xs">
-                                <Sparkles size={18} className="sm:size-5" />
-                              </div>
-                              <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white m-0">
-                                Ask anything about this lecture
-                              </h3>
-                              <p className="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 m-0">
-                                Click a tailored question below to ask instantly or type your own:
-                              </p>
-                            </div>
-
-                            {/* Header Bar with Subject Badge & Shuffle Action */}
-                            <div className="flex items-center justify-between pt-1">
+                        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 sm:p-4 bg-gradient-to-b from-indigo-50/20 via-white to-white dark:from-slate-900/50 dark:via-slate-900 dark:to-slate-900 flex flex-col justify-start">
+                          <div className="w-full space-y-2.5 sm:space-y-3">
+                            {/* Top Header Bar with Subject Badge & Shuffle Action */}
+                            <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 px-2.5 py-1 rounded-lg">
                                 <Sparkles size={12} className="text-indigo-500" />
-                                <span className="truncate max-w-[200px] sm:max-w-xs">{parsedIntuition?.categoryLabel || 'Topic Doubt Solver'}</span>
+                                <span className="truncate max-w-[190px] sm:max-w-xs">{parsedIntuition?.categoryLabel || 'Topic Doubt Solver'}</span>
                               </div>
 
                               <button
@@ -2398,10 +2386,11 @@ const Classroom = () => {
                                 title="Shuffle suggested questions"
                               >
                                 <Shuffle size={12} />
-                                <span>Shuffle Questions</span>
+                                <span>Shuffle</span>
                               </button>
                             </div>
 
+                            {/* Suggestion Cards */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                               {dynamicSuggestions.map((item, pIdx) => (
                                 <button
