@@ -186,10 +186,10 @@ const preprocessMarkdown = (text) => {
 };
 
 // Custom Modern Code Editor Component with Prism Syntax Highlighting
-const CodeEditorBlock = ({ className, children }) => {
+const CodeEditorBlock = ({ className, children, code, language }) => {
   const [copied, setCopied] = useState(false);
   const match = /language-(\w+)/.exec(className || '');
-  const rawLang = match ? match[1].toLowerCase() : '';
+  const rawLang = language || (match ? match[1].toLowerCase() : '');
   const langAliases = {
     py: 'python',
     js: 'javascript',
@@ -213,7 +213,7 @@ const CodeEditorBlock = ({ className, children }) => {
     yml: 'yaml'
   };
   const lang = langAliases[rawLang] || rawLang || 'javascript';
-  const rawCode = String(children || '').replace(/\n$/, '');
+  const rawCode = String(children || code || '').replace(/\n$/, '');
 
   const handleCopy = (e) => {
     e.stopPropagation();
@@ -946,36 +946,18 @@ const Classroom = () => {
     setTimeout(() => setCopiedChapter(false), 2000);
   };
 
-  const downloadPdfBlob = async (blob, fileName) => {
-    // 1. If Web Share API is available (iOS Safari, Android Chrome, Capacitor WebViews), open native Save/Share Sheet
-    try {
-      const file = new File([blob], fileName, { type: 'application/pdf' });
-      if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: fileName,
-          text: 'LearnProof AI Study Notes'
-        });
-        toast.success("PDF saved / shared successfully!");
-        return;
-      }
-    } catch (e) {
-      if (e.name === 'AbortError') return; // User dismissed share sheet
-      console.warn('Share API fallback to browser download:', e);
-    }
-
-    // 2. Standard browser anchor download
+  const downloadPdfBlob = (blob, fileName) => {
     const blobUrl = URL.createObjectURL(blob);
     const downloadLink = document.createElement('a');
     downloadLink.href = blobUrl;
     downloadLink.download = fileName;
-    downloadLink.target = '_blank';
+    downloadLink.style.display = 'none';
     document.body.appendChild(downloadLink);
     downloadLink.click();
-    toast.success("PDF downloaded to your device!");
+    toast.success("PDF saved directly to Downloads folder!");
     setTimeout(() => {
       document.body.removeChild(downloadLink);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
     }, 1500);
   };
 
@@ -2186,10 +2168,19 @@ const Classroom = () => {
                                           ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                           li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                           p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
-                                          pre: ({ node, children, ...props }) => <>{children}</>,
-                                          code: ({ node, inline, className, children, ...props }) => inline
-                                            ? <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>{children}</code>
-                                            : <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>,
+                                          code: ({ node, className, children, ...props }) => {
+                                             const match = /language-(\w+)/.exec(className || '');
+                                             const codeContent = String(children || '').replace(/\n$/, '');
+                                             const isBlock = match || codeContent.includes('\n');
+                                             if (!isBlock) {
+                                               return (
+                                                 <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>
+                                                   {children}
+                                                 </code>
+                                               );
+                                             }
+                                             return <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>;
+                                           },
                                           table: ({ node, ...props }) => (
                                             <div 
                                               className="overflow-x-auto my-4 rounded-xl border border-gray-200 dark:border-slate-700/80 shadow-2xs no-tab-swipe"
@@ -2261,9 +2252,19 @@ const Classroom = () => {
                                           li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                           p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words" {...props} />,
                                           pre: ({ node, children, ...props }) => <>{children}</>,
-                                          code: ({ node, inline, className, children, ...props }) => inline
-                                            ? <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>{children}</code>
-                                            : <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>,
+                                          code: ({ node, className, children, ...props }) => {
+                                            const match = /language-(\w+)/.exec(className || '');
+                                            const codeContent = String(children || '').replace(/\n$/, '');
+                                            const isBlock = match || codeContent.includes('\n');
+                                            if (!isBlock) {
+                                              return (
+                                                <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>
+                                                  {children}
+                                                </code>
+                                              );
+                                            }
+                                            return <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>;
+                                          },
                                           table: ({ node, ...props }) => (
                                             <div 
                                               className="overflow-x-auto my-4 rounded-xl border border-gray-200 dark:border-slate-700/80 shadow-2xs no-tab-swipe"
@@ -2466,9 +2467,19 @@ const Classroom = () => {
                                           ul: ({ node, ...props }) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
                                           li: ({ node, ...props }) => <li className="break-words" {...props} />,
                                           pre: ({ node, children, ...props }) => <>{children}</>,
-                                          code: ({ node, inline, className, children, ...props }) => inline
-                                            ? <code className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded font-mono text-xs font-semibold" {...props}>{children}</code>
-                                            : <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>
+                                          code: ({ node, className, children, ...props }) => {
+                                            const match = /language-(\w+)/.exec(className || '');
+                                            const codeContent = String(children || '').replace(/\n$/, '');
+                                            const isBlock = match || codeContent.includes('\n');
+                                            if (!isBlock) {
+                                              return (
+                                                <code className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded font-mono text-xs font-semibold" {...props}>
+                                                  {children}
+                                                </code>
+                                              );
+                                            }
+                                            return <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>;
+                                          }
                                         }}
                                       >
                                         {preprocessMarkdown(msg.content)}
@@ -3300,15 +3311,25 @@ const Classroom = () => {
                       li: ({ node, ...props }) => <li style={{ marginBottom: '4px', color: '#334155' }} {...props} />,
                       strong: ({ node, ...props }) => <strong style={{ fontWeight: '700', color: '#0f172a' }} {...props} />,
                       pre: ({ node, children, ...props }) => <>{children}</>,
-                      code: ({ node, inline, className, children, ...props }) => inline
-                        ? <code style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 4px', borderRadius: '4px', fontSize: '10.5px', fontWeight: '600' }} {...props}>{children}</code>
-                        : (
+                      code: ({ node, className, children, ...props }) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        const codeContent = String(children || '').replace(/\n$/, '');
+                        const isBlock = match || codeContent.includes('\n');
+                        if (!isBlock) {
+                          return (
+                            <code style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 5px', borderRadius: '4px', fontSize: '11px', fontFamily: 'monospace', fontWeight: '600' }} {...props}>
+                              {children}
+                            </code>
+                          );
+                        }
+                        return (
                           <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 14px', margin: '12px 0', overflowX: 'auto' }}>
                             <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '11px', color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                              {String(children || '').replace(/\n$/, '')}
+                              {codeContent}
                             </pre>
                           </div>
-                        ),
+                        );
+                      },
                       table: ({ node, ...props }) => (
                         <div style={{ margin: '12px 0', overflowX: 'auto' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: '1px solid #cbd5e1' }} {...props} />
@@ -3458,9 +3479,19 @@ const Classroom = () => {
                         ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-3 text-xs sm:text-sm text-slate-700 space-y-1" {...props} />,
                         li: ({ node, ...props }) => <li className="text-slate-700" {...props} />,
                         strong: ({ node, ...props }) => <strong className="font-bold text-slate-900" {...props} />,
-                        code: ({ node, inline, className, children, ...props }) => inline
-                          ? <code className="bg-indigo-100/70 text-indigo-800 px-1.5 py-0.5 rounded text-[11px] font-semibold" {...props}>{children}</code>
-                          : <CodeEditorBlock code={String(children || '').replace(/\n$/, '')} />,
+                        code: ({ node, className, children, ...props }) => {
+                          const match = /language-(\w+)/.exec(className || '');
+                          const codeContent = String(children || '').replace(/\n$/, '');
+                          const isBlock = match || codeContent.includes('\n');
+                          if (!isBlock) {
+                            return (
+                              <code className="bg-indigo-100/80 text-indigo-800 px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold" {...props}>
+                                {children}
+                              </code>
+                            );
+                          }
+                          return <CodeEditorBlock code={codeContent} language={match ? match[1] : ''} />;
+                        },
                         table: ({ node, ...props }) => (
                           <div className="my-3 overflow-x-auto rounded-lg border border-slate-200">
                             <table className="w-full border-collapse text-xs" {...props} />
