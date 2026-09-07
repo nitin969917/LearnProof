@@ -719,16 +719,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     room.on(RoomEvent.DataReceived, handleDataReceived);
     room.on(RoomEvent.ParticipantConnected, handleParticipantConnected);
 
-    // If not host, request initial settings on connect from the host
-    if (!isHost && room.state === 'connected') {
-      try {
-        const reqPayload = JSON.stringify({ type: 'REQUEST_ROOM_SETTINGS' });
-        room.localParticipant?.publishData(
-          new TextEncoder().encode(reqPayload),
-          { reliable: true, topic: 'room_settings' }
-        ).catch(() => {});
-      } catch (e) { }
-    }
+    // Settings and room state for non-hosts are already retrieved via Socket.IO getLiveRoomSyncState
 
     return () => {
       room.off(RoomEvent.DataReceived, handleDataReceived);
@@ -1035,7 +1026,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // ─── Helper: send a data message to room participants ─────────────────────
   const sendSignal = async (payloadObj, destinationIdentities) => {
-    if (!room?.localParticipant) return;
+    if (!room?.localParticipant || room.state !== 'connected' || !canPublish || !localParticipant?.permissions?.canPublishData) return;
     try {
       const encoded = new TextEncoder().encode(JSON.stringify(payloadObj));
       const opts = { reliable: true };
@@ -1047,11 +1038,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       } catch (innerErr) {
         // If directed transmission fails, broadcast to room
         if (opts.destinationIdentities) {
-          await room.localParticipant.publishData(encoded, { reliable: true });
+          await room.localParticipant.publishData(encoded, { reliable: true }).catch(() => {});
         }
       }
     } catch (err) {
-      console.warn('[Signal] Non-critical signal publish error:', err?.message || err);
+      // Suppress non-critical signal publish error
     }
   };
 

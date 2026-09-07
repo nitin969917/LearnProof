@@ -146,6 +146,20 @@ const App = () => {
     React.useEffect(() => {
         initializeLaunch();
 
+        const handleUnhandledRejection = (event) => {
+            const reason = event.reason;
+            const msg = String(reason?.message || reason || '');
+            const name = String(reason?.name || '');
+            if (
+                name === 'UnexpectedConnectionState' ||
+                msg.includes('PC manager is closed') ||
+                msg.includes('ensureDataTransportConnected')
+            ) {
+                event.preventDefault();
+            }
+        };
+        window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
         if (Capacitor.isNativePlatform()) {
             const updateStatusBar = () => {
                 const isDark = document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark';

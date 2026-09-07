@@ -110,8 +110,9 @@ export default function RoomWhiteboard({
       _seq: payload.seq || `${payload.type}_${payload.strokeId || ''}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
     };
 
-    // 1. Broadcast via LiveKit Data Channel (WebRTC fast-path, only if connected)
-    if (room && room.state === 'connected' && participant && typeof participant.publishData === 'function') {
+    // 1. Broadcast via LiveKit Data Channel (WebRTC fast-path, only if publisher transport is active)
+    const canPublishData = Boolean(canPublish && (room?.localParticipant?.permissions?.canPublishData ?? true));
+    if (canPublishData && room && room.state === 'connected' && participant && typeof participant.publishData === 'function') {
       try {
         const dataStr = JSON.stringify(packetWithMeta);
         const encoder = new TextEncoder();
@@ -119,10 +120,7 @@ export default function RoomWhiteboard({
         participant.publishData(encoded, {
           reliable,
           topic: 'whiteboard'
-        }).catch(() => {
-          // Fallback without topic
-          participant.publishData(encoded, { reliable }).catch(() => {});
-        });
+        }).catch(() => {});
       } catch (e) {
         // Suppress benign connection state errors
       }
@@ -680,8 +678,10 @@ export default function RoomWhiteboard({
 
     room.on(RoomEvent.DataReceived, handleDataReceived);
 
-    // Initial sync request on mount
-    broadcastPacket({ type: 'SYNC_REQUEST' }, true);
+    // Initial sync request on mount (only publishers use WebRTC fast-path, all users use Socket.IO)
+    if (canPublish && room.state === 'connected') {
+      broadcastPacket({ type: 'SYNC_REQUEST' }, true);
+    }
 
     return () => {
       room.off(RoomEvent.DataReceived, handleDataReceived);
