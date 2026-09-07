@@ -82,11 +82,14 @@ const PageLoader = () => (
     </div>
 );
 
-// RouteTracker: Automatically keeps track of the active user location in localStorage
+// RouteTracker: Automatically keeps track of the active user location in localStorage during the active session
 const RouteTracker = () => {
     const location = useLocation();
 
     React.useEffect(() => {
+        // Mark current session as active
+        sessionStorage.setItem('learnproof_session_active', 'true');
+
         const fullPath = location.pathname + location.search + location.hash;
         const isExcluded = (
             !fullPath ||
@@ -107,7 +110,9 @@ const RouteTracker = () => {
     return null;
 };
 
-// Native mobile entry handler: In the mobile app, restore the last active route or default to login/dashboard
+// Native mobile entry handler: 
+// 1. If app is freshly launched from a closed/killed state (sessionStorage was cleared): Go directly to main/dashboard.
+// 2. If app is resuming during an active session (multitasking / background switch): Restore the last active route.
 const RootRoute = () => {
     const { user, loading } = useAuth();
     const isNativeApp = typeof window !== 'undefined' && (
@@ -119,18 +124,33 @@ const RootRoute = () => {
     if (loading) return <PageLoader />;
 
     if (user) {
-        const lastRoute = localStorage.getItem('learnproof_last_route');
-        const isValidRoute = (
-            lastRoute && 
-            lastRoute !== '/' && 
-            lastRoute !== '/login' &&
-            lastRoute !== '/download' &&
-            !lastRoute.startsWith('/verify') &&
-            !lastRoute.startsWith('/privacy') &&
-            !lastRoute.startsWith('/terms') &&
-            !lastRoute.startsWith('/delete-account')
-        );
-        const targetRoute = isValidRoute ? lastRoute : '/dashboard';
+        const isSessionActive = typeof window !== 'undefined' && sessionStorage.getItem('learnproof_session_active') === 'true';
+        
+        let targetRoute = '/dashboard';
+
+        if (isSessionActive) {
+            // App was only backgrounded/paused during the active session; restore route
+            const lastRoute = localStorage.getItem('learnproof_last_route');
+            const isValidRoute = (
+                lastRoute && 
+                lastRoute !== '/' && 
+                lastRoute !== '/login' &&
+                lastRoute !== '/download' &&
+                !lastRoute.startsWith('/verify') &&
+                !lastRoute.startsWith('/privacy') &&
+                !lastRoute.startsWith('/terms') &&
+                !lastRoute.startsWith('/delete-account')
+            );
+            if (isValidRoute) {
+                targetRoute = lastRoute;
+            }
+        } else {
+            // App was closed completely and launched fresh: start fresh on main dashboard
+            localStorage.removeItem('learnproof_last_route');
+            sessionStorage.setItem('learnproof_session_active', 'true');
+            targetRoute = '/dashboard';
+        }
+
         return <Navigate to={targetRoute} replace />;
     }
 
