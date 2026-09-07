@@ -1361,12 +1361,12 @@ const Classroom = () => {
 
                   {/* Intuition Tab */}
                   {activeTab === 'intuition' && (
-                    <div className="space-y-3 sm:space-y-4">
+                    <div className="space-y-2 sm:space-y-2.5">
                       {/* Top Action Card: Ask AI Doubt */}
-                      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-950/40 dark:via-purple-950/40 dark:to-pink-950/30 border border-indigo-200 dark:border-indigo-800/80 rounded-2xl p-3 sm:p-4 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-950/40 dark:via-purple-950/40 dark:to-pink-950/30 border border-indigo-200 dark:border-indigo-800/80 rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
                         <div className="flex items-center gap-2.5 sm:gap-3">
-                          <div className="p-2 sm:p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm shrink-0">
-                            <Bot size={18} className="sm:size-5" />
+                          <div className="p-1.5 sm:p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm shrink-0">
+                            <Bot size={16} className="sm:size-[18px]" />
                           </div>
                           <div>
                             <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white m-0 flex items-center gap-1.5">
@@ -1390,8 +1390,8 @@ const Classroom = () => {
                       </div>
 
                       {/* AI Notes & Core Intuition Card */}
-                      <div className="prose max-w-none bg-indigo-50/50 dark:bg-indigo-900/20 p-3.5 sm:p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
-                        <div className="flex flex-row items-center justify-between gap-2 mb-3 pb-2.5 border-b border-indigo-200 dark:border-indigo-800">
+                      <div className="prose max-w-none bg-indigo-50/50 dark:bg-indigo-900/20 px-3.5 py-3 sm:px-6 sm:py-4 rounded-2xl border border-indigo-100 dark:border-indigo-800 transition-colors duration-200 break-words overflow-hidden">
+                        <div className="flex flex-row items-center justify-between gap-2 mb-2 pb-2 border-b border-indigo-200 dark:border-indigo-800">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className="p-1 sm:p-1.5 bg-indigo-100 dark:bg-indigo-900/50 rounded-md shrink-0">
                               <Sparkles className="text-indigo-600 dark:text-indigo-400" size={14} />
@@ -1438,7 +1438,7 @@ const Classroom = () => {
                                 remarkPlugins={[remarkMath, remarkGfm]}
                                 rehypePlugins={[rehypeKatex]}
                                 components={{
-                                  h3: ({ node, ...props }) => <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-300 mt-6 mb-3 break-words" {...props} />,
+                                  h3: ({ node, ...props }) => <h3 className="text-base sm:text-lg font-bold text-indigo-900 dark:text-indigo-300 first:mt-1 mt-4 mb-2 break-words" {...props} />,
                                   strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
                                   ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
                                   li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words" {...props} />,
