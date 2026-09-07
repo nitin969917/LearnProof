@@ -105,28 +105,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // Helper: back-navigate respecting where the user came from
   const navigateBack = useCallback(() => {
-    const src = sessionStorage.getItem('nav_source');
-    if (src === 'social') {
-      const savedTab = localStorage.getItem('social_active_tab') || 'chat';
-      const savedProfileId = localStorage.getItem('social_selected_profile_id');
-      const savedChat = localStorage.getItem('social_selected_chat_contact');
-
-      let targetPath = `/dashboard/social?tab=${savedTab}`;
-      if (savedTab === 'profile' && savedProfileId) {
-        targetPath += `&profileId=${savedProfileId}`;
-      } else if (savedTab === 'chat' && savedChat) {
-        try {
-          const parsed = JSON.parse(savedChat);
-          if (parsed && parsed.id && parsed.type) {
-            targetPath += `&chatId=${parsed.id}&chatType=${parsed.type}`;
-          }
-        } catch (e) { }
-      }
-      navigateRef.current(targetPath);
-    } else {
-      navigateRef.current('/dashboard/live-rooms');
+    if (room) {
+      try {
+        room.disconnect();
+      } catch (_) {}
     }
-  }, []);
+    handleLeaveRoom();
+  }, [room, handleLeaveRoom]);
 
   // Mobile screen responsiveness tracking
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -980,6 +965,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     localStorage.removeItem(`livekit_stage_${roomName}`);
     localStorage.removeItem(`livekit_mic_${roomName}`);
     localStorage.removeItem(`livekit_cam_${roomName}`);
+    if (room) {
+      try {
+        room.disconnect();
+      } catch (_) {}
+    }
     await handleLeaveRoom();
   };
 
@@ -998,7 +988,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     if (room) {
       try {
         await sendSignal({ type: 'room_ended' });
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await new Promise(resolve => setTimeout(resolve, 300));
+        room.disconnect();
       } catch (err) {
         console.error('Failed to broadcast room_ended:', err);
       }
@@ -3068,19 +3059,22 @@ export default function LanguageRoom() {
   }, [user, roomName, navigate]);
 
   useEffect(() => {
-    // Hide PiP when returning to the room page
+    // Hide PiP when inside the room page
     useLiveRoomPipStore.getState().setShowPip(false);
 
     return () => {
-      if (!hasExplicitlyLeft.current && useLiveRoomPipStore.getState().activeRoom) {
-        useLiveRoomPipStore.getState().setShowPip(true);
-      }
+      // Directly leave and never linger in PiP floating window
+      const pip = useLiveRoomPipStore.getState();
+      pip.setShowPip(false);
+      pip.clearActiveRoom();
     };
   }, [roomName]);
 
   const handleLeaveRoom = useCallback(async () => {
     hasExplicitlyLeft.current = true; // User explicitly left the room
-    useLiveRoomPipStore.getState().clearActiveRoom();
+    const pip = useLiveRoomPipStore.getState();
+    pip.setShowPip(false);
+    pip.clearActiveRoom();
 
     try {
       localStorage.removeItem(`livekit_stage_${roomName}`);
