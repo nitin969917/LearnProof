@@ -522,6 +522,23 @@ const Classroom = () => {
     }
   };
 
+  const handleDeleteQuizHistory = async (id) => {
+    if (!id || !token) return;
+    if (!window.confirm("Are you sure you want to delete this quiz attempt?")) return;
+
+    try {
+      await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${id}?idToken=${token}`);
+      toast.success("Quiz attempt deleted");
+      if (selectedHistoryQuiz?.id === id) {
+        setSelectedHistoryQuiz(null);
+      }
+      fetchQuizHistory();
+    } catch (err) {
+      console.error("Failed to delete quiz history attempt:", err);
+      toast.error("Failed to delete quiz attempt");
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-orange-50 dark:bg-gray-900 text-orange-600 dark:text-orange-400">
@@ -1449,41 +1466,39 @@ const Classroom = () => {
 
                   {/* Ask AI Chatbot Tab */}
                   {activeTab === 'ai-chat' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 p-3.5 sm:p-6 shadow-sm flex flex-col min-h-[480px] h-[calc(100dvh-230px)] sm:h-[620px] max-h-[85vh] relative overflow-hidden pb-16 lg:pb-4">
-                      <div className="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-gray-100 dark:border-slate-800 shrink-0">
-                        <div className="flex items-center gap-2.5">
-                          <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm flex flex-col h-[520px] sm:h-[600px] max-h-[82vh] overflow-hidden">
+                      {/* Chat Header */}
+                      <div className="flex items-center justify-between gap-3 p-3.5 sm:p-4 border-b border-gray-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-sm shrink-0">
                             <Bot size={20} />
                           </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5 m-0">
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5 m-0 truncate">
                               <span>AI Lecture Doubt Solver & Chatbot</span>
-                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 shrink-0">
                                 Live Tutor
                               </span>
                             </h4>
-                            <p className="text-xs text-gray-500 dark:text-slate-400 m-0 mt-0.5">
+                            <p className="text-xs text-gray-500 dark:text-slate-400 m-0 mt-0.5 truncate">
                               Ask any doubt or question from <strong className="text-gray-700 dark:text-slate-200 font-semibold">{video?.name}</strong>.
                             </p>
                           </div>
                         </div>
-                        {aiChatMessages.length > 0 && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={handleStartNewChat}
-                              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs"
-                              title="Start a new chat conversation"
-                            >
-                              <Plus size={14} />
-                              <span>New Chat</span>
-                            </button>
-                          </div>
-                        )}
+                        <button
+                          onClick={handleStartNewChat}
+                          disabled={aiChatMessages.length === 0 && !aiChatInput}
+                          className="p-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer rounded-xl flex items-center justify-center shadow-xs active:scale-95 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Start New Chat"
+                          aria-label="New Chat"
+                        >
+                          <Plus size={18} />
+                        </button>
                       </div>
 
                       {/* Quick Doubt Suggestion Prompts */}
                       {aiChatMessages.length === 0 && (
-                        <div className="mb-4 p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-800/40 flex-1 flex flex-col justify-center pb-24 lg:pb-4 overflow-y-auto custom-scrollbar">
+                        <div className="p-4 rounded-xl m-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-800/40 flex-1 flex flex-col justify-center overflow-y-auto custom-scrollbar">
                           <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
                             <Sparkles size={13} />
                             <span>Quick Questions you can ask:</span>
@@ -1508,9 +1523,9 @@ const Classroom = () => {
                         </div>
                       )}
 
-                      {/* Message Stream */}
+                      {/* Message Stream Directly Connected to Input */}
                       {aiChatMessages.length > 0 && (
-                        <div className="space-y-4 overflow-y-auto pr-1 mb-2 custom-scrollbar flex-1 min-h-0 pb-24 lg:pb-2">
+                        <div className="space-y-4 overflow-y-auto p-3.5 sm:p-4 custom-scrollbar flex-1 min-h-0">
                           {aiChatMessages.map((msg, mIdx) => (
                             <div
                               key={mIdx}
@@ -1570,34 +1585,32 @@ const Classroom = () => {
                         </div>
                       )}
 
-                      {/* Chat Message Entering Section - Fixed at Bottom on Mobile, Docked on Desktop */}
-                      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-200/90 dark:border-slate-800/90 p-2.5 sm:p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_25px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_25px_rgba(0,0,0,0.4)] lg:static lg:bg-transparent dark:lg:bg-transparent lg:shadow-none lg:p-0 lg:pt-3 lg:mt-auto lg:border-t lg:border-gray-100 dark:lg:border-slate-800/80 shrink-0">
-                        <div className="max-w-5xl mx-auto w-full px-2 sm:px-4 lg:px-0">
-                          <form
-                            onSubmit={(e) => {
-                              e.preventDefault();
-                              handleSendAiQuestion();
-                            }}
-                            className="flex items-center gap-2"
+                      {/* Directly Connected Chat Input Bar */}
+                      <div className="p-2.5 sm:p-3 bg-gray-50/80 dark:bg-slate-800/40 border-t border-gray-100 dark:border-slate-800 shrink-0">
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSendAiQuestion();
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <input
+                            type="text"
+                            placeholder="Ask any doubt about this lecture..."
+                            value={aiChatInput}
+                            onChange={(e) => setAiChatInput(e.target.value)}
+                            disabled={aiChatLoading}
+                            className="flex-1 px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition shadow-inner"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!aiChatInput.trim() || aiChatLoading}
+                            className="px-4 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
                           >
-                            <input
-                              type="text"
-                              placeholder="Ask any doubt about this lecture..."
-                              value={aiChatInput}
-                              onChange={(e) => setAiChatInput(e.target.value)}
-                              disabled={aiChatLoading}
-                              className="flex-1 px-4 py-3 bg-gray-50 dark:bg-slate-800/90 border border-gray-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition shadow-inner"
-                            />
-                            <button
-                              type="submit"
-                              disabled={!aiChatInput.trim() || aiChatLoading}
-                              className="px-4 sm:px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
-                            >
-                              <span>Ask AI</span>
-                              <Send size={13} />
-                            </button>
-                          </form>
-                        </div>
+                            <span>Ask AI</span>
+                            <Send size={13} />
+                          </button>
+                        </form>
                       </div>
                     </div>
                   )}
@@ -1634,25 +1647,36 @@ const Classroom = () => {
                             animate={{ opacity: 1, scale: 1 }}
                             className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 relative"
                           >
-                            <button
-                              onClick={() => setSelectedHistoryQuiz(null)}
-                              className="mb-6 flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
-                            >
-                              <ArrowLeft size={16} /> Back to Quiz Menu
-                            </button>
-
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b dark:border-slate-700 pb-6 gap-4">
-                              <div>
-                                <h2 className="text-2xl font-bold dark:text-white m-0 mt-0">Detailed Review</h2>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 m-0">
-                                  Attempted: {new Date(selectedHistoryQuiz.attempted_at).toLocaleDateString()}
-                                </p>
+                            <div className="flex items-center justify-between gap-3 mb-5 pb-3 border-b border-gray-100 dark:border-slate-700">
+                              <div className="flex items-center gap-2.5">
+                                <button
+                                  onClick={() => setSelectedHistoryQuiz(null)}
+                                  className="p-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-xs active:scale-95 shrink-0"
+                                  title="Back to Quiz Menu"
+                                  aria-label="Back to Quiz Menu"
+                                >
+                                  <ArrowLeft size={18} />
+                                </button>
+                                <div>
+                                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white m-0 leading-tight">Detailed Review</h2>
+                                  <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 m-0 mt-0.5">
+                                    Attempted: {new Date(selectedHistoryQuiz.attempted_at).toLocaleDateString()}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="text-left sm:text-right bg-gray-50 dark:bg-slate-700/50 p-3 rounded-xl border border-gray-100 dark:border-slate-600">
-                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 ${selectedHistoryQuiz.passed ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                  {selectedHistoryQuiz.passed ? "Passed" : "Failed"}
+
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${selectedHistoryQuiz.passed ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                  {selectedHistoryQuiz.passed ? "Passed" : "Failed"} • {selectedHistoryQuiz.score}%
                                 </span>
-                                <p className="text-lg font-bold m-0 dark:text-slate-200 leading-tight">Score: {selectedHistoryQuiz.score}%</p>
+                                <button
+                                  onClick={() => handleDeleteQuizHistory(selectedHistoryQuiz.id)}
+                                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 dark:hover:text-red-400 rounded-xl transition-colors flex items-center justify-center cursor-pointer border border-gray-100 dark:border-slate-700 shadow-xs active:scale-95 shrink-0"
+                                  title="Delete this quiz attempt"
+                                  aria-label="Delete Attempt"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
                               </div>
                             </div>
 
@@ -1798,18 +1822,29 @@ const Classroom = () => {
                                       initial={{ opacity: 0, y: 10 }}
                                       animate={{ opacity: 1, y: 0 }}
                                       onClick={() => setSelectedHistoryQuiz(hist)}
-                                      className="flex justify-between items-center p-4 bg-white dark:bg-slate-800 shadow-sm rounded-xl border border-gray-200 dark:border-slate-700 cursor-pointer hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-md transition-all group"
+                                      className="flex justify-between items-center p-3.5 sm:p-4 bg-white dark:bg-slate-800 shadow-sm rounded-xl border border-gray-200 dark:border-slate-700 cursor-pointer hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-md transition-all group"
                                     >
                                       <div>
-                                        <p className="font-semibold text-gray-800 dark:text-slate-200 m-0 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                                        <p className="font-semibold text-gray-800 dark:text-slate-200 m-0 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors text-xs sm:text-sm">
                                           Attempt on {new Date(hist.attempted_at).toLocaleDateString()}
                                         </p>
                                       </div>
-                                      <div className="flex items-center gap-4">
-                                        <span className={`inline-block px-3 py-1 text-sm font-bold rounded-lg ${hist.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                      <div className="flex items-center gap-2.5">
+                                        <span className={`inline-block px-2.5 py-0.5 text-xs font-bold rounded-lg ${hist.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                           {hist.score}%
                                         </span>
-                                        <ArrowLeft size={18} className="text-gray-400 rotate-180 group-hover:text-orange-500 transition-colors" />
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteQuizHistory(hist.id);
+                                          }}
+                                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
+                                          title="Delete attempt"
+                                          aria-label="Delete attempt"
+                                        >
+                                          <Trash2 size={15} />
+                                        </button>
+                                        <ArrowLeft size={16} className="text-gray-400 rotate-180 group-hover:text-orange-500 transition-colors" />
                                       </div>
                                     </motion.div>
                                   ))}
