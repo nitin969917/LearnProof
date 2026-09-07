@@ -549,9 +549,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       toggleWhiteboard(false);
     }
     broadcastRoomSettings(newVal, allowScreenShare);
-    toast.success(newVal ? 'Whiteboard enabled for the room' : 'Whiteboard disabled for the room', {
-      icon: newVal ? '🎨' : '🔒'
-    });
+    // No toast needed - whiteboard button state reflects the change
   };
 
   // Host toggle for Screen Sharing permission
@@ -564,9 +562,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       } catch (e) { }
     }
     broadcastRoomSettings(allowWhiteboard, newVal);
-    toast.success(newVal ? 'Screen sharing enabled for speakers' : 'Screen sharing disabled for speakers', {
-      icon: newVal ? '🖥️' : '🔒'
-    });
+    // No toast needed - button state reflects the change
   };
 
   // Toggle Screen Sharing (Enforce 1 person at a time & Host permission)
@@ -612,11 +608,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       const target = !isScreenSharing;
       await localParticipant.setScreenShareEnabled(target, { audio: true });
       setIsScreenSharing(target);
-      if (target) {
-        toast.success('Screen sharing active');
-      } else {
-        toast.success('Screen sharing stopped');
-      }
+      // No toast needed - screen share tile appears/disappears naturally
     } catch (err) {
       console.error('Failed to toggle screen share:', err);
       const isNotSupported = err.name === 'NotSupportedError' || 
@@ -785,9 +777,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         setIsMicEnabled(true);
         localStorage.setItem(`livekit_stage_${roomName}`, 'speaker');
         localStorage.setItem(`livekit_mic_${roomName}`, 'enabled');
-        toast.success('You have been promoted to the stage!', { id: 'promoted-stage-toast', duration: 4000 });
+        // No popup - the header bar already shows "You are now on stage"
       } else {
-        toast.error('You have been moved back to the audience.', { duration: 5000 });
+        // No popup - stage tile disappears naturally from the layout
         localParticipant.setMicrophoneEnabled(false).catch(() => { });
         localParticipant.setCameraEnabled(false).catch(() => { });
         setIsMicEnabled(false);
@@ -818,7 +810,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       localStorage.setItem(`livekit_mic_${roomName}`, target ? 'enabled' : 'disabled');
     } catch (err) {
       console.error('Failed to toggle mic:', err);
-      toast.error('Could not toggle microphone.');
+      // Microphone toggle failed silently
     }
   };
 
@@ -832,7 +824,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       localStorage.setItem(`livekit_cam_${roomName}`, target ? 'enabled' : 'disabled');
     } catch (err) {
       console.error('Failed to toggle cam:', err);
-      toast.error('Could not access camera.');
+      // Camera toggle failed silently
     }
   };
 
@@ -945,7 +937,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       type: 'chat',
       id: m.id || m.timestamp || Date.now(),
       time: new Date(m.timestamp || (m.sentAt ? new Date(m.sentAt).getTime() : Date.now())),
-      from: typeof m.from === 'object' ? (m.from?.name || m.from?.identity || 'User') : (m.from || 'User'),
+      // Preserve from as object so render can access .identity and .name
+      from: typeof m.from === 'object'
+        ? { identity: m.from?.identity || m.from?.senderId || m.senderId || '', name: m.from?.name || m.from?.userName || 'User' }
+        : { identity: m.senderId || '', name: m.from || 'User' },
       text: m.text || m.message
     })),
     ...systemEvents.map(s => ({
@@ -1032,7 +1027,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const handleRequestToSpeak = () => {
     if (hasRequested) return;
     setHasRequested(true);
-    toast.success('Stage request sent! Waiting for host approval...', { icon: '🎤' });
+    // No toast - the button changes to "Withdraw" which shows the pending state
 
     const myIdentity = localParticipant?.identity || userIdentity || (user?.id ? String(user.id) : null);
     const myName = localParticipant?.name || user?.name || 'User';
@@ -1074,7 +1069,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const handleWithdrawRequest = () => {
     if (!hasRequested) return;
     setHasRequested(false);
-    toast.success('Stage request withdrawn.', { icon: '🎤' });
+    // No toast - button resets to "Raise Hand" which shows the state
 
     const myId = localParticipant?.identity || userIdentity || (user?.id ? String(user.id) : null);
     if (myId) {
@@ -1112,7 +1107,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     try {
       // Direct API promotion ensures permissions are granted immediately on server
       await socialApi.post(`/livekit/rooms/${roomName}/participants/${identity}/promote`);
-      toast.success(`${pName || 'User'} has been invited to stage!`, { id: `invite-${identity}`, duration: 2500, icon: '🎤' });
       // Send signal to notify user on UI
       try {
         await sendSignal({
@@ -1132,7 +1126,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // ── Listener: Accept host invite ───────────────────────────────────────────
   const handleAcceptInvite = async () => {
     setShowInviteModal(false);
-    toast.success('You are now on stage! 🎤', { id: 'on-stage-self', duration: 3000 });
+    // No toast - the stage header bar shows "You are now on stage"
     try {
       await sendSignal({
         type: 'accept_invite_response',
@@ -1401,7 +1395,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
           }
         } else if (data.type === 'decline_invite_response') {
           if (hostActive) {
-            toast.error(`${data.name || 'User'} declined the stage invitation.`, { id: `decline-${data.identity || 'user'}`, duration: 3000 });
+            // Silently dismiss the pending request — no popup needed
           }
         } else if (data.type === 'room_ended') {
           toast.error('The host has ended this session.', { id: 'room-ended', duration: 4000 });
