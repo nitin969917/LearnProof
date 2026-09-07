@@ -399,7 +399,7 @@ const DashboardHome = () => {
                             {/* Learning Hub Card */}
                             <div
                                 onClick={() => navigate((playlists.length === 0 && videos.length === 0) ? '/dashboard/explore' : '/dashboard/library')}
-                                className="bg-gradient-to-b from-[#FFFDFB] to-[#FFF9F5] dark:from-gray-800 dark:to-gray-900 border border-orange-100/50 dark:border-gray-750 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
+                                className="bg-gradient-to-b from-[#FFFDFB] to-[#FFF9F5] dark:from-gray-800 dark:to-gray-900 border border-orange-100/50 dark:border-gray-700 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
                             >
                                 <div>
                                     <div className="flex items-center gap-2.5 mb-2">
@@ -427,7 +427,7 @@ const DashboardHome = () => {
                             {/* Live Rooms Card */}
                             <div
                                 onClick={() => navigate('/dashboard/live-rooms')}
-                                className="bg-gradient-to-b from-[#F9FBFF] to-[#F1F6FF] dark:from-gray-800 dark:to-gray-900 border border-blue-100/50 dark:border-gray-750 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
+                                className="bg-gradient-to-b from-[#F9FBFF] to-[#F1F6FF] dark:from-gray-800 dark:to-gray-900 border border-blue-100/50 dark:border-gray-700 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
                             >
                                 <div>
                                     <div className="flex items-center gap-2.5 mb-2">
@@ -469,7 +469,7 @@ const DashboardHome = () => {
                         {/* Social Hub Horizontal Card */}
                         <div
                             onClick={() => navigate('/dashboard/social')}
-                            className="bg-gradient-to-r from-[#F4FBF7] to-[#EBF9F1] dark:from-gray-800/40 dark:to-gray-900 border border-emerald-100/50 dark:border-gray-750 p-4 rounded-2xl flex flex-row items-center justify-between gap-4 shadow-sm active:scale-98 transition-all group cursor-pointer"
+                            className="bg-gradient-to-r from-[#F4FBF7] to-[#EBF9F1] dark:from-gray-800/40 dark:to-gray-900 border border-emerald-100/50 dark:border-gray-700 p-4 rounded-2xl flex flex-row items-center justify-between gap-4 shadow-sm active:scale-98 transition-all group cursor-pointer"
                         >
                             <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-[#1f2c24] text-emerald-500 flex items-center justify-center shrink-0">

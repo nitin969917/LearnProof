@@ -428,13 +428,13 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         {/* ── LEFT COLUMN (Profile Card & Accordion Sections) ── */}
         <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4">
           {/* Main User Card with Top-Right Corner Pencil Button */}
-          <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-sm flex flex-col items-center text-center relative">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-sm flex flex-col items-center text-center relative">
             
             {/* Top-Right Corner Edit Pencil Button (Only on own profile) */}
             {isOwnProfile && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="absolute top-4 right-4 p-2 sm:p-2.5 rounded-2xl bg-orange-50 hover:bg-orange-100 dark:bg-gray-800 dark:hover:bg-gray-750 text-orange-600 dark:text-orange-400 border border-orange-200/80 dark:border-gray-700 shadow-2xs transition active:scale-95 cursor-pointer z-10"
+                className="absolute top-4 right-4 p-2 sm:p-2.5 rounded-2xl bg-orange-50 hover:bg-orange-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-orange-600 dark:text-orange-400 border border-orange-200/80 dark:border-gray-700 shadow-2xs transition active:scale-95 cursor-pointer z-10"
                 title="Edit Profile"
               >
                 <Edit3 size={16} />
@@ -455,7 +455,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                 <UserAvatar
                   src={profile.profilePicture || profile.avatar}
                   name={profile.name}
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white dark:border-gray-850 shadow-lg text-4xl font-black object-cover"
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white dark:border-gray-800 shadow-lg text-4xl font-black object-cover"
                   textClassName="text-3xl sm:text-4xl font-extrabold"
                 />
               </div>
@@ -463,7 +463,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               {isOnline && (
                 <div
                   title="Online"
-                  className="absolute bottom-1 right-1 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 border-2 sm:border-3 border-white dark:border-gray-850 rounded-full shadow-xs z-10 pointer-events-none"
+                  className="absolute bottom-1 right-1 w-4 h-4 sm:w-5 sm:h-5 bg-emerald-500 border-2 sm:border-3 border-white dark:border-gray-800 rounded-full shadow-xs z-10 pointer-events-none"
                 />
               )}
 
@@ -472,7 +472,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                 <label
                   htmlFor="avatar-upload-trigger"
                   title="Change Profile Photo"
-                  className="absolute bottom-0 left-0 p-1.5 sm:p-2 bg-gray-900/80 hover:bg-orange-600 text-white rounded-full border-2 border-white dark:border-gray-850 shadow-md transition active:scale-95 cursor-pointer z-10"
+                  className="absolute bottom-0 left-0 p-1.5 sm:p-2 bg-gray-900/80 hover:bg-orange-600 text-white rounded-full border-2 border-white dark:border-gray-800 shadow-md transition active:scale-95 cursor-pointer z-10"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Camera size={13} />
@@ -509,7 +509,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
             {/* Action Buttons for other users' profiles */}
             {!isOwnProfile && (
-              <div className="w-full mt-4 pt-4 border-t border-gray-100 dark:border-gray-750">
+              <div className="w-full mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <div className="flex items-center gap-2 w-full">
                   <button
                     onClick={handleFriendAction}
@@ -548,7 +548,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {/* Card 1: Academics */}
             <div
               onClick={() => setExpandedSection(expandedSection === 'academics' ? null : 'academics')}
-              className={`bg-white dark:bg-gray-850 rounded-2xl border transition cursor-pointer select-none ${
+              className={`bg-white dark:bg-gray-800 rounded-2xl border transition cursor-pointer select-none ${
                 expandedSection === 'academics'
                   ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
                   : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
@@ -604,7 +604,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {/* Card 2: Contact */}
             <div
               onClick={() => setExpandedSection(expandedSection === 'contact' ? null : 'contact')}
-              className={`bg-white dark:bg-gray-850 rounded-2xl border transition cursor-pointer select-none ${
+              className={`bg-white dark:bg-gray-800 rounded-2xl border transition cursor-pointer select-none ${
                 expandedSection === 'contact'
                   ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
                   : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
@@ -681,7 +681,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {/* Card 3: Social Links */}
             <div
               onClick={() => setExpandedSection(expandedSection === 'social' ? null : 'social')}
-              className={`bg-white dark:bg-gray-850 rounded-2xl border transition cursor-pointer select-none ${
+              className={`bg-white dark:bg-gray-800 rounded-2xl border transition cursor-pointer select-none ${
                 expandedSection === 'social'
                   ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
                   : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
@@ -745,7 +745,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {isOwnProfile && (
               <div
                 onClick={() => setExpandedSection(expandedSection === 'settings' ? null : 'settings')}
-                className={`bg-white dark:bg-gray-850 rounded-2xl border transition cursor-pointer select-none ${
+                className={`bg-white dark:bg-gray-800 rounded-2xl border transition cursor-pointer select-none ${
                   expandedSection === 'settings'
                     ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
                     : 'border-gray-200/80 dark:border-gray-700 hover:border-orange-200 shadow-2xs hover:shadow-xs'
@@ -824,7 +824,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 8 }}
-                className="block lg:hidden bg-white dark:bg-gray-850 rounded-2xl border border-orange-200/90 dark:border-gray-750 p-4 shadow-sm text-left"
+                className="block lg:hidden bg-white dark:bg-gray-800 rounded-2xl border border-orange-200/90 dark:border-gray-700 p-4 shadow-sm text-left"
               >
                 <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-2 mb-3">
                   <h5 className="font-black text-xs uppercase tracking-wider text-orange-600 dark:text-orange-400">
@@ -942,7 +942,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         {/* ── RIGHT COLUMN (Tab Navigation & Feed Stream) ── */}
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
           {/* Top Activity Tab Strip - Clean Underline Style matching Reference UI */}
-          <div className="bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 px-4 sm:px-6 shadow-2xs flex items-center justify-around sm:justify-start gap-4 sm:gap-8">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 px-4 sm:px-6 shadow-2xs flex items-center justify-around sm:justify-start gap-4 sm:gap-8">
             <button
               onClick={() => setActiveTab('posts')}
               className={`flex items-center gap-2 py-3.5 sm:py-4 border-b-2 font-black text-xs sm:text-sm transition-all cursor-pointer ${
@@ -1004,7 +1004,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           {activeTab === 'posts' && (
             <div className="flex flex-col gap-4">
               {postsLoading ? (
-                <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-12 text-center text-gray-400">
+                <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-12 text-center text-gray-400">
                   <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                   <p className="text-xs font-bold">Loading posts...</p>
                 </div>
@@ -1020,9 +1020,9 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                 ))
               ) : (
                 /* Empty Posts State */
-                <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-2xs space-y-4">
+                <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-8 sm:p-12 flex flex-col items-center justify-center text-center shadow-2xs space-y-4">
                   <div className="relative w-24 h-24 flex items-center justify-center">
-                    <div className="w-16 h-20 bg-slate-100 dark:bg-gray-750 rounded-2xl border border-slate-200 dark:border-gray-700 flex flex-col p-2.5 gap-1.5 shadow-xs rotate-[-8deg]">
+                    <div className="w-16 h-20 bg-slate-100 dark:bg-gray-700 rounded-2xl border border-slate-200 dark:border-gray-700 flex flex-col p-2.5 gap-1.5 shadow-xs rotate-[-8deg]">
                       <div className="w-7 h-1.5 bg-slate-300 dark:bg-gray-600 rounded-full" />
                       <div className="w-10 h-1.5 bg-slate-200 dark:bg-gray-600 rounded-full" />
                       <div className="w-8 h-1.5 bg-slate-200 dark:bg-gray-600 rounded-full" />
@@ -1059,7 +1059,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               )}
 
               {/* Bottom Quote Banner */}
-              <div className="bg-white dark:bg-gray-850 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-4 sm:p-5 flex items-center gap-4 shadow-2xs">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-4 sm:p-5 flex items-center gap-4 shadow-2xs">
                 <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/30 text-amber-500 flex items-center justify-center border border-amber-200 dark:border-amber-900/30 shrink-0">
                   <Lightbulb size={20} />
                 </div>
@@ -1076,7 +1076,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           )}
 
           {isOwnProfile && activeTab === 'likes' && (
-            <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-8 sm:p-12 text-center text-gray-500 space-y-3">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-8 sm:p-12 text-center text-gray-500 space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/30 text-rose-500 flex items-center justify-center mx-auto border border-rose-100">
                 <Heart size={24} />
               </div>
@@ -1086,8 +1086,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           )}
 
           {isOwnProfile && activeTab === 'friends' && (
-            <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-750 pb-3">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
                 <h4 className="font-black text-sm text-gray-900 dark:text-white flex items-center gap-2">
                   <UsersIcon size={16} className="text-orange-500" />
                   <span>Connections & Friends ({friendCount})</span>
@@ -1136,16 +1136,16 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       {/* ── Edit Profile Modal with Full Visibility & Photo Upload Controls ── */}
       {isEditing && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 pb-24 sm:pb-6 overflow-y-auto">
-          <div className="relative bg-white dark:bg-gray-850 rounded-3xl max-w-2xl w-full flex flex-col max-h-[85vh] sm:max-h-[90vh] shadow-2xl border border-orange-100 dark:border-gray-700 overflow-hidden my-auto">
+          <div className="relative bg-white dark:bg-gray-800 rounded-3xl max-w-2xl w-full flex flex-col max-h-[85vh] sm:max-h-[90vh] shadow-2xl border border-orange-100 dark:border-gray-700 overflow-hidden my-auto">
             {/* Sticky Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-750 flex items-center justify-between bg-white dark:bg-gray-850 shrink-0">
+            <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 shrink-0">
               <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
                 <Edit3 className="text-orange-500" size={20} />
                 <span>Edit Profile & Privacy</span>
               </h3>
               <button
                 onClick={() => setIsEditing(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-750 transition cursor-pointer"
+                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer"
               >
                 <X size={20} />
               </button>
@@ -1254,7 +1254,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               </div>
 
               {/* Contact & Social Links with Per-Field Visibility Switches */}
-              <div className="pt-3 border-t border-gray-100 dark:border-gray-750 space-y-4">
+              <div className="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-black uppercase text-orange-600 tracking-wider">
                     Contact & Social Visibility
@@ -1391,11 +1391,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             </form>
 
             {/* Sticky Modal Footer - Always Visible Above Mobile Nav */}
-            <div className="p-3.5 sm:p-4 border-t border-gray-100 dark:border-gray-750 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md flex items-center justify-end gap-3 shrink-0">
+            <div className="p-3.5 sm:p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md flex items-center justify-end gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-750 rounded-xl transition cursor-pointer"
+                className="px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700 rounded-xl transition cursor-pointer"
               >
                 Cancel
               </button>

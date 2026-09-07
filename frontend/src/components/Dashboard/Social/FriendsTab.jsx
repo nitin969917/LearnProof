@@ -278,10 +278,10 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
         
         {/* ── LEFT COLUMN: Pending Requests ── */}
         <div className={`lg:col-span-5 flex-col gap-4 ${mobileTab === 'pending' ? 'flex' : 'hidden lg:flex'}`}>
-          <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-2xs space-y-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-2xs space-y-4">
             
             {/* Card Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-750 pb-3">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center">
                   <Clock size={15} />
@@ -359,7 +359,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                       <button
                         type="button"
                         onClick={() => handleIgnoreRequest(sender.id, sender.name)}
-                        className="w-full py-2 px-3 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 active:scale-95 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="w-full py-2 px-3 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 active:scale-95 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <X size={14} className="stroke-[2.5]" />
                         <span>Decline</span>
@@ -384,10 +384,10 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
 
         {/* ── RIGHT COLUMN: My Connections ── */}
         <div className={`lg:col-span-7 flex-col gap-4 ${mobileTab === 'connections' ? 'flex' : 'hidden lg:flex'}`}>
-          <div className="bg-white dark:bg-gray-850 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-2xs space-y-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-2xs space-y-4">
             
             {/* Card Header with Sort Dropdown */}
-            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-gray-100 dark:border-gray-750 pb-3">
+            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-gray-100 dark:border-gray-700 pb-3">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center">
                   <UserCheck size={16} />
@@ -402,7 +402,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                 <button
                   type="button"
                   onClick={() => setShowSortDropdown(!showSortDropdown)}
-                  className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-750 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 transition cursor-pointer shadow-2xs"
+                  className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 transition cursor-pointer shadow-2xs"
                 >
                   <SlidersHorizontal size={12} className="text-orange-500" />
                   <span>
@@ -434,7 +434,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                           className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between ${
                             sortBy === opt.id
                               ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400'
-                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750'
+                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                           }`}
                         >
                           <span>{opt.label}</span>

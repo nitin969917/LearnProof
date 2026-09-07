@@ -351,7 +351,7 @@ const LoginPage = () => {
                                         className={`flex-1 flex flex-col items-center text-center p-3 pt-4 pb-4 ${item.bgClass} rounded-[1.25rem] shadow-[0_4px_25px_rgba(0,0,0,0.015)] relative overflow-hidden transition-all duration-300 h-full min-w-0 font-sans`}
                                     >
                                         {/* White rounded square icon bubble matching screenshot */}
-                                        <div className="w-11 h-11 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-3 shrink-0 shadow-[0_6px_16px_rgba(0,0,0,0.02)] border border-slate-100/35 dark:border-gray-850">
+                                        <div className="w-11 h-11 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-3 shrink-0 shadow-[0_6px_16px_rgba(0,0,0,0.02)] border border-slate-100/35 dark:border-gray-700">
                                             {item.icon}
                                         </div>
                                         <h4 className="text-[10px] font-bold text-[#0f172a] dark:text-white tracking-tight leading-none text-center truncate w-full px-1 font-sans">
@@ -395,7 +395,7 @@ const LoginPage = () => {
                             whileHover={{ scale: 1.01, y: -0.5 }}
                             whileTap={{ scale: 0.99 }}
                             onClick={handleManualGoogleLogin}
-                            className="w-full flex items-center justify-center gap-3 px-6 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.08)] transition-all duration-300 font-bold text-gray-750 dark:text-gray-200 text-xs h-13 cursor-pointer border-slate-200/80"
+                            className="w-full flex items-center justify-center gap-3 px-6 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.08)] transition-all duration-300 font-bold text-gray-700 dark:text-gray-200 text-xs h-13 cursor-pointer border-slate-200/80"
                         >
                             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5 shrink-0" />
                             <span>Continue with Google</span>

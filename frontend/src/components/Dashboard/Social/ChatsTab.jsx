@@ -2051,7 +2051,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0.5 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="bg-white dark:bg-gray-850 w-full md:w-[380px] rounded-t-3xl md:rounded-3xl p-5 shadow-2xl border border-gray-100 dark:border-gray-700 md:mb-0"
+              className="bg-white dark:bg-gray-800 w-full md:w-[380px] rounded-t-3xl md:rounded-3xl p-5 shadow-2xl border border-gray-100 dark:border-gray-700 md:mb-0"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4 md:hidden"></div>
@@ -2098,7 +2098,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setReplyingTo(activeMenuMessage);
                       setActiveMenuMessage(null);
                     }}
-                    className="w-full text-left py-2.5 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-750 transition font-bold text-sm flex items-center gap-3 cursor-pointer"
+                    className="w-full text-left py-2.5 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition font-bold text-sm flex items-center gap-3 cursor-pointer"
                   >
                     <CornerUpLeft size={16} className="text-[#FF5722]" />
                     <span>Reply</span>
@@ -2115,7 +2115,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setShowCopyToast(true);
                       setTimeout(() => setShowCopyToast(false), 2000);
                     }}
-                    className="w-full text-left py-2.5 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-750 transition font-bold text-sm flex items-center gap-3 cursor-pointer"
+                    className="w-full text-left py-2.5 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition font-bold text-sm flex items-center gap-3 cursor-pointer"
                   >
                     <Copy size={16} className="text-gray-400" />
                     <span>Copy Text</span>

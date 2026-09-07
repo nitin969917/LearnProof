@@ -515,7 +515,7 @@ export default function WorkspaceQuizPage() {
                                 </div>
 
                                 {/* Active Selected Detail Card Panel */}
-                                <div className="md:col-span-7 flex flex-col justify-between bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-gray-850 rounded-2xl p-5 space-y-4">
+                                <div className="md:col-span-7 flex flex-col justify-between bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-gray-700 rounded-2xl p-5 space-y-4">
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between">
                                             <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${selectedConfig.border} ${selectedConfig.text} ${selectedConfig.bg}`}>
@@ -563,7 +563,7 @@ export default function WorkspaceQuizPage() {
                                         )}
 
                                         {/* Quiz Parameters Settings Panel */}
-                                        <div className="bg-white dark:bg-gray-900/50 p-4 border border-slate-100 dark:border-gray-850 rounded-xl space-y-3.5 shadow-sm">
+                                        <div className="bg-white dark:bg-gray-900/50 p-4 border border-slate-100 dark:border-gray-700 rounded-xl space-y-3.5 shadow-sm">
                                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
                                                 Quiz Parameters
                                             </p>

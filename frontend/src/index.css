@@ -2,6 +2,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  --color-gray-650: #374151;
+  --color-gray-750: #1f2937;
+  --color-gray-850: #111827;
+}
+
 /* Quill Dark Mode Overrides */
 .dark .quill-container .ql-toolbar {
     background-color: #1f2937;

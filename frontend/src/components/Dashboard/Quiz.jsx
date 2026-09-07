@@ -430,7 +430,7 @@ const Quiz = () => {
                     <div className="flex justify-between items-center mb-5 sm:mb-6 pt-1">
                         <button
                             onClick={handleCloseHistory}
-                            className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:text-orange-500 dark:hover:text-orange-400 text-xs sm:text-sm font-extrabold rounded-xl border border-gray-200/80 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-750 transition-all active:scale-95 cursor-pointer"
+                            className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:text-orange-500 dark:hover:text-orange-400 text-xs sm:text-sm font-extrabold rounded-xl border border-gray-200/80 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 cursor-pointer"
                         >
                             <ArrowLeft size={16} className="text-gray-500 dark:text-gray-400" />
                             <span>Back</span>
@@ -620,7 +620,7 @@ const Quiz = () => {
                                                     <div className="space-y-3">
                                                         <div className="flex items-start justify-between gap-2.5">
                                                             {/* White round-square icon card bubble */}
-                                                            <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.02)] border border-slate-100/35 dark:border-gray-850 shrink-0">
+                                                            <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.02)] border border-slate-100/35 dark:border-gray-700 shrink-0">
                                                                 <BookOpen size={16} className={pl.is_eligible ? theme.iconColor : "text-gray-400"} />
                                                             </div>
 

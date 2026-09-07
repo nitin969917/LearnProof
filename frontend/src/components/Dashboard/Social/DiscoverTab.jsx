@@ -198,7 +198,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
 
       {/* Code Box + Share Button */}
       <div className="flex items-center gap-2.5 sm:gap-3">
-        <div className="bg-white dark:bg-gray-850 border border-orange-100/90 dark:border-gray-700 rounded-2xl px-3.5 py-2 flex items-center justify-between flex-1 shadow-xs min-w-0">
+        <div className="bg-white dark:bg-gray-800 border border-orange-100/90 dark:border-gray-700 rounded-2xl px-3.5 py-2 flex items-center justify-between flex-1 shadow-xs min-w-0">
           <div className="min-w-0">
             <div className="text-[10px] text-gray-400 font-medium leading-none">Your code</div>
             <div className="text-sm sm:text-base font-black text-[#FF5722] tracking-wider font-mono uppercase mt-0.5 truncate">
@@ -208,7 +208,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
           <button
             type="button"
             onClick={handleCopyCode}
-            className="p-1.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 text-gray-400 hover:text-[#FF5722] transition cursor-pointer shrink-0 ml-2"
+            className="p-1.5 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-400 hover:text-[#FF5722] transition cursor-pointer shrink-0 ml-2"
             title="Copy code"
           >
             {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
@@ -347,7 +347,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                       <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0"></div>
                       <div className="flex-1 space-y-2">
                         <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-                        <div className="h-3 bg-gray-100 dark:bg-gray-750 rounded w-1/2"></div>
+                        <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-1/2"></div>
                       </div>
                     </div>
                   ))}

@@ -144,7 +144,7 @@ const YourProgressCard = () => {
     return (
         <div 
             onClick={() => navigate('/dashboard/goals')}
-            className="bg-white dark:bg-gray-850 rounded-2xl border border-orange-100/70 dark:border-gray-700/80 p-3.5 sm:p-4 shadow-sm hover:shadow-md transition-all cursor-pointer select-none"
+            className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/70 dark:border-gray-700/80 p-3.5 sm:p-4 shadow-sm hover:shadow-md transition-all cursor-pointer select-none"
         >
             {/* Header */}
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100 dark:border-gray-800">
