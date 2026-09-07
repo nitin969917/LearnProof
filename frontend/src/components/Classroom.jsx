@@ -784,12 +784,7 @@ const Classroom = () => {
   const [isContinuousView, setIsContinuousView] = useState(false);
   const [copiedChapter, setCopiedChapter] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [generatingPdf, setGeneratingPdf] = useState(false);
-  const [generatedPdfUrl, setGeneratedPdfUrl] = useState(null);
-  const [generatedPdfBlob, setGeneratedPdfBlob] = useState(null);
-  const [generatedPdfName, setGeneratedPdfName] = useState('');
-  const [showPdfPreviewModal, setShowPdfPreviewModal] = useState(false);
-  const pdfOffscreenRef = useRef(null);
+  const [showNotesModal, setShowNotesModal] = useState(false);
 
   const parsedIntuition = useMemo(() => parseIntuitionData(intuitionContent), [intuitionContent]);
   const [suggestionSeed, setSuggestionSeed] = useState(0);
@@ -946,58 +941,189 @@ const Classroom = () => {
     setTimeout(() => setCopiedChapter(false), 2000);
   };
 
-  const downloadPdfBlob = async (blob, fileName) => {
-    try {
-      const blobToBase64 = (b) => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(b);
-        });
-      };
+  const handleCopyAllNotes = () => {
+    if (!parsedIntuition || !parsedIntuition.pages || parsedIntuition.pages.length === 0) {
+      toast.error("No notes available to copy");
+      return;
+    }
+    const fullText = `# ${video?.name || 'Lecture Study Notes'}\n\n` +
+      parsedIntuition.pages.map((p, i) => `## Topic ${i + 1}: ${p.title}\n\n${p.content}`).join('\n\n---\n\n');
+    navigator.clipboard.writeText(fullText);
+    toast.success("All study notes copied to clipboard!");
+  };
 
-      // 1. Native Capacitor Android / iOS App Handling
+  const handlePrintStudyNotes = () => {
+    if (!parsedIntuition || !parsedIntuition.pages || parsedIntuition.pages.length === 0) {
+      toast.error("Please generate study notes first.");
+      return;
+    }
+
+    const title = video?.name || 'Lecture Study Notes';
+    const category = parsedIntuition.subjectCategory || parsedIntuition.categoryLabel || 'Digital Study Guide';
+
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = 'none';
+    printFrame.style.visibility = 'hidden';
+    document.body.appendChild(printFrame);
+
+    const pagesHtml = parsedIntuition.pages.map((p, idx) => `
+      <div class="page-container">
+        <div class="page-header">
+          <div class="brand">LEARNPROOF AI &bull; ${category.toUpperCase()}</div>
+          <div class="page-badge">TOPIC ${idx + 1} OF ${parsedIntuition.totalPages}</div>
+        </div>
+        <h1 class="doc-title">${title}</h1>
+        <div class="topic-banner">
+          <div class="topic-counter">TOPIC ${p.pageNumber || idx + 1}</div>
+          <h2 class="topic-title">${p.title}</h2>
+        </div>
+        <div class="topic-body">
+          ${p.content
+            .replace(/### (.*?)\n/g, '<h3>$1</h3>')
+            .replace(/## (.*?)\n/g, '<h2>$1</h2>')
+            .replace(/# (.*?)\n/g, '<h1>$1</h1>')
+            .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n\n/g, '<p></p>')
+            .replace(/^- (.*)/gm, '<li>$1</li>')
+            .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')}
+        </div>
+        <div class="page-footer">
+          <span>LearnProof AI Study Notes</span>
+          <span>Page ${idx + 1} of ${parsedIntuition.totalPages}</span>
+        </div>
+      </div>
+    `).join('');
+
+    const frameDoc = printFrame.contentWindow.document;
+    frameDoc.open();
+    frameDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title} - Study Notes</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            @page { size: A4 portrait; margin: 12mm; }
+            * { box-sizing: border-box; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 20px; background: #fff; line-height: 1.6; }
+            .page-container { page-break-after: always; break-after: page; max-width: 800px; margin: 0 auto 30px auto; padding-bottom: 20px; }
+            .page-container:last-child { page-break-after: avoid; break-after: avoid; }
+            .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #4338ca; padding-bottom: 8px; margin-bottom: 16px; }
+            .brand { font-weight: 900; font-size: 13px; color: #4338ca; letter-spacing: 0.5px; }
+            .page-badge { font-weight: 700; font-size: 11px; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 6px; }
+            .doc-title { font-size: 20px; font-weight: 900; color: #1e1b4b; margin: 4px 0 16px 0; }
+            .topic-banner { background: #eef2ff; border-left: 4px solid #4f46e5; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 16px; }
+            .topic-counter { font-size: 10px; font-weight: 800; color: #4338ca; text-transform: uppercase; letter-spacing: 0.5px; }
+            .topic-title { font-size: 16px; font-weight: 800; color: #1e1b4b; margin: 2px 0 0 0; }
+            .topic-body { font-size: 13px; color: #334155; }
+            .topic-body h1, .topic-body h2, .topic-body h3 { color: #1e1b4b; margin-top: 16px; margin-bottom: 6px; }
+            .topic-body pre { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; overflow-x: auto; white-space: pre-wrap; margin: 12px 0; }
+            .topic-body code { font-family: monospace; font-size: 12px; background: #e0e7ff; color: #3730a3; padding: 2px 5px; border-radius: 4px; font-weight: 600; }
+            .topic-body pre code { background: transparent; color: inherit; padding: 0; }
+            .topic-body ul, .topic-body ol { padding-left: 20px; margin: 8px 0; }
+            .topic-body li { margin-bottom: 4px; }
+            .page-footer { display: flex; justify-content: space-between; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 24px; font-size: 10px; color: #94a3b8; }
+            @media print {
+              body { padding: 0; }
+              .page-container { margin-bottom: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          ${pagesHtml}
+        </body>
+      </html>
+    `);
+    frameDoc.close();
+
+    setTimeout(() => {
+      printFrame.contentWindow.focus();
+      printFrame.contentWindow.print();
+      setTimeout(() => {
+        if (document.body.contains(printFrame)) {
+          document.body.removeChild(printFrame);
+        }
+      }, 60000);
+    }, 400);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!parsedIntuition || !parsedIntuition.pages || parsedIntuition.pages.length === 0) {
+      toast.error("Please generate study notes first.");
+      return;
+    }
+
+    setDownloadingPdf(true);
+    const toastId = toast.loading("Generating high-speed Study Notes PDF...");
+
+    try {
+      const titleStr = video?.name || 'Lecture Study Notes';
+      const sanitized = titleStr.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').slice(0, 60);
+      const fileName = `${sanitized}_Study_Notes.pdf`;
+
+      // 1. Fetch genuine server-side PDFKit document stream
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/classroom/generate-notes-pdf`,
+        {
+          title: titleStr,
+          pages: parsedIntuition.pages,
+          subjectCategory: parsedIntuition.subjectCategory || parsedIntuition.categoryLabel || 'Study Guide'
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      );
+
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+
+      // Native Capacitor Android / iOS Support
       try {
         const { Capacitor } = await import('@capacitor/core');
         if (Capacitor && Capacitor.isNativePlatform()) {
           const { Filesystem, Directory } = await import('@capacitor/filesystem');
-          const dataUrl = await blobToBase64(blob);
-          const base64String = dataUrl.split(',')[1];
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = async () => {
+            const base64data = reader.result.split(',')[1];
+            const saved = await Filesystem.writeFile({
+              path: fileName,
+              data: base64data,
+              directory: Directory.Documents,
+              recursive: true
+            });
 
-          // Write actual PDF file to device Documents directory
-          const savedFile = await Filesystem.writeFile({
-            path: fileName,
-            data: base64String,
-            directory: Directory.Documents,
-            recursive: true
-          });
-
-          // Open Android native Save / Open dialog
-          try {
-            const { Share } = await import('@capacitor/share');
-            if (await Share.canShare()) {
-              await Share.share({
-                title: fileName,
-                text: 'LearnProof AI Study Notes',
-                url: savedFile.uri,
-                dialogTitle: 'Save / Open PDF Notes'
-              });
-              toast.success("PDF saved to device!");
-              return;
+            try {
+              const { Share } = await import('@capacitor/share');
+              if (await Share.canShare()) {
+                await Share.share({
+                  title: fileName,
+                  text: 'LearnProof AI Study Notes',
+                  url: saved.uri,
+                  dialogTitle: 'Save / Open PDF Notes'
+                });
+                toast.success("PDF saved to device!", { id: toastId });
+                return;
+              }
+            } catch (sErr) {
+              console.warn(sErr);
             }
-          } catch (shareErr) {
-            console.warn("Native share fallback:", shareErr);
-          }
-
-          toast.success("PDF saved to Documents folder!");
+            toast.success("PDF saved to Documents!", { id: toastId });
+          };
           return;
         }
-      } catch (nativeErr) {
-        console.warn("Capacitor native filesystem handling bypassed:", nativeErr);
+      } catch (capErr) {
+        console.warn("Capacitor check bypassed:", capErr);
       }
 
-      // 2. Direct Browser Download for Mobile Chrome, Safari, and Desktop
+      // Universal Browser Download
       const blobUrl = URL.createObjectURL(blob);
       const downloadLink = document.createElement('a');
       downloadLink.href = blobUrl;
@@ -1006,231 +1132,16 @@ const Classroom = () => {
       downloadLink.style.display = 'none';
       document.body.appendChild(downloadLink);
       downloadLink.click();
-      
-      toast.success("PDF download started!");
+
+      toast.success("PDF downloaded successfully!", { id: toastId });
       setTimeout(() => {
-        if (document.body.contains(downloadLink)) {
-          document.body.removeChild(downloadLink);
-        }
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-      }, 2000);
+        if (document.body.contains(downloadLink)) document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(blobUrl);
+      }, 30000);
     } catch (err) {
-      console.error("Direct download error:", err);
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
-      toast.success("PDF opened in new tab");
-    }
-  };
-
-  const generatePdfBlob = async (containerElement) => {
-    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-      import('html2canvas'),
-      import('jspdf')
-    ]);
-
-    const sanitizeColorsInDoc = (clonedDoc) => {
-      const dummyCanvas = clonedDoc.createElement('canvas');
-      dummyCanvas.width = 1;
-      dummyCanvas.height = 1;
-      const ctx = dummyCanvas.getContext('2d');
-
-      const sanitizeColorValue = (val) => {
-        if (!val || typeof val !== 'string') return val;
-        if (!val.includes('oklch') && !val.includes('lab') && !val.includes('color(')) return val;
-        try {
-          ctx.fillStyle = '#000000';
-          ctx.fillStyle = val;
-          return ctx.fillStyle;
-        } catch (e) {
-          return '#000000';
-        }
-      };
-
-      const allElements = clonedDoc.querySelectorAll('*');
-      const colorProps = [
-        'color', 'backgroundColor', 'borderColor',
-        'borderTopColor', 'borderBottomColor', 'borderLeftColor', 'borderRightColor',
-        'outlineColor', 'textDecorationColor', 'fill', 'stroke'
-      ];
-
-      allElements.forEach((el) => {
-        const computed = clonedDoc.defaultView ? clonedDoc.defaultView.getComputedStyle(el) : null;
-        colorProps.forEach((prop) => {
-          if (el.style && el.style[prop] && (el.style[prop].includes('oklch') || el.style[prop].includes('lab') || el.style[prop].includes('color('))) {
-            el.style[prop] = sanitizeColorValue(el.style[prop]);
-          } else if (computed && computed[prop] && (computed[prop].includes('oklch') || computed[prop].includes('lab') || computed[prop].includes('color('))) {
-            el.style[prop] = sanitizeColorValue(computed[prop]);
-          }
-        });
-
-        if (el.style && el.style.boxShadow && (el.style.boxShadow.includes('oklch') || el.style.boxShadow.includes('lab'))) {
-          el.style.boxShadow = 'none';
-        }
-      });
-    };
-
-    const pageCards = containerElement.querySelectorAll('.pdf-topic-page-card');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgWidth = 210; // A4 mm
-    const pageHeight = 297; // A4 mm
-
-    if (pageCards && pageCards.length > 0) {
-      for (let i = 0; i < pageCards.length; i++) {
-        const card = pageCards[i];
-        const canvas = await html2canvas(card, {
-          scale: 1.5,
-          useCORS: true,
-          allowTaint: true,
-          logging: false,
-          backgroundColor: '#ffffff',
-          windowWidth: 794,
-          scrollX: 0,
-          scrollY: 0,
-          onclone: (clonedDoc) => {
-            const clonedWrapper = clonedDoc.getElementById('pdf-offscreen-wrapper');
-            if (clonedWrapper) {
-              clonedWrapper.style.position = 'static';
-              clonedWrapper.style.left = '0';
-              clonedWrapper.style.top = '0';
-              clonedWrapper.style.opacity = '1';
-            }
-            const clonedEl = clonedDoc.getElementById('pdf-preview-printable');
-            if (clonedEl) {
-              clonedEl.style.opacity = '1';
-            }
-            sanitizeColorsInDoc(clonedDoc);
-          }
-        });
-
-        const cardHeightMm = (canvas.height * imgWidth) / canvas.width;
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-
-        if (i > 0) pdf.addPage();
-
-        if (cardHeightMm <= pageHeight) {
-          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, cardHeightMm, '', 'FAST');
-        } else {
-          let remainingHeight = cardHeightMm;
-          let currentPos = 0;
-          pdf.addImage(imgData, 'JPEG', 0, currentPos, imgWidth, cardHeightMm, '', 'FAST');
-          remainingHeight -= pageHeight;
-          while (remainingHeight > 0) {
-            currentPos -= pageHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'JPEG', 0, currentPos, imgWidth, cardHeightMm, '', 'FAST');
-            remainingHeight -= pageHeight;
-          }
-        }
-      }
-    } else {
-      const canvas = await html2canvas(containerElement, {
-        scale: 1.5,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: 794,
-        scrollX: 0,
-        scrollY: 0,
-        onclone: (clonedDoc) => {
-          const clonedWrapper = clonedDoc.getElementById('pdf-offscreen-wrapper');
-          if (clonedWrapper) {
-            clonedWrapper.style.position = 'static';
-            clonedWrapper.style.left = '0';
-            clonedWrapper.style.top = '0';
-            clonedWrapper.style.opacity = '1';
-          }
-          sanitizeColorsInDoc(clonedDoc);
-        }
-      });
-
-      const totalHeightMm = (canvas.height * imgWidth) / canvas.width;
-      let remaining = totalHeightMm;
-      let pos = 0;
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-
-      pdf.addImage(imgData, 'JPEG', 0, pos, imgWidth, totalHeightMm, '', 'FAST');
-      remaining -= pageHeight;
-
-      while (remaining > 0) {
-        pos -= pageHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, pos, imgWidth, totalHeightMm, '', 'FAST');
-        remaining -= pageHeight;
-      }
-    }
-
-    return pdf.output('blob');
-  };
-
-  const handleOpenPdfPreview = () => {
-    if (!parsedIntuition || !parsedIntuition.pages || parsedIntuition.pages.length === 0) {
-      toast.error("Please generate study notes first.");
-      return;
-    }
-
-    const titleStr = video?.name || 'Lecture Study Notes';
-    const sanitized = titleStr.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').slice(0, 60);
-    const fileName = `${sanitized}_Study_Notes.pdf`;
-    setGeneratedPdfName(fileName);
-
-    setShowPdfPreviewModal(true);
-  };
-
-  const handleDownloadGeneratedPdf = async () => {
-    const titleStr = video?.name || 'Lecture Study Notes';
-    const sanitized = titleStr.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').slice(0, 60);
-    const fileName = `${sanitized}_Study_Notes.pdf`;
-
-    if (generatedPdfBlob) {
-      await downloadPdfBlob(generatedPdfBlob, fileName);
-      return;
-    }
-
-    setDownloadingPdf(true);
-    const toastId = toast.loading("Generating high-resolution Study Notes PDF...");
-    try {
-      let pdfBlob = null;
-
-      // Primary: Server-Side Native PDFKit Generation (100% Reliable on Android, iOS, and all Browsers)
-      try {
-        const response = await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/api/classroom/generate-notes-pdf`,
-          {
-            title: video?.name || 'Lecture Study Notes',
-            pages: parsedIntuition?.pages || [],
-            subjectCategory: parsedIntuition?.subjectCategory || parsedIntuition?.categoryLabel || 'Study Guide'
-          },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            responseType: 'blob'
-          }
-        );
-
-        if (response.data && response.data.size > 200) {
-          pdfBlob = response.data;
-        }
-      } catch (serverErr) {
-        console.warn("Backend PDF generator fallback:", serverErr);
-      }
-
-      // Secondary: Client-Side Fallback
-      if (!pdfBlob && pdfOffscreenRef.current) {
-        pdfBlob = await generatePdfBlob(pdfOffscreenRef.current);
-      }
-
-      if (!pdfBlob) {
-        throw new Error("Unable to build PDF document");
-      }
-
-      setGeneratedPdfBlob(pdfBlob);
-      setGeneratedPdfUrl(URL.createObjectURL(pdfBlob));
-      toast.dismiss(toastId);
-      await downloadPdfBlob(pdfBlob, fileName);
-    } catch (err) {
-      console.error("PDF download error:", err);
-      toast.error("Download encountered an issue. Opening print dialog...", { id: toastId });
-      window.print();
+      console.error("PDF download failed, falling back to print:", err);
+      toast.error("Opening system Save as PDF...", { id: toastId });
+      handlePrintStudyNotes();
     } finally {
       setDownloadingPdf(false);
     }
@@ -2142,15 +2053,15 @@ const Classroom = () => {
 
                           {/* Top Controls: Language Picker & Actions */}
                           <div className="flex items-center gap-1.5 sm:gap-2">
-                            {/* Open & Download Visual PDF */}
+                            {/* Open Clean Notes & PDF Export Modal */}
                             {parsedIntuition && (
                               <button
-                                onClick={handleOpenPdfPreview}
-                                title="Open & Download Interactive Visual PDF Study Guide"
-                                className="px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[9px] sm:text-xs shadow-2xs transition hover:scale-105 active:scale-95 flex items-center gap-1 cursor-pointer shrink-0"
+                                onClick={() => setShowNotesModal(true)}
+                                title="Open Study Notes & Export PDF"
+                                className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] sm:text-xs shadow-2xs transition hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
                               >
-                                <FileText size={11} />
-                                <span>PDF</span>
+                                <FileText size={12} />
+                                <span>PDF / Notes</span>
                               </button>
                             )}
 
@@ -3340,268 +3251,123 @@ const Classroom = () => {
         </div>
       )}
 
-      {/* Hidden Container for High-Quality PDF Compilation */}
-      {parsedIntuition && (
-        <div
-          id="pdf-offscreen-wrapper"
-          style={{
-            position: 'fixed',
-            left: '-99999px',
-            top: 0,
-            width: '794px',
-            opacity: 1,
-            pointerEvents: 'none',
-            zIndex: -9999
-          }}
-        >
-          <div
-            id="pdf-preview-printable"
-            ref={pdfOffscreenRef}
-            style={{
-              width: '794px',
-              backgroundColor: '#ffffff',
-              color: '#0f172a',
-              fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-            }}
-          >
-            {/* Each Topic as a Standalone Page Card with Safe Top and Bottom Margins */}
-            {parsedIntuition.pages.map((page, idx) => (
-              <div
-                key={idx}
-                className="pdf-topic-page-card"
-                style={{
-                  width: '794px',
-                  backgroundColor: '#ffffff',
-                  color: '#0f172a',
-                  padding: '36px 40px 48px 40px',
-                  boxSizing: 'border-box',
-                  marginBottom: '16px'
-                }}
-              >
-                {/* PDF Header & Brand Cover Banner on Every Page */}
-                <div style={{ borderBottom: '2px solid #4f46e5', paddingBottom: '14px', marginBottom: '20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ backgroundColor: '#4f46e5', color: '#ffffff', padding: '5px 12px', borderRadius: '6px', fontWeight: '900', fontSize: '12px', letterSpacing: '0.8px' }}>
-                        LEARNPROOF AI
-                      </div>
-                      <span style={{ fontSize: '10.5px', fontWeight: 'bold', color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        Digital Study Guide & Notes
-                      </span>
-                    </div>
-                    <div style={{ textAlign: 'right', fontSize: '10px', color: '#64748b' }}>
-                      <span style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>
-                        PAGE {idx + 1} OF {parsedIntuition.totalPages}
-                      </span>
-                    </div>
-                  </div>
-
-                  <h1 style={{ fontSize: '18px', fontWeight: '900', color: '#1e1b4b', margin: '4px 0', lineHeight: 1.3 }}>
-                    {video?.name || 'Lecture Study Notes'}
-                  </h1>
-                </div>
-
-                {/* Topic Banner */}
-                <div style={{ backgroundColor: '#eef2ff', borderLeft: '4px solid #4f46e5', padding: '8px 12px', borderRadius: '0 8px 8px 0', marginBottom: '14px' }}>
-                  <span style={{ fontSize: '9px', fontWeight: '900', color: '#4338ca', textTransform: 'uppercase', letterSpacing: '0.8px', display: 'block' }}>
-                    TOPIC {page.pageNumber || idx + 1} OF {parsedIntuition.totalPages}
-                  </span>
-                  <h2 style={{ fontSize: '15px', fontWeight: '800', color: '#1e1b4b', margin: '2px 0 0 0' }}>
-                    {page.title}
-                  </h2>
-                </div>
-
-                {/* Markdown Content */}
-                <div style={{ fontSize: '12px', color: '#1e293b', lineHeight: '1.6' }}>
-                  <ReactMarkdown
-                    remarkPlugins={[remarkMath, remarkGfm]}
-                    rehypePlugins={[rehypeKatex]}
-                    components={{
-                      h1: ({ node, ...props }) => <h1 style={{ fontSize: '15px', fontWeight: '800', color: '#1e1b4b', marginTop: '14px', marginBottom: '8px' }} {...props} />,
-                      h2: ({ node, ...props }) => <h2 style={{ fontSize: '13.5px', fontWeight: '700', color: '#312e81', marginTop: '12px', marginBottom: '6px' }} {...props} />,
-                      h3: ({ node, ...props }) => <h3 style={{ fontSize: '12.5px', fontWeight: '700', color: '#3730a3', marginTop: '10px', marginBottom: '4px' }} {...props} />,
-                      h4: ({ node, ...props }) => <h4 style={{ fontSize: '11.5px', fontWeight: '600', color: '#4338ca', marginTop: '8px', marginBottom: '4px' }} {...props} />,
-                      p: ({ node, ...props }) => <p style={{ fontSize: '11.5px', color: '#334155', lineHeight: '1.6', marginBottom: '8px' }} {...props} />,
-                      ul: ({ node, ...props }) => <ul style={{ listStyleType: 'disc', paddingLeft: '20px', marginBottom: '8px', fontSize: '11.5px', color: '#334155' }} {...props} />,
-                      ol: ({ node, ...props }) => <ol style={{ listStyleType: 'decimal', paddingLeft: '20px', marginBottom: '8px', fontSize: '11.5px', color: '#334155' }} {...props} />,
-                      li: ({ node, ...props }) => <li style={{ marginBottom: '4px', color: '#334155' }} {...props} />,
-                      strong: ({ node, ...props }) => <strong style={{ fontWeight: '700', color: '#0f172a' }} {...props} />,
-                      pre: ({ node, children, ...props }) => <>{children}</>,
-                      code: ({ node, className, children, ...props }) => {
-                        const match = /language-(\w+)/.exec(className || '');
-                        const codeContent = String(children || '').replace(/\n$/, '');
-                        const isBlock = match || codeContent.includes('\n');
-                        if (!isBlock) {
-                          return (
-                            <code style={{ backgroundColor: '#e0e7ff', color: '#3730a3', padding: '2px 5px', borderRadius: '4px', fontSize: '11px', fontFamily: 'monospace', fontWeight: '600' }} {...props}>
-                              {children}
-                            </code>
-                          );
-                        }
-                        return (
-                          <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '10px 14px', margin: '12px 0', overflowX: 'auto' }}>
-                            <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '11px', color: '#0f172a', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                              {codeContent}
-                            </pre>
-                          </div>
-                        );
-                      },
-                      table: ({ node, ...props }) => (
-                        <div style={{ margin: '12px 0', overflowX: 'auto' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', border: '1px solid #cbd5e1' }} {...props} />
-                        </div>
-                      ),
-                      thead: ({ node, ...props }) => <thead style={{ backgroundColor: '#eef2ff', color: '#1e1b4b', fontWeight: '700' }} {...props} />,
-                      th: ({ node, ...props }) => <th style={{ border: '1px solid #cbd5e1', padding: '6px 10px', textAlign: 'left', color: '#1e1b4b' }} {...props} />,
-                      td: ({ node, ...props }) => <td style={{ border: '1px solid #e2e8f0', padding: '6px 10px', color: '#334155' }} {...props} />,
-                      blockquote: ({ node, ...props }) => (
-                        <blockquote style={{ borderLeft: '4px solid #6366f1', padding: '6px 12px', backgroundColor: '#f5f3ff', color: '#3730a3', fontStyle: 'italic', margin: '10px 0', borderRadius: '0 6px 6px 0', fontSize: '11.5px' }} {...props} />
-                      )
-                    }}
-                  >
-                    {preprocessMarkdown(page.content)}
-                  </ReactMarkdown>
-                </div>
-
-                {/* Topic Page Footer */}
-                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', marginTop: '20px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#94a3b8' }}>
-                  <span>LearnProof AI Study Notes</span>
-                  <span>Topic {page.pageNumber || idx + 1} • {page.title}</span>
-                  <span>Page {idx + 1} of {parsedIntuition.totalPages}</span>
-                </div>
-              </div>
-            ))}
-
-            {/* Revision Checklist Page at Bottom */}
-            <div
-              className="pdf-topic-page-card"
-              style={{
-                width: '794px',
-                backgroundColor: '#ffffff',
-                padding: '36px 40px 48px 40px',
-                boxSizing: 'border-box'
-              }}
-            >
-              <div style={{ padding: '16px 18px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: '800', color: '#166534' }}>🎓 Study Revision Checklist</div>
-                  <div style={{ fontSize: '11px', color: '#15803d', marginTop: '3px' }}>Review core concepts above • Re-test intuition with LearnProof AI Quiz</div>
-                </div>
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#16a34a' }}>learnproofai.com</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Real Multi-Page Visual PDF Document Preview & Download Modal */}
-      {showPdfPreviewModal && (
+      {/* High-Speed Clean Study Notes & PDF Export Modal */}
+      {showNotesModal && parsedIntuition && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm transition-opacity"
-          onClick={() => setShowPdfPreviewModal(false)}
+          onClick={() => setShowNotesModal(false)}
         >
           <div
-            className="relative w-full max-w-5xl h-[92vh] max-h-[92vh] bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-700"
+            className="relative w-full max-w-4xl h-[92vh] max-h-[92vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800"
             onClick={e => e.stopPropagation()}
           >
-            {/* Modal Top Header Bar */}
-            <div className="flex items-center justify-between px-3 sm:px-5 py-3 border-b border-slate-800 bg-slate-900 shrink-0">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 shrink-0">
               <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                <div className="p-1.5 bg-indigo-500/20 text-indigo-400 rounded-lg shrink-0">
-                  <FileText size={18} />
+                <div className="p-2 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl shrink-0">
+                  <FileText size={20} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-xs sm:text-sm font-bold text-white truncate m-0">
-                    {generatedPdfName || `${video?.name || 'Lecture'}_Study_Notes.pdf`}
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate m-0">
+                    {video?.name || 'Lecture Study Notes'}
                   </h3>
-                  <p className="text-[10px] text-slate-400 m-0 truncate">
-                    Study Notes Document • {parsedIntuition?.totalPages || 1} {(parsedIntuition?.totalPages || 1) === 1 ? 'Page' : 'Pages'}
+                  <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 m-0 truncate">
+                    {parsedIntuition?.totalPages || 1} {(parsedIntuition?.totalPages || 1) === 1 ? 'Topic' : 'Topics'} • {parsedIntuition?.categoryLabel || 'Digital Study Notes'}
                   </p>
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                {/* Download PDF Button */}
+                {/* Copy Notes */}
+                <button
+                  onClick={handleCopyAllNotes}
+                  className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                  title="Copy all notes as Markdown"
+                >
+                  <Copy size={13} />
+                  <span className="hidden sm:inline">Copy All</span>
+                </button>
+
+                {/* Print / Save PDF Button */}
+                <button
+                  onClick={handlePrintStudyNotes}
+                  className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                  title="Print or Save as PDF"
+                >
+                  <Printer size={13} />
+                  <span className="hidden sm:inline">Print / Save PDF</span>
+                </button>
+
+                {/* Direct Server PDFKit Download */}
                 <button
                   disabled={downloadingPdf}
-                  onClick={handleDownloadGeneratedPdf}
-                  className="px-3.5 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                  title="Download PDF file to device"
+                  onClick={handleDownloadPdf}
+                  className="px-3 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  title="Download PDF directly"
                 >
                   {downloadingPdf ? (
                     <RefreshCw size={13} className="animate-spin" />
                   ) : (
                     <Download size={13} />
                   )}
-                  <span>{downloadingPdf ? "Saving PDF..." : "Download PDF"}</span>
+                  <span>{downloadingPdf ? "Generating..." : "Download PDF"}</span>
                 </button>
 
                 {/* Close Button */}
                 <button
-                  onClick={() => setShowPdfPreviewModal(false)}
-                  className="p-1.5 sm:p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-                  title="Close Preview"
+                  onClick={() => setShowNotesModal(false)}
+                  className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer ml-1"
+                  title="Close"
                 >
                   <X size={18} />
                 </button>
               </div>
             </div>
 
-            {/* Modal Body - Interactive Multi-Page Document Viewer */}
-            <div className="flex-1 w-full bg-slate-950 overflow-y-auto p-3 sm:p-6 flex flex-col items-center gap-6">
+            {/* Modal Body: High Speed Clean Reader */}
+            <div className="flex-1 w-full bg-slate-100 dark:bg-slate-950 overflow-y-auto p-3 sm:p-6 space-y-6">
               {parsedIntuition?.pages?.map((page, idx) => (
                 <div
                   key={idx}
-                  className="w-full max-w-[760px] bg-white text-slate-900 rounded-2xl shadow-2xl p-6 sm:p-10 border border-slate-200/80 relative"
+                  className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 rounded-2xl shadow-sm p-5 sm:p-8 border border-slate-200 dark:border-slate-800"
                 >
-                  {/* Page Top Header Bar */}
-                  <div className="border-b-2 border-indigo-600 pb-3 mb-4 flex items-center justify-between">
+                  {/* Topic Header */}
+                  <div className="border-b border-indigo-100 dark:border-slate-800 pb-3 mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="bg-indigo-600 text-white px-2.5 py-1 rounded-md font-black text-xs tracking-wider">
-                        LEARNPROOF AI
-                      </div>
-                      <span className="text-xs font-bold text-indigo-700 uppercase tracking-wide truncate max-w-[200px] sm:max-w-md">
-                        {video?.name || 'Lecture Study Notes'}
+                      <span className="bg-indigo-600 text-white px-2 py-0.5 rounded-md font-extrabold text-[10px] tracking-wider uppercase">
+                        Topic {page.pageNumber || idx + 1}
                       </span>
+                      <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white m-0">
+                        {page.title}
+                      </h4>
                     </div>
-                    <span className="text-xs font-black bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-200">
-                      Page {idx + 1} of {parsedIntuition.totalPages}
+                    <span className="text-[10px] font-bold text-slate-400">
+                      {idx + 1} / {parsedIntuition.totalPages}
                     </span>
-                  </div>
-
-                  {/* Topic Title Banner */}
-                  <div className="bg-indigo-50 border-l-4 border-indigo-600 p-3 rounded-r-xl mb-5">
-                    <span className="text-[10px] font-black text-indigo-700 uppercase tracking-wider block">
-                      TOPIC {page.pageNumber || idx + 1} OF {parsedIntuition.totalPages}
-                    </span>
-                    <h2 className="text-base sm:text-lg font-extrabold text-indigo-950 m-0 mt-0.5">
-                      {page.title}
-                    </h2>
                   </div>
 
                   {/* Markdown Content */}
-                  <div className="prose max-w-none text-slate-800 text-xs sm:text-sm leading-relaxed">
+                  <div className="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 text-xs sm:text-sm leading-relaxed">
                     <ReactMarkdown
                       remarkPlugins={[remarkMath, remarkGfm]}
                       rehypePlugins={[rehypeKatex]}
                       components={{
-                        h1: ({ node, ...props }) => <h1 className="text-base sm:text-lg font-extrabold text-indigo-950 mt-4 mb-2" {...props} />,
-                        h2: ({ node, ...props }) => <h2 className="text-sm sm:text-base font-bold text-indigo-900 mt-3 mb-1.5" {...props} />,
-                        h3: ({ node, ...props }) => <h3 className="text-xs sm:text-sm font-bold text-indigo-800 mt-2.5 mb-1" {...props} />,
-                        h4: ({ node, ...props }) => <h4 className="text-xs font-semibold text-indigo-700 mt-2 mb-1" {...props} />,
-                        p: ({ node, ...props }) => <p className="text-xs sm:text-sm text-slate-700 leading-relaxed mb-3" {...props} />,
-                        ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-3 text-xs sm:text-sm text-slate-700 space-y-1" {...props} />,
-                        ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-3 text-xs sm:text-sm text-slate-700 space-y-1" {...props} />,
-                        li: ({ node, ...props }) => <li className="text-slate-700" {...props} />,
-                        strong: ({ node, ...props }) => <strong className="font-bold text-slate-900" {...props} />,
+                        h1: ({ node, ...props }) => <h1 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white mt-4 mb-2" {...props} />,
+                        h2: ({ node, ...props }) => <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-3 mb-1.5" {...props} />,
+                        h3: ({ node, ...props }) => <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white mt-2.5 mb-1" {...props} />,
+                        p: ({ node, ...props }) => <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed mb-3" {...props} />,
+                        ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1" {...props} />,
+                        ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-3 text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-1" {...props} />,
+                        li: ({ node, ...props }) => <li className="text-slate-700 dark:text-slate-300" {...props} />,
+                        strong: ({ node, ...props }) => <strong className="font-bold text-slate-900 dark:text-white" {...props} />,
                         code: ({ node, className, children, ...props }) => {
                           const match = /language-(\w+)/.exec(className || '');
                           const codeContent = String(children || '').replace(/\n$/, '');
                           const isBlock = match || codeContent.includes('\n');
                           if (!isBlock) {
                             return (
-                              <code className="bg-indigo-100/80 text-indigo-800 px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold" {...props}>
+                              <code className="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold" {...props}>
                                 {children}
                               </code>
                             );
@@ -3609,60 +3375,45 @@ const Classroom = () => {
                           return <CodeEditorBlock code={codeContent} language={match ? match[1] : ''} />;
                         },
                         table: ({ node, ...props }) => (
-                          <div className="my-3 overflow-x-auto rounded-lg border border-slate-200">
+                          <div className="my-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
                             <table className="w-full border-collapse text-xs" {...props} />
                           </div>
                         ),
-                        thead: ({ node, ...props }) => <thead className="bg-indigo-50/80 text-indigo-950 font-bold border-b border-slate-200" {...props} />,
-                        th: ({ node, ...props }) => <th className="border border-slate-200 px-3 py-2 text-left font-bold" {...props} />,
-                        td: ({ node, ...props }) => <td className="border border-slate-200 px-3 py-2 text-slate-700" {...props} />,
+                        thead: ({ node, ...props }) => <thead className="bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold border-b border-slate-200 dark:border-slate-700" {...props} />,
+                        th: ({ node, ...props }) => <th className="border border-slate-200 dark:border-slate-700 px-3 py-2 text-left font-bold" {...props} />,
+                        td: ({ node, ...props }) => <td className="border border-slate-200 dark:border-slate-700 px-3 py-2 text-slate-700 dark:text-slate-300" {...props} />,
                         blockquote: ({ node, ...props }) => (
-                          <blockquote className="border-l-4 border-indigo-500 bg-indigo-50/50 p-3 my-3 text-xs text-indigo-900 italic rounded-r-lg" {...props} />
+                          <blockquote className="border-l-4 border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 p-3 my-3 text-xs text-indigo-900 dark:text-indigo-200 italic rounded-r-lg" {...props} />
                         )
                       }}
                     >
                       {preprocessMarkdown(page.content)}
                     </ReactMarkdown>
                   </div>
-
-                  {/* Page Footer */}
-                  <div className="border-t border-slate-200 pt-3 mt-6 flex items-center justify-between text-[10px] text-slate-400">
-                    <span>LearnProof AI Study Companion</span>
-                    <span>Topic {page.pageNumber || idx + 1} • {page.title}</span>
-                    <span>Page {idx + 1} of {parsedIntuition.totalPages}</span>
-                  </div>
                 </div>
               ))}
-
-              {/* Revision Checklist Card at Bottom */}
-              <div className="w-full max-w-[760px] bg-emerald-50 text-emerald-950 rounded-2xl border border-emerald-200 p-5 shadow-lg flex items-center justify-between mb-4">
-                <div>
-                  <div className="text-xs sm:text-sm font-black text-emerald-800">🎓 Study Revision Checklist</div>
-                  <div className="text-[11px] text-emerald-700 mt-0.5">Review core intuition above • Re-test intuition with LearnProof AI Quiz</div>
-                </div>
-                <button
-                  onClick={handleDownloadGeneratedPdf}
-                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow cursor-pointer active:scale-95 flex items-center gap-1.5 shrink-0"
-                >
-                  <Download size={13} />
-                  <span>Download PDF</span>
-                </button>
-              </div>
             </div>
 
-            {/* Mobile Bottom Download Action Bar */}
-            <div className="p-3 bg-slate-900 border-t border-slate-800 text-center sm:hidden flex items-center justify-center gap-3 shrink-0">
+            {/* Mobile Bottom Quick Action Bar */}
+            <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-2 sm:hidden shrink-0">
+              <button
+                onClick={handlePrintStudyNotes}
+                className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+              >
+                <Printer size={14} />
+                <span>Save / Print PDF</span>
+              </button>
               <button
                 disabled={downloadingPdf}
-                onClick={handleDownloadGeneratedPdf}
-                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                onClick={handleDownloadPdf}
+                className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs font-bold rounded-xl shadow-md flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
               >
                 {downloadingPdf ? (
                   <RefreshCw size={14} className="animate-spin" />
                 ) : (
                   <Download size={14} />
                 )}
-                <span>{downloadingPdf ? "Saving PDF..." : "Download Complete PDF"}</span>
+                <span>{downloadingPdf ? "Saving..." : "Download PDF"}</span>
               </button>
             </div>
           </div>
