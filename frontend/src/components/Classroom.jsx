@@ -975,17 +975,15 @@ const Classroom = () => {
     }
 
     setDownloadingPdf(true);
-    const toastId = toast.loading("Preparing Study Notes PDF...");
+    const toastId = toast.loading("Generating Study Notes PDF...");
 
     try {
       const activeToken = token || localStorage.getItem('google_token') || '';
       const titleStr = video?.name || 'Lecture Study Notes';
-      const sanitized = titleStr.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_').slice(0, 60);
-      const fileName = `${sanitized}_Study_Notes.pdf`;
 
-      // 1. Fetch server-side PDFKit document stream
+      // 1. Ask backend to prepare the PDF document and provide a direct download URL
       const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/classroom/generate-notes-pdf`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/classroom/prepare-notes-pdf`,
         {
           title: titleStr,
           pages: parsedIntuition.pages,
@@ -993,92 +991,35 @@ const Classroom = () => {
           idToken: activeToken
         },
         {
-          headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {},
-          responseType: 'blob'
+          headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {}
         }
       );
 
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-
-      // 2. Try Standard HTML5 Web Share API (100% native on Android without plugins)
-      try {
-        const file = new File([blob], fileName, { type: 'application/pdf' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: fileName,
-            text: 'LearnProof AI Study Notes'
-          });
-          toast.success("PDF ready!", { id: toastId });
-          return;
-        }
-      } catch (shareErr) {
-        if (shareErr.name === 'AbortError') {
-          toast.dismiss(toastId);
-          return;
-        }
-        console.warn("Web Share bypassed:", shareErr);
+      if (!response.data || !response.data.downloadUrl) {
+        throw new Error('Failed to obtain download URL');
       }
 
-      // 3. Try Native Capacitor Filesystem ONLY if plugin is actually available in APK
-      try {
-        const { Capacitor } = await import('@capacitor/core');
-        if (Capacitor && Capacitor.isPluginAvailable && Capacitor.isPluginAvailable('Filesystem')) {
-          const { Filesystem, Directory } = await import('@capacitor/filesystem');
-          const reader = new FileReader();
-          reader.readAsDataURL(blob);
-          await new Promise((resolve) => {
-            reader.onloadend = async () => {
-              try {
-                const base64data = reader.result.split(',')[1];
-                const saved = await Filesystem.writeFile({
-                  path: fileName,
-                  data: base64data,
-                  directory: Directory.Cache,
-                  recursive: true
-                });
+      const fileName = response.data.fileName || `${titleStr.replace(/[^a-z0-9]/gi, '_').slice(0, 50)}_Study_Notes.pdf`;
+      const fullDownloadUrl = `${import.meta.env.VITE_BACKEND_URL}${response.data.downloadUrl}`;
 
-                if (Capacitor.isPluginAvailable('Share')) {
-                  const { Share } = await import('@capacitor/share');
-                  await Share.share({
-                    title: fileName,
-                    text: 'LearnProof AI Study Notes',
-                    url: saved.uri,
-                    dialogTitle: 'Save / Open PDF Notes'
-                  });
-                }
-              } catch (fsErr) {
-                console.warn("Capacitor write fallback:", fsErr);
-              }
-              resolve();
-            };
-          });
-          toast.success("PDF ready on your device!", { id: toastId });
-          return;
-        }
-      } catch (capErr) {
-        console.warn("Capacitor check bypassed:", capErr);
-      }
+      // 2. Trigger native download via system browser & anchor
+      window.open(fullDownloadUrl, '_system');
 
-      // 4. Universal Direct Browser Download (Mobile & Desktop)
-      const blobUrl = URL.createObjectURL(blob);
       const downloadLink = document.createElement('a');
-      downloadLink.href = blobUrl;
+      downloadLink.href = fullDownloadUrl;
       downloadLink.download = fileName;
-      downloadLink.setAttribute('download', fileName);
       downloadLink.target = '_blank';
       downloadLink.style.display = 'none';
       document.body.appendChild(downloadLink);
       downloadLink.click();
 
-      toast.success("PDF downloaded successfully!", { id: toastId });
+      toast.success("PDF downloading to your Downloads folder!", { id: toastId });
       setTimeout(() => {
         if (document.body.contains(downloadLink)) document.body.removeChild(downloadLink);
-        URL.revokeObjectURL(blobUrl);
-      }, 30000);
+      }, 5000);
     } catch (err) {
       console.error("PDF download failed:", err);
-      toast.error("Failed to generate PDF. Please try again.", { id: toastId });
+      toast.error("Failed to download PDF. Please try again.", { id: toastId });
     } finally {
       setDownloadingPdf(false);
     }

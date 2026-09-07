@@ -10,6 +10,9 @@ router.post('/update-progress', authMiddleware, classroomController.updateProgre
 router.post('/continue-watching', authMiddleware, classroomController.getContinueWatching);
 router.post('/completed-learnings', authMiddleware, classroomController.getCompletedLearnings);
 router.post('/generate-notes-pdf', authMiddleware, classroomController.generateNotesPdf);
+router.post('/prepare-notes-pdf', authMiddleware, classroomController.prepareNotesPdf);
+router.get('/download-file/:downloadId/:fileName', classroomController.downloadNotesFile);
 
 module.exports = router;
+
 

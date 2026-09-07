@@ -275,6 +275,79 @@ const getCompletedLearnings = async (req, res) => {
     }
 };
 
+const prepareNotesPdf = async (req, res) => {
+    try {
+        const { title, pages, subjectCategory } = req.body;
+        const { buildStudyNotesPDF } = require('../services/pdfGenerator.service');
+        const crypto = require('crypto');
+
+        if (!pages || !Array.isArray(pages) || pages.length === 0) {
+            return res.status(400).json({ error: 'No note pages provided' });
+        }
+
+        const sanitizedTitle = (title || 'Lecture_Study_Notes')
+            .replace(/[^a-zA-Z0-9_-]/g, '_')
+            .replace(/_+/g, '_')
+            .slice(0, 60);
+
+        const fileName = `${sanitizedTitle}_Study_Notes.pdf`;
+        const downloadId = crypto.randomBytes(16).toString('hex');
+
+        const doc = buildStudyNotesPDF({
+            title: title || 'Lecture Study Notes',
+            pages,
+            subjectCategory: subjectCategory || 'Digital Study Guide'
+        });
+
+        const chunks = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', async () => {
+            try {
+                const pdfBuffer = Buffer.concat(chunks);
+                const base64Data = pdfBuffer.toString('base64');
+                await cacheService.set(`pdf:dl:${downloadId}`, base64Data, 900); // 15 mins expiry
+
+                res.status(200).json({
+                    success: true,
+                    downloadId,
+                    fileName,
+                    downloadUrl: `/api/classroom/download-file/${downloadId}/${fileName}`
+                });
+            } catch (err) {
+                console.error('[ClassroomController] Error caching PDF buffer:', err);
+                if (!res.headersSent) res.status(500).json({ error: 'Failed to buffer PDF' });
+            }
+        });
+        doc.end();
+    } catch (error) {
+        console.error('[ClassroomController] Error preparing PDF:', error);
+        if (!res.headersSent) res.status(500).json({ error: 'Failed to prepare PDF document' });
+    }
+};
+
+const downloadNotesFile = async (req, res) => {
+    try {
+        const { downloadId, fileName } = req.params;
+        const base64Data = await cacheService.get(`pdf:dl:${downloadId}`);
+
+        if (!base64Data) {
+            return res.status(404).send('Download link expired or not found. Please click Download PDF again.');
+        }
+
+        const pdfBuffer = Buffer.from(base64Data, 'base64');
+        const safeFileName = fileName || 'Study_Notes.pdf';
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${safeFileName}"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        res.setHeader('Cache-Control', 'no-cache');
+        res.send(pdfBuffer);
+    } catch (error) {
+        console.error('[ClassroomController] Error serving download file:', error);
+        if (!res.headersSent) res.status(500).send('Error serving file');
+    }
+};
+
 const generateNotesPdf = async (req, res) => {
     try {
         const { title, pages, subjectCategory } = req.body;
@@ -318,6 +391,9 @@ module.exports = {
     updateProgress,
     getContinueWatching,
     getCompletedLearnings,
-    generateNotesPdf
+    generateNotesPdf,
+    prepareNotesPdf,
+    downloadNotesFile
 };
+
 
