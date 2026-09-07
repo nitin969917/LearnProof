@@ -969,6 +969,7 @@ const Classroom = () => {
       logging: false,
       scrollY: 0,
       scrollX: 0,
+      windowWidth: 794,
       backgroundColor: '#ffffff',
       onclone: (clonedDoc) => {
         // Tailwind v4 uses modern CSS oklch() color functions which html2canvas cannot parse natively.
@@ -992,6 +993,20 @@ const Classroom = () => {
 
         const target = clonedDoc.getElementById('pdf-preview-printable');
         if (target) {
+          if (target.parentElement) {
+            target.parentElement.style.opacity = '1';
+            target.parentElement.style.position = 'static';
+            target.parentElement.style.zIndex = '1';
+            target.parentElement.style.display = 'block';
+            target.parentElement.style.visibility = 'visible';
+          }
+          target.style.opacity = '1';
+          target.style.position = 'static';
+          target.style.left = '0px';
+          target.style.top = '0px';
+          target.style.visibility = 'visible';
+          target.style.display = 'block';
+
           const elements = [target, ...target.querySelectorAll('*')];
           const colorProps = [
             'color',
@@ -3187,24 +3202,30 @@ const Classroom = () => {
         </div>
       )}
 
-      {/* Hidden Offscreen Print Container for High-Quality PDF Compilation */}
+      {/* Hidden Container for High-Quality PDF Compilation */}
       {parsedIntuition && (
         <div
-          id="pdf-preview-printable"
-          ref={pdfOffscreenRef}
           style={{
-            position: 'fixed',
-            left: '-10000px',
+            position: 'absolute',
+            left: 0,
             top: 0,
             width: '794px',
-            backgroundColor: '#ffffff',
-            color: '#0f172a',
-            fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            padding: '32px 36px',
-            zIndex: -100,
-            pointerEvents: 'none'
+            opacity: 0,
+            pointerEvents: 'none',
+            zIndex: -9999
           }}
         >
+          <div
+            id="pdf-preview-printable"
+            ref={pdfOffscreenRef}
+            style={{
+              width: '794px',
+              backgroundColor: '#ffffff',
+              color: '#0f172a',
+              fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              padding: '32px 36px'
+            }}
+          >
           {/* PDF Header & Brand Cover Banner */}
           <div style={{ borderBottom: '2px solid #4f46e5', paddingBottom: '16px', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -3320,6 +3341,7 @@ const Classroom = () => {
             </div>
             <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#16a34a' }}>learnproofai.com</div>
           </div>
+        </div>
         </div>
       )}
 
