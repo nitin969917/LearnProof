@@ -178,12 +178,12 @@ const PlaylistProgress = () => {
         return [1, '...', current - 1, current, current + 1, '...', total];
     };
 
-    const renderPagination = (isTop = false) => {
+    const renderPagination = () => {
         if (totalPages <= 1) return null;
         const pageNumbers = getPageNumbers(currentPage, totalPages);
 
         return (
-            <div className={`flex items-center justify-between gap-2 px-1 ${isTop ? 'pb-3 border-b' : 'pt-3 border-t'} border-gray-100 dark:border-gray-700/60 shrink-0`}>
+            <div className="flex items-center justify-between gap-2 px-1 pt-3 border-t border-gray-100 dark:border-gray-700/60 shrink-0">
                 {/* Previous Button */}
                 <button
                     disabled={currentPage === 1}
@@ -468,11 +468,6 @@ const PlaylistProgress = () => {
                                     className="h-full bg-gradient-to-r from-orange-500 to-[#FF5100] rounded-full"
                                 />
                             </div>
-                        </div>
-
-                        {/* Top Pagination Controls - Desktop Only (Hidden on Mobile to save space) */}
-                        <div className="hidden sm:block">
-                            {renderPagination(true)}
                         </div>
 
                         {/* Scrollable YouTube Style Video Rows with Thumbnails */}
