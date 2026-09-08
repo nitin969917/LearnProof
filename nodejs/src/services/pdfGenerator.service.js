@@ -2,84 +2,123 @@ const PDFDocument = require('pdfkit');
 
 /**
  * Format LaTeX math expressions into clean readable mathematical text for PDFKit
+/**
+ * Format LaTeX math expressions into clean, elegant, and readable mathematical text for PDFKit
  */
 function formatLatexExpression(expr) {
     if (!expr) return '';
     let str = expr;
 
-    // Fractions: \frac{a}{b} -> (a) / (b)
+    // 1. Fractions: \frac{a}{b} -> (a)/(b)
     for (let i = 0; i < 4; i++) {
         str = str.replace(/\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, '($1)/($2)');
         str = str.replace(/\\frac\s+([a-zA-Z0-9]+)\s+([a-zA-Z0-9]+)/g, '$1/$2');
     }
 
-    // Integrals & Summations
-    str = str.replace(/\\int_\{([^{}]+)\}\^\{([^{}]+)\}/g, 'Integral[$1 to $2] ');
-    str = str.replace(/\\int_\{([^{}]+)\}/g, 'Integral[$1] ');
-    str = str.replace(/\\int/g, 'Integral ');
-    str = str.replace(/\\iint/g, 'Double-Integral ');
-    str = str.replace(/\\iiint/g, 'Triple-Integral ');
-    str = str.replace(/\\oint/g, 'Contour-Integral ');
+    // 2. Matrix Environments: \begin{pmatrix} a & b \\ c & d \end{pmatrix} -> [ a   b ] \n [ c   d ]
+    str = str.replace(/\\begin\{(?:pmatrix|bmatrix|vmatrix|matrix)\}([\s\S]*?)\\end\{(?:pmatrix|bmatrix|vmatrix|matrix)\}/g, (m, body) => {
+        const rows = body.trim().split(/\\\\|\n/).map(r => r.trim()).filter(Boolean);
+        const formatted = rows.map(r => {
+            const cells = r.split('&').map(c => c.trim()).filter(Boolean);
+            return '[ ' + cells.join('   ') + ' ]';
+        });
+        return formatted.length > 1 ? '\n' + formatted.join('\n') + '\n' : (formatted[0] || '[ ]');
+    });
 
-    str = str.replace(/\\sum_\{([^{}]+)\}\^\{([^{}]+)\}/g, 'Sum($1 to $2) ');
-    str = str.replace(/\\sum_\{([^{}]+)\}/g, 'Sum($1) ');
-    str = str.replace(/\\sum/g, 'Sum ');
-
-    str = str.replace(/\\prod_\{([^{}]+)\}\^\{([^{}]+)\}/g, 'Product($1 to $2) ');
-    str = str.replace(/\\prod/g, 'Product ');
-
-    str = str.replace(/\\lim_\{([^{}]+)\}/g, 'lim($1) ');
-
-    // Roots
-    str = str.replace(/\\sqrt\[([^{}]+)\]\{([^{}]+)\}/g, 'root[$1]($2)');
-    str = str.replace(/\\sqrt\{([^{}]+)\}/g, 'sqrt($1)');
-
-    // Common Symbols & Operators
+    // 3. Logic, Functions, and Linear Algebra Operators
     str = str
-        .replace(/\\sim/g, ' ~ ')
-        .replace(/\\approx/g, ' ≈ ')
-        .replace(/\\equiv/g, ' ≡ ')
-        .replace(/\\ne\b|\\neq\b/g, ' ≠ ')
-        .replace(/\\le\b|\\leq\b/g, ' ≤ ')
-        .replace(/\\ge\b|\\geq\b/g, ' ≥ ')
-        .replace(/\\pm\b/g, ' ± ')
-        .replace(/\\mp\b/g, ' ∓ ')
-        .replace(/\\times/g, ' × ')
-        .replace(/\\cdot/g, ' · ')
-        .replace(/\\div/g, ' ÷ ')
-        .replace(/\\to\b|\\rightarrow\b/g, ' → ')
-        .replace(/\\leftarrow\b/g, ' ← ')
+        .replace(/\\implies\b/g, ' => ')
+        .replace(/\\impliedby\b/g, ' <= ')
+        .replace(/\\iff\b/g, ' <=> ')
+        .replace(/\\to\b|\\rightarrow\b/g, ' -> ')
+        .replace(/\\leftarrow\b/g, ' <- ')
         .replace(/\\Rightarrow\b/g, ' => ')
         .replace(/\\Leftarrow\b/g, ' <= ')
         .replace(/\\Leftrightarrow\b/g, ' <=> ')
-        .replace(/\\infty/g, 'inf')
-        .replace(/\\partial/g, '∂')
-        .replace(/\\nabla/g, '∇')
-        .replace(/\\in\b/g, ' ∈ ')
-        .replace(/\\notin\b/g, ' ∉ ')
-        .replace(/\\subset\b/g, ' ⊂ ')
-        .replace(/\\subseteq\b/g, ' ⊆ ')
-        .replace(/\\cup\b/g, ' ∪ ')
-        .replace(/\\cap\b/g, ' ∩ ');
+        .replace(/\\det\b/g, 'det')
+        .replace(/\\dim\b/g, 'dim')
+        .replace(/\\ker\b/g, 'ker')
+        .replace(/\\rank\b/g, 'rank')
+        .replace(/\\operatorname\{([^{}]+)\}/g, '$1')
+        .replace(/\\text\{([^{}]+)\}/g, '$1')
+        .replace(/\\mathbf\{([^{}]+)\}/g, '$1')
+        .replace(/\\mathit\{([^{}]+)\}/g, '$1')
+        .replace(/\\mathrm\{([^{}]+)\}/g, '$1')
+        .replace(/\\mathbb\{([^{}]+)\}/g, '$1')
+        .replace(/\\mathcal\{([^{}]+)\}/g, '$1');
 
-    // Greek letters
+    // 4. Integrals, Summations, and Calculus
     str = str
-        .replace(/\\pi\b/g, 'π')
-        .replace(/\\theta\b/g, 'θ')
-        .replace(/\\alpha\b/g, 'α')
-        .replace(/\\beta\b/g, 'β')
-        .replace(/\\gamma\b/g, 'γ')
-        .replace(/\\delta\b/g, 'δ')
-        .replace(/\\lambda\b/g, 'λ')
-        .replace(/\\mu\b/g, 'μ')
-        .replace(/\\sigma\b/g, 'σ')
-        .replace(/\\tau\b/g, 'τ')
-        .replace(/\\phi\b/g, 'φ')
-        .replace(/\\omega\b/g, 'ω')
-        .replace(/\\Delta\b/g, 'Δ')
-        .replace(/\\Omega\b/g, 'Ω');
+        .replace(/\\int_\{([^{}]+)\}\^\{([^{}]+)\}/g, 'Integral[$1 to $2] ')
+        .replace(/\\int_\{([^{}]+)\}/g, 'Integral[$1] ')
+        .replace(/\\int\b/g, 'Integral ')
+        .replace(/\\iint\b/g, 'Double-Integral ')
+        .replace(/\\iiint\b/g, 'Triple-Integral ')
+        .replace(/\\oint\b/g, 'Contour-Integral ')
+        .replace(/\\sum_\{([^{}]+)\}\^\{([^{}]+)\}/g, 'Sum($1 to $2) ')
+        .replace(/\\sum_\{([^{}]+)\}/g, 'Sum($1) ')
+        .replace(/\\sum\b/g, 'Sum ')
+        .replace(/\\prod_\{([^{}]+)\}\^\{([^{}]+)\}/g, 'Product($1 to $2) ')
+        .replace(/\\prod\b/g, 'Product ')
+        .replace(/\\lim_\{([^{}]+)\}/g, 'lim($1) ')
+        .replace(/\\sqrt\[([^{}]+)\]\{([^{}]+)\}/g, 'root[$1]($2)')
+        .replace(/\\sqrt\{([^{}]+)\}/g, 'sqrt($1)');
 
-    // Delimiters & Functions
+    // 5. Mathematical Operators (Strict ASCII to prevent WinAnsi font corruption in PDFKit)
+    str = str
+        .replace(/\\sim\b/g, ' ~ ')
+        .replace(/\\approx\b/g, ' ~= ')
+        .replace(/\\equiv\b/g, ' == ')
+        .replace(/\\ne\b|\\neq\b/g, ' != ')
+        .replace(/\\le\b|\\leq\b/g, ' <= ')
+        .replace(/\\ge\b|\\geq\b/g, ' >= ')
+        .replace(/\\pm\b/g, ' +/- ')
+        .replace(/\\mp\b/g, ' -/+ ')
+        .replace(/\\times\b/g, ' * ')
+        .replace(/\\cdot\b/g, ' * ')
+        .replace(/\\div\b/g, ' / ')
+        .replace(/\\infty\b/g, 'inf')
+        .replace(/\\partial\b/g, 'd')
+        .replace(/\\nabla\b/g, 'grad')
+        .replace(/\\in\b/g, ' in ')
+        .replace(/\\notin\b/g, ' not in ')
+        .replace(/\\subset\b/g, ' subset ')
+        .replace(/\\subseteq\b/g, ' subset= ')
+        .replace(/\\cup\b/g, ' union ')
+        .replace(/\\cap\b/g, ' intersect ');
+
+    // 6. Greek Letters in Standard Text
+    str = str
+        .replace(/\\lambda\b/g, 'lambda')
+        .replace(/\\Lambda\b/g, 'Lambda')
+        .replace(/\\theta\b/g, 'theta')
+        .replace(/\\Theta\b/g, 'Theta')
+        .replace(/\\pi\b/g, 'pi')
+        .replace(/\\Pi\b/g, 'Pi')
+        .replace(/\\alpha\b/g, 'alpha')
+        .replace(/\\beta\b/g, 'beta')
+        .replace(/\\gamma\b/g, 'gamma')
+        .replace(/\\Gamma\b/g, 'Gamma')
+        .replace(/\\delta\b/g, 'delta')
+        .replace(/\\Delta\b/g, 'Delta')
+        .replace(/\\epsilon\b|\\varepsilon\b/g, 'epsilon')
+        .replace(/\\mu\b/g, 'mu')
+        .replace(/\\nu\b/g, 'nu')
+        .replace(/\\sigma\b/g, 'sigma')
+        .replace(/\\Sigma\b/g, 'Sigma')
+        .replace(/\\tau\b/g, 'tau')
+        .replace(/\\phi\b|\\varphi\b/g, 'phi')
+        .replace(/\\Phi\b/g, 'Phi')
+        .replace(/\\omega\b/g, 'omega')
+        .replace(/\\Omega\b/g, 'Omega')
+        .replace(/\\rho\b/g, 'rho')
+        .replace(/\\zeta\b/g, 'zeta')
+        .replace(/\\eta\b/g, 'eta')
+        .replace(/\\chi\b/g, 'chi')
+        .replace(/\\psi\b/g, 'psi')
+        .replace(/\\Psi\b/g, 'Psi');
+
+    // 7. Delimiters & Formatting
     str = str
         .replace(/\\left\s*([(\[{|])/g, '$1')
         .replace(/\\right\s*([)\]}|])/g, '$1')
@@ -99,20 +138,15 @@ function formatLatexExpression(expr) {
         .replace(/\\quad/g, '  ')
         .replace(/\\qquad/g, '    ')
         .replace(/\\,|\\;|\\!/g, ' ')
-        .replace(/\\text\{([^{}]+)\}/g, '$1')
-        .replace(/\\mathbf\{([^{}]+)\}/g, '$1')
-        .replace(/\\mathit\{([^{}]+)\}/g, '$1')
-        .replace(/\\mathrm\{([^{}]+)\}/g, '$1')
-        .replace(/\\mathbb\{([^{}]+)\}/g, '$1')
         .replace(/\\hat\{([^{}]+)\}/g, '$1^')
         .replace(/\\bar\{([^{}]+)\}/g, 'bar($1)')
         .replace(/\\vec\{([^{}]+)\}/g, 'vec($1)');
 
-    // Superscripts & Subscripts
+    // 8. Superscripts & Subscripts
     str = str.replace(/\^\{([^{}]+)\}/g, '^$1');
     str = str.replace(/_\{([^{}]+)\}/g, '_$1');
 
-    // Strip leftover backslashes
+    // 9. Strip leftover backslashes
     str = str.replace(/\\([a-zA-Z]+)/g, '$1');
     str = str.replace(/\\/g, '');
 
@@ -120,7 +154,7 @@ function formatLatexExpression(expr) {
 }
 
 /**
- * Clean markdown symbols and convert LaTeX math for PDFKit text rendering
+ * Clean markdown symbols and convert LaTeX math for PDFKit text rendering without any font encoding corruption
  */
 function cleanMarkdownLine(line) {
     if (!line) return '';
@@ -131,9 +165,64 @@ function cleanMarkdownLine(line) {
     str = str.replace(/\$([^\$\n]+?)\$/g, (m, p1) => formatLatexExpression(p1));
 
     // Also check for standalone LaTeX commands outside delimiters
-    if (/\\(frac|int|sum|prod|lim|sqrt|alpha|beta|gamma|theta|pi|cos|sin|tan|ln|log|left|right|partial|approx|sim|le|ge|ne|times|cdot)/.test(str)) {
+    if (/\\(begin|pmatrix|bmatrix|vmatrix|matrix|frac|int|sum|prod|lim|sqrt|alpha|beta|gamma|theta|pi|lambda|cos|sin|tan|ln|log|left|right|partial|approx|sim|le|ge|ne|times|cdot|implies|det|dim|ker|rank|text|mathbf|mathrm)/.test(str)) {
         str = formatLatexExpression(str);
     }
+
+    // Convert any raw Unicode math characters into safe ASCII equivalents
+    str = str
+        .replace(/λ/g, 'lambda')
+        .replace(/Λ/g, 'Lambda')
+        .replace(/θ/g, 'theta')
+        .replace(/Θ/g, 'Theta')
+        .replace(/π/g, 'pi')
+        .replace(/Π/g, 'Pi')
+        .replace(/α/g, 'alpha')
+        .replace(/β/g, 'beta')
+        .replace(/γ/g, 'gamma')
+        .replace(/Γ/g, 'Gamma')
+        .replace(/δ/g, 'delta')
+        .replace(/Δ/g, 'Delta')
+        .replace(/ε/g, 'epsilon')
+        .replace(/μ/g, 'mu')
+        .replace(/ν/g, 'nu')
+        .replace(/σ/g, 'sigma')
+        .replace(/Σ/g, 'Sigma')
+        .replace(/τ/g, 'tau')
+        .replace(/φ/g, 'phi')
+        .replace(/Φ/g, 'Phi')
+        .replace(/ω/g, 'omega')
+        .replace(/Ω/g, 'Omega')
+        .replace(/ρ/g, 'rho')
+        .replace(/≤/g, '<=')
+        .replace(/≥/g, '>=')
+        .replace(/≠/g, '!=')
+        .replace(/≈/g, '~=')
+        .replace(/≡/g, '==')
+        .replace(/±/g, '+/-')
+        .replace(/∓/g, '-/+')
+        .replace(/×/g, '*')
+        .replace(/·/g, '*')
+        .replace(/÷/g, '/')
+        .replace(/→/g, '->')
+        .replace(/←/g, '<-')
+        .replace(/⇒/g, '=>')
+        .replace(/⇐/g, '<=')
+        .replace(/⇔/g, '<=>')
+        .replace(/∞/g, 'inf')
+        .replace(/∂/g, 'd')
+        .replace(/∇/g, 'grad')
+        .replace(/∈/g, ' in ')
+        .replace(/∉/g, ' not in ')
+        .replace(/⊂/g, ' subset ')
+        .replace(/⊆/g, ' subset= ')
+        .replace(/∪/g, ' union ')
+        .replace(/∩/g, ' intersect ')
+        .replace(/∑/g, 'Sum ')
+        .replace(/∫/g, 'Integral ')
+        .replace(/√/g, 'sqrt')
+        .replace(/•/g, '-')
+        .replace(/[^\x00-\x7F]/g, '');
 
     return str
         .replace(/\*\*(.*?)\*\*/g, '$1')
@@ -296,7 +385,7 @@ function buildStudyNotesPDF({ title, pages, subjectCategory }) {
             } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || /^\d+\.\s/.test(trimmed)) {
                 // List items
                 const isNumbered = /^\d+\.\s/.test(trimmed);
-                const bullet = isNumbered ? trimmed.match(/^\d+\./)[0] : '•';
+                const bullet = isNumbered ? trimmed.match(/^\d+\./)[0] : '-';
                 const textContent = trimmed.replace(/^[-*]\s+|\d+\.\s+/, '');
 
                 checkOverflow(16);
@@ -348,7 +437,7 @@ function buildStudyNotesPDF({ title, pages, subjectCategory }) {
             doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#166534')
                 .text('Study Revision Checklist', 54, checkY + 4, { lineBreak: false });
             doc.font('Helvetica').fontSize(7.5).fillColor('#15803d')
-                .text('Review key concepts & code patterns above • Re-test intuition with LearnProof AI Quiz', 54, checkY + 14, { lineBreak: false });
+                .text('Review key concepts & code patterns above | Re-test intuition with LearnProof AI Quiz', 54, checkY + 14, { lineBreak: false });
             doc.y = checkY + 28;
         }
     });

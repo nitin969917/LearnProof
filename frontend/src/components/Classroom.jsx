@@ -915,151 +915,45 @@ const Classroom = () => {
     }
 
     setDownloadingPdf(true);
-    const toastId = toast.loading("Preparing high-quality PDF with formulas...");
+    // Automatically close preview modal so user is back on page and sees top-level notification
+    setShowNotesModal(false);
+    setPdfShareModalData(null);
+    const toastId = toast.loading("Generating and downloading your study notes PDF...");
 
     try {
       const activeToken = token || localStorage.getItem('google_token') || '';
       const titleStr = video?.name || 'Lecture Study Notes';
       const fileName = `${titleStr.replace(/[^a-z0-9]/gi, '_').slice(0, 50)}_Study_Notes.pdf`;
 
+      // Generate via backend with the high-quality math & matrix formatter
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/classroom/prepare-notes-pdf`,
+        {
+          title: titleStr,
+          pages: parsedIntuition.pages,
+          subjectCategory: parsedIntuition.subjectCategory || parsedIntuition.categoryLabel || 'Digital Study Notes',
+          idToken: activeToken
+        },
+        { headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {} }
+      );
+
+      if (!response.data || (!response.data.downloadUrl && !response.data.pdfBase64)) {
+        throw new Error('Failed to obtain PDF data');
+      }
+
       let pdfBlob = null;
       let pdfFile = null;
-      let pdfBase64 = null;
-      let downloadUrl = '';
-
-      // 1. High-Fidelity Client-Side Render using html2pdf.js (captures all KaTeX math formulas)
-      const printElement = document.getElementById('printable-study-guide');
-      if (printElement && typeof window !== 'undefined') {
-        try {
-          const html2pdfModule = await import('html2pdf.js');
-          const html2pdf = html2pdfModule.default || html2pdfModule;
-
-          // Create an offscreen clean light-theme clone
-          const clone = printElement.cloneNode(true);
-          clone.id = 'pdf-export-clone';
-          clone.style.width = '794px'; // Standard A4 at 96 DPI
-          clone.style.maxWidth = '794px';
-          clone.style.height = 'auto';
-          clone.style.maxHeight = 'none';
-          clone.style.overflow = 'visible';
-          clone.style.position = 'fixed';
-          clone.style.top = '-99999px';
-          clone.style.left = '-99999px';
-          clone.style.zIndex = '-1000';
-          clone.style.background = '#ffffff';
-          clone.style.color = '#0f172a';
-          clone.style.padding = '24px 32px';
-          clone.classList.remove('dark', 'bg-slate-100', 'dark:bg-slate-950');
-          clone.classList.add('bg-white', 'text-slate-900');
-
-          // Ensure cards and KaTeX formulas are clean, crisp, and properly page-broken
-          const cards = clone.querySelectorAll('.topic-page-card');
-          cards.forEach((card, index) => {
-            card.style.background = '#ffffff';
-            card.style.color = '#0f172a';
-            card.style.borderColor = '#e2e8f0';
-            card.style.boxShadow = 'none';
-            card.style.marginBottom = '28px';
-            card.style.padding = '20px 24px';
-            card.style.pageBreakInside = 'avoid';
-            if (index > 0) {
-              card.style.pageBreakBefore = 'always';
-            }
-            card.querySelectorAll('.prose, p, span, h1, h2, h3, h4, li').forEach(el => {
-              el.style.color = '#0f172a';
-            });
-            card.querySelectorAll('.katex-display').forEach(k => {
-              k.style.pageBreakInside = 'avoid';
-              k.style.background = '#f8fafc';
-              k.style.color = '#0f172a';
-              k.style.padding = '12px';
-              k.style.borderRadius = '8px';
-              k.style.margin = '14px 0';
-            });
-          });
-
-          document.body.appendChild(clone);
-
-          const opt = {
-            margin: [8, 8, 8, 8],
-            filename: fileName,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-              scale: 2,
-              useCORS: true,
-              logging: false,
-              backgroundColor: '#ffffff'
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-          };
-
-          pdfBlob = await html2pdf().set(opt).from(clone).output('blob');
-          if (document.body.contains(clone)) {
-            document.body.removeChild(clone);
-          }
-
-          if (pdfBlob) {
-            pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-            pdfBase64 = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                const b64 = (reader.result || '').split(',')[1];
-                resolve(b64);
-              };
-              reader.readAsDataURL(pdfBlob);
-            });
-          }
-        } catch (clientErr) {
-          console.warn("Client-side html2pdf failed, falling back to server:", clientErr);
+      if (response.data.pdfBase64) {
+        const binaryStr = atob(response.data.pdfBase64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) {
+          bytes[i] = binaryStr.charCodeAt(i);
         }
+        pdfBlob = new Blob([bytes], { type: 'application/pdf' });
+        pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
       }
 
-      // 2. Cache rendered PDF on backend for Google Drive viewer & direct URL
-      if (pdfBase64) {
-        try {
-          const cacheRes = await axios.post(
-            `${import.meta.env.VITE_BACKEND_URL}/api/classroom/cache-rendered-pdf`,
-            { fileName, pdfBase64, idToken: activeToken },
-            { headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {} }
-          );
-          if (cacheRes.data?.downloadUrl) {
-            downloadUrl = `${import.meta.env.VITE_BACKEND_URL}${cacheRes.data.downloadUrl}`;
-          }
-        } catch (cacheErr) {
-          console.warn("Could not cache PDF with backend:", cacheErr);
-        }
-      } else {
-        // Fallback: Generate via backend
-        const response = await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/api/classroom/prepare-notes-pdf`,
-          {
-            title: titleStr,
-            pages: parsedIntuition.pages,
-            subjectCategory: parsedIntuition.subjectCategory || parsedIntuition.categoryLabel || 'Digital Study Notes',
-            idToken: activeToken
-          },
-          { headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {} }
-        );
-
-        if (!response.data || (!response.data.downloadUrl && !response.data.pdfBase64)) {
-          throw new Error('Failed to obtain PDF data');
-        }
-
-        downloadUrl = `${import.meta.env.VITE_BACKEND_URL}${response.data.downloadUrl}`;
-        pdfBase64 = response.data.pdfBase64;
-        if (pdfBase64) {
-          const binaryStr = atob(pdfBase64);
-          const bytes = new Uint8Array(binaryStr.length);
-          for (let i = 0; i < binaryStr.length; i++) {
-            bytes[i] = binaryStr.charCodeAt(i);
-          }
-          pdfBlob = new Blob([bytes], { type: 'application/pdf' });
-          pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-        }
-      }
-
-      // 3. Immediately trigger browser download
+      // Trigger automatic browser download
       if (pdfBlob) {
         const blobUrl = URL.createObjectURL(pdfBlob);
         const a = document.createElement('a');
@@ -1071,25 +965,17 @@ const Classroom = () => {
           if (document.body.contains(a)) document.body.removeChild(a);
           URL.revokeObjectURL(blobUrl);
         }, 10000);
+      } else if (response.data.downloadUrl) {
+        window.open(`${import.meta.env.VITE_BACKEND_URL}${response.data.downloadUrl}`, '_blank');
       }
 
-      // 4. Open interactive Share & Download action sheet
-      setPdfShareModalData({
-        title: titleStr,
-        fileName,
-        downloadUrl: downloadUrl || (pdfBlob ? URL.createObjectURL(pdfBlob) : ''),
-        pdfFile,
-        pdfBlob,
-        viewerUrl: downloadUrl ? `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}` : ''
-      });
-
-      // 5. Show prominent top-center success toast
+      // Show prominent top-center success toast
       toast.success("PDF Downloaded successfully!", {
         id: toastId,
         duration: 4000
       });
 
-      // Attempt native share directly on mobile if supported
+      // Mobile native share if supported
       if (pdfFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
         try {
           await navigator.share({
