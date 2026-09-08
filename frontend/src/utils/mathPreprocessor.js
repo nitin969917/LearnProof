@@ -175,21 +175,48 @@ export const formatQuizMath = (text) => {
   processed = processed.replace(/\\{2,}(?=[a-zA-Z])/g, '\\');
   processed = processed.replace(/\\{2,}(?=[{}_^,;!|~])/g, '\\');
 
-  // 2. Normalize LaTeX bracket delimiters \[...\] -> $$ and \(...\) -> $
-  processed = processed.replace(/(?<!\\left|\\right|[a-zA-Z])\\\[([\s\S]*?)\\\]/g, (match, content) => {
-    return `$$${content.trim()}$$`;
-  });
-  processed = processed.replace(/(?<!\\left|\\right|[a-zA-Z])\\\(([\s\S]*?)\\\)/g, (match, content) => {
-    return `$${content.trim()}$`;
+  // 2. Normalize arrows and inequality symbols
+  processed = processed.replace(/<->|<=>|\\leftrightarrow/g, '\\iff ');
+  processed = processed.replace(/->|-->|\\rightarrow/g, '\\to ');
+  processed = processed.replace(/=>|==>|\\Rightarrow/g, '\\implies ');
+  processed = processed.replace(/(?<![a-zA-Z0-9])<=/g, '\\le ');
+  processed = processed.replace(/(?<![a-zA-Z0-9])>=/g, '\\ge ');
+  processed = processed.replace(/(?<![a-zA-Z0-9])!=/g, '\\neq ');
+
+  // 3. Normalize Unicode Greek and Summation/Product operators
+  processed = processed.replace(/(?:\\Sigma|Σ)(?=\s*[_^])/g, '\\sum');
+  processed = processed.replace(/(?:\\Pi|Π)(?=\s*[_^])/g, '\\prod');
+
+  // 4. Normalize LaTeX bracket delimiters \[...\] -> $$ and \(...\) -> $
+  processed = processed.replace(/(?<!\\left|\\right|[a-zA-Z])\\\[([\s\S]*?)\\\]/g, (m, c) => `$$${c.trim()}$$`);
+  processed = processed.replace(/(?<!\\left|\\right|[a-zA-Z])\\\(([\s\S]*?)\\\)/g, (m, c) => `$${c.trim()}$`);
+
+  // Math block protection table so subsequent regex passes NEVER touch inside already-wrapped math
+  const mathBlocks = [];
+  const protect = (mathStr) => {
+    mathBlocks.push(mathStr);
+    return `___MATH_BLOCK_${mathBlocks.length - 1}___`;
+  };
+
+  // Protect any pre-existing $...$ or $$...$$
+  processed = processed.replace(/(\$\$[\s\S]*?\$\$|\$(?!\$)[^$\n]+?\$)/g, (match) => protect(match));
+
+  // Helper to replace ASCII fractions like a/b, |x|/(2n+2), x^{2n}/(2n)! with \frac{...}{...}
+  const fractionRegex = /([a-zA-Z0-9|]+(?:\^[a-zA-Z0-9{}]+)?)\s*\/\s*(\([^)]+\)!?|[a-zA-Z0-9+!-]+)/g;
+  const replaceFraction = (s) => s.replace(fractionRegex, (f, num, den) => {
+    let cleanDen = den.trim();
+    if (cleanDen.startsWith('(') && cleanDen.endsWith(')') && !cleanDen.endsWith(')!')) {
+      cleanDen = cleanDen.slice(1, -1).trim();
+    }
+    return `\\frac{${num}}{${cleanDen}}`;
   });
 
-  // 3. If already wrapped in $ or $$, return with clean whitespace
-  if (processed.includes('$')) {
-    return processed;
-  }
-
-  // Common natural language words that indicate human conversational text / sentences
-  const naturalLanguageRegex = /\b(the|is|are|was|were|what|which|why|how|when|where|because|expands|uses|simplifying|special|case|point|value|function|series|approximate|derivative|multiplied|radius|within|converges|only|three|non-zero|terms|first|second|third|general|formula|about|from|with|this|that|between|during|before|after|calculate|evaluate|find|determine|state|explain|defined|given|assume|consider|statement|following|correct|incorrect|true|false)\b/i;
+  // 5. Test for natural language words (to distinguish pure math from sentences/explanations)
+  const mathFuncs = new Set(['sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'log', 'ln', 'exp', 'det', 'lim', 'max', 'min', 'deg', 'dim', 'to', 'in', 'mod', 'frac', 'sum', 'prod', 'int', 'infty', 'dots', 'alpha', 'beta', 'gamma', 'delta', 'theta', 'lambda', 'sigma', 'omega', 'pi']);
+  const cleanForCheck = processed.replace(/___MATH_BLOCK_\d+___/g, ' ').replace(/\\[a-zA-Z]+/g, ' ');
+  const wordMatches = cleanForCheck.match(/\b[a-zA-Z]{2,}\b/g) || [];
+  const normalEnglishWords = wordMatches.filter(w => !mathFuncs.has(w.toLowerCase()));
+  const hasNaturalLanguage = normalEnglishWords.length >= 2;
 
   const hasMathIndicators = 
     /\\[a-zA-Z]+/.test(processed) || // has LaTeX command like \sum, \frac, \infty, \beta
@@ -199,34 +226,60 @@ export const formatQuizMath = (text) => {
     /^[a-zA-Z]\^[a-zA-Z0-9]\s*=/.test(processed) || // e^x =
     (/=/.test(processed) && /[+\-*/^]/.test(processed)); // equations
 
-  const hasNaturalLanguage = naturalLanguageRegex.test(processed);
-
-  // If it is predominantly a pure math formula or equation (like quiz options):
+  // If it is predominantly a pure math formula or equation (like pure math options without English words):
   if (hasMathIndicators && !hasNaturalLanguage) {
     let formula = processed;
     formula = formula.replace(/\.\.\./g, '\\dots');
-    // Convert common division in formulas like (f^{(n)}(a)/n!) or x^2/2! to \frac for textbook aesthetics
     formula = formula.replace(/\((f\^\{[^}]+\}\([^)]+\))\/([a-zA-Z0-9{}!]+)\)/g, '\\frac{$1}{$2}');
-    formula = formula.replace(/\b([a-zA-Z0-9]+(?:\^[a-zA-Z0-9{}]+)?)\/([a-zA-Z0-9{}]+!)/g, '\\frac{$1}{$2}');
+    formula = replaceFraction(formula);
     
-    // Check if it has large operators like \sum, \int, \lim, \prod, \frac
     const needsDisplayStyle = /\\[(sum|int|lim|prod|frac)]/.test(formula);
-    return needsDisplayStyle ? `$\\displaystyle ${formula}$` : `$${formula}$`;
+    const wrapped = needsDisplayStyle ? `$\\displaystyle ${formula}$` : `$${formula}$`;
+    return wrapped.replace(/___MATH_BLOCK_(\d+)___/g, (m, i) => mathBlocks[parseInt(i, 10)]);
   }
 
-  // If it's a natural language sentence with embedded math terms:
+  // 6. Sentence mode with embedded math:
   let sentence = processed;
-  sentence = sentence.replace(/(?<!\$)(f\^\{[^}]+\}\([^)]+\))(?!\$)/g, (m, g1) => `$${g1}$`);
-  sentence = sentence.replace(/(?<!\$)\(([a-zA-Z0-9]+-[a-zA-Z0-9]+)\)\^([a-zA-Z0-9{}]+)(?!\$)/g, (m, g1, g2) => `$(${g1})^${g2}$`);
-  sentence = sentence.replace(/(?<!\$)\b([a-zA-Z0-9]+)\^([a-zA-Z0-9{}]+)\b(?!\$)/g, (m, g1, g2) => `$${g1}^${g2}$`);
-  sentence = sentence.replace(/(?<!\$)\b([a-zA-Z0-9]+)\_([a-zA-Z0-9{}]+)\b(?!\$)/g, (m, g1, g2) => `$${g1}_${g2}$`);
-  sentence = sentence.replace(/(?<!\$)\b([fg]\([a-zA-Z]\))(?!\$)/g, (m, g1) => `$${g1}$`);
-  sentence = sentence.replace(/(?<!\$)\b([fg]'\([a-zA-Z]\))(?!\$)/g, (m, g1) => `$${g1}$`);
-  sentence = sentence.replace(/(?<!\$)\b(sin|cos|tan|cot|sec|csc|log|ln)\(([a-zA-Z0-9.]+)\)(?!\$)/g, (m, g1, g2) => `$\\${g1}(${g2})$`);
-  sentence = sentence.replace(/(?<!\$)\b([a-zA-Z])\s*=\s*([0-9]+)\b(?!\$)/g, (m, g1, g2) => `$${g1} = ${g2}$`);
-  sentence = sentence.replace(/(?<!\$)\(([a-zA-Z0-9]+\s*-\s*[a-zA-Z0-9]+)\)(?!\$)/g, (m, g1) => `$(${g1})$`);
-  // Standalone LaTeX commands in sentences
-  sentence = sentence.replace(/(?<!\$)\\[a-zA-Z]+(?:\{[^}]*\})*(?:_\{?[^}\s]*\}?)?(?:\^\{?[^}\s]*\}?)?(?!\$)/g, (m) => `$${m}$`);
+
+  // Rule 1: Equations at start of option (e.g. L = |x|/ (2n+2) -> 0, so... or L = 1, so...)
+  sentence = sentence.replace(/^([a-zA-Z]\s*=\s*[^,;]+?)(?=\s*,\s*|\s*;\s*|\s+(?:so|implying|where|when|if|for|which|because)\b|$)/g, (m, eq) => {
+    let cleanEq = eq.trim();
+    cleanEq = replaceFraction(cleanEq);
+    cleanEq = cleanEq.replace(/\|([a-zA-Z0-9]+)\|\s*([<>=]+)\s*([0-9a-zA-Z]+)/g, '|$1| $2 $3');
+    return protect(`$${cleanEq}$`);
+  });
+
+  // Rule 2: Summations / integrals / series with limits and terms (e.g. \sum_{n=0}^{\infty} (-1)^n x^{2n}/(2n)!)
+  const seriesRegex = /(?:\\sum|\\int|\\prod|\\lim)\s*(?:_\{[^}]*\}|_\S+)?\s*(?:\^\{[^}]*\}|\^\S+)?(?:\s*[-+0-9a-zA-Z_()^/!|{}\\.]+)+/g;
+  sentence = sentence.replace(seriesRegex, (match) => {
+    let m = match.trim();
+    m = replaceFraction(m);
+    return protect(`$\\displaystyle ${m}$`);
+  });
+
+  // Rule 3: Functions and derivatives
+  sentence = sentence.replace(/(f\^\{[^}]+\}\([^)]+\))/g, (m, g1) => protect(`$${g1}$`));
+  sentence = sentence.replace(/\(([a-zA-Z0-9]+-[a-zA-Z0-9]+)\)\^([a-zA-Z0-9{}]+)/g, (m, g1, g2) => protect(`$(${g1})^${g2}$`));
+  sentence = sentence.replace(/\b([a-zA-Z0-9]+)\^([a-zA-Z0-9{}]+)\b/g, (m, g1, g2) => protect(`$${g1}^${g2}$`));
+  sentence = sentence.replace(/\b([a-zA-Z0-9]+)\_([a-zA-Z0-9{}]+)\b/g, (m, g1, g2) => protect(`$${g1}_${g2}$`));
+  sentence = sentence.replace(/\b([fg]\([a-zA-Z]\))/g, (m, g1) => protect(`$${g1}$`));
+  sentence = sentence.replace(/\b([fg]'\([a-zA-Z]\))/g, (m, g1) => protect(`$${g1}$`));
+  sentence = sentence.replace(/(?:\\)?\b(sin|cos|tan|cot|sec|csc|log|ln)(?:\(([a-zA-Z0-9.]+)\)|\s+([a-zA-Z0-9]+))/g, (m, g1, g2, g3) => protect(`$\\${g1}(${g2 || g3})$`));
+  sentence = sentence.replace(/\b([a-zA-Z])\s*=\s*([0-9]+)\b/g, (m, g1, g2) => protect(`$${g1} = ${g2}$`));
+  sentence = sentence.replace(/\(([a-zA-Z0-9]+\s*-\s*[a-zA-Z0-9]+)\)/g, (m, g1) => protect(`$(${g1})$`));
+
+  // Rule 4: Absolute value conditions (e.g. |x|<1)
+  sentence = sentence.replace(/\|([a-zA-Z0-9]+)\|\s*(\\le|\\ge|[<>=]+)\s*([0-9a-zA-Z]+)/g, (m, v, op, val) => protect(`$|${v}| ${op.trim()} ${val}$`));
+
+  // Rule 5: Standalone variable identifiers in phrases (e.g. "limit L", "for all real x", "for all x")
+  sentence = sentence.replace(/\b(limit|variable|constant|term|point|radius of convergence)\s+([A-Za-z])\b/g, (m, word, v) => `${word} ${protect(`$${v}$`)}`);
+  sentence = sentence.replace(/\b(for all real|for all)\s+([a-zA-Z])([.,;]|\s|$)/g, (m, prefix, v, punct) => `${prefix} ${protect(`$${v}$`)}${punct}`);
+
+  // Rule 6: Any remaining LaTeX commands
+  sentence = sentence.replace(/\\[a-zA-Z]+(?:\{[^}]*\})*(?:_\{?[^}\s]*\}?)?(?:\^\{?[^}\s]*\}?)?/g, (m) => protect(`$${m}$`));
+
+  // Restore all protected math blocks
+  sentence = sentence.replace(/___MATH_BLOCK_(\d+)___/g, (m, i) => mathBlocks[parseInt(i, 10)]);
 
   return sentence;
 };

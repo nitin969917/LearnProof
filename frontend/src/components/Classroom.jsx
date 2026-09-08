@@ -2860,21 +2860,21 @@ const Classroom = () => {
                             <p className="text-xs sm:text-sm mb-4 text-gray-500 dark:text-slate-300">
                               Your Score: <strong className={`font-black ${quizResult.passed ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>{quizResult.score}%</strong>
                             </p>
-                            <div className="flex flex-col gap-2.5">
-                              <button
-                                onClick={() => setSelectedHistoryQuiz(quizResult.quiz)}
-                                className="w-full px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-xs sm:text-sm rounded-xl hover:from-orange-600 hover:to-amber-600 transition shadow-sm cursor-pointer active:scale-95"
-                              >
-                                Review Answers
-                              </button>
+                            <div className="flex flex-row gap-2.5">
                               <button
                                 onClick={() => {
                                   setQuizResult(null);
                                   fetchQuizHistory();
                                 }}
-                                className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white font-bold text-xs sm:text-sm rounded-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition cursor-pointer active:scale-95"
+                                className="flex-1 px-3 sm:px-4 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white font-bold text-xs sm:text-sm rounded-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition cursor-pointer active:scale-95 text-center"
                               >
                                 Close Results
+                              </button>
+                              <button
+                                onClick={() => setSelectedHistoryQuiz(quizResult.quiz)}
+                                className="flex-1 px-3 sm:px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-xs sm:text-sm rounded-xl hover:from-orange-600 hover:to-amber-600 transition shadow-sm cursor-pointer active:scale-95 text-center"
+                              >
+                                Review Answers
                               </button>
                             </div>
                           </motion.div>
@@ -2953,21 +2953,21 @@ const Classroom = () => {
                               ))}
                             </div>
 
-                            <div className="mt-6 sm:mt-8 pt-4 border-t border-gray-100 dark:border-slate-700/80 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                            <div className="mt-6 sm:mt-8 pt-4 border-t border-gray-100 dark:border-slate-700/80 flex flex-row items-center justify-between gap-2.5 sm:gap-3">
                               <button
                                 disabled={submittingQuiz}
                                 onClick={() => {
                                   setQuizData(null);
                                   toast("Quiz cancelled.");
                                 }}
-                                className="w-full sm:w-auto px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer text-center"
+                                className="flex-1 sm:flex-none px-3.5 sm:px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer text-center active:scale-95"
                               >
                                 Cancel Quiz
                               </button>
                               <button
                                 disabled={submittingQuiz}
                                 onClick={handleSubmitQuiz}
-                                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 disabled:opacity-50 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2 text-center"
+                                className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 disabled:opacity-50 active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5 sm:gap-2 text-center"
                               >
                                 {submittingQuiz ? (
                                   <>
