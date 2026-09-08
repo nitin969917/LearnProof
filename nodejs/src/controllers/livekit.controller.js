@@ -133,27 +133,8 @@ const deleteRoom = async (req, res) => {
     const source = req.query.source;
 
     if (source === 'unload') {
-      if (delayedLiveKitDeletions.has(roomName)) {
-        clearTimeout(delayedLiveKitDeletions.get(roomName));
-      }
-
-      const timeoutId = setTimeout(async () => {
-        try {
-          delayedLiveKitDeletions.delete(roomName);
-          const io = req.app.get('io');
-          if (io) {
-            io.to(`live_room_${roomName}`).emit('room_ended');
-          }
-          await livekitService.deleteRoom(roomName);
-          clearAllStageRequests(roomName);
-          console.log(`[LiveKit] Delayed LiveKit room deletion executed for: ${roomName}`);
-        } catch (err) {
-          console.error('Delayed LiveKit room deletion failed:', err.message);
-        }
-      }, 5000);
-
-      delayedLiveKitDeletions.set(roomName, timeoutId);
-      return res.json({ success: true, message: 'LiveKit room deletion scheduled (delayed)' });
+      // Never delete LiveKit rooms on browser reload/unload events
+      return res.json({ success: true, message: 'Unload deletion ignored to prevent premature room termination' });
     }
 
     // Normal direct end (from explicit UI action)

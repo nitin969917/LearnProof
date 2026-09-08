@@ -438,16 +438,41 @@ io.on('connection', (socket) => {
       }
     }
 
-    // If this socket was the host of an active live room, trigger delayed room closure
+    // If this socket was the host of an active live room, trigger delayed room closure check
     if (socket.isLiveRoomHost && socket.activeLiveRoom) {
       const roomName = socket.activeLiveRoom;
+      const hostUserId = socket.userId;
       if (hostDisconnectTimers.has(roomName)) {
         clearTimeout(hostDisconnectTimers.get(roomName));
       }
 
+      // Allow 3 minutes (180s) grace period for reconnects, tab refreshes, or network handover
       const timer = setTimeout(async () => {
         hostDisconnectTimers.delete(roomName);
-        console.log(`[LiveRoom] Host disconnected timeout (8s) expired for room: ${roomName}. Ending meeting.`);
+
+        // 1. Check if the host user still has an active socket connection on the platform
+        if (hostUserId) {
+          try {
+            const socketSetKey = `user:sockets:${hostUserId}`;
+            const activeCount = await redis.scard(socketSetKey);
+            if (activeCount > 0) {
+              console.log(`[LiveRoom] Host user ${hostUserId} is still connected via another socket. Keeping room: ${roomName}`);
+              return;
+            }
+          } catch (_) {}
+        }
+
+        // 2. Check if participants or host are still connected in LiveKit
+        try {
+          const lkParticipants = await livekitService.listParticipants(roomName);
+          if (Array.isArray(lkParticipants) && lkParticipants.length > 0) {
+            console.log(`[LiveRoom] Room ${roomName} still has ${lkParticipants.length} active participants in LiveKit. Keeping room alive.`);
+            return;
+          }
+        } catch (_) {}
+
+        // 3. Only if completely empty and host never returned after 3 minutes, clean up
+        console.log(`[LiveRoom] Host disconnected timeout (180s) expired and room ${roomName} is empty. Ending meeting.`);
         io.to(`live_room_${roomName}`).emit('room_ended');
         try {
           await livekitService.deleteRoom(roomName);
@@ -459,7 +484,7 @@ io.on('connection', (socket) => {
         } catch (err) {
           console.error('[LiveRoom] Error cleaning up room on host disconnect:', err.message);
         }
-      }, 8000);
+      }, 180000);
 
       hostDisconnectTimers.set(roomName, timer);
     }
@@ -504,6 +529,10 @@ io.on('connection', (socket) => {
     if (!roomName) return;
     socket.leave(`live_room_${roomName}`);
     socket.leave(`whiteboard_room_${roomName}`);
+    if (socket.activeLiveRoom === roomName) {
+      socket.activeLiveRoom = null;
+      socket.isLiveRoomHost = false;
+    }
   });
 
   // Host explicitly left the room / closed browser

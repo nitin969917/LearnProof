@@ -1558,30 +1558,8 @@ const deleteLanguageRoomByName = async (req, res) => {
     if (room.creatorId !== creatorId) return res.status(403).json({ error: 'Forbidden' });
 
     if (source === 'unload') {
-      if (delayedDeletions.has(roomName)) {
-        clearTimeout(delayedDeletions.get(roomName));
-      }
-
-      const timeoutId = setTimeout(async () => {
-        try {
-          delayedDeletions.delete(roomName);
-          await datingPrisma.languageRoom.delete({
-            where: { roomName },
-          });
-          await invalidateRoomsCache();
-          const io = req.app.get('io');
-          if (io) {
-            io.to(`live_room_${roomName}`).emit('room_ended');
-            io.emit('ROOMS_UPDATED');
-          }
-          console.log(`[Dating] Delayed room database deletion executed for: ${roomName}`);
-        } catch (err) {
-          console.error('Delayed database room deletion failed:', err.message);
-        }
-      }, 5000);
-
-      delayedDeletions.set(roomName, timeoutId);
-      return res.json({ message: 'Room ended scheduled (delayed)' });
+      // Never delete rooms on browser unload/refresh events
+      return res.json({ message: 'Unload deletion ignored to prevent premature room termination' });
     }
 
     // Normal direct end (from explicit UI action)
@@ -1664,7 +1642,7 @@ const refreshRoomsInBackground = async (userId, cacheKey) => {
     for (const room of rooms) {
       const isScheduled = !!room.scheduledFor;
       const isScheduledFuture = isScheduled && (new Date(room.scheduledFor) > new Date(now.getTime() - 2 * 60 * 60 * 1000)); // allow up to 2h past scheduled start
-      const isNew = (now - new Date(room.createdAt)) < 45000;
+      const isNew = (now - new Date(room.createdAt)) < 30 * 60 * 1000; // 30-minute grace period for newly created rooms
 
       if (isScheduledFuture || isNew || activeLkRoomNames.includes(room.roomName)) {
         // Determine if current user is authorized to see this room
@@ -1764,7 +1742,7 @@ const getLanguageRooms = async (req, res) => {
     for (const room of rooms) {
       const isScheduled = !!room.scheduledFor;
       const isScheduledFuture = isScheduled && (new Date(room.scheduledFor) > new Date(now.getTime() - 2 * 60 * 60 * 1000));
-      const isNew = (now - new Date(room.createdAt)) < 45000;
+      const isNew = (now - new Date(room.createdAt)) < 30 * 60 * 1000; // 30-minute grace period for newly created rooms
 
       if (isScheduledFuture || isNew || activeLkRoomNames.includes(room.roomName)) {
         // Determine if current user is authorized to see this room

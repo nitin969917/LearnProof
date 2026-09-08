@@ -3174,12 +3174,23 @@ export default function LanguageRoom() {
     const fetchTokenAndRoom = async () => {
       try {
         let roomInfo = null;
-        try {
-          const roomRes = await socialApi.get(`/language-rooms/by-name/${roomName}`);
-          roomInfo = roomRes.data;
-          if (roomInfo) setDbRoom(roomInfo);
-        } catch (roomErr) {
-          console.error('Failed to resolve room from database:', roomErr);
+        let attempts = 0;
+        while (!roomInfo && attempts < 3) {
+          try {
+            const roomRes = await socialApi.get(`/language-rooms/by-name/${roomName}`);
+            if (roomRes.data) {
+              roomInfo = roomRes.data;
+              setDbRoom(roomInfo);
+              break;
+            }
+          } catch (roomErr) {
+            attempts++;
+            if (attempts < 3) {
+              await new Promise(r => setTimeout(r, 800));
+            } else {
+              console.warn('Failed to resolve room from database after retries:', roomErr);
+            }
+          }
         }
 
         // If room no longer exists in DB, it was ended by host — redirect
