@@ -613,7 +613,7 @@ const Classroom = () => {
 
   const handleSelectTab = (tabId, forceScroll = false) => {
     setActiveTab(tabId);
-    if (forceScroll || tabId === 'ai-chat' || tabId === 'quiz') {
+    if (forceScroll) {
       setTimeout(() => {
         scrollToTabs(true);
       }, 60);
@@ -1414,6 +1414,7 @@ const Classroom = () => {
       setHasSeeked(false);
       fetchClassroom();
       fetchDiscussionData();
+      fetchQuizHistory();
     }
   }, [token, videoId]);
 
@@ -1445,7 +1446,7 @@ const Classroom = () => {
     if (activeTab === 'intuition') {
       fetchIntuition();
     }
-    if (activeTab === 'quiz') {
+    if (activeTab === 'quiz' && quizHistory.length === 0) {
       fetchQuizHistory();
     }
   }, [activeTab, token, videoId, video]);
@@ -2977,11 +2978,7 @@ const Classroom = () => {
                             </div>
                           </motion.div>
                         ) : (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="flex flex-col items-center justify-center py-5 sm:py-9 text-center w-full"
-                          >
+                          <div className="flex flex-col items-center justify-center py-5 sm:py-9 text-center w-full">
                             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-orange-100 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mb-3 shadow-xs">
                               <CheckCircle className="h-7 w-7 sm:h-9 sm:w-9 text-orange-500" />
                             </div>
@@ -3014,10 +3011,8 @@ const Classroom = () => {
                                 </h3>
                                 <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
                                   {(quizHistory || []).map(hist => (
-                                    <motion.div
+                                    <div
                                       key={hist.id}
-                                      initial={{ opacity: 0, y: 8 }}
-                                      animate={{ opacity: 1, y: 0 }}
                                       onClick={() => setSelectedHistoryQuiz(hist)}
                                       className="flex justify-between items-center p-3 sm:p-4 bg-white dark:bg-slate-800 shadow-xs rounded-xl border border-gray-200/80 dark:border-slate-700 cursor-pointer hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-sm transition-all group"
                                     >
@@ -3032,8 +3027,8 @@ const Classroom = () => {
                                         </span>
                                         <button
                                           onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteQuizHistory(hist.id);
+                                             e.stopPropagation();
+                                             handleDeleteQuizHistory(hist.id);
                                           }}
                                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
                                           title="Delete attempt"
@@ -3043,12 +3038,12 @@ const Classroom = () => {
                                         </button>
                                         <ArrowLeft size={14} className="text-gray-400 rotate-180 group-hover:text-orange-500 transition-colors" />
                                       </div>
-                                    </motion.div>
+                                    </div>
                                   ))}
                                 </div>
                               </div>
                             )}
-                          </motion.div>
+                          </div>
                         )}
                     </div>
                   )}
