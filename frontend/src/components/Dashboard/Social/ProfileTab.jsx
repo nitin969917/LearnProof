@@ -81,7 +81,7 @@ function VisibilityBadge({ visibility = 'public' }) {
   );
 }
 
-const PLATFORM_COVER_IMAGE = '/assets/learnproof_cover.jpg';
+const PLATFORM_COVER_IMAGE = '/assets/learnproof_cover.jpg?v=2';
 
 export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, onSelectChatUser, onViewProfile, onCreatePost }) {
   const { user, updateUser } = useAuth();
@@ -423,18 +423,18 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-28 font-sans">
       {/* ── Top Cover Banner ── */}
-      <div className="relative w-full h-44 sm:h-56 md:h-64 rounded-3xl overflow-hidden shadow-sm border border-gray-200/70 dark:border-gray-800 bg-gray-900">
+      <div className="relative w-full h-44 sm:h-56 md:h-64 rounded-3xl overflow-hidden shadow-xs border border-amber-100/80 dark:border-gray-800 bg-[#FAF7F2] dark:bg-gray-900">
         <img
           src={PLATFORM_COVER_IMAGE}
           alt="LearnProof AI Platform Cover"
           className="w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-black/20 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/5 pointer-events-none" />
 
         {!isOwnProfile && (
           <button
             onClick={() => navigate(-1)}
-            className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-1.5 px-3 py-1.5 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/20 transition cursor-pointer"
+            className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-1.5 px-3 py-1.5 bg-white/80 hover:bg-white dark:bg-black/60 dark:hover:bg-black/80 backdrop-blur-md text-gray-800 dark:text-white text-xs font-bold rounded-xl border border-gray-200/80 dark:border-white/20 shadow-xs transition cursor-pointer"
           >
             <ArrowLeft size={14} />
             <span>Back</span>
