@@ -914,81 +914,148 @@ const Classroom = () => {
       return;
     }
 
+    const printElement = document.getElementById('printable-study-guide');
     setDownloadingPdf(true);
-    // Automatically close preview modal so user is back on page and sees top-level notification
-    setShowNotesModal(false);
-    setPdfShareModalData(null);
-    const toastId = toast.loading("Generating and downloading your study notes PDF...");
+    const toastId = toast.loading("Generating high-quality textbook PDF with math formulas...");
 
     try {
       const activeToken = token || localStorage.getItem('google_token') || '';
       const titleStr = video?.name || 'Lecture Study Notes';
       const fileName = `${titleStr.replace(/[^a-z0-9]/gi, '_').slice(0, 50)}_Study_Notes.pdf`;
 
-      // Generate via backend with the high-quality math & matrix formatter
-      const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/classroom/prepare-notes-pdf`,
-        {
-          title: titleStr,
-          pages: parsedIntuition.pages,
-          subjectCategory: parsedIntuition.subjectCategory || parsedIntuition.categoryLabel || 'Digital Study Notes',
-          idToken: activeToken
-        },
-        { headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {} }
-      );
+      let downloaded = false;
 
-      if (!response.data || (!response.data.downloadUrl && !response.data.pdfBase64)) {
-        throw new Error('Failed to obtain PDF data');
-      }
+      // 1. High-Fidelity Client-Side Render using html2pdf.js (renders exact KaTeX math formulas from preview)
+      if (printElement && typeof window !== 'undefined') {
+        try {
+          const html2pdfModule = await import('html2pdf.js');
+          const html2pdf = html2pdfModule.default || html2pdfModule;
 
-      let pdfBlob = null;
-      let pdfFile = null;
-      if (response.data.pdfBase64) {
-        const binaryStr = atob(response.data.pdfBase64);
-        const bytes = new Uint8Array(binaryStr.length);
-        for (let i = 0; i < binaryStr.length; i++) {
-          bytes[i] = binaryStr.charCodeAt(i);
+          // Create an offscreen clean light-theme container positioned at top:0 left:0
+          const exportContainer = document.createElement('div');
+          exportContainer.id = 'pdf-export-container';
+          exportContainer.style.position = 'absolute';
+          exportContainer.style.top = '0';
+          exportContainer.style.left = '0';
+          exportContainer.style.width = '794px';
+          exportContainer.style.zIndex = '-9999';
+          exportContainer.style.background = '#ffffff';
+          exportContainer.style.color = '#0f172a';
+          exportContainer.style.pointerEvents = 'none';
+
+          const clone = printElement.cloneNode(true);
+          clone.id = 'pdf-export-clone';
+          clone.style.width = '100%';
+          clone.style.height = 'auto';
+          clone.style.maxHeight = 'none';
+          clone.style.overflow = 'visible';
+          clone.classList.remove('dark', 'bg-slate-100', 'dark:bg-slate-950');
+          clone.classList.add('bg-white', 'text-slate-900');
+
+          // Clean styling on each topic card
+          const cards = clone.querySelectorAll('.topic-page-card');
+          cards.forEach((card, index) => {
+            card.style.background = '#ffffff';
+            card.style.color = '#0f172a';
+            card.style.borderColor = '#e2e8f0';
+            card.style.boxShadow = 'none';
+            card.style.marginBottom = '28px';
+            card.style.padding = '20px 24px';
+            card.style.pageBreakInside = 'avoid';
+            card.style.breakInside = 'avoid';
+            if (index > 0) {
+              card.style.pageBreakBefore = 'always';
+              card.style.breakBefore = 'page';
+            }
+            card.querySelectorAll('.prose, p, span, h1, h2, h3, h4, li').forEach(el => {
+              el.style.color = '#0f172a';
+            });
+            card.querySelectorAll('.katex-display').forEach(k => {
+              k.style.pageBreakInside = 'avoid';
+              k.style.breakInside = 'avoid';
+              k.style.background = '#f8fafc';
+              k.style.color = '#0f172a';
+              k.style.padding = '12px';
+              k.style.borderRadius = '8px';
+              k.style.margin = '14px 0';
+            });
+          });
+
+          exportContainer.appendChild(clone);
+          document.body.appendChild(exportContainer);
+
+          const opt = {
+            margin: [8, 8, 8, 8],
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: '#ffffff',
+              windowWidth: 794,
+              scrollX: 0,
+              scrollY: 0
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+          };
+
+          await html2pdf().set(opt).from(exportContainer).save();
+          downloaded = true;
+
+          if (document.body.contains(exportContainer)) {
+            document.body.removeChild(exportContainer);
+          }
+        } catch (clientErr) {
+          console.warn("Client-side html2pdf failed, falling back to server:", clientErr);
         }
-        pdfBlob = new Blob([bytes], { type: 'application/pdf' });
-        pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
       }
 
-      // Trigger automatic browser download
-      if (pdfBlob) {
-        const blobUrl = URL.createObjectURL(pdfBlob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          if (document.body.contains(a)) document.body.removeChild(a);
-          URL.revokeObjectURL(blobUrl);
-        }, 10000);
-      } else if (response.data.downloadUrl) {
-        window.open(`${import.meta.env.VITE_BACKEND_URL}${response.data.downloadUrl}`, '_blank');
+      // 2. Fallback to server if client-side rendering was not available or failed
+      if (!downloaded) {
+        const response = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/classroom/prepare-notes-pdf`,
+          {
+            title: titleStr,
+            pages: parsedIntuition.pages,
+            subjectCategory: parsedIntuition.subjectCategory || parsedIntuition.categoryLabel || 'Digital Study Notes',
+            idToken: activeToken
+          },
+          { headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {} }
+        );
+
+        if (response.data?.pdfBase64) {
+          const binaryStr = atob(response.data.pdfBase64);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          const pdfBlob = new Blob([bytes], { type: 'application/pdf' });
+          const blobUrl = URL.createObjectURL(pdfBlob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            if (document.body.contains(a)) document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+          }, 10000);
+        } else if (response.data?.downloadUrl) {
+          window.open(`${import.meta.env.VITE_BACKEND_URL}${response.data.downloadUrl}`, '_blank');
+        }
       }
 
-      // Show prominent top-center success toast
+      // 3. Immediately close preview modal so user is back on page
+      setShowNotesModal(false);
+      setPdfShareModalData(null);
+
+      // 4. Show prominent top-center success toast
       toast.success("PDF Downloaded successfully!", {
         id: toastId,
         duration: 4000
       });
-
-      // Mobile native share if supported
-      if (pdfFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-        try {
-          await navigator.share({
-            title: titleStr,
-            text: `Study Notes: ${titleStr}`,
-            files: [pdfFile]
-          });
-        } catch (shareErr) {
-          if (shareErr && shareErr.name !== 'AbortError') {
-            console.warn("navigator.share:", shareErr);
-          }
-        }
-      }
     } catch (err) {
       console.error("PDF preparation failed:", err);
       toast.error("Failed to prepare PDF. Please try again.", { id: toastId });
