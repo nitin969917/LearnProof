@@ -81,6 +81,8 @@ function VisibilityBadge({ visibility = 'public' }) {
   );
 }
 
+const PLATFORM_COVER_IMAGE = '/assets/learnproof_cover.jpg';
+
 export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, onSelectChatUser, onViewProfile, onCreatePost }) {
   const { user, updateUser } = useAuth();
   const navigate = useNavigate();
@@ -101,10 +103,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const [expandedSection, setExpandedSection] = useState(null); // 'academics', 'contact', 'social', 'settings'
   const [activeTab, setActiveTab] = useState('posts'); // 'posts', 'likes', 'friends'
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
-  const [coverUrl, setCoverUrl] = useState(() => localStorage.getItem('user_cover_image') || 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80');
-
   const fileInputRef = useRef(null);
-  const coverInputRef = useRef(null);
   const avatarInputRef = useRef(null);
   const modalAvatarInputRef = useRef(null);
   const mobileExpandedPanelRef = useRef(null);
@@ -355,24 +354,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     }
   };
 
-  const handleCoverChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Cover image must be under 5MB');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result;
-      setCoverUrl(base64);
-      localStorage.setItem('user_cover_image', base64);
-      toast.success('Cover photo updated!');
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handleFriendAction = async () => {
     if (!profile) return;
@@ -442,33 +423,13 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-28 font-sans">
       {/* ── Top Cover Banner ── */}
-      <div className="relative w-full h-44 sm:h-56 md:h-64 rounded-3xl overflow-hidden shadow-sm border border-gray-200/70 dark:border-gray-800">
+      <div className="relative w-full h-44 sm:h-56 md:h-64 rounded-3xl overflow-hidden shadow-sm border border-gray-200/70 dark:border-gray-800 bg-gray-900">
         <img
-          src={coverUrl}
-          alt="Profile Cover"
-          className="w-full h-full object-cover"
+          src={PLATFORM_COVER_IMAGE}
+          alt="LearnProof AI Platform Cover"
+          className="w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/15 pointer-events-none" />
-
-        {/* Change Cover Button (Only on own profile) */}
-        {isOwnProfile && (
-          <>
-            <input
-              type="file"
-              ref={coverInputRef}
-              onChange={handleCoverChange}
-              accept="image/*"
-              className="hidden"
-            />
-            <button
-              onClick={() => coverInputRef.current?.click()}
-              className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/20 shadow-md transition active:scale-95 cursor-pointer"
-            >
-              <Camera size={14} />
-              <span>Change Cover</span>
-            </button>
-          </>
-        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-black/20 pointer-events-none" />
 
         {!isOwnProfile && (
           <button
