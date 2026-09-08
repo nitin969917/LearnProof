@@ -30,7 +30,8 @@ import {
   Layers,
   RefreshCw,
   Shuffle,
-  Printer
+  Printer,
+  ChevronUp
 } from "lucide-react";
 import { useModal } from "../context/ModalContext";
 import YouTube from 'react-youtube';
@@ -570,6 +571,46 @@ const Classroom = () => {
     }
   };
 
+  const tabsContainerRef = useRef(null);
+
+  const scrollToTabs = (smooth = true) => {
+    const el = tabsContainerRef.current || document.getElementById('classroom-tabs-bar');
+    if (!el) return;
+    const behavior = smooth ? 'smooth' : 'auto';
+
+    // Desktop: Check if there's an internal scrollable container (.lg:overflow-y-auto)
+    const scrollableParent = el.closest('.lg\\:overflow-y-auto');
+    if (scrollableParent && window.innerWidth >= 1024) {
+      const parentTop = scrollableParent.getBoundingClientRect().top;
+      const elemTop = el.getBoundingClientRect().top;
+      scrollableParent.scrollTo({
+        top: scrollableParent.scrollTop + (elemTop - parentTop),
+        behavior
+      });
+      return;
+    }
+
+    // Mobile / Window: scroll so tabs bar is at top of viewport
+    el.scrollIntoView({ behavior, block: 'start' });
+  };
+
+  const scrollToVideo = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const scrollableParent = document.querySelector('.lg\\:overflow-y-auto');
+    if (scrollableParent) {
+      scrollableParent.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleSelectTab = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === 'ai-chat') {
+      setTimeout(() => {
+        scrollToTabs(true);
+      }, 60);
+    }
+  };
+
   const handleStartNewChat = () => {
     updateAiMessages([]);
     setAiChatInput('');
@@ -580,6 +621,7 @@ const Classroom = () => {
     const question = (customQuestion || aiChatInput).trim();
     if (!question || aiChatLoading || !video?.vid) return;
 
+    scrollToTabs(true);
     const userMsg = { role: 'user', content: question, timestamp: new Date() };
     const updatedWithUser = [...aiChatMessages, userMsg];
     updateAiMessages(updatedWithUser);
@@ -825,6 +867,12 @@ const Classroom = () => {
     const el = document.getElementById(`classroom-tab-${activeTab}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+    if (activeTab === 'ai-chat') {
+      const timer = setTimeout(() => {
+        scrollToTabs(true);
+      }, 70);
+      return () => clearTimeout(timer);
     }
   }, [activeTab]);
 
@@ -1584,7 +1632,7 @@ const Classroom = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col w-full lg:w-auto lg:h-screen lg:overflow-hidden">
         {/* Premium Header */}
-        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 shadow-sm transition-colors duration-200 sticky top-0 z-30">
+        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 shadow-sm transition-colors duration-200 relative lg:sticky lg:top-0 z-20">
           <div className="flex items-center justify-between px-4 sm:px-6 py-3.5">
             <button
               onClick={() => {
@@ -1799,9 +1847,13 @@ const Classroom = () => {
                 </span>
               </div>
 
-              {/* Premium Tabs Switcher - Fixed non-scrollable equal width */}
-              <div className="mt-4">
-                <div className="w-full grid grid-flow-col auto-cols-fr bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl p-1 sm:p-1.5 gap-0.5 sm:gap-1 border border-gray-200/70 dark:border-slate-700/60">
+              {/* Premium Tabs Switcher - Sticky at top when scrolling */}
+              <div
+                ref={tabsContainerRef}
+                id="classroom-tabs-bar"
+                className="sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md py-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-200 mt-2"
+              >
+                <div className="w-full grid grid-flow-col auto-cols-fr bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl p-1 sm:p-1.5 gap-0.5 sm:gap-1 border border-gray-200/70 dark:border-slate-700/60 shadow-xs">
                   {visibleClassroomTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -1809,7 +1861,7 @@ const Classroom = () => {
                       <button
                         key={tab.id}
                         id={`classroom-tab-${tab.id}`}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => handleSelectTab(tab.id)}
                         className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 sm:py-2 px-0.5 sm:px-2 rounded-xl text-center transition-all duration-200 select-none cursor-pointer z-10 ${isActive
                             ? 'text-white font-extrabold'
                             : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50 font-bold'
@@ -1834,13 +1886,15 @@ const Classroom = () => {
                     );
                   })}
                 </div>
+              </div>
 
-                <div
-                  className="pt-2.5 pb-2 sm:pt-4 sm:pb-6 min-h-[350px] touch-pan-y"
-                  onTouchStart={handleTouchStart}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                >
+              {/* Tab Contents */}
+              <div
+                className="pt-2 pb-2 sm:pt-4 sm:pb-6 min-h-[350px] touch-pan-y"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
                   {activeTab === 'playlist' && playlist && (() => {
                     const allVideos = playlist.videos || [];
                     const totalPages = Math.ceil(allVideos.length / ITEMS_PER_PAGE);
@@ -1973,7 +2027,7 @@ const Classroom = () => {
                           </div>
                         </div>
                         <button
-                          onClick={() => setActiveTab('ai-chat')}
+                          onClick={() => handleSelectTab('ai-chat')}
                           className="px-2.5 py-1.5 sm:px-4 sm:py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider rounded-lg sm:rounded-xl shadow-xs transition hover:scale-105 active:scale-95 flex items-center gap-1 shrink-0 cursor-pointer whitespace-nowrap"
                         >
                           <Sparkles size={11} className="shrink-0" />
@@ -2314,7 +2368,15 @@ const Classroom = () => {
 
                   {/* Ask AI Chatbot Tab */}
                   {activeTab === 'ai-chat' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm flex flex-col h-[560px] sm:h-[600px] lg:h-[650px] max-h-[calc(100dvh-200px)] min-h-[460px] overflow-hidden">
+                    <div
+                      onClick={() => {
+                        const el = tabsContainerRef.current || document.getElementById('classroom-tabs-bar');
+                        if (el && window.scrollY < (el.offsetTop || 150) - 15) {
+                          scrollToTabs(true);
+                        }
+                      }}
+                      className="bg-white dark:bg-slate-900 rounded-2xl border border-indigo-100 dark:border-slate-800 shadow-sm flex flex-col h-[calc(100dvh-68px)] sm:h-[calc(100dvh-78px)] min-h-[500px] overflow-hidden"
+                    >
                       {/* Chat Header */}
                       <div className="flex items-center justify-between gap-2.5 sm:gap-3 p-3 sm:p-4 border-b border-gray-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -2333,15 +2395,25 @@ const Classroom = () => {
                             </p>
                           </div>
                         </div>
-                        <button
-                          onClick={handleStartNewChat}
-                          disabled={aiChatMessages.length === 0 && !aiChatInput}
-                          className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer rounded-xl flex items-center justify-center shadow-xs active:scale-95 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-                          title="Start New Chat"
-                          aria-label="New Chat"
-                        >
-                          <Plus size={16} className="sm:size-[18px]" />
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={scrollToVideo}
+                            className="p-1.5 sm:p-2 text-gray-500 hover:text-orange-600 dark:text-slate-400 dark:hover:text-orange-400 bg-gray-50 hover:bg-orange-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 transition-colors cursor-pointer rounded-xl flex items-center justify-center shadow-xs active:scale-95 shrink-0"
+                            title="Scroll up to Video"
+                            aria-label="Scroll to Video"
+                          >
+                            <ChevronUp size={16} className="sm:size-[18px]" />
+                          </button>
+                          <button
+                            onClick={handleStartNewChat}
+                            disabled={aiChatMessages.length === 0 && !aiChatInput}
+                            className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer rounded-xl flex items-center justify-center shadow-xs active:scale-95 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Start New Chat"
+                            aria-label="New Chat"
+                          >
+                            <Plus size={16} className="sm:size-[18px]" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Quick Doubt Suggestion Prompts - Dynamically Tailored to Lecture */}
@@ -2506,6 +2578,9 @@ const Classroom = () => {
                             placeholder="Ask any doubt about this lecture..."
                             value={aiChatInput}
                             onChange={(e) => setAiChatInput(e.target.value)}
+                            onFocus={() => {
+                              setTimeout(() => scrollToTabs(true), 120);
+                            }}
                             disabled={aiChatLoading}
                             className="flex-1 px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition shadow-inner"
                           />
@@ -3017,7 +3092,6 @@ const Classroom = () => {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Premium Playlist Sidebar */}
       {playlist && (
