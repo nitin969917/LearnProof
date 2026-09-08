@@ -349,32 +349,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     }
   };
 
-  const handleResetCover = async () => {
-    const toastId = toast.loading('Resetting cover to default platform banner...');
-    try {
-      setProfile(prev => ({ ...prev, coverImage: null }));
-      setFormData(prev => ({ ...prev, coverImage: null }));
-
-      const response = await socialApi.put('/users/profile', {
-        coverImage: null,
-      });
-
-      setProfile(prev => ({ ...prev, coverImage: null }));
-      setFormData(prev => ({ ...prev, coverImage: null }));
-
-      if (updateSocialUser) {
-        updateSocialUser({ coverImage: null });
-      }
-
-      toast.dismiss(toastId);
-      toast.success('Cover reset to platform default banner!');
-    } catch (err) {
-      console.error('Failed to reset cover:', err);
-      toast.dismiss(toastId);
-      toast.error('Failed to reset cover.');
-      fetchProfile();
-    }
-  };
 
   const handleSave = async (e) => {
     e?.preventDefault?.();
@@ -521,27 +495,15 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               accept="image/*"
               className="hidden"
             />
-            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-2 z-10">
-              {profile?.coverImage && (
-                <button
-                  type="button"
-                  onClick={handleResetCover}
-                  className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3 sm:py-2 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white/90 hover:text-white text-xs font-semibold rounded-xl border border-white/20 shadow-md transition active:scale-95 cursor-pointer"
-                  title="Reset to default platform banner"
-                >
-                  <span>Reset Default</span>
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => coverInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/20 shadow-md transition active:scale-95 cursor-pointer"
-                title="Change cover image (visible to everyone)"
-              >
-                <Camera size={14} />
-                <span>Change Cover</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/20 shadow-md transition active:scale-95 cursor-pointer z-10"
+              title="Change cover image (visible to everyone)"
+            >
+              <Camera size={14} />
+              <span>Change Cover</span>
+            </button>
           </>
         )}
 
