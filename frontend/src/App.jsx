@@ -12,6 +12,7 @@ import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { useLiveRoomPipStore } from './store/liveRoomPipStore';
 import LiveRoomPipWindow from './components/Dashboard/LanguagePractice/LiveRoomPipWindow';
+import toast from 'react-hot-toast';
 
 // Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
 const lazyWithRetry = (componentImport) => {
@@ -226,7 +227,13 @@ const GlobalLiveRoomManager = ({ children }) => {
                 connect={true}
                 video={false}
                 audio={false}
-                onDisconnected={clearActiveRoom}
+                onDisconnected={() => {
+                    const wasInPip = showPip;
+                    clearActiveRoom();
+                    if (wasInPip) {
+                        toast('The host has concluded the live session. 👋', { id: 'pip-session-ended', icon: '👋', duration: 4500 });
+                    }
+                }}
             >
                 <RoomAudioRenderer />
                 {children}

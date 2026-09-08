@@ -26,7 +26,7 @@ import {
   Volume2, Send, UserX, UserPlus, UserMinus,
   Check, X, Hand, LogOut, ChevronsDown, Settings, Languages, Sparkles, Camera,
   Lock, Search, UserCheck, ScreenShare, Monitor, MonitorOff, PencilRuler, Presentation, PenTool,
-  MoreHorizontal, ShieldCheck, Sliders, Shield
+  MoreHorizontal, ShieldCheck, Sliders, Shield, HeartHandshake
 } from 'lucide-react';
 
 
@@ -278,6 +278,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // End Session Confirmation Modal (host only)
   const [showEndRoomModal, setShowEndRoomModal] = useState(false);
+
+  // Friendly Meeting Ended Modal (for participants when host ends meeting)
+  const [showMeetingEndedModal, setShowMeetingEndedModal] = useState(false);
+  const [meetingEndedMessage, setMeetingEndedMessage] = useState('');
+  const [meetingEndedCountdown, setMeetingEndedCountdown] = useState(10);
+  const hostDisconnectTimerRef = useRef(null);
+  const meetingEndedCountdownRef = useRef(null);
 
   // Detect if user came from Social Hub (read once at mount — sessionStorage is set before navigation)
   const [fromSocial] = useState(() => sessionStorage.getItem('nav_source') === 'social');
@@ -840,21 +847,122 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
 
 
-  // ── Host disconnected auto-end room listener ──────────────────────────────
+  // ── Handler: host cleanly ends session for participants ────────────────────
+  const handleHostEndedMeeting = useCallback((customMsg) => {
+    if (isHostRef.current || isHost) return;
+    if (hostDisconnectTimerRef.current) {
+      clearTimeout(hostDisconnectTimerRef.current);
+      hostDisconnectTimerRef.current = null;
+    }
+
+    // Clean up local hardware/stage states
+    localStorage.removeItem(`livekit_stage_${roomName}`);
+    localStorage.removeItem(`livekit_mic_${roomName}`);
+    localStorage.removeItem(`livekit_cam_${roomName}`);
+
+    // Disconnect room cleanly in the background so audio/video stop immediately
+    if (room && room.state === 'connected') {
+      try {
+        room.disconnect();
+      } catch (_) {}
+    }
+
+    // Close and reset PiP if open
+    const pip = useLiveRoomPipStore.getState();
+    pip.setShowPip(false);
+    pip.clearActiveRoom();
+
+    const message = customMsg || "The host has concluded this live session for everyone. Thank you for joining and participating in today's conversation!";
+    setMeetingEndedMessage(message);
+    setMeetingEndedCountdown(10);
+    setShowMeetingEndedModal(true);
+
+    toast('The live session has concluded. Thank you! 👋', {
+      id: 'room-ended',
+      icon: '👋',
+      duration: 5000,
+    });
+  }, [isHost, room, roomName]);
+
+  const handleMeetingEndedDismiss = useCallback(() => {
+    if (meetingEndedCountdownRef.current) {
+      clearInterval(meetingEndedCountdownRef.current);
+      meetingEndedCountdownRef.current = null;
+    }
+    setShowMeetingEndedModal(false);
+    navigateBack();
+  }, [navigateBack]);
+
+  // Auto-dismiss countdown timer for meeting ended modal
   useEffect(() => {
-    if (!room || isHost) return;
-    const handleDisconnected = (p) => {
-      if (p.identity === hostIdentity) {
-        toast.error('The host has left. This session has ended.', { duration: 5000 });
-        localStorage.removeItem(`livekit_stage_${roomName}`);
-        localStorage.removeItem(`livekit_mic_${roomName}`);
-        localStorage.removeItem(`livekit_cam_${roomName}`);
-        navigateBack();
+    if (!showMeetingEndedModal) {
+      if (meetingEndedCountdownRef.current) {
+        clearInterval(meetingEndedCountdownRef.current);
+        meetingEndedCountdownRef.current = null;
+      }
+      return;
+    }
+
+    meetingEndedCountdownRef.current = setInterval(() => {
+      setMeetingEndedCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(meetingEndedCountdownRef.current);
+          meetingEndedCountdownRef.current = null;
+          setShowMeetingEndedModal(false);
+          navigateBack();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => {
+      if (meetingEndedCountdownRef.current) {
+        clearInterval(meetingEndedCountdownRef.current);
+        meetingEndedCountdownRef.current = null;
       }
     };
+  }, [showMeetingEndedModal, navigateBack]);
+
+  // ── Host disconnected listener (with 10s reconnect grace period) ──────────
+  useEffect(() => {
+    if (!room || isHost) return;
+
+    const handleDisconnected = (p) => {
+      if (p.identity === hostIdentity) {
+        // If host temporarily reloaded or experienced brief network blip,
+        // give 10 seconds to reconnect before showing session concluded modal
+        if (hostDisconnectTimerRef.current) {
+          clearTimeout(hostDisconnectTimerRef.current);
+        }
+        hostDisconnectTimerRef.current = setTimeout(() => {
+          handleHostEndedMeeting('The host has disconnected. This session has concluded. Thank you for participating!');
+        }, 10000);
+      }
+    };
+
+    const handleConnected = (p) => {
+      if (p.identity === hostIdentity) {
+        // Host reconnected during grace period! Cancel termination
+        if (hostDisconnectTimerRef.current) {
+          clearTimeout(hostDisconnectTimerRef.current);
+          hostDisconnectTimerRef.current = null;
+          toast.success('Host reconnected! 🎉', { id: 'host-reconnected', duration: 3000 });
+        }
+      }
+    };
+
     room.on('participantDisconnected', handleDisconnected);
-    return () => room.off('participantDisconnected', handleDisconnected);
-  }, [room, hostIdentity, isHost, roomName, navigateBack]);
+    room.on('participantConnected', handleConnected);
+    return () => {
+      room.off('participantDisconnected', handleDisconnected);
+      room.off('participantConnected', handleConnected);
+      if (hostDisconnectTimerRef.current) {
+        clearTimeout(hostDisconnectTimerRef.current);
+        hostDisconnectTimerRef.current = null;
+      }
+    };
+  }, [room, hostIdentity, isHost, handleHostEndedMeeting]);
 
   // ── Browser back button blocker ───────────────────────────────────────────
   useEffect(() => {
@@ -1226,11 +1334,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     // Handle room terminated by host
     const handleRoomEnded = () => {
-      toast.error('The host has ended this session.', { id: 'room-ended', duration: 4000 });
-      localStorage.removeItem(`livekit_stage_${roomName}`);
-      localStorage.removeItem(`livekit_mic_${roomName}`);
-      localStorage.removeItem(`livekit_cam_${roomName}`);
-      navigateBack();
+      handleHostEndedMeeting();
     };
 
     // 1. Initial room state snapshot from server (for late joiners & reconnects)
@@ -1379,11 +1483,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             // Silently dismiss the pending request — no popup needed
           }
         } else if (data.type === 'room_ended') {
-          toast.error('The host has ended this session.', { id: 'room-ended', duration: 4000 });
-          localStorage.removeItem(`livekit_stage_${roomName}`);
-          localStorage.removeItem(`livekit_mic_${roomName}`);
-          localStorage.removeItem(`livekit_cam_${roomName}`);
-          navigateBack();
+          handleHostEndedMeeting();
         } else if (data.type === 'subtitle') {
           setActiveSubtitle({ text: data.text, translation: data.translation, sender: data.sender });
           if (subtitleTimeoutRef.current) clearTimeout(subtitleTimeoutRef.current);
@@ -2009,6 +2109,48 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                 Remove
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Friendly Meeting Ended Modal (participants) ── */}
+      {showMeetingEndedModal && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-[250] p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-sm w-full p-6 sm:p-7 shadow-2xl text-center flex flex-col items-center">
+            {/* Friendly Warm Icon */}
+            <div className="relative mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500/20 to-amber-500/20 border border-orange-500/30 flex items-center justify-center shadow-lg shadow-orange-500/10">
+                <HeartHandshake size={32} className="text-orange-500" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-[12px] shadow">
+                👋
+              </div>
+            </div>
+
+            <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2 leading-tight">
+              Session Concluded
+            </h3>
+
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-5 leading-relaxed px-1">
+              {meetingEndedMessage || "The host has concluded this live session for everyone. Thank you for joining and participating in today's conversation!"}
+            </p>
+
+            {/* Countdown Badge */}
+            <div className="w-full mb-5 py-2 px-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200/70 dark:border-orange-800/40 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-orange-700 dark:text-orange-300">
+              <span>Auto-returning in</span>
+              <span className="inline-flex items-center justify-center w-5 h-5 bg-orange-500 text-white rounded-full text-[11px] font-black shadow-sm">
+                {meetingEndedCountdown}
+              </span>
+              <span>seconds</span>
+            </div>
+
+            <button
+              onClick={handleMeetingEndedDismiss}
+              className="w-full py-3 px-5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-orange-500/25 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+            >
+              <span>Return to Live Rooms</span>
+              <Sparkles size={16} />
+            </button>
           </div>
         </div>
       )}
