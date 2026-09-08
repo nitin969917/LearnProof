@@ -1589,49 +1589,13 @@ const Classroom = () => {
         <div className="flex flex-col flex-1 lg:overflow-y-auto w-full max-w-full bg-white dark:bg-gray-900 transition-colors duration-200">
           {/* Enhanced Video Player */}
           <div ref={playerContainerRef} className="bg-black relative shadow-2xl aspect-video w-full flex items-center justify-center shrink-0 overflow-hidden group">
-            {/* Instant Thumbnail Poster & Loading State - eliminates black screen delay */}
-            <div 
-              className={`absolute inset-0 z-10 transition-opacity duration-500 flex items-center justify-center pointer-events-none ${
-                isVideoPlaying ? 'opacity-0' : 'opacity-100 pointer-events-auto'
-              }`}
-            >
-              {/* Blurred background fill */}
+            {/* Non-blocking background poster behind YouTube iframe - eliminates black void while iframe mounts */}
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
               <img
                 src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover filter blur-lg scale-110 opacity-40 select-none"
+                className="w-full h-full object-cover filter blur-sm scale-105 opacity-25"
               />
-              {/* Sharp foreground video thumbnail */}
-              <img
-                src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
-                alt={video.name || "Video Thumbnail"}
-                className="absolute inset-0 w-full h-full object-contain mx-auto select-none"
-              />
-              {/* Gradient vignette */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
-
-              {/* Fast loading top line */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-amber-400 to-red-500 animate-pulse" />
-
-              {/* Central Glowing Play / Loading Button */}
-              <div
-                className="relative z-10 flex flex-col items-center justify-center gap-2 cursor-pointer group"
-                onClick={() => {
-                  if (player && player.playVideo) {
-                    try { player.playVideo(); } catch (_) {}
-                  }
-                }}
-              >
-                <div className="relative flex items-center justify-center">
-                  <div className="absolute w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-600/30 animate-ping pointer-events-none" />
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-2xl shadow-red-600/50 transition-all transform hover:scale-110 active:scale-95">
-                    <Play size={24} className="fill-white ml-1 text-white" />
-                  </div>
-                </div>
-                <span className="text-white/90 text-xs font-semibold tracking-wide bg-black/60 px-3 py-1 rounded-full backdrop-blur-xs border border-white/10 shadow-lg">
-                  Starting video...
-                </span>
-              </div>
             </div>
 
             <YouTube
@@ -1651,7 +1615,7 @@ const Classroom = () => {
                 }
               }}
               className="absolute top-0 left-0 w-full h-full"
-              containerClassName="w-full h-full absolute inset-0"
+              containerClassName="w-full h-full absolute inset-0 z-10"
               onReady={(e) => {
                 setPlayer(e.target);
                 setPlayerError(false);
