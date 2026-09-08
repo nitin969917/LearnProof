@@ -9,10 +9,10 @@ function formatLatexExpression(expr) {
     if (!expr) return '';
     let str = expr;
 
-    // 1. Fractions: \frac{a}{b} -> (a)/(b)
+    // 1. Fractions: \frac{a}{b} or frac{a}{b} -> (a)/(b)
     for (let i = 0; i < 4; i++) {
-        str = str.replace(/\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, '($1)/($2)');
-        str = str.replace(/\\frac\s+([a-zA-Z0-9]+)\s+([a-zA-Z0-9]+)/g, '$1/$2');
+        str = str.replace(/\\?frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, '($1)/($2)');
+        str = str.replace(/\\?frac\s+([a-zA-Z0-9]+)\s+([a-zA-Z0-9]+)/g, '$1/$2');
     }
 
     // 2. Matrix Environments: \begin{pmatrix} a & b \\ c & d \end{pmatrix} -> [ a   b ] \n [ c   d ]
@@ -165,7 +165,7 @@ function cleanMarkdownLine(line) {
     str = str.replace(/\$([^\$\n]+?)\$/g, (m, p1) => formatLatexExpression(p1));
 
     // Also check for standalone LaTeX commands outside delimiters
-    if (/\\(begin|pmatrix|bmatrix|vmatrix|matrix|frac|int|sum|prod|lim|sqrt|alpha|beta|gamma|theta|pi|lambda|cos|sin|tan|ln|log|left|right|partial|approx|sim|le|ge|ne|times|cdot|implies|det|dim|ker|rank|text|mathbf|mathrm)/.test(str)) {
+    if (/(?:\\|\b)(begin|pmatrix|bmatrix|vmatrix|matrix|frac|int|sum|prod|lim|sqrt|alpha|beta|gamma|theta|pi|lambda|cos|sin|tan|ln|log|left|right|partial|approx|sim|le|ge|ne|times|cdot|implies|det|dim|ker|rank|text|mathbf|mathrm)/.test(str)) {
         str = formatLatexExpression(str);
     }
 

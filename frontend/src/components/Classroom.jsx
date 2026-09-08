@@ -925,90 +925,65 @@ const Classroom = () => {
 
       let downloaded = false;
 
-      // 1. High-Fidelity Client-Side Render using html2pdf.js (renders exact KaTeX math formulas from preview)
+      // 1. High-Fidelity Client-Side Render using html2canvas-pro & jsPDF (natively supports Tailwind v4 oklch colors)
       if (printElement && typeof window !== 'undefined') {
         try {
-          const html2pdfModule = await import('html2pdf.js');
-          const html2pdf = html2pdfModule.default || html2pdfModule;
+          const html2canvasModule = await import('html2canvas-pro');
+          const html2canvas = html2canvasModule.default || html2canvasModule;
+          const { jsPDF } = await import('jspdf');
 
-          // Create an offscreen clean light-theme container positioned at top:0 left:0
-          const exportContainer = document.createElement('div');
-          exportContainer.id = 'pdf-export-container';
-          exportContainer.style.position = 'absolute';
-          exportContainer.style.top = '0';
-          exportContainer.style.left = '0';
-          exportContainer.style.width = '794px';
-          exportContainer.style.zIndex = '-9999';
-          exportContainer.style.background = '#ffffff';
-          exportContainer.style.color = '#0f172a';
-          exportContainer.style.pointerEvents = 'none';
+          const cards = printElement.querySelectorAll('.topic-page-card');
+          if (cards && cards.length > 0) {
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = 210;
+            const pageHeight = 297;
+            const margin = 10;
+            const contentWidth = pageWidth - margin * 2; // 190mm
+            const maxContentHeight = pageHeight - margin * 2; // 277mm
 
-          const clone = printElement.cloneNode(true);
-          clone.id = 'pdf-export-clone';
-          clone.style.width = '100%';
-          clone.style.height = 'auto';
-          clone.style.maxHeight = 'none';
-          clone.style.overflow = 'visible';
-          clone.classList.remove('dark', 'bg-slate-100', 'dark:bg-slate-950');
-          clone.classList.add('bg-white', 'text-slate-900');
+            for (let i = 0; i < cards.length; i++) {
+              const card = cards[i];
 
-          // Clean styling on each topic card
-          const cards = clone.querySelectorAll('.topic-page-card');
-          cards.forEach((card, index) => {
-            card.style.background = '#ffffff';
-            card.style.color = '#0f172a';
-            card.style.borderColor = '#e2e8f0';
-            card.style.boxShadow = 'none';
-            card.style.marginBottom = '28px';
-            card.style.padding = '20px 24px';
-            card.style.pageBreakInside = 'avoid';
-            card.style.breakInside = 'avoid';
-            if (index > 0) {
-              card.style.pageBreakBefore = 'always';
-              card.style.breakBefore = 'page';
+              // High-resolution capture (scale: 2) with native oklch color parsing
+              const canvas = await html2canvas(card, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff'
+              });
+
+              const imgData = canvas.toDataURL('image/jpeg', 0.96);
+              const imgWidth = contentWidth;
+              const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+              if (i > 0) {
+                pdf.addPage();
+              }
+
+              if (imgHeight <= maxContentHeight) {
+                pdf.addImage(imgData, 'JPEG', margin, margin, imgWidth, imgHeight);
+              } else {
+                // Card exceeds single A4 page: paginate seamlessly
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'JPEG', margin, margin, imgWidth, imgHeight);
+                heightLeft -= maxContentHeight;
+
+                while (heightLeft > 0) {
+                  position = heightLeft - imgHeight;
+                  pdf.addPage();
+                  pdf.addImage(imgData, 'JPEG', margin, position + margin, imgWidth, imgHeight);
+                  heightLeft -= maxContentHeight;
+                }
+              }
             }
-            card.querySelectorAll('.prose, p, span, h1, h2, h3, h4, li').forEach(el => {
-              el.style.color = '#0f172a';
-            });
-            card.querySelectorAll('.katex-display').forEach(k => {
-              k.style.pageBreakInside = 'avoid';
-              k.style.breakInside = 'avoid';
-              k.style.background = '#f8fafc';
-              k.style.color = '#0f172a';
-              k.style.padding = '12px';
-              k.style.borderRadius = '8px';
-              k.style.margin = '14px 0';
-            });
-          });
 
-          exportContainer.appendChild(clone);
-          document.body.appendChild(exportContainer);
-
-          const opt = {
-            margin: [8, 8, 8, 8],
-            filename: fileName,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-              scale: 2,
-              useCORS: true,
-              logging: false,
-              backgroundColor: '#ffffff',
-              windowWidth: 794,
-              scrollX: 0,
-              scrollY: 0
-            },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-          };
-
-          await html2pdf().set(opt).from(exportContainer).save();
-          downloaded = true;
-
-          if (document.body.contains(exportContainer)) {
-            document.body.removeChild(exportContainer);
+            pdf.save(fileName);
+            downloaded = true;
           }
         } catch (clientErr) {
-          console.warn("Client-side html2pdf failed, falling back to server:", clientErr);
+          console.warn("Client-side PDF generation failed, falling back to server:", clientErr);
         }
       }
 
