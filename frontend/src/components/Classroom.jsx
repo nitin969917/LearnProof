@@ -412,7 +412,7 @@ const getDynamicSuggestedQuestions = (video, parsedIntuition, seed = 0) => {
 
 const extractFollowUpQuestions = (content) => {
   if (!content) return [];
-  const followUpMatch = content.match(/(?:Suggested Next Questions|Next Recommended Questions|Recommended Follow-ups)[\s\S]*?(?:$)/i);
+  const followUpMatch = content.match(/(?:Suggested Next Questions|Next Recommended Questions|Recommended Follow-ups|Suggested Follow-ups|Follow-up Questions|Suggested Questions)[\s\S]*?(?:$)/i);
   if (!followUpMatch) return [];
 
   const section = followUpMatch[0];
@@ -420,14 +420,22 @@ const extractFollowUpQuestions = (content) => {
   const lines = section.split('\n');
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed.startsWith('-') || trimmed.startsWith('*') || /^\d+\./.test(trimmed)) {
-      const q = trimmed.replace(/^[-*\d.]+\s*/, '').replace(/[*_`#]/g, '').trim();
+    if (trimmed.startsWith('-') || trimmed.startsWith('*') || trimmed.startsWith('•') || /^\d+[\.\)]/.test(trimmed)) {
+      const q = trimmed.replace(/^[-*•\d.)]+\s*/, '').replace(/[*_`#]/g, '').trim();
       if (q && q.length > 5 && q.length < 160 && (q.endsWith('?') || q.includes('How') || q.includes('What') || q.includes('Why') || q.includes('Explain') || q.includes('Can') || q.includes('Compare') || q.includes('Give'))) {
         questions.push(q);
       }
     }
   }
   return questions.slice(0, 3);
+};
+
+const cleanAiMessageContent = (content) => {
+  if (!content) return '';
+  // Remove the static "Suggested Next Questions" section and any preceding divider so only interactive click buttons appear below
+  return content
+    .replace(/(?:\r?\n\s*[-*_]{3,}\s*)?\r?\n\s*💡?\s*\*{0,2}(?:Suggested Next Questions|Next Recommended Questions|Recommended Follow-ups|Suggested Follow-ups|Follow-up Questions|Suggested Questions):?\*{0,2}[\s\S]*$/i, '')
+    .trim();
 };
 
 const getCategoryStyle = (category) => {
@@ -2591,6 +2599,7 @@ const Classroom = () => {
                         <div className="space-y-4 overflow-y-auto p-3.5 sm:p-4 custom-scrollbar flex-1 min-h-0">
                           {aiChatMessages.map((msg, mIdx) => {
                             const followUps = msg.role === 'assistant' ? extractFollowUpQuestions(msg.content) : [];
+                            const displayContent = msg.role === 'assistant' ? cleanAiMessageContent(msg.content) : msg.content;
                             return (
                               <div
                                 key={mIdx}
@@ -2627,25 +2636,26 @@ const Classroom = () => {
                                           }
                                         }}
                                       >
-                                        {preprocessMarkdown(msg.content)}
+                                        {preprocessMarkdown(displayContent)}
                                       </ReactMarkdown>
 
                                       {/* Interactive Follow-Up Questions Chips */}
                                       {followUps.length > 0 && (
                                         <div className="mt-3 pt-2.5 border-t border-indigo-100 dark:border-slate-700/80">
-                                          <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                          <div className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1">
                                             <Sparkles size={11} />
                                             <span>Suggested Follow-ups (click to ask):</span>
                                           </div>
-                                          <div className="flex flex-wrap gap-1.5">
+                                          <div className="flex flex-col gap-1.5">
                                             {followUps.map((fq, fIdx) => (
                                               <button
                                                 key={fIdx}
                                                 onClick={() => handleSendAiQuestion(fq)}
                                                 disabled={aiChatLoading}
-                                                className="text-left text-[11px] sm:text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-400 transition cursor-pointer active:scale-95 shadow-2xs disabled:opacity-50"
+                                                className="w-full text-left text-xs font-semibold px-3 py-2 rounded-xl bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-400 transition cursor-pointer active:scale-[0.99] shadow-2xs disabled:opacity-50 flex items-start gap-2 group"
                                               >
-                                                💡 {fq}
+                                                <span className="shrink-0 text-sm mt-0.5">💡</span>
+                                                <span className="flex-1 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-200">{fq}</span>
                                               </button>
                                             ))}
                                           </div>
@@ -2654,7 +2664,7 @@ const Classroom = () => {
 
                                       <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50 flex items-center justify-end">
                                         <button
-                                          onClick={() => handleCopyText(msg.content, mIdx)}
+                                          onClick={() => handleCopyText(displayContent, mIdx)}
                                           className="text-[10px] font-bold text-gray-400 hover:text-indigo-500 flex items-center gap-1 transition cursor-pointer"
                                         >
                                           {copiedIndex === mIdx ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
