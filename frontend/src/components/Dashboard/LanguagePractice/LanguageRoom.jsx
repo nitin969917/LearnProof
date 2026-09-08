@@ -3143,16 +3143,19 @@ export default function LanguageRoom() {
   }, [user, roomName, navigate, activeRoom]);
 
   useEffect(() => {
-    // Hide PiP when inside the room page
+    // Hide PiP when inside the full room page
     useLiveRoomPipStore.getState().setShowPip(false);
 
     return () => {
-      // Only clear if the user actually navigated away from this room URL or explicitly left
-      const currentPath = window.location.pathname;
-      if (hasExplicitlyLeft.current || !currentPath.includes(`/live-rooms/${roomName}`)) {
-        const pip = useLiveRoomPipStore.getState();
+      const pip = useLiveRoomPipStore.getState();
+      if (hasExplicitlyLeft.current) {
+        // User explicitly left or ended the room
         pip.setShowPip(false);
         pip.clearActiveRoom();
+      } else {
+        // User clicked to another section without ending the meeting:
+        // Keep activeRoom intact and activate floating Google Meet-style Picture-in-Picture window!
+        pip.setShowPip(true);
       }
     };
   }, [roomName]);

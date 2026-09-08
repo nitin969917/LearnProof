@@ -119,7 +119,11 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
 
       {/* Video Background (if video is available) */}
       {pipRoom.dbRoom?.mediaType === 'video' && isVideoAvailable && (
-        <div className="absolute inset-0 z-0 bg-black pointer-events-none">
+        <div 
+          onClick={onMaximize}
+          className="absolute inset-0 z-0 bg-black cursor-pointer"
+          title="Click to return to meeting"
+        >
           <VideoTrack
             trackRef={activeSpeakerTrackRef}
             className={`w-full h-full object-cover ${activeSpeaker?.identity === localParticipant?.identity ? 'local-pip-video' : ''}`}
@@ -132,7 +136,11 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
 
       {/* Header controls */}
       <div className="flex items-center justify-between p-2.5 z-10 bg-gradient-to-b from-black/80 to-transparent">
-        <div className="min-w-0 flex-1 pr-2">
+        <div 
+          onClick={onMaximize}
+          className="min-w-0 flex-1 pr-2 cursor-pointer"
+          title="Click to return to meeting"
+        >
           <p className="text-[10px] font-black uppercase tracking-wider text-orange-400 truncate leading-none mb-0.5">Live Room</p>
           <h4 className="text-xs font-bold truncate leading-none text-white/90">
             {pipRoom.dbRoom?.roomName?.replace(/-\d+$/, '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
@@ -157,7 +165,11 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
       </div>
 
       {/* Body: Speaker info (shows avatar / active speaker status) */}
-      <div className="flex-1 flex flex-col items-center justify-center p-3 z-10 text-center pointer-events-none">
+      <div 
+        onClick={onMaximize}
+        className="flex-1 flex flex-col items-center justify-center p-3 z-10 text-center cursor-pointer"
+        title="Click to return to meeting"
+      >
         {!isVideoAvailable && (
           <div className="relative">
             {/* Pulsing avatar border if speaking */}
@@ -213,6 +225,7 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
 export default function LiveRoomPipWindow() {
   const navigate = useNavigate();
   const { activeRoom, clearActiveRoom, setShowPip } = useLiveRoomPipStore();
+  const isDraggingRef = React.useRef(false);
 
   useEffect(() => {
     if (!activeRoom) return;
@@ -255,8 +268,9 @@ export default function LiveRoomPipWindow() {
   if (!activeRoom) return null;
 
   const handleMaximize = () => {
-    navigate(`/dashboard/live-rooms/${activeRoom.roomName}`);
+    if (isDraggingRef.current) return;
     setShowPip(false);
+    navigate(`/dashboard/live-rooms/${activeRoom.roomName}`);
   };
 
   const handleClose = async () => {
@@ -280,7 +294,9 @@ export default function LiveRoomPipWindow() {
       drag
       dragMomentum={false}
       dragElastic={0.05}
-      className="fixed bottom-24 right-4 lg:bottom-6 lg:right-6 z-[9999] w-[180px] h-[290px] bg-gray-950 border border-white/10 dark:border-white/5 rounded-2xl shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300 cursor-move touch-none"
+      onDragStart={() => { isDraggingRef.current = true; }}
+      onDragEnd={() => { setTimeout(() => { isDraggingRef.current = false; }, 150); }}
+      className="fixed bottom-24 right-3 sm:right-4 lg:bottom-6 lg:right-6 z-[9999] w-[180px] h-[290px] bg-gray-950 border border-white/10 dark:border-white/5 rounded-2xl shadow-[0_16px_40px_-8px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300 cursor-move touch-none"
     >
       <PipContent 
         pipRoom={activeRoom} 

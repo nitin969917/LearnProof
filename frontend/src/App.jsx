@@ -8,6 +8,10 @@ import { initializeLaunch } from './utils/launch';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
+import '@livekit/components-styles';
+import { useLiveRoomPipStore } from './store/liveRoomPipStore';
+import LiveRoomPipWindow from './components/Dashboard/LanguagePractice/LiveRoomPipWindow';
 
 // Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
 const lazyWithRetry = (componentImport) => {
@@ -208,6 +212,32 @@ const OAuthRedirectHandler = () => {
     return null;
 };
 
+// Global LiveKit Meeting & Picture-in-Picture Manager
+// Keeps active rooms connected across ALL sections of the application
+// (Dashboard, Library, Classroom, Notes, Quizzes, etc.) with floating Google Meet-style PiP.
+const GlobalLiveRoomManager = ({ children }) => {
+    const { activeRoom, clearActiveRoom, showPip } = useLiveRoomPipStore();
+
+    if (activeRoom) {
+        return (
+            <LiveKitRoom
+                serverUrl={activeRoom.serverUrl}
+                token={activeRoom.token}
+                connect={true}
+                video={false}
+                audio={false}
+                onDisconnected={clearActiveRoom}
+            >
+                <RoomAudioRenderer />
+                {children}
+                {showPip && <LiveRoomPipWindow />}
+            </LiveKitRoom>
+        );
+    }
+
+    return children;
+};
+
 const App = () => {
     React.useEffect(() => {
         initializeLaunch();
@@ -289,110 +319,112 @@ const App = () => {
         <AuthProvider>
             <ModalProvider>
                 <Router>
-                    <ColdStartGuard />
-                    <OAuthRedirectHandler />
-                    <Suspense fallback={<PageLoader />}>
-                        <Routes>
-                            <Route path='/' element={<RootRoute />} />
-                            <Route path='/youtube-learning' element={<LandingPage />} />
-                            <Route path='/ai-video-notes' element={<LandingPage />} />
-                            <Route path='/youtube-certificates' element={<LandingPage />} />
-                            <Route path='/track-youtube-progress' element={<LandingPage />} />
-                            <Route path='/ai-study-planner' element={<LandingPage />} />
-                            <Route path='/verify/:certId' element={<VerifyCertificate />} />
-                            <Route path='/privacy-policy' element={<PrivacyPolicy />} />
-                            <Route path='/terms' element={<TermsOfService />} />
-                            <Route path='/support' element={<Support />} />
-                            <Route path='/delete-account' element={<DeleteAccount />} />
-                            <Route path='/login' element={<LoginPage />} />
-                            <Route path='/download' element={<DownloadPage />} />
-                            <Route path='/ambassador' element={<AmbassadorLanding />} />
-                            <Route path='/referrals' element={<AmbassadorLanding />} />
-                            <Route path='/campus-ambassador' element={<AmbassadorLanding />} />
-                            <Route path='/referral-program' element={<AmbassadorLanding />} />
-                            <Route 
-                                path='/ambassador/portal' 
-                                element={
-                                    <ProtectedRoute>
-                                        <AmbassadorDashboard />
-                                    </ProtectedRoute>
-                                } 
-                            />
-                            <Route 
-                                path='/ambassador/dashboard' 
-                                element={
-                                    <ProtectedRoute>
-                                        <AmbassadorDashboard />
-                                    </ProtectedRoute>
-                                } 
-                            />
+                    <GlobalLiveRoomManager>
+                        <ColdStartGuard />
+                        <OAuthRedirectHandler />
+                        <Suspense fallback={<PageLoader />}>
+                            <Routes>
+                                <Route path='/' element={<RootRoute />} />
+                                <Route path='/youtube-learning' element={<LandingPage />} />
+                                <Route path='/ai-video-notes' element={<LandingPage />} />
+                                <Route path='/youtube-certificates' element={<LandingPage />} />
+                                <Route path='/track-youtube-progress' element={<LandingPage />} />
+                                <Route path='/ai-study-planner' element={<LandingPage />} />
+                                <Route path='/verify/:certId' element={<VerifyCertificate />} />
+                                <Route path='/privacy-policy' element={<PrivacyPolicy />} />
+                                <Route path='/terms' element={<TermsOfService />} />
+                                <Route path='/support' element={<Support />} />
+                                <Route path='/delete-account' element={<DeleteAccount />} />
+                                <Route path='/login' element={<LoginPage />} />
+                                <Route path='/download' element={<DownloadPage />} />
+                                <Route path='/ambassador' element={<AmbassadorLanding />} />
+                                <Route path='/referrals' element={<AmbassadorLanding />} />
+                                <Route path='/campus-ambassador' element={<AmbassadorLanding />} />
+                                <Route path='/referral-program' element={<AmbassadorLanding />} />
+                                <Route 
+                                    path='/ambassador/portal' 
+                                    element={
+                                        <ProtectedRoute>
+                                            <AmbassadorDashboard />
+                                        </ProtectedRoute>
+                                    } 
+                                />
+                                <Route 
+                                    path='/ambassador/dashboard' 
+                                    element={
+                                        <ProtectedRoute>
+                                            <AmbassadorDashboard />
+                                        </ProtectedRoute>
+                                    } 
+                                />
 
-                            <Route
-                                path='/dashboard/*'
-                                element={
-                                    <ProtectedRoute>
-                                        <DashboardLayout />
-                                    </ProtectedRoute>
-                                }
-                            >
-                                <Route index element={<DashboardHome />} />
-                                <Route path="library" element={<MyLearnings />} />
-                                <Route path="explore" element={<YouTubeExplorer />} />
-                                <Route path="certificates" element={<MyCertificates />} />
-                                <Route path="playlist/:id" element={<PlaylistProgress />} />
-                                <Route path="roadmap/:pid" element={<RoadmapDetail />} />
-                                <Route path='inbox' element={<Inbox />} />
-                                <Route path='quiz' element={<Quiz />} />
-                                <Route path='goals' element={<DailyGoalsPage />} />
-                                <Route path='ai-benchmark' element={<AIBenchmark />} />
-                                <Route path='ask-my-notes' element={<AskMyNotes />} />
-                                <Route path='ask-my-notes/:subjectId' element={<AskMyNotes />} />
-                                <Route path='ask-my-notes-dev' element={<AskMyNotesOriginal />} />
-                                <Route path='ask-my-notes-dev/:subjectId' element={<AskMyNotesOriginal />} />
-                                <Route path='ask-my-notes-dev/:subjectId/quiz' element={<WorkspaceQuizPage />} />
-                                <Route path='support' element={<Support />} />
-                                <Route path='ambassador' element={<Navigate to="/ambassador/portal" replace />} />
-                                
-                                {/* Social / Social Hub Features */}
-                                <Route path='social/*' element={<SocialDashboard />} />
-                                
-                                {/* Live Rooms Features */}
-                                <Route path='live-rooms' element={<LanguageLearning />} />
-                                <Route path='live-rooms/:roomName' element={<LanguageRoom />} />
-                                
+                                <Route
+                                    path='/dashboard/*'
+                                    element={
+                                        <ProtectedRoute>
+                                            <DashboardLayout />
+                                        </ProtectedRoute>
+                                    }
+                                >
+                                    <Route index element={<DashboardHome />} />
+                                    <Route path="library" element={<MyLearnings />} />
+                                    <Route path="explore" element={<YouTubeExplorer />} />
+                                    <Route path="certificates" element={<MyCertificates />} />
+                                    <Route path="playlist/:id" element={<PlaylistProgress />} />
+                                    <Route path="roadmap/:pid" element={<RoadmapDetail />} />
+                                    <Route path='inbox' element={<Inbox />} />
+                                    <Route path='quiz' element={<Quiz />} />
+                                    <Route path='goals' element={<DailyGoalsPage />} />
+                                    <Route path='ai-benchmark' element={<AIBenchmark />} />
+                                    <Route path='ask-my-notes' element={<AskMyNotes />} />
+                                    <Route path='ask-my-notes/:subjectId' element={<AskMyNotes />} />
+                                    <Route path='ask-my-notes-dev' element={<AskMyNotesOriginal />} />
+                                    <Route path='ask-my-notes-dev/:subjectId' element={<AskMyNotesOriginal />} />
+                                    <Route path='ask-my-notes-dev/:subjectId/quiz' element={<WorkspaceQuizPage />} />
+                                    <Route path='support' element={<Support />} />
+                                    <Route path='ambassador' element={<Navigate to="/ambassador/portal" replace />} />
+                                    
+                                    {/* Social / Social Hub Features */}
+                                    <Route path='social/*' element={<SocialDashboard />} />
+                                    
+                                    {/* Live Rooms Features */}
+                                    <Route path='live-rooms' element={<LanguageLearning />} />
+                                    <Route path='live-rooms/:roomName' element={<LanguageRoom />} />
+                                    
+                                    <Route path='*' element={<Navigate to="/" replace />} />
+                                </Route>
+                                <Route
+                                    path='classroom/:videoId'
+                                    element={
+                                        <ProtectedRoute>
+                                            <Classroom />
+                                        </ProtectedRoute>
+                                    }
+                                />
+
+                                {/* Admin Routes */}
+                                <Route
+                                    path='/admin/*'
+                                    element={
+                                        <AdminRoute>
+                                            <AdminLayout />
+                                        </AdminRoute>
+                                    }
+                                >
+                                     <Route path='dashboard' element={<AdminDashboardHome />} />
+                                     <Route path='referrals' element={<AdminReferrals />} />
+                                     <Route path='users' element={<AdminUsersList />} />
+                                     <Route path='users/:id' element={<AdminUserDetails />} />
+                                     <Route path='content' element={<AdminContentList />} />
+                                     <Route path='support' element={<AdminSupportList />} />
+                                     <Route path='inbox' element={<AdminInbox />} />
+                                     <Route path='apps' element={<AdminAppsManagement />} />
+                                     <Route path='' element={<Navigate to="dashboard" replace />} />
+                                </Route>
                                 <Route path='*' element={<Navigate to="/" replace />} />
-                            </Route>
-                            <Route
-                                path='classroom/:videoId'
-                                element={
-                                    <ProtectedRoute>
-                                        <Classroom />
-                                    </ProtectedRoute>
-                                }
-                            />
-
-                            {/* Admin Routes */}
-                            <Route
-                                path='/admin/*'
-                                element={
-                                    <AdminRoute>
-                                        <AdminLayout />
-                                    </AdminRoute>
-                                }
-                            >
-                                 <Route path='dashboard' element={<AdminDashboardHome />} />
-                                 <Route path='referrals' element={<AdminReferrals />} />
-                                 <Route path='users' element={<AdminUsersList />} />
-                                 <Route path='users/:id' element={<AdminUserDetails />} />
-                                 <Route path='content' element={<AdminContentList />} />
-                                 <Route path='support' element={<AdminSupportList />} />
-                                 <Route path='inbox' element={<AdminInbox />} />
-                                 <Route path='apps' element={<AdminAppsManagement />} />
-                                 <Route path='' element={<Navigate to="dashboard" replace />} />
-                            </Route>
-                            <Route path='*' element={<Navigate to="/" replace />} />
-                        </Routes>
-                    </Suspense>
+                            </Routes>
+                        </Suspense>
+                    </GlobalLiveRoomManager>
                 </Router>
             </ModalProvider>
         </AuthProvider>

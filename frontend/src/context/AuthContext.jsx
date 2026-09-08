@@ -5,6 +5,7 @@ import axios from "axios";
 import { initMatrixClient, disconnectMatrixClient } from "../utils/matrixClient";
 import { disconnectSocialSocket } from "../utils/socialSocket";
 import { captureReferralParam, attributePendingReferral } from "../utils/referralTracker";
+import { useLiveRoomPipStore } from "../store/liveRoomPipStore";
 
 const AuthContext = createContext();
 
@@ -231,6 +232,7 @@ export const AuthProvider = ({ children }) => {
         setMatrixClient(null);
         disconnectMatrixClient();
         disconnectSocialSocket();
+        useLiveRoomPipStore.getState().clearActiveRoom();
     };
 
     const updateUser = (data) => {

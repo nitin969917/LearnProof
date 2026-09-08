@@ -13,10 +13,6 @@ import { getSocialSocket } from "../../utils/socialSocket.js";
 import { useSocialFeedStore } from "../../store/socialFeedStore.js";
 import { requestNotificationPermissionAndGetToken } from "../../utils/fcm.js";
 import UserAvatar from "../Common/UserAvatar.jsx";
-import LiveRoomPipWindow from "./LanguagePractice/LiveRoomPipWindow";
-import { useLiveRoomPipStore } from "../../store/liveRoomPipStore";
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
-import "@livekit/components-styles";
 import toast from "react-hot-toast";
 
 class ErrorBoundary extends React.Component {
@@ -75,7 +71,6 @@ class ErrorBoundary extends React.Component {
 
 const DashboardLayout = () => {
     const { user, isMatrixActive, matrixClient } = useAuth();
-    const { activeRoom, clearActiveRoom, showPip } = useLiveRoomPipStore();
     const socialUser = useSocialFeedStore((state) => state.socialUser);
     const fetchSocialUser = useSocialFeedStore((state) => state.fetchSocialUser);
     const fetchPendingFriendCount = useSocialFeedStore((state) => state.fetchPendingFriendCount);
@@ -472,31 +467,12 @@ const DashboardLayout = () => {
                 <BottomNav onMenuClick={toggleSidebar} />
             )}
 
-            {/* Floating Live Room Picture-in-Picture Window */}
-            {showPip && <LiveRoomPipWindow />}
-
             <ProfileModal
                 isOpen={isProfileModalOpen}
                 onClose={() => setIsProfileModalOpen(false)}
             />
         </div>
     );
-
-    if (activeRoom) {
-        return (
-            <LiveKitRoom
-                serverUrl={activeRoom.serverUrl}
-                token={activeRoom.token}
-                connect={true}
-                video={false}
-                audio={false}
-                onDisconnected={clearActiveRoom}
-            >
-                <RoomAudioRenderer />
-                {layoutContent}
-            </LiveKitRoom>
-        );
-    }
 
     return layoutContent;
 };
