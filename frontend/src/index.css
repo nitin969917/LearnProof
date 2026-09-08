@@ -600,6 +600,20 @@ html, body {
     box-shadow: none !important;
   }
 
+  .topic-page-card p,
+  .topic-page-card li,
+  .topic-page-card blockquote,
+  .topic-page-card pre,
+  .topic-page-card table,
+  .topic-page-card h1,
+  .topic-page-card h2,
+  .topic-page-card h3,
+  .topic-page-card h4,
+  .topic-page-card .katex-display {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
   .topic-page-card:last-child {
     page-break-after: avoid !important;
     break-after: avoid !important;

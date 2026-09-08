@@ -986,9 +986,64 @@ const Classroom = () => {
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pageWidth = 210;
             const pageHeight = 297;
-            const margin = 10;
-            const contentWidth = pageWidth - margin * 2; // 190mm
-            const maxContentHeight = pageHeight - margin * 2; // 277mm
+            const marginX = 12; // 12mm left & right margins
+            const marginY = 14; // 14mm top & bottom margins
+            const contentWidth = pageWidth - marginX * 2; // 186mm
+            const maxContentHeight = pageHeight - marginY * 2; // 269mm
+
+            // Helper to scan for safe horizontal whitespace gaps between text & math elements
+            const findCleanBreakPoint = (sourceCanvas, startY, targetY) => {
+              const minSearchY = Math.max(startY + 50, Math.floor(targetY - (targetY - startY) * 0.25));
+              const searchHeight = Math.floor(targetY - minSearchY);
+              if (searchHeight <= 0) return targetY;
+
+              try {
+                const ctx = sourceCanvas.getContext('2d');
+                const imgData = ctx.getImageData(0, minSearchY, sourceCanvas.width, searchHeight);
+                const data = imgData.data;
+                const width = sourceCanvas.width;
+
+                let bestY = targetY;
+                let minDarkPixels = Infinity;
+
+                // Scan backwards from bottom to top of search zone
+                for (let row = searchHeight - 1; row >= 0; row--) {
+                  let darkPixels = 0;
+                  const rowOffset = row * width * 4;
+
+                  for (let col = 0; col < width; col += 4) {
+                    const idx = rowOffset + col * 4;
+                    const r = data[idx];
+                    const g = data[idx + 1];
+                    const b = data[idx + 2];
+                    const a = data[idx + 3];
+
+                    // Identify non-white ink pixels
+                    if (a > 20 && (r < 240 || g < 240 || b < 240)) {
+                      darkPixels++;
+                      if (darkPixels > 12) break;
+                    }
+                  }
+
+                  // Pure white gap found between lines/elements
+                  if (darkPixels === 0) {
+                    return minSearchY + row;
+                  }
+
+                  if (darkPixels < minDarkPixels) {
+                    minDarkPixels = darkPixels;
+                    bestY = minSearchY + row;
+                  }
+                }
+
+                return bestY;
+              } catch (err) {
+                console.warn("Clean break scan fallback:", err);
+                return targetY;
+              }
+            };
+
+            let isPdfFirstPage = true;
 
             for (let i = 0; i < cards.length; i++) {
               const card = cards[i];
@@ -998,34 +1053,90 @@ const Classroom = () => {
                 scale: 2,
                 useCORS: true,
                 logging: false,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                onclone: (clonedDoc) => {
+                  clonedDoc.documentElement.classList.remove('dark');
+                  clonedDoc.body.classList.remove('dark');
+                  const clonedCards = clonedDoc.querySelectorAll('.topic-page-card');
+                  clonedCards.forEach((c) => {
+                    c.classList.remove('dark');
+                    c.style.backgroundColor = '#ffffff';
+                    c.style.color = '#0f172a';
+                  });
+                }
               });
 
-              const imgData = canvas.toDataURL('image/jpeg', 0.96);
-              const imgWidth = contentWidth;
-              const imgHeight = (canvas.height * imgWidth) / canvas.width;
+              const pxPerMm = canvas.width / contentWidth;
+              const maxPagePx = Math.floor(maxContentHeight * pxPerMm);
 
-              if (i > 0) {
-                pdf.addPage();
-              }
+              let currentY = 0;
 
-              if (imgHeight <= maxContentHeight) {
-                pdf.addImage(imgData, 'JPEG', margin, margin, imgWidth, imgHeight);
-              } else {
-                // Card exceeds single A4 page: paginate seamlessly
-                let heightLeft = imgHeight;
-                let position = 0;
+              while (currentY < canvas.height) {
+                const remainingPx = canvas.height - currentY;
 
-                pdf.addImage(imgData, 'JPEG', margin, margin, imgWidth, imgHeight);
-                heightLeft -= maxContentHeight;
-
-                while (heightLeft > 0) {
-                  position = heightLeft - imgHeight;
+                if (!isPdfFirstPage) {
                   pdf.addPage();
-                  pdf.addImage(imgData, 'JPEG', margin, position + margin, imgWidth, imgHeight);
-                  heightLeft -= maxContentHeight;
+                }
+                isPdfFirstPage = false;
+
+                if (remainingPx <= maxPagePx) {
+                  // Final slice of this card fits comfortably on the current page
+                  const sliceHeightPx = remainingPx;
+                  const sliceHeightMm = (sliceHeightPx * contentWidth) / canvas.width;
+
+                  const sliceCanvas = document.createElement('canvas');
+                  sliceCanvas.width = canvas.width;
+                  sliceCanvas.height = sliceHeightPx;
+                  const sliceCtx = sliceCanvas.getContext('2d');
+                  sliceCtx.fillStyle = '#ffffff';
+                  sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                  sliceCtx.drawImage(
+                    canvas,
+                    0, currentY, canvas.width, sliceHeightPx,
+                    0, 0, canvas.width, sliceHeightPx
+                  );
+
+                  const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.96);
+                  pdf.addImage(sliceData, 'JPEG', marginX, marginY, contentWidth, sliceHeightMm);
+                  currentY = canvas.height;
+                } else {
+                  // Card is taller than 1 page: cleanly break at whitespace between paragraphs/lines
+                  const targetBreakY = currentY + maxPagePx;
+                  const cleanBreakY = findCleanBreakPoint(canvas, currentY, targetBreakY);
+                  const sliceHeightPx = Math.max(100, cleanBreakY - currentY);
+                  const sliceHeightMm = (sliceHeightPx * contentWidth) / canvas.width;
+
+                  const sliceCanvas = document.createElement('canvas');
+                  sliceCanvas.width = canvas.width;
+                  sliceCanvas.height = sliceHeightPx;
+                  const sliceCtx = sliceCanvas.getContext('2d');
+                  sliceCtx.fillStyle = '#ffffff';
+                  sliceCtx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
+                  sliceCtx.drawImage(
+                    canvas,
+                    0, currentY, canvas.width, sliceHeightPx,
+                    0, 0, canvas.width, sliceHeightPx
+                  );
+
+                  const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.96);
+                  pdf.addImage(sliceData, 'JPEG', marginX, marginY, contentWidth, sliceHeightMm);
+                  currentY += sliceHeightPx;
                 }
               }
+            }
+
+            // Elegant footer with page numbers
+            const totalPdfPages = pdf.internal.getNumberOfPages();
+            for (let p = 1; p <= totalPdfPages; p++) {
+              pdf.setPage(p);
+              pdf.setFontSize(8);
+              pdf.setTextColor(148, 163, 184);
+              pdf.text(
+                `LearnProof AI • Page ${p} of ${totalPdfPages}`,
+                pageWidth / 2,
+                pageHeight - 5,
+                { align: 'center' }
+              );
             }
 
             pdf.save(fileName);
@@ -1695,6 +1806,7 @@ const Classroom = () => {
             <YouTube
               videoId={video.vid}
               opts={{
+                host: 'https://www.youtube.com',
                 width: '100%',
                 height: '100%',
                 playerVars: {
@@ -1704,6 +1816,7 @@ const Classroom = () => {
                   modestbranding: 0,
                   enablejsapi: 1,
                   origin: typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com',
+                  widget_referrer: typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com',
                   iv_load_policy: 3,
                   hl: 'en'
                 }
@@ -1713,16 +1826,20 @@ const Classroom = () => {
               onReady={(e) => {
                 setPlayer(e.target);
                 setPlayerError(false);
-                // Immediately kick playVideo to avoid mobile autoplay stall
-                try {
-                  const p = e.target.playVideo();
-                  if (p && p.catch) p.catch(() => { });
-                } catch (_) { }
-                // Auto-restore playback speed
-                const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-                if (savedSpeed !== 1) {
-                  e.target.setPlaybackRate(savedSpeed);
-                }
+                // Allow iframe postMessage channel handshake to settle before issuing playback commands
+                setTimeout(() => {
+                  try {
+                    const p = e.target.playVideo();
+                    if (p && p.catch) p.catch(() => { });
+                  } catch (_) { }
+                  // Auto-restore playback speed
+                  const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+                  if (savedSpeed && savedSpeed !== 1) {
+                    try {
+                      e.target.setPlaybackRate(savedSpeed);
+                    } catch (_) { }
+                  }
+                }, 120);
               }}
               onStateChange={handlePlayerStateChange}
               onPlaybackRateChange={(e) => {
