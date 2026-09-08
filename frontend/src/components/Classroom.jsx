@@ -43,7 +43,7 @@ import 'katex/dist/katex.min.css';
 import { preprocessMath } from '../utils/mathPreprocessor';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Prism from 'prismjs';
 import 'prismjs/components/prism-python';
 import 'prismjs/components/prism-javascript';
@@ -611,9 +611,9 @@ const Classroom = () => {
     }
   };
 
-  const handleSelectTab = (tabId) => {
+  const handleSelectTab = (tabId, forceScroll = false) => {
     setActiveTab(tabId);
-    if (tabId === 'ai-chat') {
+    if (forceScroll || tabId === 'ai-chat' || tabId === 'quiz') {
       setTimeout(() => {
         scrollToTabs(true);
       }, 60);
@@ -2021,7 +2021,16 @@ const Classroom = () => {
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
               >
-                  {activeTab === 'playlist' && playlist && (() => {
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    className="w-full"
+                  >
+                    {activeTab === 'playlist' && playlist && (() => {
                     const allVideos = playlist.videos || [];
                     const totalPages = Math.ceil(allVideos.length / ITEMS_PER_PAGE);
                     const paginatedVideos = allVideos.slice((playlistPage - 1) * ITEMS_PER_PAGE, playlistPage * ITEMS_PER_PAGE);
@@ -2463,10 +2472,10 @@ const Classroom = () => {
                                           </button>
                                         ) : (
                                           <button
-                                            onClick={() => setActiveTab('quiz')}
-                                            className="flex items-center gap-1 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-xs transition cursor-pointer"
+                                            onClick={() => handleSelectTab('quiz', true)}
+                                            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-xs transition-all cursor-pointer active:scale-95"
                                           >
-                                            <CheckCircle size={12} className="sm:size-[13px]" />
+                                            <CheckCircle size={13} className="sm:size-[14px]" />
                                             <span>Take Quiz</span>
                                           </button>
                                         )}
@@ -2727,22 +2736,22 @@ const Classroom = () => {
 
                   {/* Quiz Tab */}
                   {activeTab === 'quiz' && (
-                    <div className="bg-orange-50/50 dark:bg-orange-900/10 p-3.5 sm:p-6 rounded-2xl border border-orange-100 dark:border-orange-800 transition-colors duration-200">
-                      <div className="flex items-center justify-between mb-3.5 pb-3 sm:mb-5 sm:pb-4 border-b border-orange-200 dark:border-orange-800">
+                    <div className="bg-orange-50/50 dark:bg-orange-900/10 p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-orange-100/90 dark:border-orange-900/40 transition-colors duration-200">
+                      <div className="flex items-center justify-between mb-3.5 pb-3 sm:mb-5 sm:pb-4 border-b border-orange-200/80 dark:border-orange-800/80">
                         <div className="flex items-center gap-2.5 sm:gap-3">
-                          <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-lg shrink-0">
-                            <CheckCircle className="text-orange-600 dark:text-orange-400" size={22} />
+                          <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-xl shrink-0">
+                            <CheckCircle className="text-orange-600 dark:text-orange-400" size={20} />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="text-lg sm:text-xl font-bold text-orange-900 dark:text-orange-100 m-0 leading-tight">Video Quiz</h3>
+                              <h3 className="text-base sm:text-xl font-extrabold text-orange-950 dark:text-orange-100 m-0 leading-tight">Video Quiz</h3>
                               {quizHistory.some(h => h.passed) && (
-                                <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-[10px] uppercase font-bold px-2 py-0.5 rounded flex items-center gap-1">
+                                <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-[10px] uppercase font-black px-2 py-0.5 rounded-md flex items-center gap-1">
                                   <CheckCircle size={10} /> Passed
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs sm:text-sm text-orange-600/80 dark:text-orange-400/80 m-0 mt-0.5">Test your knowledge to unlock playlist certification.</p>
+                            <p className="text-[11px] sm:text-xs text-orange-600/80 dark:text-orange-400/80 m-0 mt-0.5">Test your knowledge to unlock playlist certification.</p>
                           </div>
                         </div>
                       </div>
@@ -2753,68 +2762,75 @@ const Classroom = () => {
 
                         return (
                           <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
+                            initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-100 dark:border-slate-700 relative"
+                            className="bg-white dark:bg-slate-800 p-3.5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-sm border border-orange-100/80 dark:border-slate-700 relative"
                           >
-                            <div className="flex items-center justify-between gap-3 mb-5 pb-3 border-b border-gray-100 dark:border-slate-700">
-                              <div className="flex items-center gap-2.5">
+                            <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5 pb-3 border-b border-gray-100 dark:border-slate-700">
+                              <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                                 <button
                                   onClick={() => setSelectedHistoryQuiz(null)}
-                                  className="p-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-xs active:scale-95 shrink-0"
+                                  className="p-1.5 sm:p-2 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-xs active:scale-95 shrink-0"
                                   title="Back to Quiz Menu"
                                   aria-label="Back to Quiz Menu"
                                 >
-                                  <ArrowLeft size={18} />
+                                  <ArrowLeft size={16} />
                                 </button>
-                                <div>
-                                  <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white m-0 leading-tight">Detailed Review</h2>
-                                  <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 m-0 mt-0.5">
+                                <div className="min-w-0">
+                                  <h2 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white m-0 leading-tight truncate">Detailed Review</h2>
+                                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 m-0 mt-0.5">
                                     Attempted: {new Date(selectedHistoryQuiz.attempted_at).toLocaleDateString()}
                                   </p>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-2">
-                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${selectedHistoryQuiz.passed ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                                <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${selectedHistoryQuiz.passed ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                                   {selectedHistoryQuiz.passed ? "Passed" : "Failed"} • {selectedHistoryQuiz.score}%
                                 </span>
                                 <button
                                   onClick={() => handleDeleteQuizHistory(selectedHistoryQuiz.id)}
-                                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 dark:hover:text-red-400 rounded-xl transition-colors flex items-center justify-center cursor-pointer border border-gray-100 dark:border-slate-700 shadow-xs active:scale-95 shrink-0"
+                                  className="p-1.5 sm:p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 dark:hover:text-red-400 rounded-xl transition-colors flex items-center justify-center cursor-pointer border border-gray-100 dark:border-slate-700 shadow-xs active:scale-95 shrink-0"
                                   title="Delete this quiz attempt"
                                   aria-label="Delete Attempt"
                                 >
-                                  <Trash2 size={16} />
+                                  <Trash2 size={15} />
                                 </button>
                               </div>
                             </div>
 
-                            <div className="space-y-8">
+                            <div className="space-y-6 sm:space-y-8">
                               {(questions || []).map((q, idx) => {
                                 const userAnswer = userAnswers[idx];
                                 const isCorrect = userAnswer === q.answer;
 
                                 return (
-                                  <div key={idx} className="pb-8 border-b border-gray-100 dark:border-slate-700 last:border-0 last:pb-0">
-                                    <p className="font-semibold text-lg text-gray-800 dark:text-slate-200 mb-4 leading-relaxed"><span className="text-orange-500 mr-2">{idx + 1}.</span> {q.question}</p>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                  <div key={idx} className="pb-6 sm:pb-8 border-b border-gray-100 dark:border-slate-700/80 last:border-0 last:pb-0">
+                                    <div className="flex items-start gap-2 sm:gap-2.5 mb-3 sm:mb-4">
+                                      <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black text-xs sm:text-sm flex items-center justify-center shrink-0 mt-0.5">
+                                        {idx + 1}
+                                      </span>
+                                      <p className="font-bold text-sm sm:text-base text-gray-900 dark:text-slate-100 leading-snug sm:leading-relaxed m-0 flex-1">
+                                        {q.question}
+                                      </p>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                                       {(q.options || []).map((opt, optIdx) => {
                                         const isSelected = opt === userAnswer;
                                         const isActualAnswer = opt === q.answer;
 
-                                        let bgClass = "bg-gray-50 dark:bg-slate-700 border-gray-200 dark:border-slate-600";
+                                        let bgClass = "bg-gray-50 dark:bg-slate-700/60 border-gray-200/80 dark:border-slate-600";
                                         if (isSelected && isCorrect) bgClass = "bg-green-50 dark:bg-green-900/20 border-green-500 text-green-800 dark:text-green-300 ring-1 ring-green-500";
                                         else if (isSelected && !isCorrect) bgClass = "bg-red-50 dark:bg-red-900/20 border-red-500 text-red-800 dark:text-red-300 ring-1 ring-red-500";
                                         else if (isActualAnswer) bgClass = "bg-green-50/50 dark:bg-green-900/10 border-green-300 text-green-700 dark:text-green-400 border-dashed";
 
                                         return (
-                                          <div key={optIdx} className={`p-4 rounded-xl border-2 transition-all flex flex-col justify-center ${bgClass}`}>
-                                            <span className="text-sm font-medium leading-snug">{opt}</span>
-                                            <div className="mt-2 flex items-center gap-1.5 opacity-90">
-                                              {isSelected && isCorrect && <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><CheckCircle size={12} /> Your Correct Answer</span>}
-                                              {isSelected && !isCorrect && <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><X size={12} /> Your Incorrect Answer</span>}
-                                              {!isSelected && isActualAnswer && <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><CheckCircle size={12} /> Correct Answer</span>}
+                                          <div key={optIdx} className={`p-3 sm:p-3.5 rounded-xl border-2 transition-all flex flex-col justify-center ${bgClass}`}>
+                                            <span className="text-xs sm:text-sm font-medium leading-snug">{opt}</span>
+                                            <div className="mt-1.5 flex items-center gap-1.5 opacity-90">
+                                              {isSelected && isCorrect && <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><CheckCircle size={11} /> Your Correct Answer</span>}
+                                              {isSelected && !isCorrect && <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><X size={11} /> Your Incorrect Answer</span>}
+                                              {!isSelected && isActualAnswer && <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><CheckCircle size={11} /> Correct Answer</span>}
                                             </div>
                                           </div>
                                         );
@@ -2829,16 +2845,21 @@ const Classroom = () => {
                       })()
                         : quizResult ? (
                           <motion.div
-                            initial={{ opacity: 0, scale: 0.9 }}
+                            initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="bg-white dark:bg-slate-800 p-6 rounded shadow max-w-md mx-auto text-center border dark:border-slate-700"
+                            className="bg-white dark:bg-slate-800 p-5 sm:p-8 rounded-2xl sm:rounded-3xl shadow-lg max-w-md mx-auto text-center border border-orange-100 dark:border-slate-700"
                           >
-                            <h2 className="text-xl font-bold mb-2 dark:text-white mt-0">{quizResult.passed ? "🎉 Congratulations!" : "Better luck next time!"}</h2>
-                            <p className="mb-4 dark:text-slate-300">Your Score: {quizResult.score}%</p>
-                            <div className="flex flex-col gap-3">
+                            <div className={`w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-2xl flex items-center justify-center mb-4 ${quizResult.passed ? 'bg-green-100 dark:bg-green-900/30 text-green-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
+                              <span className="text-2xl">{quizResult.passed ? "🎉" : "💪"}</span>
+                            </div>
+                            <h2 className="text-lg sm:text-xl font-bold mb-1.5 dark:text-white mt-0">{quizResult.passed ? "Congratulations!" : "Good Try!"}</h2>
+                            <p className="text-xs sm:text-sm mb-4 text-gray-500 dark:text-slate-300">
+                              Your Score: <strong className={`font-black ${quizResult.passed ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>{quizResult.score}%</strong>
+                            </p>
+                            <div className="flex flex-col gap-2.5">
                               <button
                                 onClick={() => setSelectedHistoryQuiz(quizResult.quiz)}
-                                className="w-full px-4 py-2.5 bg-orange-600 text-white font-medium rounded-xl hover:bg-orange-700 transition shadow-sm cursor-pointer"
+                                className="w-full px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-xs sm:text-sm rounded-xl hover:from-orange-600 hover:to-amber-600 transition shadow-sm cursor-pointer active:scale-95"
                               >
                                 Review Answers
                               </button>
@@ -2847,100 +2868,166 @@ const Classroom = () => {
                                   setQuizResult(null);
                                   fetchQuizHistory();
                                 }}
-                                className="w-full px-4 py-2.5 bg-gray-200 dark:bg-slate-700 text-gray-800 dark:text-white font-medium rounded-xl hover:bg-gray-300 dark:hover:bg-slate-600 transition cursor-pointer"
+                                className="w-full px-4 py-2.5 bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white font-bold text-xs sm:text-sm rounded-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition cursor-pointer active:scale-95"
                               >
                                 Close Results
                               </button>
                             </div>
                           </motion.div>
                         ) : quizData ? (
-                          <div className="bg-white dark:bg-slate-800 rounded shadow p-6 border dark:border-slate-700 relative">
-                            <div className="flex justify-between items-center mb-6">
-                              <h2 className="text-xl font-semibold dark:text-white m-0">Quiz</h2>
-                              <p className="text-sm font-semibold text-orange-600 dark:text-orange-400 m-0">Time Left: {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</p>
-                            </div>
-                            {quizData?.questions?.map && quizData.questions.map((q, idx) => (
-                              <div key={idx} className="mb-6 pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0 last:mb-0">
-                                <p className="font-medium text-gray-800 dark:text-slate-200 mb-3 text-lg leading-relaxed">{idx + 1}. {q.question}</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                  {(q.options || []).map((opt, optIdx) => (
-                                    <label key={optIdx} className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${answers[idx] === opt
-                                      ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
-                                      : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-500'
-                                      }`}>
-                                      <input
-                                        type="radio"
-                                        name={`question-${idx}`}
-                                        value={opt}
-                                        checked={answers[idx] === opt}
-                                        onChange={() => handleQuizAnswer(idx, opt)}
-                                        className="mt-1 w-4 h-4 text-orange-600 border-gray-300 focus:ring-orange-500"
-                                      />
-                                      <span className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{opt}</span>
-                                    </label>
-                                  ))}
-                                </div>
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-white dark:bg-slate-800/95 rounded-2xl sm:rounded-3xl shadow-sm border border-orange-100/90 dark:border-slate-700/80 p-3.5 sm:p-6 sm:p-7 relative overflow-hidden"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2.5 mb-5 pb-3 sm:mb-6 sm:pb-4 border-b border-gray-100 dark:border-slate-700/80">
+                              <div className="flex items-center gap-2">
+                                <h2 className="text-base sm:text-xl font-extrabold text-gray-900 dark:text-white m-0 tracking-tight">Quiz</h2>
+                                <span className="text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300">
+                                  {Object.keys(answers).length} of {quizData?.questions?.length || 0} Answered
+                                </span>
                               </div>
-                            ))}
-                            <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+
+                              <div className={`flex items-center gap-1.5 px-3 py-1 sm:py-1.5 rounded-xl border text-xs sm:text-sm font-mono font-bold transition-all shadow-2xs ${
+                                timeLeft < 60
+                                  ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 animate-pulse'
+                                  : 'bg-orange-50/80 dark:bg-slate-700/50 border-orange-200/70 dark:border-slate-600 text-orange-600 dark:text-orange-400'
+                              }`}>
+                                <Clock size={14} className={timeLeft < 60 ? 'animate-spin' : ''} />
+                                <span>Time Left: {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-6 sm:space-y-8">
+                              {quizData?.questions?.map && quizData.questions.map((q, idx) => (
+                                <div key={idx} className="pb-5 sm:pb-6 border-b border-gray-100 dark:border-slate-700/80 last:border-0 last:pb-0">
+                                  <div className="flex items-start gap-2 sm:gap-2.5 mb-3 sm:mb-3.5">
+                                    <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black text-xs sm:text-sm flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                                      {idx + 1}
+                                    </span>
+                                    <p className="font-bold text-sm sm:text-base text-gray-900 dark:text-slate-100 leading-snug sm:leading-relaxed m-0 flex-1">
+                                      {q.question}
+                                    </p>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                    {(q.options || []).map((opt, optIdx) => {
+                                      const isSelected = answers[idx] === opt;
+                                      return (
+                                        <label
+                                          key={optIdx}
+                                          className={`group flex items-start gap-2.5 p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border transition-all duration-200 cursor-pointer select-none active:scale-[0.99] ${
+                                            isSelected
+                                              ? 'border-orange-500 bg-orange-50/90 dark:bg-orange-950/20 text-orange-950 dark:text-orange-200 shadow-xs ring-1 ring-orange-400/40'
+                                              : 'border-gray-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800/80 hover:border-orange-200 dark:hover:border-slate-600 hover:bg-orange-50/30 text-gray-800 dark:text-slate-200'
+                                          }`}
+                                        >
+                                          <div className={`w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+                                            isSelected
+                                              ? 'border-orange-500 bg-orange-500 text-white'
+                                              : 'border-gray-300 dark:border-slate-500 bg-white dark:bg-slate-700 group-hover:border-orange-300'
+                                          }`}>
+                                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                          </div>
+
+                                          <input
+                                            type="radio"
+                                            name={`question-${idx}`}
+                                            value={opt}
+                                            checked={isSelected}
+                                            onChange={() => handleQuizAnswer(idx, opt)}
+                                            className="sr-only"
+                                          />
+                                          <span className="text-xs sm:text-sm font-medium leading-snug flex-1">
+                                            {opt}
+                                          </span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="mt-6 sm:mt-8 pt-4 border-t border-gray-100 dark:border-slate-700/80 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
                               <button
                                 disabled={submittingQuiz}
                                 onClick={() => {
                                   setQuizData(null);
                                   toast("Quiz cancelled.");
                                 }}
-                                className="px-6 py-2.5 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white font-medium rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                                className="w-full sm:w-auto px-5 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-700 dark:text-gray-200 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer text-center"
                               >
-                                Cancel
+                                Cancel Quiz
                               </button>
                               <button
                                 disabled={submittingQuiz}
                                 onClick={handleSubmitQuiz}
-                                className="px-6 py-2.5 bg-orange-600 text-white font-medium rounded-xl hover:bg-orange-700 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 disabled:opacity-50 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2 text-center"
                               >
-                                {submittingQuiz ? "Submitting..." : "Submit Answers"}
+                                {submittingQuiz ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    <span>Submitting...</span>
+                                  </>
+                                ) : (
+                                  <span>Submit Answers</span>
+                                )}
                               </button>
                             </div>
-                          </div>
+                          </motion.div>
                         ) : (
-                          <div className="flex flex-col items-center justify-center py-5 sm:py-9 text-center w-full">
-                            <CheckCircle className="text-orange-400/50 mb-3 h-12 w-12 sm:h-16 sm:w-16" />
-                            <h4 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">Ready to test your knowledge?</h4>
-                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-md mb-6">Take a 10-question quiz generated by AI specifically for this video to earn XP!</p>
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="flex flex-col items-center justify-center py-5 sm:py-9 text-center w-full"
+                          >
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-orange-100 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mb-3 shadow-xs">
+                              <CheckCircle className="h-7 w-7 sm:h-9 sm:w-9 text-orange-500" />
+                            </div>
+                            <h4 className="text-base sm:text-xl font-bold text-gray-800 dark:text-gray-200 mb-1.5">Ready to test your knowledge?</h4>
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-md mb-5 leading-relaxed">
+                              Take a 10-question quiz generated by AI specifically for this video to earn XP!
+                            </p>
                             <button
                               onClick={handleStartQuiz}
                               disabled={loadingQuiz}
-                              className="bg-orange-600 hover:bg-orange-700 text-white px-7 py-3 rounded-xl font-semibold text-xs sm:text-sm transition-all shadow-md flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-7 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md shadow-orange-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
                             >
                               {loadingQuiz ? (
                                 <>
                                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                  Generating Quiz...
+                                  <span>Generating Quiz...</span>
                                 </>
-                              ) : "Start Quiz Now"}
+                              ) : (
+                                <>
+                                  <span>Start Quiz Now</span>
+                                  <ChevronRight size={14} />
+                                </>
+                              )}
                             </button>
 
                             {quizHistory.length > 0 && (
-                              <div className="mt-16 w-full max-w-2xl mx-auto text-left">
-                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2 border-b dark:border-gray-700 pb-3">
-                                  <Clock size={20} className="text-orange-500" /> Previous Attempts
+                              <div className="mt-10 sm:mt-14 w-full max-w-2xl mx-auto text-left">
+                                <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2 border-b border-orange-200/60 dark:border-gray-700 pb-2.5">
+                                  <Clock size={16} className="text-orange-500" /> Previous Attempts
                                 </h3>
-                                <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
                                   {(quizHistory || []).map(hist => (
                                     <motion.div
                                       key={hist.id}
-                                      initial={{ opacity: 0, y: 10 }}
+                                      initial={{ opacity: 0, y: 8 }}
                                       animate={{ opacity: 1, y: 0 }}
                                       onClick={() => setSelectedHistoryQuiz(hist)}
-                                      className="flex justify-between items-center p-3.5 sm:p-4 bg-white dark:bg-slate-800 shadow-sm rounded-xl border border-gray-200 dark:border-slate-700 cursor-pointer hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-md transition-all group"
+                                      className="flex justify-between items-center p-3 sm:p-4 bg-white dark:bg-slate-800 shadow-xs rounded-xl border border-gray-200/80 dark:border-slate-700 cursor-pointer hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-sm transition-all group"
                                     >
                                       <div>
                                         <p className="font-semibold text-gray-800 dark:text-slate-200 m-0 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors text-xs sm:text-sm">
                                           Attempt on {new Date(hist.attempted_at).toLocaleDateString()}
                                         </p>
                                       </div>
-                                      <div className="flex items-center gap-2.5">
-                                        <span className={`inline-block px-2.5 py-0.5 text-xs font-bold rounded-lg ${hist.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                      <div className="flex items-center gap-2 sm:gap-2.5">
+                                        <span className={`inline-block px-2 sm:px-2.5 py-0.5 text-[11px] sm:text-xs font-bold rounded-lg ${hist.passed ? 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400'}`}>
                                           {hist.score}%
                                         </span>
                                         <button
@@ -2952,16 +3039,16 @@ const Classroom = () => {
                                           title="Delete attempt"
                                           aria-label="Delete attempt"
                                         >
-                                          <Trash2 size={15} />
+                                          <Trash2 size={14} />
                                         </button>
-                                        <ArrowLeft size={16} className="text-gray-400 rotate-180 group-hover:text-orange-500 transition-colors" />
+                                        <ArrowLeft size={14} className="text-gray-400 rotate-180 group-hover:text-orange-500 transition-colors" />
                                       </div>
                                     </motion.div>
                                   ))}
                                 </div>
                               </div>
                             )}
-                          </div>
+                          </motion.div>
                         )}
                     </div>
                   )}
@@ -3215,6 +3302,8 @@ const Classroom = () => {
                       </div>
                     </div>
                   )}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               </div>
             </div>

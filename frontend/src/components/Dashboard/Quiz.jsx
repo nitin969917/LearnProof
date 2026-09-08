@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
@@ -36,6 +36,19 @@ const Quiz = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [loadingQuizDetails, setLoadingQuizDetails] = useState(null);
     const itemsPerPage = 6;
+
+    const playlistScrollRef = useRef(null);
+
+    const scroll = (direction) => {
+        if (playlistScrollRef.current) {
+            const { scrollLeft, clientWidth } = playlistScrollRef.current;
+            const scrollAmount = clientWidth * 0.8;
+            playlistScrollRef.current.scrollTo({
+                left: direction === 'left' ? scrollLeft - scrollAmount : scrollLeft + scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+    };
 
     const attemptParam = searchParams.get("attempt");
 
@@ -573,98 +586,101 @@ const Quiz = () => {
                             <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">No playlists ready for quizzes yet.</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {filteredPlaylists.map((pl, plIdx) => {
-                                // Soft color gradient mapping for subject card cards
-                                const themes = [
-                                    { bg: "from-[#fff6f2]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#feebe3] dark:border-gray-700", iconColor: "text-orange-500" },
-                                    { bg: "from-[#f6f5ff]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#e8e6ff] dark:border-gray-700", iconColor: "text-[#4f46e5]" },
-                                    { bg: "from-[#f2faf6]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#e0f4ea] dark:border-gray-700", iconColor: "text-[#059669]" },
-                                    { bg: "from-[#fffaf0]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#fef0d5] dark:border-gray-700", iconColor: "text-amber-500" },
-                                    { bg: "from-[#f2f9fe]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#e0f1fe] dark:border-gray-700", iconColor: "text-sky-500" }
-                                ];
-                                const theme = themes[plIdx % themes.length];
+                        <div className="relative -mx-3 sm:-mx-4">
+                            {/* Horizontal Scroll Container */}
+                            <div
+                                ref={playlistScrollRef}
+                                className="flex overflow-x-auto gap-3.5 pb-4 px-3 sm:px-4 snap-x snap-mandatory hide-scrollbar"
+                            >
+                                {filteredPlaylists.map((pl, plIdx) => {
+                                    // Soft color gradient mapping for subject card cards
+                                    const themes = [
+                                        { bg: "from-[#fff6f2]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#feebe3] dark:border-gray-700", iconColor: "text-orange-500" },
+                                        { bg: "from-[#f6f5ff]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#e8e6ff] dark:border-gray-700", iconColor: "text-[#4f46e5]" },
+                                        { bg: "from-[#f2faf6]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#e0f4ea] dark:border-gray-700", iconColor: "text-[#059669]" },
+                                        { bg: "from-[#fffaf0]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#fef0d5] dark:border-gray-700", iconColor: "text-amber-500" },
+                                        { bg: "from-[#f2f9fe]/90 to-white dark:from-gray-800 dark:to-gray-800", border: "border-[#e0f1fe] dark:border-gray-700", iconColor: "text-sky-500" }
+                                    ];
+                                    const theme = themes[plIdx % themes.length];
 
-                                return (
-                                    <motion.div
-                                        key={pl.pid}
-                                        initial={{ opacity: 0, y: 8 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.25, delay: plIdx * 0.03 }}
-                                        className="w-full flex flex-col"
-                                    >
-                                        <div className={`h-full bg-gradient-to-br ${
-                                            pl.is_eligible ? theme.bg : 'from-[#fafafa] to-white dark:from-gray-800 dark:to-gray-800'
-                                        } rounded-2xl border ${
-                                            pl.is_eligible ? theme.border : 'border-gray-100 dark:border-gray-700/80'
-                                        } overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col justify-between group`}>
-                                            
-                                            <div className="p-4 flex flex-col justify-between flex-1 min-h-[145px]">
-                                                <div className="space-y-3">
-                                                    <div className="flex items-start justify-between gap-2.5">
-                                                        {/* White round-square icon card bubble */}
-                                                        <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.02)] border border-slate-100/35 dark:border-gray-700 shrink-0">
-                                                            <BookOpen size={16} className={pl.is_eligible ? theme.iconColor : (pl.passed_video_quizzes > 0 ? "text-orange-400" : "text-gray-400")} />
+                                    return (
+                                        <motion.div
+                                            key={pl.pid}
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="flex-shrink-0 w-[240px] snap-start"
+                                        >
+                                            <div className={`h-full bg-gradient-to-br ${
+                                                pl.is_eligible ? theme.bg : 'from-[#fafafa] to-white dark:from-gray-800 dark:to-gray-800'
+                                            } rounded-2xl border ${
+                                                pl.is_eligible ? theme.border : 'border-gray-100 dark:border-gray-700'
+                                            } overflow-hidden shadow-sm hover:shadow-md transition-all duration-300`}>
+                                                
+                                                <div className="p-4 flex flex-col justify-between h-[155px]">
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-start justify-between gap-2.5">
+                                                            {/* White round-square icon card bubble */}
+                                                            <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.02)] border border-slate-100/35 dark:border-gray-700 shrink-0">
+                                                                <BookOpen size={16} className={pl.is_eligible ? theme.iconColor : "text-gray-400"} />
+                                                            </div>
+
+                                                            {/* Complete / Lock badge status */}
+                                                            <div>
+                                                                {pl.is_eligible ? (
+                                                                    <span className="inline-flex items-center gap-1 text-[8.5px] font-black text-green-600 dark:text-green-400 bg-green-50/80 dark:bg-green-950/20 px-2 py-0.5 rounded-md border border-green-100/50">
+                                                                        <CheckCircle size={8} /> READY
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="inline-flex items-center gap-1 text-[8.5px] font-black text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-700/40 px-2 py-0.5 rounded-md border border-gray-150">
+                                                                        <Lock size={8} /> LOCKED
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
 
-                                                        {/* Complete / Lock badge status */}
                                                         <div>
-                                                            {pl.is_eligible ? (
-                                                                <span className="inline-flex items-center gap-1 text-[8.5px] font-black text-green-600 dark:text-green-400 bg-green-50/80 dark:bg-green-950/20 px-2 py-0.5 rounded-md border border-green-100/50">
-                                                                    <CheckCircle size={8} /> READY
-                                                                </span>
-                                                            ) : (
-                                                                <span className="inline-flex items-center gap-1 text-[8.5px] font-black text-gray-400 dark:text-gray-500 bg-gray-50 dark:bg-gray-700/40 px-2 py-0.5 rounded-md border border-gray-150">
-                                                                    <Lock size={8} /> LOCKED
-                                                                </span>
-                                                            )}
+                                                            <h3 className="font-bold text-gray-900 dark:text-white text-xs sm:text-[13px] tracking-tight leading-snug line-clamp-2">{pl.name}</h3>
                                                         </div>
                                                     </div>
 
-                                                    <div>
-                                                        <h3 className="font-bold text-gray-900 dark:text-white text-xs sm:text-[13px] tracking-tight leading-snug line-clamp-2 min-h-[2.2rem] group-hover:text-orange-500 transition-colors">
-                                                            {pl.name}
-                                                        </h3>
+                                                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100/50 dark:border-gray-800">
+                                                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
+                                                            Score: <span className="text-orange-500 font-extrabold">{pl.passed_video_quizzes}/{pl.total_videos}</span>
+                                                        </span>
+                                                        
+                                                        <button
+                                                            disabled={!pl.is_eligible}
+                                                            onClick={() => handleStartQuiz("playlist", pl.pid)}
+                                                            className={`shrink-0 flex items-center gap-0.5 px-3 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all ${
+                                                                pl.is_eligible
+                                                                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/10 hover:shadow-md hover:from-orange-600 hover:to-amber-600 active:scale-95 cursor-pointer'
+                                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                                            }`}
+                                                        >
+                                                            {pl.is_eligible ? "Start" : "Locked"}
+                                                            <ChevronRight size={10} strokeWidth={2.5} />
+                                                        </button>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center justify-between gap-2 pt-2.5 mt-1 border-t border-slate-100/60 dark:border-gray-800">
-                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
-                                                        Score: <span className="text-orange-500 font-extrabold">{pl.passed_video_quizzes}/{pl.total_videos}</span>
-                                                    </span>
-                                                    
-                                                    <button
-                                                        disabled={!pl.is_eligible}
-                                                        onClick={() => handleStartQuiz("playlist", pl.pid)}
-                                                        className={`shrink-0 flex items-center gap-0.5 px-3 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all ${
-                                                            pl.is_eligible
-                                                                ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/10 hover:shadow-md hover:from-orange-600 hover:to-amber-600 active:scale-95 cursor-pointer'
-                                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                                {/* Card bottom Progress bar indicator */}
+                                                <div className="h-1 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden mx-4 mb-2">
+                                                    <motion.div
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${pl.total_videos > 0 ? (pl.passed_video_quizzes / pl.total_videos) * 100 : 0}%` }}
+                                                        transition={{ duration: 0.6, ease: "easeOut" }}
+                                                        className={`h-full rounded-full ${
+                                                            pl.total_videos > 0 && pl.passed_video_quizzes === pl.total_videos
+                                                                ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                                                                : 'bg-gradient-to-r from-orange-400 to-amber-500'
                                                         }`}
-                                                    >
-                                                        {pl.is_eligible ? "Start" : "Locked"}
-                                                        <ChevronRight size={10} strokeWidth={2.5} />
-                                                    </button>
+                                                    />
                                                 </div>
                                             </div>
-
-                                            {/* Card bottom Progress bar indicator */}
-                                            <div className="h-1.5 bg-gray-100 dark:bg-gray-700/50 rounded-full overflow-hidden mx-4 mb-3">
-                                                <motion.div
-                                                    initial={{ width: 0 }}
-                                                    animate={{ width: `${pl.total_videos > 0 ? (pl.passed_video_quizzes / pl.total_videos) * 100 : 0}%` }}
-                                                    transition={{ duration: 0.6, ease: "easeOut" }}
-                                                    className={`h-full rounded-full ${
-                                                        pl.total_videos > 0 && pl.passed_video_quizzes === pl.total_videos
-                                                            ? 'bg-gradient-to-r from-green-400 to-emerald-500'
-                                                            : 'bg-gradient-to-r from-orange-400 to-amber-500'
-                                                    }`}
-                                                />
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                );
-                            })}
+                                        </motion.div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </section>
