@@ -2304,7 +2304,7 @@ const Classroom = () => {
                                     <div className="prose max-w-none text-gray-800 dark:text-gray-200 leading-relaxed intuition-markdown">
                                       <ReactMarkdown
                                         remarkPlugins={[remarkGfm, remarkMath]}
-                                        rehypePlugins={[rehypeKatex]}
+                                        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
                                         components={{
                                           h1: ({ node, ...props }) => <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-5 mb-2.5 break-words" {...props} />,
                                           h2: ({ node, ...props }) => <h2 className="text-base sm:text-lg font-bold text-indigo-900 dark:text-indigo-200 mt-4 mb-2 break-words" {...props} />,
@@ -2386,7 +2386,7 @@ const Classroom = () => {
                                     <div className="prose max-w-none text-gray-800 dark:text-gray-200 leading-relaxed intuition-markdown">
                                       <ReactMarkdown
                                         remarkPlugins={[remarkGfm, remarkMath]}
-                                        rehypePlugins={[rehypeKatex]}
+                                        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
                                         components={{
                                           h1: ({ node, ...props }) => <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-5 mb-2.5 break-words" {...props} />,
                                           h2: ({ node, ...props }) => <h2 className="text-base sm:text-lg font-bold text-indigo-900 dark:text-indigo-200 mt-4 mb-2 break-words" {...props} />,
@@ -2617,7 +2617,7 @@ const Classroom = () => {
                                     <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed intuition-markdown">
                                       <ReactMarkdown
                                         remarkPlugins={[remarkGfm, remarkMath]}
-                                        rehypePlugins={[rehypeKatex]}
+                                        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
                                         components={{
                                           p: ({ node, ...props }) => <p className="mb-2 last:mb-0 break-words" {...props} />,
                                           ul: ({ node, ...props }) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
@@ -3488,7 +3488,7 @@ const Classroom = () => {
                   <div className="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 text-xs sm:text-sm leading-relaxed">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm, remarkMath]}
-                      rehypePlugins={[rehypeKatex]}
+                      rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
                       components={{
                         h1: ({ node, ...props }) => <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-3 mb-1.5" {...props} />,
                         h2: ({ node, ...props }) => <h2 className="text-xs sm:text-sm font-bold text-indigo-900 dark:text-indigo-300 mt-2.5 mb-1" {...props} />,

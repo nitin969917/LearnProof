@@ -2077,7 +2077,7 @@ const AskMyNotes = () => {
                                                     <div className="text-xs md:text-sm leading-relaxed text-slate-700 dark:text-slate-300 max-w-none">
                                                         <ReactMarkdown
                                                             remarkPlugins={[remarkGfm, remarkMath]}
-                                                            rehypePlugins={[rehypeKatex]}
+                                                            rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
                                                             components={markdownComponents}
                                                         >
                                                             {preprocessMath(msg.content)}

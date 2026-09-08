@@ -116,7 +116,7 @@ const AIBenchmark = () => {
                             <div className="p-5 flex-1 overflow-y-auto prose dark:prose-invert prose-sm max-w-none scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
                                 <ReactMarkdown
                                     remarkPlugins={[remarkGfm, remarkMath]}
-                                    rehypePlugins={[rehypeKatex]}
+                                    rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
                                 >
                                     {preprocessMarkdown(data.content)}
                                 </ReactMarkdown>
