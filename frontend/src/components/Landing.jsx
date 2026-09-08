@@ -4,7 +4,7 @@ import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, 
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import axios from "axios";
 import UserAvatar from './Common/UserAvatar.jsx';
 
@@ -371,7 +371,6 @@ const LandingPage = () => {
     };
 
     const handleGoogleSuccess = async (credentialResponse, targetRedirect = null) => {
-        setIsLoggingIn(true);
         try {
             const idToken = credentialResponse.credential || credentialResponse.id_token;
             
@@ -383,11 +382,13 @@ const LandingPage = () => {
             }
 
             const target = targetRedirect || getRedirectTarget();
+            clearRedirectTarget();
 
-            await login({ credential: idToken });
+            // Optimistic instant login (< 1ms)
+            login({ credential: idToken });
             
             setIsLoggingIn(false);
-            clearRedirectTarget();
+            sessionStorage.removeItem("is_logging_in");
             navigate(target, { replace: true });
         } catch (err) {
             console.error("Google login error:", err);
@@ -462,10 +463,9 @@ const LandingPage = () => {
                 }
             }
             if (idToken) {
-                setIsLoggingIn(true);
-                handleGoogleSuccess({ credential: idToken }, stateRedirect);
-                // Clean the hash from URL cleanly
+                // Clean the hash from URL cleanly before calling handler
                 window.history.replaceState(null, '', window.location.pathname);
+                handleGoogleSuccess({ credential: idToken }, stateRedirect);
             }
         }
 
@@ -514,14 +514,8 @@ const LandingPage = () => {
     }
 
     if (user && location.pathname === '/') {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white">
-                <div className="flex flex-col items-center gap-3">
-                    <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm font-medium text-slate-400">Redirecting to Dashboard...</p>
-                </div>
-            </div>
-        );
+        const target = getRedirectTarget() || "/dashboard";
+        return <Navigate to={target} replace />;
     }
 
     const handleManualGoogleLogin = (customTarget = "/dashboard") => {

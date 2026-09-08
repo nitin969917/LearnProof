@@ -75,13 +75,9 @@ export default function AmbassadorLanding() {
             const params = new URLSearchParams(hash.substring(1));
             const idToken = params.get('id_token') || params.get('credential');
             if (idToken) {
-                login({ credential: idToken }).then(() => {
-                    window.history.replaceState(null, '', window.location.pathname);
-                    navigate('/ambassador/portal');
-                }).catch(err => {
-                    console.error("Ambassador login error:", err);
-                    toast.error("Login failed. Please try again.");
-                });
+                window.history.replaceState(null, '', window.location.pathname);
+                login({ credential: idToken });
+                navigate('/ambassador/portal', { replace: true });
             }
         }
     }, [login, navigate]);

@@ -29,10 +29,72 @@ axios.interceptors.response.use(
     }
 );
 
+// Helper to extract token from URL hash or localStorage synchronously
+const getInitialAuth = () => {
+    if (typeof window === "undefined") return { user: null, token: null };
+
+    // 1. Check if returning from Google OAuth redirect with hash token
+    try {
+        const hash = window.location.hash;
+        if (hash && (hash.includes("id_token=") || hash.includes("credential="))) {
+            const params = new URLSearchParams(hash.substring(1));
+            const idToken = params.get("id_token") || params.get("credential");
+            if (idToken) {
+                const decoded = jwtDecode(idToken);
+                const currentTime = Date.now() / 1000;
+                if (!decoded.exp || decoded.exp > currentTime) {
+                    localStorage.setItem("google_token", idToken);
+                    return {
+                        user: {
+                            id: decoded.id || decoded.uid || decoded.sub,
+                            uid: decoded.uid || decoded.sub,
+                            email: decoded.email,
+                            name: decoded.name,
+                            picture: decoded.picture
+                        },
+                        token: idToken
+                    };
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Error parsing OAuth hash token on boot:", e);
+    }
+
+    // 2. Check stored token in localStorage
+    try {
+        const storedToken = localStorage.getItem("google_token");
+        if (storedToken) {
+            const decoded = jwtDecode(storedToken);
+            const currentTime = Date.now() / 1000;
+            if (decoded.exp && decoded.exp < currentTime) {
+                localStorage.removeItem("google_token");
+                return { user: null, token: null };
+            }
+            return {
+                user: {
+                    id: decoded.id || decoded.uid || decoded.sub,
+                    uid: decoded.uid || decoded.sub,
+                    email: decoded.email,
+                    name: decoded.name,
+                    picture: decoded.picture
+                },
+                token: storedToken
+            };
+        }
+    } catch (e) {
+        console.warn("Error parsing stored token on boot:", e);
+        localStorage.removeItem("google_token");
+    }
+
+    return { user: null, token: null };
+};
+
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [token, setToken] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const initialAuth = getInitialAuth();
+    const [user, setUser] = useState(initialAuth.user);
+    const [token, setToken] = useState(initialAuth.token);
+    const [loading, setLoading] = useState(false);
     const [matrixClient, setMatrixClient] = useState(null);
 
     useEffect(() => {
@@ -57,13 +119,14 @@ export const AuthProvider = ({ children }) => {
                             return;
                         }
                     }
-                    setUser({
+                    setUser(prev => ({
+                        ...(prev || {}),
                         id: decoded.id || decoded.uid || decoded.sub,
                         uid: decoded.uid || decoded.sub,
                         email: decoded.email,
                         name: decoded.name,
                         picture: decoded.picture
-                    });
+                    }));
                     setToken(storedToken);
 
                     // Attribute referral in background if pending
@@ -83,7 +146,7 @@ export const AuthProvider = ({ children }) => {
                             });
                         }
                     }).catch(err => {
-                        console.error("Failed to fetch Matrix profile on load:", err);
+                        console.warn("Failed to fetch Matrix profile on load:", err?.message || err);
                     });
 
                 } catch (error) {
@@ -93,61 +156,70 @@ export const AuthProvider = ({ children }) => {
                     disconnectMatrixClient();
                 }
             }
-            setLoading(false);
         };
 
         loadUser();
     }, []);
 
     const login = async (credentialResponse) => {
-        const idToken = credentialResponse.credential;
-        
-        try {
-            // exchange Google Token for a long-lived session token
-            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/login/`, {
-                idToken: idToken
-            });
+        const idToken = credentialResponse?.credential || credentialResponse?.id_token;
+        if (!idToken) return;
 
-            const sessionToken = res.data.token || idToken; // Fallback to idToken if server didn't issue one
-            localStorage.setItem("google_token", sessionToken);
-            
-            const decoded = jwtDecode(sessionToken);
-            setUser({
+        // 1. Instant Optimistic Auth (< 1ms): decode token immediately & enable instant UI navigation
+        try {
+            const decoded = jwtDecode(idToken);
+            const optimisticUser = {
                 id: decoded.id || decoded.uid || decoded.sub,
                 uid: decoded.uid || decoded.sub,
                 email: decoded.email,
                 name: decoded.name,
-                picture: decoded.picture,
-                matrixCredentials: res.data.matrixCredentials
-            });
-            setToken(sessionToken);
-
-            // Attribute referral in background
-            attributePendingReferral(sessionToken);
-
-            if (res.data.matrixCredentials) {
-                // Initialize Matrix client in background without blocking login navigation
-                initMatrixClient(res.data.matrixCredentials).then(clientInstance => {
-                    setMatrixClient(clientInstance);
-                }).catch(err => {
-                    console.warn("Matrix client background init error:", err);
-                });
-            }
-        } catch (err) {
-            console.error("Login sync failed", err);
-            // Fallback to local only if server is down
-            localStorage.setItem("google_token", idToken);
-            const decoded = jwtDecode(idToken);
-            setUser({
-                id: decoded.id || decoded.sub || decoded.uid,
-                uid: decoded.sub,
-                email: decoded.email,
-                name: decoded.name,
                 picture: decoded.picture
-            });
+            };
+            setUser(optimisticUser);
             setToken(idToken);
-            attributePendingReferral(idToken);
+            localStorage.setItem("google_token", idToken);
+            setLoading(false);
+        } catch (e) {
+            console.error("Optimistic token decode failed:", e);
         }
+
+        // 2. Non-blocking Background Server Sync: exchange for long-lived session token & sync Matrix credentials
+        (async () => {
+            try {
+                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/login/`, {
+                    idToken: idToken
+                });
+
+                const sessionToken = res.data?.token || idToken;
+                localStorage.setItem("google_token", sessionToken);
+
+                const serverDecoded = jwtDecode(sessionToken);
+                setUser(prev => ({
+                    ...prev,
+                    id: serverDecoded.id || serverDecoded.uid || serverDecoded.sub || res.data?.id || prev?.id,
+                    uid: serverDecoded.uid || serverDecoded.sub || prev?.uid,
+                    email: serverDecoded.email || prev?.email,
+                    name: serverDecoded.name || prev?.name,
+                    picture: serverDecoded.picture || prev?.picture,
+                    matrixCredentials: res.data?.matrixCredentials || prev?.matrixCredentials
+                }));
+                setToken(sessionToken);
+
+                // Attribute referral in background
+                attributePendingReferral(sessionToken);
+
+                if (res.data?.matrixCredentials) {
+                    initMatrixClient(res.data.matrixCredentials).then(clientInstance => {
+                        setMatrixClient(clientInstance);
+                    }).catch(err => {
+                        console.warn("Matrix client background init error:", err);
+                    });
+                }
+            } catch (err) {
+                console.warn("Background server login sync warning:", err?.message || err);
+                attributePendingReferral(idToken);
+            }
+        })();
     };
 
     const logout = () => {

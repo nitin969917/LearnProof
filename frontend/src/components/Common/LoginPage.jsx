@@ -141,24 +141,29 @@ const LoginPage = () => {
     }, [user, loading, navigate]);
 
     const handleLoginFlow = async (idToken) => {
-        setIsAuthenticating(true);
-        sessionStorage.setItem("is_authenticating", "true");
         try {
-            await login({ credential: idToken });
-            // Clean the hash from URL
+            // Instant optimistic login (< 1ms)
+            login({ credential: idToken });
+            
+            // Clean the hash from URL immediately
             window.history.replaceState(null, '', window.location.pathname);
             toast.success("Welcome back to LearnProof AI!");
             
-            // Request notification permission after login
-            requestNotificationPermissionAndGetToken().catch(err => {
-                console.error("Failed to setup notifications after login:", err);
-            });
-            
             sessionStorage.removeItem("is_authenticating");
+            setIsAuthenticating(false);
             const redirectTo = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
             localStorage.removeItem("redirect_to");
             sessionStorage.removeItem("redirect_to");
-            navigate(redirectTo);
+            
+            // Instant client-side navigation
+            navigate(redirectTo, { replace: true });
+
+            // Setup push notifications in background without blocking UI
+            setTimeout(() => {
+                requestNotificationPermissionAndGetToken().catch(err => {
+                    console.warn("Background notifications setup:", err);
+                });
+            }, 2000);
         } catch (err) {
             console.error("Authentication error:", err);
             toast.error(err.message || "Failed to sign in. Please try again.");
@@ -225,12 +230,14 @@ const LoginPage = () => {
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         const redirectUri = window.location.origin;
         const nonce = Math.random().toString(36).substring(2);
+        const redirectTo = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
         
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + 
             `client_id=${clientId}` +
             `&redirect_uri=${encodeURIComponent(redirectUri)}` +
             `&response_type=id_token` +
             `&scope=${encodeURIComponent('openid email profile')}` +
+            `&state=${encodeURIComponent(redirectTo)}` +
             `&nonce=${nonce}` +
             `&ux_mode=redirect` +
             `&prompt=select_account`;

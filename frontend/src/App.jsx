@@ -164,13 +164,15 @@ const RootRoute = () => {
 
 // Global OAuth Hash & Redirect Interceptor
 const OAuthRedirectHandler = () => {
-    const navigate = React.useRef(null);
-    navigate.current = React.useRef(null);
+    const navigate = useNavigate();
     const { login } = useAuth();
+    const isProcessed = React.useRef(false);
 
     React.useEffect(() => {
+        if (isProcessed.current) return;
         const hash = window.location.hash;
         if (hash && (hash.includes('id_token=') || hash.includes('credential='))) {
+            isProcessed.current = true;
             const params = new URLSearchParams(hash.substring(1));
             const idToken = params.get('id_token') || params.get('credential');
             const state = params.get('state');
@@ -184,23 +186,24 @@ const OAuthRedirectHandler = () => {
             }
 
             if (!targetRedirect) {
-                targetRedirect = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to");
+                targetRedirect = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
             }
 
+            // Immediately wipe the hash from URL so child pages don't re-parse or trigger duplicate logins
+            window.history.replaceState(null, '', window.location.pathname);
+            localStorage.removeItem("redirect_to");
+            sessionStorage.removeItem("redirect_to");
+            document.cookie = "redirect_to=; path=/; max-age=0; SameSite=Lax";
+
             if (idToken) {
-                login({ credential: idToken }).then(() => {
-                    const finalTarget = targetRedirect || "/dashboard";
-                    localStorage.removeItem("redirect_to");
-                    sessionStorage.removeItem("redirect_to");
-                    document.cookie = "redirect_to=; path=/; max-age=0; SameSite=Lax";
-                    window.history.replaceState(null, '', window.location.pathname);
-                    window.location.replace(finalTarget);
-                }).catch(err => {
-                    console.error("Global OAuth login error:", err);
-                });
+                // Optimistic instant login (< 1ms)
+                login({ credential: idToken });
+                const finalTarget = targetRedirect || "/dashboard";
+                // Instant client-side transition — zero full-page reload
+                navigate(finalTarget, { replace: true });
             }
         }
-    }, [login]);
+    }, [login, navigate]);
 
     return null;
 };
