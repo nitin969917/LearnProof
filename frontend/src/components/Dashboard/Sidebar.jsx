@@ -15,6 +15,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
     const [isDarkMode, setIsDarkMode] = useState(false);
     const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
     const pendingFriendCount = useSocialFeedStore((state) => state.pendingFriendCount);
+    const socialUser = useSocialFeedStore((state) => state.socialUser);
     const totalSocialCount = totalUnreadCount + pendingFriendCount;
 
     // Initialize dark mode from localStorage or system preference
@@ -217,15 +218,15 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                         className={`flex items-center ${isExpanded ? 'gap-3 px-4 py-3 border border-orange-100 dark:border-gray-700 bg-orange-50 dark:bg-gray-800' : 'justify-center'} rounded-xl cursor-pointer hover:bg-orange-100 dark:hover:bg-gray-700 hover:shadow-sm transition-all`}
                     >
                         <UserAvatar 
-                            src={user.picture} 
-                            name={user.name} 
+                            src={socialUser?.profilePicture || socialUser?.avatar || user.picture} 
+                            name={socialUser?.name || user.name} 
                             className="w-10 h-10 rounded-full shadow-sm" 
                             textClassName="text-sm font-bold"
                         />
                         {isExpanded && (
                             <div className="overflow-hidden">
-                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{user.name || 'User'}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
+                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{socialUser?.name || user.name || 'User'}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{socialUser?.email || user.email}</p>
                             </div>
                         )}
                     </div>
