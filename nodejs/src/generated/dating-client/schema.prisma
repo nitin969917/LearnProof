@@ -17,6 +17,7 @@ model User {
   googleId        String? @unique
   bio             String?
   profilePicture  String?
+  coverImage      String?
   collegeName     String?
   department      String?
   yearOfStudy     String?

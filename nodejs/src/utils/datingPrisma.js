@@ -27,6 +27,10 @@ const datingPrisma = new PrismaClient({
       ALTER TABLE "social_language_rooms" 
       ADD COLUMN IF NOT EXISTS "isStartedNotificationSent" BOOLEAN NOT NULL DEFAULT false;
     `);
+    await datingPrisma.$executeRawUnsafe(`
+      ALTER TABLE "social_users" 
+      ADD COLUMN IF NOT EXISTS "coverImage" TEXT;
+    `);
   } catch (err) {
     // Ignore if not supported by current dialect or already exists
   }

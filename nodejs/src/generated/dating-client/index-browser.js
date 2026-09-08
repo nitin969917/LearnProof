@@ -130,6 +130,7 @@ exports.Prisma.UserScalarFieldEnum = {
   googleId: 'googleId',
   bio: 'bio',
   profilePicture: 'profilePicture',
+  coverImage: 'coverImage',
   collegeName: 'collegeName',
   department: 'department',
   yearOfStudy: 'yearOfStudy',

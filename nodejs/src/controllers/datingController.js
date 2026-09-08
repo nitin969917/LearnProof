@@ -526,6 +526,7 @@ const updateProfile = async (req, res) => {
     if (data.snapchatVisibility !== undefined) updateData.snapchatVisibility = data.snapchatVisibility;
     if (data.linkedinUrl !== undefined) updateData.linkedinUrl = data.linkedinUrl;
     if (data.linkedinVisibility !== undefined) updateData.linkedinVisibility = data.linkedinVisibility;
+    if (data.coverImage !== undefined) updateData.coverImage = data.coverImage || null;
 
     const updatedUser = await datingPrisma.user.update({
       where: { id: userId },

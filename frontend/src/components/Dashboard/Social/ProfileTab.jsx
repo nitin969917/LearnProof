@@ -81,7 +81,7 @@ function VisibilityBadge({ visibility = 'public' }) {
   );
 }
 
-const PLATFORM_COVER_IMAGE = '/assets/learnproof_cover.jpg?v=2';
+const PLATFORM_COVER_IMAGE = '/assets/learnproof_cover.jpg';
 
 export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, onSelectChatUser, onViewProfile, onCreatePost }) {
   const { user, updateUser } = useAuth();
@@ -104,6 +104,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const [activeTab, setActiveTab] = useState('posts'); // 'posts', 'likes', 'friends'
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const fileInputRef = useRef(null);
+  const coverInputRef = useRef(null);
   const avatarInputRef = useRef(null);
   const modalAvatarInputRef = useRef(null);
   const mobileExpandedPanelRef = useRef(null);
@@ -299,6 +300,82 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     }
   };
 
+  const handleCoverChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileName = (file.name || '').toLowerCase();
+    const isLikelyImage = 
+      file.type.startsWith('image/') || 
+      /\.(jpe?g|png|gif|webp|heic|heif|bmp|tiff?|avif)$/i.test(fileName) ||
+      file.type === '';
+
+    if (!isLikelyImage) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    const toastId = toast.loading('Processing & uploading cover photo...');
+    try {
+      // Compress cover image preserving crisp widescreen quality (~150-250KB, 1600x650)
+      const compressedBase64 = await compressImage(file, 1600, 650, 0.85);
+
+      // Optimistically update local view
+      setProfile(prev => ({ ...prev, coverImage: compressedBase64 }));
+      setFormData(prev => ({ ...prev, coverImage: compressedBase64 }));
+
+      // Persist to backend database so other users can see it
+      const response = await socialApi.put('/users/profile', {
+        coverImage: compressedBase64,
+      });
+
+      const updatedCover = response.data?.coverImage || compressedBase64;
+      setProfile(prev => ({ ...prev, coverImage: updatedCover }));
+      setFormData(prev => ({ ...prev, coverImage: updatedCover }));
+
+      if (updateSocialUser) {
+        updateSocialUser({ coverImage: updatedCover });
+      }
+
+      toast.dismiss(toastId);
+      toast.success('Cover photo updated and visible to everyone!');
+    } catch (err) {
+      console.error('Failed to update cover photo:', err);
+      toast.dismiss(toastId);
+      toast.error(err?.response?.data?.error || 'Failed to update cover photo');
+      fetchProfile();
+    } finally {
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleResetCover = async () => {
+    const toastId = toast.loading('Resetting cover to default platform banner...');
+    try {
+      setProfile(prev => ({ ...prev, coverImage: null }));
+      setFormData(prev => ({ ...prev, coverImage: null }));
+
+      const response = await socialApi.put('/users/profile', {
+        coverImage: null,
+      });
+
+      setProfile(prev => ({ ...prev, coverImage: null }));
+      setFormData(prev => ({ ...prev, coverImage: null }));
+
+      if (updateSocialUser) {
+        updateSocialUser({ coverImage: null });
+      }
+
+      toast.dismiss(toastId);
+      toast.success('Cover reset to platform default banner!');
+    } catch (err) {
+      console.error('Failed to reset cover:', err);
+      toast.dismiss(toastId);
+      toast.error('Failed to reset cover.');
+      fetchProfile();
+    }
+  };
+
   const handleSave = async (e) => {
     e?.preventDefault?.();
     const toastId = toast.loading('Saving profile...');
@@ -423,18 +500,55 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-28 font-sans">
       {/* ── Top Cover Banner ── */}
-      <div className="relative w-full h-44 sm:h-56 md:h-64 rounded-3xl overflow-hidden shadow-xs border border-amber-100/80 dark:border-gray-800 bg-[#FAF7F2] dark:bg-gray-900">
+      <div className="relative w-full h-44 sm:h-56 md:h-64 rounded-3xl overflow-hidden shadow-sm border border-gray-200/70 dark:border-gray-800 bg-gray-900 group">
         <img
-          src={PLATFORM_COVER_IMAGE}
-          alt="LearnProof AI Platform Cover"
-          className="w-full h-full object-cover object-center"
+          src={profile?.coverImage || PLATFORM_COVER_IMAGE}
+          alt={`${profile?.name || 'User'}'s Cover`}
+          className="w-full h-full object-cover object-center transition duration-300"
+          onError={(e) => {
+            e.currentTarget.src = PLATFORM_COVER_IMAGE;
+          }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/5 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-black/20 pointer-events-none" />
+
+        {/* Cover action controls (Only on own profile) */}
+        {isOwnProfile && (
+          <>
+            <input
+              type="file"
+              ref={coverInputRef}
+              onChange={handleCoverChange}
+              accept="image/*"
+              className="hidden"
+            />
+            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-2 z-10">
+              {profile?.coverImage && (
+                <button
+                  type="button"
+                  onClick={handleResetCover}
+                  className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3 sm:py-2 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white/90 hover:text-white text-xs font-semibold rounded-xl border border-white/20 shadow-md transition active:scale-95 cursor-pointer"
+                  title="Reset to default platform banner"
+                >
+                  <span>Reset Default</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => coverInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/20 shadow-md transition active:scale-95 cursor-pointer"
+                title="Change cover image (visible to everyone)"
+              >
+                <Camera size={14} />
+                <span>Change Cover</span>
+              </button>
+            </div>
+          </>
+        )}
 
         {!isOwnProfile && (
           <button
             onClick={() => navigate(-1)}
-            className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-1.5 px-3 py-1.5 bg-white/80 hover:bg-white dark:bg-black/60 dark:hover:bg-black/80 backdrop-blur-md text-gray-800 dark:text-white text-xs font-bold rounded-xl border border-gray-200/80 dark:border-white/20 shadow-xs transition cursor-pointer"
+            className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-1.5 px-3 py-1.5 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/20 transition cursor-pointer z-10"
           >
             <ArrowLeft size={14} />
             <span>Back</span>

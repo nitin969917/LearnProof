@@ -2036,6 +2036,7 @@ export namespace Prisma {
     googleId: string | null
     bio: string | null
     profilePicture: string | null
+    coverImage: string | null
     collegeName: string | null
     department: string | null
     yearOfStudy: string | null
@@ -2064,6 +2065,7 @@ export namespace Prisma {
     googleId: string | null
     bio: string | null
     profilePicture: string | null
+    coverImage: string | null
     collegeName: string | null
     department: string | null
     yearOfStudy: string | null
@@ -2092,6 +2094,7 @@ export namespace Prisma {
     googleId: number
     bio: number
     profilePicture: number
+    coverImage: number
     collegeName: number
     department: number
     yearOfStudy: number
@@ -2130,6 +2133,7 @@ export namespace Prisma {
     googleId?: true
     bio?: true
     profilePicture?: true
+    coverImage?: true
     collegeName?: true
     department?: true
     yearOfStudy?: true
@@ -2158,6 +2162,7 @@ export namespace Prisma {
     googleId?: true
     bio?: true
     profilePicture?: true
+    coverImage?: true
     collegeName?: true
     department?: true
     yearOfStudy?: true
@@ -2186,6 +2191,7 @@ export namespace Prisma {
     googleId?: true
     bio?: true
     profilePicture?: true
+    coverImage?: true
     collegeName?: true
     department?: true
     yearOfStudy?: true
@@ -2301,6 +2307,7 @@ export namespace Prisma {
     googleId: string | null
     bio: string | null
     profilePicture: string | null
+    coverImage: string | null
     collegeName: string | null
     department: string | null
     yearOfStudy: string | null
@@ -2348,6 +2355,7 @@ export namespace Prisma {
     googleId?: boolean
     bio?: boolean
     profilePicture?: boolean
+    coverImage?: boolean
     collegeName?: boolean
     department?: boolean
     yearOfStudy?: boolean
@@ -2392,6 +2400,7 @@ export namespace Prisma {
     googleId?: boolean
     bio?: boolean
     profilePicture?: boolean
+    coverImage?: boolean
     collegeName?: boolean
     department?: boolean
     yearOfStudy?: boolean
@@ -2420,6 +2429,7 @@ export namespace Prisma {
     googleId?: boolean
     bio?: boolean
     profilePicture?: boolean
+    coverImage?: boolean
     collegeName?: boolean
     department?: boolean
     yearOfStudy?: boolean
@@ -2448,6 +2458,7 @@ export namespace Prisma {
     googleId?: boolean
     bio?: boolean
     profilePicture?: boolean
+    coverImage?: boolean
     collegeName?: boolean
     department?: boolean
     yearOfStudy?: boolean
@@ -2467,7 +2478,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "emailVisibility" | "password" | "googleId" | "bio" | "profilePicture" | "collegeName" | "department" | "yearOfStudy" | "phoneNumber" | "phoneVisibility" | "whatsappNumber" | "whatsappVisibility" | "instagramHandle" | "instagramVisibility" | "facebookUrl" | "facebookVisibility" | "snapchatUsername" | "snapchatVisibility" | "linkedinUrl" | "linkedinVisibility" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "emailVisibility" | "password" | "googleId" | "bio" | "profilePicture" | "coverImage" | "collegeName" | "department" | "yearOfStudy" | "phoneNumber" | "phoneVisibility" | "whatsappNumber" | "whatsappVisibility" | "instagramHandle" | "instagramVisibility" | "facebookUrl" | "facebookVisibility" | "snapchatUsername" | "snapchatVisibility" | "linkedinUrl" | "linkedinVisibility" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     posts?: boolean | User$postsArgs<ExtArgs>
     comments?: boolean | User$commentsArgs<ExtArgs>
@@ -2517,6 +2528,7 @@ export namespace Prisma {
       googleId: string | null
       bio: string | null
       profilePicture: string | null
+      coverImage: string | null
       collegeName: string | null
       department: string | null
       yearOfStudy: string | null
@@ -2980,6 +2992,7 @@ export namespace Prisma {
     readonly googleId: FieldRef<"User", 'String'>
     readonly bio: FieldRef<"User", 'String'>
     readonly profilePicture: FieldRef<"User", 'String'>
+    readonly coverImage: FieldRef<"User", 'String'>
     readonly collegeName: FieldRef<"User", 'String'>
     readonly department: FieldRef<"User", 'String'>
     readonly yearOfStudy: FieldRef<"User", 'String'>
@@ -15197,6 +15210,7 @@ export namespace Prisma {
     googleId: 'googleId',
     bio: 'bio',
     profilePicture: 'profilePicture',
+    coverImage: 'coverImage',
     collegeName: 'collegeName',
     department: 'department',
     yearOfStudy: 'yearOfStudy',
@@ -15455,6 +15469,7 @@ export namespace Prisma {
     googleId?: StringNullableFilter<"User"> | string | null
     bio?: StringNullableFilter<"User"> | string | null
     profilePicture?: StringNullableFilter<"User"> | string | null
+    coverImage?: StringNullableFilter<"User"> | string | null
     collegeName?: StringNullableFilter<"User"> | string | null
     department?: StringNullableFilter<"User"> | string | null
     yearOfStudy?: StringNullableFilter<"User"> | string | null
@@ -15498,6 +15513,7 @@ export namespace Prisma {
     googleId?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
     profilePicture?: SortOrderInput | SortOrder
+    coverImage?: SortOrderInput | SortOrder
     collegeName?: SortOrderInput | SortOrder
     department?: SortOrderInput | SortOrder
     yearOfStudy?: SortOrderInput | SortOrder
@@ -15544,6 +15560,7 @@ export namespace Prisma {
     password?: StringNullableFilter<"User"> | string | null
     bio?: StringNullableFilter<"User"> | string | null
     profilePicture?: StringNullableFilter<"User"> | string | null
+    coverImage?: StringNullableFilter<"User"> | string | null
     collegeName?: StringNullableFilter<"User"> | string | null
     department?: StringNullableFilter<"User"> | string | null
     yearOfStudy?: StringNullableFilter<"User"> | string | null
@@ -15587,6 +15604,7 @@ export namespace Prisma {
     googleId?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
     profilePicture?: SortOrderInput | SortOrder
+    coverImage?: SortOrderInput | SortOrder
     collegeName?: SortOrderInput | SortOrder
     department?: SortOrderInput | SortOrder
     yearOfStudy?: SortOrderInput | SortOrder
@@ -15623,6 +15641,7 @@ export namespace Prisma {
     googleId?: StringNullableWithAggregatesFilter<"User"> | string | null
     bio?: StringNullableWithAggregatesFilter<"User"> | string | null
     profilePicture?: StringNullableWithAggregatesFilter<"User"> | string | null
+    coverImage?: StringNullableWithAggregatesFilter<"User"> | string | null
     collegeName?: StringNullableWithAggregatesFilter<"User"> | string | null
     department?: StringNullableWithAggregatesFilter<"User"> | string | null
     yearOfStudy?: StringNullableWithAggregatesFilter<"User"> | string | null
@@ -16352,6 +16371,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -16395,6 +16415,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -16437,6 +16458,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16480,6 +16502,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16523,6 +16546,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -16550,6 +16574,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16578,6 +16603,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -17425,6 +17451,7 @@ export namespace Prisma {
     googleId?: SortOrder
     bio?: SortOrder
     profilePicture?: SortOrder
+    coverImage?: SortOrder
     collegeName?: SortOrder
     department?: SortOrder
     yearOfStudy?: SortOrder
@@ -17457,6 +17484,7 @@ export namespace Prisma {
     googleId?: SortOrder
     bio?: SortOrder
     profilePicture?: SortOrder
+    coverImage?: SortOrder
     collegeName?: SortOrder
     department?: SortOrder
     yearOfStudy?: SortOrder
@@ -17485,6 +17513,7 @@ export namespace Prisma {
     googleId?: SortOrder
     bio?: SortOrder
     profilePicture?: SortOrder
+    coverImage?: SortOrder
     collegeName?: SortOrder
     department?: SortOrder
     yearOfStudy?: SortOrder
@@ -20079,6 +20108,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20121,6 +20151,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20167,6 +20198,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20209,6 +20241,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20291,6 +20324,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20333,6 +20367,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20394,6 +20429,7 @@ export namespace Prisma {
     googleId?: StringNullableFilter<"User"> | string | null
     bio?: StringNullableFilter<"User"> | string | null
     profilePicture?: StringNullableFilter<"User"> | string | null
+    coverImage?: StringNullableFilter<"User"> | string | null
     collegeName?: StringNullableFilter<"User"> | string | null
     department?: StringNullableFilter<"User"> | string | null
     yearOfStudy?: StringNullableFilter<"User"> | string | null
@@ -20437,6 +20473,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20479,6 +20516,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20525,6 +20563,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20567,6 +20606,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20624,6 +20664,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20666,6 +20707,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20718,6 +20760,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20760,6 +20803,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20801,6 +20845,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20843,6 +20888,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20889,6 +20935,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20931,6 +20978,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20988,6 +21036,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21030,6 +21079,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21082,6 +21132,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21124,6 +21175,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21191,6 +21243,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21233,6 +21286,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21322,6 +21376,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21364,6 +21419,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21405,6 +21461,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21447,6 +21504,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21493,6 +21551,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21535,6 +21594,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21592,6 +21652,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21634,6 +21695,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21686,6 +21748,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21728,6 +21791,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21769,6 +21833,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21811,6 +21876,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21857,6 +21923,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21899,6 +21966,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21956,6 +22024,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21998,6 +22067,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22050,6 +22120,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22092,6 +22163,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22133,6 +22205,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22175,6 +22248,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22232,6 +22306,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22274,6 +22349,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22315,6 +22391,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22357,6 +22434,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22460,6 +22538,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22502,6 +22581,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22603,6 +22683,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22645,6 +22726,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22736,6 +22818,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22778,6 +22861,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22847,6 +22931,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22889,6 +22974,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22980,6 +23066,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23022,6 +23109,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23580,6 +23668,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23622,6 +23711,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23664,6 +23754,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
