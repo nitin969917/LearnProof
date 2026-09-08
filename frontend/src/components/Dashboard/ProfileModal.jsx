@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Mail, Award, Activity, Zap, ExternalLink, Sparkles } from 'lucide-react';
 import axios from 'axios';
+import socialApi from '../../api/socialApi';
 import { useAuth } from '../../context/AuthContext';
 import { useSocialFeedStore } from '../../store/socialFeedStore';
 import UserAvatar from '../Common/UserAvatar.jsx';
@@ -11,18 +12,30 @@ const ProfileModal = ({ isOpen, onClose }) => {
     const { user, token } = useAuth();
     const navigate = useNavigate();
     const [profileData, setProfileData] = useState(null);
+    const [socialProfile, setSocialProfile] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const socialUser = useSocialFeedStore((state) => state.socialUser);
-    const fetchSocialUser = useSocialFeedStore((state) => state.fetchSocialUser);
 
     useEffect(() => {
         if (!isOpen) return;
 
-        if (!socialUser && fetchSocialUser) {
-            fetchSocialUser();
-        }
+        // 1. Fetch latest Social Hub profile directly so profile picture is always up-to-date
+        const fetchSocial = async () => {
+            try {
+                const res = await socialApi.get('/users/me');
+                if (res.data) {
+                    setSocialProfile(res.data);
+                    if (useSocialFeedStore.getState().updateSocialUser) {
+                        useSocialFeedStore.getState().updateSocialUser(res.data);
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to fetch latest social user:", err);
+            }
+        };
 
+        // 2. Fetch academic/gamification stats
         const fetchProfileData = async () => {
             if (!token) {
                 setLoading(false);
@@ -41,17 +54,28 @@ const ProfileModal = ({ isOpen, onClose }) => {
             }
         };
 
+        fetchSocial();
         fetchProfileData();
-    }, [isOpen, token, socialUser, fetchSocialUser]);
+    }, [isOpen, token]);
 
     if (!isOpen) return null;
 
-    const avatarSrc = socialUser?.profilePicture || socialUser?.avatar || profileData?.profile_pic || profileData?.avatar || user?.picture || user?.avatar;
-    const displayName = socialUser?.name || profileData?.name || user?.name || 'Student';
-    const displayEmail = socialUser?.email || profileData?.email || user?.email || 'Student Account';
-    const userLevel = profileData?.level ?? socialUser?.level ?? 1;
-    const userXp = profileData?.xp ?? socialUser?.xp ?? 0;
-    const joinDate = profileData?.joined_at || socialUser?.created_at || user?.created_at;
+    // Prioritize Social Hub profile picture (custom uploaded photo)
+    const avatarSrc = 
+        socialProfile?.profilePicture || 
+        socialProfile?.avatar || 
+        socialUser?.profilePicture || 
+        socialUser?.avatar || 
+        profileData?.profile_pic || 
+        profileData?.avatar || 
+        user?.picture || 
+        user?.avatar;
+
+    const displayName = socialProfile?.name || socialUser?.name || profileData?.name || user?.name || 'Student';
+    const displayEmail = socialProfile?.email || socialUser?.email || profileData?.email || user?.email || 'Student Account';
+    const userLevel = profileData?.level ?? socialProfile?.level ?? socialUser?.level ?? 1;
+    const userXp = profileData?.xp ?? socialProfile?.xp ?? socialUser?.xp ?? 0;
+    const joinDate = profileData?.joined_at || socialProfile?.created_at || socialUser?.created_at || user?.created_at;
 
     return (
         <AnimatePresence>
@@ -93,7 +117,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                     </div>
 
                     {/* Profile Content */}
-                    <div className="px-5 pb-5 relative flex flex-col items-center">
+                    <div className="px-5 pb-4 relative flex flex-col items-center">
                         {/* Avatar */}
                         <div className="relative -mt-12 select-none">
                             <div className="p-1 bg-white dark:bg-slate-900 rounded-full shadow-xl ring-4 ring-white dark:ring-slate-900">
@@ -110,7 +134,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                         </div>
 
                         {/* Top Info */}
-                        <div className="mt-2.5 mb-3.5 text-center w-full">
+                        <div className="mt-2 mb-3 text-center w-full">
                             <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight leading-tight">
                                 {displayName}
                             </h2>
@@ -122,8 +146,8 @@ const ProfileModal = ({ isOpen, onClose }) => {
 
                         {/* Stats Section */}
                         {loading ? (
-                            <div className="flex justify-center items-center py-6 w-full">
-                                <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent"></div>
+                            <div className="flex justify-center items-center py-5 w-full">
+                                <div className="animate-spin rounded-full h-5 w-5 border-2 border-orange-500 border-t-transparent"></div>
                             </div>
                         ) : (
                             <div className="w-full space-y-2">
@@ -153,7 +177,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
 
                                 {/* Join Date */}
                                 {joinDate && (
-                                    <div className="w-full bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-2 border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                                    <div className="w-full bg-slate-50 dark:bg-slate-800/60 rounded-xl px-3 py-1.5 border border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
                                         <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-medium">
                                             <Activity size={13} className="text-orange-500 shrink-0" />
                                             <span>Member Since</span>
@@ -170,11 +194,11 @@ const ProfileModal = ({ isOpen, onClose }) => {
                             </div>
                         )}
 
-                        {/* Action Buttons: Sleek, compact & balanced */}
-                        <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-slate-800 w-full flex items-center gap-2">
+                        {/* Action Buttons: Small, compact, sleek & centered */}
+                        <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800 w-full flex items-center justify-center gap-2">
                             <button
                                 onClick={onClose}
-                                className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-xl transition-all cursor-pointer text-xs active:scale-95 shrink-0"
+                                className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold rounded-lg transition-all cursor-pointer text-xs active:scale-95"
                             >
                                 Close
                             </button>
@@ -183,11 +207,11 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                     onClose();
                                     navigate('/dashboard/social?tab=profile');
                                 }}
-                                className="flex-1 py-2 px-3 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-500/20 hover:shadow-orange-500/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]"
+                                className="px-4 py-1.5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-bold text-xs rounded-lg shadow-sm shadow-orange-500/25 hover:shadow-orange-500/35 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                             >
                                 <User size={13} />
-                                <span>View Detailed Profile</span>
-                                <ExternalLink size={12} className="opacity-80" />
+                                <span>View Profile</span>
+                                <ExternalLink size={11} className="opacity-80" />
                             </button>
                         </div>
                     </div>
