@@ -1,17 +1,146 @@
 const PDFDocument = require('pdfkit');
 
 /**
- * Clean markdown symbols for PDFKit text rendering
+ * Format LaTeX math expressions into clean readable mathematical text for PDFKit
+ */
+function formatLatexExpression(expr) {
+    if (!expr) return '';
+    let str = expr;
+
+    // Fractions: \frac{a}{b} -> (a) / (b)
+    for (let i = 0; i < 4; i++) {
+        str = str.replace(/\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, '($1)/($2)');
+        str = str.replace(/\\frac\s+([a-zA-Z0-9]+)\s+([a-zA-Z0-9]+)/g, '$1/$2');
+    }
+
+    // Integrals & Summations
+    str = str.replace(/\\int_\{([^{}]+)\}\^\{([^{}]+)\}/g, 'Integral[$1 to $2] ');
+    str = str.replace(/\\int_\{([^{}]+)\}/g, 'Integral[$1] ');
+    str = str.replace(/\\int/g, 'Integral ');
+    str = str.replace(/\\iint/g, 'Double-Integral ');
+    str = str.replace(/\\iiint/g, 'Triple-Integral ');
+    str = str.replace(/\\oint/g, 'Contour-Integral ');
+
+    str = str.replace(/\\sum_\{([^{}]+)\}\^\{([^{}]+)\}/g, 'Sum($1 to $2) ');
+    str = str.replace(/\\sum_\{([^{}]+)\}/g, 'Sum($1) ');
+    str = str.replace(/\\sum/g, 'Sum ');
+
+    str = str.replace(/\\prod_\{([^{}]+)\}\^\{([^{}]+)\}/g, 'Product($1 to $2) ');
+    str = str.replace(/\\prod/g, 'Product ');
+
+    str = str.replace(/\\lim_\{([^{}]+)\}/g, 'lim($1) ');
+
+    // Roots
+    str = str.replace(/\\sqrt\[([^{}]+)\]\{([^{}]+)\}/g, 'root[$1]($2)');
+    str = str.replace(/\\sqrt\{([^{}]+)\}/g, 'sqrt($1)');
+
+    // Common Symbols & Operators
+    str = str
+        .replace(/\\sim/g, ' ~ ')
+        .replace(/\\approx/g, ' ≈ ')
+        .replace(/\\equiv/g, ' ≡ ')
+        .replace(/\\ne\b|\\neq\b/g, ' ≠ ')
+        .replace(/\\le\b|\\leq\b/g, ' ≤ ')
+        .replace(/\\ge\b|\\geq\b/g, ' ≥ ')
+        .replace(/\\pm\b/g, ' ± ')
+        .replace(/\\mp\b/g, ' ∓ ')
+        .replace(/\\times/g, ' × ')
+        .replace(/\\cdot/g, ' · ')
+        .replace(/\\div/g, ' ÷ ')
+        .replace(/\\to\b|\\rightarrow\b/g, ' → ')
+        .replace(/\\leftarrow\b/g, ' ← ')
+        .replace(/\\Rightarrow\b/g, ' => ')
+        .replace(/\\Leftarrow\b/g, ' <= ')
+        .replace(/\\Leftrightarrow\b/g, ' <=> ')
+        .replace(/\\infty/g, 'inf')
+        .replace(/\\partial/g, '∂')
+        .replace(/\\nabla/g, '∇')
+        .replace(/\\in\b/g, ' ∈ ')
+        .replace(/\\notin\b/g, ' ∉ ')
+        .replace(/\\subset\b/g, ' ⊂ ')
+        .replace(/\\subseteq\b/g, ' ⊆ ')
+        .replace(/\\cup\b/g, ' ∪ ')
+        .replace(/\\cap\b/g, ' ∩ ');
+
+    // Greek letters
+    str = str
+        .replace(/\\pi\b/g, 'π')
+        .replace(/\\theta\b/g, 'θ')
+        .replace(/\\alpha\b/g, 'α')
+        .replace(/\\beta\b/g, 'β')
+        .replace(/\\gamma\b/g, 'γ')
+        .replace(/\\delta\b/g, 'δ')
+        .replace(/\\lambda\b/g, 'λ')
+        .replace(/\\mu\b/g, 'μ')
+        .replace(/\\sigma\b/g, 'σ')
+        .replace(/\\tau\b/g, 'τ')
+        .replace(/\\phi\b/g, 'φ')
+        .replace(/\\omega\b/g, 'ω')
+        .replace(/\\Delta\b/g, 'Δ')
+        .replace(/\\Omega\b/g, 'Ω');
+
+    // Delimiters & Functions
+    str = str
+        .replace(/\\left\s*([(\[{|])/g, '$1')
+        .replace(/\\right\s*([)\]}|])/g, '$1')
+        .replace(/\\left\./g, '')
+        .replace(/\\right\./g, '')
+        .replace(/\\{/g, '{')
+        .replace(/\\}/g, '}')
+        .replace(/\\cos\b/g, 'cos')
+        .replace(/\\sin\b/g, 'sin')
+        .replace(/\\tan\b/g, 'tan')
+        .replace(/\\sec\b/g, 'sec')
+        .replace(/\\csc\b/g, 'csc')
+        .replace(/\\cot\b/g, 'cot')
+        .replace(/\\ln\b/g, 'ln')
+        .replace(/\\log\b/g, 'log')
+        .replace(/\\exp\b/g, 'exp')
+        .replace(/\\quad/g, '  ')
+        .replace(/\\qquad/g, '    ')
+        .replace(/\\,|\\;|\\!/g, ' ')
+        .replace(/\\text\{([^{}]+)\}/g, '$1')
+        .replace(/\\mathbf\{([^{}]+)\}/g, '$1')
+        .replace(/\\mathit\{([^{}]+)\}/g, '$1')
+        .replace(/\\mathrm\{([^{}]+)\}/g, '$1')
+        .replace(/\\mathbb\{([^{}]+)\}/g, '$1')
+        .replace(/\\hat\{([^{}]+)\}/g, '$1^')
+        .replace(/\\bar\{([^{}]+)\}/g, 'bar($1)')
+        .replace(/\\vec\{([^{}]+)\}/g, 'vec($1)');
+
+    // Superscripts & Subscripts
+    str = str.replace(/\^\{([^{}]+)\}/g, '^$1');
+    str = str.replace(/_\{([^{}]+)\}/g, '_$1');
+
+    // Strip leftover backslashes
+    str = str.replace(/\\([a-zA-Z]+)/g, '$1');
+    str = str.replace(/\\/g, '');
+
+    return str.trim();
+}
+
+/**
+ * Clean markdown symbols and convert LaTeX math for PDFKit text rendering
  */
 function cleanMarkdownLine(line) {
     if (!line) return '';
-    return line
+    let str = line;
+
+    // Convert display math ($$...$$) and inline math ($...$) into clean math text
+    str = str.replace(/\$\$([\s\S]*?)\$\$/g, (m, p1) => formatLatexExpression(p1));
+    str = str.replace(/\$([^\$\n]+?)\$/g, (m, p1) => formatLatexExpression(p1));
+
+    // Also check for standalone LaTeX commands outside delimiters
+    if (/\\(frac|int|sum|prod|lim|sqrt|alpha|beta|gamma|theta|pi|cos|sin|tan|ln|log|left|right|partial|approx|sim|le|ge|ne|times|cdot)/.test(str)) {
+        str = formatLatexExpression(str);
+    }
+
+    return str
         .replace(/\*\*(.*?)\*\*/g, '$1')
         .replace(/\*(.*?)\*/g, '$1')
         .replace(/`([^`]+)`/g, '$1')
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
         .replace(/\\([*_{}[\]()#+\-.!])/g, '$1')
-        .replace(/\$(.*?)\$/g, '$1')
         .trim();
 }
 

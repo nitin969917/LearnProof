@@ -11,6 +11,7 @@ router.post('/continue-watching', authMiddleware, classroomController.getContinu
 router.post('/completed-learnings', authMiddleware, classroomController.getCompletedLearnings);
 router.post('/generate-notes-pdf', authMiddleware, classroomController.generateNotesPdf);
 router.post('/prepare-notes-pdf', authMiddleware, classroomController.prepareNotesPdf);
+router.post('/cache-rendered-pdf', authMiddleware, classroomController.cacheRenderedPdf);
 router.get('/download-file/:downloadId/:fileName', classroomController.downloadNotesFile);
 
 module.exports = router;

@@ -385,6 +385,32 @@ const generateNotesPdf = async (req, res) => {
     }
 };
 
+const cacheRenderedPdf = async (req, res) => {
+    try {
+        const { fileName, pdfBase64 } = req.body;
+        const crypto = require('crypto');
+
+        if (!pdfBase64) {
+            return res.status(400).json({ error: 'No PDF data provided' });
+        }
+
+        const downloadId = crypto.randomBytes(16).toString('hex');
+        const safeFileName = (fileName || 'Study_Notes.pdf').replace(/[^a-zA-Z0-9._-]/g, '_');
+
+        await cacheService.set(`pdf:dl:${downloadId}`, pdfBase64, 900); // 15 mins
+
+        res.status(200).json({
+            success: true,
+            downloadId,
+            fileName: safeFileName,
+            downloadUrl: `/api/classroom/download-file/${downloadId}/${safeFileName}`
+        });
+    } catch (error) {
+        console.error('[ClassroomController] Error caching rendered PDF:', error);
+        if (!res.headersSent) res.status(500).json({ error: 'Failed to cache PDF' });
+    }
+};
+
 module.exports = {
     getClassroomVideo,
     markVideoCompleted,
@@ -394,6 +420,7 @@ module.exports = {
     getCompletedLearnings,
     generateNotesPdf,
     prepareNotesPdf,
+    cacheRenderedPdf,
     downloadNotesFile
 };
 

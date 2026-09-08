@@ -62,14 +62,21 @@ createRoot(document.getElementById('root')).render(
       <Toaster
         position='top-center'
         reverseOrder={false}
-        gutter={8}
+        gutter={10}
+        containerStyle={{
+          zIndex: 99999999,
+          top: 24
+        }}
         toastOptions={{
-          duration: 2500,
+          duration: 3500,
           style: {
+            zIndex: 99999999,
             fontSize: '0.85rem',
-            fontWeight: '600',
-            borderRadius: '0.75rem',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+            fontWeight: '700',
+            borderRadius: '0.85rem',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            padding: '10px 16px',
           }
         }}
       />

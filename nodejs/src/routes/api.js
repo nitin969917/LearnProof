@@ -85,6 +85,8 @@ router.post('/classroom/generate-notes-pdf', authMiddleware, classroomController
 router.post('/generate-notes-pdf', authMiddleware, classroomController.generateNotesPdf);
 router.post('/classroom/prepare-notes-pdf', authMiddleware, classroomController.prepareNotesPdf);
 router.post('/prepare-notes-pdf', authMiddleware, classroomController.prepareNotesPdf);
+router.post('/classroom/cache-rendered-pdf', authMiddleware, classroomController.cacheRenderedPdf);
+router.post('/cache-rendered-pdf', authMiddleware, classroomController.cacheRenderedPdf);
 router.get('/classroom/download-file/:downloadId/:fileName', classroomController.downloadNotesFile);
 router.get('/download-file/:downloadId/:fileName', classroomController.downloadNotesFile);
 

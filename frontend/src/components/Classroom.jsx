@@ -125,7 +125,7 @@ const CodeEditorBlock = ({ className, children, code, language }) => {
   }, [rawCode, lang]);
 
   return (
-    <div 
+    <div
       className="my-3 sm:my-4 rounded-xl overflow-hidden bg-slate-50 dark:bg-[#181825] border border-slate-200 dark:border-slate-800 shadow-xs text-left no-tab-swipe"
       onTouchStart={(e) => e.stopPropagation()}
       onTouchMove={(e) => e.stopPropagation()}
@@ -166,16 +166,16 @@ const CodeEditorBlock = ({ className, children, code, language }) => {
       </div>
 
       {/* Code Body */}
-      <div 
+      <div
         className="code-editor-body p-3 sm:p-4 overflow-x-auto text-[11.5px] sm:text-xs leading-relaxed font-mono text-slate-800 dark:text-slate-100"
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
       >
         {highlightedCode ? (
-          <pre 
+          <pre
             className="m-0 p-0 bg-transparent font-mono whitespace-pre text-slate-800 dark:text-slate-100"
-            dangerouslySetInnerHTML={{ __html: highlightedCode }} 
+            dangerouslySetInnerHTML={{ __html: highlightedCode }}
           />
         ) : (
           <pre className="m-0 p-0 bg-transparent font-mono whitespace-pre text-slate-800 dark:text-slate-100">{rawCode}</pre>
@@ -250,7 +250,7 @@ const parseIntuitionData = (raw) => {
           pages: pages
         };
       }
-    } catch (e) {}
+    } catch (e) { }
     return null;
   };
 
@@ -334,12 +334,12 @@ const getDynamicSuggestedQuestions = (video, parsedIntuition, seed = 0) => {
   const rawTitle = video?.name || '';
   // Clean title: remove chapter numbers, prefixes like "5.5 ", "1.2 - ", "#10 "
   const cleanTitle = rawTitle.replace(/^[0-9]+(\.[0-9]+)*[\s\-:]+/, '').replace(/^#\d+[\s\-:]*/, '').trim() || 'this lecture';
-  
+
   // Extract topic titles if available
   const topics = (parsedIntuition?.pages || [])
     .map(p => p.title?.replace(/^Topic\s*\d+[:\s-]*/i, '').trim())
     .filter(Boolean);
-    
+
   const t1 = topics[0] || cleanTitle;
   const t2 = topics[1] || topics[0] || cleanTitle;
   const category = parsedIntuition?.subjectCategory || 'theory';
@@ -363,17 +363,17 @@ const getDynamicSuggestedQuestions = (video, parsedIntuition, seed = 0) => {
     },
     category === 'coding' || /code|python|java|c\+\+|javascript|sql|os|algorithm|deadlock|thread|process|database/i.test(rawTitle)
       ? {
-          icon: "💻",
-          text: `Can you give a clean code / pseudo-code implementation demonstrating ${t1}?`,
-          badge: "Practical Code"
-        }
+        icon: "💻",
+        text: `Can you give a clean code / pseudo-code implementation demonstrating ${t1}?`,
+        badge: "Practical Code"
+      }
       : category === 'math_science' || /math|calculus|algebra|physics|chemistry|equation|theorem/i.test(rawTitle)
-      ? {
+        ? {
           icon: "📐",
           text: `Summarize the key mathematical formulas, variables, and step-by-step proofs for this lecture.`,
           badge: "Formulas"
         }
-      : {
+        : {
           icon: "⚡",
           text: `What are the practical real-world applications and industrial trade-offs of ${t1}?`,
           badge: "Applications"
@@ -412,7 +412,7 @@ const extractFollowUpQuestions = (content) => {
   if (!content) return [];
   const followUpMatch = content.match(/(?:Suggested Next Questions|Next Recommended Questions|Recommended Follow-ups)[\s\S]*?(?:$)/i);
   if (!followUpMatch) return [];
-  
+
   const section = followUpMatch[0];
   const questions = [];
   const lines = section.split('\n');
@@ -506,7 +506,7 @@ const Classroom = () => {
     if (videoId && activeTab) {
       try {
         localStorage.setItem(`learnproof_active_tab_${videoId}`, activeTab);
-      } catch (e) {}
+      } catch (e) { }
     }
   }, [videoId, activeTab]);
   const [noteContent, setNoteContent] = useState("");
@@ -915,39 +915,140 @@ const Classroom = () => {
     }
 
     setDownloadingPdf(true);
-    const toastId = toast.loading("Preparing PDF...");
+    const toastId = toast.loading("Preparing high-quality PDF with formulas...");
 
     try {
       const activeToken = token || localStorage.getItem('google_token') || '';
       const titleStr = video?.name || 'Lecture Study Notes';
+      const fileName = `${titleStr.replace(/[^a-z0-9]/gi, '_').slice(0, 50)}_Study_Notes.pdf`;
 
-      // 1. Prepare the PDF document on backend
-      const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/classroom/prepare-notes-pdf`,
-        {
-          title: titleStr,
-          pages: parsedIntuition.pages,
-          subjectCategory: parsedIntuition.subjectCategory || parsedIntuition.categoryLabel || 'Digital Study Notes',
-          idToken: activeToken
-        },
-        {
-          headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {}
-        }
-      );
-
-      if (!response.data || (!response.data.downloadUrl && !response.data.pdfBase64)) {
-        throw new Error('Failed to obtain PDF data');
-      }
-
-      const fileName = response.data.fileName || `${titleStr.replace(/[^a-z0-9]/gi, '_').slice(0, 50)}_Study_Notes.pdf`;
-      const fullDownloadUrl = `${import.meta.env.VITE_BACKEND_URL}${response.data.downloadUrl}`;
-      const pdfBase64 = response.data.pdfBase64;
-
-      // Construct binary blob and File object for native file sharing & download
       let pdfBlob = null;
       let pdfFile = null;
+      let pdfBase64 = null;
+      let downloadUrl = '';
+
+      // 1. High-Fidelity Client-Side Render using html2pdf.js (captures all KaTeX math formulas)
+      const printElement = document.getElementById('printable-study-guide');
+      if (printElement && typeof window !== 'undefined') {
+        try {
+          const html2pdfModule = await import('html2pdf.js');
+          const html2pdf = html2pdfModule.default || html2pdfModule;
+
+          // Create an offscreen clean light-theme clone
+          const clone = printElement.cloneNode(true);
+          clone.id = 'pdf-export-clone';
+          clone.style.width = '794px'; // Standard A4 at 96 DPI
+          clone.style.maxWidth = '794px';
+          clone.style.height = 'auto';
+          clone.style.maxHeight = 'none';
+          clone.style.overflow = 'visible';
+          clone.style.position = 'fixed';
+          clone.style.top = '-99999px';
+          clone.style.left = '-99999px';
+          clone.style.zIndex = '-1000';
+          clone.style.background = '#ffffff';
+          clone.style.color = '#0f172a';
+          clone.style.padding = '24px 32px';
+          clone.classList.remove('dark', 'bg-slate-100', 'dark:bg-slate-950');
+          clone.classList.add('bg-white', 'text-slate-900');
+
+          // Ensure cards and KaTeX formulas are clean, crisp, and properly page-broken
+          const cards = clone.querySelectorAll('.topic-page-card');
+          cards.forEach((card, index) => {
+            card.style.background = '#ffffff';
+            card.style.color = '#0f172a';
+            card.style.borderColor = '#e2e8f0';
+            card.style.boxShadow = 'none';
+            card.style.marginBottom = '28px';
+            card.style.padding = '20px 24px';
+            card.style.pageBreakInside = 'avoid';
+            if (index > 0) {
+              card.style.pageBreakBefore = 'always';
+            }
+            card.querySelectorAll('.prose, p, span, h1, h2, h3, h4, li').forEach(el => {
+              el.style.color = '#0f172a';
+            });
+            card.querySelectorAll('.katex-display').forEach(k => {
+              k.style.pageBreakInside = 'avoid';
+              k.style.background = '#f8fafc';
+              k.style.color = '#0f172a';
+              k.style.padding = '12px';
+              k.style.borderRadius = '8px';
+              k.style.margin = '14px 0';
+            });
+          });
+
+          document.body.appendChild(clone);
+
+          const opt = {
+            margin: [8, 8, 8, 8],
+            filename: fileName,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              logging: false,
+              backgroundColor: '#ffffff'
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+          };
+
+          pdfBlob = await html2pdf().set(opt).from(clone).output('blob');
+          if (document.body.contains(clone)) {
+            document.body.removeChild(clone);
+          }
+
+          if (pdfBlob) {
+            pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+            pdfBase64 = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const b64 = (reader.result || '').split(',')[1];
+                resolve(b64);
+              };
+              reader.readAsDataURL(pdfBlob);
+            });
+          }
+        } catch (clientErr) {
+          console.warn("Client-side html2pdf failed, falling back to server:", clientErr);
+        }
+      }
+
+      // 2. Cache rendered PDF on backend for Google Drive viewer & direct URL
       if (pdfBase64) {
         try {
+          const cacheRes = await axios.post(
+            `${import.meta.env.VITE_BACKEND_URL}/api/classroom/cache-rendered-pdf`,
+            { fileName, pdfBase64, idToken: activeToken },
+            { headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {} }
+          );
+          if (cacheRes.data?.downloadUrl) {
+            downloadUrl = `${import.meta.env.VITE_BACKEND_URL}${cacheRes.data.downloadUrl}`;
+          }
+        } catch (cacheErr) {
+          console.warn("Could not cache PDF with backend:", cacheErr);
+        }
+      } else {
+        // Fallback: Generate via backend
+        const response = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/classroom/prepare-notes-pdf`,
+          {
+            title: titleStr,
+            pages: parsedIntuition.pages,
+            subjectCategory: parsedIntuition.subjectCategory || parsedIntuition.categoryLabel || 'Digital Study Notes',
+            idToken: activeToken
+          },
+          { headers: activeToken ? { Authorization: `Bearer ${activeToken}` } : {} }
+        );
+
+        if (!response.data || (!response.data.downloadUrl && !response.data.pdfBase64)) {
+          throw new Error('Failed to obtain PDF data');
+        }
+
+        downloadUrl = `${import.meta.env.VITE_BACKEND_URL}${response.data.downloadUrl}`;
+        pdfBase64 = response.data.pdfBase64;
+        if (pdfBase64) {
           const binaryStr = atob(pdfBase64);
           const bytes = new Uint8Array(binaryStr.length);
           for (let i = 0; i < binaryStr.length; i++) {
@@ -955,24 +1056,40 @@ const Classroom = () => {
           }
           pdfBlob = new Blob([bytes], { type: 'application/pdf' });
           pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-        } catch (decodeErr) {
-          console.warn("PDF decode error:", decodeErr);
         }
       }
 
-      // 2. Open interactive Share & Download action sheet
+      // 3. Immediately trigger browser download
+      if (pdfBlob) {
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          if (document.body.contains(a)) document.body.removeChild(a);
+          URL.revokeObjectURL(blobUrl);
+        }, 10000);
+      }
+
+      // 4. Open interactive Share & Download action sheet
       setPdfShareModalData({
         title: titleStr,
         fileName,
-        downloadUrl: fullDownloadUrl,
+        downloadUrl: downloadUrl || (pdfBlob ? URL.createObjectURL(pdfBlob) : ''),
         pdfFile,
         pdfBlob,
-        viewerUrl: `https://docs.google.com/viewer?url=${encodeURIComponent(fullDownloadUrl)}`
+        viewerUrl: downloadUrl ? `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}` : ''
       });
 
-      toast.dismiss(toastId);
+      // 5. Show prominent top-center success toast
+      toast.success("PDF Downloaded successfully!", {
+        id: toastId,
+        duration: 4000
+      });
 
-      // Attempt native share directly
+      // Attempt native share directly on mobile if supported
       if (pdfFile && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
         try {
           await navigator.share({
@@ -1325,7 +1442,7 @@ const Classroom = () => {
       if (!prev || !prev.videos) return prev;
       return {
         ...prev,
-        videos: prev.videos.map(v => 
+        videos: prev.videos.map(v =>
           v.vid === vid ? { ...v, ...updates } : v
         )
       };
@@ -1390,16 +1507,16 @@ const Classroom = () => {
             setLiveProgress(percentage);
             try {
               localStorage.setItem(`learnproof_seek_${videoId}`, String(currentTime));
-            } catch (e) {}
+            } catch (e) { }
 
             // Auto-trigger next overlay to block YouTube annotations (which can start up to 20s before the end)
             // Ensure video has actually played past 50% and is for current videoId
             const triggerOffset = duration > 60 ? 20 : (duration * 0.1);
             if (
-              duration - currentTime <= triggerOffset && 
-              currentTime >= duration * 0.5 && 
-              nextVideo && 
-              !showNextOverlay && 
+              duration - currentTime <= triggerOffset &&
+              currentTime >= duration * 0.5 &&
+              nextVideo &&
+              !showNextOverlay &&
               !hasCancelledOverlay &&
               video.vid === videoId
             ) {
@@ -1476,7 +1593,7 @@ const Classroom = () => {
           setLastSavedProgress(video.watch_progress);
         }
       }
-      
+
       // Auto-restore playback speed
       const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
       if (savedSpeed !== 1) {
@@ -1489,8 +1606,8 @@ const Classroom = () => {
       // CUED / UNSTARTED - kick play to start video without user waiting
       try {
         const p = event.target.playVideo();
-        if (p && p.catch) p.catch(() => {});
-      } catch (_) {}
+        if (p && p.catch) p.catch(() => { });
+      } catch (_) { }
     }
   };
 
@@ -1566,8 +1683,8 @@ const Classroom = () => {
                 onClick={video.is_completed ? unmarkAsCompleted : markAsCompleted}
                 disabled={marking}
                 className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${video.is_completed
-                    ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100'
-                    : 'bg-orange-500 text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600 hover:shadow-orange-500/30'
+                  ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100'
+                  : 'bg-orange-500 text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600 hover:shadow-orange-500/30'
                   }`}
               >
                 {marking ? (
@@ -1622,8 +1739,8 @@ const Classroom = () => {
                 // Immediately kick playVideo to avoid mobile autoplay stall
                 try {
                   const p = e.target.playVideo();
-                  if (p && p.catch) p.catch(() => {});
-                } catch (_) {}
+                  if (p && p.catch) p.catch(() => { });
+                } catch (_) { }
                 // Auto-restore playback speed
                 const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
                 if (savedSpeed !== 1) {
@@ -1642,7 +1759,7 @@ const Classroom = () => {
                   setShowNextOverlay(true);
                   // Exit native iframe fullscreen so overlay is visible
                   if (document.fullscreenElement) {
-                    document.exitFullscreen().catch(() => {});
+                    document.exitFullscreen().catch(() => { });
                   }
                 }
               }}
@@ -1678,12 +1795,12 @@ const Classroom = () => {
                   <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-orange-400">
                     Next Lesson Up
                   </div>
-                  
+
                   {/* Thumbnail is hidden on mobile to avoid overflow inside portrait player aspect-ratio */}
                   <div className="hidden sm:block relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg group">
-                    <img 
-                      src={`https://img.youtube.com/vi/${nextVideo.vid}/hqdefault.jpg`} 
-                      alt={nextVideo.name} 
+                    <img
+                      src={`https://img.youtube.com/vi/${nextVideo.vid}/hqdefault.jpg`}
+                      alt={nextVideo.name}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
@@ -1700,16 +1817,16 @@ const Classroom = () => {
                   </div>
 
                   <div className="flex gap-2 sm:gap-3 w-full mt-1 sm:mt-2">
-                    <button 
+                    <button
                       onClick={() => {
                         setShowNextOverlay(false);
                         setHasCancelledOverlay(true);
-                      }} 
+                      }}
                       className="flex-1 py-2 sm:py-3 bg-white/10 hover:bg-white/20 text-white font-black text-[9px] sm:text-[10px] uppercase tracking-widest rounded-lg sm:rounded-xl transition-all"
                     >
                       Cancel
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleSelectVideo(nextVideo.vid)}
                       className="flex-1 py-2 sm:py-3 bg-orange-500 hover:bg-orange-600 text-white font-black text-[9px] sm:text-[10px] uppercase tracking-widest rounded-lg sm:rounded-xl transition-all shadow-lg shadow-orange-500/25"
                     >
@@ -1765,11 +1882,10 @@ const Classroom = () => {
                         key={tab.id}
                         id={`classroom-tab-${tab.id}`}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 sm:py-2 px-0.5 sm:px-2 rounded-xl text-center transition-all duration-200 select-none cursor-pointer z-10 ${
-                          isActive
+                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 sm:py-2 px-0.5 sm:px-2 rounded-xl text-center transition-all duration-200 select-none cursor-pointer z-10 ${isActive
                             ? 'text-white font-extrabold'
                             : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50 font-bold'
-                        }`}
+                          }`}
                       >
                         {isActive && (
                           <motion.div
@@ -1791,7 +1907,7 @@ const Classroom = () => {
                   })}
                 </div>
 
-                <div 
+                <div
                   className="pt-2.5 pb-2 sm:pt-4 sm:pb-6 min-h-[350px] touch-pan-y"
                   onTouchStart={handleTouchStart}
                   onTouchMove={handleTouchMove}
@@ -1815,8 +1931,8 @@ const Classroom = () => {
                                 ref={isActive ? activeVideoRef : null}
                                 onClick={() => handleSelectVideo(v.vid)}
                                 className={`group flex gap-3 p-3 cursor-pointer transition-all duration-200 rounded-xl ${isActive
-                                    ? 'bg-orange-50 dark:bg-orange-900/10 ring-1 ring-orange-200 dark:ring-orange-900/50'
-                                    : 'hover:bg-gray-50 dark:hover:bg-slate-800/60'
+                                  ? 'bg-orange-50 dark:bg-orange-900/10 ring-1 ring-orange-200 dark:ring-orange-900/50'
+                                  : 'hover:bg-gray-50 dark:hover:bg-slate-800/60'
                                   }`}
                               >
                                 <div className="relative flex-shrink-0">
@@ -1904,7 +2020,7 @@ const Classroom = () => {
 
                   {/* Intuition Tab */}
                   {activeTab === 'intuition' && (
-                    <div 
+                    <div
                       className="space-y-3 sm:space-y-3.5 no-tab-swipe"
                       onTouchStart={(e) => e.stopPropagation()}
                       onTouchMove={(e) => e.stopPropagation()}
@@ -2017,7 +2133,7 @@ const Classroom = () => {
                             {parsedIntuition.totalPages > 1 && (
                               <div className="flex items-center justify-between gap-2 bg-white/80 dark:bg-slate-800/70 p-1 sm:p-2.5 rounded-xl border border-indigo-100 dark:border-slate-700/60">
                                 {/* Topic Pill Selector */}
-                                <div 
+                                <div
                                   className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none py-0.5 min-w-0 no-tab-swipe"
                                   onTouchStart={(e) => e.stopPropagation()}
                                   onTouchMove={(e) => e.stopPropagation()}
@@ -2032,11 +2148,10 @@ const Classroom = () => {
                                           setIsContinuousView(false);
                                           setActiveChapterIndex(idx);
                                         }}
-                                        className={`px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
-                                          isActive
+                                        className={`px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${isActive
                                             ? `${getCategoryStyle(parsedIntuition.subjectCategory).activePill} shadow-xs`
                                             : 'bg-indigo-50/60 dark:bg-slate-700/50 text-gray-700 dark:text-slate-300 hover:bg-indigo-100 dark:hover:bg-slate-700'
-                                        }`}
+                                          }`}
                                       >
                                         Topic {p.pageNumber || idx + 1}
                                       </button>
@@ -2049,11 +2164,10 @@ const Classroom = () => {
                                   <button
                                     onClick={() => setIsContinuousView(!isContinuousView)}
                                     title={isContinuousView ? "Switch to single topic view" : "Read all topics continuously"}
-                                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition cursor-pointer border whitespace-nowrap ${
-                                      isContinuousView
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition cursor-pointer border whitespace-nowrap ${isContinuousView
                                         ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
                                         : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:bg-gray-50'
-                                    }`}
+                                      }`}
                                   >
                                     <Layers size={11} className="shrink-0" />
                                     <span>{isContinuousView ? 'Continuous' : 'Read All'}</span>
@@ -2106,7 +2220,7 @@ const Classroom = () => {
                                             return <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>;
                                           },
                                           table: ({ node, ...props }) => (
-                                            <div 
+                                            <div
                                               className="overflow-x-auto my-4 rounded-xl border border-gray-200 dark:border-slate-700/80 shadow-2xs no-tab-swipe"
                                               onTouchStart={(e) => e.stopPropagation()}
                                               onTouchMove={(e) => e.stopPropagation()}
@@ -2188,7 +2302,7 @@ const Classroom = () => {
                                             return <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>;
                                           },
                                           table: ({ node, ...props }) => (
-                                            <div 
+                                            <div
                                               className="overflow-x-auto my-4 rounded-xl border border-gray-200 dark:border-slate-700/80 shadow-2xs no-tab-swipe"
                                               onTouchStart={(e) => e.stopPropagation()}
                                               onTouchMove={(e) => e.stopPropagation()}
@@ -2365,11 +2479,10 @@ const Classroom = () => {
                                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start w-full'}`}
                               >
                                 <div
-                                  className={`rounded-2xl p-3.5 sm:p-4 text-sm ${
-                                    msg.role === 'user'
+                                  className={`rounded-2xl p-3.5 sm:p-4 text-sm ${msg.role === 'user'
                                       ? 'max-w-[85%] bg-orange-500 text-white rounded-tr-xs shadow-sm font-medium'
                                       : 'w-full bg-gray-50 dark:bg-slate-800/80 text-gray-800 dark:text-slate-200 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-xs'
-                                  }`}
+                                    }`}
                                 >
                                   {msg.role === 'user' ? (
                                     <p className="whitespace-pre-wrap leading-relaxed m-0">{msg.content}</p>
