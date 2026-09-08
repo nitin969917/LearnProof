@@ -227,44 +227,6 @@ export default function LiveRoomPipWindow() {
   const { activeRoom, clearActiveRoom, setShowPip } = useLiveRoomPipStore();
   const isDraggingRef = React.useRef(false);
 
-  useEffect(() => {
-    if (!activeRoom) return;
-
-    const isHost = activeRoom.dbRoom && activeRoom.userIdentity && activeRoom.dbRoom.creatorId?.toString() === activeRoom.userIdentity;
-    if (!isHost) return;
-
-    const handleUnload = () => {
-      const token = localStorage.getItem('google_token');
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-      const roomName = activeRoom.roomName;
-      
-      // Delete database room record
-      const dbUrl = `${backendUrl}/api/language-rooms/by-name/${roomName}`;
-      fetch(dbUrl, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        keepalive: true
-      }).catch(() => {});
-
-      // Delete LiveKit server room
-      const lkUrl = `${backendUrl}/api/livekit/rooms/${roomName}`;
-      fetch(lkUrl, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        keepalive: true
-      }).catch(() => {});
-    };
-
-    window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
-  }, [activeRoom]);
-
   if (!activeRoom) return null;
 
   const handleMaximize = () => {

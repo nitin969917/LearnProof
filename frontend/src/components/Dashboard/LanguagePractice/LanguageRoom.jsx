@@ -856,68 +856,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     return () => room.off('participantDisconnected', handleDisconnected);
   }, [room, hostIdentity, isHost, roomName, navigateBack]);
 
-  // ── Page unload cleanup for all participants (disconnects immediately when tab is closed) ──
-  useEffect(() => {
-    const handleUnload = () => {
-      // 1. Cleanly disconnect from LiveKit room so other participants see us leave immediately
-      if (room) {
-        try {
-          room.disconnect();
-        } catch (e) {
-          console.warn('Failed to disconnect room on unload:', e);
-        }
-      }
-
-      // 2. If host, request meeting termination
-      if (isHost) {
-        try {
-          const socket = getSocialSocket(currentUserId);
-          if (socket && socket.connected) {
-            socket.emit('hostLeftLiveRoom', { roomName });
-          }
-        } catch (_) {}
-
-        const token = localStorage.getItem('google_token');
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-
-        // Send beacon to POST end endpoint (guaranteed delivery without preflight)
-        const beaconUrl = `${backendUrl}/api/language-rooms/by-name/${roomName}/end?source=unload&token=${token}&idToken=${token}`;
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon(beaconUrl);
-        }
-
-        // Delete database room record (delayed)
-        const dbUrl = `${backendUrl}/api/language-rooms/by-name/${roomName}?source=unload&token=${token}&idToken=${token}`;
-        fetch(dbUrl, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          keepalive: true
-        }).catch(() => { });
-
-        // Delete LiveKit server room (delayed)
-        const lkUrl = `${backendUrl}/api/livekit/rooms/${roomName}?source=unload&token=${token}&idToken=${token}`;
-        fetch(lkUrl, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          keepalive: true
-        }).catch(() => { });
-      }
-    };
-
-    window.addEventListener('beforeunload', handleUnload);
-    window.addEventListener('pagehide', handleUnload);
-    return () => {
-      window.removeEventListener('beforeunload', handleUnload);
-      window.removeEventListener('pagehide', handleUnload);
-    };
-  }, [room, isHost, roomName, user]);
-
   // ── Browser back button blocker ───────────────────────────────────────────
   useEffect(() => {
     // Only block if user is the host

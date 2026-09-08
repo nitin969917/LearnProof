@@ -1,23 +1,60 @@
 import { create } from 'zustand';
 
+const loadPersistedRoom = () => {
+  try {
+    const raw = sessionStorage.getItem('learnproof_active_pip_room');
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+const loadPersistedShowPip = () => {
+  try {
+    return sessionStorage.getItem('learnproof_show_pip') === 'true';
+  } catch (e) {
+    return false;
+  }
+};
+
 export const useLiveRoomPipStore = create((set) => ({
-  activeRoom: null, // { roomName, token, serverUrl, dbRoom, userIdentity }
-  showPip: false,   // whether to show the PiP floating window
+  activeRoom: loadPersistedRoom(), // { roomName, token, serverUrl, dbRoom, userIdentity }
+  showPip: loadPersistedShowPip(),   // whether to show the PiP floating window
   
   // Persisted state across remounts
   sessionSeconds: 0,
   systemEvents: [],
   chatHistory: [],
 
-  setActiveRoom: (room) => set({ activeRoom: room }),
-  clearActiveRoom: () => set({ 
-    activeRoom: null, 
-    showPip: false,
-    sessionSeconds: 0,
-    systemEvents: [],
-    chatHistory: []
-  }),
-  setShowPip: (show) => set({ showPip: show }),
+  setActiveRoom: (room) => {
+    try {
+      if (room) {
+        sessionStorage.setItem('learnproof_active_pip_room', JSON.stringify(room));
+      } else {
+        sessionStorage.removeItem('learnproof_active_pip_room');
+      }
+    } catch (e) {}
+    set({ activeRoom: room });
+  },
+  clearActiveRoom: () => {
+    try {
+      sessionStorage.removeItem('learnproof_active_pip_room');
+      sessionStorage.removeItem('learnproof_show_pip');
+    } catch (e) {}
+    set({ 
+      activeRoom: null, 
+      showPip: false,
+      sessionSeconds: 0,
+      systemEvents: [],
+      chatHistory: []
+    });
+  },
+  setShowPip: (show) => {
+    try {
+      sessionStorage.setItem('learnproof_show_pip', show ? 'true' : 'false');
+    } catch (e) {}
+    set({ showPip: show });
+  },
   
   // Setters for persisted state
   setSessionSeconds: (updater) => set((state) => ({ 
