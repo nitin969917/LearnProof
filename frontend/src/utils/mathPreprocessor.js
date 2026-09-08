@@ -133,7 +133,7 @@ export const preprocessMath = (text) => {
         'infty', 'partial', 'nabla'
       ];
       symbolsToWrap.forEach(sym => {
-        const regex = new RegExp(`\\\\${sym}\\b(?![a-zA-Z0-9$])`, 'g');
+        const regex = new RegExp(`(?<![\\{^_\\\\])\\\\${sym}\\b(?![a-zA-Z0-9$])`, 'g');
         t = t.replace(regex, (match) => `$${match}$`);
       });
 
@@ -159,6 +159,76 @@ export const preprocessMath = (text) => {
   processed = processed.replace(/\n{3,}/g, '\n\n');
 
   return processed.trim();
+};
+
+/**
+ * Quiz Math & LaTeX Formatter
+ * Specifically formats multiple-choice questions, options, and explanations
+ * so that mathematical notation renders in textbook-grade KaTeX typography.
+ */
+export const formatQuizMath = (text) => {
+  if (!text || typeof text !== 'string') return '';
+
+  let processed = text.trim();
+
+  // 1. Normalize escaped backslashes (\\sum -> \sum, \\frac -> \frac, etc.)
+  processed = processed.replace(/\\{2,}(?=[a-zA-Z])/g, '\\');
+  processed = processed.replace(/\\{2,}(?=[{}_^,;!|~])/g, '\\');
+
+  // 2. Normalize LaTeX bracket delimiters \[...\] -> $$ and \(...\) -> $
+  processed = processed.replace(/(?<!\\left|\\right|[a-zA-Z])\\\[([\s\S]*?)\\\]/g, (match, content) => {
+    return `$$${content.trim()}$$`;
+  });
+  processed = processed.replace(/(?<!\\left|\\right|[a-zA-Z])\\\(([\s\S]*?)\\\)/g, (match, content) => {
+    return `$${content.trim()}$`;
+  });
+
+  // 3. If already wrapped in $ or $$, return with clean whitespace
+  if (processed.includes('$')) {
+    return processed;
+  }
+
+  // Common natural language words that indicate human conversational text / sentences
+  const naturalLanguageRegex = /\b(the|is|are|was|were|what|which|why|how|when|where|because|expands|uses|simplifying|special|case|point|value|function|series|approximate|derivative|multiplied|radius|within|converges|only|three|non-zero|terms|first|second|third|general|formula|about|from|with|this|that|between|during|before|after|calculate|evaluate|find|determine|state|explain|defined|given|assume|consider|statement|following|correct|incorrect|true|false)\b/i;
+
+  const hasMathIndicators = 
+    /\\[a-zA-Z]+/.test(processed) || // has LaTeX command like \sum, \frac, \infty, \beta
+    /[a-zA-Z0-9_()]+\^[a-zA-Z0-9_{}()]+/.test(processed) || // powers like e^x, x^2
+    /[a-zA-Z0-9_()]+\_[a-zA-Z0-9_{}()]+/.test(processed) || // subscripts like a_n
+    /^[a-zA-Z]\([a-zA-Z]\)\s*=/.test(processed) || // f(x)=
+    /^[a-zA-Z]\^[a-zA-Z0-9]\s*=/.test(processed) || // e^x =
+    (/=/.test(processed) && /[+\-*/^]/.test(processed)); // equations
+
+  const hasNaturalLanguage = naturalLanguageRegex.test(processed);
+
+  // If it is predominantly a pure math formula or equation (like quiz options):
+  if (hasMathIndicators && !hasNaturalLanguage) {
+    let formula = processed;
+    formula = formula.replace(/\.\.\./g, '\\dots');
+    // Convert common division in formulas like (f^{(n)}(a)/n!) or x^2/2! to \frac for textbook aesthetics
+    formula = formula.replace(/\((f\^\{[^}]+\}\([^)]+\))\/([a-zA-Z0-9{}!]+)\)/g, '\\frac{$1}{$2}');
+    formula = formula.replace(/\b([a-zA-Z0-9]+(?:\^[a-zA-Z0-9{}]+)?)\/([a-zA-Z0-9{}]+!)/g, '\\frac{$1}{$2}');
+    
+    // Check if it has large operators like \sum, \int, \lim, \prod, \frac
+    const needsDisplayStyle = /\\[(sum|int|lim|prod|frac)]/.test(formula);
+    return needsDisplayStyle ? `$\\displaystyle ${formula}$` : `$${formula}$`;
+  }
+
+  // If it's a natural language sentence with embedded math terms:
+  let sentence = processed;
+  sentence = sentence.replace(/(?<!\$)(f\^\{[^}]+\}\([^)]+\))(?!\$)/g, (m, g1) => `$${g1}$`);
+  sentence = sentence.replace(/(?<!\$)\(([a-zA-Z0-9]+-[a-zA-Z0-9]+)\)\^([a-zA-Z0-9{}]+)(?!\$)/g, (m, g1, g2) => `$(${g1})^${g2}$`);
+  sentence = sentence.replace(/(?<!\$)\b([a-zA-Z0-9]+)\^([a-zA-Z0-9{}]+)\b(?!\$)/g, (m, g1, g2) => `$${g1}^${g2}$`);
+  sentence = sentence.replace(/(?<!\$)\b([a-zA-Z0-9]+)\_([a-zA-Z0-9{}]+)\b(?!\$)/g, (m, g1, g2) => `$${g1}_${g2}$`);
+  sentence = sentence.replace(/(?<!\$)\b([fg]\([a-zA-Z]\))(?!\$)/g, (m, g1) => `$${g1}$`);
+  sentence = sentence.replace(/(?<!\$)\b([fg]'\([a-zA-Z]\))(?!\$)/g, (m, g1) => `$${g1}$`);
+  sentence = sentence.replace(/(?<!\$)\b(sin|cos|tan|cot|sec|csc|log|ln)\(([a-zA-Z0-9.]+)\)(?!\$)/g, (m, g1, g2) => `$\\${g1}(${g2})$`);
+  sentence = sentence.replace(/(?<!\$)\b([a-zA-Z])\s*=\s*([0-9]+)\b(?!\$)/g, (m, g1, g2) => `$${g1} = ${g2}$`);
+  sentence = sentence.replace(/(?<!\$)\(([a-zA-Z0-9]+\s*-\s*[a-zA-Z0-9]+)\)(?!\$)/g, (m, g1) => `$(${g1})$`);
+  // Standalone LaTeX commands in sentences
+  sentence = sentence.replace(/(?<!\$)\\[a-zA-Z]+(?:\{[^}]*\})*(?:_\{?[^}\s]*\}?)?(?:\^\{?[^}\s]*\}?)?(?!\$)/g, (m) => `$${m}$`);
+
+  return sentence;
 };
 
 export default preprocessMath;

@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Play, CheckCircle, Circle, ArrowLeft, Clock, Sparkles, BookOpen, AlertCircle, X, Trophy, Lock, Award, ChevronLeft, ChevronRight, Video, Library, Trash2, Search } from 'lucide-react';
 import { useModal } from "../../context/ModalContext";
 import { useQuizStore } from "../../store/quizStore.js";
+import QuizMathText from '../Common/QuizMathText';
 
 const Quiz = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -271,9 +272,9 @@ const Quiz = () => {
                                         <span className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black text-xs sm:text-sm">
                                             {idx + 1}
                                         </span>
-                                        <p className="text-base sm:text-xl font-bold text-gray-800 dark:text-white leading-relaxed">
-                                            {q.question}
-                                        </p>
+                                        <div className="text-base sm:text-xl font-bold text-gray-800 dark:text-white leading-relaxed flex-1 min-w-0">
+                                            <QuizMathText text={q.question} />
+                                        </div>
                                     </div>
 
                                     {hasOptions ? (
@@ -302,11 +303,11 @@ const Quiz = () => {
                                                     }`}>
                                                         {answers[idx] === opt && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                                                     </div>
-                                                    <span className={`text-sm sm:text-base font-bold transition-colors ${
+                                                    <div className={`text-sm sm:text-base font-bold transition-colors flex-1 min-w-0 ${
                                                         answers[idx] === opt ? 'text-orange-900 dark:text-orange-400' : 'text-gray-700 dark:text-gray-400'
                                                     }`}>
-                                                        {opt}
-                                                    </span>
+                                                        <QuizMathText text={opt} />
+                                                    </div>
                                                 </label>
                                             ))}
                                         </div>
@@ -481,9 +482,9 @@ const Quiz = () => {
                                             <span className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black text-xs">
                                                 {idx + 1}
                                             </span>
-                                            <p className="text-sm sm:text-base font-bold text-gray-800 dark:text-white leading-relaxed">
-                                                {q.question}
-                                            </p>
+                                            <div className="text-sm sm:text-base font-bold text-gray-800 dark:text-white leading-relaxed flex-1 min-w-0">
+                                                <QuizMathText text={q.question} />
+                                            </div>
                                         </div>
 
                                         <div className="grid gap-3 sm:ml-12">
@@ -515,7 +516,9 @@ const Quiz = () => {
 
                                                 return (
                                                     <div key={optIdx} className={`p-3 px-4 rounded-xl border-2 flex items-center justify-between transition-all ${borderStyle} ${bgStyle}`}>
-                                                        <span className={`text-xs sm:text-sm font-medium ${textStyle}`}>{opt}</span>
+                                                        <div className={`text-xs sm:text-sm font-medium flex-1 min-w-0 mr-3 ${textStyle}`}>
+                                                            <QuizMathText text={opt} />
+                                                        </div>
                                                         <div className="flex items-center gap-2">
                                                             {isSelected && <span className="text-[10px] font-black uppercase tracking-tighter opacity-70">Your Answer</span>}
                                                             {!isSelected && isActualAnswer && <span className="text-[10px] font-black uppercase tracking-tighter opacity-70">Correct Answer</span>}

@@ -596,6 +596,7 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
       - "question": The question text
       - "options": An array of 4 strings
       - "answer": The exact full text string of the correct option (MUST exactly match one of the 4 strings in 'options'. DO NOT just return the letter A/B/C/D)
+      - MATHEMATICAL FORMULAS: Whenever questions or options contain mathematical formulas, equations, or symbols (derivatives, integrals, fractions, powers, series, limits, Greek letters), format them using clean, standard LaTeX enclosed in single dollar signs like $f(x) = \\sum_{n=0}^{\\infty} \\frac{f^{(n)}(a)}{n!} (x-a)^n$ or $e^x$. Always escape backslashes in JSON (e.g. "\\\\sum", "\\\\frac").
       
       Respond ONLY with the JSON array. No preamble, no markdown blocks.
     `;

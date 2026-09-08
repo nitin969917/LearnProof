@@ -41,6 +41,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { preprocessMath } from '../utils/mathPreprocessor';
+import QuizMathText from './Common/QuizMathText';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { motion, AnimatePresence } from "framer-motion";
@@ -2811,9 +2812,9 @@ const Classroom = () => {
                                       <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black text-xs sm:text-sm flex items-center justify-center shrink-0 mt-0.5">
                                         {idx + 1}
                                       </span>
-                                      <p className="font-bold text-sm sm:text-base text-gray-900 dark:text-slate-100 leading-snug sm:leading-relaxed m-0 flex-1">
-                                        {q.question}
-                                      </p>
+                                      <div className="font-bold text-sm sm:text-base text-gray-900 dark:text-slate-100 leading-snug sm:leading-relaxed m-0 flex-1 min-w-0">
+                                        <QuizMathText text={q.question} />
+                                      </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                                       {(q.options || []).map((opt, optIdx) => {
@@ -2827,7 +2828,9 @@ const Classroom = () => {
 
                                         return (
                                           <div key={optIdx} className={`p-3 sm:p-3.5 rounded-xl border-2 transition-all flex flex-col justify-center ${bgClass}`}>
-                                            <span className="text-xs sm:text-sm font-medium leading-snug">{opt}</span>
+                                            <div className="text-xs sm:text-sm font-medium leading-snug">
+                                              <QuizMathText text={opt} />
+                                            </div>
                                             <div className="mt-1.5 flex items-center gap-1.5 opacity-90">
                                               {isSelected && isCorrect && <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><CheckCircle size={11} /> Your Correct Answer</span>}
                                               {isSelected && !isCorrect && <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><X size={11} /> Your Incorrect Answer</span>}
@@ -2906,9 +2909,9 @@ const Classroom = () => {
                                     <span className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black text-xs sm:text-sm flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
                                       {idx + 1}
                                     </span>
-                                    <p className="font-bold text-sm sm:text-base text-gray-900 dark:text-slate-100 leading-snug sm:leading-relaxed m-0 flex-1">
-                                      {q.question}
-                                    </p>
+                                    <div className="font-bold text-sm sm:text-base text-gray-900 dark:text-slate-100 leading-snug sm:leading-relaxed m-0 flex-1 min-w-0">
+                                      <QuizMathText text={q.question} />
+                                    </div>
                                   </div>
 
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
@@ -2939,9 +2942,9 @@ const Classroom = () => {
                                             onChange={() => handleQuizAnswer(idx, opt)}
                                             className="sr-only"
                                           />
-                                          <span className="text-xs sm:text-sm font-medium leading-snug flex-1">
-                                            {opt}
-                                          </span>
+                                          <div className="text-xs sm:text-sm font-medium leading-snug flex-1 min-w-0">
+                                            <QuizMathText text={opt} />
+                                          </div>
                                         </label>
                                       );
                                     })}
