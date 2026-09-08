@@ -83,6 +83,13 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
         },
         android: {
           priority: 'high',
+          notification: {
+            icon: 'ic_stat_notification',
+            color: '#F97316',
+            channelId: 'learnproof_notifications',
+            defaultSound: true,
+            defaultVibrateTimings: true
+          },
           data: serializedData
         }
       });

@@ -114,6 +114,16 @@ const sendExplicitPush = async (req, res) => {
                     icon: 'https://learnproofai.com/LP_M_logo.png',
                     badge: 'https://learnproofai.com/LP_M_logo.png'
                 }
+            },
+            android: {
+                priority: 'high',
+                notification: {
+                    icon: 'ic_stat_notification',
+                    color: '#F97316',
+                    channelId: 'learnproof_notifications',
+                    defaultSound: true,
+                    defaultVibrateTimings: true
+                }
             }
         });
 

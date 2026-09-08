@@ -220,6 +220,24 @@ if (typeof window !== 'undefined') {
           permStatus = await PushNotifications.requestPermissions();
         }
         if (permStatus.receive === 'granted') {
+          if (Capacitor.getPlatform() === 'android') {
+            try {
+              await PushNotifications.createChannel({
+                id: 'learnproof_notifications',
+                name: 'LearnProof Notifications',
+                description: 'Notifications for live rooms, chats, invitations, and reminders',
+                importance: 5,
+                visibility: 1,
+                sound: 'default',
+                vibration: true,
+                lights: true,
+                lightColor: '#F97316'
+              });
+              console.log('[Capacitor] Android notification channel "learnproof_notifications" created.');
+            } catch (chanErr) {
+              console.warn('[Capacitor] Error creating notification channel:', chanErr);
+            }
+          }
           await PushNotifications.register();
           
           PushNotifications.addListener('registration', async (token) => {
