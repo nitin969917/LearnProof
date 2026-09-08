@@ -107,6 +107,65 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const coverInputRef = useRef(null);
   const avatarInputRef = useRef(null);
   const modalAvatarInputRef = useRef(null);
+  const mobileExpandedPanelRef = useRef(null);
+
+  const getSocialLink = (type, val) => {
+    if (!val || val === 'Not Connected' || val === 'Not Set' || val === 'Private') return null;
+    const str = String(val).trim();
+    const lower = String(type).toLowerCase();
+
+    if (lower.includes('instagram')) {
+      if (str.startsWith('http://') || str.startsWith('https://')) return str;
+      return `https://instagram.com/${str.replace(/^@/, '')}`;
+    }
+    if (lower.includes('linkedin')) {
+      if (str.startsWith('http://') || str.startsWith('https://')) return str;
+      return `https://${str}`;
+    }
+    if (lower.includes('whatsapp')) {
+      const digits = str.replace(/[^0-9]/g, '');
+      const phone = digits.length === 10 ? `91${digits}` : digits;
+      return `https://wa.me/${phone}`;
+    }
+    if (lower.includes('facebook')) {
+      if (str.startsWith('http://') || str.startsWith('https://')) return str;
+      return `https://facebook.com/${str}`;
+    }
+    if (lower.includes('phone')) {
+      return `tel:${str.replace(/\s+/g, '')}`;
+    }
+    if (lower.includes('email')) {
+      return `mailto:${str}`;
+    }
+    return str.startsWith('http') ? str : `https://${str}`;
+  };
+
+  const handleToggleSection = (sectionKey) => {
+    setExpandedSection(prev => {
+      const isOpening = prev !== sectionKey;
+      if (isOpening) {
+        setTimeout(() => {
+          mobileExpandedPanelRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+        }, 120);
+      }
+      return isOpening ? sectionKey : null;
+    });
+  };
+
+  useEffect(() => {
+    if (expandedSection && mobileExpandedPanelRef.current) {
+      const timer = setTimeout(() => {
+        mobileExpandedPanelRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [expandedSection]);
 
   const effectiveCurrentUserId = currentUserId || socialUser?.id || user?.id;
   const targetId = viewUserId ? parseInt(viewUserId, 10) : effectiveCurrentUserId;
@@ -547,7 +606,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           <div className={`${isOwnProfile ? 'grid grid-cols-2' : 'grid grid-cols-3'} lg:flex lg:flex-col gap-2 sm:gap-2.5 lg:gap-3`}>
             {/* Card 1: Academics */}
             <div
-              onClick={() => setExpandedSection(expandedSection === 'academics' ? null : 'academics')}
+              onClick={() => handleToggleSection('academics')}
               className={`bg-white dark:bg-gray-800 rounded-2xl border transition cursor-pointer select-none ${
                 expandedSection === 'academics'
                   ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
@@ -603,7 +662,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
             {/* Card 2: Contact */}
             <div
-              onClick={() => setExpandedSection(expandedSection === 'contact' ? null : 'contact')}
+              onClick={() => handleToggleSection('contact')}
               className={`bg-white dark:bg-gray-800 rounded-2xl border transition cursor-pointer select-none ${
                 expandedSection === 'contact'
                   ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
@@ -640,39 +699,67 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     transition={{ duration: 0.2 }}
                     className="hidden lg:block overflow-hidden pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-2.5 text-left"
                   >
-                    <div className="bg-orange-50/40 dark:bg-gray-900 p-3 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] uppercase font-bold text-gray-400 block">Phone Number</span>
-                          {isOwnProfile && <VisibilityBadge visibility={profile.phoneVisibility} />}
+                    {profile.phoneNumber ? (
+                      <a
+                        href={`tel:${profile.phoneNumber.replace(/\s+/g, '')}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="group bg-orange-50/40 dark:bg-gray-900 hover:bg-orange-100/50 dark:hover:bg-gray-800 p-3 rounded-xl border border-orange-100/60 hover:border-orange-300 dark:border-gray-800 dark:hover:border-gray-700 flex items-center justify-between gap-2 transition cursor-pointer"
+                        title="Click to call"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase font-bold text-gray-400 block">Phone Number</span>
+                            {isOwnProfile && <VisibilityBadge visibility={profile.phoneVisibility} />}
+                          </div>
+                          <span className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors truncate block">
+                            {profile.phoneNumber}
+                          </span>
                         </div>
-                        <span className="text-xs font-bold text-gray-900 dark:text-white truncate block">
-                          {profile.phoneNumber || (isOwnProfile ? 'Not Set' : 'Private')}
-                        </span>
-                      </div>
-                      {profile.phoneNumber && (
-                        <a href={`tel:${profile.phoneNumber}`} className="p-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition shrink-0">
+                        <span className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-xs shrink-0 group-hover:scale-105 transition-transform">
                           <Phone size={13} />
-                        </a>
-                      )}
-                    </div>
-
-                    <div className="bg-orange-50/40 dark:bg-gray-900 p-3 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] uppercase font-bold text-gray-400 block">Email Address</span>
-                          {isOwnProfile && <VisibilityBadge visibility={profile.emailVisibility} />}
-                        </div>
-                        <span className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-[200px] block">
-                          {profile.email || (isOwnProfile ? 'Not Set' : 'Private')}
                         </span>
+                      </a>
+                    ) : (
+                      <div className="bg-orange-50/40 dark:bg-gray-900 p-3 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2 opacity-60">
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 block">Phone Number</span>
+                          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 truncate block">
+                            {isOwnProfile ? 'Not Set' : 'Private'}
+                          </span>
+                        </div>
                       </div>
-                      {profile.email && (
-                        <a href={`mailto:${profile.email}`} className="p-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition shrink-0">
+                    )}
+
+                    {profile.email ? (
+                      <a
+                        href={`mailto:${profile.email}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="group bg-orange-50/40 dark:bg-gray-900 hover:bg-orange-100/50 dark:hover:bg-gray-800 p-3 rounded-xl border border-orange-100/60 hover:border-orange-300 dark:border-gray-800 dark:hover:border-gray-700 flex items-center justify-between gap-2 transition cursor-pointer"
+                        title="Click to email"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] uppercase font-bold text-gray-400 block">Email Address</span>
+                            {isOwnProfile && <VisibilityBadge visibility={profile.emailVisibility} />}
+                          </div>
+                          <span className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors truncate max-w-[200px] block">
+                            {profile.email}
+                          </span>
+                        </div>
+                        <span className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-xs shrink-0 group-hover:scale-105 transition-transform">
                           <Mail size={13} />
-                        </a>
-                      )}
-                    </div>
+                        </span>
+                      </a>
+                    ) : (
+                      <div className="bg-orange-50/40 dark:bg-gray-900 p-3 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2 opacity-60">
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 block">Email Address</span>
+                          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 truncate block">
+                            {isOwnProfile ? 'Not Set' : 'Private'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -680,7 +767,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
             {/* Card 3: Social Links */}
             <div
-              onClick={() => setExpandedSection(expandedSection === 'social' ? null : 'social')}
+              onClick={() => handleToggleSection('social')}
               className={`bg-white dark:bg-gray-800 rounded-2xl border transition cursor-pointer select-none ${
                 expandedSection === 'social'
                   ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
@@ -718,24 +805,46 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     className="hidden lg:block overflow-hidden pt-3 mt-3 border-t border-gray-100 dark:border-gray-800 space-y-2 text-left"
                   >
                     {[
-                      { label: 'Instagram', val: profile.instagramHandle, vis: profile.instagramVisibility, icon: Instagram, color: 'text-pink-500' },
-                      { label: 'LinkedIn', val: profile.linkedinUrl, vis: profile.linkedinVisibility, icon: Linkedin, color: 'text-blue-600' },
-                      { label: 'WhatsApp', val: profile.whatsappNumber, vis: profile.whatsappVisibility, icon: MessageSquare, color: 'text-emerald-500' },
-                      { label: 'Facebook', val: profile.facebookUrl, vis: profile.facebookVisibility, icon: Facebook, color: 'text-indigo-600' }
-                    ].map((s) => (
-                      <div key={s.label} className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between text-xs gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <s.icon size={15} className={s.color} />
-                          <span className="font-bold text-gray-700 dark:text-gray-200 truncate">{s.val || 'Not Connected'}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
+                      { label: 'Instagram', val: profile.instagramHandle, vis: profile.instagramVisibility, icon: Instagram, color: 'text-pink-500', type: 'instagram' },
+                      { label: 'LinkedIn', val: profile.linkedinUrl, vis: profile.linkedinVisibility, icon: Linkedin, color: 'text-blue-600', type: 'linkedin' },
+                      { label: 'WhatsApp', val: profile.whatsappNumber, vis: profile.whatsappVisibility, icon: MessageSquare, color: 'text-emerald-500', type: 'whatsapp' },
+                      { label: 'Facebook', val: profile.facebookUrl, vis: profile.facebookVisibility, icon: Facebook, color: 'text-indigo-600', type: 'facebook' }
+                    ].map((s) => {
+                      const link = getSocialLink(s.type, s.val);
+                      const isLinked = Boolean(link);
+                      return isLinked ? (
+                        <a
+                          key={s.label}
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="group bg-orange-50/40 dark:bg-gray-900 hover:bg-orange-100/50 dark:hover:bg-gray-800 p-2.5 rounded-xl border border-orange-100/60 hover:border-orange-300 dark:border-gray-800 dark:hover:border-gray-700 flex items-center justify-between text-xs gap-2 transition cursor-pointer"
+                          title={`Open ${s.label}`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <s.icon size={15} className={`${s.color} shrink-0`} />
+                            <span className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-orange-600 dark:group-hover:text-orange-400 truncate">
+                              {s.val}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isOwnProfile && <VisibilityBadge visibility={s.vis} />}
+                            <span className="p-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
+                              <ExternalLink size={12} />
+                            </span>
+                          </div>
+                        </a>
+                      ) : (
+                        <div key={s.label} className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between text-xs gap-2 opacity-60">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <s.icon size={15} className={`${s.color} shrink-0`} />
+                            <span className="font-bold text-gray-400 dark:text-gray-500 truncate">{s.val || 'Not Connected'}</span>
+                          </div>
                           {isOwnProfile && <VisibilityBadge visibility={s.vis} />}
-                          {s.val && (
-                            <span className="text-[10px] font-bold text-orange-600 uppercase">Linked</span>
-                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -744,7 +853,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {/* Card 4: Account & Privacy Settings (Only for own profile) */}
             {isOwnProfile && (
               <div
-                onClick={() => setExpandedSection(expandedSection === 'settings' ? null : 'settings')}
+                onClick={() => handleToggleSection('settings')}
                 className={`bg-white dark:bg-gray-800 rounded-2xl border transition cursor-pointer select-none ${
                   expandedSection === 'settings'
                     ? 'border-orange-300 dark:border-orange-500/50 shadow-xs ring-1 ring-orange-500/20'
@@ -821,10 +930,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           <AnimatePresence>
             {expandedSection && (
               <motion.div
+                ref={mobileExpandedPanelRef}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 8 }}
-                className="block lg:hidden bg-white dark:bg-gray-800 rounded-2xl border border-orange-200/90 dark:border-gray-700 p-4 shadow-sm text-left"
+                className="block lg:hidden bg-white dark:bg-gray-800 rounded-2xl border border-orange-200/90 dark:border-gray-700 p-4 shadow-sm text-left scroll-mt-24 mb-4"
               >
                 <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-2 mb-3">
                   <h5 className="font-black text-xs uppercase tracking-wider text-orange-600 dark:text-orange-400">
@@ -860,58 +970,115 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
                 {expandedSection === 'contact' && (
                   <div className="space-y-2">
-                    <div className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] uppercase font-bold text-gray-400 block">Phone</span>
-                          {isOwnProfile && <VisibilityBadge visibility={profile.phoneVisibility} />}
+                    {profile.phoneNumber ? (
+                      <a
+                        href={`tel:${profile.phoneNumber.replace(/\s+/g, '')}`}
+                        className="group bg-orange-50/40 dark:bg-gray-900 hover:bg-orange-100/50 dark:hover:bg-gray-800 p-2.5 rounded-xl border border-orange-100/60 hover:border-orange-300 dark:border-gray-800 dark:hover:border-gray-700 flex items-center justify-between gap-2 transition cursor-pointer"
+                        title="Click to call"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] uppercase font-bold text-gray-400 block">Phone</span>
+                            {isOwnProfile && <VisibilityBadge visibility={profile.phoneVisibility} />}
+                          </div>
+                          <span className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors truncate block">
+                            {profile.phoneNumber}
+                          </span>
                         </div>
-                        <span className="text-xs font-bold text-gray-900 dark:text-white truncate block">
-                          {profile.phoneNumber || (isOwnProfile ? 'Not Set' : 'Private')}
-                        </span>
-                      </div>
-                      {profile.phoneNumber && (
-                        <a href={`tel:${profile.phoneNumber}`} className="p-1.5 bg-orange-500 text-white rounded-xl">
+                        <span className="p-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-xs shrink-0 group-hover:scale-105 transition-transform">
                           <Phone size={12} />
-                        </a>
-                      )}
-                    </div>
-
-                    <div className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] uppercase font-bold text-gray-400 block">Email</span>
-                          {isOwnProfile && <VisibilityBadge visibility={profile.emailVisibility} />}
-                        </div>
-                        <span className="text-xs font-bold text-gray-900 dark:text-white truncate block">
-                          {profile.email || (isOwnProfile ? 'Not Set' : 'Private')}
                         </span>
+                      </a>
+                    ) : (
+                      <div className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2 opacity-60">
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 block">Phone</span>
+                          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 truncate block">
+                            {isOwnProfile ? 'Not Set' : 'Private'}
+                          </span>
+                        </div>
                       </div>
-                      {profile.email && (
-                        <a href={`mailto:${profile.email}`} className="p-1.5 bg-orange-500 text-white rounded-xl">
+                    )}
+
+                    {profile.email ? (
+                      <a
+                        href={`mailto:${profile.email}`}
+                        className="group bg-orange-50/40 dark:bg-gray-900 hover:bg-orange-100/50 dark:hover:bg-gray-800 p-2.5 rounded-xl border border-orange-100/60 hover:border-orange-300 dark:border-gray-800 dark:hover:border-gray-700 flex items-center justify-between gap-2 transition cursor-pointer"
+                        title="Click to email"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] uppercase font-bold text-gray-400 block">Email</span>
+                            {isOwnProfile && <VisibilityBadge visibility={profile.emailVisibility} />}
+                          </div>
+                          <span className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors truncate block">
+                            {profile.email}
+                          </span>
+                        </div>
+                        <span className="p-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-xs shrink-0 group-hover:scale-105 transition-transform">
                           <Mail size={12} />
-                        </a>
-                      )}
-                    </div>
+                        </span>
+                      </a>
+                    ) : (
+                      <div className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2 opacity-60">
+                        <div className="min-w-0">
+                          <span className="text-[10px] uppercase font-bold text-gray-400 block">Email</span>
+                          <span className="text-xs font-bold text-gray-500 dark:text-gray-400 truncate block">
+                            {isOwnProfile ? 'Not Set' : 'Private'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {expandedSection === 'social' && (
                   <div className="space-y-2">
                     {[
-                      { label: 'Instagram', val: profile.instagramHandle, vis: profile.instagramVisibility, icon: Instagram, color: 'text-pink-500' },
-                      { label: 'LinkedIn', val: profile.linkedinUrl, vis: profile.linkedinVisibility, icon: Linkedin, color: 'text-blue-600' },
-                      { label: 'WhatsApp', val: profile.whatsappNumber, vis: profile.whatsappVisibility, icon: MessageSquare, color: 'text-emerald-500' },
-                      { label: 'Facebook', val: profile.facebookUrl, vis: profile.facebookVisibility, icon: Facebook, color: 'text-indigo-600' }
-                    ].map((s) => (
-                      <div key={s.label} className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between text-xs gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <s.icon size={14} className={s.color} />
-                          <span className="font-bold text-gray-700 dark:text-gray-200 truncate">{s.val || 'Not Connected'}</span>
+                      { label: 'Instagram', val: profile.instagramHandle, vis: profile.instagramVisibility, icon: Instagram, color: 'text-pink-500', type: 'instagram' },
+                      { label: 'LinkedIn', val: profile.linkedinUrl, vis: profile.linkedinVisibility, icon: Linkedin, color: 'text-blue-600', type: 'linkedin' },
+                      { label: 'WhatsApp', val: profile.whatsappNumber, vis: profile.whatsappVisibility, icon: MessageSquare, color: 'text-emerald-500', type: 'whatsapp' },
+                      { label: 'Facebook', val: profile.facebookUrl, vis: profile.facebookVisibility, icon: Facebook, color: 'text-indigo-600', type: 'facebook' }
+                    ].map((s) => {
+                      const link = getSocialLink(s.type, s.val);
+                      const isLinked = Boolean(link);
+                      return isLinked ? (
+                        <a
+                          key={s.label}
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group bg-orange-50/40 dark:bg-gray-900 hover:bg-orange-100/50 dark:hover:bg-gray-800 p-2.5 rounded-xl border border-orange-100/60 hover:border-orange-300 dark:border-gray-800 dark:hover:border-gray-700 flex items-center justify-between text-xs gap-2 transition cursor-pointer active:scale-[0.99]"
+                          title={`Open ${s.label}`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <s.icon size={15} className={`${s.color} shrink-0`} />
+                            <span className="font-bold text-gray-800 dark:text-gray-100 group-hover:text-orange-600 dark:group-hover:text-orange-400 truncate">
+                              {s.val}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isOwnProfile && <VisibilityBadge visibility={s.vis} />}
+                            <span className="p-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
+                              <ExternalLink size={12} />
+                            </span>
+                          </div>
+                        </a>
+                      ) : (
+                        <div
+                          key={s.label}
+                          className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between text-xs gap-2 opacity-60"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <s.icon size={15} className={`${s.color} shrink-0`} />
+                            <span className="font-bold text-gray-400 dark:text-gray-500 truncate">
+                              {s.val || 'Not Connected'}
+                            </span>
+                          </div>
+                          {isOwnProfile && <VisibilityBadge visibility={s.vis} />}
                         </div>
-                        {isOwnProfile && <VisibilityBadge visibility={s.vis} />}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
