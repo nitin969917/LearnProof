@@ -41,6 +41,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { preprocessMath } from '../utils/mathPreprocessor';
+import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { motion } from "framer-motion";
 import Prism from 'prismjs';
