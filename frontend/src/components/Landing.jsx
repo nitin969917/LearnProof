@@ -527,6 +527,7 @@ const LandingPage = () => {
     const handleManualGoogleLogin = (customTarget = "/dashboard") => {
         clearRedirectTarget();
         sessionStorage.setItem("redirect_to", customTarget);
+        setIsLoggingIn(true);
         
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         const redirectUri = window.location.origin;
@@ -544,7 +545,7 @@ const LandingPage = () => {
             `&ux_mode=redirect` +
             `&prompt=select_account`;
             
-        window.location.href = authUrl;
+        window.location.assign(authUrl);
     };
 
 

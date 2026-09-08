@@ -22,7 +22,7 @@ async function registerUser(username, password, isAdmin = false) {
 
     try {
         // Step 1: Request a registration nonce
-        const nonceRes = await axios.get(`${HOMESERVER_URL}/_matrix/client/v3/register`);
+        const nonceRes = await axios.get(`${HOMESERVER_URL}/_matrix/client/v3/register`, { timeout: 2500 });
         const nonce = nonceRes.data.nonce;
 
         // Step 2: Compute MAC signature
@@ -38,7 +38,7 @@ async function registerUser(username, password, isAdmin = false) {
             auth: {
                 type: 'org.matrix.login.shared_secret'
             }
-        });
+        }, { timeout: 2500 });
 
         return {
             userId: regRes.data.user_id,
@@ -53,7 +53,7 @@ async function registerUser(username, password, isAdmin = false) {
             return await loginUser(username, password);
         }
         console.error('Matrix registration failed:', err.response?.data || err.message);
-        throw err;
+        return null;
     }
 }
 
@@ -71,7 +71,7 @@ async function loginUser(username, password) {
                 user: username
             },
             password: password
-        });
+        }, { timeout: 2500 });
 
         return {
             userId: res.data.user_id,
@@ -79,7 +79,7 @@ async function loginUser(username, password) {
         };
     } catch (err) {
         console.error('Matrix login failed:', err.response?.data || err.message);
-        throw err;
+        return null;
     }
 }
 

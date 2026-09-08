@@ -101,11 +101,12 @@ const LoginPage = () => {
     const [isAuthenticating, setIsAuthenticating] = useState(() => {
         const hash = window.location.hash;
         const hasHashToken = hash.includes("id_token") || hash.includes("credential");
-        const wasAuthenticating = sessionStorage.getItem("is_authenticating") === "true";
         if (hasHashToken) {
             sessionStorage.setItem("is_authenticating", "true");
+            return true;
         }
-        return hasHashToken || wasAuthenticating;
+        sessionStorage.removeItem("is_authenticating");
+        return false;
     });
 
     useEffect(() => {
@@ -167,12 +168,13 @@ const LoginPage = () => {
     };
 
     const handleManualGoogleLogin = async () => {
-        // 1. Check if running in Capacitor Native app (Android or iOS)
-        try {
-            const { Capacitor } = await import('@capacitor/core');
-            if (Capacitor && Capacitor.isNativePlatform()) {
-                console.log("Triggering native Google Sign-In sheet via Capacitor...");
+        // 1. Check if running in Capacitor Native app (Android or iOS) synchronously without network import overhead
+        const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
+
+        if (isCapacitorNative) {
+            try {
                 setIsAuthenticating(true);
+                sessionStorage.setItem("is_authenticating", "true");
                 const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
                 await GoogleAuth.initialize({
                     clientId: '549492309059-crnp91q3v5ej09givjr6b10re7189ks9.apps.googleusercontent.com',
@@ -187,20 +189,21 @@ const LoginPage = () => {
                     return;
                 } else {
                     setIsAuthenticating(false);
+                    sessionStorage.removeItem("is_authenticating");
                     toast.error("Google Sign-In failed: No ID token returned.");
                     return;
                 }
-            }
-        } catch (capErr) {
-            console.error("Capacitor native Google Sign-In error:", capErr);
-            setIsAuthenticating(false);
-            const errStr = capErr?.message || (typeof capErr === 'object' ? JSON.stringify(capErr) : String(capErr));
-            if (errStr.includes('canceled') || errStr.includes('12501') || errStr.includes('CANCELED')) {
-                // User dismissed the native bottom sheet
+            } catch (capErr) {
+                console.error("Capacitor native Google Sign-In error:", capErr);
+                setIsAuthenticating(false);
+                sessionStorage.removeItem("is_authenticating");
+                const errStr = capErr?.message || (typeof capErr === 'object' ? JSON.stringify(capErr) : String(capErr));
+                if (errStr.includes('canceled') || errStr.includes('12501') || errStr.includes('CANCELED')) {
+                    return;
+                }
+                toast.error(errStr || "Google Sign-In failed.");
                 return;
             }
-            toast.error(errStr || "Google Sign-In failed.");
-            return;
         }
 
         const isFlutter = navigator.userAgent.includes('LearnProofApp') || !!window.GoogleSignInChannel;
@@ -216,8 +219,10 @@ const LoginPage = () => {
             return;
         }
 
+        // Web (Mobile Browser & Desktop) — Immediate zero-delay redirect
+        setIsAuthenticating(true);
+        sessionStorage.setItem("is_authenticating", "true");
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-        // MUST redirect to window.location.origin to match the authorized redirect URIs in Google Cloud Console
         const redirectUri = window.location.origin;
         const nonce = Math.random().toString(36).substring(2);
         
@@ -227,9 +232,10 @@ const LoginPage = () => {
             `&response_type=id_token` +
             `&scope=${encodeURIComponent('openid email profile')}` +
             `&nonce=${nonce}` +
-            `&ux_mode=redirect`;
+            `&ux_mode=redirect` +
+            `&prompt=select_account`;
             
-        window.location.href = authUrl;
+        window.location.assign(authUrl);
     };
 
     if (loading || isAuthenticating) {

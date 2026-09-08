@@ -15,24 +15,31 @@ const loginOrRegister = async (req, res) => {
 
     try {
         if (matrixService.ENABLE_MATRIX_CHAT) {
-            // Generate deterministic Matrix credentials
-            const matrixUsername = `user_${req.user.id}`;
-            const matrixPassword = crypto
-                .createHmac('sha256', JWT_SECRET)
-                .update(req.user.uid)
-                .digest('hex');
+            const cacheKey = `matrix:creds:${req.user.id}`;
+            const cachedCreds = await cacheService.get(cacheKey);
 
-            // Registers if new, or logs in to get fresh access token
-            const matrixCreds = await matrixService.registerUser(matrixUsername, matrixPassword);
-            if (matrixCreds) {
-                const credsPayload = {
-                    userId: matrixCreds.userId,
-                    accessToken: matrixCreds.accessToken,
-                    homeserverUrl: process.env.MATRIX_CLIENT_HOMESERVER_URL || process.env.MATRIX_HOMESERVER_URL || 'http://localhost:8009'
-                };
-                responseData.matrixCredentials = credsPayload;
-                // Cache credentials for 12 hours in Redis
-                await cacheService.set(`matrix:creds:${req.user.id}`, credsPayload, 43200);
+            if (cachedCreds) {
+                responseData.matrixCredentials = cachedCreds;
+            } else {
+                // Generate deterministic Matrix credentials
+                const matrixUsername = `user_${req.user.id}`;
+                const matrixPassword = crypto
+                    .createHmac('sha256', JWT_SECRET)
+                    .update(req.user.uid)
+                    .digest('hex');
+
+                // Registers if new, or logs in to get fresh access token
+                const matrixCreds = await matrixService.registerUser(matrixUsername, matrixPassword);
+                if (matrixCreds) {
+                    const credsPayload = {
+                        userId: matrixCreds.userId,
+                        accessToken: matrixCreds.accessToken,
+                        homeserverUrl: process.env.MATRIX_CLIENT_HOMESERVER_URL || process.env.MATRIX_HOMESERVER_URL || 'http://localhost:8009'
+                    };
+                    responseData.matrixCredentials = credsPayload;
+                    // Cache credentials for 12 hours in Redis
+                    await cacheService.set(cacheKey, credsPayload, 43200);
+                }
             }
         }
     } catch (err) {

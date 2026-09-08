@@ -126,8 +126,12 @@ export const AuthProvider = ({ children }) => {
             attributePendingReferral(sessionToken);
 
             if (res.data.matrixCredentials) {
-                const clientInstance = await initMatrixClient(res.data.matrixCredentials);
-                setMatrixClient(clientInstance);
+                // Initialize Matrix client in background without blocking login navigation
+                initMatrixClient(res.data.matrixCredentials).then(clientInstance => {
+                    setMatrixClient(clientInstance);
+                }).catch(err => {
+                    console.warn("Matrix client background init error:", err);
+                });
             }
         } catch (err) {
             console.error("Login sync failed", err);
