@@ -485,6 +485,7 @@ const Classroom = () => {
   const [hasSeeked, setHasSeeked] = useState(false);
   const [showNextOverlay, setShowNextOverlay] = useState(false);
   const [hasCancelledOverlay, setHasCancelledOverlay] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   // Track continuous progress to avoid spamming the backend
   const [lastSavedProgress, setLastSavedProgress] = useState(0);
@@ -624,9 +625,20 @@ const Classroom = () => {
   };
 
   const handleSelectVideo = (targetVid) => {
+    if (targetVid === videoId) return;
     setShowNextOverlay(false);
     setHasCancelledOverlay(false);
-    setPlayer(null);
+    setIsVideoPlaying(false);
+    setHasSeeked(false);
+    setPlayerError(false);
+
+    // Optimistic switch: find video in current playlist so UI updates with 0 latency
+    const targetVideo = playlist?.videos?.find(v => v.vid === targetVid);
+    if (targetVideo) {
+      setVideo(targetVideo);
+      setLiveProgress(targetVideo.watch_progress || 0);
+      setLastSavedProgress(targetVideo.watch_progress || 0);
+    }
     navigate(`/classroom/${targetVid}`);
   };
 
@@ -1177,7 +1189,6 @@ const Classroom = () => {
       }
     };
     if (token && videoId) {
-      setPlayer(null); // Reset player reference so stale progress doesn't trigger overlays
       setShowNextOverlay(false); // Reset next video overlay
       setHasCancelledOverlay(false); // Reset next video cancel state
       setIntuitionContent(""); // Clear previous intuition when video changes
@@ -1186,6 +1197,8 @@ const Classroom = () => {
       setQuizHistory([]);
       setSelectedHistoryQuiz(null);
       setPlayerError(false); // Reset player error on video change
+      setIsVideoPlaying(false);
+      setHasSeeked(false);
       fetchClassroom();
       fetchDiscussionData();
     }
@@ -1450,6 +1463,7 @@ const Classroom = () => {
   const handlePlayerStateChange = async (event) => {
     // YT.PlayerState.PLAYING is 1
     if (event.data === 1) {
+      setIsVideoPlaying(true);
       if (!hasSeeked) {
         setHasSeeked(true);
         const duration = await event.target.getDuration();
@@ -1468,6 +1482,15 @@ const Classroom = () => {
       if (savedSpeed !== 1) {
         event.target.setPlaybackRate(savedSpeed);
       }
+    } else if (event.data === 2) {
+      // PAUSED - keep poster hidden
+      setIsVideoPlaying(true);
+    } else if (event.data === 5 || event.data === -1) {
+      // CUED / UNSTARTED - kick play to start video without user waiting
+      try {
+        const p = event.target.playVideo();
+        if (p && p.catch) p.catch(() => {});
+      } catch (_) {}
     }
   };
 
@@ -1565,9 +1588,53 @@ const Classroom = () => {
 
         <div className="flex flex-col flex-1 lg:overflow-y-auto w-full max-w-full bg-white dark:bg-gray-900 transition-colors duration-200">
           {/* Enhanced Video Player */}
-          <div ref={playerContainerRef} className="bg-black relative shadow-2xl aspect-video w-full flex items-center justify-center shrink-0">
+          <div ref={playerContainerRef} className="bg-black relative shadow-2xl aspect-video w-full flex items-center justify-center shrink-0 overflow-hidden group">
+            {/* Instant Thumbnail Poster & Loading State - eliminates black screen delay */}
+            <div 
+              className={`absolute inset-0 z-10 transition-opacity duration-500 flex items-center justify-center pointer-events-none ${
+                isVideoPlaying ? 'opacity-0' : 'opacity-100 pointer-events-auto'
+              }`}
+            >
+              {/* Blurred background fill */}
+              <img
+                src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover filter blur-lg scale-110 opacity-40 select-none"
+              />
+              {/* Sharp foreground video thumbnail */}
+              <img
+                src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
+                alt={video.name || "Video Thumbnail"}
+                className="absolute inset-0 w-full h-full object-contain mx-auto select-none"
+              />
+              {/* Gradient vignette */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30" />
+
+              {/* Fast loading top line */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-amber-400 to-red-500 animate-pulse" />
+
+              {/* Central Glowing Play / Loading Button */}
+              <div
+                className="relative z-10 flex flex-col items-center justify-center gap-2 cursor-pointer group"
+                onClick={() => {
+                  if (player && player.playVideo) {
+                    try { player.playVideo(); } catch (_) {}
+                  }
+                }}
+              >
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-600/30 animate-ping pointer-events-none" />
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-2xl shadow-red-600/50 transition-all transform hover:scale-110 active:scale-95">
+                    <Play size={24} className="fill-white ml-1 text-white" />
+                  </div>
+                </div>
+                <span className="text-white/90 text-xs font-semibold tracking-wide bg-black/60 px-3 py-1 rounded-full backdrop-blur-xs border border-white/10 shadow-lg">
+                  Starting video...
+                </span>
+              </div>
+            </div>
+
             <YouTube
-              key={video.vid}
               videoId={video.vid}
               opts={{
                 width: '100%',
@@ -1578,7 +1645,9 @@ const Classroom = () => {
                   rel: 0,
                   modestbranding: 0,
                   enablejsapi: 1,
-                  origin: typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com'
+                  origin: typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com',
+                  iv_load_policy: 3,
+                  hl: 'en'
                 }
               }}
               className="absolute top-0 left-0 w-full h-full"
@@ -1586,6 +1655,11 @@ const Classroom = () => {
               onReady={(e) => {
                 setPlayer(e.target);
                 setPlayerError(false);
+                // Immediately kick playVideo to avoid mobile autoplay stall
+                try {
+                  const p = e.target.playVideo();
+                  if (p && p.catch) p.catch(() => {});
+                } catch (_) {}
                 // Auto-restore playback speed
                 const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
                 if (savedSpeed !== 1) {
