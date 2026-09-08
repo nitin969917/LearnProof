@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AdminRoute from "./routes/AdminRoute";
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -82,41 +82,69 @@ const PageLoader = () => (
     </div>
 );
 
-// RouteTracker: Automatically keeps track of the active user location in localStorage during the active session
-const RouteTracker = () => {
+// In-memory cold launch tracker. Initialized to true only on fresh JS engine process boot (cold start).
+// During in-session multitasking (backgrounding/resuming), this stays false so active pages are never reset.
+let isAppColdBoot = true;
+
+// ColdStartGuard: If the user completely closed the app and opens it fresh, ensure they start from the main dashboard.
+// If the app was NOT closed completely (multitasking / background switch), this does nothing and preserves their page.
+const ColdStartGuard = () => {
     const location = useLocation();
+    const navigate = useNavigate();
+    const { user, loading } = useAuth();
+    const hasChecked = React.useRef(false);
 
     React.useEffect(() => {
-        // Mark current session as active
-        sessionStorage.setItem('learnproof_session_active', 'true');
+        if (loading || hasChecked.current || !isAppColdBoot) return;
+        hasChecked.current = true;
+        isAppColdBoot = false;
 
-        const fullPath = location.pathname + location.search + location.hash;
-        const isExcluded = (
-            !fullPath ||
-            location.pathname === '/' ||
-            location.pathname === '/login' ||
-            location.pathname === '/download' ||
-            location.pathname.startsWith('/verify') ||
-            location.pathname.startsWith('/privacy') ||
-            location.pathname.startsWith('/terms') ||
-            location.pathname.startsWith('/delete-account')
+        // Clean up any stale route caches left by older app versions
+        try {
+            localStorage.removeItem('learnproof_last_route');
+            sessionStorage.removeItem('learnproof_session_active');
+            sessionStorage.removeItem('learnproof_last_route');
+        } catch (e) {}
+
+        const isNativeApp = (
+            Capacitor.isNativePlatform() || 
+            (typeof navigator !== 'undefined' && navigator.userAgent.includes('LearnProofApp'))
         );
 
-        if (!isExcluded) {
-            localStorage.setItem('learnproof_last_route', fullPath);
+        // On cold start of the native mobile app, reset any restored subpage back to dashboard
+        if (isNativeApp && user) {
+            const path = location.pathname;
+            const isBypass = (
+                path === '/' ||
+                path === '/dashboard' ||
+                path === '/download' ||
+                path.startsWith('/verify') ||
+                path.startsWith('/privacy') ||
+                path.startsWith('/terms') ||
+                path.startsWith('/delete-account') ||
+                path.startsWith('/support') ||
+                window.location.hash.includes('id_token=') ||
+                window.location.hash.includes('credential=')
+            );
+
+            if (!isBypass) {
+                console.log('[ColdStartGuard] App opened from cold start on subpage (' + path + '). Resetting to dashboard.');
+                navigate('/dashboard', { replace: true });
+            }
         }
-    }, [location]);
+    }, [loading, user, location.pathname, navigate]);
 
     return null;
 };
 
-// Native mobile entry handler: 
-// 1. If app is freshly launched from a closed/killed state (sessionStorage was cleared): Go directly to main/dashboard.
-// 2. If app is resuming during an active session (multitasking / background switch): Restore the last active route.
+// Root route handler:
+// 1. Authenticated users opening the app at root start directly on the main dashboard (/dashboard).
+// 2. Unauthenticated mobile app users go to /login.
+// 3. Unauthenticated web visitors see the public landing page.
 const RootRoute = () => {
     const { user, loading } = useAuth();
     const isNativeApp = typeof window !== 'undefined' && (
-        window.Capacitor?.isNativePlatform?.() || 
+        Capacitor.isNativePlatform() || 
         navigator.userAgent.includes('LearnProofApp') ||
         window.location.hostname === 'localhost'
     );
@@ -124,34 +152,7 @@ const RootRoute = () => {
     if (loading) return <PageLoader />;
 
     if (user) {
-        const isSessionActive = typeof window !== 'undefined' && sessionStorage.getItem('learnproof_session_active') === 'true';
-        
-        let targetRoute = '/dashboard';
-
-        if (isSessionActive) {
-            // App was only backgrounded/paused during the active session; restore route
-            const lastRoute = localStorage.getItem('learnproof_last_route');
-            const isValidRoute = (
-                lastRoute && 
-                lastRoute !== '/' && 
-                lastRoute !== '/login' &&
-                lastRoute !== '/download' &&
-                !lastRoute.startsWith('/verify') &&
-                !lastRoute.startsWith('/privacy') &&
-                !lastRoute.startsWith('/terms') &&
-                !lastRoute.startsWith('/delete-account')
-            );
-            if (isValidRoute) {
-                targetRoute = lastRoute;
-            }
-        } else {
-            // App was closed completely and launched fresh: start fresh on main dashboard
-            localStorage.removeItem('learnproof_last_route');
-            sessionStorage.setItem('learnproof_session_active', 'true');
-            targetRoute = '/dashboard';
-        }
-
-        return <Navigate to={targetRoute} replace />;
+        return <Navigate to="/dashboard" replace />;
     }
 
     if (isNativeApp) {
@@ -264,13 +265,8 @@ const App = () => {
         if (Capacitor.isNativePlatform()) {
             CapApp.addListener('appStateChange', ({ isActive }) => {
                 console.log('[App Lifecycle] App state changed. isActive:', isActive);
-                if (isActive) {
-                    const currentPath = window.location.pathname;
-                    const lastRoute = localStorage.getItem('learnproof_last_route');
-                    if (currentPath === '/' && lastRoute && lastRoute !== '/') {
-                        window.history.replaceState(null, '', lastRoute);
-                    }
-                }
+                // When resuming from background multitasking, do not alter the current route
+                // so the user seamlessly stays on whatever page/video they were viewing.
             }).then(handle => {
                 appStateListener = handle;
             }).catch(() => {});
@@ -290,7 +286,7 @@ const App = () => {
         <AuthProvider>
             <ModalProvider>
                 <Router>
-                    <RouteTracker />
+                    <ColdStartGuard />
                     <OAuthRedirectHandler />
                     <Suspense fallback={<PageLoader />}>
                         <Routes>
