@@ -28,6 +28,13 @@ const clearStageRequest = (roomName, identity) => {
   getStageRequestMap(roomName).delete(String(identity));
 };
 
+const removeApprovedSpeaker = (roomName, identity) => {
+  if (approvedSpeakersStore.has(roomName)) {
+    approvedSpeakersStore.get(roomName).delete(String(identity));
+  }
+  clearStageRequest(roomName, identity);
+};
+
 const clearAllStageRequests = (roomName) => {
   stageRequestStore.delete(roomName);
   approvedSpeakersStore.delete(roomName);
@@ -97,9 +104,12 @@ const getToken = async (req, res) => {
     // 2. Ensure room exists in LiveKit server (support up to 500 audience members for "unlimited" feel)
     await livekitService.createRoom(room, 500);
 
-    // 3. Generate the JWT token (only hosts and host-approved speakers join as speakers)
-    const isApprovedSpeaker = isAdmin || getApprovedSpeakers(room).has(String(userId));
-    const canPublish = isApprovedSpeaker;
+    // 3. Generate the JWT token (only room hosts start with canPublish = true; participants always join as listeners)
+    // Clear any past stage approval so leaving and re-entering the room always places non-hosts in the audience
+    if (!isAdmin) {
+      removeApprovedSpeaker(room, userId);
+    }
+    const canPublish = Boolean(isAdmin);
     const token = await livekitService.generateToken(room, userId, userName, isAdmin, canPublish);
 
     return res.json({
@@ -447,4 +457,5 @@ module.exports = {
   submitStageRequest,
   getStageRequests,
   dismissStageRequest,
+  removeApprovedSpeaker,
 };

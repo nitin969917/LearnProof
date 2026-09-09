@@ -3405,6 +3405,13 @@ export default function LanguageRoom() {
         const isRoomHost = roomInfo && userIdentifier && String(roomInfo.creatorId) === String(userIdentifier);
         const requestPublish = isRoomHost ? 'true' : 'false';
 
+        // Clear any stale local stage and hardware states for regular participants
+        if (!isRoomHost) {
+          localStorage.removeItem(`livekit_stage_${roomName}`);
+          localStorage.removeItem(`livekit_mic_${roomName}`);
+          localStorage.removeItem(`livekit_cam_${roomName}`);
+        }
+
         const res = await socialApi.get('/livekit/token', {
           params: { room: roomName, requestPublish },
         });
@@ -3482,6 +3489,9 @@ export default function LanguageRoom() {
           socialApi.delete(`/language-rooms/by-name/${roomName}`),
           socialApi.delete(`/livekit/rooms/${roomName}`),
         ]);
+      } else if (userIdentity) {
+        // Non-host participant leaves: ensure stage approval is demoted/revoked
+        await socialApi.post(`/livekit/rooms/${roomName}/participants/${userIdentity}/demote`).catch(() => {});
       }
     } catch (err) {
       // Ignore cleanup errors

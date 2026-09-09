@@ -53,6 +53,7 @@ const datingPrisma = require('./src/utils/datingPrisma');
 const { sendPushNotification } = require('./src/utils/pushNotifier');
 const cacheService = require('./src/services/cache.service');
 const livekitService = require('./src/services/livekit.service');
+const livekitController = require('./src/controllers/livekit.controller');
 const redis = require('./src/lib/redis');
 
 // In-memory grace period timers for host disconnects (roomName -> timer)
@@ -438,6 +439,11 @@ io.on('connection', (socket) => {
       }
     }
 
+    // If a non-host participant disconnects, clean up their approved stage speaker status
+    if (socket.activeLiveRoom && socket.userId && !socket.isLiveRoomHost) {
+      livekitController.removeApprovedSpeaker(socket.activeLiveRoom, socket.userId);
+    }
+
     // If this socket was the host of an active live room, trigger delayed room closure check
     if (socket.isLiveRoomHost && socket.activeLiveRoom) {
       const roomName = socket.activeLiveRoom;
@@ -532,6 +538,9 @@ io.on('connection', (socket) => {
     if (socket.activeLiveRoom === roomName) {
       socket.activeLiveRoom = null;
       socket.isLiveRoomHost = false;
+    }
+    if (socket.userId) {
+      livekitController.removeApprovedSpeaker(roomName, socket.userId);
     }
   });
 
