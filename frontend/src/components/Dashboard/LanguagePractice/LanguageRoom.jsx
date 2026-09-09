@@ -1095,36 +1095,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     }
   }, [isHost, room, roomName, hasExplicitlyLeft, onParticipantEnded, sessionSeconds]);
 
-  // Auto-dismiss countdown timer for meeting ended modal
-  useEffect(() => {
-    if (!showMeetingEndedModal) {
-      if (meetingEndedCountdownRef.current) {
-        clearInterval(meetingEndedCountdownRef.current);
-        meetingEndedCountdownRef.current = null;
-      }
-      return;
-    }
-
-    meetingEndedCountdownRef.current = setInterval(() => {
-      setMeetingEndedCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(meetingEndedCountdownRef.current);
-          meetingEndedCountdownRef.current = null;
-          setShowMeetingEndedModal(false);
-          navigateBack();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (meetingEndedCountdownRef.current) {
-        clearInterval(meetingEndedCountdownRef.current);
-        meetingEndedCountdownRef.current = null;
-      }
-    };
-  }, [showMeetingEndedModal, navigateBack]);
 
   // ── Host disconnected listener (with 10s reconnect grace period) ──────────
   useEffect(() => {
@@ -3474,7 +3444,7 @@ export default function LanguageRoom() {
 
     return () => {
       const pip = useLiveRoomPipStore.getState();
-      if (hasExplicitlyLeft.current) {
+      if (hasExplicitlyLeft.current || hostSummaryData || participantEndedData) {
         // User explicitly left or ended the room: ALWAYS suppress PiP and wipe activeRoom
         pip.setShowPip(false);
         pip.clearActiveRoom();
@@ -3490,7 +3460,7 @@ export default function LanguageRoom() {
         }
       }
     };
-  }, [roomName]);
+  }, [roomName, hostSummaryData, participantEndedData]);
 
   const handleLeaveRoom = useCallback(async () => {
     hasExplicitlyLeft.current = true; // User explicitly left the room
@@ -3575,8 +3545,20 @@ export default function LanguageRoom() {
         userIdentity={userIdentity}
         isRestoring={isRestoring}
         hasExplicitlyLeft={hasExplicitlyLeft}
-        onHostEndSession={(summary) => setHostSummaryData(summary)}
-        onParticipantEnded={(data) => setParticipantEndedData(data)}
+        onHostEndSession={(summary) => {
+          hasExplicitlyLeft.current = true;
+          const pip = useLiveRoomPipStore.getState();
+          pip.setShowPip(false);
+          pip.clearActiveRoom();
+          setHostSummaryData(summary);
+        }}
+        onParticipantEnded={(data) => {
+          hasExplicitlyLeft.current = true;
+          const pip = useLiveRoomPipStore.getState();
+          pip.setShowPip(false);
+          pip.clearActiveRoom();
+          setParticipantEndedData(data);
+        }}
       />
     </div>
   );
