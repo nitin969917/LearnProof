@@ -17,10 +17,31 @@ const loadPersistedShowPip = () => {
   }
 };
 
+const loadPersistedHostSummary = () => {
+  try {
+    const raw = sessionStorage.getItem('learnproof_host_summary');
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
+const loadPersistedParticipantEnded = () => {
+  try {
+    const raw = sessionStorage.getItem('learnproof_participant_ended');
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
 export const useLiveRoomPipStore = create((set) => ({
   activeRoom: loadPersistedRoom(), // { roomName, token, serverUrl, dbRoom, userIdentity }
   showPip: loadPersistedShowPip(),   // whether to show the PiP floating window
   
+  hostSummaryData: loadPersistedHostSummary(),
+  participantEndedData: loadPersistedParticipantEnded(),
+
   // Persisted state across remounts
   sessionSeconds: 0,
   systemEvents: [],
@@ -54,6 +75,33 @@ export const useLiveRoomPipStore = create((set) => ({
       sessionStorage.setItem('learnproof_show_pip', show ? 'true' : 'false');
     } catch (e) {}
     set({ showPip: show });
+  },
+  setHostSummaryData: (data) => {
+    try {
+      if (data) {
+        sessionStorage.setItem('learnproof_host_summary', JSON.stringify(data));
+      } else {
+        sessionStorage.removeItem('learnproof_host_summary');
+      }
+    } catch (e) {}
+    set({ hostSummaryData: data });
+  },
+  setParticipantEndedData: (data) => {
+    try {
+      if (data) {
+        sessionStorage.setItem('learnproof_participant_ended', JSON.stringify(data));
+      } else {
+        sessionStorage.removeItem('learnproof_participant_ended');
+      }
+    } catch (e) {}
+    set({ participantEndedData: data });
+  },
+  clearSummaryModals: () => {
+    try {
+      sessionStorage.removeItem('learnproof_host_summary');
+      sessionStorage.removeItem('learnproof_participant_ended');
+    } catch (e) {}
+    set({ hostSummaryData: null, participantEndedData: null });
   },
   
   // Setters for persisted state

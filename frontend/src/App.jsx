@@ -228,12 +228,24 @@ const GlobalLiveRoomManager = ({ children }) => {
                 video={false}
                 audio={false}
                 onDisconnected={() => {
-                    const wasInPip = showPip;
+                    const pip = useLiveRoomPipStore.getState();
+                    const wasInPip = pip.showPip;
                     if (wasInPip) {
-                        setShowPip(false);
-                        clearActiveRoom();
+                        pip.setShowPip(false);
                         toast('The host has concluded the live session. 👋', { id: 'pip-session-ended', icon: '👋', duration: 4500 });
                     }
+                    if (!pip.hostSummaryData && !pip.participantEndedData) {
+                        const currentActive = pip.activeRoom;
+                        const isHost = currentActive?.dbRoom?.creatorId && String(currentActive.dbRoom.creatorId) === String(currentActive.userIdentity);
+                        if (!isHost && currentActive?.roomName) {
+                            pip.setParticipantEndedData({
+                                roomName: currentActive.roomName,
+                                message: "The host has ended this live practice session. Thank you for participating!",
+                                duration: pip.sessionSeconds || 0
+                            });
+                        }
+                    }
+                    pip.clearActiveRoom();
                 }}
             >
                 <RoomAudioRenderer />

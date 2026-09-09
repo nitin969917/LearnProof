@@ -1087,11 +1087,16 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       duration: 5000,
     });
 
+    const endedData = {
+      roomName,
+      message,
+      duration: sessionSeconds
+    };
+
+    useLiveRoomPipStore.getState().setParticipantEndedData(endedData);
+
     if (onParticipantEnded) {
-      onParticipantEnded({
-        message,
-        duration: sessionSeconds
-      });
+      onParticipantEnded(endedData);
     }
   }, [isHost, room, roomName, hasExplicitlyLeft, onParticipantEnded, sessionSeconds]);
 
@@ -1245,6 +1250,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     const mediaType = dbRoom?.mediaType || 'audio';
 
     const summaryData = {
+      roomName,
       duration: finalDuration,
       peakParticipants: finalParticipants,
       chatCount: finalChatCount,
@@ -1257,6 +1263,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     setIsWhiteboardOpen(false);
     setAllowWhiteboard(false);
+
+    // Save host summary directly into global store
+    useLiveRoomPipStore.getState().setHostSummaryData(summaryData);
 
     // 4. Trigger host summary screen immediately in parent component with 0ms delay!
     if (onHostEndSession) {
@@ -1644,6 +1653,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     socket.on('speak_request', handleSocketSpeakReq);
     socket.on('withdraw_stage_request', handleSocketWithdrawReq);
     socket.on('room_ended', handleRoomEnded);
+    socket.on('hostLeftLiveRoom', handleRoomEnded);
 
     // Join room channel & pull latest room state snapshot (runs immediately and upon any reconnect)
     const sendJoinAndSync = () => {
@@ -1670,6 +1680,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       socket.off('speak_request', handleSocketSpeakReq);
       socket.off('withdraw_stage_request', handleSocketWithdrawReq);
       socket.off('room_ended', handleRoomEnded);
+      socket.off('hostLeftLiveRoom', handleRoomEnded);
     };
   }, [roomName, currentUserId, currentUserName, isHost, amIHost, syncChatHistory]);
 
@@ -1732,6 +1743,23 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       if (subtitleTimeoutRef.current) clearTimeout(subtitleTimeoutRef.current);
     };
   }, [room, roomName, isHost, amIHost]);
+
+  // LiveKit room disconnect listener: if room is terminated by host on server, participant gets notified immediately
+  useEffect(() => {
+    if (!room) return;
+    const handleRoomDisconnect = () => {
+      const amHost = Boolean(isHostRef.current || isHost || amIHost());
+      if (!amHost) {
+        handleHostEndedMeeting();
+      }
+    };
+    room.on('disconnected', handleRoomDisconnect);
+    room.on(RoomEvent.Disconnected, handleRoomDisconnect);
+    return () => {
+      room.off('disconnected', handleRoomDisconnect);
+      room.off(RoomEvent.Disconnected, handleRoomDisconnect);
+    };
+  }, [room, isHost, amIHost, handleHostEndedMeeting]);
 
   // ── Speech Transcription / Subtitles ───────────────────────────────────────
   const startSpeechRecognition = () => {
@@ -3352,12 +3380,18 @@ export default function LanguageRoom() {
   const [dbRoom, setDbRoom] = useState(isRestoring ? activeRoom.dbRoom : null);
   const [userIdentity, setUserIdentity] = useState(isRestoring ? activeRoom.userIdentity : null);
 
-  // Top-level modal state: lifted so they NEVER unmount on LiveKit teardown
-  const [hostSummaryData, setHostSummaryData] = useState(null);
-  const [participantEndedData, setParticipantEndedData] = useState(null);
+  // Read persistent modal state directly from the global store (survives LiveKit unmount/remount)
+  const hostSummaryData = useLiveRoomPipStore(state => state.hostSummaryData);
+  const participantEndedData = useLiveRoomPipStore(state => state.participantEndedData);
+  const setHostSummaryData = useLiveRoomPipStore(state => state.setHostSummaryData);
+  const setParticipantEndedData = useLiveRoomPipStore(state => state.setParticipantEndedData);
+  const clearSummaryModals = useLiveRoomPipStore(state => state.clearSummaryModals);
+
+  const isCurrentHostSummary = Boolean(hostSummaryData && (!hostSummaryData.roomName || hostSummaryData.roomName === roomName));
+  const isCurrentParticipantEnded = Boolean(participantEndedData && (!participantEndedData.roomName || participantEndedData.roomName === roomName));
 
   useEffect(() => {
-    if (!user || hasExplicitlyLeft.current || hostSummaryData || participantEndedData) return;
+    if (!user || hasExplicitlyLeft.current || isCurrentHostSummary || isCurrentParticipantEnded) return;
     if (activeRoom && activeRoom.roomName === roomName && activeRoom.token) {
       setLoading(false);
       return;
@@ -3366,7 +3400,7 @@ export default function LanguageRoom() {
     let isCancelled = false;
 
     const fetchTokenAndRoom = async () => {
-      if (hasExplicitlyLeft.current || isCancelled || hostSummaryData || participantEndedData) return;
+      if (hasExplicitlyLeft.current || isCancelled || isCurrentHostSummary || isCurrentParticipantEnded) return;
       try {
         let roomInfo = null;
         let attempts = 0;
@@ -3388,7 +3422,7 @@ export default function LanguageRoom() {
           }
         }
 
-        if (hasExplicitlyLeft.current || isCancelled || hostSummaryData || participantEndedData) return;
+        if (hasExplicitlyLeft.current || isCancelled || isCurrentHostSummary || isCurrentParticipantEnded) return;
 
         // If room no longer exists in DB, it was ended by host — redirect
         if (!roomInfo) {
@@ -3436,7 +3470,7 @@ export default function LanguageRoom() {
     return () => {
       isCancelled = true;
     };
-  }, [user, roomName, navigate, hostSummaryData, participantEndedData]);
+  }, [user, roomName, navigate, isCurrentHostSummary, isCurrentParticipantEnded]);
 
   useEffect(() => {
     // Hide PiP when inside the full room page
@@ -3489,12 +3523,12 @@ export default function LanguageRoom() {
   }, [roomName, navigate, dbRoom, userIdentity]);
 
   // Top-level modal interceptors:
-  if (hostSummaryData) {
+  if (isCurrentHostSummary) {
     return (
       <HostMeetingSummaryModal
         data={hostSummaryData}
         onDismiss={(target) => {
-          setHostSummaryData(null);
+          clearSummaryModals();
           hasExplicitlyLeft.current = true;
           const pip = useLiveRoomPipStore.getState();
           pip.setShowPip(false);
@@ -3510,12 +3544,12 @@ export default function LanguageRoom() {
     );
   }
 
-  if (participantEndedData) {
+  if (isCurrentParticipantEnded) {
     return (
       <ParticipantMeetingEndedModal
         data={participantEndedData}
         onDismiss={() => {
-          setParticipantEndedData(null);
+          clearSummaryModals();
           hasExplicitlyLeft.current = true;
           const pip = useLiveRoomPipStore.getState();
           pip.setShowPip(false);
@@ -3549,15 +3583,15 @@ export default function LanguageRoom() {
           hasExplicitlyLeft.current = true;
           const pip = useLiveRoomPipStore.getState();
           pip.setShowPip(false);
-          pip.clearActiveRoom();
           setHostSummaryData(summary);
+          pip.clearActiveRoom();
         }}
         onParticipantEnded={(data) => {
           hasExplicitlyLeft.current = true;
           const pip = useLiveRoomPipStore.getState();
           pip.setShowPip(false);
-          pip.clearActiveRoom();
           setParticipantEndedData(data);
+          pip.clearActiveRoom();
         }}
       />
     </div>
