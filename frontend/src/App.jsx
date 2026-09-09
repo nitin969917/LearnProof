@@ -167,6 +167,15 @@ const RootRoute = () => {
     if (loading) return <PageLoader />;
 
     if (user) {
+        const pending = typeof window !== 'undefined'
+            ? (sessionStorage.getItem('pending_notification_route') || localStorage.getItem('pending_notification_route'))
+            : null;
+        if (pending && pending !== '/' && pending !== '/dashboard') {
+            sessionStorage.removeItem('pending_notification_route');
+            localStorage.removeItem('pending_notification_route');
+            console.log('[RootRoute] Redirecting directly to pending notification route:', pending);
+            return <Navigate to={pending} replace />;
+        }
         return <Navigate to="/dashboard" replace />;
     }
 
@@ -307,13 +316,31 @@ const GlobalLiveRoomManager = ({ children }) => {
 // Deep-Link Navigation Manager for Notifications (Live Rooms, Chats, Direct & Group Messages)
 const NotificationDeepLinkHandler = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const safeNavigate = React.useCallback((pathOrUrl) => {
+        if (!pathOrUrl) return;
+        let path = pathOrUrl;
+        if (typeof path === 'string' && (path.startsWith('http://') || path.startsWith('https://'))) {
+            try {
+                const u = new URL(path);
+                path = u.pathname + u.search + u.hash;
+            } catch (_) {}
+        }
+        if (path && path !== location.pathname) {
+            console.log('[Notification Deep-Link] Navigating to target route:', path);
+            navigate(path);
+        }
+    }, [navigate, location.pathname]);
 
     React.useEffect(() => {
+        window.lpNavigate = safeNavigate;
+
         const handleNav = (e) => {
             const path = e.detail;
             if (path) {
                 console.log('[Notification Deep-Link] Navigating via lp_navigate:', path);
-                navigate(path);
+                safeNavigate(path);
             }
         };
 
@@ -326,11 +353,19 @@ const NotificationDeepLinkHandler = () => {
                 targetPath = `/dashboard/social/chats/direct/${data.senderId}`;
             } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
                 targetPath = `/dashboard/social/chats/group/${data.groupId}`;
-            } else if (data.clickAction || data.click_action || data.targetUrl) {
-                targetPath = data.clickAction || data.click_action || data.targetUrl;
+            } else if (data.clickAction && data.clickAction !== '/dashboard') {
+                targetPath = data.clickAction;
+            } else if (data.click_action && data.click_action !== '/dashboard') {
+                targetPath = data.click_action;
+            } else if (data.targetUrl) {
+                targetPath = data.targetUrl;
+            } else if (data.url) {
+                targetPath = data.url;
+            } else if (data.path) {
+                targetPath = data.path;
             }
             console.log('[Notification Deep-Link] Navigating from native notification click:', targetPath);
-            navigate(targetPath);
+            safeNavigate(targetPath);
         };
 
         window.addEventListener('lp_navigate', handleNav);
@@ -341,6 +376,17 @@ const NotificationDeepLinkHandler = () => {
             handleNativeNotif({ detail: data });
         };
 
+        // Service Worker message listener (for web push clicks when tab is already open)
+        const handleSwMessage = (event) => {
+            if (event.data && event.data.type === 'LP_NOTIFICATION_CLICK' && event.data.path) {
+                console.log('[Notification Deep-Link] SW message received:', event.data.path);
+                safeNavigate(event.data.path);
+            }
+        };
+        if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', handleSwMessage);
+        }
+
         // AppUrlOpen listener for Capacitor deep linking (e.g. app schema or domain links)
         let appUrlHandle = null;
         if (Capacitor.isNativePlatform()) {
@@ -350,7 +396,7 @@ const NotificationDeepLinkHandler = () => {
                     const pathWithSearch = url.pathname + url.search;
                     console.log('[Notification Deep-Link] appUrlOpen event:', pathWithSearch);
                     if (pathWithSearch) {
-                        navigate(pathWithSearch);
+                        safeNavigate(pathWithSearch);
                     }
                 } catch (e) {
                     console.warn('[Notification Deep-Link] Failed to parse appUrlOpen url:', event.url);
@@ -362,22 +408,27 @@ const NotificationDeepLinkHandler = () => {
 
         // Check for any pending notification click from launch / cold start
         const pending = sessionStorage.getItem('pending_notification_route') || localStorage.getItem('pending_notification_route');
-        if (pending) {
+        if (pending && pending !== '/dashboard' && pending !== '/') {
             sessionStorage.removeItem('pending_notification_route');
             localStorage.removeItem('pending_notification_route');
             console.log('[Notification Deep-Link] Processing launch pending route:', pending);
-            setTimeout(() => navigate(pending), 200);
+            setTimeout(() => safeNavigate(pending), 100);
+            setTimeout(() => safeNavigate(pending), 500);
         }
 
         return () => {
             window.removeEventListener('lp_navigate', handleNav);
             window.removeEventListener('lp_notification_click', handleNativeNotif);
+            if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+                navigator.serviceWorker.removeEventListener('message', handleSwMessage);
+            }
+            delete window.lpNavigate;
             delete window.handleNativeNotificationClick;
             if (appUrlHandle) {
                 appUrlHandle.remove();
             }
         };
-    }, [navigate]);
+    }, [safeNavigate]);
 
     return null;
 };

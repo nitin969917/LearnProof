@@ -54,6 +54,10 @@ export default function SocialDashboard() {
   });
 
   const [selectedChatContact, setSelectedChatContact] = useState(() => {
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    if (pathSegments[2] === 'chats' && pathSegments[3] && pathSegments[4]) {
+      return { id: parseInt(pathSegments[4], 10), type: pathSegments[3] };
+    }
     const params = new URLSearchParams(window.location.search);
     const chatIdParam = params.get('chatId');
     const chatTypeParam = params.get('chatType');

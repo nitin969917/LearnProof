@@ -150,24 +150,33 @@ export const requestNotificationPermissionAndGetToken = async () => {
 
 export const resolveNotificationPath = (data) => {
   if (!data) return '/dashboard';
+  let path = '/dashboard';
   if (data.roomName) {
-    return `/dashboard/live-rooms/${data.roomName}`;
+    path = `/dashboard/live-rooms/${data.roomName}`;
+  } else if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+    path = `/dashboard/social/chats/direct/${data.senderId}`;
+  } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+    path = `/dashboard/social/chats/group/${data.groupId}`;
+  } else if (data.clickAction && data.clickAction !== '/dashboard') {
+    path = data.clickAction;
+  } else if (data.click_action && data.click_action !== '/dashboard') {
+    path = data.click_action;
+  } else if (data.targetUrl) {
+    path = data.targetUrl;
+  } else if (data.url) {
+    path = data.url;
+  } else if (data.path) {
+    path = data.path;
   }
-  if (data.type === 'CHAT_MESSAGE' && data.senderId) {
-    return `/dashboard/social/chats/direct/${data.senderId}`;
+
+  // If an absolute URL is provided, strip origin to get internal router path
+  if (typeof path === 'string' && (path.startsWith('http://') || path.startsWith('https://'))) {
+    try {
+      const u = new URL(path);
+      path = u.pathname + u.search + u.hash;
+    } catch (_) {}
   }
-  if (data.type === 'GROUP_MESSAGE' && data.groupId) {
-    return `/dashboard/social/chats/group/${data.groupId}`;
-  }
-  if (data.clickAction && data.clickAction !== '/dashboard') {
-    return data.clickAction;
-  }
-  if (data.click_action && data.click_action !== '/dashboard') {
-    return data.click_action;
-  }
-  if (data.targetUrl) return data.targetUrl;
-  if (data.url) return data.url;
-  return '/dashboard';
+  return path || '/dashboard';
 };
 
 // Register foreground message handler to show in-app toasts when the tab is active/focused

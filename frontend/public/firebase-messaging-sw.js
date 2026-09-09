@@ -65,21 +65,43 @@ self.addEventListener('notificationclick', (event) => {
     targetPath = `/dashboard/social/chats/direct/${data.senderId}`;
   } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
     targetPath = `/dashboard/social/chats/group/${data.groupId}`;
-  } else if (data.clickAction || data.click_action) {
-    targetPath = data.clickAction || data.click_action;
+  } else if (data.clickAction && data.clickAction !== '/dashboard') {
+    targetPath = data.clickAction;
+  } else if (data.click_action && data.click_action !== '/dashboard') {
+    targetPath = data.click_action;
+  } else if (data.targetUrl) {
+    targetPath = data.targetUrl;
+  } else if (data.url) {
+    targetPath = data.url;
+  } else if (data.path) {
+    targetPath = data.path;
   }
   
-  const targetUrl = targetPath.startsWith('http') ? targetPath : (self.location.origin + targetPath);
+  if (targetPath.startsWith('http://') || targetPath.startsWith('https://')) {
+    try {
+      const u = new URL(targetPath);
+      targetPath = u.pathname + u.search + u.hash;
+    } catch (_) {}
+  }
+
+  const targetUrl = self.location.origin + (targetPath.startsWith('/') ? targetPath : '/' + targetPath);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // If a window is already open, navigate it to targetUrl and focus
+      // If a window is already open, notify the client app to navigate internally and focus
       for (const client of clientList) {
-        if ('focus' in client && 'navigate' in client) {
-          if (client.url === targetUrl) {
-            return client.focus();
+        if ('focus' in client) {
+          try {
+            client.postMessage({
+              type: 'LP_NOTIFICATION_CLICK',
+              path: targetPath,
+              data: data
+            });
+          } catch (_) {}
+
+          if ('navigate' in client && client.url !== targetUrl) {
+            client.navigate(targetUrl);
           }
-          client.navigate(targetUrl);
           return client.focus();
         }
       }

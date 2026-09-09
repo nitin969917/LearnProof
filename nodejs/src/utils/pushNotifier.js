@@ -50,6 +50,9 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
       }
     }
 
+    const baseUrl = process.env.FRONTEND_URL || 'https://learnproofai.com';
+    const fullTargetUrl = clickAction.startsWith('http') ? clickAction : `${baseUrl}${clickAction}`;
+
     // Serialize all values to string to comply with FCM data payload requirements
     const serializedData = {};
     if (data) {
@@ -63,6 +66,7 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
     serializedData.targetUrl = clickAction;
     serializedData.url = clickAction;
     serializedData.path = clickAction;
+    serializedData.fullUrl = fullTargetUrl;
     if (data && data.roomName) {
       serializedData.roomName = String(data.roomName);
     }
@@ -77,11 +81,10 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
           notification: {
             icon: 'https://learnproofai.com/LP_M_logo.png',
             badge: 'https://learnproofai.com/LP_M_logo.png',
-            clickAction: clickAction,
             data: serializedData
           },
           fcmOptions: {
-            link: clickAction
+            link: fullTargetUrl
           }
         },
         android: {
@@ -91,8 +94,10 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
             color: '#F97316',
             channelId: 'learnproof_notifications',
             defaultSound: true,
-            defaultVibrateTimings: true,
-            clickAction: clickAction
+            defaultVibrateTimings: true
+            // NOTE: Do NOT set clickAction here. An invalid intent action causes Android
+            // to drop intent extras or fail to launch. Leaving it omitted launches MainActivity
+            // with all serializedData preserved in intent.getExtras().
           },
           data: serializedData
         }
