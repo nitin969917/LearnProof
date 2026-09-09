@@ -1018,7 +1018,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // ── Handler: host cleanly ends session for participants ────────────────────
   const handleHostEndedMeeting = useCallback((customMsg) => {
     if (isHostRef.current || isHost) return;
-    if (hasExplicitlyLeft?.current || useLiveRoomPipStore.getState().isExplicitlyLeft) return;
+    const explicit = Boolean(hasExplicitlyLeft?.current || useLiveRoomPipStore.getState().isExplicitlyLeft || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('learnproof_explicit_left') === 'true'));
+    if (explicit) return;
     if (hostDisconnectTimerRef.current) {
       clearTimeout(hostDisconnectTimerRef.current);
       hostDisconnectTimerRef.current = null;
@@ -1114,33 +1115,43 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     const handlePopState = (e) => {
       popStateTriggeredRef.current = true;
-      if (isHost) {
-        // Push state back to prevent leaving without host confirmation
-        window.history.pushState(null, '', window.location.href);
-        // Show confirmation modal
-        setShowEndRoomModal(true);
-      } else {
-        // Non-host user pressed Android back button or browser back: cleanly exit
-        if (hasExplicitlyLeft) {
-          hasExplicitlyLeft.current = true;
-        }
-        const pip = useLiveRoomPipStore.getState();
-        pip.setIsExplicitlyLeft(true);
-        pip.setShowPip(false);
-        pip.clearSummaryModals();
-        pip.clearActiveRoom();
-
-        localStorage.removeItem(`livekit_stage_${roomName}`);
-        localStorage.removeItem(`livekit_mic_${roomName}`);
-        localStorage.removeItem(`livekit_cam_${roomName}`);
-
-        if (room) {
-          try {
-            room.disconnect();
-          } catch (_) {}
-        }
-        handleLeaveRoom();
+      if (hasExplicitlyLeft) {
+        hasExplicitlyLeft.current = true;
       }
+      try {
+        sessionStorage.setItem('learnproof_explicit_left', 'true');
+        sessionStorage.removeItem('learnproof_show_pip');
+        sessionStorage.removeItem('learnproof_active_pip_room');
+        sessionStorage.removeItem('learnproof_participant_ended');
+        sessionStorage.removeItem('learnproof_host_summary');
+      } catch (_) {}
+
+      const pip = useLiveRoomPipStore.getState();
+      pip.setIsExplicitlyLeft(true);
+      pip.setShowPip(false);
+      pip.clearSummaryModals();
+      pip.clearActiveRoom();
+
+      setShowEndRoomModal(false);
+      setShowSettingsModal(false);
+
+      if (localParticipant) {
+        try {
+          localParticipant.setMicrophoneEnabled(false).catch(() => {});
+          localParticipant.setCameraEnabled(false).catch(() => {});
+        } catch (_) {}
+      }
+
+      localStorage.removeItem(`livekit_stage_${roomName}`);
+      localStorage.removeItem(`livekit_mic_${roomName}`);
+      localStorage.removeItem(`livekit_cam_${roomName}`);
+
+      if (room) {
+        try {
+          room.disconnect();
+        } catch (_) {}
+      }
+      handleLeaveRoom();
     };
 
     handlePopStateRef.current = handlePopState;
@@ -1182,33 +1193,47 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     chatTimelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [timelineItems]);
 
-  // ── Leave/End room ─────────────────────────────────────────────────────────
-  const handleLeaveClick = async (e) => {
+  const handleLeaveClick = (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    if (isHost) {
-      // Show confirmation modal for hosts before ending the session for everyone
-      setShowEndRoomModal(true);
-      return;
-    }
-    // Non-hosts leave immediately without confirmation
     if (hasExplicitlyLeft) {
       hasExplicitlyLeft.current = true;
     }
+    try {
+      sessionStorage.setItem('learnproof_explicit_left', 'true');
+      sessionStorage.removeItem('learnproof_show_pip');
+      sessionStorage.removeItem('learnproof_active_pip_room');
+      sessionStorage.removeItem('learnproof_participant_ended');
+      sessionStorage.removeItem('learnproof_host_summary');
+    } catch (_) {}
+
     const pip = useLiveRoomPipStore.getState();
     pip.setIsExplicitlyLeft(true);
     pip.setShowPip(false);
     pip.clearSummaryModals();
     pip.clearActiveRoom();
 
+    setShowEndRoomModal(false);
+    setShowSettingsModal(false);
+
+    // Stop local media tracks immediately so microphone and camera turn off instantly
+    if (localParticipant) {
+      try {
+        localParticipant.setMicrophoneEnabled(false).catch(() => {});
+        localParticipant.setCameraEnabled(false).catch(() => {});
+      } catch (_) {}
+    }
+
     localStorage.removeItem(`livekit_stage_${roomName}`);
     localStorage.removeItem(`livekit_mic_${roomName}`);
     localStorage.removeItem(`livekit_cam_${roomName}`);
+
     if (room) {
       try {
         room.disconnect();
       } catch (_) {}
     }
-    await handleLeaveRoom();
+
+    handleLeaveRoom();
   };
 
   // Called when host confirms ending the session
@@ -1523,7 +1548,18 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const handleLeaveStage = async () => {
     if (!room || !localParticipant) return;
     try {
+      if (localParticipant) {
+        localParticipant.setMicrophoneEnabled(false).catch(() => {});
+        localParticipant.setCameraEnabled(false).catch(() => {});
+      }
+      setIsMicEnabled(false);
+      setIsCamEnabled(false);
+      localStorage.setItem(`livekit_stage_${roomName}`, 'listener');
+      localStorage.removeItem(`livekit_mic_${roomName}`);
+      localStorage.removeItem(`livekit_cam_${roomName}`);
+
       await socialApi.post(`/livekit/rooms/${roomName}/participants/${localParticipant.identity}/demote`);
+      toast.success('You have left the stage and returned to the audience.');
     } catch (err) {
       console.error('Failed to leave stage:', err);
       toast.error('Failed to leave stage.');
@@ -1739,7 +1775,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   useEffect(() => {
     if (!room) return;
     const handleRoomDisconnect = () => {
-      if (hasExplicitlyLeft?.current || useLiveRoomPipStore.getState().isExplicitlyLeft) return;
+      const explicit = Boolean(
+        hasExplicitlyLeft?.current || 
+        useLiveRoomPipStore.getState().isExplicitlyLeft || 
+        (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('learnproof_explicit_left') === 'true')
+      );
+      if (explicit) return;
       const amHost = Boolean(isHostRef.current || isHost || amIHost());
       if (!amHost) {
         handleHostEndedMeeting();
@@ -3381,7 +3422,15 @@ export default function LanguageRoom() {
   const { roomName } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const hasExplicitlyLeft = useRef(false);
+  const hasExplicitlyLeft = useRef(
+    typeof sessionStorage !== 'undefined' && sessionStorage.getItem('learnproof_explicit_left') === 'true'
+  );
+
+  const isExplicitLeft = Boolean(
+    hasExplicitlyLeft.current || 
+    useLiveRoomPipStore.getState().isExplicitlyLeft || 
+    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('learnproof_explicit_left') === 'true')
+  );
 
   const { activeRoom, setActiveRoom, clearActiveRoom } = useLiveRoomPipStore();
   const isRestoring = activeRoom && activeRoom.roomName === roomName;
@@ -3404,7 +3453,12 @@ export default function LanguageRoom() {
   const isCurrentParticipantEnded = Boolean(participantEndedData && (!participantEndedData.roomName || participantEndedData.roomName === roomName));
 
   useEffect(() => {
-    if (!user || hasExplicitlyLeft.current || isCurrentHostSummary || isCurrentParticipantEnded) return;
+    const isLeft = Boolean(
+      hasExplicitlyLeft.current || 
+      useLiveRoomPipStore.getState().isExplicitlyLeft || 
+      (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('learnproof_explicit_left') === 'true')
+    );
+    if (!user || isLeft || isCurrentHostSummary || isCurrentParticipantEnded) return;
     if (activeRoom && activeRoom.roomName === roomName && activeRoom.token) {
       setLoading(false);
       return;
@@ -3413,7 +3467,12 @@ export default function LanguageRoom() {
     let isCancelled = false;
 
     const fetchTokenAndRoom = async () => {
-      if (hasExplicitlyLeft.current || isCancelled || isCurrentHostSummary || isCurrentParticipantEnded) return;
+      const isLeftNow = Boolean(
+        hasExplicitlyLeft.current || 
+        useLiveRoomPipStore.getState().isExplicitlyLeft || 
+        (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('learnproof_explicit_left') === 'true')
+      );
+      if (isLeftNow || isCancelled || isCurrentHostSummary || isCurrentParticipantEnded) return;
       try {
         let roomInfo = null;
         let attempts = 0;
@@ -3529,7 +3588,12 @@ export default function LanguageRoom() {
 
     return () => {
       const pip = useLiveRoomPipStore.getState();
-      if (hasExplicitlyLeft.current || pip.isExplicitlyLeft || hostSummaryData || participantEndedData) {
+      const isLeft = Boolean(
+        hasExplicitlyLeft.current || 
+        pip.isExplicitlyLeft || 
+        (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('learnproof_explicit_left') === 'true')
+      );
+      if (isLeft || hostSummaryData || participantEndedData) {
         // User explicitly left or ended the room: ALWAYS suppress PiP and wipe activeRoom
         pip.setShowPip(false);
         pip.clearActiveRoom();
@@ -3537,7 +3601,7 @@ export default function LanguageRoom() {
         // User clicked to another section without ending the meeting:
         // Only show PiP if activeRoom is still active AND user didn't explicitly leave
         const currentActive = pip.activeRoom;
-        if (currentActive && !hasExplicitlyLeft.current && !pip.isExplicitlyLeft) {
+        if (currentActive && !isLeft) {
           pip.setShowPip(true);
         } else {
           pip.setShowPip(false);
@@ -3547,35 +3611,43 @@ export default function LanguageRoom() {
     };
   }, [roomName, hostSummaryData, participantEndedData]);
 
-  const handleLeaveRoom = useCallback(async () => {
+  const handleLeaveRoom = useCallback(() => {
     hasExplicitlyLeft.current = true; // User explicitly left the room
+    try {
+      sessionStorage.setItem('learnproof_explicit_left', 'true');
+      sessionStorage.removeItem('learnproof_show_pip');
+      sessionStorage.removeItem('learnproof_active_pip_room');
+      sessionStorage.removeItem('learnproof_participant_ended');
+      sessionStorage.removeItem('learnproof_host_summary');
+    } catch (_) {}
+
     const pip = useLiveRoomPipStore.getState();
     pip.setIsExplicitlyLeft(true);
     pip.setShowPip(false);
     pip.clearSummaryModals();
     pip.clearActiveRoom();
 
-    try {
-      localStorage.removeItem(`livekit_stage_${roomName}`);
-      localStorage.removeItem(`livekit_mic_${roomName}`);
-      localStorage.removeItem(`livekit_cam_${roomName}`);
+    localStorage.removeItem(`livekit_stage_${roomName}`);
+    localStorage.removeItem(`livekit_mic_${roomName}`);
+    localStorage.removeItem(`livekit_cam_${roomName}`);
 
+    // Fire-and-forget background server cleanup: DO NOT await so navigation is instant
+    try {
       if (dbRoom && userIdentity && dbRoom.creatorId?.toString() === userIdentity) {
         // Host ends room: delete from DB + LiveKit server (permanently ends)
-        await Promise.allSettled([
+        Promise.allSettled([
           socialApi.delete(`/language-rooms/by-name/${roomName}`),
           socialApi.delete(`/livekit/rooms/${roomName}`),
-        ]);
+        ]).catch(() => {});
       } else if (userIdentity) {
         // Non-host participant leaves: ensure stage approval is demoted/revoked
-        await socialApi.post(`/livekit/rooms/${roomName}/participants/${userIdentity}/demote`).catch(() => {});
+        socialApi.post(`/livekit/rooms/${roomName}/participants/${userIdentity}/demote`).catch(() => {});
       }
-    } catch (err) {
-      // Ignore cleanup errors
-    }
-    // Navigate back respecting where user came from
+    } catch (_) {}
+
+    // Navigate back immediately respecting where user came from
     const navSrc = sessionStorage.getItem('nav_source');
-    navigate(navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms');
+    navigate(navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms', { replace: true });
   }, [roomName, navigate, dbRoom, userIdentity]);
 
   // Top-level modal interceptors:
@@ -3621,7 +3693,7 @@ export default function LanguageRoom() {
     );
   }
 
-  if (!user) return null;
+  if (isExplicitLeft || !user) return null;
   if (loading && !activeRoom) return <RoomLoadingSpinner />;
   if (error) {
     const navSrc = sessionStorage.getItem('nav_source');

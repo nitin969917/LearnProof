@@ -246,14 +246,16 @@ const GlobalLiveRoomManager = ({ children }) => {
         }
     };
 
-    const modalElement = (participantEndedData && !isInsideLanguageRoom && !isExplicitlyLeft) ? (
+    const hasLeft = isExplicitlyLeft || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('learnproof_explicit_left') === 'true');
+
+    const modalElement = (participantEndedData && !isInsideLanguageRoom && !hasLeft) ? (
         <ParticipantMeetingEndedModal
             data={participantEndedData}
             onDismiss={handleDismissParticipantEnded}
         />
     ) : null;
 
-    if (activeRoom) {
+    if (activeRoom && !hasLeft) {
         return (
             <LiveKitRoom
                 serverUrl={activeRoom.serverUrl}
@@ -263,7 +265,8 @@ const GlobalLiveRoomManager = ({ children }) => {
                 audio={false}
                 onDisconnected={() => {
                     const pip = useLiveRoomPipStore.getState();
-                    if (pip.isExplicitlyLeft) {
+                    const isExLeft = pip.isExplicitlyLeft || sessionStorage.getItem('learnproof_explicit_left') === 'true';
+                    if (isExLeft) {
                         pip.setShowPip(false);
                         pip.clearSummaryModals();
                         pip.clearActiveRoom();
@@ -290,7 +293,7 @@ const GlobalLiveRoomManager = ({ children }) => {
             >
                 <RoomAudioRenderer />
                 {children}
-                {showPip && !isExplicitlyLeft && <LiveRoomPipWindow />}
+                {showPip && !hasLeft && <LiveRoomPipWindow />}
                 {modalElement}
             </LiveKitRoom>
         );

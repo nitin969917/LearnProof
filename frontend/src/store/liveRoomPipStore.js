@@ -11,6 +11,7 @@ const loadPersistedRoom = () => {
 
 const loadPersistedShowPip = () => {
   try {
+    if (sessionStorage.getItem('learnproof_explicit_left') === 'true') return false;
     return sessionStorage.getItem('learnproof_show_pip') === 'true';
   } catch (e) {
     return false;
@@ -19,6 +20,7 @@ const loadPersistedShowPip = () => {
 
 const loadPersistedHostSummary = () => {
   try {
+    if (sessionStorage.getItem('learnproof_explicit_left') === 'true') return null;
     const raw = sessionStorage.getItem('learnproof_host_summary');
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
@@ -28,6 +30,7 @@ const loadPersistedHostSummary = () => {
 
 const loadPersistedParticipantEnded = () => {
   try {
+    if (sessionStorage.getItem('learnproof_explicit_left') === 'true') return null;
     const raw = sessionStorage.getItem('learnproof_participant_ended');
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
@@ -35,10 +38,10 @@ const loadPersistedParticipantEnded = () => {
   }
 };
 
-export const useLiveRoomPipStore = create((set) => ({
+export const useLiveRoomPipStore = create((set, get) => ({
   activeRoom: loadPersistedRoom(), // { roomName, token, serverUrl, dbRoom, userIdentity }
   showPip: loadPersistedShowPip(),   // whether to show the PiP floating window
-  isExplicitlyLeft: false,
+  isExplicitlyLeft: typeof sessionStorage !== 'undefined' && sessionStorage.getItem('learnproof_explicit_left') === 'true',
   
   hostSummaryData: loadPersistedHostSummary(),
   participantEndedData: loadPersistedParticipantEnded(),
@@ -48,12 +51,26 @@ export const useLiveRoomPipStore = create((set) => ({
   systemEvents: [],
   chatHistory: [],
 
-  setIsExplicitlyLeft: (val) => set({ isExplicitlyLeft: val }),
+  setIsExplicitlyLeft: (val) => {
+    try {
+      if (val) {
+        sessionStorage.setItem('learnproof_explicit_left', 'true');
+        sessionStorage.removeItem('learnproof_show_pip');
+        sessionStorage.removeItem('learnproof_active_pip_room');
+        sessionStorage.removeItem('learnproof_participant_ended');
+        sessionStorage.removeItem('learnproof_host_summary');
+      } else {
+        sessionStorage.removeItem('learnproof_explicit_left');
+      }
+    } catch (e) {}
+    set({ isExplicitlyLeft: val, ...(val ? { showPip: false, activeRoom: null } : {}) });
+  },
 
   setActiveRoom: (room) => {
     try {
       if (room) {
         sessionStorage.setItem('learnproof_active_pip_room', JSON.stringify(room));
+        sessionStorage.removeItem('learnproof_explicit_left');
       } else {
         sessionStorage.removeItem('learnproof_active_pip_room');
       }
@@ -64,6 +81,7 @@ export const useLiveRoomPipStore = create((set) => ({
     try {
       sessionStorage.removeItem('learnproof_active_pip_room');
       sessionStorage.removeItem('learnproof_show_pip');
+      sessionStorage.setItem('learnproof_explicit_left', 'true');
     } catch (e) {}
     set({ 
       activeRoom: null, 
@@ -75,12 +93,18 @@ export const useLiveRoomPipStore = create((set) => ({
     });
   },
   setShowPip: (show) => {
+    if (show && (get().isExplicitlyLeft || sessionStorage.getItem('learnproof_explicit_left') === 'true')) {
+      return;
+    }
     try {
       sessionStorage.setItem('learnproof_show_pip', show ? 'true' : 'false');
     } catch (e) {}
     set({ showPip: show });
   },
   setHostSummaryData: (data) => {
+    if (data && (get().isExplicitlyLeft || sessionStorage.getItem('learnproof_explicit_left') === 'true')) {
+      return;
+    }
     try {
       if (data) {
         sessionStorage.setItem('learnproof_host_summary', JSON.stringify(data));
@@ -91,6 +115,9 @@ export const useLiveRoomPipStore = create((set) => ({
     set({ hostSummaryData: data });
   },
   setParticipantEndedData: (data) => {
+    if (data && (get().isExplicitlyLeft || sessionStorage.getItem('learnproof_explicit_left') === 'true')) {
+      return;
+    }
     try {
       if (data) {
         sessionStorage.setItem('learnproof_participant_ended', JSON.stringify(data));

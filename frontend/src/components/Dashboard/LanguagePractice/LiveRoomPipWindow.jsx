@@ -224,10 +224,11 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
 
 export default function LiveRoomPipWindow() {
   const navigate = useNavigate();
-  const { activeRoom, clearActiveRoom, setShowPip, showPip } = useLiveRoomPipStore();
+  const { activeRoom, clearActiveRoom, setShowPip, showPip, isExplicitlyLeft } = useLiveRoomPipStore();
   const isDraggingRef = React.useRef(false);
 
-  if (!activeRoom || !showPip) return null;
+  const isLeft = isExplicitlyLeft || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('learnproof_explicit_left') === 'true');
+  if (!activeRoom || !showPip || isLeft) return null;
 
   const handleMaximize = () => {
     if (isDraggingRef.current) return;
