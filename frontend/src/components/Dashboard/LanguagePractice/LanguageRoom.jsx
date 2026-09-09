@@ -26,7 +26,8 @@ import {
   Volume2, Send, UserX, UserPlus, UserMinus,
   Check, X, Hand, LogOut, ChevronsDown, Settings, Languages, Sparkles, Camera,
   Lock, Search, UserCheck, ScreenShare, Monitor, MonitorOff, PencilRuler, Presentation, PenTool,
-  MoreHorizontal, ShieldCheck, Sliders, Shield, HeartHandshake
+  MoreHorizontal, ShieldCheck, Sliders, Shield, HeartHandshake,
+  Trophy, Award, Clock, ArrowRight
 } from 'lucide-react';
 
 
@@ -85,10 +86,18 @@ const getFilterCss = (filterName) => {
 };
 
 // ─── Custom Inner Content (Has access to LiveKit context) ───────────────────
-function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, userIdentity, isRestoring }) {
+function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, userIdentity, isRestoring, hasExplicitlyLeft }) {
 
   const room = useRoomContext();
   const participants = useParticipants();
+  const peakParticipantsRef = useRef(1);
+  useEffect(() => {
+    const currentTotal = (participants?.length || 0) + 1;
+    if (currentTotal > peakParticipantsRef.current) {
+      peakParticipantsRef.current = currentTotal;
+    }
+  }, [participants]);
+
   const { localParticipant } = useLocalParticipant();
   const { send, chatMessages: rawChatMessages } = useChat();
   const chatHistory = useLiveRoomPipStore(state => state.chatHistory);
@@ -278,6 +287,20 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // End Session Confirmation Modal (host only)
   const [showEndRoomModal, setShowEndRoomModal] = useState(false);
+
+  // Host Meeting Summary Modal & Stats
+  const [showHostSummaryModal, setShowHostSummaryModal] = useState(false);
+  const [hostSummaryData, setHostSummaryData] = useState(null);
+
+  const formatDurationDetailed = (secs) => {
+    if (!secs || isNaN(secs)) return '0s';
+    const hrs = Math.floor(secs / 3600);
+    const mins = Math.floor((secs % 3600) / 60);
+    const seconds = secs % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m ${seconds}s`;
+    if (mins > 0) return `${mins}m ${seconds}s`;
+    return `${seconds}s`;
+  };
 
   // Friendly Meeting Ended Modal (for participants when host ends meeting)
   const [showMeetingEndedModal, setShowMeetingEndedModal] = useState(false);
@@ -867,22 +890,27 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       } catch (_) {}
     }
 
+    // Explicitly flag departure so PiP window never activates
+    if (hasExplicitlyLeft) {
+      hasExplicitlyLeft.current = true;
+    }
+
     // Close and reset PiP if open
     const pip = useLiveRoomPipStore.getState();
     pip.setShowPip(false);
     pip.clearActiveRoom();
 
-    const message = customMsg || "The host has concluded this live session for everyone. Thank you for joining and participating in today's conversation!";
+    const message = customMsg || "The host has ended the meeting. Thank you for joining and practicing in today's session!";
     setMeetingEndedMessage(message);
     setMeetingEndedCountdown(10);
     setShowMeetingEndedModal(true);
 
-    toast('The live session has concluded. Thank you! 👋', {
+    toast('The host has ended the meeting. 👋', {
       id: 'room-ended',
       icon: '👋',
       duration: 5000,
     });
-  }, [isHost, room, roomName]);
+  }, [isHost, room, roomName, hasExplicitlyLeft]);
 
   const handleMeetingEndedDismiss = useCallback(() => {
     if (meetingEndedCountdownRef.current) {
@@ -1027,6 +1055,13 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       return;
     }
     // Non-hosts leave immediately without confirmation
+    if (hasExplicitlyLeft) {
+      hasExplicitlyLeft.current = true;
+    }
+    const pip = useLiveRoomPipStore.getState();
+    pip.setShowPip(false);
+    pip.clearActiveRoom();
+
     localStorage.removeItem(`livekit_stage_${roomName}`);
     localStorage.removeItem(`livekit_mic_${roomName}`);
     localStorage.removeItem(`livekit_cam_${roomName}`);
@@ -1042,32 +1077,98 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const handleConfirmEndRoom = async () => {
     setShowEndRoomModal(false);
 
+    // 1. Immediately flag explicit leave so PiP NEVER triggers
+    if (hasExplicitlyLeft) {
+      hasExplicitlyLeft.current = true;
+    }
+    const pip = useLiveRoomPipStore.getState();
+    pip.setShowPip(false);
+    pip.clearActiveRoom();
+
+    // 2. Remove popstate listener cleanly
     if (handlePopStateRef.current) {
       window.removeEventListener('popstate', handlePopStateRef.current);
-      if (popStateTriggeredRef.current) {
-        // Go back once to clean up the extra state we pushed
-        window.history.back();
-      }
+      handlePopStateRef.current = null;
     }
+    popStateTriggeredRef.current = false;
+
+    // 3. Compile session summary metrics before teardown
+    const finalDuration = sessionSeconds;
+    const finalParticipants = Math.max(peakParticipantsRef.current, (participants?.length || 0) + 1);
+    const finalChatCount = chatHistory?.length || 0;
+    const roomTitle = dbRoom?.title || roomName;
+    const roomLang = dbRoom?.language || 'General Practice';
+    const roomLevel = dbRoom?.level || 'All Levels';
+    const mediaType = dbRoom?.mediaType || 'audio';
+
+    setHostSummaryData({
+      duration: finalDuration,
+      peakParticipants: finalParticipants,
+      chatCount: finalChatCount,
+      title: roomTitle,
+      language: roomLang,
+      level: roomLevel,
+      mediaType,
+      endedAt: new Date()
+    });
+
+    // 4. Notify all participants in real time via Socket.IO AND LiveKit data signal
+    try {
+      const socket = getSocialSocket(currentUserId);
+      if (socket) {
+        socket.emit('hostLeftLiveRoom', { roomName });
+        socket.emit('leaveLiveRoom', { roomName });
+      }
+    } catch (_) {}
 
     if (room) {
       try {
         await sendSignal({ type: 'room_ended' });
-        await new Promise(resolve => setTimeout(resolve, 300));
-        room.disconnect();
       } catch (err) {
         console.error('Failed to broadcast room_ended:', err);
       }
+      try {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        room.disconnect();
+      } catch (_) {}
     }
+
     localStorage.removeItem(`livekit_stage_${roomName}`);
     localStorage.removeItem(`livekit_mic_${roomName}`);
     localStorage.removeItem(`livekit_cam_${roomName}`);
-    await handleLeaveRoom();
+
+    // 5. Permanently delete room from DB & LiveKit server
+    try {
+      await Promise.allSettled([
+        socialApi.delete(`/language-rooms/by-name/${roomName}`),
+        socialApi.delete(`/livekit/rooms/${roomName}`),
+      ]);
+    } catch (_) {}
+
+    // 6. Present Host Meeting Summary Modal
+    setShowHostSummaryModal(true);
   };
 
   const handleCancelEndRoom = () => {
     setShowEndRoomModal(false);
     popStateTriggeredRef.current = false;
+  };
+
+  const handleHostSummaryDismiss = (target = 'rooms') => {
+    setShowHostSummaryModal(false);
+    if (hasExplicitlyLeft) {
+      hasExplicitlyLeft.current = true;
+    }
+    const pip = useLiveRoomPipStore.getState();
+    pip.setShowPip(false);
+    pip.clearActiveRoom();
+
+    if (target === 'dashboard') {
+      navigate('/dashboard');
+    } else {
+      const navSrc = sessionStorage.getItem('nav_source');
+      navigate(navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms');
+    }
   };
 
   // ─── Helper: send a data message to room participants ─────────────────────
@@ -2128,16 +2229,24 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
             </div>
 
             <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2 leading-tight">
-              Session Concluded
+              Host Ended the Meeting
             </h3>
 
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-5 leading-relaxed px-1">
-              {meetingEndedMessage || "The host has concluded this live session for everyone. Thank you for joining and participating in today's conversation!"}
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mb-4 leading-relaxed px-1">
+              {meetingEndedMessage || "The host has ended this live room session. Thank you for participating and practicing together!"}
             </p>
 
+            {/* Practice Time summary */}
+            <div className="w-full mb-4 py-2.5 px-3.5 bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-800/40 rounded-2xl flex items-center justify-between text-xs">
+              <span className="font-bold text-gray-600 dark:text-gray-400">Practice Time:</span>
+              <span className="font-black text-orange-600 dark:text-orange-400 tabular-nums">
+                {formatDurationDetailed(sessionSeconds)}
+              </span>
+            </div>
+
             {/* Countdown Badge */}
-            <div className="w-full mb-5 py-2 px-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200/70 dark:border-orange-800/40 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-orange-700 dark:text-orange-300">
-              <span>Auto-returning in</span>
+            <div className="w-full mb-5 py-2 px-3 bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/60 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
+              <span>Returning to rooms in</span>
               <span className="inline-flex items-center justify-center w-5 h-5 bg-orange-500 text-white rounded-full text-[11px] font-black shadow-sm">
                 {meetingEndedCountdown}
               </span>
@@ -2178,6 +2287,114 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
                 className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-red-500/20 transition cursor-pointer active:scale-95"
               >
                 End for All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Host Meeting Summary Modal ── */}
+      {showHostSummaryModal && hostSummaryData && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[250] p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl text-center flex flex-col items-center animate-in zoom-in-95 duration-200">
+            {/* Trophy & Badge */}
+            <div className="relative mb-3">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-500/30 flex items-center justify-center shadow-xl shadow-amber-500/10">
+                <Trophy size={32} className="text-amber-500 animate-bounce" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white flex items-center justify-center text-[11px] font-black shadow">
+                ✓
+              </div>
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-full text-[11px] font-black text-amber-600 dark:text-amber-400 mb-2">
+              <Award size={12} />
+              <span>SESSION CONCLUDED</span>
+            </div>
+
+            <h3 className="text-xl font-black text-gray-900 dark:text-white mb-1 leading-tight">
+              Meeting Summary
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-5 max-w-xs">
+              Great job hosting! Here is the summary of your hosted live practice session.
+            </p>
+
+            {/* Room Title & Tag */}
+            <div className="w-full p-3.5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 mb-4 text-left">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                  Room Topic
+                </span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400">
+                  {hostSummaryData.mediaType === 'video' ? '📹 Video Room' : '🎙️ Audio Room'}
+                </span>
+              </div>
+              <p className="text-sm font-black text-gray-900 dark:text-white truncate">
+                {hostSummaryData.title}
+              </p>
+            </div>
+
+            {/* 4 Stats Grid */}
+            <div className="w-full grid grid-cols-2 gap-2.5 mb-5">
+              {/* Duration */}
+              <div className="p-3 bg-orange-50/70 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-900/30 rounded-2xl text-left flex flex-col justify-between">
+                <div className="flex items-center justify-between text-orange-500 mb-1">
+                  <span className="text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Duration</span>
+                  <Clock size={14} />
+                </div>
+                <span className="text-base font-black text-orange-600 dark:text-orange-400 tabular-nums">
+                  {formatDurationDetailed(hostSummaryData.duration)}
+                </span>
+              </div>
+
+              {/* Participants */}
+              <div className="p-3 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-900/30 rounded-2xl text-left flex flex-col justify-between">
+                <div className="flex items-center justify-between text-blue-500 mb-1">
+                  <span className="text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Attendees</span>
+                  <Users size={14} />
+                </div>
+                <span className="text-base font-black text-blue-600 dark:text-blue-400 tabular-nums">
+                  {hostSummaryData.peakParticipants} {hostSummaryData.peakParticipants === 1 ? 'person' : 'people'}
+                </span>
+              </div>
+
+              {/* Chat Messages */}
+              <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-900/30 rounded-2xl text-left flex flex-col justify-between">
+                <div className="flex items-center justify-between text-emerald-500 mb-1">
+                  <span className="text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Messages</span>
+                  <MessageSquare size={14} />
+                </div>
+                <span className="text-base font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+                  {hostSummaryData.chatCount} sent
+                </span>
+              </div>
+
+              {/* Language & Level */}
+              <div className="p-3 bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200/50 dark:border-purple-900/30 rounded-2xl text-left flex flex-col justify-between">
+                <div className="flex items-center justify-between text-purple-500 mb-1">
+                  <span className="text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Language</span>
+                  <Globe size={14} />
+                </div>
+                <span className="text-xs font-black text-purple-600 dark:text-purple-400 truncate">
+                  {hostSummaryData.language} · {hostSummaryData.level}
+                </span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="w-full flex flex-col sm:flex-row gap-2.5">
+              <button
+                onClick={() => handleHostSummaryDismiss('rooms')}
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/25 transition cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>Live Rooms</span>
+                <ArrowRight size={15} />
+              </button>
+              <button
+                onClick={() => handleHostSummaryDismiss('dashboard')}
+                className="py-3 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-extrabold text-xs sm:text-sm rounded-2xl transition cursor-pointer active:scale-95"
+              >
+                Dashboard
               </button>
             </div>
           </div>
@@ -3294,6 +3511,7 @@ export default function LanguageRoom() {
         dbRoom={dbRoom}
         userIdentity={userIdentity}
         isRestoring={isRestoring}
+        hasExplicitlyLeft={hasExplicitlyLeft}
       />
     </div>
   );

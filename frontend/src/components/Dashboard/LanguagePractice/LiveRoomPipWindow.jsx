@@ -224,10 +224,10 @@ function PipContent({ pipRoom, onMaximize, onClose }) {
 
 export default function LiveRoomPipWindow() {
   const navigate = useNavigate();
-  const { activeRoom, clearActiveRoom, setShowPip } = useLiveRoomPipStore();
+  const { activeRoom, clearActiveRoom, setShowPip, showPip } = useLiveRoomPipStore();
   const isDraggingRef = React.useRef(false);
 
-  if (!activeRoom) return null;
+  if (!activeRoom || !showPip) return null;
 
   const handleMaximize = () => {
     if (isDraggingRef.current) return;
