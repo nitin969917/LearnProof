@@ -234,7 +234,9 @@ if (typeof window !== 'undefined') {
           const targetPath = resolveNotificationPath(data);
           console.log('[Capacitor] Target path resolved:', targetPath);
           sessionStorage.setItem('pending_notification_route', targetPath);
+          localStorage.setItem('pending_notification_route', targetPath);
           window.dispatchEvent(new CustomEvent('lp_navigate', { detail: targetPath }));
+          window.dispatchEvent(new CustomEvent('lp_notification_click', { detail: data }));
         });
 
         PushNotifications.addListener('pushNotificationReceived', (notification) => {
