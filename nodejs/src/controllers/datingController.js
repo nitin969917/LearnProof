@@ -2,6 +2,7 @@ const datingPrisma = require('../utils/datingPrisma');
 const { sendPushNotification } = require('../utils/pushNotifier');
 const livekitService = require('../services/livekit.service');
 const cacheService = require('../services/cache.service');
+const redis = require('../lib/redis');
 
 const delayedDeletions = new Map();
 
@@ -1268,6 +1269,19 @@ const createLanguageRoom = async (req, res) => {
       },
     });
 
+    // Ensure clean state for whiteboard, chat, and room settings for this room
+    try {
+      await redis.del(`live_room:wb:${uniqueRoomName}`);
+      await redis.del(`live_room:chat:${uniqueRoomName}`);
+      await redis.del(`live_room:settings:${uniqueRoomName}`);
+      const initialWb = { isOpen: false, elements: [], mode: 'speakers', allowedIds: [] };
+      await redis.set(`live_room:wb:${uniqueRoomName}`, JSON.stringify(initialWb), 'EX', 86400);
+      const initialSettings = { allowWhiteboard: false, allowScreenShare: false };
+      await redis.set(`live_room:settings:${uniqueRoomName}`, JSON.stringify(initialSettings), 'EX', 86400);
+    } catch (redisErr) {
+      console.error('[LiveRoom] Error resetting Redis state for room:', redisErr.message);
+    }
+
     const creatorName = room.creator?.name || 'A friend';
     const formattedLanguage = room.language || 'English';
     const topicText = room.topic || 'General Discussion';
@@ -1528,6 +1542,14 @@ const deleteLanguageRoom = async (req, res) => {
       where: { id: parseInt(id) },
     });
 
+    if (room && room.roomName) {
+      try {
+        await redis.del(`live_room:wb:${room.roomName}`);
+        await redis.del(`live_room:chat:${room.roomName}`);
+        await redis.del(`live_room:settings:${room.roomName}`);
+      } catch (_) {}
+    }
+
     await invalidateRoomsCache();
     try {
       const io = req.app.get('io');
@@ -1571,6 +1593,12 @@ const deleteLanguageRoomByName = async (req, res) => {
     await datingPrisma.languageRoom.delete({
       where: { roomName },
     });
+
+    try {
+      await redis.del(`live_room:wb:${roomName}`);
+      await redis.del(`live_room:chat:${roomName}`);
+      await redis.del(`live_room:settings:${roomName}`);
+    } catch (_) {}
 
     await invalidateRoomsCache();
     try {

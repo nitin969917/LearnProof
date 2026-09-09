@@ -519,6 +519,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const [allowWhiteboard, setAllowWhiteboard] = useState(false);
   const [allowScreenShare, setAllowScreenShare] = useState(false);
 
+  // Reset whiteboard state whenever roomName changes (new meeting must start clean & closed)
+  useEffect(() => {
+    setIsWhiteboardOpen(false);
+    setAllowWhiteboard(false);
+  }, [roomName]);
+
   // Sync screen share state with local participant
   useEffect(() => {
     if (localParticipant) {
@@ -692,7 +698,10 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         const message = JSON.parse(decoder.decode(payload));
         if (topic === 'whiteboard' || message.type === 'WHITEBOARD_VISIBILITY') {
           if (message.type === 'WHITEBOARD_VISIBILITY') {
-            setIsWhiteboardOpen(message.isOpen);
+            const amHost = Boolean(isHostRef.current || isHost || amIHost());
+            if (!amHost) {
+              setIsWhiteboardOpen(Boolean(message.isOpen));
+            }
           }
         }
         if (message.type === 'REQUEST_ROOM_SETTINGS' && isHost) {
@@ -1112,10 +1121,14 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       endedAt: new Date()
     });
 
+    setIsWhiteboardOpen(false);
+    setAllowWhiteboard(false);
+
     // 4. Notify all participants in real time via Socket.IO AND LiveKit data signal
     try {
       const socket = getSocialSocket(currentUserId);
       if (socket) {
+        socket.emit('clearRoomWhiteboard', { roomName });
         socket.emit('hostLeftLiveRoom', { roomName });
         socket.emit('leaveLiveRoom', { roomName });
       }
@@ -1445,10 +1458,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         syncChatHistory(state.chatHistory);
       }
       const amHost = Boolean(isHostRef.current || isHost || amIHost());
-      if (typeof state.isWhiteboardOpen === 'boolean') {
-        // Only set whiteboard open if not host or if remote says it's open
-        if (!amHost || state.isWhiteboardOpen) {
-          setIsWhiteboardOpen(state.isWhiteboardOpen);
+      // For host: NEVER auto-open whiteboard on room join or sync. Host must explicitly click to open.
+      // For participants: sync whiteboard state from host
+      if (!amHost) {
+        if (typeof state.isWhiteboardOpen === 'boolean') {
+          setIsWhiteboardOpen(Boolean(state.isWhiteboardOpen));
         }
       }
       if (typeof state.allowWhiteboard === 'boolean') {
@@ -1468,7 +1482,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     // 3. Whiteboard visibility broadcast
     const handleWhiteboardVisibility = ({ isOpen }) => {
       const amHost = Boolean(isHostRef.current || isHost || amIHost());
-      if (!amHost || isOpen) {
+      if (!amHost) {
         setIsWhiteboardOpen(Boolean(isOpen));
       }
     };

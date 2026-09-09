@@ -2,6 +2,7 @@ const livekitService = require('../services/livekit.service');
 const datingPrisma = require('../utils/datingPrisma');
 const translate = require('google-translate-api-x');
 const datingController = require('./datingController');
+const redis = require('../lib/redis');
 
 // In-memory stage request queue: roomName -> Map(identity -> { identity, name, requestedAt })
 const stageRequestStore = new Map();
@@ -150,6 +151,13 @@ const deleteRoom = async (req, res) => {
 
     await livekitService.deleteRoom(roomName);
     clearAllStageRequests(roomName);
+
+    try {
+      await redis.del(`live_room:wb:${roomName}`);
+      await redis.del(`live_room:chat:${roomName}`);
+      await redis.del(`live_room:settings:${roomName}`);
+    } catch (_) {}
+
     return res.json({ success: true });
   } catch (err) {
     console.error('LiveKit delete room error:', err);

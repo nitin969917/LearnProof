@@ -72,6 +72,17 @@ export default function RoomWhiteboard({
   const elementsRef = useRef([]);
   const undoStackRef = useRef([]);
 
+  // Reset elements on mount or room change
+  useEffect(() => {
+    elementsRef.current = [];
+    undoStackRef.current = [];
+    peerActiveStrokes.current.clear();
+    peerPreviewShapes.current.clear();
+    if (contextRef.current && canvasRef.current) {
+      contextRef.current.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
+  }, [roomName]);
+
   // Calculate if local user can draw
   const myIdentity = String(localParticipant?.identity || '');
   const canDraw = Boolean(
@@ -708,14 +719,16 @@ export default function RoomWhiteboard({
 
     const handleWhiteboardSyncResponse = (data) => {
       if (!data) return;
-      if (Array.isArray(data.elements) && data.elements.length > 0) {
+      if (Array.isArray(data.elements)) {
         elementsRef.current = data.elements;
-        redrawAllElements();
-        // Redraw on next animation frame to guarantee canvas dimensions & DPR are stable
-        requestAnimationFrame(() => {
-          redrawAllElements();
-        });
+      } else {
+        elementsRef.current = [];
       }
+      redrawAllElements();
+      // Redraw on next animation frame to guarantee canvas dimensions & DPR are stable
+      requestAnimationFrame(() => {
+        redrawAllElements();
+      });
       if (data.mode) {
         setDrawPermissionMode(data.mode);
       }

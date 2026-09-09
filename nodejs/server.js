@@ -644,6 +644,17 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('clearRoomWhiteboard', async ({ roomName }) => {
+    if (!roomName) return;
+    try {
+      await redis.del(`live_room:wb:${roomName}`);
+      roomWhiteboardState.delete(roomName);
+      io.to(`whiteboard_room_${roomName}`).emit('whiteboardPacket', { type: 'CLEAR' });
+    } catch (err) {
+      console.error('[LiveRoom] Error clearing room whiteboard:', err.message);
+    }
+  });
+
   // Client explicitly requests complete room sync state (for late joiners or reconnects)
   socket.on('getLiveRoomSyncState', async ({ roomName }) => {
     if (!roomName) return;
