@@ -148,26 +148,36 @@ export const requestNotificationPermissionAndGetToken = async () => {
   }
 };
 
+export const resolveNotificationPath = (data) => {
+  if (!data) return '/dashboard';
+  if (data.roomName) {
+    return `/dashboard/live-rooms/${data.roomName}`;
+  }
+  if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+    return `/dashboard/social/chats/direct/${data.senderId}`;
+  }
+  if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+    return `/dashboard/social/chats/group/${data.groupId}`;
+  }
+  if (data.clickAction && data.clickAction !== '/dashboard') {
+    return data.clickAction;
+  }
+  if (data.click_action && data.click_action !== '/dashboard') {
+    return data.click_action;
+  }
+  if (data.targetUrl) return data.targetUrl;
+  if (data.url) return data.url;
+  return '/dashboard';
+};
+
 // Register foreground message handler to show in-app toasts when the tab is active/focused
 if (messaging) {
   onMessage(messaging, (payload) => {
     console.log('[FCM] Foreground message received:', payload);
     if (payload.notification) {
       const data = payload.data || {};
-      let targetPath = '/dashboard';
-      if (data.roomName) {
-        targetPath = `/dashboard/live-rooms/${data.roomName}`;
-      } else if (data.clickAction || data.click_action) {
-        targetPath = data.clickAction || data.click_action;
-      } else if (data.type) {
-        if (data.type === 'CHAT_MESSAGE' && data.senderId) {
-          targetPath = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
-        } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
-          targetPath = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
-        }
-      }
+      const targetPath = resolveNotificationPath(data);
 
-      const path = targetPath;
       toast(() => {
         return React.createElement(
           'div', 
@@ -175,7 +185,8 @@ if (messaging) {
             className: "flex flex-col gap-1 text-left cursor-pointer hover:opacity-90 transition-opacity",
             onClick: () => {
               toast.dismiss();
-              window.location.href = path;
+              sessionStorage.setItem('pending_notification_route', targetPath);
+              window.dispatchEvent(new CustomEvent('lp_navigate', { detail: targetPath }));
             }
           },
           React.createElement(
@@ -215,6 +226,36 @@ if (typeof window !== 'undefined') {
       const { Capacitor } = await import('@capacitor/core');
       if (Capacitor && Capacitor.isNativePlatform()) {
         const { PushNotifications } = await import('@capacitor/push-notifications');
+
+        // Immediately attach notification action listener to catch cold-start taps
+        PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+          console.log('[Capacitor] pushNotificationActionPerformed triggered:', action);
+          const data = action.notification?.data || {};
+          const targetPath = resolveNotificationPath(data);
+          console.log('[Capacitor] Target path resolved:', targetPath);
+          sessionStorage.setItem('pending_notification_route', targetPath);
+          window.dispatchEvent(new CustomEvent('lp_navigate', { detail: targetPath }));
+        });
+
+        PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          console.log('Push notification received in foreground:', notification);
+          if (notification.title) {
+            const notifData = notification.data || {};
+            const notifPath = resolveNotificationPath(notifData);
+            toast(() => React.createElement('div', { 
+              className: "font-semibold text-sm cursor-pointer",
+              onClick: () => {
+                toast.dismiss();
+                sessionStorage.setItem('pending_notification_route', notifPath);
+                window.dispatchEvent(new CustomEvent('lp_navigate', { detail: notifPath }));
+              }
+            },
+              React.createElement('div', { className: "font-bold text-orange-600" }, notification.title),
+              React.createElement('div', { className: "text-xs text-gray-500" }, notification.body)
+            ), { icon: '🔔' });
+          }
+        });
+
         let permStatus = await PushNotifications.checkPermissions();
         if (permStatus.receive === 'prompt') {
           permStatus = await PushNotifications.requestPermissions();
@@ -245,44 +286,6 @@ if (typeof window !== 'undefined') {
             localStorage.setItem('native_fcm_token', token.value);
             await saveAnonymousFcmToken(token.value);
             await saveNativeFcmToken(token.value);
-          });
-
-          PushNotifications.addListener('pushNotificationReceived', (notification) => {
-            console.log('Push notification received in foreground:', notification);
-            if (notification.title) {
-              const notifData = notification.data || {};
-              let notifPath = '/dashboard';
-              if (notifData.roomName) {
-                notifPath = `/dashboard/live-rooms/${notifData.roomName}`;
-              } else if (notifData.clickAction || notifData.click_action) {
-                notifPath = notifData.clickAction || notifData.click_action;
-              }
-              toast(() => React.createElement('div', { 
-                className: "font-semibold text-sm cursor-pointer",
-                onClick: () => {
-                  toast.dismiss();
-                  window.location.href = notifPath;
-                }
-              },
-                React.createElement('div', { className: "font-bold text-orange-600" }, notification.title),
-                React.createElement('div', { className: "text-xs text-gray-500" }, notification.body)
-              ), { icon: '🔔' });
-            }
-          });
-
-          PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-            const data = action.notification?.data || {};
-            let targetPath = '/dashboard';
-            if (data.roomName) {
-              targetPath = `/dashboard/live-rooms/${data.roomName}`;
-            } else if (data.clickAction || data.click_action) {
-              targetPath = data.clickAction || data.click_action;
-            } else if (data.type === 'CHAT_MESSAGE' && data.senderId) {
-              targetPath = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
-            } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
-              targetPath = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
-            }
-            window.location.href = targetPath;
           });
         }
       }

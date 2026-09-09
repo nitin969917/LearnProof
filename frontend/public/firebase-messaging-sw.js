@@ -30,14 +30,12 @@ messaging.onBackgroundMessage((payload) => {
   let clickAction = '/dashboard';
   if (data.roomName) {
     clickAction = `/dashboard/live-rooms/${data.roomName}`;
+  } else if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+    clickAction = `/dashboard/social/chats/direct/${data.senderId}`;
+  } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+    clickAction = `/dashboard/social/chats/group/${data.groupId}`;
   } else if (data.clickAction || data.click_action) {
     clickAction = data.clickAction || data.click_action;
-  } else if (data.type) {
-    if (data.type === 'CHAT_MESSAGE' && data.senderId) {
-      clickAction = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
-    } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
-      clickAction = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
-    }
   }
 
   const enrichedData = {
@@ -63,14 +61,12 @@ self.addEventListener('notificationclick', (event) => {
   let targetPath = '/dashboard';
   if (data.roomName) {
     targetPath = `/dashboard/live-rooms/${data.roomName}`;
+  } else if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+    targetPath = `/dashboard/social/chats/direct/${data.senderId}`;
+  } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+    targetPath = `/dashboard/social/chats/group/${data.groupId}`;
   } else if (data.clickAction || data.click_action) {
     targetPath = data.clickAction || data.click_action;
-  } else if (data.type) {
-    if (data.type === 'CHAT_MESSAGE' && data.senderId) {
-      targetPath = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
-    } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
-      targetPath = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
-    }
   }
   
   const targetUrl = targetPath.startsWith('http') ? targetPath : (self.location.origin + targetPath);

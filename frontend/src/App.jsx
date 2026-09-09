@@ -12,6 +12,7 @@ import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { useLiveRoomPipStore } from './store/liveRoomPipStore';
 import LiveRoomPipWindow from './components/Dashboard/LanguagePractice/LiveRoomPipWindow';
+import ParticipantMeetingEndedModal from './components/Dashboard/LanguagePractice/ParticipantMeetingEndedModal';
 import toast from 'react-hot-toast';
 
 // Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
@@ -116,12 +117,21 @@ const ColdStartGuard = () => {
             (typeof navigator !== 'undefined' && navigator.userAgent.includes('LearnProofApp'))
         );
 
-        // On cold start of the native mobile app, reset any restored subpage back to dashboard
+        // On cold start of the native mobile app, reset any restored subpage back to dashboard,
+        // UNLESS the app was opened from a notification or deep-link to a specific section!
         if (isNativeApp && user) {
+            const pendingNotif = sessionStorage.getItem('pending_notification_route') || localStorage.getItem('pending_notification_route');
+            if (pendingNotif) {
+                console.log('[ColdStartGuard] Notification deep-link detected (' + pendingNotif + '). Bypassing dashboard reset.');
+                return;
+            }
+
             const path = location.pathname;
             const isBypass = (
                 path === '/' ||
                 path === '/dashboard' ||
+                path.startsWith('/dashboard/live-rooms') ||
+                path.startsWith('/dashboard/social') ||
                 path === '/download' ||
                 path.startsWith('/verify') ||
                 path.startsWith('/privacy') ||
@@ -217,7 +227,27 @@ const OAuthRedirectHandler = () => {
 // Keeps active rooms connected across ALL sections of the application
 // (Dashboard, Library, Classroom, Notes, Quizzes, etc.) with floating Google Meet-style PiP.
 const GlobalLiveRoomManager = ({ children }) => {
-    const { activeRoom, clearActiveRoom, showPip, setShowPip } = useLiveRoomPipStore();
+    const { activeRoom, clearActiveRoom, showPip, setShowPip, participantEndedData, clearSummaryModals } = useLiveRoomPipStore();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const isInsideLanguageRoom = location.pathname.startsWith('/dashboard/live-rooms/');
+
+    const handleDismissParticipantEnded = () => {
+        clearSummaryModals();
+        const pip = useLiveRoomPipStore.getState();
+        pip.setShowPip(false);
+        pip.clearActiveRoom();
+        const navSrc = sessionStorage.getItem('nav_source');
+        navigate(navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms');
+    };
+
+    const modalElement = (participantEndedData && !isInsideLanguageRoom) ? (
+        <ParticipantMeetingEndedModal
+            data={participantEndedData}
+            onDismiss={handleDismissParticipantEnded}
+        />
+    ) : null;
 
     if (activeRoom) {
         return (
@@ -251,11 +281,95 @@ const GlobalLiveRoomManager = ({ children }) => {
                 <RoomAudioRenderer />
                 {children}
                 {showPip && <LiveRoomPipWindow />}
+                {modalElement}
             </LiveKitRoom>
         );
     }
 
-    return children;
+    return (
+        <>
+            {children}
+            {modalElement}
+        </>
+    );
+};
+
+// Deep-Link Navigation Manager for Notifications (Live Rooms, Chats, Direct & Group Messages)
+const NotificationDeepLinkHandler = () => {
+    const navigate = useNavigate();
+
+    React.useEffect(() => {
+        const handleNav = (e) => {
+            const path = e.detail;
+            if (path) {
+                console.log('[Notification Deep-Link] Navigating via lp_navigate:', path);
+                navigate(path);
+            }
+        };
+
+        const handleNativeNotif = (e) => {
+            const data = e.detail || {};
+            let targetPath = '/dashboard';
+            if (data.roomName) {
+                targetPath = `/dashboard/live-rooms/${data.roomName}`;
+            } else if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+                targetPath = `/dashboard/social/chats/direct/${data.senderId}`;
+            } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+                targetPath = `/dashboard/social/chats/group/${data.groupId}`;
+            } else if (data.clickAction || data.click_action || data.targetUrl) {
+                targetPath = data.clickAction || data.click_action || data.targetUrl;
+            }
+            console.log('[Notification Deep-Link] Navigating from native notification click:', targetPath);
+            navigate(targetPath);
+        };
+
+        window.addEventListener('lp_navigate', handleNav);
+        window.addEventListener('lp_notification_click', handleNativeNotif);
+
+        // Global callback for direct evaluation from native MainActivity
+        window.handleNativeNotificationClick = (data) => {
+            handleNativeNotif({ detail: data });
+        };
+
+        // AppUrlOpen listener for Capacitor deep linking (e.g. app schema or domain links)
+        let appUrlHandle = null;
+        if (Capacitor.isNativePlatform()) {
+            CapApp.addListener('appUrlOpen', (event) => {
+                try {
+                    const url = new URL(event.url);
+                    const pathWithSearch = url.pathname + url.search;
+                    console.log('[Notification Deep-Link] appUrlOpen event:', pathWithSearch);
+                    if (pathWithSearch) {
+                        navigate(pathWithSearch);
+                    }
+                } catch (e) {
+                    console.warn('[Notification Deep-Link] Failed to parse appUrlOpen url:', event.url);
+                }
+            }).then(h => {
+                appUrlHandle = h;
+            }).catch(() => {});
+        }
+
+        // Check for any pending notification click from launch / cold start
+        const pending = sessionStorage.getItem('pending_notification_route') || localStorage.getItem('pending_notification_route');
+        if (pending) {
+            sessionStorage.removeItem('pending_notification_route');
+            localStorage.removeItem('pending_notification_route');
+            console.log('[Notification Deep-Link] Processing launch pending route:', pending);
+            setTimeout(() => navigate(pending), 200);
+        }
+
+        return () => {
+            window.removeEventListener('lp_navigate', handleNav);
+            window.removeEventListener('lp_notification_click', handleNativeNotif);
+            delete window.handleNativeNotificationClick;
+            if (appUrlHandle) {
+                appUrlHandle.remove();
+            }
+        };
+    }, [navigate]);
+
+    return null;
 };
 
 const App = () => {
@@ -339,6 +453,7 @@ const App = () => {
         <AuthProvider>
             <ModalProvider>
                 <Router>
+                    <NotificationDeepLinkHandler />
                     <GlobalLiveRoomManager>
                         <ColdStartGuard />
                         <OAuthRedirectHandler />

@@ -42,9 +42,9 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
       if (data.roomName) {
         clickAction = `/dashboard/live-rooms/${data.roomName}`;
       } else if (data.type === 'CHAT_MESSAGE' && data.senderId) {
-        clickAction = `/dashboard/social?tab=chat&chatType=direct&chatId=${data.senderId}`;
+        clickAction = `/dashboard/social/chats/direct/${data.senderId}`;
       } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
-        clickAction = `/dashboard/social?tab=chat&chatType=group&chatId=${data.groupId}`;
+        clickAction = `/dashboard/social/chats/group/${data.groupId}`;
       } else if (data.clickAction || data.click_action) {
         clickAction = data.clickAction || data.click_action;
       }
@@ -60,6 +60,9 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
       }
     }
     serializedData.clickAction = clickAction;
+    serializedData.targetUrl = clickAction;
+    serializedData.url = clickAction;
+    serializedData.path = clickAction;
     if (data && data.roomName) {
       serializedData.roomName = String(data.roomName);
     }
@@ -88,7 +91,8 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
             color: '#F97316',
             channelId: 'learnproof_notifications',
             defaultSound: true,
-            defaultVibrateTimings: true
+            defaultVibrateTimings: true,
+            clickAction: clickAction
           },
           data: serializedData
         }
