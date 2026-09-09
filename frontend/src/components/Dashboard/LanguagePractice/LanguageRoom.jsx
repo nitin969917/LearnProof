@@ -52,23 +52,37 @@ const RoomLoadingSpinner = () => (
 );
 
 // ─── Error Screen ────────────────────────────────────────────────────────────
-const RoomError = ({ error, onBack }) => (
-  <div className="flex flex-col h-screen w-full bg-orange-50 dark:bg-gray-950 items-center justify-center gap-6 px-4">
-    <div className="p-4 bg-red-500/10 rounded-2xl">
-      <Globe className="text-red-400" size={40} />
+const RoomError = ({ error, onBack }) => {
+  const isEnded = typeof error === 'string' && (
+    error.toLowerCase().includes('inactive') || 
+    error.toLowerCase().includes('ended') || 
+    error.toLowerCase().includes('not found')
+  );
+
+  return (
+    <div className="flex flex-col h-screen w-full bg-orange-50/50 dark:bg-gray-950 items-center justify-center gap-6 px-4">
+      <div className="p-4 bg-orange-500/10 rounded-3xl border border-orange-500/20 shadow-lg shadow-orange-500/5">
+        <HeartHandshake className="text-orange-500" size={40} />
+      </div>
+      <div className="text-center max-w-sm">
+        <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">
+          {isEnded ? "Live Room Has Ended" : "Failed to connect"}
+        </h2>
+        <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm leading-relaxed">
+          {isEnded 
+            ? "This live practice session has already concluded. Explore other active rooms to practice!"
+            : (error || 'Could not join the room. Please try again.')}
+        </p>
+      </div>
+      <button
+        onClick={onBack}
+        className="px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/20 transition-all cursor-pointer active:scale-95"
+      >
+        Explore Live Rooms
+      </button>
     </div>
-    <div className="text-center">
-      <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">Failed to connect</h2>
-      <p className="text-gray-550 dark:text-gray-400 text-sm max-w-xs">{error || 'Could not join the room. Please try again.'}</p>
-    </div>
-    <button
-      onClick={onBack}
-      className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl transition-all cursor-pointer"
-    >
-      Back to Live Rooms
-    </button>
-  </div>
-);
+  );
+};
 
 // ─── Filter CSS Helper ───────────────────────────────────────────────────────
 const getFilterCss = (filterName) => {
@@ -3372,9 +3386,13 @@ export default function LanguageRoom() {
               break;
             }
           } catch (roomErr) {
+            // If room explicitly does not exist (404), it has already ended — stop retrying immediately
+            if (roomErr.response?.status === 404) {
+              break;
+            }
             attempts++;
             if (attempts < 3 && !hasExplicitlyLeft.current && !isCancelled) {
-              await new Promise(r => setTimeout(r, 800));
+              await new Promise(r => setTimeout(r, 600));
             } else {
               console.warn('Failed to resolve room from database after retries:', roomErr);
             }
@@ -3390,8 +3408,9 @@ export default function LanguageRoom() {
           if (!isRoomHost) {
             useLiveRoomPipStore.getState().setParticipantEndedData({
               roomName,
-              message: "The host has ended this live practice session. Thank you for participating!",
-              duration: sessionSeconds || 0
+              title: "Live Room Has Ended",
+              message: "The host has concluded this live practice session. Explore other active rooms to join another conversation!",
+              duration: 0
             });
             return;
           }
@@ -3432,7 +3451,23 @@ export default function LanguageRoom() {
       } catch (err) {
         if (!isCancelled && !hasExplicitlyLeft.current) {
           console.error('Failed to get LiveKit token:', err);
-          setError(err.response?.data?.error || 'Failed to connect to room. The room might be full or inactive.');
+          const errStatus = err.response?.status;
+          const errMsg = err.response?.data?.error || '';
+          const isEnded = errStatus === 404 || 
+            errMsg.toLowerCase().includes('not found') || 
+            errMsg.toLowerCase().includes('inactive') || 
+            errMsg.toLowerCase().includes('ended');
+
+          if (isEnded) {
+            useLiveRoomPipStore.getState().setParticipantEndedData({
+              roomName,
+              title: "Live Room Has Ended",
+              message: "The host has concluded this live practice session. Explore other active rooms to join another conversation!",
+              duration: 0
+            });
+            return;
+          }
+          setError(errMsg || 'Failed to connect to room. The room might be full or inactive.');
         }
       } finally {
         if (!isCancelled) {

@@ -43,20 +43,22 @@ export default function ParticipantMeetingEndedModal({ data, onDismiss }) {
         </div>
 
         <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white mb-1 leading-tight">
-          Host Ended the Meeting
+          {data?.title || "Live Room Has Ended"}
         </h3>
 
         <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300 mb-3.5 leading-relaxed max-w-xs">
-          {data?.message || "The host has ended this live room session. Thank you for participating and practicing together!"}
+          {data?.message || "The host has concluded this live practice session. Explore other active rooms to join another conversation!"}
         </p>
 
-        {/* Practice Time summary */}
-        <div className="w-full mb-3 py-2 px-3 bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-800/40 rounded-xl flex items-center justify-between text-xs">
-          <span className="font-bold text-gray-600 dark:text-gray-400">Practice Time:</span>
-          <span className="font-black text-orange-600 dark:text-orange-400 tabular-nums">
-            {formatDurationDetailed(data?.duration || 0)}
-          </span>
-        </div>
+        {/* Practice Time summary - only shown if user actually spent time in the meeting */}
+        {Boolean(data?.duration && data.duration > 0) && (
+          <div className="w-full mb-3 py-2 px-3 bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-800/40 rounded-xl flex items-center justify-between text-xs">
+            <span className="font-bold text-gray-600 dark:text-gray-400">Practice Time:</span>
+            <span className="font-black text-orange-600 dark:text-orange-400 tabular-nums">
+              {formatDurationDetailed(data.duration)}
+            </span>
+          </div>
+        )}
 
         {/* Countdown Badge */}
         <div className="w-full mb-4 py-1.5 px-2.5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200/70 dark:border-gray-700/60 rounded-xl flex items-center justify-center gap-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
