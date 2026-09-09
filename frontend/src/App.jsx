@@ -217,7 +217,7 @@ const OAuthRedirectHandler = () => {
 // Keeps active rooms connected across ALL sections of the application
 // (Dashboard, Library, Classroom, Notes, Quizzes, etc.) with floating Google Meet-style PiP.
 const GlobalLiveRoomManager = ({ children }) => {
-    const { activeRoom, clearActiveRoom, showPip } = useLiveRoomPipStore();
+    const { activeRoom, clearActiveRoom, showPip, setShowPip } = useLiveRoomPipStore();
 
     if (activeRoom) {
         return (
@@ -229,8 +229,9 @@ const GlobalLiveRoomManager = ({ children }) => {
                 audio={false}
                 onDisconnected={() => {
                     const wasInPip = showPip;
-                    clearActiveRoom();
                     if (wasInPip) {
+                        setShowPip(false);
+                        clearActiveRoom();
                         toast('The host has concluded the live session. 👋', { id: 'pip-session-ended', icon: '👋', duration: 4500 });
                     }
                 }}

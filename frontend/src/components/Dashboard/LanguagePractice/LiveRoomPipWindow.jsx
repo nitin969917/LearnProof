@@ -236,6 +236,7 @@ export default function LiveRoomPipWindow() {
   };
 
   const handleClose = async () => {
+    setShowPip(false);
     clearActiveRoom();
     try {
       const isHost = activeRoom.dbRoom && activeRoom.userIdentity && activeRoom.dbRoom.creatorId?.toString() === activeRoom.userIdentity;

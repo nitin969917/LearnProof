@@ -907,7 +907,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     // Close and reset PiP if open
     const pip = useLiveRoomPipStore.getState();
     pip.setShowPip(false);
-    pip.clearActiveRoom();
 
     const message = customMsg || "The host has ended the meeting. Thank you for joining and practicing in today's session!";
     setMeetingEndedMessage(message);
@@ -1092,7 +1091,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     }
     const pip = useLiveRoomPipStore.getState();
     pip.setShowPip(false);
-    pip.clearActiveRoom();
 
     // 2. Remove popstate listener cleanly
     if (handlePopStateRef.current) {
@@ -1140,10 +1138,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       } catch (err) {
         console.error('Failed to broadcast room_ended:', err);
       }
-      try {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        room.disconnect();
-      } catch (_) {}
     }
 
     localStorage.removeItem(`livekit_stage_${roomName}`);
@@ -1175,6 +1169,12 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     const pip = useLiveRoomPipStore.getState();
     pip.setShowPip(false);
     pip.clearActiveRoom();
+
+    if (room) {
+      try {
+        room.disconnect();
+      } catch (_) {}
+    }
 
     if (target === 'dashboard') {
       navigate('/dashboard');
@@ -3396,33 +3396,38 @@ export default function LanguageRoom() {
   const [userIdentity, setUserIdentity] = useState(isRestoring ? activeRoom.userIdentity : null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || hasExplicitlyLeft.current) return;
     if (activeRoom && activeRoom.roomName === roomName && activeRoom.token) {
       setLoading(false);
       return;
     }
 
+    let isCancelled = false;
+
     const fetchTokenAndRoom = async () => {
+      if (hasExplicitlyLeft.current || isCancelled) return;
       try {
         let roomInfo = null;
         let attempts = 0;
-        while (!roomInfo && attempts < 3) {
+        while (!roomInfo && attempts < 3 && !hasExplicitlyLeft.current && !isCancelled) {
           try {
             const roomRes = await socialApi.get(`/language-rooms/by-name/${roomName}`);
             if (roomRes.data) {
               roomInfo = roomRes.data;
-              setDbRoom(roomInfo);
+              if (!isCancelled) setDbRoom(roomInfo);
               break;
             }
           } catch (roomErr) {
             attempts++;
-            if (attempts < 3) {
+            if (attempts < 3 && !hasExplicitlyLeft.current && !isCancelled) {
               await new Promise(r => setTimeout(r, 800));
             } else {
               console.warn('Failed to resolve room from database after retries:', roomErr);
             }
           }
         }
+
+        if (hasExplicitlyLeft.current || isCancelled) return;
 
         // If room no longer exists in DB, it was ended by host — redirect
         if (!roomInfo) {
@@ -3440,7 +3445,7 @@ export default function LanguageRoom() {
           params: { room: roomName, requestPublish },
         });
 
-        if (res.data?.token && res.data?.serverUrl) {
+        if (!isCancelled && !hasExplicitlyLeft.current && res.data?.token && res.data?.serverUrl) {
           setToken(res.data.token);
           setServerUrl(res.data.serverUrl);
           setUserIdentity(res.data.identity);
@@ -3454,15 +3459,23 @@ export default function LanguageRoom() {
           });
         }
       } catch (err) {
-        console.error('Failed to get LiveKit token:', err);
-        setError(err.response?.data?.error || 'Failed to connect to room. The room might be full or inactive.');
+        if (!isCancelled && !hasExplicitlyLeft.current) {
+          console.error('Failed to get LiveKit token:', err);
+          setError(err.response?.data?.error || 'Failed to connect to room. The room might be full or inactive.');
+        }
       } finally {
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchTokenAndRoom();
-  }, [user, roomName, navigate, activeRoom]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [user, roomName, navigate]);
 
   useEffect(() => {
     // Hide PiP when inside the full room page
@@ -3471,13 +3484,19 @@ export default function LanguageRoom() {
     return () => {
       const pip = useLiveRoomPipStore.getState();
       if (hasExplicitlyLeft.current) {
-        // User explicitly left or ended the room
+        // User explicitly left or ended the room: ALWAYS suppress PiP and wipe activeRoom
         pip.setShowPip(false);
         pip.clearActiveRoom();
       } else {
         // User clicked to another section without ending the meeting:
-        // Keep activeRoom intact and activate floating Google Meet-style Picture-in-Picture window!
-        pip.setShowPip(true);
+        // Only show PiP if activeRoom is still active AND user didn't explicitly leave
+        const currentActive = pip.activeRoom;
+        if (currentActive && !hasExplicitlyLeft.current) {
+          pip.setShowPip(true);
+        } else {
+          pip.setShowPip(false);
+          pip.clearActiveRoom();
+        }
       }
     };
   }, [roomName]);
@@ -3509,7 +3528,7 @@ export default function LanguageRoom() {
   }, [roomName, navigate, dbRoom, userIdentity]);
 
   if (!user) return null;
-  if (loading || !activeRoom) return <RoomLoadingSpinner />;
+  if (loading && !activeRoom) return <RoomLoadingSpinner />;
   if (error) {
     const navSrc = sessionStorage.getItem('nav_source');
     const backPath = navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms';
