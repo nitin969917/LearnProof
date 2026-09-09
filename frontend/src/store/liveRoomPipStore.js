@@ -38,6 +38,7 @@ const loadPersistedParticipantEnded = () => {
 export const useLiveRoomPipStore = create((set) => ({
   activeRoom: loadPersistedRoom(), // { roomName, token, serverUrl, dbRoom, userIdentity }
   showPip: loadPersistedShowPip(),   // whether to show the PiP floating window
+  isExplicitlyLeft: false,
   
   hostSummaryData: loadPersistedHostSummary(),
   participantEndedData: loadPersistedParticipantEnded(),
@@ -47,6 +48,8 @@ export const useLiveRoomPipStore = create((set) => ({
   systemEvents: [],
   chatHistory: [],
 
+  setIsExplicitlyLeft: (val) => set({ isExplicitlyLeft: val }),
+
   setActiveRoom: (room) => {
     try {
       if (room) {
@@ -55,7 +58,7 @@ export const useLiveRoomPipStore = create((set) => ({
         sessionStorage.removeItem('learnproof_active_pip_room');
       }
     } catch (e) {}
-    set({ activeRoom: room });
+    set({ activeRoom: room, isExplicitlyLeft: false });
   },
   clearActiveRoom: () => {
     try {
@@ -65,6 +68,7 @@ export const useLiveRoomPipStore = create((set) => ({
     set({ 
       activeRoom: null, 
       showPip: false,
+      isExplicitlyLeft: true,
       sessionSeconds: 0,
       systemEvents: [],
       chatHistory: []

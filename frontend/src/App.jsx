@@ -227,7 +227,7 @@ const OAuthRedirectHandler = () => {
 // Keeps active rooms connected across ALL sections of the application
 // (Dashboard, Library, Classroom, Notes, Quizzes, etc.) with floating Google Meet-style PiP.
 const GlobalLiveRoomManager = ({ children }) => {
-    const { activeRoom, clearActiveRoom, showPip, setShowPip, participantEndedData, clearSummaryModals } = useLiveRoomPipStore();
+    const { activeRoom, clearActiveRoom, showPip, setShowPip, participantEndedData, clearSummaryModals, isExplicitlyLeft } = useLiveRoomPipStore();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -246,7 +246,7 @@ const GlobalLiveRoomManager = ({ children }) => {
         }
     };
 
-    const modalElement = (participantEndedData && !isInsideLanguageRoom) ? (
+    const modalElement = (participantEndedData && !isInsideLanguageRoom && !isExplicitlyLeft) ? (
         <ParticipantMeetingEndedModal
             data={participantEndedData}
             onDismiss={handleDismissParticipantEnded}
@@ -263,6 +263,12 @@ const GlobalLiveRoomManager = ({ children }) => {
                 audio={false}
                 onDisconnected={() => {
                     const pip = useLiveRoomPipStore.getState();
+                    if (pip.isExplicitlyLeft) {
+                        pip.setShowPip(false);
+                        pip.clearSummaryModals();
+                        pip.clearActiveRoom();
+                        return;
+                    }
                     const wasInPip = pip.showPip;
                     if (wasInPip) {
                         pip.setShowPip(false);
@@ -284,7 +290,7 @@ const GlobalLiveRoomManager = ({ children }) => {
             >
                 <RoomAudioRenderer />
                 {children}
-                {showPip && <LiveRoomPipWindow />}
+                {showPip && !isExplicitlyLeft && <LiveRoomPipWindow />}
                 {modalElement}
             </LiveKitRoom>
         );

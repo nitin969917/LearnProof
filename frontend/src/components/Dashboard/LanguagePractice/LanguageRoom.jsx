@@ -256,13 +256,22 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
   // Helper: back-navigate respecting where the user came from
   const navigateBack = useCallback(() => {
+    if (hasExplicitlyLeft) {
+      hasExplicitlyLeft.current = true;
+    }
+    const pip = useLiveRoomPipStore.getState();
+    pip.setIsExplicitlyLeft(true);
+    pip.setShowPip(false);
+    pip.clearSummaryModals();
+    pip.clearActiveRoom();
+
     if (room) {
       try {
         room.disconnect();
       } catch (_) {}
     }
     handleLeaveRoom();
-  }, [room, handleLeaveRoom]);
+  }, [room, handleLeaveRoom, hasExplicitlyLeft]);
 
   // Mobile screen responsiveness tracking
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -1009,6 +1018,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // ── Handler: host cleanly ends session for participants ────────────────────
   const handleHostEndedMeeting = useCallback((customMsg) => {
     if (isHostRef.current || isHost) return;
+    if (hasExplicitlyLeft?.current || useLiveRoomPipStore.getState().isExplicitlyLeft) return;
     if (hostDisconnectTimerRef.current) {
       clearTimeout(hostDisconnectTimerRef.current);
       hostDisconnectTimerRef.current = null;
@@ -1097,20 +1107,40 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     };
   }, [room, hostIdentity, isHost, handleHostEndedMeeting]);
 
-  // ── Browser back button blocker ───────────────────────────────────────────
+  // ── Browser back button blocker / mobile back handler ─────────────────────
   useEffect(() => {
-    // Only block if user is the host
-    if (!isHost) return;
-
     // Push an extra history entry so we can intercept back navigation
     window.history.pushState(null, '', window.location.href);
 
     const handlePopState = (e) => {
       popStateTriggeredRef.current = true;
-      // Push state back to prevent leaving the active room URL
-      window.history.pushState(null, '', window.location.href);
-      // Show confirmation modal
-      setShowEndRoomModal(true);
+      if (isHost) {
+        // Push state back to prevent leaving without host confirmation
+        window.history.pushState(null, '', window.location.href);
+        // Show confirmation modal
+        setShowEndRoomModal(true);
+      } else {
+        // Non-host user pressed Android back button or browser back: cleanly exit
+        if (hasExplicitlyLeft) {
+          hasExplicitlyLeft.current = true;
+        }
+        const pip = useLiveRoomPipStore.getState();
+        pip.setIsExplicitlyLeft(true);
+        pip.setShowPip(false);
+        pip.clearSummaryModals();
+        pip.clearActiveRoom();
+
+        localStorage.removeItem(`livekit_stage_${roomName}`);
+        localStorage.removeItem(`livekit_mic_${roomName}`);
+        localStorage.removeItem(`livekit_cam_${roomName}`);
+
+        if (room) {
+          try {
+            room.disconnect();
+          } catch (_) {}
+        }
+        handleLeaveRoom();
+      }
     };
 
     handlePopStateRef.current = handlePopState;
@@ -1118,7 +1148,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [isHost]);
+  }, [isHost, room, handleLeaveRoom, roomName, hasExplicitlyLeft]);
 
   // ── Combine and sort chat messages + system events ─────────────────────────
   const timelineItems = [
@@ -1153,7 +1183,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   }, [timelineItems]);
 
   // ── Leave/End room ─────────────────────────────────────────────────────────
-  const handleLeaveClick = async () => {
+  const handleLeaveClick = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     if (isHost) {
       // Show confirmation modal for hosts before ending the session for everyone
       setShowEndRoomModal(true);
@@ -1164,7 +1195,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       hasExplicitlyLeft.current = true;
     }
     const pip = useLiveRoomPipStore.getState();
+    pip.setIsExplicitlyLeft(true);
     pip.setShowPip(false);
+    pip.clearSummaryModals();
     pip.clearActiveRoom();
 
     localStorage.removeItem(`livekit_stage_${roomName}`);
@@ -1187,7 +1220,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       hasExplicitlyLeft.current = true;
     }
     const pip = useLiveRoomPipStore.getState();
+    pip.setIsExplicitlyLeft(true);
     pip.setShowPip(false);
+    pip.clearSummaryModals();
 
     // 2. Remove popstate listener cleanly
     if (handlePopStateRef.current) {
@@ -1704,6 +1739,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   useEffect(() => {
     if (!room) return;
     const handleRoomDisconnect = () => {
+      if (hasExplicitlyLeft?.current || useLiveRoomPipStore.getState().isExplicitlyLeft) return;
       const amHost = Boolean(isHostRef.current || isHost || amIHost());
       if (!amHost) {
         handleHostEndedMeeting();
@@ -1715,7 +1751,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       room.off('disconnected', handleRoomDisconnect);
       room.off(RoomEvent.Disconnected, handleRoomDisconnect);
     };
-  }, [room, isHost, amIHost, handleHostEndedMeeting]);
+  }, [room, isHost, amIHost, handleHostEndedMeeting, hasExplicitlyLeft]);
 
   // ── Speech Transcription / Subtitles ───────────────────────────────────────
   const startSpeechRecognition = () => {
@@ -2800,7 +2836,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleLeaveClick}
-            className={`flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl font-black shadow-lg transition-all active:scale-95 cursor-pointer ${isHost
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              handleLeaveClick(e);
+            }}
+            className={`flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl font-black shadow-lg transition-all active:scale-95 cursor-pointer touch-manipulation ${isHost
                 ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/25 border-none'
                 : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 hover:border-red-500/30'
               }`}
@@ -3489,7 +3529,7 @@ export default function LanguageRoom() {
 
     return () => {
       const pip = useLiveRoomPipStore.getState();
-      if (hasExplicitlyLeft.current || hostSummaryData || participantEndedData) {
+      if (hasExplicitlyLeft.current || pip.isExplicitlyLeft || hostSummaryData || participantEndedData) {
         // User explicitly left or ended the room: ALWAYS suppress PiP and wipe activeRoom
         pip.setShowPip(false);
         pip.clearActiveRoom();
@@ -3497,7 +3537,7 @@ export default function LanguageRoom() {
         // User clicked to another section without ending the meeting:
         // Only show PiP if activeRoom is still active AND user didn't explicitly leave
         const currentActive = pip.activeRoom;
-        if (currentActive && !hasExplicitlyLeft.current) {
+        if (currentActive && !hasExplicitlyLeft.current && !pip.isExplicitlyLeft) {
           pip.setShowPip(true);
         } else {
           pip.setShowPip(false);
@@ -3510,7 +3550,9 @@ export default function LanguageRoom() {
   const handleLeaveRoom = useCallback(async () => {
     hasExplicitlyLeft.current = true; // User explicitly left the room
     const pip = useLiveRoomPipStore.getState();
+    pip.setIsExplicitlyLeft(true);
     pip.setShowPip(false);
+    pip.clearSummaryModals();
     pip.clearActiveRoom();
 
     try {
