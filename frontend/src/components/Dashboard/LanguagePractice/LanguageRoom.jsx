@@ -102,31 +102,31 @@ function HostMeetingSummaryModal({ data, onDismiss }) {
   if (!data) return null;
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[9999] p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl text-center flex flex-col items-center animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-sm sm:max-w-md w-full p-5 sm:p-6 shadow-2xl text-center flex flex-col items-center animate-in zoom-in-95 duration-200">
         {/* Trophy & Badge */}
-        <div className="relative mb-3">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-500/30 flex items-center justify-center shadow-xl shadow-amber-500/10">
-            <Trophy size={32} className="text-amber-500 animate-bounce" />
+        <div className="relative mb-2.5">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500/20 via-orange-500/20 to-yellow-500/20 border border-amber-500/30 flex items-center justify-center shadow-xl shadow-amber-500/10">
+            <Trophy size={28} className="text-amber-500 animate-bounce" />
           </div>
-          <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white flex items-center justify-center text-[11px] font-black shadow">
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white flex items-center justify-center text-[10px] font-black shadow">
             ✓
           </div>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-full text-[11px] font-black text-amber-600 dark:text-amber-400 mb-2">
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-full text-[10px] sm:text-[11px] font-black text-amber-600 dark:text-amber-400 mb-1.5">
           <Award size={12} />
           <span>SESSION CONCLUDED</span>
         </div>
 
-        <h3 className="text-xl font-black text-gray-900 dark:text-white mb-1 leading-tight">
+        <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white mb-1 leading-tight">
           Meeting Summary
         </h3>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-5 max-w-xs">
+        <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 mb-3.5 max-w-xs leading-relaxed">
           Great job hosting! Here is the summary of your hosted live practice session.
         </p>
 
         {/* Room Title & Tag */}
-        <div className="w-full p-3.5 bg-gray-50 dark:bg-gray-800/60 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 mb-4 text-left">
+        <div className="w-full p-3 bg-gray-50/90 dark:bg-gray-800/60 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 mb-3 text-left">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
               Room Topic
@@ -140,65 +140,65 @@ function HostMeetingSummaryModal({ data, onDismiss }) {
           </p>
         </div>
 
-        {/* 4 Stats Grid */}
-        <div className="w-full grid grid-cols-2 gap-2.5 mb-5">
+        {/* 4 Stats Grid - Compact, balanced & clean for mobile */}
+        <div className="w-full grid grid-cols-2 gap-2.5 mb-4">
           {/* Duration */}
-          <div className="p-3 bg-orange-50/70 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-900/30 rounded-2xl text-left flex flex-col justify-between">
+          <div className="p-2.5 sm:p-3 bg-orange-50/70 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-900/30 rounded-2xl text-left flex flex-col justify-between">
             <div className="flex items-center justify-between text-orange-500 mb-1">
-              <span className="text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Duration</span>
-              <Clock size={14} />
+              <span className="text-[10px] sm:text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Duration</span>
+              <Clock size={13} />
             </div>
-            <span className="text-base font-black text-orange-600 dark:text-orange-400 tabular-nums">
+            <span className="text-sm sm:text-base font-black text-orange-600 dark:text-orange-400 tabular-nums truncate">
               {formatDurationDetailed(data.duration)}
             </span>
           </div>
 
           {/* Participants */}
-          <div className="p-3 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-900/30 rounded-2xl text-left flex flex-col justify-between">
+          <div className="p-2.5 sm:p-3 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-900/30 rounded-2xl text-left flex flex-col justify-between">
             <div className="flex items-center justify-between text-blue-500 mb-1">
-              <span className="text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Attendees</span>
-              <Users size={14} />
+              <span className="text-[10px] sm:text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Attendees</span>
+              <Users size={13} />
             </div>
-            <span className="text-base font-black text-blue-600 dark:text-blue-400 tabular-nums">
+            <span className="text-sm sm:text-base font-black text-blue-600 dark:text-blue-400 tabular-nums truncate">
               {data.peakParticipants} {data.peakParticipants === 1 ? 'person' : 'people'}
             </span>
           </div>
 
           {/* Chat Messages */}
-          <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-900/30 rounded-2xl text-left flex flex-col justify-between">
+          <div className="p-2.5 sm:p-3 bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-900/30 rounded-2xl text-left flex flex-col justify-between">
             <div className="flex items-center justify-between text-emerald-500 mb-1">
-              <span className="text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Messages</span>
-              <MessageSquare size={14} />
+              <span className="text-[10px] sm:text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Messages</span>
+              <MessageSquare size={13} />
             </div>
-            <span className="text-base font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+            <span className="text-sm sm:text-base font-black text-emerald-600 dark:text-emerald-400 tabular-nums truncate">
               {data.chatCount} sent
             </span>
           </div>
 
           {/* Language & Level */}
-          <div className="p-3 bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200/50 dark:border-purple-900/30 rounded-2xl text-left flex flex-col justify-between">
+          <div className="p-2.5 sm:p-3 bg-purple-50/70 dark:bg-purple-950/20 border border-purple-200/50 dark:border-purple-900/30 rounded-2xl text-left flex flex-col justify-between">
             <div className="flex items-center justify-between text-purple-500 mb-1">
-              <span className="text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Language</span>
-              <Globe size={14} />
+              <span className="text-[10px] sm:text-[11px] font-extrabold text-gray-500 dark:text-gray-400">Language</span>
+              <Globe size={13} />
             </div>
-            <span className="text-xs font-black text-purple-600 dark:text-purple-400 truncate">
+            <span className="text-[11px] sm:text-xs font-black text-purple-600 dark:text-purple-400 truncate">
               {data.language} · {data.level}
             </span>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="w-full flex flex-col sm:flex-row gap-2.5">
+        {/* Action Buttons - Always side-by-side, equal width & compact on mobile */}
+        <div className="w-full grid grid-cols-2 gap-2.5">
           <button
             onClick={() => onDismiss('rooms')}
-            className="flex-1 py-3 px-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/25 transition cursor-pointer active:scale-95 flex items-center justify-center gap-2"
+            className="w-full py-2.5 px-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/20 transition cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
           >
             <span>Live Rooms</span>
-            <ArrowRight size={15} />
+            <ArrowRight size={13} />
           </button>
           <button
             onClick={() => onDismiss('dashboard')}
-            className="py-3 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-extrabold text-xs sm:text-sm rounded-2xl transition cursor-pointer active:scale-95"
+            className="w-full py-2.5 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-extrabold text-xs rounded-xl border border-gray-200/60 dark:border-gray-700/60 transition cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
           >
             Dashboard
           </button>
@@ -579,6 +579,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Participants panel
   const [showParticipants, setShowParticipants] = useState(false);
   const participantsPanelRef = useRef(null);
+  const peopleButtonRef = useRef(null);
 
   // Unified Timeline for Chat + Entrance notices
   const systemEvents = useLiveRoomPipStore(state => state.systemEvents);
@@ -875,15 +876,22 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   useEffect(() => {
     if (!showParticipants) return;
     const handleClickOutside = (e) => {
+      if (peopleButtonRef.current && peopleButtonRef.current.contains(e.target)) {
+        return;
+      }
       if (participantsPanelRef.current && !participantsPanelRef.current.contains(e.target)) {
         setShowParticipants(false);
       }
     };
     // Use a short timeout so the button click that opens it doesn't immediately close it
-    const timer = setTimeout(() => document.addEventListener('mousedown', handleClickOutside), 50);
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }, 50);
     return () => {
       clearTimeout(timer);
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [showParticipants]);
 
@@ -3066,7 +3074,15 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
         {/* Chat Button */}
         <div
-          onClick={() => setShowChatPanel(prev => !prev)}
+          onClick={() => {
+            setShowChatPanel(prev => {
+              const next = !prev;
+              if (next && window.innerWidth < 1024) {
+                setShowParticipants(false);
+              }
+              return next;
+            });
+          }}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px] relative"
         >
           <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all ${showChatPanel
@@ -3082,7 +3098,16 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
         {/* Participants Button */}
         <div
-          onClick={() => setShowParticipants(prev => !prev)}
+          ref={peopleButtonRef}
+          onClick={() => {
+            setShowParticipants(prev => {
+              const next = !prev;
+              if (next && window.innerWidth < 1024) {
+                setShowChatPanel(false);
+              }
+              return next;
+            });
+          }}
           className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 select-none min-w-[54px] sm:min-w-[64px] relative"
         >
           <div className={`w-12 sm:w-14 h-11 rounded-2xl flex items-center justify-center transition-all relative ${showParticipants
@@ -3492,14 +3517,18 @@ export default function LanguageRoom() {
     return (
       <ParticipantMeetingEndedModal
         data={participantEndedData}
-        onDismiss={() => {
+        onDismiss={(target) => {
           clearSummaryModals();
           hasExplicitlyLeft.current = true;
           const pip = useLiveRoomPipStore.getState();
           pip.setShowPip(false);
           pip.clearActiveRoom();
-          const navSrc = sessionStorage.getItem('nav_source');
-          navigate(navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms');
+          if (target === 'dashboard') {
+            navigate('/dashboard');
+          } else {
+            const navSrc = sessionStorage.getItem('nav_source');
+            navigate(navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms');
+          }
         }}
       />
     );

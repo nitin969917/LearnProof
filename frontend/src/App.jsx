@@ -233,13 +233,17 @@ const GlobalLiveRoomManager = ({ children }) => {
 
     const isInsideLanguageRoom = location.pathname.startsWith('/dashboard/live-rooms/');
 
-    const handleDismissParticipantEnded = () => {
+    const handleDismissParticipantEnded = (target) => {
         clearSummaryModals();
         const pip = useLiveRoomPipStore.getState();
         pip.setShowPip(false);
         pip.clearActiveRoom();
-        const navSrc = sessionStorage.getItem('nav_source');
-        navigate(navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms');
+        if (target === 'dashboard') {
+            navigate('/dashboard');
+        } else {
+            const navSrc = sessionStorage.getItem('nav_source');
+            navigate(navSrc === 'social' ? '/dashboard/social' : '/dashboard/live-rooms');
+        }
     };
 
     const modalElement = (participantEndedData && !isInsideLanguageRoom) ? (
