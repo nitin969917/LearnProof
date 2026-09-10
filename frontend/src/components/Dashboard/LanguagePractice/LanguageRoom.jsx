@@ -230,7 +230,8 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   const participants = useParticipants();
   const peakParticipantsRef = useRef(1);
   useEffect(() => {
-    const currentTotal = (participants?.length || 0) + 1;
+    // useParticipants() returns all participants in the room (both local and remote)
+    const currentTotal = Math.max(1, participants?.length || 1);
     if (currentTotal > peakParticipantsRef.current) {
       peakParticipantsRef.current = currentTotal;
     }
@@ -1233,7 +1234,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     // 3. Compile session summary metrics before teardown
     const finalDuration = sessionSeconds;
-    const finalParticipants = Math.max(peakParticipantsRef.current, (participants?.length || 0) + 1);
+    const finalParticipants = Math.max(1, peakParticipantsRef.current, participants?.length || 1);
     const finalChatCount = chatHistory?.length || 0;
     const roomTitle = dbRoom?.title || roomName;
     const roomLang = dbRoom?.language || 'General Practice';
