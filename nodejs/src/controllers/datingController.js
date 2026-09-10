@@ -2238,7 +2238,7 @@ const sendGroupMessage = async (req, res) => {
             groupName: group.name,
             senderId: String(senderId),
             senderName: message.sender?.name || 'A member',
-            senderPicture: message.sender?.profilePicture || ''
+            senderPicture: (message.sender?.profilePicture && !message.sender.profilePicture.startsWith('data:') && message.sender.profilePicture.length < 500) ? message.sender.profilePicture : ''
           }
         );
       }

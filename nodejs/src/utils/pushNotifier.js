@@ -53,12 +53,17 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
     const baseUrl = process.env.FRONTEND_URL || 'https://learnproofai.com';
     const fullTargetUrl = clickAction.startsWith('http') ? clickAction : `${baseUrl}${clickAction}`;
 
-    // Serialize all values to string to comply with FCM data payload requirements
+    // Serialize all values to string to comply with FCM data payload requirements (max 4KB total)
     const serializedData = {};
     if (data) {
       for (const [key, value] of Object.entries(data)) {
         if (value !== undefined && value !== null) {
-          serializedData[key] = String(value);
+          const strVal = String(value);
+          // Exclude base64 image strings or huge values that exceed FCM 4KB limit
+          if (strVal.startsWith('data:image') || strVal.length > 800) {
+            continue;
+          }
+          serializedData[key] = strVal;
         }
       }
     }
@@ -104,11 +109,12 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
 
       console.log(`[Push Notification] Dispatched successfully. Success: ${response.successCount}, Failure: ${response.failureCount}`);
 
-      // Cleanup invalid tokens
+      // Cleanup invalid tokens and log any failures
       if (response.failureCount > 0) {
         const failedTokens = [];
         response.responses.forEach((resp, idx) => {
           if (!resp.success) {
+            console.error(`[Push Notification Failure for token ${tokens[idx]?.substring(0, 15)}...]:`, resp.error);
             const errCode = resp.error?.code;
             if (errCode === 'messaging/registration-token-not-registered' || 
                 errCode === 'messaging/invalid-registration-token') {

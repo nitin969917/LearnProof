@@ -279,7 +279,7 @@ io.on('connection', (socket) => {
             type: 'CHAT_MESSAGE', 
             senderId: String(message.senderId),
             senderName: senderName,
-            senderPicture: savedMessage.sender?.profilePicture || ''
+            senderPicture: (savedMessage.sender?.profilePicture && !savedMessage.sender.profilePicture.startsWith('data:') && savedMessage.sender.profilePicture.length < 500) ? savedMessage.sender.profilePicture : ''
           }
         );
       } catch (pushErr) {
