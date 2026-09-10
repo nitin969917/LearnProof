@@ -60,12 +60,12 @@ const EDU_PATTERNS = [
 
 // Known Entertainment & Music Labels / Channels
 const ENTERTAINMENT_CHANNEL_KEYWORDS = [
-    'music', 'records', 'entertainment', 'films', 'production', 'series',
+    'music', 'records', 'entertainment', 'films', 'film', 'movies', 'movie', 'production', 'series',
     'saregama', 't-series', 'tseries', 'sony music', 'zee music', 'yrf',
     'tips official', 'speed records', 'everest', 'rajshri', 'eros now',
     'shemaroo', 'ultra bollywood', 'geet mp3', 'white hill', 'b4u', 'desi music',
     'planet marathi', 'venus', 'times music', 'aditya music', 'svf', 'wave music',
-    'nirmitee', 'studio', 'studios', 'talkies', 'cinema'
+    'nirmitee', 'studio', 'studios', 'talkies', 'cinema', 'theatre', 'stage', 'playmovies'
 ];
 
 // Explicit Pure Entertainment Signatures (Required to Block when zero educational intent)
@@ -76,11 +76,14 @@ const ENTERTAINMENT_PATTERNS = [
     /(गाणी|गाणे|गाना|गाने|गीत|गीते|गाण्यांचे|संगीत|धून|कव्वाली|गज़ल|गजल|लावणी|भजन|आरती|चालीसा|श्लोक|नाच|नृत्य|राग|ढोलकी)/i,
     // Foreign songs & music
     /\b(canción|canciones|música|videoclip|chanson|chansons|musique|اغنية|اغاني|كليب|موسيقى)\b/i,
-    // Film / Animation (1)
-    /\b(official trailer|teaser trailer|full movie|hindi dubbed movie|movie clip|teaser|trailer 2|cinema release|box office|deleted scene|web series|tv serial|daily soap|natak|short film)\b/i,
-    /(चित्रपट|पूरी फिल्म|नाटक|मालिका|एपिसोड)/i,
+    // Film / Cinema / Movies (English & Global)
+    /\b(movies?|films?|cinema|cinemas?|cinematic trailer|theatrical|blockbuster|box office|trailers?|teasers?|hollywood|bollywood|tollywood|kollywood|mollywood|dubbed|south dubbed|hindi dubbed|action movie|horror movie|comedy movie|romantic movie|drama movie|thriller movie|sci-fi movie|short film|feature film|motion picture|web series|tv serial|daily soap|natak|kissing scene|hot scene|climax scene|fight scene)\b/i,
+    // Film / Cinema / Serials (Indic: Hindi, Marathi, etc.)
+    /(मूवी|मूवीज|फिल्म|फिल्में|फिल्मों|सिनेमा|चित्रपट|पिक्चर|नाटक|मालिका|धारावाहिक|एपिसोड|ड्रामा|वेब सीरीज|लघु फिल्म|फुल मूवी|फूल मूवी|ब्लॉकबस्टर|बहू|सास बहू)/i,
     // Episode and season markers for TV serials/shows
     /\b(episode\s*\d+|ep\s*\d+|season\s*\d+|s\d+\s*e\d+)\b/i,
+    // Romance / Love (Bollywood/Hollywood titles with no educational context)
+    /\b(lovers?|love story|romcom|romantic (comedy|drama|film|movie)|romance movie|love (movie|film)|kiss scene|hot scene|item song|item number)\b/i,
     // Gaming (20) - pure gameplay/let's play without tutorial
     /\b(gameplay (part|walkthrough|highlights|live)|let's play|clutch moments|gta v|fortnite|speedrun record|free fire live|pubg mobile|roblox funny|montage)\b/i,
     // Comedy (23)
