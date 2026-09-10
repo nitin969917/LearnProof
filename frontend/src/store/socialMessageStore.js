@@ -5,8 +5,33 @@ export const useSocialMessageStore = create((set, get) => ({
   totalUnreadCount: 0,
   unreadByContact: {},
   activeChatUserId: null,
+  activeChatGroupId: null,
 
-  setActiveChatUser: (userId) => set({ activeChatUserId: userId }),
+  setActiveChatUser: (userId) => set({ 
+    activeChatUserId: userId ? userId.toString() : null,
+    activeChatGroupId: null 
+  }),
+
+  setActiveChatGroup: (groupId) => set({ 
+    activeChatGroupId: groupId ? groupId.toString() : null,
+    activeChatUserId: null 
+  }),
+
+  clearActiveChat: () => set({ 
+    activeChatUserId: null, 
+    activeChatGroupId: null 
+  }),
+
+  isConversationActive: (senderId, groupId = null) => {
+    const { activeChatUserId, activeChatGroupId } = get();
+    if (groupId && activeChatGroupId) {
+      return activeChatGroupId.toString() === groupId.toString();
+    }
+    if (senderId && activeChatUserId) {
+      return activeChatUserId.toString() === senderId.toString();
+    }
+    return false;
+  },
 
   fetchUnreadCounts: async () => {
     try {

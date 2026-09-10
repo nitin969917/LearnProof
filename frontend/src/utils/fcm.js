@@ -185,6 +185,14 @@ if (messaging) {
     console.log('[FCM] Foreground message received:', payload);
     if (payload.notification) {
       const data = payload.data || {};
+      
+      // Suppress in-app toast if the user is already actively viewing this chat
+      const isChatActive = useSocialMessageStore.getState().isConversationActive(data.senderId, data.groupId);
+      if (isChatActive) {
+        console.log('[FCM] Conversation is currently active on screen. Suppressing in-app toast.');
+        return;
+      }
+
       const targetPath = resolveNotificationPath(data);
 
       toast(() => {
@@ -252,6 +260,14 @@ if (typeof window !== 'undefined') {
           console.log('Push notification received in foreground:', notification);
           if (notification.title) {
             const notifData = notification.data || {};
+
+            // Suppress in-app toast if the user is already actively viewing this chat
+            const isChatActive = useSocialMessageStore.getState().isConversationActive(notifData.senderId, notifData.groupId);
+            if (isChatActive) {
+              console.log('[Capacitor] Conversation is currently active on screen. Suppressing in-app toast.');
+              return;
+            }
+
             const notifPath = resolveNotificationPath(notifData);
             toast(() => React.createElement('div', { 
               className: "font-semibold text-sm cursor-pointer",

@@ -71,6 +71,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const unreadByContact = useSocialMessageStore((state) => state.unreadByContact);
   const clearUnreadForContact = useSocialMessageStore((state) => state.clearUnreadForContact);
   const setActiveChatUser = useSocialMessageStore((state) => state.setActiveChatUser);
+  const setActiveChatGroup = useSocialMessageStore((state) => state.setActiveChatGroup);
+  const clearActiveChat = useSocialMessageStore((state) => state.clearActiveChat);
 
   // Use shared Zustand stores for instant loading
   const storeFriends = useSocialFeedStore(state => state.friends);
@@ -360,7 +362,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     socketRef.current = getSocialSocket(currentUserId);
 
     return () => {
-      setActiveChatUser(null);
+      clearActiveChat();
     };
   }, [currentUserId]);
 
@@ -635,7 +637,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
   useEffect(() => {
     if (!selectedChat) {
-      setActiveChatUser(null);
+      clearActiveChat();
       setMessages([]);
       return;
     }
@@ -678,7 +680,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           setMessages([]);
         }
       } else if (selectedChat.type === 'group') {
-        setActiveChatUser(null);
+        setActiveChatGroup(selectedChat.id);
         try {
           if (socketRef.current) {
             socketRef.current.emit('joinGroup', selectedChat.id);

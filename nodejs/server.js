@@ -223,6 +223,16 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.isAppActive = true;
+
+  socket.on('presence:foreground', () => {
+    socket.isAppActive = true;
+  });
+
+  socket.on('presence:background', () => {
+    socket.isAppActive = false;
+  });
+
   socket.on('sendMessage', async (data) => {
     const { receiverId, message } = data;
     try {
@@ -231,6 +241,11 @@ io.on('connection', (socket) => {
           senderId: message.senderId,
           receiverId: parseInt(receiverId),
           content: message.content,
+        },
+        include: {
+          sender: {
+            select: { id: true, name: true, profilePicture: true }
+          }
         }
       });
 
@@ -246,21 +261,33 @@ io.on('connection', (socket) => {
       // Emit confirmation back to sender so their message is DB-synced
       socket.emit('messageSent', savedMessage);
 
-      // Send Push Notification
+      // Check if receiver is actively viewing the app
+      let isReceiverForegroundActive = false;
       try {
-        const sender = await datingPrisma.user.findUnique({
-          where: { id: message.senderId },
-          select: { name: true }
-        });
-        const senderName = sender ? sender.name : 'A friend';
-        sendPushNotification(
-          [parseInt(receiverId)],
-          `New message from ${senderName}`,
-          message.content,
-          { type: 'CHAT_MESSAGE', senderId: String(message.senderId) }
-        );
-      } catch (pushErr) {
-        console.error('Error sending push notification for direct message:', pushErr.message);
+        const receiverSockets = await io.in(receiverId.toString()).fetchSockets();
+        isReceiverForegroundActive = receiverSockets.some(s => s.isAppActive !== false);
+      } catch (checkErr) {
+        console.warn('Could not check receiver socket state:', checkErr);
+      }
+
+      // Only send phone system tray push if receiver is backgrounded or offline
+      if (!isReceiverForegroundActive) {
+        try {
+          const senderName = savedMessage.sender?.name || 'A friend';
+          sendPushNotification(
+            [parseInt(receiverId)],
+            `New message from ${senderName}`,
+            message.content,
+            { 
+              type: 'CHAT_MESSAGE', 
+              senderId: String(message.senderId),
+              senderName: senderName,
+              senderPicture: savedMessage.sender?.profilePicture || ''
+            }
+          );
+        } catch (pushErr) {
+          console.error('Error sending push notification for direct message:', pushErr.message);
+        }
       }
     } catch (error) {
       console.error('Error saving socket message:', error);

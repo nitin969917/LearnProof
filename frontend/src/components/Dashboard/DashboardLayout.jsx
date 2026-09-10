@@ -3,7 +3,7 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Menu, Plus, RefreshCw } from "lucide-react";
+import { ArrowLeft, Menu, Plus, RefreshCw, X, Users } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import { useAuth } from "../../context/AuthContext.jsx";
 import socialApi from "../../api/socialApi.js";
@@ -82,11 +82,17 @@ const DashboardLayout = () => {
     const fetchUnreadCounts = useSocialMessageStore((state) => state.fetchUnreadCounts);
     const incrementUnread = useSocialMessageStore((state) => state.incrementUnread);
     const activeChatUserId = useSocialMessageStore((state) => state.activeChatUserId);
+    const activeChatGroupId = useSocialMessageStore((state) => state.activeChatGroupId);
     const activeChatUserIdRef = useRef(activeChatUserId);
+    const activeChatGroupIdRef = useRef(activeChatGroupId);
 
     useEffect(() => {
         activeChatUserIdRef.current = activeChatUserId;
     }, [activeChatUserId]);
+
+    useEffect(() => {
+        activeChatGroupIdRef.current = activeChatGroupId;
+    }, [activeChatGroupId]);
 
     useEffect(() => {
         if (user) {
@@ -162,21 +168,164 @@ const DashboardLayout = () => {
                     matrixClient.removeListener("Room.timeline", handleMatrixGlobalMessage);
                 };
             } else {
-                // Listen for message events globally to increment notification counters if chat not open
+                // Listen for message events globally to show in-app banner or increment counters
                 const socket = getSocialSocket(socialUser.id);
+                
+                // Direct message handler
                 const handleGlobalMessage = (message) => {
-                    if (message && message.senderId) {
-                        const senderStr = message.senderId.toString();
-                        const activeStr = activeChatUserIdRef.current ? activeChatUserIdRef.current.toString() : null;
-                        if (senderStr !== activeStr) {
-                            incrementUnread(senderStr);
-                        }
+                    if (!message || !message.senderId) return;
+                    const senderStr = message.senderId.toString();
+                    const activeStr = activeChatUserIdRef.current ? activeChatUserIdRef.current.toString() : null;
+
+                    // 1. If currently inside this user's chat, SILENTLY return (real-time chat bubble updates with no banner)
+                    if (senderStr === activeStr) {
+                        return;
                     }
+
+                    // 2. Different user or on another screen: increment unread count
+                    incrementUnread(senderStr);
+
+                    // 3. Display sleek floating in-app banner
+                    const senderName = message.sender?.name || 'A friend';
+                    const senderPic = message.sender?.profilePicture || null;
+                    let displayContent = message.content || 'Sent you a message';
+                    try {
+                        if (typeof message.content === 'string' && message.content.startsWith('{')) {
+                            const parsed = JSON.parse(message.content);
+                            displayContent = parsed.text || (parsed.fileUrl ? 'Sent an attachment' : message.content);
+                        }
+                    } catch (_) {}
+
+                    toast.custom((t) => (
+                        <div
+                            onClick={() => {
+                                toast.dismiss(t.id);
+                                navigate(`/dashboard/social/chats/direct/${senderStr}`);
+                            }}
+                            className={`${
+                                t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
+                            } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-orange-200/80 dark:border-gray-700/80 cursor-pointer hover:border-orange-400 dark:hover:border-orange-500/50 active:scale-98`}
+                            style={{ pointerEvents: 'auto' }}
+                        >
+                            <div className="relative shrink-0">
+                                {senderPic ? (
+                                    <img src={senderPic} alt={senderName} className="w-10 h-10 rounded-full object-cover ring-2 ring-orange-500/20" />
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FF5100] to-orange-400 text-white font-black flex items-center justify-center text-sm shadow-xs">
+                                        {senderName ? senderName[0].toUpperCase() : 'U'}
+                                    </div>
+                                )}
+                                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-gray-800" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1">
+                                    <p className="text-xs font-black text-gray-900 dark:text-white truncate">
+                                        {senderName}
+                                    </p>
+                                    <span className="text-[10px] text-[#FF5100] font-black uppercase tracking-wider">
+                                        now
+                                    </span>
+                                </div>
+                                <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5">
+                                    {displayContent}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    toast.dismiss(t.id);
+                                }}
+                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
+                                title="Dismiss"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                    ), {
+                        duration: 4000,
+                        position: 'top-center'
+                    });
+                };
+
+                // Group message handler
+                const handleGlobalGroupMessage = (message) => {
+                    if (!message || !message.groupId) return;
+                    const groupStr = message.groupId.toString();
+                    const activeGroupStr = activeChatGroupIdRef.current ? activeChatGroupIdRef.current.toString() : null;
+
+                    // 1. If currently inside this group, SILENTLY return
+                    if (groupStr === activeGroupStr) {
+                        return;
+                    }
+
+                    // 2. Ignore messages sent by self
+                    if (message.senderId && socialUser && message.senderId.toString() === socialUser.id?.toString()) {
+                        return;
+                    }
+
+                    // 3. Display in-app banner for group message
+                    const groupName = message.groupName || message.group?.name || 'Group';
+                    const senderName = message.senderName || message.sender?.name || 'Someone';
+                    let displayContent = message.content || 'Sent a message';
+                    try {
+                        if (typeof message.content === 'string' && message.content.startsWith('{')) {
+                            const parsed = JSON.parse(message.content);
+                            displayContent = parsed.text || (parsed.fileUrl ? 'Sent an attachment' : message.content);
+                        }
+                    } catch (_) {}
+
+                    toast.custom((t) => (
+                        <div
+                            onClick={() => {
+                                toast.dismiss(t.id);
+                                navigate(`/dashboard/social/chats/group/${groupStr}`);
+                            }}
+                            className={`${
+                                t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
+                            } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-orange-200/80 dark:border-gray-700/80 cursor-pointer hover:border-orange-400 dark:hover:border-orange-500/50 active:scale-98`}
+                            style={{ pointerEvents: 'auto' }}
+                        >
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 text-white font-black flex items-center justify-center text-sm shadow-xs shrink-0">
+                                <Users size={18} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-1">
+                                    <p className="text-xs font-black text-gray-900 dark:text-white truncate">
+                                        {groupName}
+                                    </p>
+                                    <span className="text-[10px] text-[#FF5100] font-black uppercase tracking-wider">
+                                        now
+                                    </span>
+                                </div>
+                                <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5">
+                                    <span className="font-bold text-gray-800 dark:text-gray-200">{senderName}: </span>
+                                    {displayContent}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    toast.dismiss(t.id);
+                                }}
+                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
+                                title="Dismiss"
+                            >
+                                <X size={14} />
+                            </button>
+                        </div>
+                    ), {
+                        duration: 4000,
+                        position: 'top-center'
+                    });
                 };
 
                 socket.on('receiveMessage', handleGlobalMessage);
+                socket.on('receiveGroupMessage', handleGlobalGroupMessage);
                 return () => {
                     socket.off('receiveMessage', handleGlobalMessage);
+                    socket.off('receiveGroupMessage', handleGlobalGroupMessage);
                 };
             }
         }

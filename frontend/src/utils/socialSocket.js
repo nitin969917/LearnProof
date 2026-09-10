@@ -36,6 +36,8 @@ export const getSocialSocket = (userId) => {
       console.log('Social socket connected:', socket.id);
       if (currentSocketUserId) {
         socket.emit('join', currentSocketUserId);
+        const isActive = typeof document !== 'undefined' && document.visibilityState === 'visible';
+        socket.emit(isActive ? 'presence:foreground' : 'presence:background');
       }
     });
 
@@ -46,6 +48,17 @@ export const getSocialSocket = (userId) => {
     socket.on('disconnect', (reason) => {
       console.warn('Social socket disconnected:', reason);
     });
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!socket || !socket.connected) return;
+        if (document.visibilityState === 'visible') {
+          socket.emit('presence:foreground');
+        } else {
+          socket.emit('presence:background');
+        }
+      });
+    }
   }
 
   if (currentSocketUserId && socket.connected) {

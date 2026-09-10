@@ -2225,15 +2225,40 @@ const sendGroupMessage = async (req, res) => {
     datingPrisma.groupMember.findMany({
       where: { groupId: parseInt(groupId), userId: { not: senderId } },
       select: { userId: true }
-    }).then(members => {
-      const receiverIds = members.map(m => m.userId);
-      if (receiverIds.length > 0 && group) {
-        sendPushNotification(
-          receiverIds,
-          `New message in ${group.name}`,
-          `${message.sender.name}: ${content}`,
-          { type: 'GROUP_MESSAGE', groupId: String(groupId) }
-        );
+    }).then(async members => {
+      const allReceiverIds = members.map(m => m.userId);
+      if (allReceiverIds.length > 0 && group) {
+        // Filter out members who are actively in the app in foreground
+        const io = req.app.get('io');
+        let backgroundReceiverIds = allReceiverIds;
+        if (io) {
+          const activeIds = new Set();
+          for (const rid of allReceiverIds) {
+            try {
+              const sockets = await io.in(rid.toString()).fetchSockets();
+              if (sockets.some(s => s.isAppActive !== false)) {
+                activeIds.add(rid);
+              }
+            } catch (_) {}
+          }
+          backgroundReceiverIds = allReceiverIds.filter(id => !activeIds.has(id));
+        }
+
+        if (backgroundReceiverIds.length > 0) {
+          sendPushNotification(
+            backgroundReceiverIds,
+            `New message in ${group.name}`,
+            `${message.sender.name}: ${content}`,
+            { 
+              type: 'GROUP_MESSAGE', 
+              groupId: String(groupId),
+              groupName: group.name,
+              senderId: String(senderId),
+              senderName: message.sender.name,
+              senderPicture: message.sender.profilePicture || ''
+            }
+          );
+        }
       }
     }).catch(pushErr => {
       console.error('Error sending group message push notification:', pushErr.message);
