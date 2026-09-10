@@ -77,15 +77,10 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
     if (admin && admin.apps.length > 0) {
       const response = await admin.messaging().sendEachForMulticast({
         tokens,
-        notification: {
-          title: title,
-          body: body
-        },
+        notification: { title, body },
         data: serializedData,
         webpush: {
           notification: {
-            title: title,
-            body: body,
             icon: 'https://learnproofai.com/LP_M_logo.png',
             badge: 'https://learnproofai.com/LP_M_logo.png',
             data: serializedData
@@ -97,8 +92,6 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
         android: {
           priority: 'high',
           notification: {
-            title: title,
-            body: body,
             icon: 'ic_stat_notification',
             color: '#F97316',
             channelId: 'learnproof_notifications',

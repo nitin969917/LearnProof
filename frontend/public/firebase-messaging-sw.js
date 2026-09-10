@@ -15,48 +15,43 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message: ', payload);
+
+  // If the message contains a notification block, the browser automatically displays it in background.
+  // Calling showNotification here causes duplicate notifications.
+  if (payload.notification) {
+    console.log('[firebase-messaging-sw.js] Notification payload detected. Letting browser handle auto-display to prevent duplicates.');
+    return;
+  }
+
+  const iconUrl = self.location.origin + '/LP_M_logo.png';
+  const notificationTitle = payload.data?.title || "LearnProof AI";
   
-  return clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-    // Only suppress if a window is actively focused by the user (looking directly at the screen inside the app)
-    const isAppFocused = clientList.some(client => client.focused);
-    if (isAppFocused) {
-      console.log('[firebase-messaging-sw.js] App is currently active and focused. Suppressing out-of-app OS notification.');
-      return;
-    }
+  const data = payload.data || {};
+  let clickAction = '/dashboard';
+  if (data.roomName) {
+    clickAction = `/dashboard/live-rooms/${data.roomName}`;
+  } else if (data.type === 'CHAT_MESSAGE' && data.senderId) {
+    clickAction = `/dashboard/social/chats/direct/${data.senderId}`;
+  } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
+    clickAction = `/dashboard/social/chats/group/${data.groupId}`;
+  } else if (data.clickAction || data.click_action) {
+    clickAction = data.clickAction || data.click_action;
+  }
 
-    const iconUrl = self.location.origin + '/LP_M_logo.png';
-    const data = payload.data || {};
-    const notificationTitle = data.title || payload.notification?.title || "LearnProof AI";
-    const notificationBody = data.body || payload.notification?.body || "You have a new update";
-    
-    let clickAction = '/dashboard';
-    if (data.roomName) {
-      clickAction = `/dashboard/live-rooms/${data.roomName}`;
-    } else if (data.type === 'CHAT_MESSAGE' && data.senderId) {
-      clickAction = `/dashboard/social/chats/direct/${data.senderId}`;
-    } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
-      clickAction = `/dashboard/social/chats/group/${data.groupId}`;
-    } else if (data.clickAction || data.click_action) {
-      clickAction = data.clickAction || data.click_action;
-    }
+  const enrichedData = {
+    ...data,
+    clickAction: clickAction || '/dashboard'
+  };
 
-    const enrichedData = {
-      ...data,
-      clickAction: clickAction || '/dashboard'
-    };
+  const notificationOptions = {
+    body: payload.data?.body || "You have a new update",
+    icon: iconUrl,
+    badge: iconUrl,
+    vibrate: [200, 100, 200],
+    data: enrichedData
+  };
 
-    const notificationOptions = {
-      body: notificationBody,
-      icon: iconUrl,
-      badge: iconUrl,
-      vibrate: [200, 100, 200],
-      tag: data.type === 'CHAT_MESSAGE' ? `chat_${data.senderId}` : (data.type === 'GROUP_MESSAGE' ? `group_${data.groupId}` : 'learnproof_notification'),
-      renotify: true,
-      data: enrichedData
-    };
-
-    return self.registration.showNotification(notificationTitle, notificationOptions);
-  });
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 // Handle notification click (focus tab or open new tab)
