@@ -45,6 +45,7 @@ const Inbox = () => {
     const declineFriendRequestLocally = useSocialFeedStore((state) => state.declineFriendRequestLocally);
     const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
     const socialUser = useSocialFeedStore((state) => state.socialUser);
+    const friends = useSocialFeedStore((state) => state.friends);
 
     const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
     const unreadByContact = useSocialMessageStore((state) => state.unreadByContact);
@@ -494,25 +495,56 @@ const Inbox = () => {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {liveRooms.slice(0, 4).map(room => (
-                                <div 
-                                    key={room.id || room.roomName || room.name}
-                                    onClick={() => navigate(`/dashboard/live-rooms/${room.roomName || room.name}`)}
-                                    className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 hover:border-orange-300 rounded-xl p-2.5 flex items-center justify-between gap-2 cursor-pointer transition shadow-2xs hover:shadow-xs active:scale-98"
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                            {room.topic || room.roomName || room.name}
-                                        </p>
-                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                                            {room.language || 'English'} • {room.participantCount || 1} online
-                                        </p>
+                            {liveRooms.slice(0, 4).map(room => {
+                                const friendObj = (friends || []).find(f => Number(f.id) === Number(room.creatorId || room.creator?.id));
+                                const friendName = room.creator?.name || friendObj?.name || 'Friend';
+                                const friendPhoto = room.creator?.profilePicture || friendObj?.profilePicture || '/default-avatar.png';
+
+                                return (
+                                    <div 
+                                        key={room.id || room.roomName || room.name}
+                                        onClick={() => navigate(`/dashboard/live-rooms/${room.roomName || room.name}`)}
+                                        className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 hover:border-orange-300 rounded-xl p-2.5 flex items-center justify-between gap-2.5 cursor-pointer transition shadow-2xs hover:shadow-xs active:scale-98"
+                                    >
+                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                            {/* Friend Avatar with pulsing live dot */}
+                                            <div className="relative shrink-0">
+                                                <img 
+                                                    src={friendPhoto} 
+                                                    alt={friendName}
+                                                    onError={(e) => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
+                                                    className="w-10 h-10 rounded-full object-cover border-2 border-orange-500/30 bg-orange-50 dark:bg-gray-700"
+                                                />
+                                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-red-500 border-2 border-white dark:border-gray-800 flex items-center justify-center">
+                                                    <span className="w-1 h-1 rounded-full bg-white animate-ping"></span>
+                                                </span>
+                                            </div>
+
+                                            {/* Details: Friend Name + Host Badge + Topic + Language/Online */}
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-1.5">
+                                                    <p className="text-xs font-black text-gray-900 dark:text-white truncate">
+                                                        {friendName}
+                                                    </p>
+                                                    <span className="text-[9px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-1.5 py-0.2 rounded-full shrink-0">
+                                                        Host
+                                                    </span>
+                                                </div>
+                                                <p className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 truncate">
+                                                    {room.topic || room.roomName || 'Live Room'}
+                                                </p>
+                                                <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+                                                    {room.language || 'English'} • {room.participantCount || 1} online
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <span className="bg-[#FF5100] hover:bg-[#E04800] text-white text-[11px] font-black px-3 py-1.5 rounded-xl shrink-0 flex items-center gap-1 shadow-xs">
+                                            Join
+                                        </span>
                                     </div>
-                                    <span className="bg-[#FF5100] hover:bg-[#E04800] text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shrink-0 flex items-center gap-1 shadow-2xs">
-                                        Join
-                                    </span>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -821,13 +853,13 @@ const Inbox = () => {
                     ) : (activeFilter === 'rooms' && liveRooms.length === 0) ? (
                         <div className="text-center py-10 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5">
                             <Radio size={24} className="mx-auto mb-2 text-[#FF5100]" />
-                            <h3 className="text-xs font-bold text-gray-800 dark:text-gray-200">No Active Rooms</h3>
-                            <p className="text-[11px] text-gray-400 mt-0.5 mb-3">Be the first to start a language practice room today!</p>
+                            <h3 className="text-xs font-bold text-gray-800 dark:text-gray-200">No Friends Live</h3>
+                            <p className="text-[11px] text-gray-400 mt-0.5 mb-3">None of your friends are currently hosting a room.</p>
                             <button 
                                 onClick={() => navigate('/dashboard/live-rooms')}
                                 className="px-3 py-1.5 bg-[#FF5100] text-white rounded-xl font-bold text-xs shadow-xs active:scale-95 cursor-pointer"
                             >
-                                Create / Join Room
+                                Explore Live Rooms
                             </button>
                         </div>
                     ) : (activeFilter === 'system' && sortedSystemMessages.length === 0) ? (
