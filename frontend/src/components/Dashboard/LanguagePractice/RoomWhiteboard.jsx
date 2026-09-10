@@ -160,8 +160,6 @@ export default function RoomWhiteboard({
       mode,
       allowedIds: customAllowedIds,
     }, true);
-    const label = mode === 'host_only' ? 'Host Only' : mode === 'speakers' ? 'Stage Speakers' : 'Everyone';
-    toast.success(`Whiteboard drawing set to: ${label}`);
   };
 
   // Host toggles individual participant permission
@@ -602,7 +600,6 @@ export default function RoomWhiteboard({
         peerPreviewShapes.current.clear();
         currentShapePreview.current = null;
         redrawAllElements();
-        toast('Whiteboard was cleared', { icon: '🧹', id: 'board_cleared' });
         break;
       }
 
@@ -1079,7 +1076,6 @@ export default function RoomWhiteboard({
     peerPreviewShapes.current.clear();
     redrawAllElements();
     broadcastPacket({ type: 'CLEAR' }, true);
-    toast.success('Whiteboard cleared');
   };
 
   const handleDownload = () => {

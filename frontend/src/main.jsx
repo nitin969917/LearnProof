@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
-import { Toaster } from 'react-hot-toast';
+import { Toaster, ToastBar, toast } from 'react-hot-toast';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -18,31 +18,21 @@ const handleAssetChunkError = (errorMsg) => {
     msg.includes('Failed to load module script') ||
     msg.includes('Strict MIME type checking') ||
     msg.includes('text/html') ||
-    msg.includes("reading 'default'") ||
-    msg.includes("properties of undefined") ||
-    msg.includes("Unexpected token '<'") ||
-    msg.includes("Stale chunk") ||
-    msg.includes("stale chunk")
+    msg.includes('is not a valid JavaScript MIME type')
   ) {
-    console.warn('Post-deployment chunk mismatch detected. Auto-refreshing page for fresh assets...', msg);
-    const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
+    const lastReload = parseInt(sessionStorage.getItem('chunk_reload_timestamp') || '0', 10);
     const now = Date.now();
-    if (!lastReload || now - parseInt(lastReload, 10) > 3000) {
-      sessionStorage.setItem('chunk_reload_timestamp', String(now));
+    if (now - lastReload > 10000) {
+      sessionStorage.setItem('chunk_reload_timestamp', now.toString());
       window.location.reload();
+      return true;
     }
-    return true;
   }
   return false;
 };
 
-window.addEventListener('vite:preloadError', (event) => {
-  event.preventDefault();
-  handleAssetChunkError('vite:preloadError');
-});
-
 window.addEventListener('error', (event) => {
-  const errMsg = event.message || event.error?.message || '';
+  const errMsg = event.message || event.error?.message || String(event || '');
   if (handleAssetChunkError(errMsg)) {
     event.preventDefault();
   }
@@ -76,10 +66,38 @@ createRoot(document.getElementById('root')).render(
             borderRadius: '0.85rem',
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.25)',
             border: '1px solid rgba(255, 255, 255, 0.1)',
-            padding: '10px 16px',
+            padding: '10px 14px',
           }
         }}
-      />
+      >
+        {(t) => (
+          <ToastBar toast={t}>
+            {({ icon, message }) => (
+              <>
+                {icon}
+                {message}
+                {t.type !== 'loading' && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast.dismiss(t.id);
+                    }}
+                    className="ml-2 -mr-1 p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-md hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                    title="Close"
+                    aria-label="Close notification"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
+          </ToastBar>
+        )}
+      </Toaster>
     </AuthProvider>
   </GoogleOAuthProvider>
 )

@@ -149,7 +149,6 @@ const Inbox = () => {
             setLoading(false);
             if (isManualRefresh) {
                 setRefreshing(false);
-                toast.success('Inbox refreshed');
             }
         }
     };

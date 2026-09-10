@@ -358,39 +358,55 @@ const DashboardLayout = () => {
     useEffect(() => {
         if (!socialUser || !socialUser.id) return;
         const socket = getSocialSocket(socialUser.id);
-        const handleRoomEvent = (data) => {
+        const handleRoomInvitation = (data) => {
             if (!data || !data.roomName) return;
-            // If already in this room, don't show duplicate alert
+            // If already in this room, don't show alert
             if (location.pathname.includes(data.roomName)) return;
 
-            toast((t) => (
+            toast.custom((t) => (
                 <div 
-                    onClick={() => {
-                        toast.dismiss(t.id);
-                        navigate(`/dashboard/live-rooms/${data.roomName}`);
-                    }}
-                    className="flex items-center gap-3 cursor-pointer select-none"
+                    className={`${
+                        t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
+                    } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-orange-200/80 dark:border-gray-700/80 cursor-pointer hover:border-orange-400 dark:hover:border-orange-500/50 active:scale-98`}
+                    style={{ pointerEvents: 'auto' }}
                 >
-                    <div className="w-8 h-8 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-black text-xs shrink-0">
-                        🔴
+                    <div 
+                        onClick={() => {
+                            toast.dismiss(t.id);
+                            navigate(`/dashboard/live-rooms/${data.roomName}`);
+                        }}
+                        className="flex items-center gap-3 flex-1 min-w-0"
+                    >
+                        <div className="w-10 h-10 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-black text-sm shrink-0">
+                            🔴
+                        </div>
+                        <div className="flex flex-col text-left truncate">
+                            <span className="text-xs font-black text-gray-900 dark:text-white truncate">
+                                {data.creatorName ? `${data.creatorName} invited you` : 'Live Room Invitation'}
+                            </span>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                                {data.topic ? `"${data.topic}"` : 'Tap to join room now!'}
+                            </span>
+                        </div>
                     </div>
-                    <div className="flex flex-col text-left">
-                        <span className="text-xs font-bold text-gray-900 dark:text-white">
-                            {data.creatorName ? `${data.creatorName} started a live room` : 'Live Room Started'}
-                        </span>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400">
-                            {data.topic ? `"${data.topic}"` : 'Tap to join now!'}
-                        </span>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toast.dismiss(t.id);
+                        }}
+                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
+                        title="Dismiss"
+                    >
+                        <X size={15} />
+                    </button>
                 </div>
-            ), { id: `live_room_notif_${data.roomName}`, duration: 8000 });
+            ), { id: `live_room_invite_${data.roomName}`, duration: 5000, position: 'top-center' });
         };
 
-        socket.on('ROOM_INVITATION', handleRoomEvent);
-        socket.on('ROOM_STARTED', handleRoomEvent);
+        socket.on('ROOM_INVITATION', handleRoomInvitation);
         return () => {
-            socket.off('ROOM_INVITATION', handleRoomEvent);
-            socket.off('ROOM_STARTED', handleRoomEvent);
+            socket.off('ROOM_INVITATION', handleRoomInvitation);
         };
     }, [socialUser, navigate, location.pathname]);
 
