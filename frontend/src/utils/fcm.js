@@ -282,6 +282,10 @@ if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('lp_notification_click', { detail: data }));
         });
 
+        try {
+          PushNotifications.removeAllDeliveredNotifications();
+        } catch (_) {}
+
         PushNotifications.addListener('pushNotificationReceived', (notification) => {
           console.log('Push notification received in foreground:', notification);
           if (notification.title) {

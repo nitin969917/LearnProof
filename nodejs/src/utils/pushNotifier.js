@@ -1,19 +1,69 @@
 const datingPrisma = require('./datingPrisma');
 const prisma = require('../lib/prisma');
 const admin = require('../lib/firebaseAdmin');
+const redis = require('../lib/redis');
 
 /**
  * Resolves a list of SQLite user IDs to their main PostgreSQL user profiles (via email),
  * queries their registered FCM push tokens, and dispatches a multicast message.
  * Falls back to mock logs if the Firebase Admin SDK is not initialized.
+ * 
+ * Implements Instagram-standard notification delivery:
+ * - If receiver is actively viewing this specific chat, OS push notification is suppressed (0 sound, 0 tray popups).
+ * - If receiver is active in the app (foreground), OS push notification is suppressed so the user
+ *   only sees the quiet in-app floating banner without loud ringtones or phone vibration.
+ * - Push notifications are exclusively sent when receiver is offline or has backgrounded/locked the app.
  */
 const sendPushNotification = async (receiverUserIds, title, body, data = {}) => {
   if (!receiverUserIds || receiverUserIds.length === 0) return;
 
   try {
+    // 0. Filter out receivers who are actively in this chat or actively online in the app
+    const eligibleReceiverIds = [];
+    for (const recId of receiverUserIds) {
+      const recIdStr = recId.toString();
+
+      // Check if user is currently looking at this specific conversation
+      if (data && data.type === 'CHAT_MESSAGE' && data.senderId) {
+        try {
+          const activeChat = await redis.get(`user:active_chat:${recIdStr}`);
+          if (activeChat === `user:${data.senderId}`) {
+            console.log(`[Push Notification] Suppressing push for user ${recIdStr}: currently viewing chat with ${data.senderId}`);
+            continue;
+          }
+        } catch (_) {}
+      } else if (data && data.type === 'GROUP_MESSAGE' && data.groupId) {
+        try {
+          const activeChat = await redis.get(`user:active_chat:${recIdStr}`);
+          if (activeChat === `group:${data.groupId}`) {
+            console.log(`[Push Notification] Suppressing push for user ${recIdStr}: currently inside group ${data.groupId}`);
+            continue;
+          }
+        } catch (_) {}
+      }
+
+      // Check if user is currently active inside the app (foreground)
+      try {
+        const socketCount = await redis.scard(`user:sockets:${recIdStr}`);
+        const isBackgrounded = await redis.get(`user:backgrounded:${recIdStr}`);
+        if (socketCount > 0 && isBackgrounded !== '1') {
+          // User is actively browsing the app. Socket event already delivered real-time message,
+          // and DashboardLayout displays the in-app banner. Do NOT play loud phone chimes or system tray popups.
+          console.log(`[Push Notification] Suppressing OS push for user ${recIdStr}: currently active in foreground app.`);
+          continue;
+        }
+      } catch (_) {}
+
+      eligibleReceiverIds.push(recId);
+    }
+
+    if (eligibleReceiverIds.length === 0) {
+      return;
+    }
+
     // 1. Get emails of target users in dating SQLite database
     const sqliteUsers = await datingPrisma.user.findMany({
-      where: { id: { in: receiverUserIds } },
+      where: { id: { in: eligibleReceiverIds } },
       select: { email: true }
     });
     

@@ -38,6 +38,18 @@ export const getSocialSocket = (userId) => {
         socket.emit('join', currentSocketUserId);
         const isActive = typeof document !== 'undefined' && document.visibilityState === 'visible';
         socket.emit(isActive ? 'presence:foreground' : 'presence:background');
+
+        // Re-sync active chat state on connect/reconnect
+        try {
+          import('../store/socialMessageStore.js').then(({ useSocialMessageStore }) => {
+            const store = useSocialMessageStore.getState();
+            if (store.activeChatUserId) {
+              socket.emit('chat:enter', { targetUserId: store.activeChatUserId });
+            } else if (store.activeChatGroupId) {
+              socket.emit('chat:enter', { groupId: store.activeChatGroupId });
+            }
+          }).catch(() => {});
+        } catch (_) {}
       }
     });
 

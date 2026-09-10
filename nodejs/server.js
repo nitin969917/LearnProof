@@ -240,6 +240,30 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Track when user is actively inside a chat thread to suppress redundant push notifications
+  socket.on('chat:enter', async (data) => {
+    if (!socket.userId || !data) return;
+    const target = data.groupId ? `group:${data.groupId}` : `user:${data.targetUserId}`;
+    socket.activeChatTarget = target;
+    try {
+      await redis.set(`user:active_chat:${socket.userId}`, target, 'EX', 86400);
+      console.log(`[Socket.io] User ${socket.userId} entered chat: ${target}`);
+    } catch (e) {
+      console.error('Error setting user:active_chat:', e.message);
+    }
+  });
+
+  socket.on('chat:leave', async () => {
+    if (!socket.userId) return;
+    socket.activeChatTarget = null;
+    try {
+      await redis.del(`user:active_chat:${socket.userId}`);
+      console.log(`[Socket.io] User ${socket.userId} left chat`);
+    } catch (e) {
+      console.error('Error deleting user:active_chat:', e.message);
+    }
+  });
+
   socket.on('sendMessage', async (data) => {
     const { receiverId, message } = data;
     try {
@@ -456,6 +480,7 @@ io.on('connection', (socket) => {
           await redis.srem('online_users', userIdStr);
           await redis.del(socketSetKey);
           await redis.del(`user:backgrounded:${userIdStr}`);
+          await redis.del(`user:active_chat:${userIdStr}`);
           io.emit('userStatus', { userId: userIdStr, online: false });
         }
       } catch (err) {
