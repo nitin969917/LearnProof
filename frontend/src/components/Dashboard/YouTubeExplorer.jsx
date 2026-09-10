@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Youtube, Play, Plus, Loader, Sparkles, SlidersHorizontal, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+    Search, Youtube, Play, Plus, Loader, Sparkles, SlidersHorizontal, 
+    X, ChevronLeft, ChevronRight, Layers, Video, ListVideo, 
+    Calendar, Eye, Clock, Zap, RotateCcw 
+} from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -28,6 +32,7 @@ const YouTubeExplorer = () => {
         sortBy: 'relevance',
         duration: 'any'
     });
+    const activeFilterCount = (filters.type !== 'all' ? 1 : 0) + (filters.sortBy !== 'relevance' ? 1 : 0) + (filters.duration !== 'any' ? 1 : 0);
     const skipNextAutocompleteRef = useRef(false);
 
     const searchRef = useRef(null);
@@ -97,9 +102,10 @@ const YouTubeExplorer = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleSearchWithQuery = async (searchQuery) => {
+    const handleSearchWithQuery = async (searchQuery, overrideFilters = null) => {
         if (!searchQuery.trim()) return;
-        const cacheKey = `${searchQuery.trim().toLowerCase()}_${filters.type}_${filters.sortBy}_${filters.duration}`;
+        const activeFilterSet = overrideFilters || filters;
+        const cacheKey = `${searchQuery.trim().toLowerCase()}_${activeFilterSet.type}_${activeFilterSet.sortBy}_${activeFilterSet.duration}`;
         
         setShowSuggestions(false);
         setCurrentPage(1);
@@ -116,9 +122,9 @@ const YouTubeExplorer = () => {
             const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/youtube-search/`, {
                 idToken: token,
                 query: searchQuery,
-                type: filters.type,
-                sortBy: filters.sortBy,
-                duration: filters.duration
+                type: activeFilterSet.type,
+                sortBy: activeFilterSet.sortBy,
+                duration: activeFilterSet.duration
             });
             if (res.data.results) {
                 searchResultsCache.set(cacheKey, res.data.results);
@@ -335,13 +341,20 @@ const YouTubeExplorer = () => {
                             <button
                                 type="button"
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`p-2.5 mr-1 sm:mr-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                                    showFilters ? 'text-red-500 bg-red-50/50 dark:bg-red-950/20' : 'text-gray-450 hover:text-gray-600 dark:hover:text-gray-200'
+                                className={`p-2.5 mr-1 sm:mr-1.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                                    showFilters || activeFilterCount > 0 
+                                        ? 'text-[#FF5100] bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-500/30 ring-2 ring-orange-500/15' 
+                                        : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                                 title="Toggle Filters"
                             >
                                 <SlidersHorizontal size={18} />
                                 <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">Filters</span>
+                                {activeFilterCount > 0 && (
+                                    <span className="w-4 h-4 rounded-full bg-[#FF5100] text-white text-[9px] font-black flex items-center justify-center shrink-0 shadow-2xs">
+                                        {activeFilterCount}
+                                    </span>
+                                )}
                             </button>
  
                             <button
@@ -413,97 +426,176 @@ const YouTubeExplorer = () => {
                         </div>
                     </form>
 
-                    {/* Filters drawer */}
+                    {/* Redesigned Sleek Filters Drawer */}
                     <AnimatePresence>
                         {showFilters && (
                             <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="w-full bg-white dark:bg-gray-800 border border-gray-105 dark:border-gray-700 rounded-[2rem] p-5 sm:p-6 shadow-xl overflow-hidden text-left"
+                                initial={{ opacity: 0, y: -6, height: 0 }}
+                                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                                exit={{ opacity: 0, y: -6, height: 0 }}
+                                transition={{ duration: 0.2, ease: "easeOut" }}
+                                className="w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-orange-100/90 dark:border-gray-700 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xl shadow-gray-200/50 dark:shadow-none overflow-hidden text-left"
                             >
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                    {/* Filter 1: Type */}
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block font-bold">Type</label>
-                                        <div className="flex flex-col gap-1.5">
-                                            {['all', 'video', 'playlist'].map((t) => (
-                                                <button
-                                                    key={t}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setFilters(prev => ({ ...prev, type: t }));
-                                                        setCurrentPage(1);
-                                                    }}
-                                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider ${
-                                                        filters.type === t 
-                                                            ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
-                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                                    }`}
-                                                >
-                                                    {t === 'all' ? 'All' : t + 's'}
-                                                </button>
-                                            ))}
-                                        </div>
+                                {/* Header */}
+                                <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700/60">
+                                    <div className="flex items-center gap-2">
+                                        <SlidersHorizontal size={15} className="text-[#FF5100]" />
+                                        <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">
+                                            Search Filters
+                                        </span>
+                                        {activeFilterCount > 0 && (
+                                            <span className="bg-orange-100 dark:bg-orange-950/50 text-[#FF5100] text-[10px] font-black px-2 py-0.5 rounded-full">
+                                                {activeFilterCount} active
+                                            </span>
+                                        )}
                                     </div>
-
-                                    {/* Filter 2: Sort By */}
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block font-bold">Sort By</label>
-                                        <div className="flex flex-col gap-1.5">
-                                            {[
-                                                { id: 'relevance', label: 'Relevance' },
-                                                { id: 'date', label: 'Upload Date' },
-                                                { id: 'views', label: 'View Count' }
-                                            ].map((s) => (
-                                                <button
-                                                    key={s.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setFilters(prev => ({ ...prev, sortBy: s.id }));
-                                                        setCurrentPage(1);
-                                                    }}
-                                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider ${
-                                                        filters.sortBy === s.id 
-                                                            ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
-                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                                    }`}
-                                                >
-                                                    {s.label}
-                                                </button>
-                                            ))}
-                                        </div>
+                                    <div className="flex items-center gap-2.5">
+                                        {activeFilterCount > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const resetFilters = { type: 'all', sortBy: 'relevance', duration: 'any' };
+                                                    setFilters(resetFilters);
+                                                    setCurrentPage(1);
+                                                    if (query.trim()) handleSearchWithQuery(query, resetFilters);
+                                                }}
+                                                className="text-[11px] font-bold text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1 cursor-pointer"
+                                            >
+                                                <RotateCcw size={12} />
+                                                <span>Reset</span>
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowFilters(false)}
+                                            className="p-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer"
+                                            title="Close filters"
+                                        >
+                                            <X size={15} />
+                                        </button>
                                     </div>
+                                </div>
 
-                                    {/* Filter 3: Duration */}
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block font-bold">
-                                            Duration {filters.type === 'playlist' && <span className="text-gray-400 font-medium normal-case">(N/A for Playlists)</span>}
+                                {/* Filter Groups */}
+                                <div className="space-y-4 pt-3.5">
+                                    {/* 1. Content Type */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest block">
+                                            Content Type
                                         </label>
-                                        <div className="flex flex-col gap-1.5">
+                                        <div className="flex flex-wrap gap-2">
                                             {[
-                                                { id: 'any', label: 'Any' },
-                                                { id: 'short', label: 'Under 4 minutes' },
-                                                { id: 'medium', label: '4 - 20 minutes' },
-                                                { id: 'long', label: 'Over 20 minutes' }
-                                            ].map((d) => (
-                                                <button
-                                                    key={d.id}
-                                                    type="button"
-                                                    disabled={filters.type === 'playlist'}
-                                                    onClick={() => {
-                                                        setFilters(prev => ({ ...prev, duration: d.id }));
-                                                        setCurrentPage(1);
-                                                    }}
-                                                    className={`px-4 py-2.5 rounded-xl text-xs font-bold text-left transition-all uppercase tracking-wider disabled:opacity-40 disabled:hover:bg-gray-50 ${
-                                                        filters.duration === d.id && filters.type !== 'playlist'
-                                                            ? 'bg-red-500 text-white shadow-md shadow-red-500/10' 
-                                                            : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-slate-350 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                                    }`}
-                                                >
-                                                    {d.label}
-                                                </button>
-                                            ))}
+                                                { id: 'all', label: 'All Types', icon: Layers },
+                                                { id: 'video', label: 'Videos', icon: Video },
+                                                { id: 'playlist', label: 'Playlists', icon: ListVideo }
+                                            ].map(t => {
+                                                const isSelected = filters.type === t.id;
+                                                const Icon = t.icon;
+                                                return (
+                                                    <button
+                                                        key={t.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newFilters = { ...filters, type: t.id };
+                                                            setFilters(newFilters);
+                                                            setCurrentPage(1);
+                                                            if (query.trim()) handleSearchWithQuery(query, newFilters);
+                                                        }}
+                                                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                                            isSelected
+                                                                ? 'bg-gradient-to-r from-[#FF5100] to-orange-500 text-white shadow-xs scale-102'
+                                                                : 'bg-gray-50 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-100 dark:border-gray-600/60'
+                                                        }`}
+                                                    >
+                                                        <Icon size={14} className={isSelected ? 'text-white' : 'text-gray-400'} />
+                                                        <span>{t.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Sort Order */}
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest block">
+                                            Sort By
+                                        </label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {[
+                                                { id: 'relevance', label: 'Relevance', icon: Sparkles },
+                                                { id: 'date', label: 'Upload Date', icon: Calendar },
+                                                { id: 'views', label: 'View Count', icon: Eye }
+                                            ].map(s => {
+                                                const isSelected = filters.sortBy === s.id;
+                                                const Icon = s.icon;
+                                                return (
+                                                    <button
+                                                        key={s.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newFilters = { ...filters, sortBy: s.id };
+                                                            setFilters(newFilters);
+                                                            setCurrentPage(1);
+                                                            if (query.trim()) handleSearchWithQuery(query, newFilters);
+                                                        }}
+                                                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                                            isSelected
+                                                                ? 'bg-gradient-to-r from-[#FF5100] to-orange-500 text-white shadow-xs scale-102'
+                                                                : 'bg-gray-50 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-100 dark:border-gray-600/60'
+                                                        }`}
+                                                    >
+                                                        <Icon size={14} className={isSelected ? 'text-white' : 'text-gray-400'} />
+                                                        <span>{s.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* 3. Duration */}
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest block">
+                                                Duration
+                                            </label>
+                                            {filters.type === 'playlist' && (
+                                                <span className="text-[10px] text-gray-400 dark:text-gray-500 italic">N/A for playlists</span>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {[
+                                                { id: 'any', label: 'Any Duration', icon: Clock },
+                                                { id: 'short', label: '< 4 mins', icon: Zap },
+                                                { id: 'medium', label: '4 - 20 mins', icon: Clock },
+                                                { id: 'long', label: '> 20 mins', icon: Clock }
+                                            ].map(d => {
+                                                const isSelected = filters.duration === d.id && filters.type !== 'playlist';
+                                                const isDisabled = filters.type === 'playlist';
+                                                const Icon = d.icon;
+                                                return (
+                                                    <button
+                                                        key={d.id}
+                                                        type="button"
+                                                        disabled={isDisabled}
+                                                        onClick={() => {
+                                                            const newFilters = { ...filters, duration: d.id };
+                                                            setFilters(newFilters);
+                                                            setCurrentPage(1);
+                                                            if (query.trim()) handleSearchWithQuery(query, newFilters);
+                                                        }}
+                                                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                                            isDisabled
+                                                                ? 'opacity-35 cursor-not-allowed bg-gray-50 dark:bg-gray-800 text-gray-400 border border-transparent'
+                                                                : isSelected
+                                                                    ? 'bg-gradient-to-r from-[#FF5100] to-orange-500 text-white shadow-xs scale-102'
+                                                                    : 'bg-gray-50 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-100 dark:border-gray-600/60'
+                                                        }`}
+                                                    >
+                                                        <Icon size={14} className={isSelected ? 'text-white' : 'text-gray-400'} />
+                                                        <span>{d.label}</span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 </div>
