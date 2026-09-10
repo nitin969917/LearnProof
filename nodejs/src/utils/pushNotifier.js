@@ -77,12 +77,19 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
     if (admin && admin.apps.length > 0) {
       const response = await admin.messaging().sendEachForMulticast({
         tokens,
+        notification: {
+          title: title,
+          body: body
+        },
         data: serializedData,
         webpush: {
-          headers: {
-            Urgency: 'high'
+          notification: {
+            title: title,
+            body: body,
+            icon: 'https://learnproofai.com/LP_M_logo.png',
+            badge: 'https://learnproofai.com/LP_M_logo.png',
+            data: serializedData
           },
-          data: serializedData,
           fcmOptions: {
             link: fullTargetUrl
           }
@@ -90,14 +97,13 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
         android: {
           priority: 'high',
           notification: {
+            title: title,
+            body: body,
             icon: 'ic_stat_notification',
             color: '#F97316',
             channelId: 'learnproof_notifications',
             defaultSound: true,
             defaultVibrateTimings: true
-            // NOTE: Do NOT set clickAction here. An invalid intent action causes Android
-            // to drop intent extras or fail to launch. Leaving it omitted launches MainActivity
-            // with all serializedData preserved in intent.getExtras().
           },
           data: serializedData
         }

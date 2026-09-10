@@ -58,6 +58,17 @@ export const getSocialSocket = (userId) => {
           socket.emit('presence:background');
         }
       });
+
+      // Capacitor native lifecycle listener for mobile app minimize/restore
+      (async () => {
+        try {
+          const { App } = await import('@capacitor/app');
+          App.addListener('appStateChange', ({ isActive }) => {
+            if (!socket || !socket.connected) return;
+            socket.emit(isActive ? 'presence:foreground' : 'presence:background');
+          });
+        } catch (_) {}
+      })();
     }
   }
 
