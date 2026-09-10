@@ -52,86 +52,97 @@ const Inbox = () => {
     const unreadByContact = useSocialMessageStore((state) => state.unreadByContact);
     const fetchUnreadCounts = useSocialMessageStore((state) => state.fetchUnreadCounts);
 
-    // Component state
+    // Component state - initialized with cached store data for 0ms instant perceived load
     const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'requests' | 'messages' | 'rooms' | 'system'
     const [pendingRequests, setPendingRequests] = useState(storePendingRequests || []);
-    const [recentChats, setRecentChats] = useState([]);
+    const [recentChats, setRecentChats] = useState(() => {
+        const rawFriends = useSocialFeedStore.getState().friends || [];
+        const unread = useSocialMessageStore.getState().unreadByContact || {};
+        return rawFriends
+            .filter(f => (unread[f.id?.toString()] > 0))
+            .map(f => ({
+                ...f,
+                unreadCount: unread[f.id?.toString()] || 0
+            }));
+    });
     const [systemMessages, setSystemMessages] = useState([]);
     const [liveRooms, setLiveRooms] = useState([]);
-    const [loading, setLoading] = useState(true);
+    
+    // Only show blocking skeleton if completely cold start with zero cached data
+    const [loading, setLoading] = useState(() => {
+        const hasFriends = (useSocialFeedStore.getState().friends || []).length > 0;
+        const hasReqs = (useSocialFeedStore.getState().pendingRequests || []).length > 0;
+        return !hasFriends && !hasReqs;
+    });
     const [refreshing, setRefreshing] = useState(false);
     const [selectedMessage, setSelectedMessage] = useState(null);
 
     // Track request actions per item (e.g. { [reqId]: 'accepted' | 'declined' })
     const [actionStates, setActionStates] = useState({});
 
-    // Load all inbox notification sources
-    const loadInboxData = async (isManualRefresh = false, showFullLoading = true) => {
+    // Load all inbox notification sources (parallelized without blocking UI)
+    const loadInboxData = async (isManualRefresh = false, showFullLoading = false) => {
         if (isManualRefresh) setRefreshing(true);
-        if (showFullLoading && liveRooms.length === 0 && recentChats.length === 0) setLoading(true);
-        try {
-            const promises = [];
+        if (showFullLoading && recentChats.length === 0 && pendingRequests.length === 0) {
+            setLoading(true);
+        }
 
-            // 1. Fetch friend requests & friends for recent message snippets
+        try {
+            // 1. Fetch friendships and rooms in parallel
             const friendshipPromise = socialApi.get('/social/friendships').then(res => {
                 const rawPending = Array.isArray(res.data?.pending) ? res.data.pending : [];
                 const rawFriends = Array.isArray(res.data?.friends) ? res.data.friends : [];
                 setPendingRequests(rawPending);
                 
-                // Filter friends who have a lastMessage or unread count
-                const activeChats = rawFriends
-                    .filter(f => f.lastMessage || (unreadByContact[f.id?.toString()] > 0))
+                // Show ONLY unread chats in Inbox & Notifications (like modern messaging apps)
+                const unreadMap = useSocialMessageStore.getState().unreadByContact || {};
+                const unreadChats = rawFriends
+                    .filter(f => (unreadMap[f.id?.toString()] > 0))
                     .map(f => ({
                         ...f,
-                        unreadCount: unreadByContact[f.id?.toString()] || 0
+                        unreadCount: unreadMap[f.id?.toString()] || 0
                     }));
-                setRecentChats(activeChats);
+                setRecentChats(unreadChats);
                 return rawFriends;
             }).catch(err => {
                 console.error("Failed to load friendships in inbox:", err);
                 return [];
             });
-            promises.push(friendshipPromise);
 
-            // 2. Fetch system messages from backend
-            if (token) {
-                promises.push(
-                    axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/messages/inbox/`, {
-                        idToken: token
-                    }).then(res => {
-                        setSystemMessages(Array.isArray(res.data) ? res.data : []);
-                    }).catch(err => {
-                        console.error("Failed to load system messages in inbox:", err);
-                    })
-                );
-            }
+            // 2. Fetch system messages in parallel
+            const systemPromise = token ? axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/messages/inbox/`, {
+                idToken: token
+            }).then(res => {
+                setSystemMessages(Array.isArray(res.data) ? res.data : []);
+            }).catch(err => {
+                console.error("Failed to load system messages in inbox:", err);
+            }) : Promise.resolve();
 
-            // 3. Fetch active language/live rooms (ONLY consider rooms created by friends)
-            promises.push(
-                Promise.all([friendshipPromise, socialApi.get('/language-rooms')]).then(([friends, res]) => {
-                    const friendIds = new Set((friends || []).map(f => Number(f.id)));
-                    const rooms = Array.isArray(res.data) ? res.data : [];
-                    const currentUserId = socialUser?.id ? Number(socialUser.id) : null;
+            // 3. Fetch active language/live rooms in parallel
+            const roomsPromise = socialApi.get('/language-rooms').then(async (res) => {
+                const rooms = Array.isArray(res.data) ? res.data : [];
+                const friendsList = await friendshipPromise;
+                const friendIds = new Set((friendsList || []).map(f => Number(f.id)));
+                const currentUserId = socialUser?.id ? Number(socialUser.id) : null;
 
-                    const friendActiveRooms = rooms.filter(r => {
-                        const isFutureScheduled = r.scheduledFor && new Date(r.scheduledFor).getTime() > Date.now() && !r.isStartedNotificationSent;
-                        if (isFutureScheduled) return false;
-                        const creatorId = Number(r.creatorId || r.creator?.id);
-                        return creatorId !== currentUserId && friendIds.has(creatorId);
-                    });
+                const friendActiveRooms = rooms.filter(r => {
+                    const isFutureScheduled = r.scheduledFor && new Date(r.scheduledFor).getTime() > Date.now() && !r.isStartedNotificationSent;
+                    if (isFutureScheduled) return false;
+                    const creatorId = Number(r.creatorId || r.creator?.id);
+                    return creatorId !== currentUserId && friendIds.has(creatorId);
+                });
 
-                    setLiveRooms(friendActiveRooms);
-                    useSocialFeedStore.getState().setActiveRoomsCount(friendActiveRooms.length);
-                }).catch(() => {
-                    setLiveRooms([]);
-                    useSocialFeedStore.getState().setActiveRoomsCount(0);
-                })
-            );
+                setLiveRooms(friendActiveRooms);
+                useSocialFeedStore.getState().setActiveRoomsCount(friendActiveRooms.length);
+            }).catch(() => {
+                setLiveRooms([]);
+                useSocialFeedStore.getState().setActiveRoomsCount(0);
+            });
 
-            // 4. Also refresh unread counts in store
+            // 4. Refresh unread counts
             fetchUnreadCounts();
 
-            await Promise.allSettled(promises);
+            await Promise.allSettled([friendshipPromise, systemPromise, roomsPromise]);
         } catch (error) {
             console.error("Error loading inbox notifications:", error);
         } finally {
@@ -144,7 +155,7 @@ const Inbox = () => {
     };
 
     useEffect(() => {
-        loadInboxData(false, true);
+        loadInboxData(false, false);
 
         if (!socialUser?.id) return;
         const socket = getSocialSocket(socialUser.id);
@@ -158,10 +169,10 @@ const Inbox = () => {
         socket.on('receiveMessage', handleRealtimeUpdate);
         socket.on('friendRequest', handleRealtimeUpdate);
 
-        // Background heartbeat poll every 5s on Inbox page so active friend rooms appear/disappear automatically
+        // Gentle background heartbeat poll every 30s for non-socket events
         const pollInterval = setInterval(() => {
             loadInboxData(false, false);
-        }, 5000);
+        }, 30000);
 
         return () => {
             socket.off('ROOMS_UPDATED', handleRealtimeUpdate);
@@ -171,12 +182,24 @@ const Inbox = () => {
         };
     }, [token, socialUser?.id]);
 
-    // Keep pendingRequests in sync if store updates
+    // Keep pendingRequests and unread recentChats in sync with store
     useEffect(() => {
-        if (storePendingRequests && storePendingRequests.length > 0) {
+        if (storePendingRequests) {
             setPendingRequests(storePendingRequests);
         }
     }, [storePendingRequests]);
+
+    useEffect(() => {
+        if (friends && friends.length > 0) {
+            const unreadChats = friends
+                .filter(f => (unreadByContact[f.id?.toString()] > 0))
+                .map(f => ({
+                    ...f,
+                    unreadCount: unreadByContact[f.id?.toString()] || 0
+                }));
+            setRecentChats(unreadChats);
+        }
+    }, [friends, unreadByContact]);
 
     // Accept friend / follow request directly from inbox
     const handleAcceptRequest = async (reqItem) => {
@@ -345,50 +368,39 @@ const Inbox = () => {
 
     return (
         <div className="w-full max-w-[1100px] mx-auto px-3 sm:px-6 pt-2 pb-28">
-            {/* ── Compact & User-Friendly Header (Seamless without background box) ── */}
-            <div className="px-1 py-1 sm:px-1.5 mb-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="relative w-8 h-8 rounded-lg bg-orange-500/10 text-[#FF5100] flex items-center justify-center shrink-0">
-                        <Bell size={16} className="stroke-[2.5]" />
-                        {liveRooms.length > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 ring-1.5 ring-white dark:ring-gray-800"></span>
+            {/* ── Compact & User-Friendly Header (No icon box, larger modern title) ── */}
+            <div className="px-1 py-1 sm:px-1.5 mb-3.5 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-base sm:text-xl font-black text-gray-900 dark:text-white tracking-tight truncate">
+                            Inbox & Notifications
+                        </h1>
+                        {totalUnreadBadge > 0 && (
+                            <span className="bg-[#FF5100] text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs shrink-0">
+                                {totalUnreadBadge} new
                             </span>
                         )}
                     </div>
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                            <h1 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white tracking-tight truncate">
-                                Inbox & Notifications
-                            </h1>
-                            {totalUnreadBadge > 0 && (
-                                <span className="bg-[#FF5100] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full shadow-2xs shrink-0">
-                                    {totalUnreadBadge} new
-                                </span>
-                            )}
-                        </div>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate leading-tight">
-                            Follow requests, chat messages, and updates
-                        </p>
-                    </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate leading-tight mt-0.5">
+                        Follow requests, unread messages, and updates
+                    </p>
                 </div>
 
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
                     <button
                         onClick={() => loadInboxData(true)}
                         disabled={refreshing}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#FF5100] hover:bg-orange-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                        className="p-1.5 rounded-xl text-gray-400 hover:text-[#FF5100] hover:bg-orange-50 dark:hover:bg-gray-700 transition cursor-pointer"
                         title="Refresh"
                     >
-                        <RefreshCw size={13} className={refreshing ? 'animate-spin text-orange-500' : ''} />
+                        <RefreshCw size={14} className={refreshing ? 'animate-spin text-orange-500' : ''} />
                     </button>
                     {unreadSystemCount > 0 && (
                         <button
                             onClick={handleMarkAllSystemRead}
-                            className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-gray-500 hover:text-[#FF5100] hover:bg-orange-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                            className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-gray-500 hover:text-[#FF5100] hover:bg-orange-50 dark:hover:bg-gray-700 transition cursor-pointer border border-gray-100 dark:border-gray-700"
                         >
-                            <CheckCircle2 size={12} />
+                            <CheckCircle2 size={13} />
                             <span>Mark read</span>
                         </button>
                     )}
@@ -676,14 +688,20 @@ const Inbox = () => {
                     </div>
                 )}
 
-                {/* 3. Direct Messages (Sorted by time descending: newest & unread at top) */}
+                {/* 3. Direct Messages (Unread only in notification feed) */}
                 {showMessages && sortedChats.length > 0 && (
                     <div className="space-y-2">
                         <div className="flex items-center justify-between px-1">
                             <h2 className="text-xs font-black text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
                                 <MessageSquare size={13} className="text-blue-500" />
-                                Direct Messages ({sortedChats.length})
+                                Unread Messages ({sortedChats.length})
                             </h2>
+                            <button
+                                onClick={() => navigate('/dashboard/social/chats')}
+                                className="text-[11px] font-bold text-[#FF5100] hover:underline flex items-center gap-0.5 cursor-pointer"
+                            >
+                                View all chats <ArrowRight size={11} />
+                            </button>
                         </div>
                         {sortedChats.map((chat) => {
                             const isOnline = onlineUserIds.some(id => id.toString() === chat.id?.toString());
@@ -866,14 +884,15 @@ const Inbox = () => {
                         </div>
                     ) : (activeFilter === 'messages' && sortedChats.length === 0) ? (
                         <div className="text-center py-10 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5">
-                            <MessageSquare size={24} className="mx-auto mb-2 text-gray-400" />
-                            <h3 className="text-xs font-bold text-gray-800 dark:text-gray-200">No New Messages</h3>
-                            <p className="text-[11px] text-gray-400 mt-0.5 mb-3">You're all caught up with your direct chats.</p>
+                            <MessageSquare size={24} className="mx-auto mb-2 text-blue-500" />
+                            <h3 className="text-xs font-bold text-gray-800 dark:text-gray-200">No Unread Messages</h3>
+                            <p className="text-[11px] text-gray-400 mt-0.5 mb-3">You're all caught up! All incoming messages have been read.</p>
                             <button 
                                 onClick={() => navigate('/dashboard/social/chats')}
-                                className="px-3 py-1.5 bg-[#FF5100] text-white rounded-xl font-bold text-xs shadow-xs active:scale-95 cursor-pointer"
+                                className="px-3.5 py-1.5 bg-[#FF5100] hover:bg-[#E04800] text-white rounded-xl font-bold text-xs shadow-xs active:scale-95 cursor-pointer inline-flex items-center gap-1.5"
                             >
-                                Open Chats
+                                <MessageSquare size={13} />
+                                <span>Open All Chats</span>
                             </button>
                         </div>
                     ) : (activeFilter === 'rooms' && liveRooms.length === 0) ? (
