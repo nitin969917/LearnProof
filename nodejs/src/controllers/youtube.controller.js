@@ -1,6 +1,6 @@
 const { searchYoutube, getYoutubeMetadata } = require('../services/youtube.service');
 const { generateGeminiContent, MODELS } = require('../services/ai.service');
-const { isAllowedEducationalContent, isEducationalQuery } = require('../utils/educationalFilter');
+const { isAllowedEducationalContent } = require('../utils/educationalFilter');
 const axios = require('axios');
 
 const autocompleteCache = new Map();
@@ -13,13 +13,13 @@ const search = async (req, res) => {
     const { query, type = 'all', sortBy = 'relevance', duration = 'any' } = req.body;
     if (!query) return res.status(400).json({ error: 'Missing query' });
 
-    // Guard: require educational intent at the query level
-    const queryCheck = isEducationalQuery(query);
+    // Guard against explicit pure entertainment searches
+    const queryCheck = isAllowedEducationalContent({ title: query });
     if (!queryCheck.allowed) {
         return res.status(200).json({
             results: [],
             total: 0,
-            notice: queryCheck.notice || "LearnProof is an educational platform. Please search for academic subjects, courses, or skills."
+            notice: "LearnProof is an educational platform. Please search for academic subjects, courses, or skills (e.g., 'Python Tutorial', 'Calculus', 'World History')."
         });
     }
 
