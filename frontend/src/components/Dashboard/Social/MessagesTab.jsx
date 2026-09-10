@@ -15,6 +15,7 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const selectedUserRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     selectedUserRef.current = selectedUser;
@@ -108,6 +109,8 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
     e.preventDefault();
     if (!input.trim() || !selectedUser) return;
 
+    inputRef.current?.focus();
+
     const newMessage = {
       senderId: currentUserId,
       receiverId: selectedUser.id,
@@ -122,6 +125,9 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
 
     setMessages((prev) => [...prev, newMessage]);
     setInput('');
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
   };
 
   const isSelectedUserOnline = selectedUser
@@ -203,7 +209,15 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 bg-gray-50/30 dark:bg-gray-900/10">
+            <div 
+              onClick={() => inputRef.current?.blur()}
+              onTouchMove={() => {
+                if (document.activeElement === inputRef.current) {
+                  inputRef.current?.blur();
+                }
+              }}
+              className="flex-1 overflow-y-auto p-3 md:p-4 space-y-3 bg-gray-50/30 dark:bg-gray-900/10"
+            >
               {messages.map((msg, index) => {
                 const isMine = msg.senderId === currentUserId;
                 return (
@@ -233,6 +247,7 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
             {/* Input Bar */}
             <form onSubmit={handleSendMessage} className="p-3 md:p-4 border-t border-gray-100 dark:border-gray-700 flex gap-2 flex-shrink-0">
               <input
+                ref={inputRef}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -241,7 +256,12 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
               />
               <button
                 type="submit"
+                tabIndex={-1}
                 disabled={!input.trim()}
+                onMouseDown={(e) => e.preventDefault()}
+                onTouchEnd={() => {
+                  if (input.trim()) inputRef.current?.focus();
+                }}
                 className="bg-orange-500 hover:bg-orange-600 text-white font-bold p-2.5 rounded-xl transition disabled:opacity-50 flex items-center justify-center shadow shadow-orange-500/20 flex-shrink-0"
               >
                 <Send size={18} />

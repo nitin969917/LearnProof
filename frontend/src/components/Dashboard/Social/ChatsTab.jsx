@@ -280,6 +280,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const messagesEndRef = useRef(null);
   const selectedChatRef = useRef(null);
   const longPressTimer = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
@@ -703,6 +704,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     if (!selectedChat) return;
     if (!inputText.trim()) return;
 
+    // Immediately keep input focused so keyboard stays open on mobile
+    inputRef.current?.focus();
+
     const textToSend = inputText.trim();
 
     if (isMatrixActive) {
@@ -733,6 +737,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         }
       }
       setInputText('');
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
       return;
     }
 
@@ -785,6 +792,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     }
     setReplyingTo(null);
     setInputText('');
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
   };
 
   const handleDeleteMessage = async (msg) => {
@@ -972,6 +982,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   );
 
   const handleBack = () => {
+    inputRef.current?.blur();
     localStorage.removeItem('social_selected_chat_contact');
     if (onClearSelectedContact) {
       onClearSelectedContact();
@@ -1301,6 +1312,14 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
               {/* Chat Message Stream Area */}
               <div 
+                onClick={() => {
+                  inputRef.current?.blur();
+                }}
+                onTouchMove={() => {
+                  if (document.activeElement === inputRef.current) {
+                    inputRef.current?.blur();
+                  }
+                }}
                 className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#FAF7F2]/60 dark:bg-gray-950/60 relative"
               >
                 {messages.map((msg, index) => {
@@ -1528,6 +1547,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   >
                     <div className="flex-1 flex items-center bg-gray-50/80 dark:bg-gray-800/80 border border-gray-200/80 dark:border-gray-700/80 rounded-full px-4 py-1.5 focus-within:ring-2 focus-within:ring-orange-500/20 focus-within:border-orange-300 transition-all shadow-xs">
                       <input
+                        ref={inputRef}
                         type="text"
                         value={inputText}
                         onChange={(e) => {
@@ -1544,7 +1564,18 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     {/* Circular Orange Send Button */}
                     <button
                       type="submit"
+                      tabIndex={-1}
                       disabled={!inputText.trim()}
+                      onMouseDown={(e) => {
+                        // Prevent button click from blurring input on desktop/web
+                        e.preventDefault();
+                      }}
+                      onTouchEnd={() => {
+                        // Keep focus active during touch interaction on mobile
+                        if (inputText.trim()) {
+                          inputRef.current?.focus();
+                        }
+                      }}
                       className="w-11 h-11 rounded-full bg-[#FF5722] hover:bg-[#F4511E] disabled:opacity-40 disabled:hover:bg-[#FF5722] text-white flex items-center justify-center transition-all shadow-md shadow-orange-500/25 active:scale-95 cursor-pointer shrink-0"
                       title="Send message"
                     >
