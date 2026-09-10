@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
   Users, Clock, UserCheck, Check, X, Star, MessageSquare, 
-  UserX, Search, Compass, ChevronRight, MoreVertical, 
+  UserX, Search, Compass, ChevronRight, ChevronLeft, MoreVertical, 
   ArrowRight, User, GraduationCap, SlidersHorizontal, Eye
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -44,6 +44,8 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   const [sortBy, setSortBy] = useState('recent'); // 'recent' | 'name' | 'online'
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [activeMenuFriendId, setActiveMenuFriendId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const sortDropdownRef = useRef(null);
 
@@ -165,6 +167,13 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
       // 'recent' by default
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortBy]);
+
+  const totalPages = Math.ceil(filteredFriends.length / PAGE_SIZE) || 1;
+  const paginatedFriends = filteredFriends.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   if (loadingFriends && !hasLoadedFriends) {
     return (
@@ -391,29 +400,29 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
         <div className={`lg:col-span-7 flex-col gap-4 ${mobileTab === 'connections' ? 'flex' : 'hidden lg:flex'}`}>
           <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-2xs space-y-4">
             
-            {/* Card Header with Sort Dropdown */}
-            <div className="flex items-center justify-between flex-wrap gap-2 border-b border-gray-100 dark:border-gray-700 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center">
+            {/* Card Header with Sort Dropdown - always on same row */}
+            <div className="flex items-center justify-between flex-nowrap gap-2 border-b border-gray-100 dark:border-gray-700 pb-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
                   <UserCheck size={16} />
                 </div>
-                <h2 className="text-sm sm:text-base font-black text-gray-900 dark:text-white">
+                <h2 className="text-xs sm:text-base font-black text-gray-900 dark:text-white truncate">
                   My Connections <span className="text-gray-400 font-bold text-xs">({friends.length})</span>
                 </h2>
               </div>
 
               {/* Sort Selector Dropdown */}
-              <div className="relative" ref={sortDropdownRef}>
+              <div className="relative shrink-0" ref={sortDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setShowSortDropdown(!showSortDropdown)}
-                  className="flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-1.5 transition cursor-pointer shadow-2xs"
+                  className="flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-1.5 transition cursor-pointer shadow-2xs shrink-0"
                 >
-                  <SlidersHorizontal size={12} className="text-orange-500" />
-                  <span>
+                  <SlidersHorizontal size={12} className="text-orange-500 shrink-0" />
+                  <span className="truncate max-w-[130px] sm:max-w-none">
                     Sort: {sortBy === 'recent' ? 'Recently Added' : sortBy === 'name' ? 'Name (A-Z)' : 'Online First'}
                   </span>
-                  <ChevronRight size={13} className={`transition-transform duration-200 ${showSortDropdown ? 'rotate-90' : 'rotate-0'}`} />
+                  <ChevronRight size={13} className={`shrink-0 transition-transform duration-200 ${showSortDropdown ? 'rotate-90' : 'rotate-0'}`} />
                 </button>
 
                 <AnimatePresence>
@@ -475,7 +484,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
 
             {/* Friend Cards List */}
             <div className="space-y-1 sm:space-y-1.5">
-              {filteredFriends.map((friend) => {
+              {paginatedFriends.map((friend) => {
                 const isFriendOnline = onlineUserIds.some(id => id.toString() === friend.id.toString());
 
                 return (
@@ -613,6 +622,39 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700/80 pt-3.5 mt-2">
+                <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium">
+                  Showing <span className="font-bold text-gray-900 dark:text-white">{(currentPage - 1) * PAGE_SIZE + 1}</span> to <span className="font-bold text-gray-900 dark:text-white">{Math.min(currentPage * PAGE_SIZE, filteredFriends.length)}</span> of <span className="font-bold text-gray-900 dark:text-white">{filteredFriends.length}</span>
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1"
+                  >
+                    <ChevronLeft size={13} />
+                    <span className="hidden sm:inline">Prev</span>
+                  </button>
+                  <span className="text-xs font-black px-2 py-1 text-orange-600 dark:text-orange-400">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-2.5 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1"
+                  >
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
 
               {/* Empty Search State */}
               {friends.length > 0 && filteredFriends.length === 0 && (
@@ -657,7 +699,6 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 

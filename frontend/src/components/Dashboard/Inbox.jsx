@@ -330,7 +330,7 @@ const Inbox = () => {
     if (loading) {
         return (
             <div className="w-full max-w-[1100px] mx-auto px-3 sm:px-6 pt-2 pb-24 space-y-2.5">
-                <div className="h-12 bg-white dark:bg-gray-800 rounded-xl animate-pulse border border-gray-100 dark:border-gray-700" />
+                <div className="h-10 w-48 bg-gray-200/70 dark:bg-gray-700/40 rounded-xl animate-pulse mb-1" />
                 <div className="flex gap-1.5">
                     {Array.from({ length: 4 }).map((_, i) => (
                         <div key={i} className="h-8 w-20 bg-white dark:bg-gray-800 rounded-lg animate-pulse border border-gray-100 dark:border-gray-700" />
@@ -345,8 +345,8 @@ const Inbox = () => {
 
     return (
         <div className="w-full max-w-[1100px] mx-auto px-3 sm:px-6 pt-2 pb-28">
-            {/* ── Compact & User-Friendly Header ──────────────────────── */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/80 px-3 py-2 sm:px-4 sm:py-2.5 mb-2.5 shadow-2xs flex items-center justify-between gap-2">
+            {/* ── Compact & User-Friendly Header (Seamless without background box) ── */}
+            <div className="px-1 py-1 sm:px-1.5 mb-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
                     <div className="relative w-8 h-8 rounded-lg bg-orange-500/10 text-[#FF5100] flex items-center justify-center shrink-0">
                         <Bell size={16} className="stroke-[2.5]" />

@@ -89,6 +89,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const { confirm } = useModal();
   const socialUser = useSocialFeedStore((state) => state.socialUser);
   const updateSocialUser = useSocialFeedStore((state) => state.updateSocialUser);
+  const storeFriends = useSocialFeedStore((state) => state.friends);
   const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
 
   const [profile, setProfile] = useState(null);
@@ -233,11 +234,23 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     setFriendsLoading(true);
     try {
       const res = await socialApi.get('/social/friendships');
-      if (Array.isArray(res.data)) {
-        setFriendsList(res.data);
+      const rawFriends = Array.isArray(res.data?.friends) 
+        ? res.data.friends 
+        : Array.isArray(res.data) 
+          ? res.data 
+          : [];
+      if (rawFriends.length > 0) {
+        setFriendsList(rawFriends);
+      } else if (storeFriends && storeFriends.length > 0) {
+        setFriendsList(storeFriends);
+      } else {
+        setFriendsList([]);
       }
     } catch (err) {
       console.debug('Failed to fetch friends list:', err?.message);
+      if (storeFriends && storeFriends.length > 0) {
+        setFriendsList(storeFriends);
+      }
     } finally {
       setFriendsLoading(false);
     }
@@ -462,8 +475,9 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     );
   }
 
+  const effectiveFriends = friendsList.length > 0 ? friendsList : storeFriends;
   const postCount = posts.length || profile._count?.posts || 0;
-  const friendCount = friendsList.length || profile._count?.friends || 0;
+  const friendCount = effectiveFriends.length || profile._count?.friends || 0;
   
   // Clean headline & quote without fake predefined placeholders
   const headline = profile.department 
@@ -1299,27 +1313,40 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                 </h4>
               </div>
 
-              {friendsList.length > 0 ? (
+              {effectiveFriends.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {friendsList.map((f, idx) => {
+                  {effectiveFriends.map((f, idx) => {
                     const friendUser = f.friend || f;
+                    const isFriendOnline = onlineUserIds instanceof Set 
+                      ? onlineUserIds.has(friendUser.id) 
+                      : Array.isArray(onlineUserIds) 
+                        ? onlineUserIds.includes(friendUser.id) 
+                        : false;
                     return (
-                      <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-orange-50/30 dark:bg-gray-900 border border-orange-100 dark:border-gray-800">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <UserAvatar
-                            src={friendUser.avatar || friendUser.profilePicture}
-                            name={friendUser.name}
-                            className="w-10 h-10 rounded-full border border-orange-200 shrink-0 object-cover"
-                            textClassName="text-sm font-bold"
-                          />
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-orange-50/30 dark:bg-gray-900 border border-orange-100 dark:border-gray-800 hover:border-orange-200 transition">
+                        <div 
+                          onClick={() => onViewProfile && onViewProfile(friendUser.id)}
+                          className="flex items-center gap-3 min-w-0 cursor-pointer"
+                        >
+                          <div className="relative shrink-0">
+                            <UserAvatar
+                              src={friendUser.avatar || friendUser.profilePicture}
+                              name={friendUser.name}
+                              className="w-10 h-10 rounded-full border border-orange-200 shrink-0 object-cover"
+                              textClassName="text-sm font-bold"
+                            />
+                            {isFriendOnline && (
+                              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white dark:border-gray-900 rounded-full" />
+                            )}
+                          </div>
                           <div className="min-w-0 text-left">
-                            <p className="font-extrabold text-xs text-gray-900 dark:text-white truncate">{friendUser.name}</p>
-                            <p className="text-[10px] text-gray-400 truncate">{friendUser.collegeName || ''}</p>
+                            <p className="font-extrabold text-xs text-gray-900 dark:text-white truncate hover:text-orange-500 transition-colors">{friendUser.name}</p>
+                            <p className="text-[10px] text-gray-400 truncate">{friendUser.collegeName || friendUser.department || ''}</p>
                           </div>
                         </div>
                         <button
                           onClick={() => onSelectChatUser && onSelectChatUser(friendUser)}
-                          className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition shrink-0 cursor-pointer"
+                          className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition shrink-0 cursor-pointer active:scale-95 shadow-2xs"
                           title="Message Friend"
                         >
                           <MessageSquare size={13} />
