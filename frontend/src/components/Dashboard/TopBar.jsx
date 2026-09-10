@@ -19,6 +19,7 @@ const TopBar = ({ onMenuClick }) => {
 
     const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
     const pendingFriendCount = useSocialFeedStore((state) => state.pendingFriendCount);
+    const activeRoomsCount = useSocialFeedStore((state) => state.activeRoomsCount);
     const totalSocialCount = totalUnreadCount + pendingFriendCount;
     const socialUser = useSocialFeedStore((state) => state.socialUser);
 
@@ -266,11 +267,16 @@ const TopBar = ({ onMenuClick }) => {
                         title="Inbox"
                     >
                         <Bell size={20} />
-                        {totalSocialCount > 0 && (
+                        {totalSocialCount > 0 ? (
                             <span className="absolute top-1 right-1 bg-[#FF5100] rounded-full w-4 h-4 text-[9px] font-bold text-white flex items-center justify-center shadow-sm">
                                 {totalSocialCount > 9 ? '9+' : totalSocialCount}
                             </span>
-                        )}
+                        ) : activeRoomsCount > 0 ? (
+                            <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 ring-2 ring-white dark:ring-gray-800"></span>
+                            </span>
+                        ) : null}
                     </button>
 
                     {/* Menu Toggle Action - for mobile/tablet where sidebar is hidden */}

@@ -106,8 +106,10 @@ const Inbox = () => {
                 socialApi.get('/language-rooms').then(res => {
                     const rooms = Array.isArray(res.data) ? res.data : [];
                     setLiveRooms(rooms);
+                    useSocialFeedStore.getState().setActiveRoomsCount(rooms.length);
                 }).catch(() => {
                     setLiveRooms([]);
+                    useSocialFeedStore.getState().setActiveRoomsCount(0);
                 })
             );
 
@@ -307,8 +309,14 @@ const Inbox = () => {
             {/* ── Compact & User-Friendly Header ──────────────────────── */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700/80 px-3 py-2 sm:px-4 sm:py-2.5 mb-2.5 shadow-2xs flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-[#FF5100] flex items-center justify-center shrink-0">
+                    <div className="relative w-8 h-8 rounded-lg bg-orange-500/10 text-[#FF5100] flex items-center justify-center shrink-0">
                         <Bell size={16} className="stroke-[2.5]" />
+                        {liveRooms.length > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 ring-1.5 ring-white dark:ring-gray-800"></span>
+                            </span>
+                        )}
                     </div>
                     <div className="min-w-0">
                         <div className="flex items-center gap-1.5">

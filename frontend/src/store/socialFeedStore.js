@@ -26,6 +26,23 @@ export const useSocialFeedStore = create((set, get) => ({
   pendingFriendCount: 0,
   pendingRequests: [],
 
+  // Live / Active language rooms tracking for notification indicators
+  activeRoomsCount: 0,
+  setActiveRoomsCount: (count) => set({ activeRoomsCount: count }),
+  fetchActiveRoomsCount: async () => {
+    try {
+      const response = await socialApi.get('/language-rooms');
+      const rooms = Array.isArray(response.data) ? response.data : [];
+      const activeRooms = rooms.filter(r => {
+        const isFutureScheduled = r.scheduledFor && new Date(r.scheduledFor).getTime() > Date.now() && !r.isStartedNotificationSent;
+        return !isFutureScheduled;
+      });
+      set({ activeRoomsCount: activeRooms.length });
+    } catch (err) {
+      // Quietly handle
+    }
+  },
+
   setPendingRequests: (requests) => set({ 
     pendingRequests: requests, 
     pendingFriendCount: requests.length 

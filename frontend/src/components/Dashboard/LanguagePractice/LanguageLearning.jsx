@@ -197,11 +197,17 @@ export default function LanguageLearning() {
   const fetchRooms = async () => {
     try {
       const response = await socialApi.get('/language-rooms');
-      // Guard: always set an array, even if API returns an error object
-      setRoomsList(Array.isArray(response.data) ? response.data : []);
+      const rooms = Array.isArray(response.data) ? response.data : [];
+      setRoomsList(rooms);
+      const activeCount = rooms.filter(r => {
+        const isFutureScheduled = r.scheduledFor && new Date(r.scheduledFor).getTime() > Date.now() && !r.isStartedNotificationSent;
+        return !isFutureScheduled;
+      }).length;
+      useSocialFeedStore.getState().setActiveRoomsCount(activeCount);
     } catch (error) {
       console.error('Error fetching rooms:', error);
       setRoomsList([]);
+      useSocialFeedStore.getState().setActiveRoomsCount(0);
     } finally {
       setLoading(false);
     }

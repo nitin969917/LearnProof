@@ -75,6 +75,7 @@ const DashboardLayout = () => {
     const fetchSocialUser = useSocialFeedStore((state) => state.fetchSocialUser);
     const fetchPendingFriendCount = useSocialFeedStore((state) => state.fetchPendingFriendCount);
     const incrementPendingFriendCount = useSocialFeedStore((state) => state.incrementPendingFriendCount);
+    const fetchActiveRoomsCount = useSocialFeedStore((state) => state.fetchActiveRoomsCount);
     const [onHeaderAction, setOnHeaderAction] = useState(null);
 
     const initializeStatus = useSocialStatusStore((state) => state.initializeStatus);
@@ -102,11 +103,21 @@ const DashboardLayout = () => {
         }
     }, [user]);
 
+    // Keep active rooms count synced for notification indicators
+    useEffect(() => {
+        fetchActiveRoomsCount();
+        const roomInterval = setInterval(() => {
+            fetchActiveRoomsCount();
+        }, 20000);
+        return () => clearInterval(roomInterval);
+    }, [fetchActiveRoomsCount]);
+
     useEffect(() => {
         if (socialUser && socialUser.id) {
             initializeStatus(socialUser.id);
             fetchUnreadCounts();
             fetchPendingFriendCount();
+            fetchActiveRoomsCount();
 
             if (isMatrixActive && matrixClient) {
                 const getLocalIdFromMatrixUserId = (matrixUserId) => {
