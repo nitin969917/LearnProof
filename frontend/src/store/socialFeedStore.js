@@ -22,13 +22,23 @@ export const useSocialFeedStore = create((set, get) => ({
   hasLoadedFriends: false,
   feedPage: 0,
   hasMorePosts: true,
-  // Pending friend request badge count
+  // Pending friend request badge count & list
   pendingFriendCount: 0,
+  pendingRequests: [],
+
+  setPendingRequests: (requests) => set({ 
+    pendingRequests: requests, 
+    pendingFriendCount: requests.length 
+  }),
 
   fetchPendingFriendCount: async () => {
     try {
-      const response = await socialApi.get('/social/friend-requests/count');
-      set({ pendingFriendCount: response.data?.count || 0 });
+      const response = await socialApi.get('/social/friendships');
+      const rawPending = Array.isArray(response.data?.pending) ? response.data.pending : [];
+      set({ 
+        pendingRequests: rawPending, 
+        pendingFriendCount: rawPending.length 
+      });
     } catch (err) {
       console.error('Failed to fetch pending friend count', err);
     }
@@ -39,7 +49,27 @@ export const useSocialFeedStore = create((set, get) => ({
   },
 
   clearPendingFriendCount: () => {
-    set({ pendingFriendCount: 0 });
+    set({ pendingFriendCount: 0, pendingRequests: [] });
+  },
+
+  acceptFriendRequestLocally: (requestId) => {
+    set((state) => {
+      const nextPending = state.pendingRequests.filter(r => r.id !== requestId);
+      return {
+        pendingRequests: nextPending,
+        pendingFriendCount: nextPending.length
+      };
+    });
+  },
+
+  declineFriendRequestLocally: (senderId) => {
+    set((state) => {
+      const nextPending = state.pendingRequests.filter(r => r.senderId !== senderId);
+      return {
+        pendingRequests: nextPending,
+        pendingFriendCount: nextPending.length
+      };
+    });
   },
 
   updateSocialUser: (partialData) => {
@@ -125,6 +155,7 @@ export const useSocialFeedStore = create((set, get) => ({
     try {
       const response = await socialApi.get('/social/friendships');
       const rawFriends = Array.isArray(response.data?.friends) ? response.data.friends : [];
+      const rawPending = Array.isArray(response.data?.pending) ? response.data.pending : [];
       // Enforce strict uniqueness by user ID
       const allFriends = rawFriends.filter((f, idx, self) => 
         self.findIndex(item => item.id === f.id) === idx
@@ -133,6 +164,8 @@ export const useSocialFeedStore = create((set, get) => ({
       set({ 
         friends: allFriends, 
         closeFriends: close,
+        pendingRequests: rawPending,
+        pendingFriendCount: rawPending.length,
         loadingFriends: false,
         hasLoadedFriends: true
       });
