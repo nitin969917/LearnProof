@@ -484,7 +484,7 @@ const searchYoutube = async (query, maxResults = 50, optionsOrType = {}, order =
             }
         }
 
-        if (results.length > 0) {
+        if (contents && Array.isArray(contents)) {
             const sliced = maxResults ? results.slice(0, maxResults) : results;
             return { results: sliced };
         }

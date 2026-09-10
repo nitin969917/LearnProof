@@ -58,24 +58,41 @@ const EDU_PATTERNS = [
     /(講座|入門|基礎|チュートリアル|教程|课程|강의|강좌)/i
 ];
 
-// Explicit Pure Entertainment Signatures (Required to Block)
+// Known Entertainment & Music Labels / Channels
+const ENTERTAINMENT_CHANNEL_KEYWORDS = [
+    'music', 'records', 'entertainment', 'films', 'production', 'series',
+    'saregama', 't-series', 'tseries', 'sony music', 'zee music', 'yrf',
+    'tips official', 'speed records', 'everest', 'rajshri', 'eros now',
+    'shemaroo', 'ultra bollywood', 'geet mp3', 'white hill', 'b4u', 'desi music',
+    'planet marathi', 'venus', 'times music', 'aditya music', 'svf', 'wave music',
+    'nirmitee', 'studio', 'studios', 'talkies', 'cinema'
+];
+
+// Explicit Pure Entertainment Signatures (Required to Block when zero educational intent)
 const ENTERTAINMENT_PATTERNS = [
-    // Music (10)
-    /\b(official (music )?video|official audio|full album|remix|dj [a-z0-9_]+|feat\.|ft\.|vevo|soundtrack|audio tracks?|lyrics? video|acoustic version|slowed \+ reverb|instrumental beat)\b/i,
-    /(गीत|गाना|गाने|गाने वीडियो|canción oficial|clip officiel)/i,
+    // Music (English & Global)
+    /\b(songs?|singing|singer|vocals|music\s*video|official\s*#?video|official\s*#?audio|video\s*song|audio\s*song|full\s*album|tracklist|jukebox|remix|dj\s+[a-z0-9_]+|mashup|unplugged|slowed\s*\+\s*reverb|lofi|karaoke|dance\s*cover|choreography|lyrics?\s*(video|song)?|feat\.|ft\.|prod\.)\b/i,
+    // Music & Songs (Indic: Hindi, Marathi, Punjabi, Bhojpuri, etc.)
+    /(गाणी|गाणे|गाना|गाने|गीत|गीते|गाण्यांचे|संगीत|धून|कव्वाली|गज़ल|गजल|लावणी|भजन|आरती|चालीसा|श्लोक|नाच|नृत्य|राग|ढोलकी)/i,
+    // Foreign songs & music
+    /\b(canción|canciones|música|videoclip|chanson|chansons|musique|اغنية|اغاني|كليب|موسيقى)\b/i,
     // Film / Animation (1)
-    /\b(official trailer|teaser trailer|full movie|hindi dubbed movie|movie clip|teaser|trailer 2|cinema release|box office)\b/i,
-    /(पूरी फिल्म|película completa|film complet)/i,
+    /\b(official trailer|teaser trailer|full movie|hindi dubbed movie|movie clip|teaser|trailer 2|cinema release|box office|deleted scene|web series|tv serial|daily soap|natak|short film)\b/i,
+    /(चित्रपट|पूरी फिल्म|नाटक|मालिका|एपिसोड)/i,
+    // Episode and season markers for TV serials/shows
+    /\b(episode\s*\d+|ep\s*\d+|season\s*\d+|s\d+\s*e\d+)\b/i,
     // Gaming (20) - pure gameplay/let's play without tutorial
-    /\b(gameplay (part|walkthrough|highlights|live)|let's play|clutch moments|gta v funny|fortnite battle royale|speedrun record|free fire live|pubg mobile highlights|roblox funny|montage)\b/i,
+    /\b(gameplay (part|walkthrough|highlights|live)|let's play|clutch moments|gta v|fortnite|speedrun record|free fire live|pubg mobile|roblox funny|montage)\b/i,
     // Comedy (23)
-    /\b(standup comedy|stand up comedy|roast video|prank on|funny prank|meme compilation|try not to laugh|hilarious moments|laugh challenge)\b/i,
+    /\b(standup comedy|stand up comedy|roast video|roasting|prank on|funny prank|funny video|meme compilation|try not to laugh|hilarious moments|laugh challenge)\b/i,
+    /(कॉमेडी|हंसी|मजाक|जोक्स)/i,
     // Entertainment (24)
-    /\b(bigg boss|web series episode|celebrity gossip|reaction to|celebrity interview|drama episode|full episode \d+)\b/i,
+    /\b(bigg boss|splitsvilla|roadies|kapil sharma|koffee with karan|celebrity gossip|paparazzi|reaction to|celebrity interview|drama episode|full episode \d+)\b/i,
     // Sports (17)
-    /\b(match highlights|full match|live match|goal highlights|ufc fight night|wwe (smackdown|raw)|t20 highlights|ipl highlights|penalty shootout)\b/i,
+    /\b(match highlights|full match|live match|goal highlights|ufc fight night|wwe (smackdown|raw)|t20 highlights|ipl highlights|world cup highlights|penalty shootout)\b/i,
     // People & Blogs (22)
-    /\b(daily vlog|family vlog|my morning routine|day in my life vlog|what i eat in a day|q&a vlog|room tour vlog)\b/i
+    /\b(daily vlog|family vlog|my morning routine|day in my life vlog|what i eat in a day|q&a vlog|room tour vlog)\b/i,
+    /(व्लॉग|दिनचर्या)/i
 ];
 
 /**
@@ -113,17 +130,6 @@ const isAllowedEducationalContent = ({ title = '', description = '', channel = '
 
     // 4. If categoryId IS in BLOCKED_CATEGORIES:
     if (categoryId && BLOCKED_CATEGORIES.has(categoryId.toString())) {
-        // Double-check: does it have explicit entertainment tokens?
-        for (const pattern of ENTERTAINMENT_PATTERNS) {
-            if (pattern.test(combinedText)) {
-                return { 
-                    allowed: false, 
-                    reason: 'blocked_category',
-                    categoryName: CATEGORY_NAMES[categoryId.toString()] || 'Entertainment'
-                };
-            }
-        }
-        // If it's in a blocked category and has no educational tokens, block it with clear category name
         return { 
             allowed: false, 
             reason: 'blocked_category',
@@ -131,15 +137,23 @@ const isAllowedEducationalContent = ({ title = '', description = '', channel = '
         };
     }
 
-    // 5. In search (where categoryId is not yet attached):
-    // Check if it matches explicit entertainment signatures:
+    // 5. Check if title, description, or channel has entertainment signatures
     for (const pattern of ENTERTAINMENT_PATTERNS) {
-        if (pattern.test(cleanTitle)) {
+        if (pattern.test(combinedText)) {
             return { allowed: false, reason: 'pure_entertainment_signature' };
         }
     }
 
-    // 6. Fail-open for safety (Ensure no education is ever blocked)
+    // 6. Check if channel is a known music or entertainment label
+    if (cleanChannel) {
+        for (const kw of ENTERTAINMENT_CHANNEL_KEYWORDS) {
+            if (cleanChannel.includes(kw)) {
+                return { allowed: false, reason: 'entertainment_channel_label' };
+            }
+        }
+    }
+
+    // 7. Fail-open for safety (Ensure no education is ever blocked)
     return { allowed: true, reason: 'fail_open' };
 };
 
