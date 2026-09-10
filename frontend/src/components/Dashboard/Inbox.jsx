@@ -406,20 +406,25 @@ const Inbox = () => {
                     )}
                 </button>
 
-                <button
-                    onClick={() => setActiveFilter('rooms')}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-                        activeFilter === 'rooms'
-                            ? 'bg-[#FF5100] text-white shadow-xs'
-                            : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-gray-100 dark:border-gray-700/80'
-                    }`}
-                >
-                    <Radio size={13} />
-                    <span>Live Rooms</span>
-                    {liveRooms.length > 0 && (
+                {liveRooms.length > 0 && (
+                    <button
+                        onClick={() => setActiveFilter('rooms')}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                            activeFilter === 'rooms'
+                                ? 'bg-[#FF5100] text-white shadow-xs'
+                                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-gray-100 dark:border-gray-700/80'
+                        }`}
+                    >
+                        <Radio size={13} />
+                        <span>Live Rooms</span>
                         <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    )}
-                </button>
+                        <span className={`text-[10px] font-black rounded-full px-1.5 py-0.2 ${
+                            activeFilter === 'rooms' ? 'bg-white/25 text-white' : 'bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400'
+                        }`}>
+                            {liveRooms.length}
+                        </span>
+                    </button>
+                )}
 
                 <button
                     onClick={() => setActiveFilter('system')}
@@ -443,8 +448,8 @@ const Inbox = () => {
 
             {/* ── Main Stream Content ──────────────────────────────────── */}
             <div className="space-y-2.5">
-                {/* 1. Live Language Practice Rooms (Always accessible & visible in All and Rooms tabs) */}
-                {showRooms && (
+                {/* 1. Live Language Practice Rooms (Only shown when there is a current active room) */}
+                {showRooms && liveRooms.length > 0 && (
                     <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-transparent border border-orange-200/80 dark:border-orange-500/20 rounded-2xl p-3 shadow-2xs">
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
@@ -456,11 +461,9 @@ const Inbox = () => {
                                     <Radio size={12} className="text-[#FF5100]" />
                                     Live Language Rooms
                                 </h3>
-                                {liveRooms.length > 0 && (
-                                    <span className="text-[9px] font-bold text-white bg-red-500 px-1.5 py-0.2 rounded-full">
-                                        {liveRooms.length} Live
-                                    </span>
-                                )}
+                                <span className="text-[9px] font-bold text-white bg-red-500 px-1.5 py-0.2 rounded-full">
+                                    {liveRooms.length} Live
+                                </span>
                             </div>
                             <button
                                 onClick={() => navigate('/dashboard/live-rooms')}
@@ -470,46 +473,27 @@ const Inbox = () => {
                             </button>
                         </div>
 
-                        {liveRooms.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                {liveRooms.slice(0, 4).map(room => (
-                                    <div 
-                                        key={room.id || room.roomName || room.name}
-                                        onClick={() => navigate(`/dashboard/live-rooms/${room.roomName || room.name}`)}
-                                        className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 hover:border-orange-300 rounded-xl p-2.5 flex items-center justify-between gap-2 cursor-pointer transition shadow-2xs hover:shadow-xs active:scale-98"
-                                    >
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                                                {room.topic || room.roomName || room.name}
-                                            </p>
-                                            <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                                                {room.language || 'English'} • {room.participantCount || 1} online
-                                            </p>
-                                        </div>
-                                        <span className="bg-[#FF5100] hover:bg-[#E04800] text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shrink-0 flex items-center gap-1 shadow-2xs">
-                                            Join
-                                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {liveRooms.slice(0, 4).map(room => (
+                                <div 
+                                    key={room.id || room.roomName || room.name}
+                                    onClick={() => navigate(`/dashboard/live-rooms/${room.roomName || room.name}`)}
+                                    className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/80 hover:border-orange-300 rounded-xl p-2.5 flex items-center justify-between gap-2 cursor-pointer transition shadow-2xs hover:shadow-xs active:scale-98"
+                                >
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                                            {room.topic || room.roomName || room.name}
+                                        </p>
+                                        <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                                            {room.language || 'English'} • {room.participantCount || 1} online
+                                        </p>
                                     </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div 
-                                onClick={() => navigate('/dashboard/live-rooms')}
-                                className="bg-white dark:bg-gray-800 border border-dashed border-orange-300/70 dark:border-orange-500/30 rounded-xl p-2.5 flex items-center justify-between gap-2 cursor-pointer hover:bg-orange-50/40 dark:hover:bg-gray-700/30 transition"
-                            >
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-xs font-bold text-gray-900 dark:text-white">
-                                        Practice Speaking in Live Rooms
-                                    </p>
-                                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
-                                        Join or start voice & video sessions to practice with peers in real-time.
-                                    </p>
+                                    <span className="bg-[#FF5100] hover:bg-[#E04800] text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shrink-0 flex items-center gap-1 shadow-2xs">
+                                        Join
+                                    </span>
                                 </div>
-                                <span className="bg-orange-100 dark:bg-orange-950/40 text-[#FF5100] text-[10px] font-bold px-2.5 py-1 rounded-lg shrink-0 flex items-center gap-1">
-                                    Join Room <ArrowRight size={11} />
-                                </span>
-                            </div>
-                        )}
+                            ))}
+                        </div>
                     </div>
                 )}
 
