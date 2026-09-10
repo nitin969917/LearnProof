@@ -45,7 +45,7 @@ const EDU_PATTERNS = [
     // Software & Game Dev Education
     /\b(unity tutorial|unreal engine tutorial|blender tutorial|godot tutorial|game dev tutorial|3d modeling tutorial|autocad|figma tutorial|photoshop tutorial)\b/i,
     // Hindi & Marathi & Indic
-    /(कक्षा|पाठ|अध्याय|गणित|विज्ञान|इतिहास|सीखें|सिखिए|पढ़ाई|तैयारी|परीक्षा|मार्गदर्शन|व्याख्यान|कोर्स|इयत्ता|शुरुआत से|प्रश्नोत्तरी|समाधान|अभ्यास|सूत्र|बोर्ड परीक्षा|पुस्तिका)/i,
+    /(कक्षा|पाठ|अध्याय|गणित|विज्ञान|इतिहास|सीखें|सिखिए|पढ़ाई|तैयारी|परीक्षा|मार्गदर्शन|व्याख्यान|कोर्स|इयत्ता|शुरुआत से|प्रश्नोत्तरी|समाधान|अभ्यास|गणितीय सूत्र|फॉर्मूला|बोर्ड परीक्षा|पुस्तिका)/i,
     // Spanish & Portuguese
     /\b(curso|clase|aprender|tutorial|lección|guía|matemáticas|ciencia|programación|desde cero|paso a paso|explicación|aula|computación)\b/i,
     // French
@@ -53,7 +53,7 @@ const EDU_PATTERNS = [
     // German
     /\b(kurs|lernen|anleitung|lektion|erklärung|mathematik|programmieren|anfänger|vorlesung|übung)\b/i,
     // Arabic
-    /(دورة|كورس|تعلم|شرح|درس|محاضرة|مبتدئين|برمجة|رياضيات|علوم)/i,
+    /(دورة|كورس|تعلم|شرح|درس|محاضرة|مبتدئين|برमجة|رياضيات|علوم)/i,
     // Japanese / Chinese / Korean
     /(講座|入門|基礎|チュートリアル|教程|课程|강의|강좌)/i
 ];
@@ -71,7 +71,7 @@ const ENTERTAINMENT_CHANNEL_KEYWORDS = [
 // Explicit Pure Entertainment Signatures (Required to Block when zero educational intent)
 const ENTERTAINMENT_PATTERNS = [
     // Music (English & Global)
-    /\b(songs?|singing|singer|vocals|music\s*video|official\s*#?video|official\s*#?audio|video\s*song|audio\s*song|full\s*album|tracklist|jukebox|remix|dj\s+[a-z0-9_]+|mashup|unplugged|slowed\s*\+\s*reverb|lofi|karaoke|dance\s*cover|choreography|lyrics?\s*(video|song)?|feat\.|ft\.|prod\.)\b/i,
+    /\b(songs?|singing|singer|vocals|music\s*video|official\s*#?video|official\s*#?audio|video\s*song|audio\s*song|full\s*album|tracklist|jukebox|remix|dj\b|in the mix|mashup|unplugged|slowed\s*\+\s*reverb|lofi|karaoke|dance\s*cover|choreography|lyrics?\s*(video|song)?|feat\.|ft\.|prod\.)\b/i,
     // Music & Songs (Indic: Hindi, Marathi, Punjabi, Bhojpuri, etc.)
     /(गाणी|गाणे|गाना|गाने|गीत|गीते|गाण्यांचे|संगीत|धून|कव्वाली|गज़ल|गजल|लावणी|भजन|आरती|चालीसा|श्लोक|नाच|नृत्य|राग|ढोलकी)/i,
     // Foreign songs & music
@@ -144,8 +144,11 @@ const isAllowedEducationalContent = ({ title = '', description = '', channel = '
         }
     }
 
-    // 6. Check if channel is a known music or entertainment label
+    // 6. Check if channel is a known music/entertainment label or YouTube Music Topic channel
     if (cleanChannel) {
+        if (cleanChannel.endsWith('- topic') || /\b-\s*topic\b/i.test(cleanChannel)) {
+            return { allowed: false, reason: 'youtube_music_topic_channel' };
+        }
         for (const kw of ENTERTAINMENT_CHANNEL_KEYWORDS) {
             if (cleanChannel.includes(kw)) {
                 return { allowed: false, reason: 'entertainment_channel_label' };
