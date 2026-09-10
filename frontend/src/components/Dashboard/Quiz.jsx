@@ -452,18 +452,20 @@ const Quiz = () => {
                     <div className="flex justify-between items-center mb-5 sm:mb-6 pt-1">
                         <button
                             onClick={handleCloseHistory}
-                            className="flex items-center gap-1.5 px-3.5 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:text-orange-500 dark:hover:text-orange-400 text-xs sm:text-sm font-extrabold rounded-xl border border-gray-200/80 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 cursor-pointer"
+                            className="p-2 sm:p-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:text-orange-500 dark:hover:text-orange-400 rounded-xl border border-gray-200/80 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 cursor-pointer flex items-center justify-center"
+                            title="Back to Quizzes"
+                            aria-label="Back to Quizzes"
                         >
-                            <ArrowLeft size={16} className="text-gray-500 dark:text-gray-400" />
-                            <span>Back</span>
+                            <ArrowLeft size={18} className="text-gray-600 dark:text-gray-300" />
                         </button>
 
                         <button
                             onClick={() => handleDeleteHistory(selectedHistoryQuiz.id)}
-                            className="flex items-center gap-1.5 px-3.5 py-2 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white text-xs sm:text-sm font-extrabold rounded-xl border border-red-200 dark:border-red-500/20 shadow-sm transition-all duration-200 active:scale-95 cursor-pointer"
+                            className="p-2 sm:p-2.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white dark:hover:bg-red-500 dark:hover:text-white rounded-xl border border-red-200 dark:border-red-500/20 shadow-sm transition-all duration-200 active:scale-95 cursor-pointer flex items-center justify-center"
+                            title="Delete Attempt"
+                            aria-label="Delete Attempt"
                         >
-                            <Trash2 size={15} />
-                            <span>Delete Attempt</span>
+                            <Trash2 size={18} />
                         </button>
                     </div>
 

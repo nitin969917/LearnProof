@@ -510,10 +510,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         {!isOwnProfile && (
           <button
             onClick={() => navigate(-1)}
-            className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-1.5 px-3 py-1.5 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/20 transition cursor-pointer z-10"
+            className="absolute top-3 left-3 sm:top-4 sm:left-4 p-2 sm:p-2.5 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white rounded-xl border border-white/20 transition cursor-pointer z-10 flex items-center justify-center active:scale-95 shadow-sm"
+            title="Back"
+            aria-label="Back"
           >
-            <ArrowLeft size={14} />
-            <span>Back</span>
+            <ArrowLeft size={16} />
           </button>
         )}
       </div>
