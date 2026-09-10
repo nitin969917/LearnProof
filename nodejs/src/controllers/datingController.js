@@ -2228,21 +2228,20 @@ const sendGroupMessage = async (req, res) => {
     }).then(async members => {
       const allReceiverIds = members.map(m => m.userId);
       if (allReceiverIds.length > 0 && group) {
-        // Filter out members who are actively in the app in foreground
-        const io = req.app.get('io');
+        // Filter out members who are actively in the app in foreground via Redis
         let backgroundReceiverIds = allReceiverIds;
-        if (io) {
+        try {
           const activeIds = new Set();
           for (const rid of allReceiverIds) {
-            try {
-              const sockets = await io.in(rid.toString()).fetchSockets();
-              if (sockets.some(s => s.isAppActive !== false)) {
-                activeIds.add(rid);
-              }
-            } catch (_) {}
+            const ridStr = rid.toString();
+            const isOnline = await redis.sismember('online_users', ridStr);
+            const isBg = await redis.get(`user:backgrounded:${ridStr}`);
+            if (isOnline === 1 && isBg !== '1') {
+              activeIds.add(rid);
+            }
           }
           backgroundReceiverIds = allReceiverIds.filter(id => !activeIds.has(id));
-        }
+        } catch (_) {}
 
         if (backgroundReceiverIds.length > 0) {
           sendPushNotification(

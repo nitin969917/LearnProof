@@ -211,6 +211,7 @@ io.on('connection', (socket) => {
       await redis.expire(workerSocketsKey, 86400);
       
       const isNewOnline = await redis.sadd('online_users', userIdStr);
+      await redis.del(`user:backgrounded:${userIdStr}`);
       
       const onlineUsers = await redis.smembers('online_users');
       socket.emit('getOnlineUsers', onlineUsers);
@@ -225,12 +226,18 @@ io.on('connection', (socket) => {
 
   socket.isAppActive = true;
 
-  socket.on('presence:foreground', () => {
+  socket.on('presence:foreground', async () => {
     socket.isAppActive = true;
+    if (socket.userId) {
+      await redis.del(`user:backgrounded:${socket.userId}`);
+    }
   });
 
-  socket.on('presence:background', () => {
+  socket.on('presence:background', async () => {
     socket.isAppActive = false;
+    if (socket.userId) {
+      await redis.set(`user:backgrounded:${socket.userId}`, '1', 'EX', 86400);
+    }
   });
 
   socket.on('sendMessage', async (data) => {
@@ -261,17 +268,19 @@ io.on('connection', (socket) => {
       // Emit confirmation back to sender so their message is DB-synced
       socket.emit('messageSent', savedMessage);
 
-      // Check if receiver is actively viewing the app
-      let isReceiverForegroundActive = false;
+      // Check if receiver is actively viewing the app via Redis
+      const receiverIdStr = receiverId.toString();
+      let isReceiverActivelyInApp = false;
       try {
-        const receiverSockets = await io.in(receiverId.toString()).fetchSockets();
-        isReceiverForegroundActive = receiverSockets.some(s => s.isAppActive !== false);
+        const isOnlineInRedis = await redis.sismember('online_users', receiverIdStr);
+        const isBackgrounded = await redis.get(`user:backgrounded:${receiverIdStr}`);
+        isReceiverActivelyInApp = (isOnlineInRedis === 1 && isBackgrounded !== '1');
       } catch (checkErr) {
-        console.warn('Could not check receiver socket state:', checkErr);
+        console.warn('Could not check receiver Redis state:', checkErr);
       }
 
       // Only send phone system tray push if receiver is backgrounded or offline
-      if (!isReceiverForegroundActive) {
+      if (!isReceiverActivelyInApp) {
         try {
           const senderName = savedMessage.sender?.name || 'A friend';
           sendPushNotification(
@@ -288,6 +297,8 @@ io.on('connection', (socket) => {
         } catch (pushErr) {
           console.error('Error sending push notification for direct message:', pushErr.message);
         }
+      } else {
+        console.log(`[Push Notification] Receiver ${receiverIdStr} is active in app. Suppressing out-of-app push.`);
       }
     } catch (error) {
       console.error('Error saving socket message:', error);
@@ -459,6 +470,7 @@ io.on('connection', (socket) => {
         if (activeCount === 0) {
           await redis.srem('online_users', userIdStr);
           await redis.del(socketSetKey);
+          await redis.del(`user:backgrounded:${userIdStr}`);
           io.emit('userStatus', { userId: userIdStr, online: false });
         }
       } catch (err) {

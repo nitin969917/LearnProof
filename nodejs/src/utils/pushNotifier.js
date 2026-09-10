@@ -62,6 +62,8 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
         }
       }
     }
+    serializedData.title = String(title || 'LearnProof');
+    serializedData.body = String(body || '');
     serializedData.clickAction = clickAction;
     serializedData.targetUrl = clickAction;
     serializedData.url = clickAction;
@@ -75,14 +77,12 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
     if (admin && admin.apps.length > 0) {
       const response = await admin.messaging().sendEachForMulticast({
         tokens,
-        notification: { title, body },
         data: serializedData,
         webpush: {
-          notification: {
-            icon: 'https://learnproofai.com/LP_M_logo.png',
-            badge: 'https://learnproofai.com/LP_M_logo.png',
-            data: serializedData
+          headers: {
+            Urgency: 'high'
           },
+          data: serializedData,
           fcmOptions: {
             link: fullTargetUrl
           }
