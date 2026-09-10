@@ -26,18 +26,39 @@ export const useSocialFeedStore = create((set, get) => ({
   pendingFriendCount: 0,
   pendingRequests: [],
 
-  // Live / Active language rooms tracking for notification indicators
+  // Live / Active language rooms tracking for notification indicators (only friends' rooms)
   activeRoomsCount: 0,
   setActiveRoomsCount: (count) => set({ activeRoomsCount: count }),
   fetchActiveRoomsCount: async () => {
     try {
+      let friendsList = get().friends;
+      if (!get().hasLoadedFriends || !Array.isArray(friendsList) || friendsList.length === 0) {
+        try {
+          const fRes = await socialApi.get('/social/friendships');
+          friendsList = Array.isArray(fRes.data?.friends) ? fRes.data.friends : [];
+          set({ friends: friendsList, hasLoadedFriends: true });
+        } catch (e) {}
+      }
+
+      const friendIds = new Set((friendsList || []).map(f => Number(f.id)));
+      if (friendIds.size === 0) {
+        set({ activeRoomsCount: 0 });
+        return;
+      }
+
       const response = await socialApi.get('/language-rooms');
       const rooms = Array.isArray(response.data) ? response.data : [];
-      const activeRooms = rooms.filter(r => {
+      const currentUserId = get().socialUser?.id ? Number(get().socialUser.id) : null;
+
+      const friendRooms = rooms.filter(r => {
         const isFutureScheduled = r.scheduledFor && new Date(r.scheduledFor).getTime() > Date.now() && !r.isStartedNotificationSent;
-        return !isFutureScheduled;
+        if (isFutureScheduled) return false;
+        
+        const creatorId = Number(r.creatorId || r.creator?.id);
+        return creatorId !== currentUserId && friendIds.has(creatorId);
       });
-      set({ activeRoomsCount: activeRooms.length });
+
+      set({ activeRoomsCount: friendRooms.length });
     } catch (err) {
       // Quietly handle
     }

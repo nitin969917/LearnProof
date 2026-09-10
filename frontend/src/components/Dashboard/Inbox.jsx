@@ -44,6 +44,7 @@ const Inbox = () => {
     const acceptFriendRequestLocally = useSocialFeedStore((state) => state.acceptFriendRequestLocally);
     const declineFriendRequestLocally = useSocialFeedStore((state) => state.declineFriendRequestLocally);
     const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
+    const socialUser = useSocialFeedStore((state) => state.socialUser);
 
     const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
     const unreadByContact = useSocialMessageStore((state) => state.unreadByContact);
@@ -69,24 +70,25 @@ const Inbox = () => {
             const promises = [];
 
             // 1. Fetch friend requests & friends for recent message snippets
-            promises.push(
-                socialApi.get('/social/friendships').then(res => {
-                    const rawPending = Array.isArray(res.data?.pending) ? res.data.pending : [];
-                    const rawFriends = Array.isArray(res.data?.friends) ? res.data.friends : [];
-                    setPendingRequests(rawPending);
-                    
-                    // Filter friends who have a lastMessage or unread count
-                    const activeChats = rawFriends
-                        .filter(f => f.lastMessage || (unreadByContact[f.id?.toString()] > 0))
-                        .map(f => ({
-                            ...f,
-                            unreadCount: unreadByContact[f.id?.toString()] || 0
-                        }));
-                    setRecentChats(activeChats);
-                }).catch(err => {
-                    console.error("Failed to load friendships in inbox:", err);
-                })
-            );
+            const friendshipPromise = socialApi.get('/social/friendships').then(res => {
+                const rawPending = Array.isArray(res.data?.pending) ? res.data.pending : [];
+                const rawFriends = Array.isArray(res.data?.friends) ? res.data.friends : [];
+                setPendingRequests(rawPending);
+                
+                // Filter friends who have a lastMessage or unread count
+                const activeChats = rawFriends
+                    .filter(f => f.lastMessage || (unreadByContact[f.id?.toString()] > 0))
+                    .map(f => ({
+                        ...f,
+                        unreadCount: unreadByContact[f.id?.toString()] || 0
+                    }));
+                setRecentChats(activeChats);
+                return rawFriends;
+            }).catch(err => {
+                console.error("Failed to load friendships in inbox:", err);
+                return [];
+            });
+            promises.push(friendshipPromise);
 
             // 2. Fetch system messages from backend
             if (token) {
@@ -101,12 +103,22 @@ const Inbox = () => {
                 );
             }
 
-            // 3. Fetch active language/live rooms
+            // 3. Fetch active language/live rooms (ONLY consider rooms created by friends)
             promises.push(
-                socialApi.get('/language-rooms').then(res => {
+                Promise.all([friendshipPromise, socialApi.get('/language-rooms')]).then(([friends, res]) => {
+                    const friendIds = new Set((friends || []).map(f => Number(f.id)));
                     const rooms = Array.isArray(res.data) ? res.data : [];
-                    setLiveRooms(rooms);
-                    useSocialFeedStore.getState().setActiveRoomsCount(rooms.length);
+                    const currentUserId = socialUser?.id ? Number(socialUser.id) : null;
+
+                    const friendActiveRooms = rooms.filter(r => {
+                        const isFutureScheduled = r.scheduledFor && new Date(r.scheduledFor).getTime() > Date.now() && !r.isStartedNotificationSent;
+                        if (isFutureScheduled) return false;
+                        const creatorId = Number(r.creatorId || r.creator?.id);
+                        return creatorId !== currentUserId && friendIds.has(creatorId);
+                    });
+
+                    setLiveRooms(friendActiveRooms);
+                    useSocialFeedStore.getState().setActiveRoomsCount(friendActiveRooms.length);
                 }).catch(() => {
                     setLiveRooms([]);
                     useSocialFeedStore.getState().setActiveRoomsCount(0);
@@ -467,7 +479,7 @@ const Inbox = () => {
                                 </span>
                                 <h3 className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
                                     <Radio size={12} className="text-[#FF5100]" />
-                                    Live Language Rooms
+                                    Friends in Live Rooms
                                 </h3>
                                 <span className="text-[9px] font-bold text-white bg-red-500 px-1.5 py-0.2 rounded-full">
                                     {liveRooms.length} Live
