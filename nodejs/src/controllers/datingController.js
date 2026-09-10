@@ -2228,36 +2228,19 @@ const sendGroupMessage = async (req, res) => {
     }).then(async members => {
       const allReceiverIds = members.map(m => m.userId);
       if (allReceiverIds.length > 0 && group) {
-        // Filter out members who are actively in the app in foreground via Redis
-        let backgroundReceiverIds = allReceiverIds;
-        try {
-          const activeIds = new Set();
-          for (const rid of allReceiverIds) {
-            const ridStr = rid.toString();
-            const isOnline = await redis.sismember('online_users', ridStr);
-            const isBg = await redis.get(`user:backgrounded:${ridStr}`);
-            if (isOnline === 1 && isBg !== '1') {
-              activeIds.add(rid);
-            }
+        sendPushNotification(
+          allReceiverIds,
+          `New message in ${group.name}`,
+          `${message.sender?.name || 'A member'}: ${content}`,
+          { 
+            type: 'GROUP_MESSAGE', 
+            groupId: String(groupId),
+            groupName: group.name,
+            senderId: String(senderId),
+            senderName: message.sender?.name || 'A member',
+            senderPicture: message.sender?.profilePicture || ''
           }
-          backgroundReceiverIds = allReceiverIds.filter(id => !activeIds.has(id));
-        } catch (_) {}
-
-        if (backgroundReceiverIds.length > 0) {
-          sendPushNotification(
-            backgroundReceiverIds,
-            `New message in ${group.name}`,
-            `${message.sender.name}: ${content}`,
-            { 
-              type: 'GROUP_MESSAGE', 
-              groupId: String(groupId),
-              groupName: group.name,
-              senderId: String(senderId),
-              senderName: message.sender.name,
-              senderPicture: message.sender.profilePicture || ''
-            }
-          );
-        }
+        );
       }
     }).catch(pushErr => {
       console.error('Error sending group message push notification:', pushErr.message);

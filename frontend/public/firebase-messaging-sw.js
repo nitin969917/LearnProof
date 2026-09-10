@@ -17,10 +17,10 @@ messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message: ', payload);
   
   return clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-    // If an app window is open and visible on screen, suppress the out-of-app OS notification
-    const isVisible = clientList.some(client => client.visibilityState === 'visible');
-    if (isVisible) {
-      console.log('[firebase-messaging-sw.js] App is currently visible in foreground. Suppressing out-of-app OS notification.');
+    // Only suppress if a window is actively focused by the user (looking directly at the screen inside the app)
+    const isAppFocused = clientList.some(client => client.focused);
+    if (isAppFocused) {
+      console.log('[firebase-messaging-sw.js] App is currently active and focused. Suppressing out-of-app OS notification.');
       return;
     }
 
@@ -49,6 +49,9 @@ messaging.onBackgroundMessage((payload) => {
       body: notificationBody,
       icon: iconUrl,
       badge: iconUrl,
+      vibrate: [200, 100, 200],
+      tag: data.type === 'CHAT_MESSAGE' ? `chat_${data.senderId}` : (data.type === 'GROUP_MESSAGE' ? `group_${data.groupId}` : 'learnproof_notification'),
+      renotify: true,
       data: enrichedData
     };
 

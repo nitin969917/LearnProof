@@ -268,37 +268,22 @@ io.on('connection', (socket) => {
       // Emit confirmation back to sender so their message is DB-synced
       socket.emit('messageSent', savedMessage);
 
-      // Check if receiver is actively viewing the app via Redis
-      const receiverIdStr = receiverId.toString();
-      let isReceiverActivelyInApp = false;
+      // Dispatch push notification to receiver's devices (client-side service worker & OS gatekeep visibility)
       try {
-        const isOnlineInRedis = await redis.sismember('online_users', receiverIdStr);
-        const isBackgrounded = await redis.get(`user:backgrounded:${receiverIdStr}`);
-        isReceiverActivelyInApp = (isOnlineInRedis === 1 && isBackgrounded !== '1');
-      } catch (checkErr) {
-        console.warn('Could not check receiver Redis state:', checkErr);
-      }
-
-      // Only send phone system tray push if receiver is backgrounded or offline
-      if (!isReceiverActivelyInApp) {
-        try {
-          const senderName = savedMessage.sender?.name || 'A friend';
-          sendPushNotification(
-            [parseInt(receiverId)],
-            `New message from ${senderName}`,
-            message.content,
-            { 
-              type: 'CHAT_MESSAGE', 
-              senderId: String(message.senderId),
-              senderName: senderName,
-              senderPicture: savedMessage.sender?.profilePicture || ''
-            }
-          );
-        } catch (pushErr) {
-          console.error('Error sending push notification for direct message:', pushErr.message);
-        }
-      } else {
-        console.log(`[Push Notification] Receiver ${receiverIdStr} is active in app. Suppressing out-of-app push.`);
+        const senderName = savedMessage.sender?.name || 'A friend';
+        sendPushNotification(
+          [parseInt(receiverId)],
+          `New message from ${senderName}`,
+          message.content,
+          { 
+            type: 'CHAT_MESSAGE', 
+            senderId: String(message.senderId),
+            senderName: senderName,
+            senderPicture: savedMessage.sender?.profilePicture || ''
+          }
+        );
+      } catch (pushErr) {
+        console.error('Error sending push notification for direct message:', pushErr.message);
       }
     } catch (error) {
       console.error('Error saving socket message:', error);
