@@ -499,32 +499,34 @@ const AdminReferrals = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-                        <Share2 className="text-orange-500" />
-                        Referrals & Campus Ambassadors
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
+                            <Share2 size={20} />
+                        </div>
+                        <span>Referrals & Campus Ambassadors</span>
                     </h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                         Generate & monitor custom referral links, track colleges, and manage ambassador cohorts.
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2.5 shrink-0 self-start md:self-center">
                     <button
                         onClick={() => fetchData(true)}
                         disabled={refreshing}
-                        className="p-2.5 text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition shadow-sm cursor-pointer"
+                        className="h-10 w-10 shrink-0 flex items-center justify-center text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition shadow-xs cursor-pointer"
                         title="Refresh data"
                     >
-                        <RefreshCw size={18} className={refreshing ? 'animate-spin text-orange-500' : ''} />
+                        <RefreshCw size={17} className={refreshing ? 'animate-spin text-orange-500' : ''} />
                     </button>
                     {mainTab === 'links' ? (
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-xl shadow-lg shadow-orange-500/20 transition duration-200 cursor-pointer"
+                            className="inline-flex items-center justify-center gap-2 h-10 px-4.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 hover:shadow-lg transition duration-200 cursor-pointer whitespace-nowrap shrink-0"
                         >
-                            <Plus size={18} />
-                            <span>Create Campaign Link</span>
+                            <Plus size={17} className="shrink-0" />
+                            <span className="whitespace-nowrap">Create Campaign Link</span>
                         </button>
                     ) : (
                         <button
@@ -532,46 +534,48 @@ const AdminReferrals = () => {
                                 setGroupFormData({ name: '', college: '', description: '', referralCodeIds: [] });
                                 setIsCreateGroupModalOpen(true);
                             }}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition duration-200 cursor-pointer"
+                            className="inline-flex items-center justify-center gap-2 h-10 px-4.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-md shadow-indigo-600/20 hover:shadow-lg transition duration-200 cursor-pointer whitespace-nowrap shrink-0"
                         >
-                            <FolderPlus size={18} />
-                            <span>Create Ambassador Group</span>
+                            <FolderPlus size={17} className="shrink-0" />
+                            <span className="whitespace-nowrap">Create Ambassador Group</span>
                         </button>
                     )}
                 </div>
             </div>
 
             {/* Primary View Navigation Switcher */}
-            <div className="flex items-center gap-2 p-1.5 bg-gray-100 dark:bg-gray-800/80 rounded-2xl max-w-fit border border-gray-200 dark:border-gray-700 shadow-xs">
-                <button
-                    onClick={() => setMainTab('links')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition duration-200 cursor-pointer ${
-                        mainTab === 'links'
-                            ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-sm'
-                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                >
-                    <BarChart3 size={16} />
-                    <span>Campaign Links & Ambassadors</span>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-mono bg-gray-200/80 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
-                        {codes.length}
-                    </span>
-                </button>
+            <div className="overflow-x-auto no-scrollbar pb-1">
+                <div className="inline-flex items-center gap-1.5 p-1.5 bg-gray-100 dark:bg-gray-800/90 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-xs">
+                    <button
+                        onClick={() => setMainTab('links')}
+                        className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all duration-200 cursor-pointer ${
+                            mainTab === 'links'
+                                ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-xs'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                    >
+                        <BarChart3 size={16} className="shrink-0" />
+                        <span className="whitespace-nowrap">Campaign Links & Ambassadors</span>
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-gray-200/80 dark:bg-gray-600 text-gray-700 dark:text-gray-300 shrink-0 whitespace-nowrap">
+                            {codes.length}
+                        </span>
+                    </button>
 
-                <button
-                    onClick={() => setMainTab('groups')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition duration-200 cursor-pointer ${
-                        mainTab === 'groups'
-                            ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                    }`}
-                >
-                    <Layers size={16} />
-                    <span>Ambassador Groups & College Analytics</span>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-mono bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-semibold">
-                        {groups.length} Groups
-                    </span>
-                </button>
+                    <button
+                        onClick={() => setMainTab('groups')}
+                        className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all duration-200 cursor-pointer ${
+                            mainTab === 'groups'
+                                ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                    >
+                        <Layers size={16} className="shrink-0" />
+                        <span className="whitespace-nowrap">Ambassador Groups & College Analytics</span>
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 shrink-0 whitespace-nowrap">
+                            {groups.length} Groups
+                        </span>
+                    </button>
+                </div>
             </div>
 
             {/* ========================================================================= */}
@@ -997,39 +1001,45 @@ const AdminReferrals = () => {
                     </div>
 
                     {/* Sub-Tabs: Custom Groups vs College Benchmark */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                        <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-gray-700/50 rounded-xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                        <div className="inline-flex items-center gap-1.5 p-1 bg-gray-100 dark:bg-gray-700/50 rounded-xl shrink-0 overflow-x-auto">
                             <button
                                 onClick={() => setGroupSubTab('custom')}
-                                className={`px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer ${
                                     groupSubTab === 'custom'
-                                        ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                        ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
                                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                             >
-                                Custom Ambassador Groups ({groups.length})
+                                <span>Custom Groups</span>
+                                <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-mono font-semibold">
+                                    {groups.length}
+                                </span>
                             </button>
                             <button
                                 onClick={() => setGroupSubTab('colleges')}
-                                className={`px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer ${
                                     groupSubTab === 'colleges'
-                                        ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                                        ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
                                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                             >
-                                College Leaderboard ({colleges.length})
+                                <span>College Leaderboard</span>
+                                <span className="px-1.5 py-0.5 rounded-md text-[10px] bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 font-mono font-semibold">
+                                    {colleges.length}
+                                </span>
                             </button>
                         </div>
 
                         {groupSubTab === 'custom' && (
-                            <div className="relative flex-1 sm:max-w-xs">
-                                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <div className="relative w-full sm:w-72 md:w-80 shrink-0">
+                                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <input
                                     type="text"
-                                    placeholder="Search group by name, college..."
+                                    placeholder="Search groups or college..."
                                     value={groupSearchQuery}
                                     onChange={(e) => setGroupSearchQuery(e.target.value)}
-                                    className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
+                                    className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 dark:text-white"
                                 />
                             </div>
                         )}
