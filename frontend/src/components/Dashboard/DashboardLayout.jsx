@@ -103,14 +103,33 @@ const DashboardLayout = () => {
         }
     }, [user]);
 
-    // Keep active rooms count synced for notification indicators
+    // Keep active rooms count synced in real-time for notification indicators
     useEffect(() => {
         fetchActiveRoomsCount();
+
+        let socket = null;
+        const handleRoomsUpdate = () => {
+            fetchActiveRoomsCount();
+        };
+
+        if (socialUser && socialUser.id) {
+            socket = getSocialSocket(socialUser.id);
+            if (socket) {
+                socket.on('ROOMS_UPDATED', handleRoomsUpdate);
+            }
+        }
+
         const roomInterval = setInterval(() => {
             fetchActiveRoomsCount();
-        }, 20000);
-        return () => clearInterval(roomInterval);
-    }, [fetchActiveRoomsCount]);
+        }, 10000);
+
+        return () => {
+            if (socket) {
+                socket.off('ROOMS_UPDATED', handleRoomsUpdate);
+            }
+            clearInterval(roomInterval);
+        };
+    }, [socialUser?.id, fetchActiveRoomsCount]);
 
     useEffect(() => {
         if (socialUser && socialUser.id) {

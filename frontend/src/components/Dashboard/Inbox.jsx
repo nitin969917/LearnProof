@@ -14,6 +14,7 @@ import socialApi from '../../api/socialApi.js';
 import { useSocialFeedStore } from '../../store/socialFeedStore.js';
 import { useSocialMessageStore } from '../../store/socialMessageStore.js';
 import { useSocialStatusStore } from '../../store/socialStatusStore.js';
+import { getSocialSocket } from '../../utils/socialSocket.js';
 import UserAvatar from '../Common/UserAvatar.jsx';
 
 function formatTimeAgo(dateString) {
@@ -65,8 +66,9 @@ const Inbox = () => {
     const [actionStates, setActionStates] = useState({});
 
     // Load all inbox notification sources
-    const loadInboxData = async (isManualRefresh = false) => {
+    const loadInboxData = async (isManualRefresh = false, showFullLoading = true) => {
         if (isManualRefresh) setRefreshing(true);
+        if (showFullLoading && liveRooms.length === 0 && recentChats.length === 0) setLoading(true);
         try {
             const promises = [];
 
@@ -142,8 +144,32 @@ const Inbox = () => {
     };
 
     useEffect(() => {
-        loadInboxData();
-    }, [token]);
+        loadInboxData(false, true);
+
+        if (!socialUser?.id) return;
+        const socket = getSocialSocket(socialUser.id);
+        if (!socket) return;
+
+        const handleRealtimeUpdate = () => {
+            loadInboxData(false, false);
+        };
+
+        socket.on('ROOMS_UPDATED', handleRealtimeUpdate);
+        socket.on('receiveMessage', handleRealtimeUpdate);
+        socket.on('friendRequest', handleRealtimeUpdate);
+
+        // Background heartbeat poll every 5s on Inbox page so active friend rooms appear/disappear automatically
+        const pollInterval = setInterval(() => {
+            loadInboxData(false, false);
+        }, 5000);
+
+        return () => {
+            socket.off('ROOMS_UPDATED', handleRealtimeUpdate);
+            socket.off('receiveMessage', handleRealtimeUpdate);
+            socket.off('friendRequest', handleRealtimeUpdate);
+            clearInterval(pollInterval);
+        };
+    }, [token, socialUser?.id]);
 
     // Keep pendingRequests in sync if store updates
     useEffect(() => {
