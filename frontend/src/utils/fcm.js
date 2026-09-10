@@ -186,6 +186,12 @@ if (messaging) {
     if (payload.notification) {
       const data = payload.data || {};
       
+      // Suppress in-app toast for chat/group messages since DashboardLayout handles them directly via socket
+      if (data.type === 'CHAT_MESSAGE' || data.type === 'GROUP_MESSAGE') {
+        console.log('[FCM] Chat message received in foreground; handled by DashboardLayout.');
+        return;
+      }
+
       // Suppress in-app toast if the user is already actively viewing this chat
       const isChatActive = useSocialMessageStore.getState().isConversationActive(data.senderId, data.groupId);
       if (isChatActive) {
@@ -260,6 +266,12 @@ if (typeof window !== 'undefined') {
           console.log('Push notification received in foreground:', notification);
           if (notification.title) {
             const notifData = notification.data || {};
+
+            // Suppress in-app toast for chat/group messages since DashboardLayout handles them directly via socket
+            if (notifData.type === 'CHAT_MESSAGE' || notifData.type === 'GROUP_MESSAGE') {
+              console.log('[Capacitor] Chat message received in foreground; handled by DashboardLayout.');
+              return;
+            }
 
             // Suppress in-app toast if the user is already actively viewing this chat
             const isChatActive = useSocialMessageStore.getState().isConversationActive(notifData.senderId, notifData.groupId);
