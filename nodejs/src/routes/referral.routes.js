@@ -23,4 +23,13 @@ router.put('/admin/codes/:id', authMiddleware, isAdminMiddleware, referralContro
 router.put('/admin/codes/:id/toggle', authMiddleware, isAdminMiddleware, referralController.toggleReferralCodeStatus);
 router.delete('/admin/codes/:id', authMiddleware, isAdminMiddleware, referralController.deleteAdminReferralCode);
 
+// Admin: Ambassador Groups & Cohorts Management
+router.get('/admin/groups', authMiddleware, isAdminMiddleware, referralController.getAdminAmbassadorGroups);
+router.post('/admin/groups', authMiddleware, isAdminMiddleware, referralController.createAdminAmbassadorGroup);
+router.get('/admin/groups/:id', authMiddleware, isAdminMiddleware, referralController.getAdminAmbassadorGroupDetails);
+router.put('/admin/groups/:id', authMiddleware, isAdminMiddleware, referralController.updateAdminAmbassadorGroup);
+router.delete('/admin/groups/:id', authMiddleware, isAdminMiddleware, referralController.deleteAdminAmbassadorGroup);
+router.get('/admin/colleges', authMiddleware, isAdminMiddleware, referralController.getAdminCollegesPerformance);
+
 module.exports = router;
+

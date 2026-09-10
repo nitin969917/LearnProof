@@ -678,6 +678,7 @@ model ReferralCode {
   referrer      UserProfile?          @relation("ReferrerCodes", fields: [referrerId], references: [id], onDelete: SetNull)
 
   attributions  ReferralAttribution[]
+  groupMembers  AmbassadorGroupMember[]
 
   @@index([code])
   @@index([category])
@@ -700,6 +701,35 @@ model ReferralAttribution {
   @@index([referralCodeId])
   @@index([referredUserId])
   @@map("referral_attributions")
+}
+
+model AmbassadorGroup {
+  id          Int                     @id @default(autoincrement())
+  name        String                  @unique
+  college     String?
+  description String?
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+
+  members     AmbassadorGroupMember[]
+
+  @@map("ambassador_groups")
+}
+
+model AmbassadorGroupMember {
+  id             Int              @id @default(autoincrement())
+  groupId        Int              @map("group_id")
+  group          AmbassadorGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  referralCodeId Int              @map("referral_code_id")
+  referralCode   ReferralCode     @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+
+  joinedAt       DateTime         @default(now()) @map("joined_at")
+
+  @@unique([groupId, referralCodeId])
+  @@index([groupId])
+  @@index([referralCodeId])
+  @@map("ambassador_group_members")
 }
 
 

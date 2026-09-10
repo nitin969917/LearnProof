@@ -738,6 +738,431 @@ const deleteAdminReferralCode = async (req, res) => {
     }
 };
 
+/**
+ * Admin: Get all ambassador groups with aggregated metrics
+ * GET /api/referrals/admin/groups
+ */
+const getAdminAmbassadorGroups = async (req, res) => {
+    try {
+        const groups = await prisma.ambassadorGroup.findMany({
+            orderBy: { createdAt: 'desc' },
+            include: {
+                members: {
+                    include: {
+                        referralCode: {
+                            include: {
+                                referrer: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        profile_pic: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const formattedGroups = groups.map(group => {
+            const membersList = group.members.map(m => m.referralCode).filter(Boolean);
+            const totalClicks = membersList.reduce((acc, curr) => acc + (curr.clicksCount || 0), 0);
+            const totalSignups = membersList.reduce((acc, curr) => acc + (curr.signupCount || 0), 0);
+            const conversionRate = totalClicks > 0 ? ((totalSignups / totalClicks) * 100).toFixed(1) : 0;
+
+            // Find top performer in group
+            let topMember = null;
+            if (membersList.length > 0) {
+                topMember = [...membersList].sort((a, b) => b.signupCount - a.signupCount)[0];
+            }
+
+            return {
+                id: group.id,
+                name: group.name,
+                college: group.college,
+                description: group.description,
+                createdAt: group.createdAt,
+                updatedAt: group.updatedAt,
+                membersCount: membersList.length,
+                totalClicks,
+                totalSignups,
+                conversionRate: Number(conversionRate),
+                topMember: topMember ? {
+                    code: topMember.code,
+                    name: topMember.creatorName || (topMember.referrer ? topMember.referrer.name : 'Unknown'),
+                    signups: topMember.signupCount
+                } : null,
+                members: membersList.map(item => ({
+                    id: item.id,
+                    code: item.code,
+                    title: item.title,
+                    category: item.category,
+                    creatorName: item.creatorName || (item.referrer ? item.referrer.name : null),
+                    targetCollege: item.targetCollege,
+                    clicksCount: item.clicksCount,
+                    signupCount: item.signupCount,
+                    isActive: item.isActive,
+                    referrer: item.referrer
+                }))
+            };
+        });
+
+        return res.status(200).json({
+            success: true,
+            groups: formattedGroups
+        });
+    } catch (error) {
+        console.error('Error in getAdminAmbassadorGroups:', error);
+        return res.status(500).json({ error: 'Failed to fetch ambassador groups' });
+    }
+};
+
+/**
+ * Admin: Create a new ambassador group (by college or custom name)
+ * POST /api/referrals/admin/groups
+ * Body: { name, college, description, referralCodeIds: [1, 2, ...] }
+ */
+const createAdminAmbassadorGroup = async (req, res) => {
+    try {
+        const { name, college, description, referralCodeIds } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Group name is required' });
+        }
+
+        const trimmedName = name.trim();
+
+        // Check uniqueness
+        const existing = await prisma.ambassadorGroup.findUnique({
+            where: { name: trimmedName }
+        });
+        if (existing) {
+            return res.status(400).json({ error: `A group named "${trimmedName}" already exists` });
+        }
+
+        const newGroup = await prisma.ambassadorGroup.create({
+            data: {
+                name: trimmedName,
+                college: college ? college.trim() : null,
+                description: description ? description.trim() : null
+            }
+        });
+
+        // Add initial members if provided
+        if (Array.isArray(referralCodeIds) && referralCodeIds.length > 0) {
+            const memberData = referralCodeIds.map(codeId => ({
+                groupId: newGroup.id,
+                referralCodeId: parseInt(codeId)
+            }));
+
+            await prisma.ambassadorGroupMember.createMany({
+                data: memberData,
+                skipDuplicates: true
+            });
+        }
+
+        return res.status(201).json({
+            success: true,
+            message: `Ambassador group "${newGroup.name}" created successfully`,
+            group: newGroup
+        });
+    } catch (error) {
+        console.error('Error in createAdminAmbassadorGroup:', error);
+        return res.status(500).json({ error: 'Failed to create ambassador group' });
+    }
+};
+
+/**
+ * Admin: Get detailed performance breakdown of a specific ambassador group
+ * GET /api/referrals/admin/groups/:id
+ */
+const getAdminAmbassadorGroupDetails = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+
+        const group = await prisma.ambassadorGroup.findUnique({
+            where: { id },
+            include: {
+                members: {
+                    include: {
+                        referralCode: {
+                            include: {
+                                referrer: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        profile_pic: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!group) {
+            return res.status(404).json({ error: 'Ambassador group not found' });
+        }
+
+        const membersList = group.members.map(m => m.referralCode).filter(Boolean);
+        const codeIds = membersList.map(m => m.id);
+
+        const totalClicks = membersList.reduce((acc, curr) => acc + (curr.clicksCount || 0), 0);
+        const totalSignups = membersList.reduce((acc, curr) => acc + (curr.signupCount || 0), 0);
+        const conversionRate = totalClicks > 0 ? ((totalSignups / totalClicks) * 100).toFixed(1) : 0;
+
+        // Fetch recent signups registered under any member of this group
+        let recentAttributions = [];
+        if (codeIds.length > 0) {
+            recentAttributions = await prisma.referralAttribution.findMany({
+                where: { referralCodeId: { in: codeIds } },
+                orderBy: { createdAt: 'desc' },
+                take: 15,
+                include: {
+                    referralCode: {
+                        select: {
+                            code: true,
+                            title: true,
+                            creatorName: true,
+                            targetCollege: true
+                        }
+                    },
+                    referredUser: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            profile_pic: true,
+                            joined_at: true
+                        }
+                    }
+                }
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            group: {
+                id: group.id,
+                name: group.name,
+                college: group.college,
+                description: group.description,
+                createdAt: group.createdAt,
+                updatedAt: group.updatedAt,
+                membersCount: membersList.length,
+                totalClicks,
+                totalSignups,
+                conversionRate: Number(conversionRate),
+                members: membersList.map(item => ({
+                    id: item.id,
+                    code: item.code,
+                    title: item.title,
+                    category: item.category,
+                    creatorName: item.creatorName || (item.referrer ? item.referrer.name : null),
+                    targetCollege: item.targetCollege,
+                    clicksCount: item.clicksCount,
+                    signupCount: item.signupCount,
+                    isActive: item.isActive,
+                    referrer: item.referrer
+                }))
+            },
+            recentAttributions
+        });
+    } catch (error) {
+        console.error('Error in getAdminAmbassadorGroupDetails:', error);
+        return res.status(500).json({ error: 'Failed to fetch group performance details' });
+    }
+};
+
+/**
+ * Admin: Update an ambassador group and synchronize its members
+ * PUT /api/referrals/admin/groups/:id
+ * Body: { name, college, description, referralCodeIds: [1, 2, ...] }
+ */
+const updateAdminAmbassadorGroup = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { name, college, description, referralCodeIds } = req.body;
+
+        const group = await prisma.ambassadorGroup.findUnique({ where: { id } });
+        if (!group) {
+            return res.status(404).json({ error: 'Ambassador group not found' });
+        }
+
+        const trimmedName = name ? name.trim() : group.name;
+
+        // Check uniqueness if name changed
+        if (trimmedName !== group.name) {
+            const conflict = await prisma.ambassadorGroup.findUnique({ where: { name: trimmedName } });
+            if (conflict && conflict.id !== id) {
+                return res.status(400).json({ error: `A group named "${trimmedName}" already exists` });
+            }
+        }
+
+        const updated = await prisma.ambassadorGroup.update({
+            where: { id },
+            data: {
+                name: trimmedName,
+                ...(college !== undefined ? { college: college ? college.trim() : null } : {}),
+                ...(description !== undefined ? { description: description ? description.trim() : null } : {})
+            }
+        });
+
+        // Sync members if array was provided
+        if (Array.isArray(referralCodeIds)) {
+            const numericIds = referralCodeIds.map(cid => parseInt(cid)).filter(Boolean);
+
+            // Delete removed members
+            await prisma.ambassadorGroupMember.deleteMany({
+                where: {
+                    groupId: id,
+                    referralCodeId: { notIn: numericIds }
+                }
+            });
+
+            // Insert new members
+            const currentMembers = await prisma.ambassadorGroupMember.findMany({
+                where: { groupId: id },
+                select: { referralCodeId: true }
+            });
+            const currentCodeIds = new Set(currentMembers.map(m => m.referralCodeId));
+            const newCodeIds = numericIds.filter(cid => !currentCodeIds.has(cid));
+
+            if (newCodeIds.length > 0) {
+                await prisma.ambassadorGroupMember.createMany({
+                    data: newCodeIds.map(codeId => ({
+                        groupId: id,
+                        referralCodeId: codeId
+                    })),
+                    skipDuplicates: true
+                });
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `Ambassador group "${updated.name}" updated successfully`,
+            group: updated
+        });
+    } catch (error) {
+        console.error('Error in updateAdminAmbassadorGroup:', error);
+        return res.status(500).json({ error: 'Failed to update ambassador group' });
+    }
+};
+
+/**
+ * Admin: Delete an ambassador group
+ * DELETE /api/referrals/admin/groups/:id
+ */
+const deleteAdminAmbassadorGroup = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+
+        await prisma.ambassadorGroup.delete({
+            where: { id }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Ambassador group deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error in deleteAdminAmbassadorGroup:', error);
+        return res.status(500).json({ error: 'Failed to delete ambassador group' });
+    }
+};
+
+/**
+ * Admin: Dynamic performance auto-aggregated by college
+ * GET /api/referrals/admin/colleges
+ */
+const getAdminCollegesPerformance = async (req, res) => {
+    try {
+        const codes = await prisma.referralCode.findMany({
+            where: {
+                targetCollege: { not: null }
+            },
+            include: {
+                referrer: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        profile_pic: true
+                    }
+                }
+            }
+        });
+
+        // Group by normalized college name
+        const collegeMap = {};
+
+        codes.forEach(code => {
+            const rawName = code.targetCollege ? code.targetCollege.trim() : '';
+            if (!rawName) return;
+
+            const key = rawName.toLowerCase();
+            if (!collegeMap[key]) {
+                collegeMap[key] = {
+                    collegeName: rawName,
+                    totalAmbassadors: 0,
+                    totalClicks: 0,
+                    totalSignups: 0,
+                    ambassadorIds: [],
+                    ambassadors: []
+                };
+            }
+
+            collegeMap[key].totalAmbassadors += 1;
+            collegeMap[key].totalClicks += (code.clicksCount || 0);
+            collegeMap[key].totalSignups += (code.signupCount || 0);
+            collegeMap[key].ambassadorIds.push(code.id);
+            collegeMap[key].ambassadors.push({
+                id: code.id,
+                code: code.code,
+                title: code.title,
+                category: code.category,
+                creatorName: code.creatorName || (code.referrer ? code.referrer.name : null),
+                clicksCount: code.clicksCount,
+                signupCount: code.signupCount,
+                isActive: code.isActive
+            });
+        });
+
+        const collegesList = Object.values(collegeMap).map(c => {
+            const convRate = c.totalClicks > 0 ? ((c.totalSignups / c.totalClicks) * 100).toFixed(1) : 0;
+            const topAmbassador = [...c.ambassadors].sort((a, b) => b.signupCount - a.signupCount)[0] || null;
+
+            return {
+                collegeName: c.collegeName,
+                totalAmbassadors: c.totalAmbassadors,
+                totalClicks: c.totalClicks,
+                totalSignups: c.totalSignups,
+                conversionRate: Number(convRate),
+                ambassadorIds: c.ambassadorIds,
+                topAmbassador: topAmbassador ? {
+                    code: topAmbassador.code,
+                    name: topAmbassador.creatorName || topAmbassador.code,
+                    signups: topAmbassador.signupCount
+                } : null,
+                ambassadors: c.ambassadors
+            };
+        }).sort((a, b) => b.totalSignups - a.totalSignups);
+
+        return res.status(200).json({
+            success: true,
+            colleges: collegesList
+        });
+    } catch (error) {
+        console.error('Error in getAdminCollegesPerformance:', error);
+        return res.status(500).json({ error: 'Failed to fetch college performance metrics' });
+    }
+};
+
 module.exports = {
     trackClick,
     attributeReferral,
@@ -750,6 +1175,13 @@ module.exports = {
     createAdminReferralCode,
     updateAdminReferralCode,
     toggleReferralCodeStatus,
-    deleteAdminReferralCode
+    deleteAdminReferralCode,
+    getAdminAmbassadorGroups,
+    createAdminAmbassadorGroup,
+    getAdminAmbassadorGroupDetails,
+    updateAdminAmbassadorGroup,
+    deleteAdminAmbassadorGroup,
+    getAdminCollegesPerformance
 };
+
 
