@@ -1,5 +1,6 @@
 const { searchYoutube, getYoutubeMetadata } = require('../services/youtube.service');
 const { generateGeminiContent, MODELS } = require('../services/ai.service');
+const { isAllowedEducationalContent } = require('../utils/educationalFilter');
 const axios = require('axios');
 
 const autocompleteCache = new Map();
@@ -11,6 +12,16 @@ const searchCache = new Map();
 const search = async (req, res) => {
     const { query, type = 'all', sortBy = 'relevance', duration = 'any' } = req.body;
     if (!query) return res.status(400).json({ error: 'Missing query' });
+
+    // Guard against explicit pure entertainment searches
+    const queryCheck = isAllowedEducationalContent({ title: query });
+    if (!queryCheck.allowed) {
+        return res.status(200).json({
+            results: [],
+            total: 0,
+            notice: "LearnProof is an educational platform. Please search for academic subjects, courses, or skills (e.g., 'Python Tutorial', 'Calculus', 'World History')."
+        });
+    }
 
     const cacheKey = `${query.trim().toLowerCase()}_${type}_${sortBy}_${duration}`;
     if (searchCache.has(cacheKey)) {
@@ -48,7 +59,10 @@ const autocomplete = async (req, res) => {
             },
             timeout: 2500
         });
-        const suggestions = response.data && response.data[1] ? response.data[1] : [];
+        const rawSuggestions = response.data && response.data[1] ? response.data[1] : [];
+        // Filter out suggestions that are pure entertainment signatures
+        const suggestions = rawSuggestions.filter(s => isAllowedEducationalContent({ title: s }).allowed);
+
         if (autocompleteCache.size > 500) {
             const firstKey = autocompleteCache.keys().next().value;
             autocompleteCache.delete(firstKey);

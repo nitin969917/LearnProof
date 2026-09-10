@@ -1,6 +1,7 @@
 const { google } = require('googleapis');
 const axios = require('axios');
 const path = require('path');
+const { isAllowedEducationalContent } = require('../utils/educationalFilter');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
 const youtube = google.youtube({
@@ -58,6 +59,22 @@ const getYoutubeMetadata = async (url, maxPlaylistVideos = null) => {
             if (!res.data.items || !res.data.items.length) return { error: 'Video not found' };
 
             const item = res.data.items[0];
+
+            // Validate educational eligibility
+            const eduCheck = isAllowedEducationalContent({
+                title: item.snippet.title,
+                description: item.snippet.description,
+                channel: item.snippet.channelTitle,
+                categoryId: item.snippet.categoryId
+            });
+
+            if (!eduCheck.allowed) {
+                const catName = eduCheck.categoryName || 'Entertainment';
+                return {
+                    error: `LearnProof is an educational platform. This video is categorized under ${catName} and does not contain educational course material.`
+                };
+            }
+
             return {
                 type: 'video',
                 id: id,
@@ -83,6 +100,20 @@ const getYoutubeMetadata = async (url, maxPlaylistVideos = null) => {
             if (!plRes.data.items || !plRes.data.items.length) return { error: 'Playlist not found' };
 
             const playlistItem = plRes.data.items[0];
+
+            // Validate playlist educational eligibility
+            const eduCheck = isAllowedEducationalContent({
+                title: playlistItem.snippet.title,
+                description: playlistItem.snippet.description,
+                channel: playlistItem.snippet.channelTitle
+            });
+
+            if (!eduCheck.allowed) {
+                const catName = eduCheck.categoryName || 'Entertainment';
+                return {
+                    error: `LearnProof is an educational platform. This playlist is categorized under ${catName} and does not contain educational course material.`
+                };
+            }
 
             let videos = [];
             let nextPageToken = null;
@@ -187,13 +218,22 @@ const parseRawItem = (item, results, seenIds) => {
         
         // Filter out shorts (less than or equal to 60 seconds)
         if (durationSec > 60 && !seenIds.has(vr.videoId)) {
+            const title = vr.title?.runs?.[0]?.text || vr.title?.simpleText || "";
+            const channel = vr.ownerText?.runs?.[0]?.text || vr.shortBylineText?.runs?.[0]?.text || "";
+            const description = vr.detailedMetadataSnippets?.[0]?.snippetText?.runs?.map(r => r.text).join('') || vr.descriptionSnippet?.runs?.map(r => r.text).join('') || "";
+
+            // Educational content eligibility check
+            if (!isAllowedEducationalContent({ title, channel, description }).allowed) {
+                return;
+            }
+
             seenIds.add(vr.videoId);
             results.push({
                 type: 'video',
                 id: vr.videoId,
-                title: vr.title?.runs?.[0]?.text || vr.title?.simpleText || "",
-                channel: vr.ownerText?.runs?.[0]?.text || vr.shortBylineText?.runs?.[0]?.text || "",
-                description: vr.detailedMetadataSnippets?.[0]?.snippetText?.runs?.map(r => r.text).join('') || vr.descriptionSnippet?.runs?.map(r => r.text).join('') || "",
+                title: title,
+                channel: channel,
+                description: description,
                 thumbnail: vr.thumbnail?.thumbnails?.[vr.thumbnail?.thumbnails.length - 1]?.url || vr.thumbnail?.thumbnails?.[0]?.url || "",
                 published_at: vr.publishedTimeText?.simpleText || "",
                 url: `https://www.youtube.com/watch?v=${vr.videoId}`
@@ -206,12 +246,20 @@ const parseRawItem = (item, results, seenIds) => {
         const pr = item.playlistRenderer;
         const count = parseInt(pr.videoCount) || 0;
         if (!seenIds.has(pr.playlistId)) {
+            const title = pr.title?.simpleText || pr.title?.runs?.[0]?.text || "";
+            const channel = pr.longBylineText?.runs?.[0]?.text || pr.shortBylineText?.runs?.[0]?.text || "";
+
+            // Educational content eligibility check
+            if (!isAllowedEducationalContent({ title, channel }).allowed) {
+                return;
+            }
+
             seenIds.add(pr.playlistId);
             results.push({
                 type: 'playlist',
                 id: pr.playlistId,
-                title: pr.title?.simpleText || pr.title?.runs?.[0]?.text || "",
-                channel: pr.longBylineText?.runs?.[0]?.text || pr.shortBylineText?.runs?.[0]?.text || "",
+                title: title,
+                channel: channel,
                 description: "",
                 thumbnail: pr.thumbnails?.[0]?.thumbnails?.[pr.thumbnails[0].thumbnails.length - 1]?.url || pr.thumbnails?.[0]?.thumbnails?.[0]?.url || "",
                 published_at: "",
@@ -238,6 +286,11 @@ const parseRawItem = (item, results, seenIds) => {
             if (parts && parts.length > 0) {
                 channel = parts[0].text?.content || "";
             }
+        }
+
+        // Educational content eligibility check
+        if (!isAllowedEducationalContent({ title, channel }).allowed) {
+            return;
         }
 
         // Get thumbnail

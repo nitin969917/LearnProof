@@ -126,7 +126,10 @@ const YouTubeExplorer = () => {
                 sortBy: activeFilterSet.sortBy,
                 duration: activeFilterSet.duration
             });
-            if (res.data.results) {
+            if (res.data.notice) {
+                toast(res.data.notice, { icon: '🎓', duration: 5500 });
+                setResults([]);
+            } else if (res.data.results) {
                 searchResultsCache.set(cacheKey, res.data.results);
                 setResults(res.data.results);
                 setCurrentPage(1);
