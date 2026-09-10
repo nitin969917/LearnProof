@@ -95,6 +95,7 @@ const TopBar = ({ onMenuClick }) => {
         }
 
         setLoading(true);
+        const toastId = toast.loading("Fetching playlist details...");
         try {
             const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/import/`, {
                 idToken: token,
@@ -103,14 +104,15 @@ const TopBar = ({ onMenuClick }) => {
 
             if (response.data.success) {
                 setImportData(response.data.data);
-                toast.success("Imported successfully");
+                const count = response.data.data?.video_count || response.data.data?.videos?.length;
+                toast.success(count ? `Loaded ${count} videos! Ready to save.` : "Ready to save!", { id: toastId });
             } else {
-                toast.error("Something went wrong!");
+                toast.error("Something went wrong!", { id: toastId });
             }
         } catch (err) {
             console.error(err);
             const errMsg = err.response?.data?.error || "Failed to import. Check URL or token.";
-            toast.error(errMsg);
+            toast.error(errMsg, { id: toastId });
         } finally {
             setLoading(false);
         }
@@ -119,7 +121,8 @@ const TopBar = ({ onMenuClick }) => {
     const handleSave = async () => {
         if (!importData) return;
 
-        const toastId = toast.loading("Saving...");
+        const count = importData.videos?.length || importData.video_count;
+        const toastId = toast.loading(count ? `Saving ${count} videos to your library...` : "Saving to your library...");
         try {
             await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/save-learning/`, {
                 idToken: token,
@@ -127,7 +130,7 @@ const TopBar = ({ onMenuClick }) => {
             });
 
             toast.dismiss(toastId);
-            toast.success("Learning Saved!");
+            toast.success("Saved to your library!");
 
             const targetId = importData.id;
             const targetType = importData.type;

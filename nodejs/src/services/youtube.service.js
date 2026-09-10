@@ -105,36 +105,18 @@ const getYoutubeMetadata = async (url, maxPlaylistVideos = null) => {
                 if (!itemsRes.data.items) break;
 
                 const pageVideos = itemsRes.data.items
-                    .filter(v => v.snippet.resourceId.kind === 'youtube#video')
+                    .filter(v => v.snippet?.resourceId?.kind === 'youtube#video')
                     .map(v => ({
                         video_id: v.snippet.resourceId.videoId,
                         title: v.snippet.title,
-                        position: v.snippet.position + 1,
+                        description: v.snippet.description || '',
+                        position: (v.snippet.position != null ? v.snippet.position : videosFetched) + 1,
                         url: `https://www.youtube.com/watch?v=${v.snippet.resourceId.videoId}`
                     }));
 
                 if (pageVideos.length) {
-                    const videoIds = pageVideos.map(pv => pv.video_id);
-                    const descRes = await axios.get('https://youtube.googleapis.com/youtube/v3/videos', {
-                        params: {
-                            part: 'snippet',
-                            id: videoIds.join(','),
-                            key: process.env.YOUTUBE_API_KEY
-                        }
-                    });
-
-                    const descMap = {};
-                    if (descRes.data.items) {
-                        descRes.data.items.forEach(item => {
-                            descMap[item.id] = item.snippet.description || '';
-                        });
-                    }
-
-                    pageVideos.forEach(pv => {
-                        pv.description = descMap[pv.video_id] || '';
-                        videos.push(pv);
-                        videosFetched++;
-                    });
+                    videos.push(...pageVideos);
+                    videosFetched += pageVideos.length;
                 }
 
                 nextPageToken = itemsRes.data.nextPageToken;

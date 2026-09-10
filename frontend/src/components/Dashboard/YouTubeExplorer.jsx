@@ -236,7 +236,8 @@ const YouTubeExplorer = () => {
     const handleSave = async () => {
         if (!importData) return;
 
-        const toastId = toast.loading("Saving...");
+        const count = importData.videos?.length || importData.video_count;
+        const toastId = toast.loading(count ? `Saving ${count} videos to your library...` : "Saving to your library...");
         try {
             await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/save-learning/`, {
                 idToken: token,
@@ -244,7 +245,7 @@ const YouTubeExplorer = () => {
             });
 
             toast.dismiss(toastId);
-            toast.success("Learning Saved Successfully!");
+            toast.success("Saved to your library!");
             
             const targetId = importData.id;
             const targetType = importData.type;

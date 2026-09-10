@@ -67,47 +67,67 @@ const saveLearning = async (req, res) => {
                 }
             });
 
-            // Fetch all video durations for the playlist
-            const videoIds = data.videos.map(v => v.video_id);
-            const youtubeDetails = [];
-            // Batch fetch durations (YouTube API allows 50 IDs max)
+            // Fetch all video durations for the playlist in parallel
+            const videoIds = (data.videos || []).map(v => v.video_id);
+            const batches = [];
             for (let i = 0; i < videoIds.length; i += 50) {
-                const batch = videoIds.slice(i, i + 50);
-                const details = await youtube.getVideosDetails(batch);
-                youtubeDetails.push(...details);
+                batches.push(videoIds.slice(i, i + 50));
             }
+            const batchResults = await Promise.all(batches.map(batch => youtube.getVideosDetails(batch)));
+            const youtubeDetails = batchResults.flat();
 
             const durationMap = youtubeDetails.reduce((acc, item) => {
-                acc[item.id] = youtube.parseDuration(item.contentDetails.duration);
+                if (item?.id && item.contentDetails?.duration) {
+                    acc[item.id] = youtube.parseDuration(item.contentDetails.duration);
+                }
                 return acc;
             }, {});
 
-            const videoPromises = (data.videos || []).map(v =>
-                prisma.video.upsert({
-                    where: { userId_vid: { userId: user.id, vid: v.video_id } },
-                    update: {
-                        name: v.title,
-                        url: v.url,
-                        playlistId: playlist.id,
-                        description: v.description || '',
-                        position: v.position || 0,
-                        duration_seconds: durationMap[v.video_id] || 0
-                    },
-                    create: {
-                        userId: user.id,
-                        vid: v.video_id,
-                        name: v.title,
-                        url: v.url,
-                        playlistId: playlist.id,
-                        duration_seconds: durationMap[v.video_id] || 0,
-                        imported_at: new Date(),
-                        description: v.description || '',
-                        position: v.position || 0
-                    }
-                })
-            );
+            // Bulk check existing videos for this user
+            const existingVideos = await prisma.video.findMany({
+                where: {
+                    userId: user.id,
+                    vid: { in: videoIds }
+                },
+                select: { vid: true, id: true }
+            });
+            const existingVidSet = new Set(existingVideos.map(ev => ev.vid));
 
-            await Promise.all(videoPromises);
+            // Fast bulk insert for all new videos
+            const newVideosData = (data.videos || [])
+                .filter(v => !existingVidSet.has(v.video_id))
+                .map(v => ({
+                    userId: user.id,
+                    vid: v.video_id,
+                    name: v.title,
+                    url: v.url,
+                    playlistId: playlist.id,
+                    duration_seconds: durationMap[v.video_id] || 0,
+                    imported_at: new Date(),
+                    description: v.description || '',
+                    position: v.position || 0
+                }));
+
+            if (newVideosData.length > 0) {
+                await prisma.video.createMany({
+                    data: newVideosData,
+                    skipDuplicates: true
+                });
+            }
+
+            // Link existing individual videos to this playlist
+            if (existingVideos.length > 0) {
+                const existingVids = existingVideos.map(ev => ev.vid);
+                await prisma.video.updateMany({
+                    where: {
+                        userId: user.id,
+                        vid: { in: existingVids }
+                    },
+                    data: {
+                        playlistId: playlist.id
+                    }
+                });
+            }
 
             await prisma.userActivityLog.create({
                 data: { userId: user.id, activity_type: `Learning Import: ${data.title}` }
