@@ -796,6 +796,7 @@ const Classroom = () => {
   // - History List: Both the Dashboard and Classroom Video Quiz tab display a list of "Previous Attempts" (filtered for the specific video), which users can click to see a detailed, interactive test review.
   const [quizHistory, setQuizHistory] = useState([]);
   const [selectedHistoryQuiz, setSelectedHistoryQuiz] = useState(null);
+  const [loadingHistoryDetails, setLoadingHistoryDetails] = useState(false);
 
   // Touch swipe handling for switching Classroom tabs on mobile
   const [touchStart, setTouchStart] = useState(null);
@@ -1243,6 +1244,66 @@ const Classroom = () => {
       toast.error("Failed to delete quiz attempt");
     }
   };
+
+  const handleSelectHistoryQuiz = async (hist) => {
+    if (!hist) return;
+
+    // Check if questions are already present and non-empty
+    let hasQuestions = false;
+    try {
+      if (hist.questions) {
+        const parsed = typeof hist.questions === 'string' ? JSON.parse(hist.questions) : hist.questions;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          hasQuestions = true;
+          setSelectedHistoryQuiz({ ...hist, questions: parsed });
+          return;
+        }
+      }
+    } catch (_) {}
+
+    setSelectedHistoryQuiz(hist);
+    setLoadingHistoryDetails(true);
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${hist.id}?idToken=${token}`);
+      if (res.data) {
+        setSelectedHistoryQuiz(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch quiz attempt details:", err);
+      toast.error("Failed to load attempt details");
+    } finally {
+      setLoadingHistoryDetails(false);
+    }
+  };
+
+  const handleSeekToTime = (timeStr) => {
+    if (!timeStr) return;
+    const parts = timeStr.split(':').map(Number);
+    let seconds = 0;
+    if (parts.length === 2) {
+      seconds = parts[0] * 60 + parts[1];
+    } else if (parts.length === 3) {
+      seconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+    }
+    if (player && typeof player.seekTo === 'function') {
+      player.seekTo(seconds, true);
+      if (typeof player.playVideo === 'function') {
+        player.playVideo();
+      }
+      toast.success(`Jumped to ${timeStr}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const formattedVideoDescription = useMemo(() => {
+    if (!video?.description) return "";
+    let cleaned = video.description;
+    // 1. Separate divider lines (---, ===, ___, etc.) with double newlines so Markdown treats them as <hr>
+    // instead of Setext heading markers for the preceding line
+    cleaned = cleaned.replace(/([^\n])\n\s*([-=_*━—─]{3,})\s*(?=\n|$)/g, '$1\n\n---\n\n');
+    cleaned = cleaned.replace(/(^|\n)\s*([-=_*━—─]{3,})\s*\n([^\n])/g, '$1---\n\n$3');
+    return cleaned;
+  }, [video?.description]);
 
   if (authLoading) {
     return (
@@ -2123,17 +2184,107 @@ const Classroom = () => {
                   })()}
                   {/* Overview Tab */}
                   {activeTab === 'overview' && (
-                    <div className="prose dark:prose-invert max-w-none break-words overflow-hidden bg-gray-50/50 dark:bg-slate-800/30 p-6 rounded-2xl border border-gray-100 dark:border-slate-800">
-                      <div className="text-gray-700 dark:text-slate-300 leading-relaxed text-sm md:text-base whitespace-pre-line break-words">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline font-bold" />
-                          }}
-                        >
-                          {video.description || "No description available for this video."}
-                        </ReactMarkdown>
-                      </div>
+                    <div className="max-w-none break-words overflow-hidden bg-white dark:bg-slate-800/60 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-slate-700/80 shadow-xs">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          h1: ({ node, ...props }) => (
+                            <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-slate-100 mt-4 mb-2 first:mt-0" {...props} />
+                          ),
+                          h2: ({ node, ...props }) => (
+                            <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-slate-100 mt-3 mb-1.5 first:mt-0" {...props} />
+                          ),
+                          h3: ({ node, ...props }) => (
+                            <h5 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-slate-100 mt-2.5 mb-1 first:mt-0" {...props} />
+                          ),
+                          h4: ({ node, ...props }) => (
+                            <h6 className="text-xs font-semibold text-gray-800 dark:text-slate-200 mt-2 mb-1 first:mt-0" {...props} />
+                          ),
+                          p: ({ node, children, ...props }) => {
+                            const renderWithTimestamps = (item) => {
+                              if (typeof item !== 'string') return item;
+                              const parts = item.split(/(\b\d{1,2}:\d{2}(?::\d{2})?\b)/g);
+                              if (parts.length === 1) return item;
+                              return parts.map((part, pIdx) => {
+                                if (/^\d{1,2}:\d{2}(?::\d{2})?$/.test(part)) {
+                                  return (
+                                    <button
+                                      key={pIdx}
+                                      type="button"
+                                      onClick={() => handleSeekToTime(part)}
+                                      className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded text-[11px] sm:text-xs font-semibold bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/50 dark:hover:bg-orange-900/60 text-orange-600 dark:text-orange-400 transition cursor-pointer"
+                                      title={`Jump to ${part}`}
+                                    >
+                                      ⏱️ {part}
+                                    </button>
+                                  );
+                                }
+                                return part;
+                              });
+                            };
+                            const processed = Array.isArray(children)
+                              ? children.map(renderWithTimestamps)
+                              : renderWithTimestamps(children);
+
+                            return (
+                              <p className="text-xs sm:text-sm font-normal text-gray-700 dark:text-slate-300 leading-relaxed mb-3 last:mb-0 break-words whitespace-pre-wrap" {...props}>
+                                {processed}
+                              </p>
+                            );
+                          },
+                          li: ({ node, children, ...props }) => {
+                            const renderWithTimestamps = (item) => {
+                              if (typeof item !== 'string') return item;
+                              const parts = item.split(/(\b\d{1,2}:\d{2}(?::\d{2})?\b)/g);
+                              if (parts.length === 1) return item;
+                              return parts.map((part, pIdx) => {
+                                if (/^\d{1,2}:\d{2}(?::\d{2})?$/.test(part)) {
+                                  return (
+                                    <button
+                                      key={pIdx}
+                                      type="button"
+                                      onClick={() => handleSeekToTime(part)}
+                                      className="inline-flex items-center px-1.5 py-0.5 mx-0.5 rounded text-[11px] sm:text-xs font-semibold bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/50 dark:hover:bg-orange-900/60 text-orange-600 dark:text-orange-400 transition cursor-pointer"
+                                      title={`Jump to ${part}`}
+                                    >
+                                      ⏱️ {part}
+                                    </button>
+                                  );
+                                }
+                                return part;
+                              });
+                            };
+                            const processed = Array.isArray(children)
+                              ? children.map(renderWithTimestamps)
+                              : renderWithTimestamps(children);
+
+                            return (
+                              <li className="leading-relaxed text-xs sm:text-sm text-gray-700 dark:text-slate-300" {...props}>
+                                {processed}
+                              </li>
+                            );
+                          },
+                          strong: ({ node, ...props }) => (
+                            <strong className="font-semibold text-gray-900 dark:text-slate-100" {...props} />
+                          ),
+                          a: ({ node, href, children, ...props }) => (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:underline font-medium break-all"
+                              {...props}
+                            >
+                              {children}
+                            </a>
+                          ),
+                          hr: () => <hr className="my-4 border-t border-gray-200 dark:border-slate-700/80" />,
+                          ul: ({ node, ...props }) => <ul className="list-disc pl-5 my-2 text-xs sm:text-sm space-y-1 text-gray-700 dark:text-slate-300" {...props} />,
+                          ol: ({ node, ...props }) => <ol className="list-decimal pl-5 my-2 text-xs sm:text-sm space-y-1 text-gray-700 dark:text-slate-300" {...props} />
+                        }}
+                      >
+                        {formattedVideoDescription || "No description available for this video."}
+                      </ReactMarkdown>
                     </div>
                   )}
 
@@ -2759,8 +2910,31 @@ const Classroom = () => {
                       </div>
 
                       {selectedHistoryQuiz ? (() => {
-                        const questions = JSON.parse(selectedHistoryQuiz.questions);
-                        const userAnswers = selectedHistoryQuiz.user_answers ? JSON.parse(selectedHistoryQuiz.user_answers) : [];
+                        let questions = [];
+                        try {
+                          if (typeof selectedHistoryQuiz.questions === 'string') {
+                            questions = JSON.parse(selectedHistoryQuiz.questions);
+                          } else if (Array.isArray(selectedHistoryQuiz.questions)) {
+                            questions = selectedHistoryQuiz.questions;
+                          }
+                        } catch (e) {
+                          console.warn("Could not parse quiz questions:", e);
+                          questions = [];
+                        }
+                        if (!Array.isArray(questions)) questions = [];
+
+                        let userAnswers = [];
+                        try {
+                          if (typeof selectedHistoryQuiz.user_answers === 'string') {
+                            userAnswers = JSON.parse(selectedHistoryQuiz.user_answers);
+                          } else if (Array.isArray(selectedHistoryQuiz.user_answers)) {
+                            userAnswers = selectedHistoryQuiz.user_answers;
+                          }
+                        } catch (e) {
+                          console.warn("Could not parse user answers:", e);
+                          userAnswers = [];
+                        }
+                        if (!Array.isArray(userAnswers)) userAnswers = [];
 
                         return (
                           <motion.div
@@ -2781,14 +2955,14 @@ const Classroom = () => {
                                 <div className="min-w-0">
                                   <h2 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white m-0 leading-tight truncate">Detailed Review</h2>
                                   <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 m-0 mt-0.5">
-                                    Attempted: {new Date(selectedHistoryQuiz.attempted_at).toLocaleDateString()}
+                                    Attempted: {selectedHistoryQuiz.attempted_at ? new Date(selectedHistoryQuiz.attempted_at).toLocaleDateString() : "Recent"}
                                   </p>
                                 </div>
                               </div>
 
                               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                                 <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${selectedHistoryQuiz.passed ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                  {selectedHistoryQuiz.passed ? "Passed" : "Failed"} • {selectedHistoryQuiz.score}%
+                                  {selectedHistoryQuiz.passed ? "Passed" : "Failed"} • {selectedHistoryQuiz.score ?? 0}%
                                 </span>
                                 <button
                                   onClick={() => handleDeleteQuizHistory(selectedHistoryQuiz.id)}
@@ -2801,7 +2975,17 @@ const Classroom = () => {
                               </div>
                             </div>
 
-                            <div className="space-y-6 sm:space-y-8">
+                            {loadingHistoryDetails ? (
+                              <div className="py-12 flex flex-col items-center justify-center text-center">
+                                <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Loading attempt details...</p>
+                              </div>
+                            ) : questions.length === 0 ? (
+                              <div className="py-10 text-center">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Review questions data is loading or unavailable for this attempt.</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-6 sm:space-y-8">
                               {(questions || []).map((q, idx) => {
                                 const userAnswer = userAnswers[idx];
                                 const isCorrect = userAnswer === q.answer;
@@ -2844,6 +3028,7 @@ const Classroom = () => {
                                 );
                               })}
                             </div>
+                            )}
                           </motion.div>
                         );
                       })()
@@ -2871,7 +3056,7 @@ const Classroom = () => {
                                 Close Results
                               </button>
                               <button
-                                onClick={() => setSelectedHistoryQuiz(quizResult.quiz)}
+                                onClick={() => handleSelectHistoryQuiz(quizResult.quiz)}
                                 className="flex-1 px-3 sm:px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-xs sm:text-sm rounded-xl hover:from-orange-600 hover:to-amber-600 transition shadow-sm cursor-pointer active:scale-95 text-center"
                               >
                                 Review Answers
@@ -3016,7 +3201,7 @@ const Classroom = () => {
                                   {(quizHistory || []).map(hist => (
                                     <div
                                       key={hist.id}
-                                      onClick={() => setSelectedHistoryQuiz(hist)}
+                                      onClick={() => handleSelectHistoryQuiz(hist)}
                                       className="flex justify-between items-center p-3 sm:p-4 bg-white dark:bg-slate-800 shadow-xs rounded-xl border border-gray-200/80 dark:border-slate-700 cursor-pointer hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-sm transition-all group"
                                     >
                                       <div>

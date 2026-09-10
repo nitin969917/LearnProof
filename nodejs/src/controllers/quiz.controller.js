@@ -4,7 +4,12 @@ const { generateCertificatePDF } = require('../services/certificate.service');
 const cacheService = require('../services/cache.service');
 
 const normalizeQuestions = (questionsStr) => {
-    let parsed = JSON.parse(questionsStr);
+    let parsed;
+    try {
+        parsed = typeof questionsStr === 'string' ? JSON.parse(questionsStr) : questionsStr;
+    } catch (_) {
+        return [];
+    }
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
         const arrayKey = Object.keys(parsed).find(key => Array.isArray(parsed[key]));
         if (arrayKey) parsed = parsed[arrayKey];
@@ -528,6 +533,8 @@ const getQuizHistory = async (req, res) => {
                 is_combined: true,
                 time_limit: true,
                 attempted_at: true,
+                questions: true,
+                user_answers: true,
                 video: { select: { name: true, vid: true } },
                 playlist: { select: { name: true, pid: true } }
             },

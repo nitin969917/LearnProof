@@ -422,8 +422,29 @@ const Quiz = () => {
         );
     }
     if (selectedHistoryQuiz) {
-        const questions = JSON.parse(selectedHistoryQuiz.questions);
-        const userAnswers = selectedHistoryQuiz.user_answers ? JSON.parse(selectedHistoryQuiz.user_answers) : [];
+        let questions = [];
+        try {
+            if (typeof selectedHistoryQuiz.questions === 'string') {
+                questions = JSON.parse(selectedHistoryQuiz.questions);
+            } else if (Array.isArray(selectedHistoryQuiz.questions)) {
+                questions = selectedHistoryQuiz.questions;
+            }
+        } catch (_) {
+            questions = [];
+        }
+        if (!Array.isArray(questions)) questions = [];
+
+        let userAnswers = [];
+        try {
+            if (typeof selectedHistoryQuiz.user_answers === 'string') {
+                userAnswers = JSON.parse(selectedHistoryQuiz.user_answers);
+            } else if (Array.isArray(selectedHistoryQuiz.user_answers)) {
+                userAnswers = selectedHistoryQuiz.user_answers;
+            }
+        } catch (_) {
+            userAnswers = [];
+        }
+        if (!Array.isArray(userAnswers)) userAnswers = [];
 
         return (
             <div className="bg-orange-50 dark:bg-gray-900 transition-colors duration-300">
