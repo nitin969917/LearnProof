@@ -487,11 +487,11 @@ export default function LanguageLearning() {
                     return (
                       <div 
                         key={room.id} 
-                        className={`bg-white dark:bg-gray-800 rounded-2xl border ${
+                        className={`bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl border ${
                           isFutureScheduled
                             ? 'border-amber-200/70 dark:border-amber-800/50 hover:border-amber-300'
-                            : 'border-gray-100 dark:border-gray-700'
-                        } p-3 sm:p-5 flex flex-col justify-between aspect-square relative group hover:-translate-y-1 duration-300 transition-all cursor-pointer`}
+                            : 'border-gray-100 dark:border-gray-700/80 hover:border-orange-300/80 dark:hover:border-orange-500/40'
+                        } p-2.5 sm:p-4 flex flex-col justify-between aspect-square relative group hover:-translate-y-0.5 hover:shadow-lg shadow-2xs duration-300 transition-all cursor-pointer overflow-hidden`}
                         onClick={() => navigate(`/dashboard/live-rooms/${room.roomName}`)}
                       >
                         {/* Decorative background blur blob */}
@@ -500,9 +500,9 @@ export default function LanguageLearning() {
                         } rounded-full blur-2xl transition-all duration-300 pointer-events-none`}></div>
 
                         {/* Top bar: Badges & End Room */}
-                        <div className="flex justify-between items-start gap-1 z-10 w-full">
+                        <div className="flex justify-between items-center gap-1 z-10 w-full">
                           <div className="flex flex-wrap items-center gap-1 min-w-0">
-                            <span className="bg-orange-100/60 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider truncate">
+                            <span className="bg-orange-500/10 dark:bg-orange-950/50 text-orange-600 dark:text-orange-400 border border-orange-200/50 dark:border-orange-500/20 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider truncate">
                               {room.language}
                             </span>
                             {room.isPrivate ? (
@@ -530,52 +530,54 @@ export default function LanguageLearning() {
 
                         {/* Scheduled Countdown Banner if future */}
                         {isFutureScheduled && (
-                          <div className="z-10 mt-1 mb-auto">
-                            <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-300/40 dark:border-amber-700/40 rounded-xl px-2 py-1 flex items-center justify-between text-[10px] sm:text-[11px] font-bold text-amber-700 dark:text-amber-300 shadow-xs">
+                          <div className="z-10 mt-0.5 mb-auto">
+                            <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-300/40 dark:border-amber-700/40 rounded-xl px-2 py-0.5 flex items-center justify-between text-[9px] sm:text-[11px] font-bold text-amber-700 dark:text-amber-300 shadow-xs">
                               <span className="flex items-center gap-1 truncate">
                                 <Calendar size={11} className="shrink-0 text-amber-500" />
                                 <span className="truncate">{formatScheduledDate(room.scheduledFor)}</span>
                               </span>
-                              <span className="bg-amber-500 text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0 ml-1">
+                              <span className="bg-amber-500 text-white text-[8px] sm:text-[9px] font-extrabold px-1.5 py-0.2 rounded-full shrink-0 ml-1">
                                 {getTimeRemaining(room.scheduledFor)}
                               </span>
                             </div>
                           </div>
                         )}
 
-                        {/* Middle: Centered Icon + Room Title & Topic */}
-                        <div className="flex flex-col items-center justify-center text-center my-auto px-1 z-10">
-                          <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-[14px] sm:rounded-2xl p-0.5 bg-gradient-to-tr ${
+                        {/* Middle: Centered Large Circle Picture + Room Title & Topic */}
+                        <div className="flex flex-col items-center justify-center text-center my-auto px-1 z-10 w-full min-w-0">
+                          <div className={`w-14 h-14 sm:w-20 sm:h-20 rounded-full p-[2px] bg-gradient-to-tr ${
                             room.mediaType === 'video'
-                              ? 'from-blue-500 to-indigo-500 shadow-blue-500/20'
-                              : 'from-orange-500 to-amber-500 shadow-orange-500/20'
-                          } shadow-lg mb-1.5 sm:mb-2.5 group-hover:scale-105 transition-transform duration-300 relative shrink-0`}>
-                            <img 
-                              src={room.creator.profilePicture || '/default-avatar.png'} 
-                              alt={room.creator.name}
-                              onError={(e) => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
-                              className="w-full h-full object-cover rounded-[12px] sm:rounded-xl bg-white dark:bg-gray-800"
-                            />
-                            <div className="absolute -bottom-1.5 -right-1.5 bg-white dark:bg-gray-800 rounded-full p-1 shadow-sm border border-gray-100 dark:border-gray-700">
+                              ? 'from-blue-500 via-indigo-500 to-cyan-400 shadow-blue-500/25'
+                              : 'from-[#FF5100] via-orange-500 to-amber-400 shadow-orange-500/25'
+                          } shadow-md mb-1.5 sm:mb-2 group-hover:scale-105 transition-transform duration-300 relative shrink-0`}>
+                            <div className="w-full h-full rounded-full p-[1.5px] bg-white dark:bg-gray-800 overflow-hidden">
+                              <img 
+                                src={room.creator.profilePicture || '/default-avatar.png'} 
+                                alt={room.creator.name}
+                                onError={(e) => { e.target.onerror = null; e.target.src = '/default-avatar.png'; }}
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            </div>
+                            <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-gray-800 rounded-full p-1 sm:p-1.5 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-center">
                               {room.mediaType === 'video' ? (
                                 <Video size={10} className="sm:size-[12px] text-blue-500" />
                               ) : (
-                                <Mic size={10} className="sm:size-[12px] text-orange-500" />
+                                <Mic size={10} className="sm:size-[12px] text-[#FF5100]" />
                               )}
                             </div>
                           </div>
-                          <h3 className="font-black text-gray-900 dark:text-white text-xs sm:text-sm leading-snug line-clamp-1 px-0.5 uppercase tracking-wide">
+                          <h3 className="font-black text-gray-900 dark:text-white text-[11px] sm:text-sm leading-tight truncate w-full px-0.5 uppercase tracking-wide group-hover:text-[#FF5100] transition-colors">
                             {room.roomName.replace(/-\d+$/, '').split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                           </h3>
-                          <p className="text-gray-450 dark:text-gray-500 text-[10px] sm:text-xs font-bold mt-1 leading-tight line-clamp-2 px-1">
+                          <p className="text-gray-450 dark:text-gray-400 text-[9.5px] sm:text-xs font-semibold mt-0.5 leading-tight truncate w-full px-1">
                             {room.topic}
                           </p>
                         </div>
                         
                         {/* Bottom: Creator and Action buttons */}
-                        <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700/60 pt-2 sm:pt-3 z-10 gap-1.5">
+                        <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-700/60 pt-1.5 sm:pt-2.5 z-10 gap-1.5 w-full">
                           <div className="flex items-center gap-1 min-w-0">
-                            <span className="text-[10px] sm:text-xs font-black text-gray-500 dark:text-gray-400 truncate max-w-[55px] sm:max-w-[85px]">
+                            <span className="text-[10px] sm:text-xs font-bold text-gray-500 dark:text-gray-400 truncate max-w-[60px] sm:max-w-[95px]">
                               {room.creator.name.split(' ')[0]}
                             </span>
                           </div>
@@ -587,17 +589,17 @@ export default function LanguageLearning() {
                                 title="Add to Calendar / Remind Me"
                                 className="p-1 sm:p-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition cursor-pointer"
                               >
-                                <Calendar size={13} />
+                                <Calendar size={12} />
                               </button>
                             )}
 
                             <button className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 bg-gradient-to-r ${
                               room.mediaType === 'video'
-                                ? 'from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 shadow-blue-500/10 group-hover:shadow-blue-500/20'
+                                ? 'from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/15 group-hover:shadow-blue-500/25'
                                 : isFutureScheduled
-                                  ? 'from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-amber-500/10'
-                                  : 'from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 shadow-orange-500/10 group-hover:shadow-orange-500/20'
-                            } text-white text-[9px] sm:text-xs font-black rounded-lg sm:rounded-xl transition-all shadow-md flex items-center gap-1`}>
+                                  ? 'from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-amber-500/15'
+                                  : 'from-[#FF5100] to-amber-500 hover:from-[#E04800] hover:to-amber-600 shadow-orange-500/15 group-hover:shadow-orange-500/25'
+                            } text-white text-[10px] sm:text-xs font-black rounded-lg sm:rounded-xl transition-all shadow-xs flex items-center gap-1 active:scale-95 cursor-pointer`}>
                               {isFutureScheduled && isHost ? (
                                 <>
                                   <Play size={10} className="fill-white" />
