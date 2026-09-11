@@ -1327,8 +1327,9 @@ const createLanguageRoom = async (req, res) => {
           if (io) {
             const creatorAvatar = room.creator?.profilePicture || null;
             invitedIds.forEach(targetId => {
-              io.to(`user_${targetId}`).emit(isScheduledRoom ? 'ROOM_SCHEDULED' : 'ROOM_INVITATION', {
+              const payload = {
                 roomName: room.roomName,
+                creatorId: room.creatorId,
                 creatorName,
                 creatorAvatar,
                 topic: room.topic,
@@ -1336,7 +1337,9 @@ const createLanguageRoom = async (req, res) => {
                 mediaType: room.mediaType,
                 scheduledFor: parsedScheduledFor,
                 isPrivate: true,
-              });
+              };
+              io.to(targetId.toString()).emit(isScheduledRoom ? 'ROOM_SCHEDULED' : 'ROOM_INVITATION', payload);
+              io.to(`user_${targetId}`).emit(isScheduledRoom ? 'ROOM_SCHEDULED' : 'ROOM_INVITATION', payload);
             });
           }
         } catch (pushErr) {
@@ -1380,18 +1383,27 @@ const createLanguageRoom = async (req, res) => {
           const io = req.app.get('io');
           if (io) {
             const creatorAvatar = room.creator?.profilePicture || null;
+            const payload = {
+              roomName: room.roomName,
+              creatorId: room.creatorId,
+              creatorName,
+              creatorAvatar,
+              topic: room.topic,
+              language: room.language,
+              mediaType: room.mediaType,
+              scheduledFor: parsedScheduledFor,
+              isFriendsOnly: finalIsFriendsOnly,
+            };
+
             friendIds.forEach(targetId => {
-              io.to(`user_${targetId}`).emit(isScheduledRoom ? 'ROOM_SCHEDULED' : 'ROOM_CREATED', {
-                roomName: room.roomName,
-                creatorName,
-                creatorAvatar,
-                topic: room.topic,
-                language: room.language,
-                mediaType: room.mediaType,
-                scheduledFor: parsedScheduledFor,
-                isFriendsOnly: finalIsFriendsOnly,
-              });
+              io.to(targetId.toString()).emit(isScheduledRoom ? 'ROOM_SCHEDULED' : 'ROOM_CREATED', payload);
+              io.to(`user_${targetId}`).emit(isScheduledRoom ? 'ROOM_SCHEDULED' : 'ROOM_CREATED', payload);
             });
+
+            // If it is a public room starting live, broadcast to all connected users
+            if (!finalIsFriendsOnly && !finalIsPrivate && !isScheduledRoom) {
+              io.emit('ROOM_CREATED', payload);
+            }
           }
         }
       } catch (pushErr) {
@@ -1457,16 +1469,19 @@ const sendRoomStartedNotification = async (room, io) => {
         );
 
         if (io) {
+          const payload = {
+            roomName: fullRoom.roomName,
+            creatorId: fullRoom.creatorId,
+            creatorName,
+            creatorAvatar,
+            topic: fullRoom.topic,
+            language: fullRoom.language,
+            mediaType: fullRoom.mediaType,
+            isPrivate: true,
+          };
           invitedIds.forEach(targetId => {
-            io.to(`user_${targetId}`).emit('ROOM_STARTED', {
-              roomName: fullRoom.roomName,
-              creatorName,
-              creatorAvatar,
-              topic: fullRoom.topic,
-              language: fullRoom.language,
-              mediaType: fullRoom.mediaType,
-              isPrivate: true,
-            });
+            io.to(targetId.toString()).emit('ROOM_STARTED', payload);
+            io.to(`user_${targetId}`).emit('ROOM_STARTED', payload);
           });
         }
       }
@@ -1493,17 +1508,23 @@ const sendRoomStartedNotification = async (room, io) => {
         );
 
         if (io) {
+          const payload = {
+            roomName: fullRoom.roomName,
+            creatorId: fullRoom.creatorId,
+            creatorName,
+            creatorAvatar,
+            topic: fullRoom.topic,
+            language: fullRoom.language,
+            mediaType: fullRoom.mediaType,
+            isFriendsOnly: isFriendsOnly,
+          };
           friendIds.forEach(targetId => {
-            io.to(`user_${targetId}`).emit('ROOM_STARTED', {
-              roomName: fullRoom.roomName,
-              creatorName,
-              creatorAvatar,
-              topic: fullRoom.topic,
-              language: fullRoom.language,
-              mediaType: fullRoom.mediaType,
-              isFriendsOnly: isFriendsOnly,
-            });
+            io.to(targetId.toString()).emit('ROOM_STARTED', payload);
+            io.to(`user_${targetId}`).emit('ROOM_STARTED', payload);
           });
+          if (!isFriendsOnly && !isPrivate) {
+            io.emit('ROOM_STARTED', payload);
+          }
         }
       }
     }
@@ -1953,15 +1974,18 @@ const inviteToLanguageRoom = async (req, res) => {
         const io = req.app.get('io');
         if (io) {
           const creatorAvatar = room.creator?.profilePicture || null;
+          const payload = {
+            roomName: room.roomName,
+            creatorId: room.creatorId,
+            creatorName,
+            creatorAvatar,
+            topic: room.topic,
+            language: room.language,
+            mediaType: room.mediaType,
+          };
           newlyAdded.forEach(targetId => {
-            io.to(`user_${targetId}`).emit('ROOM_INVITATION', {
-              roomName: room.roomName,
-              creatorName,
-              creatorAvatar,
-              topic: room.topic,
-              language: room.language,
-              mediaType: room.mediaType,
-            });
+            io.to(targetId.toString()).emit('ROOM_INVITATION', payload);
+            io.to(`user_${targetId}`).emit('ROOM_INVITATION', payload);
           });
           io.emit('ROOMS_UPDATED');
         }

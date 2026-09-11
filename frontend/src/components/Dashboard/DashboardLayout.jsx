@@ -354,15 +354,25 @@ const DashboardLayout = () => {
     const isMobile = window.innerWidth < 1024;
     const location = useLocation();
 
+    const locationPathRef = useRef(location.pathname);
+    useEffect(() => {
+        locationPathRef.current = location.pathname;
+    }, [location.pathname]);
+
     // Listen for live room invitations, room creations, and live room start notifications to navigate directly to room
     useEffect(() => {
-        if (!socialUser || !socialUser.id) return;
-        const socket = getSocialSocket(socialUser.id);
+        const currentUserId = socialUser?.id || user?.id || user?.uid;
+        if (!currentUserId) return;
+        const socket = getSocialSocket(currentUserId);
+        if (!socket) return;
 
         const handleLiveRoomEvent = (data, eventType) => {
             if (!data || !data.roomName) return;
             // If already in this room, don't show alert
-            if (location.pathname.includes(data.roomName)) return;
+            if (locationPathRef.current && locationPathRef.current.includes(data.roomName)) return;
+
+            // Ignore rooms created/started by self
+            if (data.creatorId && String(data.creatorId) === String(currentUserId)) return;
 
             const creatorName = data.creatorName || data.creator?.name || 'A friend';
             const creatorAvatar = data.creatorAvatar || data.creator?.profilePicture || null;
@@ -452,7 +462,7 @@ const DashboardLayout = () => {
             socket.off('ROOM_STARTED', onRoomStarted);
             socket.off('ROOM_SCHEDULED', onRoomScheduled);
         };
-    }, [socialUser, navigate, location.pathname]);
+    }, [socialUser?.id, user?.id, user?.uid, navigate]);
 
     const isAskMyNotes = location.pathname.startsWith('/dashboard/ask-my-notes');
     const isInsideWorkspace = location.pathname.match(/\/dashboard\/ask-my-notes(?:-dev)?\/[^/]+/);

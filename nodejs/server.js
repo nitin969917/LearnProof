@@ -199,6 +199,7 @@ io.on('connection', (socket) => {
     const userIdStr = userId.toString();
     socket.userId = userIdStr;
     socket.join(userIdStr);
+    socket.join(`user_${userIdStr}`);
     
     const socketSetKey = `user:sockets:${userIdStr}`;
     const workerSocketsKey = `worker:sockets:${workerId}`;
