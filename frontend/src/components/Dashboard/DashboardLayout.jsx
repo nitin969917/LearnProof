@@ -354,40 +354,68 @@ const DashboardLayout = () => {
     const isMobile = window.innerWidth < 1024;
     const location = useLocation();
 
-    // Listen for live room invitations and live room start notifications to navigate directly to room
+    // Listen for live room invitations, room creations, and live room start notifications to navigate directly to room
     useEffect(() => {
         if (!socialUser || !socialUser.id) return;
         const socket = getSocialSocket(socialUser.id);
-        const handleRoomInvitation = (data) => {
+
+        const handleLiveRoomEvent = (data, eventType) => {
             if (!data || !data.roomName) return;
             // If already in this room, don't show alert
             if (location.pathname.includes(data.roomName)) return;
 
+            const creatorName = data.creatorName || data.creator?.name || 'A friend';
+            const creatorAvatar = data.creatorAvatar || data.creator?.profilePicture || null;
+            const topic = data.topic || 'General Discussion';
+            const language = data.language || 'Live Session';
+
+            let title = `${creatorName} invited you`;
+            let displayContent = `Join "${topic}" (${language})`;
+
+            if (eventType === 'ROOM_STARTED') {
+                title = `🔴 ${creatorName}'s room is LIVE`;
+                displayContent = `"${topic}" started now • Tap to join!`;
+            } else if (eventType === 'ROOM_CREATED') {
+                title = `${creatorName} started a live room`;
+                displayContent = `"${topic}" (${language}) • Tap to join!`;
+            } else if (eventType === 'ROOM_SCHEDULED') {
+                title = `📅 ${creatorName} scheduled a room`;
+                displayContent = `"${topic}" scheduled • Tap to view details`;
+            }
+
             toast.custom((t) => (
-                <div 
+                <div
+                    onClick={() => {
+                        toast.dismiss(t.id);
+                        navigate(`/dashboard/live-rooms/${data.roomName}`);
+                    }}
                     className={`${
                         t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
                     } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-orange-200/80 dark:border-gray-700/80 cursor-pointer hover:border-orange-400 dark:hover:border-orange-500/50 active:scale-98`}
                     style={{ pointerEvents: 'auto' }}
                 >
-                    <div 
-                        onClick={() => {
-                            toast.dismiss(t.id);
-                            navigate(`/dashboard/live-rooms/${data.roomName}`);
-                        }}
-                        className="flex items-center gap-3 flex-1 min-w-0"
-                    >
-                        <div className="w-10 h-10 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center font-black text-sm shrink-0">
-                            🔴
-                        </div>
-                        <div className="flex flex-col text-left truncate">
-                            <span className="text-xs font-black text-gray-900 dark:text-white truncate">
-                                {data.creatorName ? `${data.creatorName} invited you` : 'Live Room Invitation'}
+                    <div className="relative shrink-0">
+                        {creatorAvatar ? (
+                            <img src={creatorAvatar} alt={creatorName} className="w-10 h-10 rounded-full object-cover ring-2 ring-orange-500/20" />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FF5100] to-orange-400 text-white font-black flex items-center justify-center text-sm shadow-xs">
+                                {creatorName ? creatorName[0].toUpperCase() : 'L'}
+                            </div>
+                        )}
+                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800 animate-pulse" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                            <p className="text-xs font-black text-gray-900 dark:text-white truncate">
+                                {title}
+                            </p>
+                            <span className="text-[10px] text-[#FF5100] font-black uppercase tracking-wider">
+                                now
                             </span>
-                            <span className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                                {data.topic ? `"${data.topic}"` : 'Tap to join room now!'}
-                            </span>
                         </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5">
+                            {displayContent}
+                        </p>
                     </div>
                     <button
                         type="button"
@@ -398,15 +426,31 @@ const DashboardLayout = () => {
                         className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
                         title="Dismiss"
                     >
-                        <X size={15} />
+                        <X size={14} />
                     </button>
                 </div>
-            ), { id: `live_room_invite_${data.roomName}`, duration: 5000, position: 'top-center' });
+            ), {
+                id: `live_room_event_${data.roomName}_${eventType}`,
+                duration: 5000,
+                position: 'top-center'
+            });
         };
 
-        socket.on('ROOM_INVITATION', handleRoomInvitation);
+        const onRoomInvitation = (data) => handleLiveRoomEvent(data, 'ROOM_INVITATION');
+        const onRoomCreated = (data) => handleLiveRoomEvent(data, 'ROOM_CREATED');
+        const onRoomStarted = (data) => handleLiveRoomEvent(data, 'ROOM_STARTED');
+        const onRoomScheduled = (data) => handleLiveRoomEvent(data, 'ROOM_SCHEDULED');
+
+        socket.on('ROOM_INVITATION', onRoomInvitation);
+        socket.on('ROOM_CREATED', onRoomCreated);
+        socket.on('ROOM_STARTED', onRoomStarted);
+        socket.on('ROOM_SCHEDULED', onRoomScheduled);
+
         return () => {
-            socket.off('ROOM_INVITATION', handleRoomInvitation);
+            socket.off('ROOM_INVITATION', onRoomInvitation);
+            socket.off('ROOM_CREATED', onRoomCreated);
+            socket.off('ROOM_STARTED', onRoomStarted);
+            socket.off('ROOM_SCHEDULED', onRoomScheduled);
         };
     }, [socialUser, navigate, location.pathname]);
 

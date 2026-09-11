@@ -1325,10 +1325,12 @@ const createLanguageRoom = async (req, res) => {
 
           const io = req.app.get('io');
           if (io) {
+            const creatorAvatar = room.creator?.profilePicture || null;
             invitedIds.forEach(targetId => {
               io.to(`user_${targetId}`).emit(isScheduledRoom ? 'ROOM_SCHEDULED' : 'ROOM_INVITATION', {
                 roomName: room.roomName,
                 creatorName,
+                creatorAvatar,
                 topic: room.topic,
                 language: room.language,
                 mediaType: room.mediaType,
@@ -1377,10 +1379,12 @@ const createLanguageRoom = async (req, res) => {
 
           const io = req.app.get('io');
           if (io) {
+            const creatorAvatar = room.creator?.profilePicture || null;
             friendIds.forEach(targetId => {
               io.to(`user_${targetId}`).emit(isScheduledRoom ? 'ROOM_SCHEDULED' : 'ROOM_CREATED', {
                 roomName: room.roomName,
                 creatorName,
+                creatorAvatar,
                 topic: room.topic,
                 language: room.language,
                 mediaType: room.mediaType,
@@ -1414,18 +1418,34 @@ const createLanguageRoom = async (req, res) => {
 const sendRoomStartedNotification = async (room, io) => {
   if (!room || room.isStartedNotificationSent) return;
   try {
-    const creatorName = room.creator?.name || 'A friend';
-    const formattedLanguage = room.language || 'English';
-    const topicText = room.topic || 'General Discussion';
-    const mediaTypeLabel = (room.mediaType || 'audio') === 'video' ? 'Video' : 'Audio';
-    const isPrivate = room.isPrivate;
-    const isFriendsOnly = room.isFriendsOnly;
+    let fullRoom = room;
+    if (!room.creator && room.id) {
+      try {
+        const loaded = await datingPrisma.languageRoom.findUnique({
+          where: { id: room.id },
+          include: {
+            creator: {
+              select: { id: true, name: true, profilePicture: true }
+            }
+          }
+        });
+        if (loaded) fullRoom = loaded;
+      } catch (_) {}
+    }
+
+    const creatorName = fullRoom.creator?.name || 'A friend';
+    const creatorAvatar = fullRoom.creator?.profilePicture || null;
+    const formattedLanguage = fullRoom.language || 'English';
+    const topicText = fullRoom.topic || 'General Discussion';
+    const mediaTypeLabel = (fullRoom.mediaType || 'audio') === 'video' ? 'Video' : 'Audio';
+    const isPrivate = fullRoom.isPrivate;
+    const isFriendsOnly = fullRoom.isFriendsOnly;
 
     if (isPrivate) {
       let invitedIds = [];
       try {
-        const parsed = JSON.parse(room.invitedUserIds || '[]');
-        if (Array.isArray(parsed)) invitedIds = parsed.map(Number).filter(n => !isNaN(n) && n !== room.creatorId);
+        const parsed = JSON.parse(fullRoom.invitedUserIds || '[]');
+        if (Array.isArray(parsed)) invitedIds = parsed.map(Number).filter(n => !isNaN(n) && n !== fullRoom.creatorId);
       } catch (e) {}
 
       if (invitedIds.length > 0) {
@@ -1433,17 +1453,18 @@ const sendRoomStartedNotification = async (room, io) => {
           invitedIds,
           `🔴 Private ${mediaTypeLabel} Room Starting Now!`,
           `${creatorName}'s scheduled room "${topicText}" in ${formattedLanguage} is live now. Tap to join!`,
-          { type: 'LIVE_ROOM_STARTED', roomName: room.roomName }
+          { type: 'LIVE_ROOM_STARTED', roomName: fullRoom.roomName }
         );
 
         if (io) {
           invitedIds.forEach(targetId => {
             io.to(`user_${targetId}`).emit('ROOM_STARTED', {
-              roomName: room.roomName,
+              roomName: fullRoom.roomName,
               creatorName,
-              topic: room.topic,
-              language: room.language,
-              mediaType: room.mediaType,
+              creatorAvatar,
+              topic: fullRoom.topic,
+              language: fullRoom.language,
+              mediaType: fullRoom.mediaType,
               isPrivate: true,
             });
           });
@@ -1455,12 +1476,12 @@ const sendRoomStartedNotification = async (room, io) => {
         where: {
           status: 'accepted',
           OR: [
-            { senderId: room.creatorId },
-            { receiverId: room.creatorId }
+            { senderId: fullRoom.creatorId },
+            { receiverId: fullRoom.creatorId }
           ]
         }
       });
-      const friendIds = friendships.map(f => f.senderId === room.creatorId ? f.receiverId : f.senderId);
+      const friendIds = friendships.map(f => f.senderId === fullRoom.creatorId ? f.receiverId : f.senderId);
 
       if (friendIds.length > 0) {
         const roomTypeLabel = isFriendsOnly ? 'Friends-only' : 'Live';
@@ -1468,17 +1489,18 @@ const sendRoomStartedNotification = async (room, io) => {
           friendIds,
           `🔴 ${roomTypeLabel} ${mediaTypeLabel} Room Starting Now!`,
           `${creatorName}'s scheduled room "${topicText}" in ${formattedLanguage} is live now. Tap to join!`,
-          { type: 'LIVE_ROOM_STARTED', roomName: room.roomName }
+          { type: 'LIVE_ROOM_STARTED', roomName: fullRoom.roomName }
         );
 
         if (io) {
           friendIds.forEach(targetId => {
             io.to(`user_${targetId}`).emit('ROOM_STARTED', {
-              roomName: room.roomName,
+              roomName: fullRoom.roomName,
               creatorName,
-              topic: room.topic,
-              language: room.language,
-              mediaType: room.mediaType,
+              creatorAvatar,
+              topic: fullRoom.topic,
+              language: fullRoom.language,
+              mediaType: fullRoom.mediaType,
               isFriendsOnly: isFriendsOnly,
             });
           });
@@ -1930,10 +1952,12 @@ const inviteToLanguageRoom = async (req, res) => {
       try {
         const io = req.app.get('io');
         if (io) {
+          const creatorAvatar = room.creator?.profilePicture || null;
           newlyAdded.forEach(targetId => {
             io.to(`user_${targetId}`).emit('ROOM_INVITATION', {
               roomName: room.roomName,
               creatorName,
+              creatorAvatar,
               topic: room.topic,
               language: room.language,
               mediaType: room.mediaType,

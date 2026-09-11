@@ -186,13 +186,16 @@ if (messaging) {
     if (payload.notification) {
       const data = payload.data || {};
       
-      // Suppress in-app toast for chat/group messages and public live room broadcasts
+      // Suppress in-app toast for chat/group messages (handled directly by active socket listeners)
       if (
         data.type === 'CHAT_MESSAGE' || 
-        data.type === 'GROUP_MESSAGE' || 
-        data.type === 'LIVE_ROOM_CREATED' || 
-        data.type === 'LIVE_ROOM_SCHEDULED'
+        data.type === 'GROUP_MESSAGE'
       ) {
+        return;
+      }
+
+      // If already viewing this live room, suppress toast
+      if (data.roomName && window.location.pathname.includes(data.roomName)) {
         return;
       }
 
@@ -208,25 +211,39 @@ if (messaging) {
         return React.createElement(
           'div', 
           { 
-            className: `${t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'} transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-orange-200/80 dark:border-gray-700/80`,
+            className: `${t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'} transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-orange-200/80 dark:border-gray-700/80 cursor-pointer hover:border-orange-400 dark:hover:border-orange-500/50 active:scale-98`,
             style: { pointerEvents: 'auto' }
           },
           React.createElement(
             'div',
             {
-              className: "flex items-center gap-3 flex-1 min-w-0 cursor-pointer",
+              className: "flex items-center gap-3 flex-1 min-w-0",
               onClick: () => {
                 toast.dismiss(t.id);
                 sessionStorage.setItem('pending_notification_route', targetPath);
                 window.dispatchEvent(new CustomEvent('lp_navigate', { detail: targetPath }));
               }
             },
-            React.createElement('div', { className: "w-9 h-9 rounded-full bg-orange-500/10 text-orange-500 flex items-center justify-center font-bold text-sm shrink-0" }, '🔔'),
+            React.createElement(
+              'div', 
+              { className: "relative shrink-0" },
+              React.createElement(
+                'div', 
+                { className: "w-10 h-10 rounded-full bg-gradient-to-tr from-[#FF5100] to-orange-400 text-white font-black flex items-center justify-center text-sm shadow-xs" },
+                data.roomName ? '🔴' : '🔔'
+              ),
+              React.createElement('span', { className: "absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800 animate-pulse" })
+            ),
             React.createElement(
               'div',
-              { className: "flex flex-col text-left truncate" },
-              React.createElement('div', { className: "font-black text-gray-900 dark:text-white text-xs truncate" }, payload.notification.title),
-              React.createElement('div', { className: "text-xs text-gray-600 dark:text-gray-300 truncate mt-0.5" }, payload.notification.body)
+              { className: "flex-1 min-w-0" },
+              React.createElement(
+                'div',
+                { className: "flex items-center justify-between gap-1" },
+                React.createElement('p', { className: "font-black text-gray-900 dark:text-white text-xs truncate" }, payload.notification.title),
+                React.createElement('span', { className: "text-[10px] text-[#FF5100] font-black uppercase tracking-wider" }, 'now')
+              ),
+              React.createElement('p', { className: "text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5" }, payload.notification.body)
             )
           ),
           React.createElement(
@@ -237,15 +254,15 @@ if (messaging) {
                 e.stopPropagation();
                 toast.dismiss(t.id);
               },
-              className: "p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0 font-bold text-xs",
+              className: "p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0",
               title: "Dismiss"
             },
             '✕'
           )
         );
       }, {
-        id: `fcm_${payload.data?.roomName || payload.data?.type || Date.now()}`,
-        duration: 4000,
+        id: `live_room_event_${payload.data?.roomName || payload.data?.type || Date.now()}`,
+        duration: 5000,
         position: 'top-center'
       });
     }

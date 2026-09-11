@@ -640,12 +640,15 @@ io.on('connection', (socket) => {
     const chatHistory = await getRoomChat(roomName);
     const senderIdentity = String(sender?.identity || sender?.id || socket.userId || 'anonymous');
     const senderName = sender?.name || sender?.userName || 'User';
+    const senderAvatar = sender?.profilePicture || sender?.avatar || sender?.photoURL || null;
 
     const chatItem = {
       id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       roomName,
-      from: { identity: senderIdentity, name: senderName },
+      from: { identity: senderIdentity, name: senderName, profilePicture: senderAvatar },
       senderId: senderIdentity,
+      senderName,
+      profilePicture: senderAvatar,
       text: message.trim(),
       timestamp: Date.now(),
       sentAt: new Date().toISOString()
