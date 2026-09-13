@@ -182,21 +182,25 @@ const CertificatePreview = ({ userName, courseName, date, certId, template = nul
             </div>
           </div>
 
-          {/* Right: Academic Authority */}
-          <div className="flex flex-col items-center min-w-[75px] sm:min-w-[90px]">
+          {/* Right: Unique Credential ID */}
+          <div className="flex flex-col items-center min-w-[75px] sm:min-w-[100px]">
             <div className="w-20 sm:w-28 h-[1px] bg-slate-300 dark:bg-slate-600 mb-1" />
-            <p className="text-[7.5px] sm:text-[9px] font-bold tracking-tight truncate max-w-[110px] text-center" style={{ color: primaryColor }}>
-              {signatoryName}
+            <p 
+              className="text-[6.5px] sm:text-[8px] font-mono font-bold tracking-tight text-center truncate max-w-[110px] sm:max-w-[130px]" 
+              style={{ color: primaryColor }}
+              title={certId || 'PREVIEW-MOCK'}
+            >
+              {certId ? certId.toUpperCase() : 'PREVIEW-MOCK'}
             </p>
             <p className="text-[5px] sm:text-[6px] text-slate-400 uppercase font-bold tracking-widest mt-0.5 text-center">
-              {signatoryTitle}
+              Unique Credential ID
             </p>
           </div>
         </div>
 
         {/* ── 5. SECURITY & VERIFICATION FOOTER ── */}
         <div className="w-full pt-1.5 border-t border-slate-200/80 flex items-center justify-between text-slate-400 text-[5.5px] sm:text-[6.5px] px-2 font-mono">
-          <span>ID: <strong className="font-semibold text-slate-600">{certId || 'PREVIEW-MOCK'}</strong></span>
+          <span className="tracking-wider text-slate-400">OFFICIALLY VERIFIED CREDENTIAL</span>
           <span className="tracking-wider text-slate-500 font-medium">learnproofai.com/verify</span>
         </div>
       </div>

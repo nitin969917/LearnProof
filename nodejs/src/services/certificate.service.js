@@ -198,22 +198,22 @@ const generateCertificatePDF = (certId, userName, contentName, date, template = 
                 .fillColor('#64748b')
                 .text('DATE CONFERRED', 90, footerY + 6, { width: 160, align: 'center', characterSpacing: 1 });
 
-            // Right Side: Academic Signatory
+            // Right Side: Unique Credential ID
             doc.rect(width - 250, footerY - 5, 160, 0.75).fill('#94a3b8');
-            doc.font('Helvetica-Bold')
-                .fontSize(10)
+            doc.font('Courier-Bold')
+                .fontSize(9.5)
                 .fillColor(textColor)
-                .text(signatoryName, width - 250, footerY - 20, { width: 160, align: 'center' });
+                .text(certId ? String(certId).toUpperCase() : 'LP-VERIFIED-2026', width - 250, footerY - 18, { width: 160, align: 'center' });
             doc.font('Helvetica')
                 .fontSize(8)
                 .fillColor('#64748b')
-                .text(signatoryTitle.toUpperCase(), width - 250, footerY + 6, { width: 160, align: 'center', characterSpacing: 0.5 });
+                .text('UNIQUE CREDENTIAL ID', width - 250, footerY + 6, { width: 160, align: 'center', characterSpacing: 0.5 });
 
             // Bottom Security Footer
             doc.font('Helvetica')
                 .fontSize(8)
                 .fillColor('#94a3b8')
-                .text(`Certificate ID: ${certId}   •   Verify Authenticity: https://learnproofai.com/verify/${certId}`, 0, height - 36, { align: 'center' });
+                .text(`Officially Verified Credential   •   Verify Authenticity: https://learnproofai.com/verify/${certId}`, 0, height - 36, { align: 'center' });
 
             doc.end();
 
