@@ -1,24 +1,37 @@
 import React from 'react';
-import { ShieldCheck, Award, Sparkles, CheckCircle } from 'lucide-react';
+import { ShieldCheck, Award } from 'lucide-react';
 
 const CertificatePreview = ({ userName, courseName, date, certId, template = null }) => {
   const primaryColor = template?.primaryColor || '#1e293b';
   const accentColor = template?.accentColor || '#f59e0b';
   const textColor = template?.textColor || '#0f172a';
   const bgColor = template?.backgroundColor || '#ffffff';
-  const titleText = template?.titleText || 'Certificate of Achievement';
-  const subtitleText = template?.subtitleText || 'This is proudly presented to';
-  const bodyText = template?.bodyText || 'for demonstrating exemplary mastery of the curriculum and successfully passing the comprehensive examination for';
-  const issuerName = template?.issuerName || 'LEARNPROOF ACADEMY';
-  const issuerTitle = template?.issuerTitle || 'Global Council for Digital & Technical Credentials';
-  const signatoryName = template?.signatoryName || 'Dr. Arthur Pendelton';
-  const signatoryTitle = template?.signatoryTitle || 'Director of Academic Credentials';
+  const titleText = template?.titleText || 'CERTIFICATE OF ACHIEVEMENT';
+  const subtitleText = template?.subtitleText || 'THIS IS OFFICIALLY PRESENTED TO';
+  const bodyText = template?.bodyText || 'for successfully mastering the curriculum and passing the comprehensive examination for';
+  const issuerTitle = template?.issuerTitle || 'GLOBAL CERTIFICATION AUTHORITY';
   const sealText = template?.sealText || 'VERIFIED';
   const layout = template?.layout || 'classic';
 
+  // Format recipient display name
+  const displayName = (userName && userName.trim() && userName !== '****') 
+    ? userName 
+    : (template ? 'Alex M. Harrison' : (userName || 'Distinguished Learner'));
+
+  // Format date cleanly
+  const displayDate = date 
+    ? date 
+    : new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Format credential ID cleanly to prevent any overflow
+  const rawId = certId ? String(certId) : 'LP-PREVIEW-2026';
+  const displayCertId = rawId.startsWith('LP-') 
+    ? rawId 
+    : (rawId.length > 16 ? `LP-${rawId.slice(0, 8).toUpperCase()}` : rawId.toUpperCase());
+
   return (
     <div 
-      className="relative w-full aspect-[1.414/1] p-2.5 sm:p-3 shadow-xl overflow-hidden select-none transition-all duration-300 rounded-sm"
+      className="@container relative w-full aspect-[1.414/1] shadow-2xl overflow-hidden select-none transition-all duration-300 rounded-xs"
       style={{ 
         backgroundColor: bgColor,
         borderColor: primaryColor,
@@ -28,119 +41,114 @@ const CertificatePreview = ({ userName, courseName, date, certId, template = nul
     >
       {/* Background Guilloché / Watermark Pattern */}
       <div 
-        className="absolute inset-0 pointer-events-none opacity-[0.035] flex items-center justify-center overflow-hidden"
+        className="absolute inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center overflow-hidden"
         style={{
           backgroundImage: `radial-gradient(circle at center, ${primaryColor} 1px, transparent 1px)`,
           backgroundSize: '16px 16px'
         }}
       >
-        <Award size={220} className="rotate-12" style={{ color: primaryColor }} strokeWidth={0.8} />
+        <Award size={260} className="rotate-12" style={{ color: primaryColor }} strokeWidth={0.8} />
       </div>
 
       {/* Top Banner Ribbon for Modern Layout */}
       {layout === 'modern' && (
         <div 
-          className="absolute top-0 left-0 right-0 h-2.5 z-30" 
+          className="absolute top-0 left-0 right-0 h-[1.5%]" 
           style={{ backgroundColor: accentColor }}
         />
       )}
 
-      {/* Corner Ornate Accents for Classic / Executive Layout */}
+      {/* Decorative Outer Inset Frame (Always safely outside content) */}
+      <div 
+        className="absolute inset-[1.8%] border pointer-events-none rounded-xs"
+        style={{ borderColor: `${accentColor}88` }}
+      />
+      <div 
+        className="absolute inset-[2.5%] border border-dashed pointer-events-none rounded-xs opacity-40"
+        style={{ borderColor: primaryColor }}
+      />
+
+      {/* Corner Ornate Accents (Classic / Executive) */}
       {(layout === 'classic' || layout === 'executive') && (
         <>
-          <div className="absolute top-1 left-1 w-8 h-8 z-20 flex items-center justify-center pointer-events-none">
-            <div className="w-5 h-5 border-t-2 border-l-2" style={{ borderColor: accentColor }} />
-          </div>
-          <div className="absolute top-1 right-1 w-8 h-8 z-20 flex items-center justify-center pointer-events-none">
-            <div className="w-5 h-5 border-t-2 border-r-2" style={{ borderColor: accentColor }} />
-          </div>
-          <div className="absolute bottom-1 left-1 w-8 h-8 z-20 flex items-center justify-center pointer-events-none">
-            <div className="w-5 h-5 border-b-2 border-l-2" style={{ borderColor: accentColor }} />
-          </div>
-          <div className="absolute bottom-1 right-1 w-8 h-8 z-20 flex items-center justify-center pointer-events-none">
-            <div className="w-5 h-5 border-b-2 border-r-2" style={{ borderColor: accentColor }} />
-          </div>
+          <div className="absolute top-[1.8%] left-[1.8%] w-[3.5%] h-[3.5%] z-20 pointer-events-none border-t-2 border-l-2" style={{ borderColor: accentColor }} />
+          <div className="absolute top-[1.8%] right-[1.8%] w-[3.5%] h-[3.5%] z-20 pointer-events-none border-t-2 border-r-2" style={{ borderColor: accentColor }} />
+          <div className="absolute bottom-[1.8%] left-[1.8%] w-[3.5%] h-[3.5%] z-20 pointer-events-none border-b-2 border-l-2" style={{ borderColor: accentColor }} />
+          <div className="absolute bottom-[1.8%] right-[1.8%] w-[3.5%] h-[3.5%] z-20 pointer-events-none border-b-2 border-r-2" style={{ borderColor: accentColor }} />
         </>
       )}
 
-      {/* Inner Dual Security Frame */}
-      <div 
-        className="w-full h-full relative flex flex-col items-center justify-between py-3.5 sm:py-5 px-3 sm:px-6 rounded-xs"
-        style={{
-          border: `2px solid ${accentColor}88`,
-          outline: `1px dashed ${primaryColor}44`,
-          outlineOffset: '-5px'
-        }}
-      >
+      {/* Certificate Content Body - Safely Inset (4% Padding ensures zero border collision) */}
+      <div className="relative z-10 w-full h-full flex flex-col justify-between py-[3.8%] px-[5.5%]">
+        
         {/* ── 1. HEADER & LOGO ── */}
-        <div className="text-center relative z-10 w-full flex flex-col items-center">
+        <div className="text-center w-full flex flex-col items-center">
           {/* Logo Brandmark */}
-          <div className="flex items-center justify-center gap-2 mb-1">
+          <div className="flex items-center justify-center mb-[0.6%]">
             <img 
               src="/LP_logo.png" 
               alt="LearnProof Logo" 
-              className="h-6 sm:h-8 w-auto object-contain drop-shadow-xs"
+              className="h-[5.5cqi] max-h-10 w-auto object-contain drop-shadow-xs"
               onError={(e) => {
-                // Fallback if logo image fails
                 e.target.style.display = 'none';
               }}
             />
           </div>
 
-          <p className="text-[6.5px] sm:text-[7.5px] font-black tracking-[0.25em] uppercase text-slate-500 mb-0.5">
+          <p className="text-[1.2cqi] font-black tracking-[0.25em] uppercase text-slate-500 mb-[0.4%]">
             {issuerTitle}
           </p>
 
           {/* Certificate Title */}
           <h2 
-            className="text-[13px] sm:text-[17px] font-black leading-tight tracking-[0.16em] uppercase font-serif"
+            className="text-[2.6cqi] font-black leading-tight tracking-[0.16em] uppercase font-serif"
             style={{ color: primaryColor }}
           >
             {titleText}
           </h2>
 
           {/* Center Ornate Divider */}
-          <div className="flex items-center justify-center gap-2 my-1 w-full max-w-[200px]">
-            <div className="h-[1px] flex-1" style={{ backgroundColor: `${accentColor}99` }} />
-            <div className="w-1.5 h-1.5 rotate-45" style={{ backgroundColor: accentColor }} />
-            <div className="h-[1px] flex-1" style={{ backgroundColor: `${accentColor}99` }} />
+          <div className="flex items-center justify-center gap-[1cqi] my-[0.8%] w-full max-w-[32cqi]">
+            <div className="h-[1px] flex-1" style={{ backgroundColor: `${accentColor}bb` }} />
+            <div className="w-[1cqi] h-[1cqi] rotate-45 shrink-0" style={{ backgroundColor: accentColor }} />
+            <div className="h-[1px] flex-1" style={{ backgroundColor: `${accentColor}bb` }} />
           </div>
         </div>
 
         {/* ── 2. RECIPIENT SECTION ── */}
-        <div className="text-center relative z-10 w-full px-2">
-          <p className="text-[6px] sm:text-[7px] uppercase tracking-[0.22em] text-slate-400 font-bold mb-0.5">
+        <div className="text-center w-full px-2 my-[0.4%]">
+          <p className="text-[1.1cqi] uppercase tracking-[0.22em] text-slate-400 font-bold mb-[0.5%]">
             {subtitleText}
           </p>
 
-          {/* Recipient's Name with Serif Elegance */}
-          <div className="relative inline-block my-0.5 max-w-[280px]">
+          {/* Recipient's Name with Serif Grandeur */}
+          <div className="relative inline-block max-w-[85%]">
             <p 
-              className="text-[16px] sm:text-[22px] font-black uppercase leading-tight truncate px-3 font-serif tracking-tight drop-shadow-2xs"
+              className="text-[3.2cqi] font-black uppercase leading-tight truncate px-3 font-serif tracking-tight drop-shadow-2xs"
               style={{ color: accentColor }}
             >
-              {userName || "Distinguished Learner"}
+              {displayName}
             </p>
             {/* Elegant Double Underline */}
-            <div className="h-[1px] w-full mx-auto mt-0.5" style={{ backgroundColor: primaryColor, opacity: 0.4 }} />
-            <div className="h-[0.5px] w-3/4 mx-auto mt-0.5" style={{ backgroundColor: accentColor }} />
+            <div className="h-[1px] w-full mx-auto mt-[0.3cqi]" style={{ backgroundColor: primaryColor, opacity: 0.35 }} />
+            <div className="h-[0.5px] w-3/4 mx-auto mt-[0.2cqi]" style={{ backgroundColor: accentColor }} />
           </div>
         </div>
 
         {/* ── 3. ACCREDITATION BODY & COURSE TITLE ── */}
-        <div className="text-center px-2 relative z-10 max-w-[380px] w-full">
-          <p className="text-[6px] sm:text-[7px] text-slate-600 mb-1 leading-relaxed font-normal">
+        <div className="text-center w-full max-w-[80cqi] mx-auto my-[0.4%]">
+          <p className="text-[1.15cqi] text-slate-600 mb-[0.8%] leading-relaxed font-normal">
             {bodyText}
           </p>
           <div 
-            className="inline-block px-3 py-1 rounded-md border shadow-xs"
+            className="inline-block px-[2.2cqi] py-[0.6cqi] rounded-md border shadow-xs max-w-[90%]"
             style={{
               backgroundColor: `${accentColor}12`,
               borderColor: `${accentColor}40`
             }}
           >
             <p 
-              className="text-[10px] sm:text-[12.5px] font-black italic leading-tight text-center"
+              className="text-[1.8cqi] font-black italic leading-tight text-center truncate"
               style={{ color: textColor }}
             >
               {courseName || "Mastery Certification"}
@@ -148,23 +156,23 @@ const CertificatePreview = ({ userName, courseName, date, certId, template = nul
           </div>
         </div>
 
-        {/* ── 4. SIGNATURES & METALLIC SEAL ── */}
-        <div className="w-full flex justify-between items-end px-3 sm:px-8 relative z-10 mt-1 mb-0.5">
+        {/* ── 4. SIGNATURES, SEAL & CREDENTIAL ID ── */}
+        <div className="w-full flex justify-between items-end px-[2cqi] mt-[0.8%] mb-[0.4%]">
           {/* Left: Date Conferred */}
-          <div className="flex flex-col items-center min-w-[75px] sm:min-w-[90px]">
-            <div className="w-20 sm:w-28 h-[1px] bg-slate-300 dark:bg-slate-600 mb-1" />
-            <p className="text-[7.5px] sm:text-[9px] font-bold tracking-tight" style={{ color: primaryColor }}>
-              {date || new Date().toLocaleDateString()}
+          <div className="flex flex-col items-center w-[25cqi]">
+            <div className="w-full max-w-[16cqi] h-[1px] bg-slate-300 dark:bg-slate-600 mb-[0.4cqi]" />
+            <p className="text-[1.3cqi] font-bold tracking-tight text-center whitespace-nowrap" style={{ color: primaryColor }}>
+              {displayDate}
             </p>
-            <p className="text-[5px] sm:text-[6px] text-slate-400 uppercase font-bold tracking-widest mt-0.5">
+            <p className="text-[0.9cqi] text-slate-400 uppercase font-bold tracking-widest mt-[0.2cqi] text-center">
               Date Conferred
             </p>
           </div>
 
           {/* Center: Official 3D Metallic Foil Seal */}
-          <div className="flex flex-col items-center relative -bottom-1">
+          <div className="flex flex-col items-center shrink-0 mx-[1cqi]">
             <div 
-              className="relative w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 flex flex-col items-center justify-center shadow-md"
+              className="relative w-[6.8cqi] h-[6.8cqi] rounded-full border-2 flex flex-col items-center justify-center shadow-md"
               style={{ 
                 background: `radial-gradient(circle, #fffbeb 0%, #fef3c7 40%, ${accentColor} 100%)`,
                 borderColor: primaryColor
@@ -172,37 +180,38 @@ const CertificatePreview = ({ userName, courseName, date, certId, template = nul
             >
               {/* Serrated Inner Ring */}
               <div 
-                className="absolute inset-0.5 rounded-full border border-dashed opacity-60"
+                className="absolute inset-[0.3cqi] rounded-full border border-dashed opacity-60"
                 style={{ borderColor: primaryColor }}
               />
-              <ShieldCheck size={17} className="text-slate-900 drop-shadow-xs" />
-              <p className="text-[3.5px] sm:text-[4px] font-black uppercase tracking-widest text-slate-900 mt-0.5">
+              <ShieldCheck className="w-[2.4cqi] h-[2.4cqi] text-slate-900 drop-shadow-xs" />
+              <p className="text-[0.6cqi] font-black uppercase tracking-widest text-slate-900 mt-[0.1cqi]">
                 {sealText}
               </p>
             </div>
           </div>
 
           {/* Right: Unique Credential ID */}
-          <div className="flex flex-col items-center min-w-[75px] sm:min-w-[100px]">
-            <div className="w-20 sm:w-28 h-[1px] bg-slate-300 dark:bg-slate-600 mb-1" />
+          <div className="flex flex-col items-center w-[25cqi]">
+            <div className="w-full max-w-[16cqi] h-[1px] bg-slate-300 dark:bg-slate-600 mb-[0.4cqi]" />
             <p 
-              className="text-[6.5px] sm:text-[8px] font-mono font-bold tracking-tight text-center truncate max-w-[110px] sm:max-w-[130px]" 
+              className="text-[1.25cqi] font-mono font-bold tracking-tight text-center truncate w-full" 
               style={{ color: primaryColor }}
-              title={certId || 'PREVIEW-MOCK'}
+              title={rawId}
             >
-              {certId ? certId.toUpperCase() : 'PREVIEW-MOCK'}
+              {displayCertId}
             </p>
-            <p className="text-[5px] sm:text-[6px] text-slate-400 uppercase font-bold tracking-widest mt-0.5 text-center">
+            <p className="text-[0.9cqi] text-slate-400 uppercase font-bold tracking-widest mt-[0.2cqi] text-center">
               Unique Credential ID
             </p>
           </div>
         </div>
 
         {/* ── 5. SECURITY & VERIFICATION FOOTER ── */}
-        <div className="w-full pt-1.5 border-t border-slate-200/80 flex items-center justify-between text-slate-400 text-[5.5px] sm:text-[6.5px] px-2 font-mono">
+        <div className="w-full pt-[0.8%] border-t border-slate-200/80 flex items-center justify-between text-slate-400 text-[0.95cqi] font-mono">
           <span className="tracking-wider text-slate-400">OFFICIALLY VERIFIED CREDENTIAL</span>
           <span className="tracking-wider text-slate-500 font-medium">learnproofai.com/verify</span>
         </div>
+
       </div>
     </div>
   );

@@ -110,6 +110,7 @@ const VerifyCertificate = () => {
                                     courseName={cert.title}
                                     date={new Date(cert.issued_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
                                     certId={cert.certificate_id}
+                                    template={cert.template}
                                 />
                                 <div className="mt-6 flex justify-center">
                                     <a 
