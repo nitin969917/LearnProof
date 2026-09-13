@@ -84,47 +84,47 @@ const CertificatePreview = ({ userName, courseName, date, certId, template = nul
         {/* ── 1. HEADER & LOGO ── */}
         <div className="text-center w-full flex flex-col items-center">
           {/* Logo Brandmark */}
-          <div className="flex items-center justify-center mb-[0.6%]">
+          <div className="flex items-center justify-center mb-[0.8%]">
             <img 
               src="/LP_logo.png" 
               alt="LearnProof Logo" 
-              className="h-[5.5cqi] max-h-10 w-auto object-contain drop-shadow-xs"
+              className="h-[8.5cqi] max-h-16 w-auto object-contain drop-shadow-xs"
               onError={(e) => {
                 e.target.style.display = 'none';
               }}
             />
           </div>
 
-          <p className="text-[1.2cqi] font-black tracking-[0.25em] uppercase text-slate-500 mb-[0.4%]">
+          <p className="text-[1.25cqi] font-black tracking-[0.25em] uppercase text-slate-500 mb-[0.4%]">
             {issuerTitle}
           </p>
 
           {/* Certificate Title */}
           <h2 
-            className="text-[2.6cqi] font-black leading-tight tracking-[0.16em] uppercase font-serif"
+            className="text-[2.8cqi] font-black leading-tight tracking-[0.16em] uppercase font-serif"
             style={{ color: primaryColor }}
           >
             {titleText}
           </h2>
 
           {/* Center Ornate Divider */}
-          <div className="flex items-center justify-center gap-[1cqi] my-[0.8%] w-full max-w-[32cqi]">
+          <div className="flex items-center justify-center gap-[1cqi] my-[0.8%] w-full max-w-[34cqi]">
             <div className="h-[1px] flex-1" style={{ backgroundColor: `${accentColor}bb` }} />
-            <div className="w-[1cqi] h-[1cqi] rotate-45 shrink-0" style={{ backgroundColor: accentColor }} />
+            <div className="w-[1.1cqi] h-[1.1cqi] rotate-45 shrink-0" style={{ backgroundColor: accentColor }} />
             <div className="h-[1px] flex-1" style={{ backgroundColor: `${accentColor}bb` }} />
           </div>
         </div>
 
         {/* ── 2. RECIPIENT SECTION ── */}
         <div className="text-center w-full px-2 my-[0.4%]">
-          <p className="text-[1.1cqi] uppercase tracking-[0.22em] text-slate-400 font-bold mb-[0.5%]">
+          <p className="text-[1.15cqi] uppercase tracking-[0.22em] text-slate-400 font-bold mb-[0.5%]">
             {subtitleText}
           </p>
 
           {/* Recipient's Name with Serif Grandeur */}
           <div className="relative inline-block max-w-[85%]">
             <p 
-              className="text-[3.2cqi] font-black uppercase leading-tight truncate px-3 font-serif tracking-tight drop-shadow-2xs"
+              className="text-[3.5cqi] font-black uppercase leading-tight truncate px-3 font-serif tracking-tight drop-shadow-2xs"
               style={{ color: accentColor }}
             >
               {displayName}
@@ -137,18 +137,18 @@ const CertificatePreview = ({ userName, courseName, date, certId, template = nul
 
         {/* ── 3. ACCREDITATION BODY & COURSE TITLE ── */}
         <div className="text-center w-full max-w-[80cqi] mx-auto my-[0.4%]">
-          <p className="text-[1.15cqi] text-slate-600 mb-[0.8%] leading-relaxed font-normal">
+          <p className="text-[1.2cqi] text-slate-600 mb-[0.8%] leading-relaxed font-normal">
             {bodyText}
           </p>
           <div 
-            className="inline-block px-[2.2cqi] py-[0.6cqi] rounded-md border shadow-xs max-w-[90%]"
+            className="inline-block px-[2.8cqi] py-[0.7cqi] rounded-md border shadow-xs max-w-[90%]"
             style={{
               backgroundColor: `${accentColor}12`,
               borderColor: `${accentColor}40`
             }}
           >
             <p 
-              className="text-[1.8cqi] font-black italic leading-tight text-center truncate"
+              className="text-[2.0cqi] font-black italic leading-tight text-center truncate"
               style={{ color: textColor }}
             >
               {courseName || "Mastery Certification"}
@@ -161,7 +161,7 @@ const CertificatePreview = ({ userName, courseName, date, certId, template = nul
           {/* Left: Date Conferred */}
           <div className="flex flex-col items-center w-[25cqi]">
             <div className="w-full max-w-[16cqi] h-[1px] bg-slate-300 dark:bg-slate-600 mb-[0.4cqi]" />
-            <p className="text-[1.3cqi] font-bold tracking-tight text-center whitespace-nowrap" style={{ color: primaryColor }}>
+            <p className="text-[1.35cqi] font-bold tracking-tight text-center whitespace-nowrap" style={{ color: primaryColor }}>
               {displayDate}
             </p>
             <p className="text-[0.9cqi] text-slate-400 uppercase font-bold tracking-widest mt-[0.2cqi] text-center">
@@ -172,7 +172,7 @@ const CertificatePreview = ({ userName, courseName, date, certId, template = nul
           {/* Center: Official 3D Metallic Foil Seal */}
           <div className="flex flex-col items-center shrink-0 mx-[1cqi]">
             <div 
-              className="relative w-[6.8cqi] h-[6.8cqi] rounded-full border-2 flex flex-col items-center justify-center shadow-md"
+              className="relative w-[7.5cqi] h-[7.5cqi] rounded-full border-2 flex flex-col items-center justify-center shadow-md"
               style={{ 
                 background: `radial-gradient(circle, #fffbeb 0%, #fef3c7 40%, ${accentColor} 100%)`,
                 borderColor: primaryColor
@@ -180,11 +180,11 @@ const CertificatePreview = ({ userName, courseName, date, certId, template = nul
             >
               {/* Serrated Inner Ring */}
               <div 
-                className="absolute inset-[0.3cqi] rounded-full border border-dashed opacity-60"
+                className="absolute inset-[0.35cqi] rounded-full border border-dashed opacity-60"
                 style={{ borderColor: primaryColor }}
               />
-              <ShieldCheck className="w-[2.4cqi] h-[2.4cqi] text-slate-900 drop-shadow-xs" />
-              <p className="text-[0.6cqi] font-black uppercase tracking-widest text-slate-900 mt-[0.1cqi]">
+              <ShieldCheck className="w-[2.8cqi] h-[2.8cqi] text-slate-900 drop-shadow-xs" />
+              <p className="text-[0.65cqi] font-black uppercase tracking-widest text-slate-900 mt-[0.1cqi]">
                 {sealText}
               </p>
             </div>
