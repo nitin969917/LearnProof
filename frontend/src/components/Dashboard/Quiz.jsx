@@ -12,7 +12,7 @@ import QuizMathText from '../Common/QuizMathText';
 const Quiz = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [token] = useState(useAuth().token); // Use token from context
-    const { token: authToken } = useAuth();
+    const { token: authToken, user } = useAuth();
     const { confirm } = useModal();
 
     const playlists = useQuizStore(state => state.playlists);
@@ -33,6 +33,52 @@ const Quiz = () => {
     const [timeLeft, setTimeLeft] = useState(300); // 5 min
     const [submitting, setSubmitting] = useState(false);
     const [result, setResult] = useState(null);
+
+    // Certificate Request State
+    const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+    const [requestFullName, setRequestFullName] = useState("");
+    const [requestNotes, setRequestNotes] = useState("");
+    const [requestingCert, setRequestingCert] = useState(false);
+
+    const handleOpenRequestModal = () => {
+        setRequestFullName(user?.name || "");
+        setRequestNotes("");
+        setIsRequestModalOpen(true);
+    };
+
+    const handleSubmitCertificateRequest = async (e) => {
+        e.preventDefault();
+        const pId = result?.playlist_id || quizData?.playlistId;
+        if (!pId) {
+            toast.error("Unable to identify course playlist.");
+            return;
+        }
+        setRequestingCert(true);
+        try {
+            const res = await axios.post(
+                `${import.meta.env.VITE_BACKEND_URL}/api/certificates/request`,
+                {
+                    playlistId: pId,
+                    quizId: result?.quiz?.id || quizData?.quizId,
+                    fullName: requestFullName,
+                    userNotes: requestNotes
+                },
+                { headers: { Authorization: `Bearer ${authToken || token}` } }
+            );
+
+            toast.success(res.data?.message || "Certificate request submitted for admin review!");
+            setIsRequestModalOpen(false);
+            setResult(prev => ({
+                ...prev,
+                certificate_request_status: 'PENDING'
+            }));
+        } catch (err) {
+            console.error("Certificate request error:", err);
+            toast.error(err.response?.data?.error || "Failed to submit request.");
+        } finally {
+            setRequestingCert(false);
+        }
+    };
 
     const [currentPage, setCurrentPage] = useState(1);
     const [loadingQuizDetails, setLoadingQuizDetails] = useState(null);
@@ -410,6 +456,32 @@ const Quiz = () => {
                                 View Certificate
                             </a>
                         )}
+
+                        {result.passed && !result.certificate_url && (
+                            <>
+                                {result.certificate_request_status === 'PENDING' ? (
+                                    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl flex items-center gap-3 text-left">
+                                        <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                                            <Clock size={20} />
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-bold text-amber-900 dark:text-amber-200">Certificate Request Under Review</p>
+                                            <p className="text-[11px] text-amber-700 dark:text-amber-400">An admin is verifying your assessment. Once approved, your certificate will appear in My Certificates.</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenRequestModal}
+                                        className="w-full flex items-center justify-center gap-3 px-8 py-4 bg-orange-500 text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/20 active:scale-[0.98]"
+                                    >
+                                        <Award size={20} />
+                                        Request Official Certificate
+                                    </button>
+                                )}
+                            </>
+                        )}
+
                         <button
                             onClick={() => setResult(null)}
                             className="w-full px-8 py-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-white font-black text-xs uppercase tracking-widest rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all active:scale-[0.98]"
@@ -418,6 +490,73 @@ const Quiz = () => {
                         </button>
                     </div>
                 </motion.div>
+
+                {/* Request Certificate Modal */}
+                {isRequestModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+                        <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full border border-gray-100 dark:border-gray-700 shadow-2xl overflow-hidden p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center">
+                                    <Award size={22} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-base text-gray-900 dark:text-white">Request Certificate</h3>
+                                    <p className="text-xs text-gray-400">Submit your verification request for admin approval.</p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleSubmitCertificateRequest} className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                                        Full Name to Print on Certificate *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={requestFullName}
+                                        onChange={(e) => setRequestFullName(e.target.value)}
+                                        placeholder="e.g. Jane Doe"
+                                        className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
+                                        Note for Reviewer (Optional)
+                                    </label>
+                                    <textarea
+                                        value={requestNotes}
+                                        onChange={(e) => setRequestNotes(e.target.value)}
+                                        rows={2}
+                                        placeholder="e.g. Completed all hands-on exercises."
+                                        className="w-full px-3.5 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
+                                    />
+                                </div>
+
+                                <div className="p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/30 rounded-xl text-[11px] text-orange-800 dark:text-orange-300">
+                                    Your test score and watch history will be verified by the admin team before official issuance.
+                                </div>
+
+                                <div className="pt-2 flex items-center justify-end gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsRequestModalOpen(false)}
+                                        className="px-4 py-2 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-xl"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={requestingCert}
+                                        className="px-5 py-2 rounded-xl font-bold text-xs text-white bg-orange-500 hover:bg-orange-600 shadow-md shadow-orange-500/20 transition-all active:scale-95"
+                                    >
+                                        {requestingCert ? "Submitting..." : "Submit Request"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }

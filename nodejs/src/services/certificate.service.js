@@ -4,8 +4,15 @@ const path = require('path');
 
 /**
  * Generate a PDF certificate and save it to the media folder.
+ * Supports dynamic templates with customized colors, text, layouts, and signatures.
+ * 
+ * @param {string|number} certId - The unique certificate ID
+ * @param {string} userName - The recipient's full name
+ * @param {string} contentName - Name of the course / playlist
+ * @param {Date|string} date - Issue date
+ * @param {Object} [template] - Configurable template parameters
  */
-const generateCertificatePDF = (certId, userName, contentName, date) => {
+const generateCertificatePDF = (certId, userName, contentName, date, template = {}) => {
     return new Promise((resolve, reject) => {
         try {
             const doc = new PDFDocument({
@@ -29,112 +36,168 @@ const generateCertificatePDF = (certId, userName, contentName, date) => {
             const width = doc.page.width;
             const height = doc.page.height;
 
-            // 1. Background
-            doc.rect(0, 0, width, height).fill('#ffffff');
-            
-            // 2. Main Border (Navy/Gold style)
-            const margin = 30;
-            doc.rect(margin, margin, width - (margin * 2), height - (margin * 2))
-                .lineWidth(8)
-                .stroke('#1e293b'); // Navy Blue
+            // Template theme tokens with sensible defaults
+            const primaryColor = template.primaryColor || '#1e293b';
+            const accentColor = template.accentColor || '#f59e0b';
+            const textColor = template.textColor || '#0f172a';
+            const bgColor = template.backgroundColor || '#ffffff';
+            const titleText = template.titleText || 'CERTIFICATE OF ACHIEVEMENT';
+            const subtitleText = template.subtitleText || 'THIS IS OFFICIALLY PRESENTED TO';
+            const bodyText = template.bodyText || 'for successfully mastering the curriculum and passing the comprehensive examination for';
+            const issuerName = template.issuerName || 'LearnProof Academy';
+            const issuerTitle = template.issuerTitle || 'Global Certification Authority';
+            const signatoryName = template.signatoryName || 'Academic Director';
+            const signatoryTitle = template.signatoryTitle || 'Head of Certifications';
+            const sealText = template.sealText || 'VERIFIED';
+            const layout = template.layout || 'classic';
 
-            doc.rect(margin + 12, margin + 12, width - (margin * 2) - 24, height - (margin * 2) - 24)
-                .lineWidth(2)
-                .stroke('#f59e0b'); // Amber/Gold
+            // 1. Background Fill
+            doc.rect(0, 0, width, height).fill(bgColor);
 
-            // Corner Decorations
-            const decoSize = 60;
-            // Top Left
-            doc.rect(margin, margin, decoSize, decoSize).fill('#1e293b');
-            // Top Right
-            doc.rect(width - margin - decoSize, margin, decoSize, decoSize).fill('#1e293b');
-            // Bottom Left
-            doc.rect(margin, height - margin - decoSize, decoSize, decoSize).fill('#1e293b');
-            // Bottom Right
-            doc.rect(width - margin - decoSize, height - margin - decoSize, decoSize, decoSize).fill('#1e293b');
+            const margin = 28;
 
-            // 3. Header - "CERTIFICATE OF COMPLETION"
+            if (layout === 'modern') {
+                // Modern Clean Tech Layout
+                // Top accent ribbon
+                doc.rect(0, 0, width, 14).fill(accentColor);
+                // Outer clean frame
+                doc.rect(margin, margin + 4, width - (margin * 2), height - (margin * 2) - 8)
+                    .lineWidth(2)
+                    .stroke(primaryColor);
+                // Inner subtle accent frame
+                doc.rect(margin + 8, margin + 12, width - (margin * 2) - 16, height - (margin * 2) - 24)
+                    .lineWidth(1)
+                    .stroke(accentColor);
+            } else if (layout === 'executive') {
+                // Executive / High-Honor Layout
+                // Double thick luxury border
+                doc.rect(margin, margin, width - (margin * 2), height - (margin * 2))
+                    .lineWidth(6)
+                    .stroke(primaryColor);
+                doc.rect(margin + 6, margin + 6, width - (margin * 2) - 12, height - (margin * 2) - 12)
+                    .lineWidth(1.5)
+                    .stroke(accentColor);
+                doc.rect(margin + 12, margin + 12, width - (margin * 2) - 24, height - (margin * 2) - 24)
+                    .lineWidth(1)
+                    .stroke(primaryColor);
+            } else if (layout === 'minimal') {
+                // Minimalist Aesthetic Layout
+                doc.rect(margin + 10, margin + 10, width - (margin * 2) - 20, height - (margin * 2) - 20)
+                    .lineWidth(2)
+                    .stroke(accentColor);
+            } else {
+                // Classic Academic Layout (Default)
+                doc.rect(margin, margin, width - (margin * 2), height - (margin * 2))
+                    .lineWidth(8)
+                    .stroke(primaryColor);
+
+                doc.rect(margin + 12, margin + 12, width - (margin * 2) - 24, height - (margin * 2) - 24)
+                    .lineWidth(2)
+                    .stroke(accentColor);
+
+                // Corner solid accent squares
+                const decoSize = 54;
+                doc.rect(margin, margin, decoSize, decoSize).fill(primaryColor);
+                doc.rect(width - margin - decoSize, margin, decoSize, decoSize).fill(primaryColor);
+                doc.rect(margin, height - margin - decoSize, decoSize, decoSize).fill(primaryColor);
+                doc.rect(width - margin - decoSize, height - margin - decoSize, decoSize, decoSize).fill(primaryColor);
+            }
+
+            // 2. Issuer Branding Top
             doc.font('Helvetica-Bold')
-                .fontSize(48)
-                .fillColor('#1e293b')
-                .text('CERTIFICATE', 0, 100, { align: 'center', characterSpacing: 2 });
+                .fontSize(13)
+                .fillColor(primaryColor)
+                .text(issuerName.toUpperCase(), 0, 68, { align: 'center', characterSpacing: 2 });
             
-            doc.fontSize(20)
-                .fillColor('#64748b')
-                .text('OF COMPLETION', 0, 155, { align: 'center', characterSpacing: 4 });
-
-            // 4. Content
             doc.font('Helvetica')
-                .fontSize(18)
-                .fillColor('#94a3b8')
-                .text('THIS IS TO CERTIFY THAT', 0, 220, { align: 'center' });
-
-            doc.moveDown(0.5);
-
-            // Name
-            doc.font('Helvetica-Bold')
-                .fontSize(42)
-                .fillColor('#f97316') // Orange
-                .text(userName.toUpperCase(), { align: 'center' });
-
-            doc.moveDown(0.5);
-
-            doc.font('Helvetica')
-                .fontSize(18)
+                .fontSize(8)
                 .fillColor('#64748b')
-                .text('has successfully completed the expert-level course in', { align: 'center' });
+                .text(issuerTitle.toUpperCase(), 0, 84, { align: 'center', characterSpacing: 1.5 });
 
-            doc.moveDown(0.8);
-
-            // Course Name
+            // 3. Header - Title
             doc.font('Helvetica-Bold')
-                .fontSize(32)
-                .fillColor('#1e293b')
-                .text(contentName, { align: 'center', oblique: true });
+                .fontSize(34)
+                .fillColor(primaryColor)
+                .text(titleText.toUpperCase(), 0, 114, { align: 'center', characterSpacing: 2 });
 
-            // 5. Seal / Badge Effect (Bottom Center-ish)
-            const sealX = width / 2 - 50;
-            const sealY = height - 180;
-            
-            doc.circle(width / 2, sealY + 50, 45)
-                .lineWidth(4)
-                .stroke('#f59e0b');
-            
+            // Accent underline
+            const lineW = 120;
+            doc.rect(width / 2 - (lineW / 2), 154, lineW, 2).fill(accentColor);
+
+            // 4. Subtitle
+            doc.font('Helvetica')
+                .fontSize(11)
+                .fillColor('#64748b')
+                .text(subtitleText.toUpperCase(), 0, 185, { align: 'center', characterSpacing: 2 });
+
+            // 5. Recipient Name
+            doc.font('Helvetica-Bold')
+                .fontSize(38)
+                .fillColor(accentColor)
+                .text((userName || 'LEARNER').toUpperCase(), 0, 215, { align: 'center' });
+
+            // Thin separator under recipient
+            doc.rect(width / 2 - 140, 262, 280, 0.75).fill('#cbd5e1');
+
+            // 6. Body Text & Course Name
+            doc.font('Helvetica')
+                .fontSize(12)
+                .fillColor('#475569')
+                .text(bodyText, width / 2 - 250, 280, { width: 500, align: 'center', lineGap: 3 });
+
+            doc.font('Helvetica-Bold')
+                .fontSize(22)
+                .fillColor(textColor)
+                .text(contentName, 0, 325, { align: 'center', oblique: true });
+
+            // 7. Verified Seal / Badge (Center-lower)
+            const sealY = height - 175;
+            doc.circle(width / 2, sealY + 45, 38)
+                .lineWidth(3)
+                .stroke(accentColor);
+            doc.circle(width / 2, sealY + 45, 33)
+                .lineWidth(1)
+                .stroke(primaryColor);
+
+            doc.font('Helvetica-Bold')
+                .fontSize(8.5)
+                .fillColor(primaryColor)
+                .text(sealText.toUpperCase(), width / 2 - 25, sealY + 38, { width: 50, align: 'center', characterSpacing: 1 });
+
+            doc.fontSize(6.5)
+                .fillColor(accentColor)
+                .text('LEARNPROOF', width / 2 - 25, sealY + 50, { width: 50, align: 'center' });
+
+            // 8. Bottom Signatures & Certification Meta
+            const footerY = height - 95;
+
+            // Left Side: Date Issued & Signatory
+            doc.rect(90, footerY - 5, 160, 1).fill('#94a3b8');
             doc.font('Helvetica-Bold')
                 .fontSize(10)
-                .fillColor('#f59e0b')
-                .text('VERIFIED', width / 2 - 25, sealY + 40, { width: 50, align: 'center' });
-            
-            doc.fontSize(8)
-                .text('LEARNPROOF', width / 2 - 30, sealY + 55, { width: 60, align: 'center' });
-
-            // 6. Signatures & Info
-            const footerY = height - 100;
-            
-            // Left Side: Date
-            doc.rect(100, footerY - 5, 150, 1).fill('#cbd5e1'); // Line
+                .fillColor(textColor)
+                .text(new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }), 90, footerY - 20, { width: 160, align: 'center' });
             doc.font('Helvetica')
-                .fontSize(12)
+                .fontSize(8.5)
                 .fillColor('#64748b')
-                .text('DATE ISSUED', 100, footerY + 10, { width: 150, align: 'center' });
-            doc.font('Helvetica-Bold')
-                .fillColor('#1e293b')
-                .text(new Date(date).toLocaleDateString(), 100, footerY - 25, { width: 150, align: 'center' });
+                .text('DATE ISSUED', 90, footerY + 8, { width: 160, align: 'center', characterSpacing: 1 });
 
-            // Right Side: Cert ID
-            doc.rect(width - 250, footerY - 5, 150, 1).fill('#cbd5e1'); // Line
+            // Right Side: Signatory or Cert ID
+            doc.rect(width - 250, footerY - 5, 160, 1).fill('#94a3b8');
+            doc.font('Helvetica-Bold')
+                .fontSize(10)
+                .fillColor(textColor)
+                .text(signatoryName, width - 250, footerY - 20, { width: 160, align: 'center' });
             doc.font('Helvetica')
-                .fontSize(12)
+                .fontSize(8.5)
                 .fillColor('#64748b')
-                .text('CERTIFICATE ID', width - 250, footerY + 10, { width: 150, align: 'center' });
-            doc.font('Helvetica-Bold')
-                .fillColor('#1e293b')
-                .text(certId, width - 250, footerY - 25, { width: 150, align: 'center' });
+                .text(signatoryTitle.toUpperCase(), width - 250, footerY + 8, { width: 160, align: 'center', characterSpacing: 0.5 });
 
-            // Branding at bottom
-            doc.fontSize(14)
-                .fillColor('#1e293b')
-                .text('LearnProof Academy', 0, height - 60, { align: 'center' });
+            // Bottom Footer Details
+            doc.font('Helvetica')
+                .fontSize(7.5)
+                .fillColor('#94a3b8')
+                .text(`Certificate ID: ${certId}  •  Verify at https://learnproofai.com/verify/${certId}`, 0, height - 42, { align: 'center' });
 
             doc.end();
 

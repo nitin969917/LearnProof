@@ -68,6 +68,7 @@ const AdminUserDetails = lazyWithRetry(() => import('./components/Admin/pages/Ad
 const AdminInbox = lazyWithRetry(() => import('./components/Admin/pages/AdminInbox'));
 const AdminAppsManagement = lazyWithRetry(() => import('./components/Admin/pages/AdminAppsManagement'));
 const AdminReferrals = lazyWithRetry(() => import('./components/Admin/pages/AdminReferrals'));
+const AdminCertificates = lazyWithRetry(() => import('./components/Admin/pages/AdminCertificates'));
 
 const VerifyCertificate = lazyWithRetry(() => import('./components/Common/VerifyCertificate'));
 const Support = lazyWithRetry(() => import('./components/Common/SupportPage'));
@@ -608,6 +609,7 @@ const App = () => {
                                     }
                                 >
                                      <Route path='dashboard' element={<AdminDashboardHome />} />
+                                     <Route path='certificates' element={<AdminCertificates />} />
                                      <Route path='referrals' element={<AdminReferrals />} />
                                      <Route path='users' element={<AdminUsersList />} />
                                      <Route path='users/:id' element={<AdminUserDetails />} />

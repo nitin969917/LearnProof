@@ -149,6 +149,10 @@ router.use('/workspaces', workspaceRoutes);
 const referralRoutes = require('./referral.routes');
 router.use('/referrals', referralRoutes);
 
+// Certificates & Credential Management
+const certificateRoutes = require('./certificate.routes');
+router.use('/certificates', certificateRoutes);
+
 // LiveKit — Video Rooms
 router.get('/livekit/token', datingAuth, livekitController.getToken);
 router.get('/livekit/rooms', datingAuth, livekitController.getRooms);

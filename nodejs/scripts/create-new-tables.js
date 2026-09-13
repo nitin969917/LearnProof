@@ -1,6 +1,7 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const { Client } = require('pg');
 
-const dbUrl = process.env.DATABASE_URL || 'postgresql://user:password@db:5432/learnproof_db?connection_limit=15&pool_timeout=30';
+const dbUrl = process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/learnproof_db?connection_limit=15&pool_timeout=30';
 
 async function createAllTables() {
   console.log('🚀 [Schema Setup] Ensuring all LearnProof database tables exist via direct PostgreSQL client...');
@@ -169,9 +170,68 @@ async function createAllTables() {
         "certificate_id" TEXT NOT NULL,
         "issued_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "download_url" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+        "templateId" INTEGER,
+        "requestId" INTEGER,
         CONSTRAINT "Certificate_pkey" PRIMARY KEY ("id")
     );`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "Certificate_certificate_id_key" ON "Certificate"("certificate_id");`,
+    `ALTER TABLE "Certificate" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'ACTIVE';`,
+    `ALTER TABLE "Certificate" ADD COLUMN IF NOT EXISTS "templateId" INTEGER;`,
+    `ALTER TABLE "Certificate" ADD COLUMN IF NOT EXISTS "requestId" INTEGER;`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Certificate_requestId_key" ON "Certificate"("requestId");`,
+
+    // 13b. CertificateTemplate
+    `CREATE TABLE IF NOT EXISTS "CertificateTemplate" (
+        "id" SERIAL NOT NULL,
+        "name" TEXT NOT NULL,
+        "slug" TEXT NOT NULL,
+        "description" TEXT,
+        "isDefault" BOOLEAN NOT NULL DEFAULT false,
+        "layout" TEXT NOT NULL DEFAULT 'classic',
+        "primaryColor" TEXT NOT NULL DEFAULT '#1e293b',
+        "accentColor" TEXT NOT NULL DEFAULT '#f59e0b',
+        "textColor" TEXT NOT NULL DEFAULT '#0f172a',
+        "backgroundColor" TEXT NOT NULL DEFAULT '#ffffff',
+        "titleText" TEXT NOT NULL DEFAULT 'CERTIFICATE OF COMPLETION',
+        "subtitleText" TEXT NOT NULL DEFAULT 'THIS IS TO CERTIFY THAT',
+        "bodyText" TEXT NOT NULL DEFAULT 'has successfully completed the comprehensive curriculum and passed the examination for',
+        "issuerName" TEXT NOT NULL DEFAULT 'LearnProof Academy',
+        "issuerTitle" TEXT NOT NULL DEFAULT 'Global Certification Authority',
+        "signatoryName" TEXT NOT NULL DEFAULT 'Academic Director',
+        "signatoryTitle" TEXT NOT NULL DEFAULT 'Head of Certifications',
+        "sealText" TEXT NOT NULL DEFAULT 'VERIFIED',
+        "signatureImage" TEXT,
+        "logoUrl" TEXT,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "CertificateTemplate_pkey" PRIMARY KEY ("id")
+    );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "CertificateTemplate_slug_key" ON "CertificateTemplate"("slug");`,
+
+    // 13c. CertificateRequest
+    `CREATE TABLE IF NOT EXISTS "CertificateRequest" (
+        "id" SERIAL NOT NULL,
+        "userId" INTEGER NOT NULL,
+        "playlistId" INTEGER,
+        "videoId" INTEGER,
+        "quizId" INTEGER,
+        "fullName" TEXT NOT NULL,
+        "score" DOUBLE PRECISION,
+        "status" TEXT NOT NULL DEFAULT 'PENDING',
+        "userNotes" TEXT,
+        "adminNotes" TEXT,
+        "rejectionReason" TEXT,
+        "reviewedBy" TEXT,
+        "reviewedAt" TIMESTAMP(3),
+        "templateId" INTEGER,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "CertificateRequest_pkey" PRIMARY KEY ("id")
+    );`,
+    `CREATE INDEX IF NOT EXISTS "CertificateRequest_userId_idx" ON "CertificateRequest"("userId");`,
+    `CREATE INDEX IF NOT EXISTS "CertificateRequest_status_idx" ON "CertificateRequest"("status");`,
+    `CREATE INDEX IF NOT EXISTS "CertificateRequest_playlistId_idx" ON "CertificateRequest"("playlistId");`,
 
     // 14. AnonymousDevice
     `CREATE TABLE IF NOT EXISTS "AnonymousDevice" (
@@ -370,8 +430,28 @@ async function createAllTables() {
     }
   }
 
+  // Seed default certificate templates if none exist
+  try {
+    const countRes = await client.query('SELECT COUNT(*) FROM "CertificateTemplate"');
+    if (parseInt(countRes.rows[0].count) === 0) {
+      console.log('🌱 Seeding initial certificate templates...');
+      await client.query(`
+        INSERT INTO "CertificateTemplate" 
+        ("name", "slug", "description", "isDefault", "layout", "primaryColor", "accentColor", "textColor", "backgroundColor", "titleText", "subtitleText", "bodyText", "issuerName", "issuerTitle", "signatoryName", "signatoryTitle", "sealText")
+        VALUES 
+        ('Classic Gold Academic', 'classic-gold', 'Timeless dual-border with navy corners, gold accents, and academic seal.', true, 'classic', '#1e293b', '#f59e0b', '#0f172a', '#ffffff', 'CERTIFICATE OF ACHIEVEMENT', 'THIS IS OFFICIALLY PRESENTED TO', 'for successfully mastering the curriculum and passing the comprehensive examination for', 'LearnProof Academy', 'Global Certification Authority', 'Academic Director', 'Head of Certifications', 'VERIFIED'),
+        ('Modern Emerald Tech', 'modern-emerald', 'Contemporary tech certificate with clean emerald lines and verified badge.', false, 'modern', '#064e3b', '#10b981', '#022c22', '#f8fafc', 'CERTIFICATE OF EXCELLENCE', 'PROUDLY CONFERRED UPON', 'in recognition of exceptional performance and mastery of course competencies in', 'LearnProof Academy', 'Institute of Applied Technology', 'Dean of Engineering', 'Director of Credentials', 'ACCREDITED'),
+        ('Royal Indigo Executive', 'royal-indigo', 'Prestigious executive credential designed for high-impact certifications.', false, 'executive', '#1e1b4b', '#6366f1', '#0f172a', '#ffffff', 'EXECUTIVE CERTIFICATE', 'THIS CERTIFIES THAT', 'has successfully completed all rigorous executive course requirements for', 'LearnProof Academy', 'Executive Education Council', 'Executive Director', 'Registrar General', 'HONORS'),
+        ('Crimson Minimalist', 'crimson-minimal', 'Sleek, minimalist aesthetic featuring crisp ruby accents and modern typography.', false, 'minimal', '#881337', '#f43f5e', '#18181b', '#ffffff', 'CERTIFICATE OF COMPLETION', 'AWARDED TO', 'having demonstrated professional proficiency and passed the assessment for', 'LearnProof Academy', 'Digital Skills Board', 'Chief Learning Officer', 'Verification Officer', 'CERTIFIED')
+      `);
+      console.log('✅ Default certificate templates successfully seeded.');
+    }
+  } catch (err) {
+    console.warn('⚠️ Template seeding warning:', err.message);
+  }
+
   await client.end();
-  console.log('✅ [Schema Setup] All 28 learning tables and indexes verified.');
+  console.log('✅ [Schema Setup] All learning tables and certificate schema verified.');
 }
 
 if (require.main === module) {

@@ -27,6 +27,7 @@ model UserProfile {
   videos       Video[]
   quizzes      Quiz[]
   certificates Certificate[]
+  certificateRequests CertificateRequest[]
   activities   UserActivityLog[]
   notes        VideoNote[]
   comments     VideoComment[]
@@ -84,6 +85,7 @@ model Playlist {
   videos       Video[]
   quizzes      Quiz[]
   certificates Certificate[]
+  certificateRequests CertificateRequest[]
 
   @@unique([userId, pid])
   @@index([userId, id])
@@ -108,6 +110,7 @@ model Video {
 
   quizzes      Quiz[]
   certificates Certificate[]
+  certificateRequests CertificateRequest[]
 
   @@unique([userId, vid])
   @@index([playlistId])
@@ -132,6 +135,8 @@ model Quiz {
   time_limit   Int      @default(15) // In minutes
   attempted_at DateTime @default(now())
 
+  certificateRequests CertificateRequest[]
+
   @@index([userId])
   @@index([userId, passed])
   @@index([userId, attempted_at])
@@ -140,18 +145,83 @@ model Quiz {
 }
 
 model Certificate {
-  id             Int      @id @default(autoincrement())
-  user           UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             Int                  @id @default(autoincrement())
+  user           UserProfile          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         Int
-  video          Video?   @relation(fields: [videoId], references: [id], onDelete: SetNull)
+  video          Video?               @relation(fields: [videoId], references: [id], onDelete: SetNull)
   videoId        Int?
-  playlist       Playlist? @relation(fields: [playlistId], references: [id], onDelete: SetNull)
+  playlist       Playlist?            @relation(fields: [playlistId], references: [id], onDelete: SetNull)
   playlistId     Int?
-  certificate_id String   @unique @default(uuid())
-  issued_at      DateTime @default(now())
+  certificate_id String               @unique @default(uuid())
+  issued_at      DateTime             @default(now())
   download_url   String?
+  status         String               @default("ACTIVE") // ACTIVE, REVOKED
+
+  template       CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateId     Int?
+  request        CertificateRequest?  @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  requestId      Int?                 @unique
 
   @@index([userId])
+  @@index([certificate_id])
+}
+
+model CertificateRequest {
+  id              Int                  @id @default(autoincrement())
+  user            UserProfile          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          Int
+  playlist        Playlist?            @relation(fields: [playlistId], references: [id], onDelete: SetNull)
+  playlistId      Int?
+  video           Video?               @relation(fields: [videoId], references: [id], onDelete: SetNull)
+  videoId         Int?
+  quiz            Quiz?                @relation(fields: [quizId], references: [id], onDelete: SetNull)
+  quizId          Int?
+  fullName        String
+  score           Float?
+  status          String               @default("PENDING") // PENDING, APPROVED, REJECTED
+  userNotes       String?              @db.Text
+  adminNotes      String?              @db.Text
+  rejectionReason String?              @db.Text
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  created_at      DateTime             @default(now())
+  updated_at      DateTime             @updatedAt
+
+  certificate     Certificate?
+  template        CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateId      Int?
+
+  @@index([userId])
+  @@index([status])
+  @@index([playlistId])
+}
+
+model CertificateTemplate {
+  id              Int                  @id @default(autoincrement())
+  name            String
+  slug            String               @unique
+  description     String?
+  isDefault       Boolean              @default(false)
+  layout          String               @default("classic") // "classic", "modern", "minimal", "executive"
+  primaryColor    String               @default("#1e293b")
+  accentColor     String               @default("#f59e0b")
+  textColor       String               @default("#0f172a")
+  backgroundColor String               @default("#ffffff")
+  titleText       String               @default("CERTIFICATE OF COMPLETION")
+  subtitleText    String               @default("THIS IS TO CERTIFY THAT")
+  bodyText        String               @default("has successfully completed the comprehensive curriculum and passed the examination for")
+  issuerName      String               @default("LearnProof Academy")
+  issuerTitle     String               @default("Global Certification Authority")
+  signatoryName   String               @default("Academic Director")
+  signatoryTitle  String               @default("Head of Certifications")
+  sealText        String               @default("VERIFIED")
+  signatureImage  String?
+  logoUrl         String?
+  created_at      DateTime             @default(now())
+  updated_at      DateTime             @updatedAt
+
+  requests        CertificateRequest[]
+  certificates    Certificate[]
 }
 
 model UserActivityLog {

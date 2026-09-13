@@ -347,6 +347,10 @@ const submitQuiz = async (req, res) => {
         });
 
         let certificate_url = null;
+        let can_request_certificate = false;
+        let certificate_request_status = null;
+        let certificate_request_id = null;
+
         if (passed) {
             let xpGain = quiz.videoId ? 10 : (quiz.playlist ? quiz.playlist.videos.length * 5 : 20);
             const newXp = (user.xp || 0) + xpGain;
@@ -357,29 +361,27 @@ const submitQuiz = async (req, res) => {
                 data: { xp: newXp, level: newLevel }
             });
 
-            // NEW: Only generate certificates for COMBINED playlist quizzes
+            // Certificate flow: check if combined playlist quiz
             if (quiz.playlistId && quiz.is_combined && quiz.playlist) {
-                const cert = await prisma.certificate.create({
-                    data: {
+                can_request_certificate = true;
+                
+                // Check if user already requested or received a certificate
+                const existingRequest = await prisma.certificateRequest.findFirst({
+                    where: {
                         userId: user.id,
-                        videoId: null,
-                        playlistId: quiz.playlistId,
-                        download_url: `/api/media/certificates/${quiz.id}.pdf`
-                    }
+                        playlistId: quiz.playlistId
+                    },
+                    include: { certificate: true },
+                    orderBy: { created_at: 'desc' }
                 });
 
-                // Generate the actual PDF file
-                const contentName = quiz.playlist.name;
-                await generateCertificatePDF(quiz.id, user.name, contentName, new Date());
-
-                certificate_url = cert.download_url;
-
-                await prisma.userActivityLog.create({
-                    data: {
-                        userId: user.id,
-                        activity_type: `Playlist Certificate Issued: ${quiz.playlist.name}`
+                if (existingRequest) {
+                    certificate_request_status = existingRequest.status;
+                    certificate_request_id = existingRequest.id;
+                    if (existingRequest.certificate?.download_url) {
+                        certificate_url = existingRequest.certificate.download_url;
                     }
-                });
+                }
             }
         }
 
@@ -399,6 +401,10 @@ const submitQuiz = async (req, res) => {
             score: finalScore,
             passed,
             certificate_url,
+            can_request_certificate,
+            certificate_request_status,
+            certificate_request_id,
+            playlist_id: quiz.playlistId,
             quiz: updatedQuiz
         });
     } catch (error) {
@@ -413,10 +419,12 @@ const getCertificates = async (req, res) => {
     try {
         const user = req.user;
         const certificates = await prisma.certificate.findMany({
-            where: { userId: user.id },
+            where: { userId: user.id, status: 'ACTIVE' },
             include: {
                 video: { select: { name: true } },
-                playlist: { select: { name: true } }
+                playlist: { select: { name: true, pid: true } },
+                template: true,
+                request: true
             },
             orderBy: { issued_at: 'desc' }
         });
@@ -425,7 +433,8 @@ const getCertificates = async (req, res) => {
         const result = certificates.map(c => ({
             ...c,
             title: c.video?.name || c.playlist?.name || "Certificate",
-            description: `Earned for completing ${c.video ? 'video' : 'playlist'}: ${c.video?.name || c.playlist?.name}`
+            description: `Earned for completing ${c.video ? 'video' : 'playlist'}: ${c.video?.name || c.playlist?.name}`,
+            recipient_name: c.request?.fullName || user.name
         }));
 
         res.status(200).json(result);
@@ -596,7 +605,9 @@ const verifyCertificate = async (req, res) => {
                         pid: true, 
                         videos: { select: { id: true } } 
                     } 
-                }
+                },
+                template: true,
+                request: true
             }
         });
 
