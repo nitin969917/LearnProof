@@ -5,6 +5,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { Award, Download, Clock, Share2, ShieldCheck, CheckCircle2, AlertCircle, XCircle, ChevronRight, BookOpen } from "lucide-react";
 import CertificatePreview from "../Common/CertificatePreview";
+import { getCertificatePdfUrl } from "../../utils/certificateHelper";
 
 const MyCertificates = () => {
   const { token, user } = useAuth();
@@ -189,7 +190,7 @@ const MyCertificates = () => {
                     {/* Action Buttons */}
                     <div className="flex gap-2">
                       <a
-                        href={cert.download_url ? `${import.meta.env.VITE_BACKEND_URL}${cert.download_url}` : `/certificate/${cert.id}`}
+                        href={getCertificatePdfUrl(cert)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all hover:bg-orange-500 dark:hover:bg-orange-500 active:scale-95"
@@ -304,7 +305,7 @@ const MyCertificates = () => {
                     <div className="pt-3 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
                       {isApproved && req.certificate ? (
                         <a
-                          href={`${import.meta.env.VITE_BACKEND_URL}${req.certificate.download_url}`}
+                          href={getCertificatePdfUrl(req.certificate)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="w-full py-2 bg-green-600 text-white rounded-xl font-bold text-xs text-center flex items-center justify-center gap-2 hover:bg-green-700"

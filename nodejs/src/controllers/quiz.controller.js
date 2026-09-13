@@ -432,6 +432,7 @@ const getCertificates = async (req, res) => {
         // Map to include title for frontend
         const result = certificates.map(c => ({
             ...c,
+            download_url: c.download_url || `/api/certificates/${c.certificate_id}/pdf`,
             title: c.video?.name || c.playlist?.name || "Certificate",
             description: `Earned for completing ${c.video ? 'video' : 'playlist'}: ${c.video?.name || c.playlist?.name}`,
             recipient_name: c.request?.fullName || user.name

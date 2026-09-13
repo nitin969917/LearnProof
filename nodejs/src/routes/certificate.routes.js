@@ -9,6 +9,10 @@ router.get('/my-requests', authMiddleware, certificateController.getMyRequests);
 router.get('/my-certificates', authMiddleware, certificateController.getMyCertificates);
 router.get('/templates', authMiddleware, certificateController.getTemplates);
 
+// ── Public PDF Streaming & Verification Download ──
+router.get('/:certId/pdf', certificateController.getCertificatePdf);
+router.get('/pdf/:certId', certificateController.getCertificatePdf);
+
 // ── Admin Certificate Management Routes ──
 router.get('/admin/stats', authMiddleware, isAdminMiddleware, certificateController.getAdminCertificateStats);
 router.get('/admin/requests', authMiddleware, isAdminMiddleware, certificateController.getAdminRequests);

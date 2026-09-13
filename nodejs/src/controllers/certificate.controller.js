@@ -1,6 +1,8 @@
 const prisma = require('../lib/prisma');
 const { generateCertificatePDF } = require('../services/certificate.service');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * ─────────────────────────────────────────────────────────────
@@ -174,10 +176,11 @@ const getMyCertificates = async (req, res) => {
         const result = certificates.map(c => ({
             id: c.certificate_id,
             numericId: c.id,
+            certificate_id: c.certificate_id,
             title: c.video?.name || c.playlist?.name || "Certificate of Achievement",
             type: c.playlistId ? "Course Specialization" : "Single Video Mastery",
             issued_at: c.issued_at,
-            download_url: c.download_url,
+            download_url: c.download_url || `/api/certificates/${c.certificate_id}/pdf`,
             status: c.status,
             template: c.template,
             recipient_name: c.request?.fullName || user.name,
@@ -189,6 +192,72 @@ const getMyCertificates = async (req, res) => {
     } catch (error) {
         console.error('Get My Certificates Error:', error);
         return res.status(500).json({ error: error.message });
+    }
+};
+
+/**
+ * Stream or download the Certificate PDF file.
+ * Automatically generates the PDF if missing from disk.
+ */
+const getCertificatePdf = async (req, res) => {
+    try {
+        const { certId } = req.params;
+        if (!certId || certId === 'null' || certId === 'undefined') {
+            return res.status(400).send('Certificate ID is required.');
+        }
+
+        const isNumeric = /^\d+$/.test(certId);
+        const cert = await prisma.certificate.findFirst({
+            where: {
+                OR: [
+                    { certificate_id: certId },
+                    ...(isNumeric ? [{ id: parseInt(certId) }] : [])
+                ]
+            },
+            include: {
+                user: true,
+                playlist: true,
+                video: true,
+                template: true,
+                request: true
+            }
+        });
+
+        if (!cert) {
+            return res.status(404).send('Certificate not found.');
+        }
+
+        const fileName = `${cert.certificate_id}.pdf`;
+        const filePath = path.join(__dirname, '../../media/certificates', fileName);
+
+        // Ensure directory exists
+        const dir = path.dirname(filePath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+
+        // Generate dynamically on disk if missing
+        if (!fs.existsSync(filePath)) {
+            const recipientName = cert.request?.fullName || cert.user?.name || 'Learner';
+            const courseName = cert.playlist?.name || cert.video?.name || 'Mastery Certification';
+            const tmpl = cert.template || await prisma.certificateTemplate.findFirst({ where: { isDefault: true } }) || {};
+            await generateCertificatePDF(cert.certificate_id, recipientName, courseName, cert.issued_at, tmpl);
+        }
+
+        // Update download_url in database if missing
+        if (!cert.download_url) {
+            await prisma.certificate.update({
+                where: { id: cert.id },
+                data: { download_url: `/api/certificates/${cert.certificate_id}/pdf` }
+            }).catch(() => {});
+        }
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="LearnProof_Certificate_${cert.certificate_id.slice(0, 8)}.pdf"`);
+        return res.sendFile(filePath);
+    } catch (error) {
+        console.error('Serve Certificate PDF Error:', error);
+        return res.status(500).send('Failed to serve certificate PDF.');
     }
 };
 
@@ -351,7 +420,7 @@ const approveCertificateRequest = async (req, res) => {
 
         const contentName = request.playlist?.name || request.video?.name || 'Expert Specialization Course';
         const certUuid = uuidv4();
-        const downloadUrl = `/api/media/certificates/${certUuid}.pdf`;
+        const downloadUrl = `/api/certificates/${certUuid}/pdf`;
 
         // Generate PDF using template
         await generateCertificatePDF(
@@ -661,6 +730,7 @@ module.exports = {
     requestCertificate,
     getMyRequests,
     getMyCertificates,
+    getCertificatePdf,
     getTemplates,
     // Admin routes
     getAdminCertificateStats,

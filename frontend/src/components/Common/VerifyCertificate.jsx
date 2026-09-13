@@ -4,6 +4,7 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Award, ExternalLink, Calendar, User, BookOpen, CheckCircle, Sparkles, Youtube } from 'lucide-react';
 import CertificatePreview from './CertificatePreview';
+import { getCertificatePdfUrl } from '../../utils/certificateHelper';
 
 const VerifyCertificate = () => {
     const { certId } = useParams();
@@ -112,7 +113,7 @@ const VerifyCertificate = () => {
                                 />
                                 <div className="mt-6 flex justify-center">
                                     <a 
-                                        href={`${import.meta.env.VITE_BACKEND_URL}${cert.download_url}`}
+                                        href={getCertificatePdfUrl(cert)}
                                         target="_blank" 
                                         rel="noreferrer"
                                         className="flex items-center gap-2 text-xs font-black text-orange-600 uppercase tracking-widest hover:text-orange-700 transition-colors"

@@ -30,6 +30,7 @@ import {
     Sliders
 } from 'lucide-react';
 import CertificatePreview from '../../Common/CertificatePreview';
+import { getCertificatePdfUrl } from '../../../utils/certificateHelper';
 
 const AdminCertificates = () => {
     const { token, user } = useAuth();
@@ -668,7 +669,7 @@ const AdminCertificates = () => {
                                                         ) : isApproved && req.certificate ? (
                                                             <div className="flex items-center justify-end gap-1.5">
                                                                 <a
-                                                                    href={`${import.meta.env.VITE_BACKEND_URL}${req.certificate.download_url}`}
+                                                                    href={getCertificatePdfUrl(req.certificate)}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
                                                                     className="p-1.5 text-gray-500 hover:text-orange-500 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950/40"
@@ -807,17 +808,15 @@ const AdminCertificates = () => {
                                                 {/* Actions */}
                                                 <td className="py-3.5 px-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        {cert.download_url && (
-                                                            <a
-                                                                href={`${import.meta.env.VITE_BACKEND_URL}${cert.download_url}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="p-1.5 text-gray-600 hover:text-orange-500 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950/40"
-                                                                title="Download PDF"
-                                                            >
-                                                                <Download size={14} />
-                                                            </a>
-                                                        )}
+                                                        <a
+                                                            href={getCertificatePdfUrl(cert)}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="p-1.5 text-gray-600 hover:text-orange-500 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950/40"
+                                                            title="Download PDF"
+                                                        >
+                                                            <Download size={14} />
+                                                        </a>
                                                         <a
                                                             href={`/verify/${cert.certificate_id}`}
                                                             target="_blank"
