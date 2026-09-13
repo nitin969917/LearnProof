@@ -211,9 +211,9 @@ const generateCertificatePDF = (certId, userName, contentName, date, template = 
 
             // Bottom Security Footer
             doc.font('Helvetica')
-                .fontSize(7.5)
+                .fontSize(8)
                 .fillColor('#94a3b8')
-                .text(`LearnProof Accreditation Repository  •  Certificate ID: ${certId}  •  Verify at https://learnproofai.com/verify/${certId}`, 0, height - 36, { align: 'center' });
+                .text(`Certificate ID: ${certId}   •   Verify Authenticity: https://learnproofai.com/verify/${certId}`, 0, height - 36, { align: 'center' });
 
             doc.end();
 

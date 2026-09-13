@@ -149,64 +149,55 @@ const CertificatePreview = ({ userName, courseName, date, certId, template = nul
         </div>
 
         {/* ── 4. SIGNATURES & METALLIC SEAL ── */}
-        <div className="w-full flex justify-between items-end px-2 sm:px-6 relative z-10 mt-1">
-          {/* Left Signatory: Registrar & Issue Date */}
-          <div className="flex flex-col items-center min-w-[70px]">
-            {/* Realistic Cursive Signature SVG */}
-            <svg className="w-16 h-5 text-slate-700 opacity-85 mb-0.5" viewBox="0 0 100 30" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M5 22 C 20 8, 30 25, 45 12 C 55 2, 60 28, 75 14 C 85 5, 90 20, 95 10" strokeLinecap="round" />
-            </svg>
-            <div className="w-16 h-[0.75px] bg-slate-300 mb-0.5" />
-            <p className="text-[6.5px] sm:text-[7.5px] font-bold" style={{ color: primaryColor }}>
+        <div className="w-full flex justify-between items-end px-3 sm:px-8 relative z-10 mt-1 mb-0.5">
+          {/* Left: Date Conferred */}
+          <div className="flex flex-col items-center min-w-[75px] sm:min-w-[90px]">
+            <div className="w-20 sm:w-28 h-[1px] bg-slate-300 dark:bg-slate-600 mb-1" />
+            <p className="text-[7.5px] sm:text-[9px] font-bold tracking-tight" style={{ color: primaryColor }}>
               {date || new Date().toLocaleDateString()}
             </p>
-            <p className="text-[5px] sm:text-[5.5px] text-slate-400 uppercase font-semibold tracking-wider">
+            <p className="text-[5px] sm:text-[6px] text-slate-400 uppercase font-bold tracking-widest mt-0.5">
               Date Conferred
             </p>
           </div>
 
-          {/* Center Official 3D Metallic Foil Seal */}
-          <div className="flex flex-col items-center relative -bottom-0.5">
+          {/* Center: Official 3D Metallic Foil Seal */}
+          <div className="flex flex-col items-center relative -bottom-1">
             <div 
-              className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 flex flex-col items-center justify-center shadow-lg"
+              className="relative w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 flex flex-col items-center justify-center shadow-md"
               style={{ 
                 background: `radial-gradient(circle, #fffbeb 0%, #fef3c7 40%, ${accentColor} 100%)`,
                 borderColor: primaryColor
               }}
             >
-              {/* Serrated Ring Effect */}
+              {/* Serrated Inner Ring */}
               <div 
-                className="absolute inset-0.5 rounded-full border border-dashed opacity-70"
+                className="absolute inset-0.5 rounded-full border border-dashed opacity-60"
                 style={{ borderColor: primaryColor }}
               />
-              <ShieldCheck size={16} className="text-slate-900 drop-shadow-xs" />
+              <ShieldCheck size={17} className="text-slate-900 drop-shadow-xs" />
               <p className="text-[3.5px] sm:text-[4px] font-black uppercase tracking-widest text-slate-900 mt-0.5">
                 {sealText}
               </p>
             </div>
           </div>
 
-          {/* Right Signatory: Authorized Director */}
-          <div className="flex flex-col items-center min-w-[70px]">
-            {/* Realistic Second Cursive Signature SVG */}
-            <svg className="w-16 h-5 text-slate-700 opacity-85 mb-0.5" viewBox="0 0 100 30" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M8 15 C 25 25, 35 5, 50 18 C 65 28, 70 8, 85 16 C 92 20, 95 12, 98 14" strokeLinecap="round" />
-            </svg>
-            <div className="w-16 h-[0.75px] bg-slate-300 mb-0.5" />
-            <p className="text-[6.5px] sm:text-[7.5px] font-bold truncate max-w-[85px] text-center" style={{ color: primaryColor }}>
+          {/* Right: Academic Authority */}
+          <div className="flex flex-col items-center min-w-[75px] sm:min-w-[90px]">
+            <div className="w-20 sm:w-28 h-[1px] bg-slate-300 dark:bg-slate-600 mb-1" />
+            <p className="text-[7.5px] sm:text-[9px] font-bold tracking-tight truncate max-w-[110px] text-center" style={{ color: primaryColor }}>
               {signatoryName}
             </p>
-            <p className="text-[5px] sm:text-[5.5px] text-slate-400 uppercase font-semibold tracking-wider text-center">
+            <p className="text-[5px] sm:text-[6px] text-slate-400 uppercase font-bold tracking-widest mt-0.5 text-center">
               {signatoryTitle}
             </p>
           </div>
         </div>
 
         {/* ── 5. SECURITY & VERIFICATION FOOTER ── */}
-        <div className="w-full pt-1.5 border-t border-slate-200/80 flex items-center justify-between text-slate-400 text-[5px] sm:text-[6px] px-1 font-mono">
-          <span>LEARNPROOF ACCREDITATION REPOSITORY</span>
-          <span className="font-bold text-slate-600">ID: {certId ? certId.slice(0, 16) : 'LP-VERIFIED-2026'}</span>
-          <span>learnproofai.com/verify</span>
+        <div className="w-full pt-1.5 border-t border-slate-200/80 flex items-center justify-between text-slate-400 text-[5.5px] sm:text-[6.5px] px-2 font-mono">
+          <span>ID: <strong className="font-semibold text-slate-600">{certId || 'PREVIEW-MOCK'}</strong></span>
+          <span className="tracking-wider text-slate-500 font-medium">learnproofai.com/verify</span>
         </div>
       </div>
     </div>
