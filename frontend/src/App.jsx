@@ -174,7 +174,6 @@ const RootRoute = () => {
 
     if (user) {
         const target = resolvePostAuthRedirect();
-        clearAuthRedirect();
         return <Navigate to={target} replace />;
     }
 
@@ -188,8 +187,19 @@ const RootRoute = () => {
 // Global OAuth Hash & Redirect Interceptor
 const OAuthRedirectHandler = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useAuth();
     const isProcessed = React.useRef(false);
+
+    // Clear stored redirect target once the user has moved away from '/' to their target page
+    React.useEffect(() => {
+        if (location.pathname !== '/' && location.pathname !== '/login') {
+            const timer = setTimeout(() => {
+                clearAuthRedirect();
+            }, 600);
+            return () => clearTimeout(timer);
+        }
+    }, [location.pathname]);
 
     React.useEffect(() => {
         if (isProcessed.current) return;
@@ -202,7 +212,6 @@ const OAuthRedirectHandler = () => {
 
             // Immediately wipe the hash from URL so child pages don't re-parse or trigger duplicate logins
             window.history.replaceState(null, '', window.location.pathname);
-            clearAuthRedirect();
 
             if (idToken) {
                 // Optimistic instant login (< 1ms)

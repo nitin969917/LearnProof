@@ -341,7 +341,6 @@ const LandingPage = () => {
             }
 
             const target = targetRedirect || getRedirectTarget();
-            clearRedirectTarget();
 
             // Optimistic instant login (< 1ms)
             login({ credential: idToken });
@@ -353,7 +352,6 @@ const LandingPage = () => {
             console.error("Google login error:", err);
             toast.error(`Login failed: ${err.message || 'Please try again.'}`);
             setIsLoggingIn(false);
-            clearRedirectTarget();
         }
     };
 
@@ -442,7 +440,6 @@ const LandingPage = () => {
         if (isFlutter && !loading) {
             if (user) {
                 const target = getRedirectTarget();
-                clearRedirectTarget();
                 navigate(target, { replace: true });
             } else {
                 navigate('/login');
@@ -453,7 +450,6 @@ const LandingPage = () => {
         if (!loading && user) {
             if (location.pathname === '/') {
                 const target = getRedirectTarget();
-                clearRedirectTarget();
                 navigate(target, { replace: true });
             }
         }

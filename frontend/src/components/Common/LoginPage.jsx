@@ -122,9 +122,9 @@ const LoginPage = () => {
     }, []);
 
     useEffect(() => {
-        // If already logged in, redirect to dashboard immediately
+        // If already logged in, redirect to destination immediately
         if (!loading && user) {
-            navigate("/dashboard");
+            navigate(resolvePostAuthRedirect(), { replace: true });
             return;
         }
 
@@ -153,7 +153,6 @@ const LoginPage = () => {
             sessionStorage.removeItem("is_authenticating");
             setIsAuthenticating(false);
             const redirectTo = resolvePostAuthRedirect();
-            clearAuthRedirect();
             
             // Instant client-side navigation
             navigate(redirectTo, { replace: true });
