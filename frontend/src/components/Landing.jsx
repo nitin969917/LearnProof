@@ -1056,10 +1056,10 @@ const LandingPage = () => {
                             </div>
                         </div>
 
-                        {/* Responsive Default YouTube Player — exact 16:9 native aspect ratio (56.25%) so thumbnail is never cropped */}
+                        {/* Responsive Default YouTube Player — exact 16:10 native aspect ratio (62.5%, matching 3456x2160 video) for seamless zero black bars playback */}
                         <div 
                             className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-xl border border-orange-100/60"
-                            style={{ paddingTop: '56.25%' }}
+                            style={{ paddingTop: '62.5%' }}
                         >
                             <iframe
                                 src="https://www.youtube.com/embed/07L9iG0th_s?rel=0&vq=hd2160&playsinline=1"
