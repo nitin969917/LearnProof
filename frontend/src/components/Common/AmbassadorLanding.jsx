@@ -83,9 +83,9 @@ export default function AmbassadorLanding() {
     }, [login, navigate]);
 
     const handleManualGoogleLogin = () => {
+        localStorage.setItem("redirect_to", "/ambassador/portal");
         sessionStorage.setItem("redirect_to", "/ambassador/portal");
-        localStorage.removeItem("redirect_to");
-        document.cookie = "redirect_to=; path=/; max-age=0; SameSite=Lax";
+        document.cookie = "redirect_to=/ambassador/portal; path=/; max-age=3600; SameSite=Lax";
 
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         const redirectUri = window.location.origin;

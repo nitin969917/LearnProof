@@ -332,8 +332,9 @@ const LandingPage = () => {
             const state = params.get('state');
             if (state) {
                 try {
-                    const decoded = decodeURIComponent(state);
-                    if (decoded.startsWith('/')) return decoded;
+                    let decoded = decodeURIComponent(state);
+                    if (decoded.includes('%')) decoded = decodeURIComponent(decoded);
+                    if (decoded.startsWith('/') && decoded !== '/' && decoded !== '/dashboard') return decoded;
                 } catch (e) {
                     if (state.startsWith('/')) return state;
                 }
@@ -346,18 +347,29 @@ const LandingPage = () => {
         }
         if (searchParams.get('state')) {
             try {
-                const decoded = decodeURIComponent(searchParams.get('state'));
-                if (decoded.startsWith('/')) return decoded;
+                let decoded = decodeURIComponent(searchParams.get('state'));
+                if (decoded.includes('%')) decoded = decodeURIComponent(decoded);
+                if (decoded.startsWith('/') && decoded !== '/' && decoded !== '/dashboard') return decoded;
             } catch (e) {
                 return searchParams.get('state');
             }
         }
 
-        // 3. Check sessionStorage (short-lived session only)
-        const session = sessionStorage.getItem("redirect_to");
-        if (session && session.startsWith('/')) {
-            sessionStorage.removeItem("redirect_to");
-            return session;
+        // 3. Check localStorage & sessionStorage
+        const stored = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to");
+        if (stored && stored.startsWith('/') && stored !== '/' && stored !== '/dashboard') {
+            return stored;
+        }
+
+        // 4. Check cookie
+        const match = document.cookie.match(/(?:^|;\s*)redirect_to=([^;]+)/);
+        if (match && match[1]) {
+            try {
+                const cookieVal = decodeURIComponent(match[1]);
+                if (cookieVal.startsWith('/') && cookieVal !== '/' && cookieVal !== '/dashboard') {
+                    return cookieVal;
+                }
+            } catch (e) {}
         }
 
         return "/dashboard";

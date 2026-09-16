@@ -133,6 +133,9 @@ const ColdStartGuard = () => {
                 path === '/dashboard' ||
                 path.startsWith('/dashboard/live-rooms') ||
                 path.startsWith('/dashboard/social') ||
+                path.startsWith('/ambassador') ||
+                path.startsWith('/campus-ambassador') ||
+                path.startsWith('/referral') ||
                 path === '/download' ||
                 path.startsWith('/verify') ||
                 path.startsWith('/privacy') ||
@@ -154,7 +157,7 @@ const ColdStartGuard = () => {
 };
 
 // Root route handler:
-// 1. Authenticated users opening the app at root start directly on the main dashboard (/dashboard).
+// 1. Authenticated users opening the app at root start directly on the target route or /dashboard.
 // 2. Unauthenticated mobile app users go to /login.
 // 3. Unauthenticated web visitors see the public landing page.
 const RootRoute = () => {
@@ -177,6 +180,53 @@ const RootRoute = () => {
             console.log('[RootRoute] Redirecting directly to pending notification route:', pending);
             return <Navigate to={pending} replace />;
         }
+
+        // Check for intended OAuth redirect target before defaulting to /dashboard
+        if (typeof window !== 'undefined') {
+            let targetRedirect = null;
+            const hash = window.location.hash;
+            if (hash) {
+                try {
+                    const params = new URLSearchParams(hash.substring(1));
+                    const state = params.get('state');
+                    if (state) {
+                        let decoded = decodeURIComponent(state);
+                        if (decoded.includes('%')) decoded = decodeURIComponent(decoded);
+                        if (decoded.startsWith('/') && decoded !== '/' && decoded !== '/dashboard') {
+                            targetRedirect = decoded;
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            if (!targetRedirect) {
+                const stored = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to");
+                if (stored && stored.startsWith('/') && stored !== '/' && stored !== '/dashboard') {
+                    targetRedirect = stored;
+                }
+            }
+
+            if (!targetRedirect) {
+                const match = document.cookie.match(/(?:^|;\s*)redirect_to=([^;]+)/);
+                if (match && match[1]) {
+                    try {
+                        const cookieVal = decodeURIComponent(match[1]);
+                        if (cookieVal.startsWith('/') && cookieVal !== '/' && cookieVal !== '/dashboard') {
+                            targetRedirect = cookieVal;
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            if (targetRedirect) {
+                localStorage.removeItem("redirect_to");
+                sessionStorage.removeItem("redirect_to");
+                document.cookie = "redirect_to=; path=/; max-age=0; SameSite=Lax";
+                console.log('[RootRoute] Redirecting directly to target redirect:', targetRedirect);
+                return <Navigate to={targetRedirect} replace />;
+            }
+        }
+
         return <Navigate to="/dashboard" replace />;
     }
 
@@ -204,14 +254,33 @@ const OAuthRedirectHandler = () => {
             let targetRedirect = null;
             if (state) {
                 try {
-                    targetRedirect = decodeURIComponent(state);
+                    let decoded = decodeURIComponent(state);
+                    if (decoded.includes('%')) decoded = decodeURIComponent(decoded);
+                    if (decoded.startsWith('/') && decoded !== '/' && decoded !== '/dashboard') {
+                        targetRedirect = decoded;
+                    }
                 } catch (e) {
-                    targetRedirect = state;
+                    if (state.startsWith('/')) targetRedirect = state;
                 }
             }
 
-            if (!targetRedirect) {
-                targetRedirect = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
+            if (!targetRedirect || targetRedirect === '/' || targetRedirect === '/dashboard') {
+                const stored = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to");
+                if (stored && stored.startsWith('/') && stored !== '/' && stored !== '/dashboard') {
+                    targetRedirect = stored;
+                }
+            }
+
+            if (!targetRedirect || targetRedirect === '/' || targetRedirect === '/dashboard') {
+                const match = document.cookie.match(/(?:^|;\s*)redirect_to=([^;]+)/);
+                if (match && match[1]) {
+                    try {
+                        const cookieVal = decodeURIComponent(match[1]);
+                        if (cookieVal.startsWith('/') && cookieVal !== '/' && cookieVal !== '/dashboard') {
+                            targetRedirect = cookieVal;
+                        }
+                    } catch (e) {}
+                }
             }
 
             // Immediately wipe the hash from URL so child pages don't re-parse or trigger duplicate logins
