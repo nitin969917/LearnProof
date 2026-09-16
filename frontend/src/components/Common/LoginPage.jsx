@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { toast } from 'react-hot-toast';
 import { requestNotificationPermissionAndGetToken } from '../../utils/fcm';
+import { resolvePostAuthRedirect, clearAuthRedirect } from '../../utils/authRedirect';
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -151,9 +152,8 @@ const LoginPage = () => {
             
             sessionStorage.removeItem("is_authenticating");
             setIsAuthenticating(false);
-            const redirectTo = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
-            localStorage.removeItem("redirect_to");
-            sessionStorage.removeItem("redirect_to");
+            const redirectTo = resolvePostAuthRedirect();
+            clearAuthRedirect();
             
             // Instant client-side navigation
             navigate(redirectTo, { replace: true });
@@ -230,7 +230,7 @@ const LoginPage = () => {
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         const redirectUri = window.location.origin;
         const nonce = Math.random().toString(36).substring(2);
-        const redirectTo = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to") || "/dashboard";
+        const redirectTo = resolvePostAuthRedirect();
         
         const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` + 
             `client_id=${clientId}` +

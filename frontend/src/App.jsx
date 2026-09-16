@@ -14,6 +14,7 @@ import { useLiveRoomPipStore } from './store/liveRoomPipStore';
 import LiveRoomPipWindow from './components/Dashboard/LanguagePractice/LiveRoomPipWindow';
 import ParticipantMeetingEndedModal from './components/Dashboard/LanguagePractice/ParticipantMeetingEndedModal';
 import toast from 'react-hot-toast';
+import { resolvePostAuthRedirect, clearAuthRedirect } from './utils/authRedirect';
 
 // Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
 const lazyWithRetry = (componentImport) => {
@@ -135,7 +136,8 @@ const ColdStartGuard = () => {
                 path.startsWith('/dashboard/social') ||
                 path.startsWith('/ambassador') ||
                 path.startsWith('/campus-ambassador') ||
-                path.startsWith('/referral') ||
+                path.startsWith('/referrals') ||
+                path.startsWith('/referral-program') ||
                 path === '/download' ||
                 path.startsWith('/verify') ||
                 path.startsWith('/privacy') ||
@@ -157,7 +159,7 @@ const ColdStartGuard = () => {
 };
 
 // Root route handler:
-// 1. Authenticated users opening the app at root start directly on the target route or /dashboard.
+// 1. Authenticated users opening the app at root start directly on the intended destination (e.g. /ambassador/portal or /dashboard).
 // 2. Unauthenticated mobile app users go to /login.
 // 3. Unauthenticated web visitors see the public landing page.
 const RootRoute = () => {
@@ -171,63 +173,9 @@ const RootRoute = () => {
     if (loading) return <PageLoader />;
 
     if (user) {
-        const pending = typeof window !== 'undefined'
-            ? (sessionStorage.getItem('pending_notification_route') || localStorage.getItem('pending_notification_route'))
-            : null;
-        if (pending && pending !== '/' && pending !== '/dashboard') {
-            sessionStorage.removeItem('pending_notification_route');
-            localStorage.removeItem('pending_notification_route');
-            console.log('[RootRoute] Redirecting directly to pending notification route:', pending);
-            return <Navigate to={pending} replace />;
-        }
-
-        // Check for intended OAuth redirect target before defaulting to /dashboard
-        if (typeof window !== 'undefined') {
-            let targetRedirect = null;
-            const hash = window.location.hash;
-            if (hash) {
-                try {
-                    const params = new URLSearchParams(hash.substring(1));
-                    const state = params.get('state');
-                    if (state) {
-                        let decoded = decodeURIComponent(state);
-                        if (decoded.includes('%')) decoded = decodeURIComponent(decoded);
-                        if (decoded.startsWith('/') && decoded !== '/' && decoded !== '/dashboard') {
-                            targetRedirect = decoded;
-                        }
-                    }
-                } catch (e) {}
-            }
-
-            if (!targetRedirect) {
-                const stored = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to");
-                if (stored && stored.startsWith('/') && stored !== '/' && stored !== '/dashboard') {
-                    targetRedirect = stored;
-                }
-            }
-
-            if (!targetRedirect) {
-                const match = document.cookie.match(/(?:^|;\s*)redirect_to=([^;]+)/);
-                if (match && match[1]) {
-                    try {
-                        const cookieVal = decodeURIComponent(match[1]);
-                        if (cookieVal.startsWith('/') && cookieVal !== '/' && cookieVal !== '/dashboard') {
-                            targetRedirect = cookieVal;
-                        }
-                    } catch (e) {}
-                }
-            }
-
-            if (targetRedirect) {
-                localStorage.removeItem("redirect_to");
-                sessionStorage.removeItem("redirect_to");
-                document.cookie = "redirect_to=; path=/; max-age=0; SameSite=Lax";
-                console.log('[RootRoute] Redirecting directly to target redirect:', targetRedirect);
-                return <Navigate to={targetRedirect} replace />;
-            }
-        }
-
-        return <Navigate to="/dashboard" replace />;
+        const target = resolvePostAuthRedirect();
+        clearAuthRedirect();
+        return <Navigate to={target} replace />;
     }
 
     if (isNativeApp) {
@@ -250,49 +198,16 @@ const OAuthRedirectHandler = () => {
             isProcessed.current = true;
             const params = new URLSearchParams(hash.substring(1));
             const idToken = params.get('id_token') || params.get('credential');
-            const state = params.get('state');
-            let targetRedirect = null;
-            if (state) {
-                try {
-                    let decoded = decodeURIComponent(state);
-                    if (decoded.includes('%')) decoded = decodeURIComponent(decoded);
-                    if (decoded.startsWith('/') && decoded !== '/' && decoded !== '/dashboard') {
-                        targetRedirect = decoded;
-                    }
-                } catch (e) {
-                    if (state.startsWith('/')) targetRedirect = state;
-                }
-            }
-
-            if (!targetRedirect || targetRedirect === '/' || targetRedirect === '/dashboard') {
-                const stored = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to");
-                if (stored && stored.startsWith('/') && stored !== '/' && stored !== '/dashboard') {
-                    targetRedirect = stored;
-                }
-            }
-
-            if (!targetRedirect || targetRedirect === '/' || targetRedirect === '/dashboard') {
-                const match = document.cookie.match(/(?:^|;\s*)redirect_to=([^;]+)/);
-                if (match && match[1]) {
-                    try {
-                        const cookieVal = decodeURIComponent(match[1]);
-                        if (cookieVal.startsWith('/') && cookieVal !== '/' && cookieVal !== '/dashboard') {
-                            targetRedirect = cookieVal;
-                        }
-                    } catch (e) {}
-                }
-            }
+            const targetRedirect = resolvePostAuthRedirect();
 
             // Immediately wipe the hash from URL so child pages don't re-parse or trigger duplicate logins
             window.history.replaceState(null, '', window.location.pathname);
-            localStorage.removeItem("redirect_to");
-            sessionStorage.removeItem("redirect_to");
-            document.cookie = "redirect_to=; path=/; max-age=0; SameSite=Lax";
+            clearAuthRedirect();
 
             if (idToken) {
                 // Optimistic instant login (< 1ms)
                 login({ credential: idToken });
-                const finalTarget = targetRedirect || "/dashboard";
+                const finalTarget = (targetRedirect && targetRedirect.startsWith('/')) ? targetRedirect : "/dashboard";
                 // Instant client-side transition — zero full-page reload
                 navigate(finalTarget, { replace: true });
             }

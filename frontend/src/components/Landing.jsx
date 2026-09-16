@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import axios from "axios";
 import UserAvatar from './Common/UserAvatar.jsx';
+import { resolvePostAuthRedirect, setAuthRedirect, clearAuthRedirect } from '../utils/authRedirect';
 
 const faqs = [
     {
@@ -324,63 +325,9 @@ const LandingPage = () => {
         }, 150);
     };
 
-    const getRedirectTarget = () => {
-        // 1. Check URL hash parameters
-        const hash = window.location.hash;
-        if (hash) {
-            const params = new URLSearchParams(hash.substring(1));
-            const state = params.get('state');
-            if (state) {
-                try {
-                    let decoded = decodeURIComponent(state);
-                    if (decoded.includes('%')) decoded = decodeURIComponent(decoded);
-                    if (decoded.startsWith('/') && decoded !== '/' && decoded !== '/dashboard') return decoded;
-                } catch (e) {
-                    if (state.startsWith('/')) return state;
-                }
-            }
-        }
-        // 2. Check query search parameters
-        const searchParams = new URLSearchParams(window.location.search);
-        if (searchParams.get('redirect_to')) {
-            return searchParams.get('redirect_to');
-        }
-        if (searchParams.get('state')) {
-            try {
-                let decoded = decodeURIComponent(searchParams.get('state'));
-                if (decoded.includes('%')) decoded = decodeURIComponent(decoded);
-                if (decoded.startsWith('/') && decoded !== '/' && decoded !== '/dashboard') return decoded;
-            } catch (e) {
-                return searchParams.get('state');
-            }
-        }
+    const getRedirectTarget = () => resolvePostAuthRedirect();
 
-        // 3. Check localStorage & sessionStorage
-        const stored = localStorage.getItem("redirect_to") || sessionStorage.getItem("redirect_to");
-        if (stored && stored.startsWith('/') && stored !== '/' && stored !== '/dashboard') {
-            return stored;
-        }
-
-        // 4. Check cookie
-        const match = document.cookie.match(/(?:^|;\s*)redirect_to=([^;]+)/);
-        if (match && match[1]) {
-            try {
-                const cookieVal = decodeURIComponent(match[1]);
-                if (cookieVal.startsWith('/') && cookieVal !== '/' && cookieVal !== '/dashboard') {
-                    return cookieVal;
-                }
-            } catch (e) {}
-        }
-
-        return "/dashboard";
-    };
-
-    const clearRedirectTarget = () => {
-        localStorage.removeItem("redirect_to");
-        sessionStorage.removeItem("redirect_to");
-        sessionStorage.removeItem("is_logging_in");
-        document.cookie = "redirect_to=; path=/; max-age=0; SameSite=Lax";
-    };
+    const clearRedirectTarget = () => clearAuthRedirect();
 
     const handleGoogleSuccess = async (credentialResponse, targetRedirect = null) => {
         try {
@@ -531,8 +478,7 @@ const LandingPage = () => {
     }
 
     const handleManualGoogleLogin = (customTarget = "/dashboard") => {
-        clearRedirectTarget();
-        sessionStorage.setItem("redirect_to", customTarget);
+        setAuthRedirect(customTarget);
         setIsLoggingIn(true);
         
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;

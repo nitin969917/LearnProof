@@ -31,6 +31,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { setAuthRedirect } from '../../utils/authRedirect';
 
 const ambassadorFaqs = [
     {
@@ -83,9 +84,7 @@ export default function AmbassadorLanding() {
     }, [login, navigate]);
 
     const handleManualGoogleLogin = () => {
-        localStorage.setItem("redirect_to", "/ambassador/portal");
-        sessionStorage.setItem("redirect_to", "/ambassador/portal");
-        document.cookie = "redirect_to=/ambassador/portal; path=/; max-age=3600; SameSite=Lax";
+        setAuthRedirect("/ambassador/portal");
 
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         const redirectUri = window.location.origin;
@@ -102,7 +101,7 @@ export default function AmbassadorLanding() {
             `&ux_mode=redirect` +
             `&prompt=select_account`;
             
-        window.location.href = authUrl;
+        window.location.assign(authUrl);
     };
 
     const handlePrimaryCta = () => {
