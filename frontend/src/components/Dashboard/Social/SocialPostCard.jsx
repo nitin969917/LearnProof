@@ -300,7 +300,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
             </div>
           </div>
         ) : (
-          <p className="text-gray-800 dark:text-gray-200 text-sm md:text-base white-space-pre-wrap font-medium">{post.content}</p>
+          <p className="text-gray-800 dark:text-gray-200 text-sm md:text-base whitespace-pre-wrap break-words font-medium">{post.content}</p>
         )}
         
         {post.image && (
@@ -425,7 +425,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
                           {comment.isOptimistic ? 'Posting...' : new Date(comment.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap">{comment.content}</p>
+                      <p className="text-gray-700 dark:text-gray-300 mt-1 whitespace-pre-wrap break-words">{comment.content}</p>
                     </div>
                     {canDelete && (
                       <button 

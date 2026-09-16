@@ -227,7 +227,7 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
                         ? 'bg-orange-500 text-white font-medium rounded-tr-none'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none font-medium'
                     }`}>
-                      <p className="break-words">{msg.content}</p>
+                      <p className="break-words whitespace-pre-wrap">{msg.content}</p>
                       <span className="text-[9px] block text-right mt-1 opacity-70">
                         {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
