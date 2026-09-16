@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, ChevronLeft, ChevronRight, Download, Laptop, Monitor, AlertCircle, Smartphone, Linkedin, Menu, X, Gift, School, Share2 } from 'lucide-react';
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
@@ -175,6 +175,87 @@ const TeamLeadershipCarousel = () => {
       </div>
     </motion.div>
   );
+};
+
+const Landing4KVideoPlayer = () => {
+    const playerRef = useRef(null);
+
+    useEffect(() => {
+        const enforce4KQuality = (player) => {
+            try {
+                if (player && typeof player.setPlaybackQuality === 'function') {
+                    player.setPlaybackQuality('hd2160');
+                }
+                if (player && typeof player.setPlaybackQualityRange === 'function') {
+                    player.setPlaybackQualityRange('hd2160', 'hd2160');
+                }
+            } catch (e) {
+                // Ignore silent API limitations
+            }
+        };
+
+        const setupYTPlayer = () => {
+            if (window.YT && window.YT.Player && !playerRef.current) {
+                try {
+                    playerRef.current = new window.YT.Player('landing-video-player', {
+                        events: {
+                            onReady: (event) => {
+                                enforce4KQuality(event.target);
+                            },
+                            onStateChange: (event) => {
+                                if (event.data === window.YT.PlayerState.PLAYING) {
+                                    enforce4KQuality(event.target);
+                                }
+                            }
+                        }
+                    });
+                } catch (e) {}
+            }
+        };
+
+        if (window.YT && window.YT.Player) {
+            setupYTPlayer();
+        } else {
+            // Ensure YouTube IFrame API script is in the DOM
+            if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+                const tag = document.createElement('script');
+                tag.src = 'https://www.youtube.com/iframe_api';
+                const firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
+            }
+
+            const existingCallback = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = () => {
+                if (typeof existingCallback === 'function') existingCallback();
+                setupYTPlayer();
+            };
+        }
+
+        return () => {
+            if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+                try {
+                    playerRef.current.destroy();
+                } catch (e) {}
+                playerRef.current = null;
+            }
+        };
+    }, []);
+
+    return (
+        <div 
+            className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-gray-950 shadow-2xl border border-orange-200/60"
+            style={{ paddingTop: '56.25%' }}
+        >
+            <iframe
+                id="landing-video-player"
+                src="https://www.youtube.com/embed/07L9iG0th_s?enablejsapi=1&vq=hd2160&hd=1&rel=0&modestbranding=1&playsinline=1"
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                title="How LearnProof AI Works | Your Complete AI Learning Platform"
+            ></iframe>
+        </div>
+    );
 };
 
 const FAQSection = () => {
@@ -1092,41 +1173,24 @@ const LandingPage = () => {
                         viewport={{ once: true }}
                         className="bg-white/80 backdrop-blur-xl border border-orange-200 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-xl hover:shadow-2xl transition-all duration-300"
                     >
-                        <div className="flex items-center gap-3 mb-3 sm:mb-5 px-1 sm:px-2">
-                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                                <Youtube className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                        <div className="flex items-center justify-between gap-3 mb-3 sm:mb-5 px-1 sm:px-2 flex-wrap sm:flex-nowrap">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                                    <Youtube className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base sm:text-xl font-bold text-gray-800 leading-tight">How LearnProof AI Works</h3>
+                                    <p className="text-xs sm:text-sm text-gray-500 font-medium mt-0.5">Your Complete AI Learning Platform — Turn YouTube videos into notes, intuition & certificates</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-base sm:text-xl font-bold text-gray-800 leading-tight">Introduction & How to Use</h3>
-                                <p className="text-xs sm:text-sm text-gray-500 font-medium mt-0.5">Discover what LearnProof AI is all about and get started in minutes</p>
-                            </div>
-                        </div>
-
-                        {/* Responsive video wrapper — 9:16 vertical on mobile, 16:9 horizontal on desktop */}
-                        <div className="block md:hidden max-w-[340px] mx-auto bg-gray-950 rounded-2xl overflow-hidden shadow-inner border border-orange-100">
-                            <div className="relative w-full" style={{ paddingTop: '177.77%' }}>
-                                <iframe
-                                    src="https://www.youtube.com/embed/4qnh0P1jCRY?rel=0"
-                                    className="absolute inset-0 w-full h-full"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowFullScreen
-                                    title="Introduction to LearnProof AI - How to Use (Mobile)"
-                                ></iframe>
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-sm shadow-orange-500/20 shrink-0">
+                                <Sparkles size={13} className="animate-pulse" />
+                                <span>4K 60FPS</span>
                             </div>
                         </div>
 
-                        <div className="hidden md:block">
-                            <div className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-gray-900 shadow-inner"
-                                 style={{ paddingTop: '56.25%' }}>
-                                <iframe
-                                    src="https://www.youtube.com/embed/HndfbcftAdQ?si=bugw11VaM70ux1bf&vq=hd2160&hd=1&rel=0"
-                                    className="absolute inset-0 w-full h-full"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    allowFullScreen
-                                    title="Introduction to LearnProof AI - How to Use"
-                                ></iframe>
-                            </div>
-                        </div>
+                        {/* Responsive 4K 60FPS Video Player */}
+                        <Landing4KVideoPlayer />
                     </motion.div>
                 </div>
             </motion.section>
