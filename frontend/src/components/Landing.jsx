@@ -178,53 +178,6 @@ const TeamLeadershipCarousel = () => {
   );
 };
 
-const LandingVideoPlayer = () => {
-    const [isPlaying, setIsPlaying] = useState(false);
-
-    return (
-        <div 
-            className="relative w-full aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-xl border border-orange-100/60 group"
-            style={{ aspectRatio: '16/9' }}
-        >
-            {isPlaying ? (
-                <iframe
-                    src="https://www.youtube.com/embed/07L9iG0th_s?autoplay=1&rel=0&vq=hd2160&playsinline=1"
-                    className="absolute inset-0 w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    title="How LearnProof AI Works | Your Complete AI Learning Platform"
-                ></iframe>
-            ) : (
-                <div 
-                    onClick={() => setIsPlaying(true)}
-                    className="relative w-full h-full cursor-pointer overflow-hidden flex items-center justify-center bg-black"
-                >
-                    <img 
-                        src="/yt_demo_thumbnail.jpg" 
-                        onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = "https://img.youtube.com/vi/07L9iG0th_s/maxresdefault.jpg";
-                        }}
-                        alt="How LearnProof AI Works | Your Complete AI Learning Platform"
-                        className="w-full h-full object-contain object-center transition-transform duration-500 group-hover:scale-[1.01]"
-                        loading="eager"
-                    />
-                    
-                    {/* YouTube Standard Play Button with Glow */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/5 group-hover:bg-black/20 transition-all duration-300">
-                        <div className="relative">
-                            <div className="absolute -inset-2 bg-red-600/30 rounded-3xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                            <div className="relative w-16 h-11 sm:w-20 sm:h-14 bg-red-600 group-hover:bg-red-700 rounded-2xl sm:rounded-3xl flex items-center justify-center shadow-[0_8px_25px_rgba(220,38,38,0.4)] transition-all duration-300 transform group-hover:scale-110 active:scale-95">
-                                <Play className="w-6 h-6 sm:w-8 sm:h-8 text-white fill-white ml-1" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
 const FAQSection = () => {
     const [openIndex, setOpenIndex] = useState(null);
     const toggle = (i) => setOpenIndex(openIndex === i ? null : i);
@@ -1103,8 +1056,19 @@ const LandingPage = () => {
                             </div>
                         </div>
 
-                        {/* Responsive Video Player with 100% Un-cut Thumbnail and Smooth 4K Playback */}
-                        <LandingVideoPlayer />
+                        {/* Responsive Default YouTube Player — exact 16:9 native aspect ratio (56.25%) so thumbnail is never cropped */}
+                        <div 
+                            className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-xl border border-orange-100/60"
+                            style={{ paddingTop: '56.25%' }}
+                        >
+                            <iframe
+                                src="https://www.youtube.com/embed/07L9iG0th_s?rel=0&vq=hd2160&playsinline=1"
+                                className="absolute inset-0 w-full h-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                                title="How LearnProof AI Works | Your Complete AI Learning Platform"
+                            ></iframe>
+                        </div>
                     </motion.div>
                 </div>
             </motion.section>
