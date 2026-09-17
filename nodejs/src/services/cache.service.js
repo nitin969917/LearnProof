@@ -44,6 +44,14 @@ class CacheService {
     }
 
     /**
+     * Alias for del (standard Cache interface compatibility)
+     * @param {string} key
+     */
+    async delete(key) {
+        return this.del(key);
+    }
+
+    /**
      * Delete multiple keys by pattern using non-blocking SCAN
      * redis.keys() is O(N) and blocks the entire Redis server — never use in production.
      * redis.scan() iterates in batches without blocking.

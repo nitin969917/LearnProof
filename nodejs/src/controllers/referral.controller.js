@@ -558,7 +558,7 @@ const logAmbassadorActivity = async (req, res) => {
         });
 
         if (userId) {
-            await cacheService.delete(`referral:mycode:${userId}`);
+            await cacheService.del(`referral:mycode:${userId}`);
         }
 
         return res.status(201).json({
@@ -591,7 +591,7 @@ const submitAmbassadorFeedback = async (req, res) => {
         });
 
         if (userId) {
-            await cacheService.delete(`referral:mycode:${userId}`);
+            await cacheService.del(`referral:mycode:${userId}`);
         }
 
         return res.status(201).json({
@@ -649,7 +649,7 @@ const updateMissionChecklist = async (req, res) => {
 
         const checklistStates = ambassadorStore.updateChecklist(code, taskId, completed);
         if (userId) {
-            await cacheService.delete(`referral:mycode:${userId}`);
+            await cacheService.del(`referral:mycode:${userId}`);
         }
 
         return res.status(200).json({
