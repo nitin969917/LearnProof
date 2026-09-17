@@ -12,18 +12,41 @@ export default function MissionActionCenter({
 }) {
     const [updatingTaskId, setUpdatingTaskId] = useState(null);
 
-    // Initial checklist tasks
+    // Initial checklist tasks with direct action shortcuts
     const initialTasks = [
-        { id: 'task-groups', label: 'Share LearnProof in 2 relevant college groups', xp: 20 },
-        { id: 'task-intro', label: 'Introduce LearnProof to 10 students or batchmates', xp: 30 },
-        { id: 'task-learners', label: 'Bring 10 new active learners to the platform', xp: 50 },
-        { id: 'task-feedback', label: 'Collect feedback from 5 students using AI Notes', xp: 25 },
-        { id: 'task-meetup', label: 'Attend the monthly ambassador community meeting', xp: 40 }
+        { id: 'task-groups', label: 'Share LearnProof in 2 college groups', xp: 20, actionType: 'whatsapp', actionLabel: 'Share 📲' },
+        { id: 'task-intro', label: 'Introduce LearnProof to 10 batchmates', xp: 30, actionType: 'pitch', actionLabel: '30s Pitch 🗣️' },
+        { id: 'task-learners', label: 'Bring 10 new active learners', xp: 50, actionType: 'copy', actionLabel: 'Copy Link 🔗' },
+        { id: 'task-feedback', label: 'Collect feedback from 5 students', xp: 25, actionType: 'feedback', actionLabel: 'Feedback 💬' },
+        { id: 'task-meetup', label: 'Attend monthly ambassador meeting', xp: 40, actionType: 'meetup', actionLabel: 'Schedule 📅' }
     ];
 
     const checklistStates = referralData?.checklistStates || {};
     const completedCount = initialTasks.filter(t => checklistStates[t.id]).length;
     const progressPercent = Math.round((completedCount / initialTasks.length) * 100);
+
+    const shareUrl = typeof window !== 'undefined'
+        ? `${window.location.origin}/?ref=${referralData?.referralCode || ''}`
+        : '';
+
+    const handleActionClick = (e, task) => {
+        e.stopPropagation();
+        if (task.actionType === 'whatsapp') {
+            const text = `Hey everyone! 👋 Turn any YouTube course or lecture into instant notes, flashcards & verified certificates on LearnProof AI 🚀\n👉 Join with our campus link: ${shareUrl}`;
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+        } else if (task.actionType === 'copy') {
+            navigator.clipboard.writeText(shareUrl);
+            toast.success('Campus link copied to clipboard!');
+        } else if (task.actionType === 'pitch') {
+            const el = document.getElementById('pitch-and-faqs');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+        } else if (task.actionType === 'feedback') {
+            if (onOpenFeedbackModal) onOpenFeedbackModal();
+        } else if (task.actionType === 'meetup') {
+            const el = document.getElementById('updates-community');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
 
     const toggleTask = async (taskId) => {
         if (!token || !referralData?.referralCode) return;
@@ -48,7 +71,7 @@ export default function MissionActionCenter({
             );
 
             if (res.data?.success) {
-                if (newVal) toast.success('Task completed! Keep growing your campus.');
+                if (newVal) toast.success('Task completed! XP added to your total.');
             }
         } catch (err) {
             console.error('Failed to update task:', err);
@@ -127,41 +150,47 @@ export default function MissionActionCenter({
     return (
         <section id="missions" className="space-y-6">
             {/* Top Mission Banner & Checklist */}
-            <div className="bg-white border border-gray-200/90 rounded-3xl p-6 sm:p-8 shadow-sm">
+            <div className="bg-white border border-gray-200/90 rounded-3xl p-6 sm:p-8 shadow-[0_4px_24px_rgba(0,0,0,0.03)]">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-gray-100">
                     <div>
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-50 text-orange-700 text-xs font-bold border border-orange-200 mb-2">
-                            <Target size={14} className="text-orange-500" />
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-700 text-xs font-bold border border-orange-200 mb-2">
+                            <Target size={13} className="text-orange-500" />
                             Weekly Directive
                         </div>
-                        <h2 className="text-xl sm:text-2xl font-black text-gray-900">
-                            🎯 Your Mission This Week
+                        <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
+                            Your Campus Missions This Week
                         </h2>
-                        <p className="text-sm text-gray-500 font-medium mt-0.5">
-                            Help 25 students discover LearnProof AI and form an active campus cohort.
+                        <p className="text-sm text-gray-600 font-medium mt-1">
+                            Complete micro-initiatives to onboard classmates, collect feedback, and unlock leadership milestones.
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-4 bg-orange-50/80 border border-orange-200/80 px-5 py-3.5 rounded-2xl">
+                    <div className="flex items-center gap-4 bg-gradient-to-br from-orange-50 to-amber-50/60 border border-orange-200/80 px-5 py-3.5 rounded-2xl shrink-0">
                         <div className="text-right">
-                            <span className="text-xs font-bold uppercase tracking-wider text-orange-700 block">
-                                Mission Progress
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-orange-800 block">
+                                Progress
                             </span>
-                            <span className="text-lg font-black text-gray-900">
+                            <span className="text-base sm:text-lg font-black text-gray-900">
                                 {completedCount} / {initialTasks.length} Completed
                             </span>
                         </div>
-                        <div className="w-14 h-14 rounded-2xl bg-white border border-orange-200 shadow-xs flex items-center justify-center">
-                            <span className="text-base font-black text-orange-600">{progressPercent}%</span>
+                        <div className="w-13 h-13 rounded-2xl bg-white border border-orange-200 shadow-2xs flex items-center justify-center font-mono font-black text-orange-600 text-sm">
+                            {progressPercent}%
                         </div>
                     </div>
                 </div>
 
                 {/* Checklist items */}
                 <div className="mt-6 space-y-3">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                        Immediate Action Checklist
-                    </h3>
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-black uppercase tracking-wider text-gray-400">
+                            Immediate Action Checklist
+                        </h3>
+                        <span className="text-[11px] text-gray-500 font-semibold">
+                            Click item to mark done
+                        </span>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {initialTasks.map((task) => {
                             const isDone = Boolean(checklistStates[task.id]);
@@ -174,31 +203,49 @@ export default function MissionActionCenter({
                                     className={`
                                         group flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer select-none
                                         ${isDone
-                                            ? 'bg-emerald-50/60 border-emerald-200 text-emerald-950'
-                                            : 'bg-gray-50 hover:bg-white border-gray-200 hover:border-orange-300 text-gray-800 hover:shadow-xs'
+                                            ? 'bg-emerald-50/50 border-emerald-200 shadow-2xs'
+                                            : 'bg-gray-50/70 hover:bg-white border-gray-200 hover:border-orange-300 hover:shadow-xs'
                                         }
                                     `}
                                 >
-                                    <div className="flex items-center gap-3 min-w-0">
+                                    <div className="flex items-center gap-3 min-w-0 pr-2">
                                         <button
                                             type="button"
                                             disabled={isPending}
-                                            className="text-gray-400 group-hover:text-orange-500 transition cursor-pointer"
+                                            className="text-gray-400 group-hover:text-orange-500 transition cursor-pointer shrink-0"
                                         >
                                             {isDone ? (
-                                                <CheckCircle2 size={20} className="text-emerald-600 fill-emerald-100" />
+                                                <CheckCircle2 size={22} className="text-emerald-600 fill-emerald-100" />
                                             ) : (
-                                                <Circle size={20} className="text-gray-300 group-hover:text-orange-400" />
+                                                <Circle size={22} className="text-gray-300 group-hover:text-orange-400" />
                                             )}
                                         </button>
-                                        <span className={`text-xs sm:text-sm font-semibold truncate ${isDone ? 'line-through text-gray-400' : ''}`}>
+                                        <span className={`text-xs sm:text-sm font-semibold truncate ${isDone ? 'line-through text-gray-400' : 'text-gray-900'}`}>
                                             {task.label}
                                         </span>
                                     </div>
 
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-white border border-gray-200 text-orange-600 shrink-0 shadow-2xs">
-                                        <Zap size={11} /> +{task.xp} XP
-                                    </span>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        {!isDone && (
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleActionClick(e, task)}
+                                                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white hover:bg-orange-50 text-orange-600 hover:text-orange-700 font-bold text-[11px] border border-gray-200 hover:border-orange-300 transition cursor-pointer shadow-2xs active:scale-95"
+                                                title="Open action"
+                                            >
+                                                {task.actionLabel}
+                                            </button>
+                                        )}
+
+                                        <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border shadow-2xs ${
+                                            isDone
+                                                ? 'bg-emerald-100/70 border-emerald-300 text-emerald-800'
+                                                : 'bg-white border-gray-200 text-orange-600'
+                                        }`}>
+                                            {isDone ? <CheckCheck size={12} /> : <Zap size={11} className="fill-orange-500" />}
+                                            <span>+{task.xp} XP</span>
+                                        </span>
+                                    </div>
                                 </div>
                             );
                         })}

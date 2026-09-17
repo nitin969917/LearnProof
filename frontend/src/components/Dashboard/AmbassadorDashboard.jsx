@@ -212,39 +212,46 @@ export default function AmbassadorDashboard() {
                             <Menu size={22} />
                         </button>
                         <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-700 text-xs font-bold border border-orange-200">
-                                <Sparkles size={13} className="text-orange-500" />
-                                LearnProof AI Ambassador Hub
+                            <span className="font-black text-gray-900 text-sm sm:text-base tracking-tight">
+                                Campus Ambassador Hub
                             </span>
-                            <span className="text-xs font-semibold text-gray-500 hidden md:inline">
-                                • {currentTier.badge} {currentTier.name}
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200 hidden sm:inline-flex">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Active
                             </span>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-3">
+                        {/* 1-Click Copy Referral Code Pill */}
                         <button
-                            onClick={() => fetchAmbassadorData(true)}
-                            disabled={refreshing}
-                            className="p-2 text-gray-600 bg-gray-50 hover:bg-orange-50 rounded-xl transition border border-gray-200 shadow-2xs cursor-pointer"
-                            title="Refresh Analytics"
+                            onClick={() => {
+                                const url = `${window.location.origin}/?ref=${referralData?.referralCode || ''}`;
+                                navigator.clipboard.writeText(url);
+                                toast.success(`Campus link copied! (${referralData?.referralCode})`);
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 font-mono font-bold text-xs rounded-xl border border-orange-200 transition active:scale-95 cursor-pointer shadow-2xs"
+                            title="Copy your referral link"
                         >
-                            <RefreshCw size={16} className={refreshing ? 'animate-spin text-orange-500' : ''} />
+                            <Share2 size={13} />
+                            <span className="tracking-wider">{referralData?.referralCode || 'Copy Link'}</span>
                         </button>
 
                         <button
-                            onClick={() => setIsEditModalOpen(true)}
-                            className="flex items-center gap-1.5 px-3.5 py-2 bg-orange-50 hover:bg-orange-100 text-orange-700 font-bold text-xs rounded-xl border border-orange-200 transition active:scale-95 cursor-pointer"
+                            onClick={() => fetchAmbassadorData(true)}
+                            disabled={refreshing}
+                            className="p-2 text-gray-600 bg-gray-50 hover:bg-orange-50 hover:text-orange-600 rounded-xl transition border border-gray-200 shadow-2xs cursor-pointer"
+                            title="Refresh Analytics"
                         >
-                            <Edit3 size={14} />
-                            <span className="hidden sm:inline">Customize Code</span>
+                            <RefreshCw size={15} className={refreshing ? 'animate-spin text-orange-500' : ''} />
                         </button>
 
                         <Link
                             to="/dashboard"
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-gray-900 hover:bg-gray-800 text-white font-bold text-xs rounded-xl transition active:scale-95 shadow-xs"
+                            title="Switch to student dashboard"
                         >
-                            <BookOpen size={15} />
+                            <BookOpen size={14} />
                             <span className="hidden sm:inline">Student App</span>
                         </Link>
                     </div>
