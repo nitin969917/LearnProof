@@ -15,6 +15,12 @@ router.post('/attribute', authMiddleware, referralController.attributeReferral);
 router.get('/my-code', authMiddleware, referralController.getMyReferralCode);
 router.put('/my-code', authMiddleware, referralController.updateMyReferralCode);
 
+// Authenticated: Ambassador Hub Interactive Endpoints
+router.post('/activities', authMiddleware, referralController.logAmbassadorActivity);
+router.post('/feedback', authMiddleware, referralController.submitAmbassadorFeedback);
+router.post('/request-session', authMiddleware, referralController.requestCampusSession);
+router.post('/checklist', authMiddleware, referralController.updateMissionChecklist);
+
 // Admin Routes (Protected by authMiddleware + isAdminMiddleware)
 router.get('/admin/stats', authMiddleware, isAdminMiddleware, referralController.getAdminReferralStats);
 router.get('/admin/codes', authMiddleware, isAdminMiddleware, referralController.getAdminReferralCodes);
