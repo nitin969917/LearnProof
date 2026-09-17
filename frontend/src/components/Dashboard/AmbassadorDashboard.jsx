@@ -286,6 +286,7 @@ export default function AmbassadorDashboard() {
                         referralData={referralData}
                         onOpenActivityModal={() => setIsActivityModalOpen(true)}
                         onOpenSessionModal={() => setIsSessionModalOpen(true)}
+                        onOpenCustomizeModal={() => setIsEditModalOpen(true)}
                     />
 
                     {/* 4. 📈 IMPACT: Campus Impact & Quality Learner Funnel */}

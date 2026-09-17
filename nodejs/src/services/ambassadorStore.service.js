@@ -138,6 +138,100 @@ class AmbassadorStoreService {
         writeStore(store);
         return store.checklistStates[normalized];
     }
+
+    // ── Admin Management Methods ──
+    getAllActivities() {
+        const store = readStore();
+        const result = [];
+        Object.entries(store.activities || {}).forEach(([code, acts]) => {
+            acts.forEach(act => {
+                result.push({ ...act, referralCode: code });
+            });
+        });
+        return result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    updateActivityStatus(activityId, status) {
+        const store = readStore();
+        let updated = null;
+        Object.keys(store.activities || {}).forEach(code => {
+            store.activities[code] = store.activities[code].map(act => {
+                if (act.id === activityId) {
+                    updated = { ...act, status };
+                    return updated;
+                }
+                return act;
+            });
+        });
+        writeStore(store);
+        return updated;
+    }
+
+    deleteActivity(activityId) {
+        const store = readStore();
+        let removed = false;
+        Object.keys(store.activities || {}).forEach(code => {
+            const before = store.activities[code].length;
+            store.activities[code] = store.activities[code].filter(act => act.id !== activityId);
+            if (store.activities[code].length < before) removed = true;
+        });
+        writeStore(store);
+        return removed;
+    }
+
+    getAllFeedback() {
+        const store = readStore();
+        const result = [];
+        Object.entries(store.feedback || {}).forEach(([code, fbs]) => {
+            fbs.forEach(fb => {
+                result.push({ ...fb, referralCode: code });
+            });
+        });
+        return result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    updateFeedbackStatus(feedbackId, status) {
+        const store = readStore();
+        let updated = null;
+        Object.keys(store.feedback || {}).forEach(code => {
+            store.feedback[code] = store.feedback[code].map(fb => {
+                if (fb.id === feedbackId) {
+                    updated = { ...fb, status };
+                    return updated;
+                }
+                return fb;
+            });
+        });
+        writeStore(store);
+        return updated;
+    }
+
+    getAllSessionRequests() {
+        const store = readStore();
+        const result = [];
+        Object.entries(store.sessionRequests || {}).forEach(([code, reqs]) => {
+            reqs.forEach(req => {
+                result.push({ ...req, referralCode: code });
+            });
+        });
+        return result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+
+    updateSessionStatus(sessionId, status) {
+        const store = readStore();
+        let updated = null;
+        Object.keys(store.sessionRequests || {}).forEach(code => {
+            store.sessionRequests[code] = store.sessionRequests[code].map(sess => {
+                if (sess.id === sessionId) {
+                    updated = { ...sess, status };
+                    return updated;
+                }
+                return sess;
+            });
+        });
+        writeStore(store);
+        return updated;
+    }
 }
 
 module.exports = new AmbassadorStoreService();

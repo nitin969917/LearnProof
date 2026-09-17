@@ -10,8 +10,8 @@ export default function HubHeader({
     onRefresh,
     onOpenCustomizeModal
 }) {
-    const collegeName = referralData?.targetCollege || 'Campus Ambassador';
-    const xp = referralData?.xp || 120;
+    const collegeName = referralData?.targetCollege;
+    const xp = referralData?.xp || 50;
     const nextLevelXp = referralData?.nextLevelXp || 500;
     const xpPercent = Math.min(100, Math.round((xp / nextLevelXp) * 100));
 
@@ -36,11 +36,19 @@ export default function HubHeader({
                                 <span>{currentTier.name}</span>
                             </span>
 
-                            {collegeName && (
+                            {collegeName ? (
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">
                                     <School size={13} className="text-slate-500" />
                                     {collegeName}
                                 </span>
+                            ) : (
+                                <button
+                                    onClick={onOpenCustomizeModal}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-700 hover:bg-orange-100 text-xs font-bold border border-orange-200 transition cursor-pointer"
+                                >
+                                    <School size={13} className="text-orange-500" />
+                                    <span>+ Set Your College</span>
+                                </button>
                             )}
                         </div>
 

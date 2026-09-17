@@ -30,6 +30,11 @@ export default function MissionActionCenter({
         const currentVal = Boolean(checklistStates[taskId]);
         const newVal = !currentVal;
 
+        // Optimistic UI update
+        if (onTaskStateChange) {
+            onTaskStateChange(taskId, newVal);
+        }
+
         setUpdatingTaskId(taskId);
         try {
             const res = await axios.post(
@@ -43,14 +48,15 @@ export default function MissionActionCenter({
             );
 
             if (res.data?.success) {
-                if (newVal) toast.success('Task marked completed! Keep growing your campus.');
-                if (onTaskStateChange) {
-                    onTaskStateChange(taskId, newVal);
-                }
+                if (newVal) toast.success('Task completed! Keep growing your campus.');
             }
         } catch (err) {
             console.error('Failed to update task:', err);
-            toast.error('Could not save task status');
+            // Revert on failure
+            if (onTaskStateChange) {
+                onTaskStateChange(taskId, currentVal);
+            }
+            toast.error(err.response?.data?.error || 'Could not save task status');
         } finally {
             setUpdatingTaskId(null);
         }

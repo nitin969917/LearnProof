@@ -1,52 +1,22 @@
 import React from 'react';
-import { School, Users, Zap, Trophy, Plus, Calendar, CheckCircle2, ChevronRight, Sparkles, Presentation } from 'lucide-react';
+import { School, Users, Zap, Trophy, Plus, Calendar, CheckCircle2, ChevronRight, Sparkles, Presentation, Edit3 } from 'lucide-react';
 
 export default function MyCampusSection({
     referralData,
     onOpenActivityModal,
-    onOpenSessionModal
+    onOpenSessionModal,
+    onOpenCustomizeModal
 }) {
-    const collegeName = referralData?.targetCollege || 'Sardar Patel Institute of Technology';
-    const studentsReached = referralData?.studentsReached || 340;
-    const usersJoined = referralData?.signupCount || referralData?.studentsJoined || 82;
-    const activeLearners = referralData?.activeLearners || 46;
+    const collegeName = referralData?.targetCollege;
+    const studentsReached = referralData?.studentsReached || 0;
+    const usersJoined = referralData?.signupCount || referralData?.studentsJoined || 0;
+    const activeLearners = referralData?.activeLearners || 0;
     const goalTarget = referralData?.campusGoal?.target || 200;
     const goalCurrent = referralData?.campusGoal?.current || usersJoined;
-    const goalPercent = Math.min(100, Math.round((goalCurrent / goalTarget) * 100));
+    const goalPercent = goalTarget > 0 && goalCurrent > 0 ? Math.min(100, Math.round((goalCurrent / goalTarget) * 100)) : 0;
 
-    // Combine system sample activities with user logged activities
-    const logged = referralData?.loggedActivities || [];
-    const completedActivities = [
-        ...logged,
-        ...(logged.length === 0 ? [
-            {
-                id: 'sys-1',
-                title: 'Shared platform with CSE students',
-                date: '18 Sep',
-                studentsReached: 45,
-                type: 'outreach',
-                proofUrl: null
-            },
-            {
-                id: 'sys-2',
-                title: 'Collected student feedback on AI notes',
-                date: '17 Sep',
-                studentsReached: 12,
-                type: 'feedback',
-                proofUrl: null
-            }
-        ] : [])
-    ];
-
-    const upcomingActivities = [
-        {
-            id: 'up-1',
-            title: 'LearnProof Introduction Session & AI Demo',
-            date: '22 Sep',
-            location: collegeName,
-            status: 'upcoming'
-        }
-    ];
+    const completedActivities = referralData?.loggedActivities || [];
+    const sessionRequests = referralData?.sessionRequests || [];
 
     return (
         <section id="my-campus" className="space-y-6">
@@ -58,11 +28,22 @@ export default function MyCampusSection({
                             <School size={14} className="text-blue-500" />
                             Campus Director Hub
                         </div>
-                        <h2 className="text-xl sm:text-2xl font-black text-gray-900">
-                            🏫 My Campus: {collegeName}
-                        </h2>
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <h2 className="text-xl sm:text-2xl font-black text-gray-900">
+                                🏫 My Campus: {collegeName || 'No College Selected'}
+                            </h2>
+                            {!collegeName && (
+                                <button
+                                    onClick={onOpenCustomizeModal}
+                                    className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-xl border border-orange-200 transition cursor-pointer"
+                                >
+                                    <Edit3 size={13} />
+                                    <span>Set Your College</span>
+                                </button>
+                            )}
+                        </div>
                         <p className="text-sm text-gray-500 font-medium mt-0.5">
-                            Track real adoption, organize workshops, and own LearnProof's presence at your college.
+                            Track real student adoption, record campus activities, and build your campus community.
                         </p>
                     </div>
 
@@ -125,13 +106,13 @@ export default function MyCampusSection({
 
                     <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200/80">
                         <span className="text-xs font-bold uppercase tracking-wider text-gray-500 block">
-                            Campus Rank
+                            Campus Goal
                         </span>
                         <div className="flex items-baseline gap-2 mt-1">
                             <span className="text-2xl sm:text-3xl font-black text-gray-900">
-                                #3
+                                {goalPercent}%
                             </span>
-                            <span className="text-xs font-semibold text-purple-600">Top Tier</span>
+                            <span className="text-xs font-semibold text-purple-600">Milestone</span>
                         </div>
                     </div>
                 </div>
@@ -160,7 +141,11 @@ export default function MyCampusSection({
                         />
                     </div>
                     <p className="text-xs font-semibold text-gray-600 mt-2">
-                        🚀 Your campus is <strong className="text-orange-600">{goalPercent}%</strong> toward its first official campus community milestone ({goalTarget} learners).
+                        {collegeName ? (
+                            <>🚀 <strong className="text-gray-900">{collegeName}</strong> is <strong className="text-orange-600">{goalPercent}%</strong> toward its first community milestone ({goalTarget} learners).</>
+                        ) : (
+                            <>Set your college name to establish your official campus community milestone ({goalTarget} learners).</>
+                        )}
                     </p>
                 </div>
 
@@ -180,27 +165,48 @@ export default function MyCampusSection({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Upcoming */}
+                        {/* Upcoming / Session Requests */}
                         <div className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/70 space-y-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-[11px] font-black uppercase tracking-wider text-amber-700">
-                                    Upcoming Event
+                                    College Workshops & Sessions
                                 </span>
                                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                                    Scheduled
+                                    Official
                                 </span>
                             </div>
 
-                            {upcomingActivities.map((act) => (
-                                <div key={act.id} className="space-y-1">
-                                    <h4 className="text-sm font-bold text-gray-900">
-                                        🎤 {act.title}
-                                    </h4>
-                                    <p className="text-xs text-gray-500">
-                                        {act.date} • {act.location}
-                                    </p>
+                            {sessionRequests.length > 0 ? (
+                                <div className="space-y-2">
+                                    {sessionRequests.map((sess) => (
+                                        <div key={sess.id} className="p-2.5 bg-white/80 rounded-xl border border-amber-200 text-xs space-y-0.5">
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-bold text-gray-900">🎤 {sess.sessionType?.replace('_', ' ')}</span>
+                                                <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full capitalize">{sess.status}</span>
+                                            </div>
+                                            <p className="text-gray-500 text-[11px]">
+                                                {sess.college} • {sess.expectedStudents} students expected
+                                            </p>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
+                            ) : (
+                                <div className="space-y-1.5 py-2">
+                                    <h4 className="text-xs font-bold text-gray-900">
+                                        Want to host an official session or workshop?
+                                    </h4>
+                                    <p className="text-[11px] text-gray-500 leading-relaxed">
+                                        Coordinate a demo with your college coding or tech club. LearnProof provides speakers, slide decks & swag!
+                                    </p>
+                                    <button
+                                        onClick={onOpenSessionModal}
+                                        className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 hover:underline pt-1 cursor-pointer"
+                                    >
+                                        <span>Request a Session</span>
+                                        <ChevronRight size={13} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Completed Activities */}
@@ -214,31 +220,40 @@ export default function MyCampusSection({
                                 </span>
                             </div>
 
-                            <div className="space-y-2.5 max-h-36 overflow-y-auto custom-scrollbar pr-1">
-                                {completedActivities.slice(0, 4).map((act, index) => (
-                                    <div key={act.id || index} className="flex items-start justify-between text-xs">
-                                        <div className="space-y-0.5">
-                                            <span className="font-semibold text-gray-800 block">
-                                                ✅ {act.title}
-                                            </span>
-                                            <span className="text-[11px] text-gray-500">
-                                                {act.date ? new Date(act.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Recently'}
-                                                {act.studentsReached ? ` • ${act.studentsReached} reached` : ''}
-                                            </span>
+                            {completedActivities.length > 0 ? (
+                                <div className="space-y-2.5 max-h-36 overflow-y-auto custom-scrollbar pr-1">
+                                    {completedActivities.map((act, index) => (
+                                        <div key={act.id || index} className="flex items-start justify-between text-xs">
+                                            <div className="space-y-0.5">
+                                                <span className="font-semibold text-gray-800 block">
+                                                    ✅ {act.title}
+                                                </span>
+                                                <span className="text-[11px] text-gray-500">
+                                                    {act.date ? new Date(act.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Recently'}
+                                                    {act.studentsReached ? ` • ${act.studentsReached} reached` : ''}
+                                                </span>
+                                            </div>
+                                            {act.proofUrl && (
+                                                <a
+                                                    href={act.proofUrl}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-[11px] font-bold text-orange-600 hover:underline"
+                                                >
+                                                    Proof ↗
+                                                </a>
+                                            )}
                                         </div>
-                                        {act.proofUrl && (
-                                            <a
-                                                href={act.proofUrl}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="text-[11px] font-bold text-orange-600 hover:underline"
-                                            >
-                                                Proof ↗
-                                            </a>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="py-4 text-center space-y-1">
+                                    <span className="text-xs font-bold text-gray-700 block">No activities recorded yet</span>
+                                    <p className="text-[11px] text-gray-500">
+                                        Click "+ Add Activity" above to record class announcements, club meets, or posters!
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

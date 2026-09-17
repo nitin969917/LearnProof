@@ -30,8 +30,14 @@ import {
     FolderPlus,
     Building2,
     Trophy,
-    ArrowUpRight
+    ArrowUpRight,
+    Calendar,
+    MessageSquare,
+    Presentation
 } from 'lucide-react';
+import AdminCampusActivitiesTab from './AdminCampusActivitiesTab';
+import AdminStudentFeedbackTab from './AdminStudentFeedbackTab';
+import AdminSessionRequestsTab from './AdminSessionRequestsTab';
 
 const AdminReferrals = () => {
     const { token } = useAuth();
@@ -574,6 +580,42 @@ const AdminReferrals = () => {
                         <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 shrink-0 whitespace-nowrap">
                             {groups.length} Groups
                         </span>
+                    </button>
+
+                    <button
+                        onClick={() => setMainTab('activities')}
+                        className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all duration-200 cursor-pointer ${
+                            mainTab === 'activities'
+                                ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                    >
+                        <Calendar size={16} className="shrink-0 text-emerald-500" />
+                        <span className="whitespace-nowrap">Campus Activities & Proof</span>
+                    </button>
+
+                    <button
+                        onClick={() => setMainTab('feedback')}
+                        className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all duration-200 cursor-pointer ${
+                            mainTab === 'feedback'
+                                ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-xs'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                    >
+                        <MessageSquare size={16} className="shrink-0 text-purple-500" />
+                        <span className="whitespace-nowrap">Student Feedback</span>
+                    </button>
+
+                    <button
+                        onClick={() => setMainTab('sessions')}
+                        className={`inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 transition-all duration-200 cursor-pointer ${
+                            mainTab === 'sessions'
+                                ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-xs'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                    >
+                        <Presentation size={16} className="shrink-0 text-amber-500" />
+                        <span className="whitespace-nowrap">College Sessions</span>
                     </button>
                 </div>
             </div>
@@ -1289,6 +1331,18 @@ const AdminReferrals = () => {
                         </div>
                     )}
                 </div>
+            )}
+
+            {mainTab === 'activities' && (
+                <AdminCampusActivitiesTab token={token} />
+            )}
+
+            {mainTab === 'feedback' && (
+                <AdminStudentFeedbackTab token={token} />
+            )}
+
+            {mainTab === 'sessions' && (
+                <AdminSessionRequestsTab token={token} />
             )}
 
             {/* ========================================================================= */}

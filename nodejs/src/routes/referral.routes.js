@@ -37,5 +37,14 @@ router.put('/admin/groups/:id', authMiddleware, isAdminMiddleware, referralContr
 router.delete('/admin/groups/:id', authMiddleware, isAdminMiddleware, referralController.deleteAdminAmbassadorGroup);
 router.get('/admin/colleges', authMiddleware, isAdminMiddleware, referralController.getAdminCollegesPerformance);
 
+// Admin: Ambassador Hub Management (Activities, Feedback, Session Requests)
+router.get('/admin/activities', authMiddleware, isAdminMiddleware, referralController.getAdminAmbassadorActivities);
+router.put('/admin/activities/:id', authMiddleware, isAdminMiddleware, referralController.updateAdminAmbassadorActivity);
+router.delete('/admin/activities/:id', authMiddleware, isAdminMiddleware, referralController.deleteAdminAmbassadorActivity);
+router.get('/admin/feedback', authMiddleware, isAdminMiddleware, referralController.getAdminAmbassadorFeedback);
+router.put('/admin/feedback/:id', authMiddleware, isAdminMiddleware, referralController.updateAdminAmbassadorFeedback);
+router.get('/admin/sessions', authMiddleware, isAdminMiddleware, referralController.getAdminCampusSessions);
+router.put('/admin/sessions/:id', authMiddleware, isAdminMiddleware, referralController.updateAdminCampusSession);
+
 module.exports = router;
 

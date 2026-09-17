@@ -267,15 +267,14 @@ const getMyReferralCode = async (req, res) => {
 
         // Activity sum for students reached
         const activityReachSum = loggedActivities.reduce((acc, curr) => acc + (curr.studentsReached || 0), 0);
-        const studentsReached = Math.max((referral.clicksCount * 3) + activityReachSum, (referral.signupCount * 4) + activityReachSum, 35);
         const studentsJoined = referral.signupCount || 0;
-        const realActiveLearners = recentSignupsFormatted.filter(s => s.status === 'active' || s.status === 'joined').length;
-        const activeLearners = Math.max(realActiveLearners, Math.round(studentsJoined * 0.56));
-        const learningActivities = Object.values(userActivityCounts).reduce((a, b) => a + b, 0) + (loggedActivities.length * 4) + (studentsJoined * 2);
+        const studentsReached = activityReachSum + ((referral.clicksCount || 0) * 3) + (studentsJoined * 2);
+        const activeLearners = recentSignupsFormatted.filter(s => s.status === 'active' || s.status === 'joined').length;
+        const learningActivities = Object.values(userActivityCounts).reduce((a, b) => a + b, 0) + (loggedActivities.length * 4);
         const feedbackSubmitted = loggedFeedback.length;
 
         // Dynamic XP Calculation
-        let totalXp = 80 + (studentsJoined * 10) + (activeLearners * 5) + (feedbackSubmitted * 5);
+        let totalXp = 50 + (studentsJoined * 10) + (activeLearners * 5) + (feedbackSubmitted * 5);
         loggedActivities.forEach(act => {
             totalXp += (act.xpAwarded || 20);
         });
@@ -301,9 +300,9 @@ const getMyReferralCode = async (req, res) => {
             category: referral.category,
             title: referral.title,
             creatorName: referral.creatorName || userName,
-            targetCollege: referral.targetCollege || 'College Campus',
-            clicksCount: referral.clicksCount,
-            signupCount: referral.signupCount,
+            targetCollege: referral.targetCollege || null,
+            clicksCount: referral.clicksCount || 0,
+            signupCount: referral.signupCount || 0,
             rewardNotes: referral.rewardNotes,
             createdAt: referral.createdAt,
             // Enriched Hub Metrics
@@ -317,7 +316,7 @@ const getMyReferralCode = async (req, res) => {
             campusGoal: {
                 target: 200,
                 current: collegeLearnersCount,
-                percent: Math.min(100, Math.round((collegeLearnersCount / 200) * 100))
+                percent: collegeLearnersCount > 0 ? Math.min(100, Math.round((collegeLearnersCount / 200) * 100)) : 0
             },
             recentSignups: recentSignupsFormatted,
             loggedActivities,
@@ -1442,6 +1441,117 @@ const getAdminCollegesPerformance = async (req, res) => {
     }
 };
 
+/**
+ * Admin: Get all ambassador campus activities
+ * GET /api/referrals/admin/activities
+ */
+const getAdminAmbassadorActivities = async (req, res) => {
+    try {
+        const activities = ambassadorStore.getAllActivities();
+        return res.status(200).json({ success: true, activities });
+    } catch (err) {
+        console.error('Error in getAdminAmbassadorActivities:', err);
+        return res.status(500).json({ error: 'Failed to fetch ambassador activities' });
+    }
+};
+
+/**
+ * Admin: Update status of a campus activity
+ * PUT /api/referrals/admin/activities/:id
+ * Body: { status }
+ */
+const updateAdminAmbassadorActivity = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const updated = ambassadorStore.updateActivityStatus(id, status);
+        if (!updated) return res.status(404).json({ error: 'Activity not found' });
+        return res.status(200).json({ success: true, activity: updated });
+    } catch (err) {
+        console.error('Error in updateAdminAmbassadorActivity:', err);
+        return res.status(500).json({ error: 'Failed to update activity' });
+    }
+};
+
+/**
+ * Admin: Delete a campus activity
+ * DELETE /api/referrals/admin/activities/:id
+ */
+const deleteAdminAmbassadorActivity = async (req, res) => {
+    try {
+        const { id } = req.params;
+        ambassadorStore.deleteActivity(id);
+        return res.status(200).json({ success: true, message: 'Activity deleted' });
+    } catch (err) {
+        console.error('Error in deleteAdminAmbassadorActivity:', err);
+        return res.status(500).json({ error: 'Failed to delete activity' });
+    }
+};
+
+/**
+ * Admin: Get all student feedback submitted by ambassadors
+ * GET /api/referrals/admin/feedback
+ */
+const getAdminAmbassadorFeedback = async (req, res) => {
+    try {
+        const feedback = ambassadorStore.getAllFeedback();
+        return res.status(200).json({ success: true, feedback });
+    } catch (err) {
+        console.error('Error in getAdminAmbassadorFeedback:', err);
+        return res.status(500).json({ error: 'Failed to fetch feedback' });
+    }
+};
+
+/**
+ * Admin: Update status of feedback
+ * PUT /api/referrals/admin/feedback/:id
+ * Body: { status }
+ */
+const updateAdminAmbassadorFeedback = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const updated = ambassadorStore.updateFeedbackStatus(id, status);
+        if (!updated) return res.status(404).json({ error: 'Feedback not found' });
+        return res.status(200).json({ success: true, feedback: updated });
+    } catch (err) {
+        console.error('Error in updateAdminAmbassadorFeedback:', err);
+        return res.status(500).json({ error: 'Failed to update feedback' });
+    }
+};
+
+/**
+ * Admin: Get all campus session requests
+ * GET /api/referrals/admin/sessions
+ */
+const getAdminCampusSessions = async (req, res) => {
+    try {
+        const sessions = ambassadorStore.getAllSessionRequests();
+        return res.status(200).json({ success: true, sessions });
+    } catch (err) {
+        console.error('Error in getAdminCampusSessions:', err);
+        return res.status(500).json({ error: 'Failed to fetch session requests' });
+    }
+};
+
+/**
+ * Admin: Update status of campus session request
+ * PUT /api/referrals/admin/sessions/:id
+ * Body: { status }
+ */
+const updateAdminCampusSession = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const updated = ambassadorStore.updateSessionStatus(id, status);
+        if (!updated) return res.status(404).json({ error: 'Session request not found' });
+        return res.status(200).json({ success: true, session: updated });
+    } catch (err) {
+        console.error('Error in updateAdminCampusSession:', err);
+        return res.status(500).json({ error: 'Failed to update session request' });
+    }
+};
+
 module.exports = {
     trackClick,
     attributeReferral,
@@ -1464,7 +1574,14 @@ module.exports = {
     logAmbassadorActivity,
     submitAmbassadorFeedback,
     requestCampusSession,
-    updateMissionChecklist
+    updateMissionChecklist,
+    getAdminAmbassadorActivities,
+    updateAdminAmbassadorActivity,
+    deleteAdminAmbassadorActivity,
+    getAdminAmbassadorFeedback,
+    updateAdminAmbassadorFeedback,
+    getAdminCampusSessions,
+    updateAdminCampusSession
 };
 
 
