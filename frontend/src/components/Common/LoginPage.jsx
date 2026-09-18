@@ -397,7 +397,7 @@ const LoginPage = () => {
     const handleManualLinkedInLogin = () => {
         setIsAuthenticating(true);
         sessionStorage.setItem("is_authenticating", "true");
-        const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9i0sx1sbav';
+        const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
         const redirectUri = `${window.location.origin}/auth/linkedin/callback`;
         const state = Math.random().toString(36).substring(2);
         sessionStorage.setItem("linkedin_oauth_state", state);

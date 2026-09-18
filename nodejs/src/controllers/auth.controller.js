@@ -331,7 +331,7 @@ const handleLinkedInLogin = async (req, res) => {
             return res.status(400).json({ error: 'Missing LinkedIn authorization code' });
         }
 
-        const clientId = process.env.LINKEDIN_CLIENT_ID || '77qo9i0sx1sbav';
+        const clientId = process.env.LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
         const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
         if (!clientSecret) {
             console.error('[LinkedIn Auth] Missing LINKEDIN_CLIENT_SECRET in environment');
