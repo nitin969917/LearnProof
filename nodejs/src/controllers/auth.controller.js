@@ -149,13 +149,6 @@ const handleAppleLogin = async (req, res) => {
         let user = await prisma.userProfile.findUnique({ where: { uid } });
         if (!user && userEmail) {
             user = await prisma.userProfile.findUnique({ where: { email: userEmail } });
-            if (user && !user.uid.startsWith('apple_')) {
-                // Link account
-                user = await prisma.userProfile.update({
-                    where: { id: user.id },
-                    data: { uid }
-                });
-            }
         }
 
         if (!user) {
@@ -378,16 +371,6 @@ const handleLinkedInLogin = async (req, res) => {
         let user = await prisma.userProfile.findUnique({ where: { uid } });
         if (!user && userEmail) {
             user = await prisma.userProfile.findUnique({ where: { email: userEmail } });
-            if (user && !user.uid.startsWith('linkedin_')) {
-                // Link account
-                user = await prisma.userProfile.update({
-                    where: { id: user.id },
-                    data: {
-                        uid,
-                        profile_pic: user.profile_pic || pictureUrl
-                    }
-                });
-            }
         }
 
         let isNewUser = false;

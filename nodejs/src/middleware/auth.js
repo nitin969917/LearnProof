@@ -94,6 +94,9 @@ const authMiddleware = async (req, res, next) => {
                 let user = await cacheService.get(cacheKey);
                 if (!user) {
                     user = await prisma.userProfile.findUnique({ where: { uid: userUid } });
+                    if (!user && decoded.email) {
+                        user = await prisma.userProfile.findUnique({ where: { email: decoded.email.toLowerCase() } });
+                    }
                     if (!user) {
                         user = await prisma.userProfile.create({
                             data: {
@@ -108,7 +111,7 @@ const authMiddleware = async (req, res, next) => {
                 }
                 
                 if (user) {
-                    req.user = { ...decoded, ...user, id: user.id, uid: userUid };
+                    req.user = { ...decoded, ...user, id: user.id, uid: user.uid || userUid };
                     logDailyActiveSession(user.id);
                     return next();
                 }
@@ -130,6 +133,9 @@ const authMiddleware = async (req, res, next) => {
 
         if (!user) {
             user = await prisma.userProfile.findUnique({ where: { uid } });
+            if (!user && email) {
+                user = await prisma.userProfile.findUnique({ where: { email: email.toLowerCase() } });
+            }
             if (!user) {
                 user = await prisma.userProfile.create({
                     data: {
