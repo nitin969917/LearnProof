@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Star, Trash2, Edit3, X, Check } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Star, Trash2, Edit3, X, Check, Flag, UserX, AlertCircle } from 'lucide-react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 import socialApi from '../../../api/socialApi.js';
 import { useModal } from '../../../context/ModalContext';
 import UserAvatar from '../../Common/UserAvatar.jsx';
@@ -18,6 +20,13 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(post.content);
   const [editedVisibility, setEditedVisibility] = useState(post.visibility);
+
+  // UGC Moderation State (Apple Guideline 1.2)
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('Inappropriate Content');
+  const [reportDetails, setReportDetails] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
@@ -104,6 +113,55 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
 
     if (confirmed) {
       deletePost(post.id);
+    }
+  };
+
+  const handleReportPost = async () => {
+    try {
+      setIsSubmittingReport(true);
+      const token = localStorage.getItem('google_token');
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+      await axios.post(`${backendUrl}/api/social/report`, {
+        targetType: 'post',
+        targetId: post.id,
+        reason: reportReason,
+        details: reportDetails
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      toast.success("Report submitted. Our safety team reviews all reports within 24 hours.");
+      setShowReportModal(false);
+      setShowMenu(false);
+      setIsSubmittingReport(false);
+    } catch (err) {
+      toast.error("Failed to submit report.");
+      setIsSubmittingReport(false);
+    }
+  };
+
+  const handleBlockUser = async () => {
+    setShowMenu(false);
+    const authorName = post.author?.name || 'this user';
+    const confirmed = await confirm({
+      title: `Block ${authorName}?`,
+      message: `You will no longer see posts or comments from ${authorName}.`,
+      confirmText: 'Block User',
+      type: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+      const token = localStorage.getItem('google_token');
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+      await axios.post(`${backendUrl}/api/social/block`, {
+        targetUserId: post.authorId || post.author?.id
+      }, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      setIsBlocked(true);
+      toast.success(`${authorName} has been blocked.`);
+    } catch (err) {
+      toast.error("Failed to block user.");
     }
   };
 
@@ -207,6 +265,10 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
     });
   };
 
+  if (isBlocked) {
+    return null;
+  }
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all relative">
       {/* Header */}
@@ -236,32 +298,50 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
           </div>
         </div>
         
-        {isAuthor && (
-          <div className="relative">
-            <button 
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition"
-            >
-              <MoreHorizontal size={20} />
-            </button>
-            {showMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-700 border border-gray-100 dark:border-gray-650 rounded-xl shadow-xl z-20 min-w-[140px] p-1.5 flex flex-col gap-1">
-                <button 
-                  onClick={() => { setIsEditing(true); setShowMenu(false); }}
-                  className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-600 hover:text-orange-600 dark:hover:text-orange-400 transition font-medium"
-                >
-                  <Edit3 size={16} /> Edit
-                </button>
-                <button 
-                  onClick={handleDeleteClick}
-                  className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/35 transition font-medium"
-                >
-                  <Trash2 size={16} /> Delete
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="relative">
+          <button 
+            onClick={() => setShowMenu(!showMenu)}
+            className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition cursor-pointer"
+            title="Post options"
+          >
+            <MoreHorizontal size={20} />
+          </button>
+          {showMenu && (
+            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 min-w-[150px] p-1.5 flex flex-col gap-1">
+              {isAuthor ? (
+                <>
+                  <button 
+                    onClick={() => { setIsEditing(true); setShowMenu(false); }}
+                    className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 dark:hover:text-orange-400 transition font-medium cursor-pointer"
+                  >
+                    <Edit3 size={16} /> Edit
+                  </button>
+                  <button 
+                    onClick={handleDeleteClick}
+                    className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/35 transition font-medium cursor-pointer"
+                  >
+                    <Trash2 size={16} /> Delete
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => { setShowReportModal(true); setShowMenu(false); }}
+                    className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/35 transition font-medium cursor-pointer"
+                  >
+                    <Flag size={15} /> Report Post
+                  </button>
+                  <button 
+                    onClick={handleBlockUser}
+                    className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/35 transition font-medium cursor-pointer"
+                  >
+                    <UserX size={15} /> Block User
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -521,6 +601,75 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* UGC Report Modal (Apple Guideline 1.2) */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 text-left">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+              <div className="flex items-center gap-2 text-amber-600">
+                <Flag size={18} />
+                <h3 className="font-bold text-sm text-gray-900 dark:text-white">Report Content</h3>
+              </div>
+              <button 
+                onClick={() => setShowReportModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Please select the reason for reporting this post. Our safety and moderation team acts on all reports within 24 hours.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Reason</label>
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="w-full text-xs p-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="Inappropriate Content">Inappropriate / Explicit Content</option>
+                <option value="Harassment or Bullying">Harassment or Bullying</option>
+                <option value="Hate Speech">Hate Speech</option>
+                <option value="Spam or Scam">Spam or Scam</option>
+                <option value="Misinformation">Misinformation</option>
+                <option value="Other">Other Policy Violation</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Details (Optional)</label>
+              <textarea
+                value={reportDetails}
+                onChange={(e) => setReportDetails(e.target.value)}
+                placeholder="Provide additional context..."
+                rows={2}
+                className="w-full text-xs p-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowReportModal(false)}
+                className="flex-1 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold hover:bg-gray-200 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingReport}
+                onClick={handleReportPost}
+                className="flex-1 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition cursor-pointer disabled:opacity-50"
+              >
+                {isSubmittingReport ? "Submitting..." : "Submit Report"}
+              </button>
             </div>
           </div>
         </div>

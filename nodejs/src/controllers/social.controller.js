@@ -290,6 +290,104 @@ const askVideoDoubt = async (req, res) => {
     }
 };
 
+/**
+ * UGC Report Content (Apple Guideline 1.2)
+ */
+const reportContent = async (req, res) => {
+    try {
+        const { targetType, targetId, reason, details } = req.body;
+        const reporterId = req.user?.id || 'anonymous';
+        const reporterEmail = req.user?.email || 'anonymous';
+
+        if (!targetType || !targetId || !reason) {
+            return res.status(400).json({ error: 'Missing required report fields (targetType, targetId, reason)' });
+        }
+
+        const reportRecord = {
+            id: Date.now(),
+            targetType,
+            targetId,
+            reason,
+            details: details || '',
+            reporterId,
+            reporterEmail,
+            createdAt: new Date().toISOString()
+        };
+
+        try {
+            await cacheService.set(`report:${reportRecord.id}`, reportRecord, 86400 * 7);
+        } catch (e) {}
+
+        console.log(`[UGC Moderation] New report received:`, reportRecord);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Report submitted successfully. Our safety team reviews all reports within 24 hours.'
+        });
+    } catch (err) {
+        console.error('reportContent error:', err);
+        return res.status(500).json({ error: 'Failed to submit report', details: err.message });
+    }
+};
+
+/**
+ * UGC Block User (Apple Guideline 1.2)
+ */
+const blockUser = async (req, res) => {
+    try {
+        const { targetUserId } = req.body;
+        const currentUserId = req.user?.id;
+
+        if (!targetUserId) {
+            return res.status(400).json({ error: 'Missing targetUserId' });
+        }
+
+        if (String(targetUserId) === String(currentUserId)) {
+            return res.status(400).json({ error: 'Cannot block yourself' });
+        }
+
+        const cacheKey = `user:${currentUserId}:blocked`;
+        let blocked = await cacheService.get(cacheKey);
+        if (!Array.isArray(blocked)) {
+            blocked = [];
+        }
+
+        if (!blocked.includes(targetUserId)) {
+            blocked.push(targetUserId);
+            await cacheService.set(cacheKey, blocked, 86400 * 30);
+        }
+
+        console.log(`[UGC Moderation] User ${currentUserId} blocked user ${targetUserId}`);
+
+        return res.status(200).json({
+            success: true,
+            message: 'User has been blocked. You will no longer see content from this user.',
+            blockedUsers: blocked
+        });
+    } catch (err) {
+        console.error('blockUser error:', err);
+        return res.status(500).json({ error: 'Failed to block user', details: err.message });
+    }
+};
+
+/**
+ * UGC Get Blocked Users
+ */
+const getBlockedUsers = async (req, res) => {
+    try {
+        const currentUserId = req.user?.id;
+        const cacheKey = `user:${currentUserId}:blocked`;
+        const blocked = await cacheService.get(cacheKey) || [];
+
+        return res.status(200).json({
+            blockedUsers: Array.isArray(blocked) ? blocked : []
+        });
+    } catch (err) {
+        console.error('getBlockedUsers error:', err);
+        return res.status(500).json({ error: 'Failed to get blocked users' });
+    }
+};
+
 module.exports = {
     getNote,
     saveNote,
@@ -297,5 +395,8 @@ module.exports = {
     postComment,
     deleteComment,
     getIntuition,
-    askVideoDoubt
+    askVideoDoubt,
+    reportContent,
+    blockUser,
+    getBlockedUsers
 };

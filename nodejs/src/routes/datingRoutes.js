@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const datingAuth = require('../middleware/datingAuth');
+const socialController = require('../controllers/social.controller');
 const {
   createPost,
   getFeed,
@@ -74,6 +75,11 @@ router.post('/social/remove-friendship', datingAuth, removeFriendship);
 router.post('/social/toggle-close-friend', datingAuth, toggleCloseFriend);
 router.get('/social/friendships', datingAuth, getFriendships);
 router.get('/social/friend-requests/count', datingAuth, getPendingFriendCount);
+
+// UGC Safety & Moderation (Apple Guideline 1.2)
+router.post('/social/report', datingAuth, socialController.reportContent);
+router.post('/social/block', datingAuth, socialController.blockUser);
+router.get('/social/blocked-users', datingAuth, socialController.getBlockedUsers);
 
 // Direct message history
 router.get('/messages/unread-counts', datingAuth, getUnreadCounts);

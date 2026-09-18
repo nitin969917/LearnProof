@@ -50,7 +50,12 @@ router.get('/public-stats', authController.getPublicStats);
 router.post('/signup/', authMiddleware, authController.loginOrRegister);
 router.post('/login/', authMiddleware, authController.loginOrRegister);
 router.post('/oauth-login/', authMiddleware, authController.loginOrRegister);
+router.post('/auth/apple', authController.handleAppleLogin);
+router.post('/auth/apple-login', authController.handleAppleLogin);
+router.post('/auth/demo-login', authController.handleDemoReviewerLogin);
 router.post('/profile/', authMiddleware, authController.getProfile);
+router.delete('/profile', authMiddleware, authController.deleteAccount);
+router.post('/delete-account', authMiddleware, authController.deleteAccount);
 router.post('/save-fcm-token', authMiddleware, fcmController.saveFcmToken);
 router.get('/auth/admin-check', authMiddleware, isAdminMiddleware, (req, res) => {
     res.status(200).json({ isAdmin: true });
@@ -99,6 +104,11 @@ router.post('/video-comment/', authMiddleware, socialController.postComment);
 router.delete('/video-comment/', authMiddleware, socialController.deleteComment);
 router.get('/video-intuition/', authMiddleware, socialController.getIntuition);
 router.post('/video-ask-ai/', authMiddleware, socialController.askVideoDoubt);
+
+// UGC Safety & Moderation (Apple Guideline 1.2)
+router.post('/social/report', authMiddleware, socialController.reportContent);
+router.post('/social/block', authMiddleware, socialController.blockUser);
+router.get('/social/blocked-users', authMiddleware, socialController.getBlockedUsers);
 
 // Quiz & Engagement
 router.post('/quiz-list/', authMiddleware, quizController.getQuizList);

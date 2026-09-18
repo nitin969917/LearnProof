@@ -71,12 +71,19 @@ const TermsOfService = () => {
                         </section>
 
                         <section className="space-y-3">
-                            <h2 className="text-xl sm:text-2xl font-black text-gray-800 uppercase tracking-tight">5. User Conduct & Content Guidelines</h2>
+                            <h2 className="text-xl sm:text-2xl font-black text-gray-800 uppercase tracking-tight">5. User-Generated Content & Zero-Tolerance Safety Policy</h2>
                             <p>
-                                You agree not to use the service for any unlawful purposes or in any way that violates these terms. 
-                                You are solely responsible for any notes, messages, or text you input or upload to the platform. 
-                                We reserve the right to remove any content or suspend accounts that engage in abusive, harassing, or malicious activities.
+                                LearnProof AI strictly enforces a <strong>zero-tolerance policy</strong> against objectionable, abusive, explicit, defamatory, or harassing content and behavior. 
+                                By using our community, discussion feeds, live language rooms, or chat services, you agree not to submit or transmit any content that is harmful, hateful, vulgar, or infringes on the rights of others.
                             </p>
+                            <p>
+                                <strong>Safety & Moderation Features:</strong>
+                            </p>
+                            <ul className="list-disc pl-5 space-y-2 text-gray-500 font-semibold text-xs sm:text-sm">
+                                <li><strong>In-App Reporting:</strong> Any user can report offensive posts, comments, or participants directly via the report option on any piece of content.</li>
+                                <li><strong>User Blocking:</strong> Users have the ability to instantly block abusive individuals, immediately hiding their content and preventing any further interaction.</li>
+                                <li><strong>24-Hour Review Pledge:</strong> Our safety team reviews and acts on all reported content and abusive user reports within <strong>24 hours</strong>, removing violating content and banning or terminating offending accounts.</li>
+                            </ul>
                         </section>
 
                         <section className="space-y-3">

@@ -4,6 +4,7 @@ import { Trophy, CheckCircle, Shield, Youtube, Zap, Lightbulb, TrendingUp, Users
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { toast } from 'react-hot-toast';
+import axios from 'axios';
 import { requestNotificationPermissionAndGetToken } from '../../utils/fcm';
 import { resolvePostAuthRedirect, clearAuthRedirect } from '../../utils/authRedirect';
 
@@ -244,6 +245,95 @@ const LoginPage = () => {
         window.location.assign(authUrl);
     };
 
+    const handleManualAppleLogin = async () => {
+        try {
+            setIsAuthenticating(true);
+            sessionStorage.setItem("is_authenticating", "true");
+
+            const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
+
+            let appleResponse = null;
+            if (isCapacitorNative) {
+                const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
+                appleResponse = await SignInWithApple.authorize({
+                    clientId: 'com.learnproof.learnProofTwa',
+                    redirectURI: 'https://learnproofai.com',
+                    scopes: 'email name',
+                });
+            } else {
+                // If on web browser, attempt to import or prompt iOS app usage
+                try {
+                    const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
+                    appleResponse = await SignInWithApple.authorize({
+                        clientId: 'com.learnproof.learnProofTwa',
+                        redirectURI: 'https://learnproofai.com',
+                        scopes: 'email name',
+                    });
+                } catch (webErr) {
+                    setIsAuthenticating(false);
+                    sessionStorage.removeItem("is_authenticating");
+                    toast("Sign in with Apple is designed for the iOS mobile app. On desktop, please continue with Google or Demo.", { icon: '🍎' });
+                    return;
+                }
+            }
+
+            if (appleResponse && appleResponse.response?.identityToken) {
+                const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+                const res = await axios.post(`${backendUrl}/api/auth/apple`, {
+                    identityToken: appleResponse.response.identityToken,
+                    authorizationCode: appleResponse.response.authorizationCode,
+                    fullName: appleResponse.response.givenName || appleResponse.response.familyName ? {
+                        givenName: appleResponse.response.givenName,
+                        familyName: appleResponse.response.familyName
+                    } : null,
+                    email: appleResponse.response.email,
+                    user: appleResponse.response.user
+                });
+
+                if (res.data && res.data.token) {
+                    login({ credential: res.data.token });
+                    toast.success("Welcome to LearnProof AI!");
+                    setIsAuthenticating(false);
+                    sessionStorage.removeItem("is_authenticating");
+                    navigate(resolvePostAuthRedirect(), { replace: true });
+                    return;
+                }
+            }
+
+            setIsAuthenticating(false);
+            sessionStorage.removeItem("is_authenticating");
+        } catch (err) {
+            console.error("Apple Sign-In error:", err);
+            setIsAuthenticating(false);
+            sessionStorage.removeItem("is_authenticating");
+            const errStr = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+            if (errStr.includes('canceled') || errStr.includes('1001') || errStr.includes('CANCELED')) {
+                return;
+            }
+            toast.error(err.message || "Apple Sign-In failed.");
+        }
+    };
+
+    const handleReviewerDemoLogin = async () => {
+        try {
+            setIsAuthenticating(true);
+            sessionStorage.setItem("is_authenticating", "true");
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+            const res = await axios.post(`${backendUrl}/api/auth/demo-login`);
+            if (res.data && res.data.token) {
+                login({ credential: res.data.token });
+                toast.success("Welcome, App Store Reviewer!");
+                setIsAuthenticating(false);
+                sessionStorage.removeItem("is_authenticating");
+                navigate(resolvePostAuthRedirect(), { replace: true });
+            }
+        } catch (e) {
+            setIsAuthenticating(false);
+            sessionStorage.removeItem("is_authenticating");
+            toast.error("Reviewer demo login unavailable.");
+        }
+    };
+
     if (loading || isAuthenticating) {
         return (
             <div className="min-h-screen bg-orange-50 relative overflow-hidden flex flex-col items-center justify-center select-none">
@@ -402,24 +492,49 @@ const LoginPage = () => {
                     </div>
 
                     {/* Auth Login Action Button */}
-                    <div className="w-full space-y-4 z-10">
+                    <div className="w-full space-y-3 z-10">
+                        {/* Continue with Google */}
                         <motion.button 
                             whileHover={{ scale: 1.01, y: -0.5 }}
                             whileTap={{ scale: 0.99 }}
                             onClick={handleManualGoogleLogin}
-                            className="w-full flex items-center justify-center gap-3 px-6 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.08)] transition-all duration-300 font-bold text-gray-700 dark:text-gray-200 text-xs h-13 cursor-pointer border-slate-200/80"
+                            className="w-full flex items-center justify-center gap-3 px-6 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.08)] transition-all duration-300 font-bold text-gray-700 dark:text-gray-200 text-xs h-12 cursor-pointer border-slate-200/80"
                         >
                             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5 shrink-0" />
                             <span>Continue with Google</span>
                         </motion.button>
 
+                        {/* Sign in with Apple (Mandatory for App Store Guideline 4.8) */}
+                        <motion.button 
+                            whileHover={{ scale: 1.01, y: -0.5 }}
+                            whileTap={{ scale: 0.99 }}
+                            onClick={handleManualAppleLogin}
+                            className="w-full flex items-center justify-center gap-2.5 px-6 bg-black text-white hover:bg-zinc-900 border border-black rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.15)] transition-all duration-300 font-bold text-xs h-12 cursor-pointer"
+                        >
+                            <svg className="w-4 h-4 fill-current mb-0.5 shrink-0" viewBox="0 0 170 170">
+                                <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.81-11.96-14.31-5.77-8.8-10.34-18.73-13.72-29.79-3.37-11.06-5.06-21.84-5.06-32.34 0-14.35 3.59-26.06 10.77-35.12 7.18-9.06 16.2-13.67 27.06-13.84 4.58 0 9.77 1.25 15.57 3.75 5.8 2.5 9.78 3.84 11.96 4.02 1.96-.28 5.99-1.68 12.09-4.22 6.1-2.54 11.39-3.71 15.86-3.51 11.85.62 21.6 4.87 29.25 12.75-10.45 6.32-15.58 14.99-15.38 26.01.2 8.78 3.59 16.27 10.18 22.47 6.59 6.2 14.54 9.68 23.85 10.45-2.07 6.1-4.68 12.51-7.83 19.23zM119.22 31.84c0-7.39 2.65-14.18 7.95-20.37 5.3-6.19 11.75-9.97 19.35-11.34.2 1.34.3 2.55.3 3.63 0 7.39-2.65 14.18-7.95 20.37-5.3 6.19-11.75 9.97-19.35 11.34-.2-1.34-.3-2.55-.3-3.63z"/>
+                            </svg>
+                            <span>Continue with Apple</span>
+                        </motion.button>
+
                         {/* Terms of Service agreement text */}
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center leading-normal px-2">
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center leading-normal px-2 pt-0.5">
                             By continuing, you agree to our{' '}
                             <a href="/terms" className="text-orange-500 hover:underline font-semibold">Terms of Service</a>
                             {' '}and{' '}
                             <a href="/privacy-policy" className="text-orange-500 hover:underline font-semibold">Privacy Policy</a>
                         </p>
+
+                        {/* App Store Reviewer Demo Login Shortcut */}
+                        <div className="text-center pt-1">
+                            <button
+                                type="button"
+                                onClick={handleReviewerDemoLogin}
+                                className="text-[10px] text-slate-400 hover:text-orange-500 underline transition-colors cursor-pointer"
+                            >
+                                App Store Reviewer Demo Access
+                            </button>
+                        </div>
                     </div>
                 </motion.div>
             </div>

@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const matrixService = require('../services/matrix.service');
 const cacheService = require('../services/cache.service');
 const JWT_SECRET = process.env.JWT_SECRET || 'learnproof_default_secret_9988';
@@ -116,9 +117,215 @@ const getPublicStats = async (req, res) => {
     }
 };
 
+/**
+ * Apple Sign-In Handler (Apple Guideline 4.8)
+ */
+const handleAppleLogin = async (req, res) => {
+    try {
+        const { identityToken, user: appleUserObj, fullName, email } = req.body;
+        if (!identityToken) {
+            return res.status(400).json({ error: 'Missing Apple identity token' });
+        }
+
+        // Decode the Apple JWT identity token
+        const decoded = jwt.decode(identityToken);
+        if (!decoded || !decoded.sub) {
+            return res.status(400).json({ error: 'Invalid Apple identity token payload' });
+        }
+
+        const appleSub = decoded.sub;
+        const uid = `apple_${appleSub}`;
+        const userEmail = decoded.email || email || `${appleSub}@privaterelay.apple.com`;
+        
+        let displayName = 'Apple User';
+        if (fullName && (fullName.givenName || fullName.familyName)) {
+            displayName = [fullName.givenName, fullName.familyName].filter(Boolean).join(' ');
+        } else if (email && email.includes('@')) {
+            displayName = email.split('@')[0];
+        }
+
+        // Check if user already exists by uid or email
+        let user = await prisma.userProfile.findUnique({ where: { uid } });
+        if (!user && userEmail) {
+            user = await prisma.userProfile.findUnique({ where: { email: userEmail } });
+            if (user && !user.uid.startsWith('apple_')) {
+                // Link account
+                user = await prisma.userProfile.update({
+                    where: { id: user.id },
+                    data: { uid }
+                });
+            }
+        }
+
+        if (!user) {
+            user = await prisma.userProfile.create({
+                data: {
+                    uid,
+                    email: userEmail,
+                    name: displayName,
+                    profile_pic: ''
+                }
+            });
+        }
+
+        // Cache profile
+        const cacheKey = `user:profile:${uid}`;
+        await cacheService.set(cacheKey, user, 3600);
+
+        // Generate 30-day session token
+        const newSessionToken = jwt.sign(
+            { uid: user.uid, email: user.email, name: user.name, picture: user.profile_pic || '', id: user.id },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+
+        const responseData = {
+            ...user,
+            token: newSessionToken
+        };
+
+        // Provision Matrix chat if enabled
+        if (matrixService.ENABLE_MATRIX_CHAT) {
+            try {
+                const matrixCacheKey = `matrix:creds:${user.id}`;
+                const cachedCreds = await cacheService.get(matrixCacheKey);
+                if (cachedCreds) {
+                    responseData.matrixCredentials = cachedCreds;
+                } else {
+                    const matrixUsername = `user_${user.id}`;
+                    const matrixPassword = crypto
+                        .createHmac('sha256', JWT_SECRET)
+                        .update(user.uid)
+                        .digest('hex');
+                    const matrixCreds = await matrixService.registerUser(matrixUsername, matrixPassword);
+                    if (matrixCreds) {
+                        const credsPayload = {
+                            userId: matrixCreds.userId,
+                            accessToken: matrixCreds.accessToken,
+                            homeserverUrl: process.env.MATRIX_CLIENT_HOMESERVER_URL || process.env.MATRIX_HOMESERVER_URL || 'http://localhost:8009'
+                        };
+                        responseData.matrixCredentials = credsPayload;
+                        await cacheService.set(matrixCacheKey, credsPayload, 43200);
+                    }
+                }
+            } catch (matrixErr) {
+                console.warn('Matrix sync warning on Apple login:', matrixErr.message);
+            }
+        }
+
+        return res.status(200).json(responseData);
+    } catch (err) {
+        console.error('Apple Sign-In error:', err);
+        return res.status(500).json({ error: 'Failed to authenticate with Apple', details: err.message });
+    }
+};
+
+/**
+ * Apple Reviewer Demo Account Handler (For fast Apple App Store approval without 2FA blockers)
+ */
+const handleDemoReviewerLogin = async (req, res) => {
+    try {
+        const demoUid = 'apple_reviewer_demo_2026';
+        const demoEmail = 'apple-reviewer@learnproofai.com';
+        
+        let user = await prisma.userProfile.findUnique({ where: { uid: demoUid } });
+        if (!user) {
+            user = await prisma.userProfile.create({
+                data: {
+                    uid: demoUid,
+                    email: demoEmail,
+                    name: 'Apple App Reviewer',
+                    profile_pic: 'https://api.dicebear.com/7.x/bottts/svg?seed=AppleReview'
+                }
+            });
+        }
+
+        const newSessionToken = jwt.sign(
+            { uid: user.uid, email: user.email, name: user.name, picture: user.profile_pic, id: user.id },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+
+        return res.status(200).json({
+            ...user,
+            token: newSessionToken
+        });
+    } catch (err) {
+        console.error('Demo reviewer login error:', err);
+        return res.status(500).json({ error: 'Failed to access demo reviewer account' });
+    }
+};
+
+/**
+ * In-App Account Deletion (Apple Guideline 5.1.1(v))
+ */
+const deleteAccount = async (req, res) => {
+    try {
+        const userId = req.user?.id;
+        const userUid = req.user?.uid;
+        if (!userId) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
+        console.log(`[Account Deletion] Initiating permanent deletion for user ID ${userId}, UID: ${userUid}`);
+
+        // Delete user-related records safely
+        await prisma.userActivityLog.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.videoNote.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.videoComment.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.userFcmToken.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.messageReadStatus.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.certificateRequest.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.certificate.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.quiz.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.video.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.playlist.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.supportTicket.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.workspace.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.referralCode.deleteMany({ where: { userId } }).catch(() => {});
+
+        // Delete from social datingPrisma if present
+        try {
+            const datingPrisma = require('../utils/datingPrisma');
+            const socialUser = await datingPrisma.user.findFirst({
+                where: { OR: [{ email: req.user.email }, { googleId: userUid }] }
+            });
+            if (socialUser) {
+                await datingPrisma.post.deleteMany({ where: { userId: socialUser.id } }).catch(() => {});
+                await datingPrisma.comment.deleteMany({ where: { userId: socialUser.id } }).catch(() => {});
+                await datingPrisma.friendship.deleteMany({
+                    where: { OR: [{ senderId: socialUser.id }, { receiverId: socialUser.id }] }
+                }).catch(() => {});
+                await datingPrisma.user.delete({ where: { id: socialUser.id } }).catch(() => {});
+            }
+        } catch (e) {
+            console.warn('[Account Deletion] Social DB delete skipped:', e.message);
+        }
+
+        // Delete main UserProfile
+        await prisma.userProfile.delete({ where: { id: userId } });
+
+        // Invalidate Redis caches
+        await cacheService.del(`user:profile:${userUid}`);
+        await cacheService.del(`matrix:creds:${userId}`);
+        await cacheService.del(`social:user:email:${req.user.email}`);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Your account and all associated data have been permanently deleted.'
+        });
+    } catch (err) {
+        console.error('[Account Deletion] Error during account deletion:', err);
+        return res.status(500).json({ error: 'Failed to delete account', details: err.message });
+    }
+};
+
 module.exports = {
     loginOrRegister,
     getProfile,
     handleGoogleCallback,
-    getPublicStats
+    getPublicStats,
+    handleAppleLogin,
+    handleDemoReviewerLogin,
+    deleteAccount
 };

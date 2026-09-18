@@ -4,7 +4,7 @@ import {
   Shield, Edit3, Save, UserPlus, UserCheck, Star, MessageSquare, 
   Linkedin, Sparkles, ArrowLeft, ChevronRight, Camera, Heart, 
   Settings, Plus, FileText, Lightbulb, Check, X, ExternalLink,
-  Users as UsersIcon, Share2, Compass, Award, Globe, Lock, Eye, EyeOff
+  Users as UsersIcon, Share2, Compass, Award, Globe, Lock, Eye, EyeOff, Trash2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import socialApi from '../../../api/socialApi.js';
@@ -971,6 +971,17 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                           />
                         </div>
                       ))}
+
+                      <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                        <button
+                          type="button"
+                          onClick={() => navigate('/delete-account')}
+                          className="w-full py-2 px-3 rounded-xl border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Trash2 size={13} />
+                          <span>Delete Account & Data</span>
+                        </button>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1151,6 +1162,17 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                         />
                       </div>
                     ))}
+
+                    <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                      <button
+                        type="button"
+                        onClick={() => navigate('/delete-account')}
+                        className="w-full py-2 px-3 rounded-xl border border-red-200 dark:border-red-900/40 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <Trash2 size={13} />
+                        <span>Delete Account & Data</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </motion.div>
