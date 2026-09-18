@@ -180,15 +180,23 @@ const LoginPage = () => {
             try {
                 setIsAuthenticating(true);
                 sessionStorage.setItem("is_authenticating", "true");
-                const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
-                await GoogleAuth.initialize({
-                    clientId: '549492309059-crnp91q3v5ej09givjr6b10re7189ks9.apps.googleusercontent.com',
-                    scopes: ['profile', 'email'],
-                    grantOfflineAccess: true,
+                const { SocialLogin } = await import('@capgo/capacitor-social-login');
+                await SocialLogin.initialize({
+                    google: {
+                        webClientId: '549492309059-crnp91q3v5ej09givjr6b10re7189ks9.apps.googleusercontent.com',
+                        iOSClientId: '549492309059-6k98pip4c51rdsh69cls1s7ti2s8ci8n.apps.googleusercontent.com',
+                        iOSServerClientId: '549492309059-crnp91q3v5ej09givjr6b10re7189ks9.apps.googleusercontent.com',
+                        mode: 'online',
+                    }
                 });
-                const googleUser = await GoogleAuth.signIn();
-                console.log("Capacitor Google Sign-In response:", googleUser);
-                const idToken = googleUser?.authentication?.idToken || googleUser?.idToken;
+                const res = await SocialLogin.login({
+                    provider: 'google',
+                    options: {
+                        scopes: ['email', 'profile']
+                    }
+                });
+                console.log("Capacitor SocialLogin Google response:", res);
+                const idToken = res?.result?.idToken || res?.result?.accessToken?.token;
                 if (idToken) {
                     await handleLoginFlow(idToken);
                     return;
@@ -202,8 +210,11 @@ const LoginPage = () => {
                 console.error("Capacitor native Google Sign-In error:", capErr);
                 setIsAuthenticating(false);
                 sessionStorage.removeItem("is_authenticating");
+                if (capErr?.code === 'USER_CANCELLED') {
+                    return;
+                }
                 const errStr = capErr?.message || (typeof capErr === 'object' ? JSON.stringify(capErr) : String(capErr));
-                if (errStr.includes('canceled') || errStr.includes('12501') || errStr.includes('CANCELED')) {
+                if (errStr.includes('canceled') || errStr.includes('12501') || errStr.includes('CANCELED') || errStr.includes('USER_CANCELLED')) {
                     return;
                 }
                 toast.error(errStr || "Google Sign-In failed.");
@@ -308,6 +319,10 @@ const LoginPage = () => {
             sessionStorage.removeItem("is_authenticating");
             const errStr = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
             if (errStr.includes('canceled') || errStr.includes('1001') || errStr.includes('CANCELED')) {
+                return;
+            }
+            if (errStr.includes('1000')) {
+                toast.error("Apple Sign-In capability requires a paid Apple Developer Program account on iOS. Please use Google Login or Demo Access.");
                 return;
             }
             toast.error(err.message || "Apple Sign-In failed.");

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Youtube, Search, Menu, Bell, BookOpen, Compass, HelpCircle, MessageSquare, Globe, Plus, Home, Users } from 'lucide-react';
+import { Youtube, Search, Menu, Bell, BookOpen, Compass, HelpCircle, MessageSquare, Globe, Plus, Home, Users, X } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -13,6 +13,7 @@ const TopBar = ({ onMenuClick }) => {
     const [url, setUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [importData, setImportData] = useState(null);
+    const [isMobileImportOpen, setIsMobileImportOpen] = useState(false);
     const { token } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -104,6 +105,7 @@ const TopBar = ({ onMenuClick }) => {
 
             if (response.data.success) {
                 setImportData(response.data.data);
+                setIsMobileImportOpen(false);
                 const count = response.data.data?.video_count || response.data.data?.videos?.length;
                 toast.success(count ? `Loaded ${count} videos! Ready to save.` : "Ready to save!", { id: toastId });
             } else {
@@ -153,10 +155,11 @@ const TopBar = ({ onMenuClick }) => {
     const handleCancel = () => {
         setImportData(null);
         setUrl('');
+        setIsMobileImportOpen(false);
     };
 
     return (
-        <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm transition-colors duration-200 w-full shrink-0">
+        <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm transition-colors duration-200 w-full shrink-0 relative">
             {/* Top Bar Header */}
             <div className="flex items-stretch justify-between h-16 sm:h-20 w-full px-2 sm:px-4">
                 {/* Left Side: Logo & Section Title */}
@@ -238,29 +241,19 @@ const TopBar = ({ onMenuClick }) => {
                         </button>
                     </div>
 
-                    {/* Mobile Import Bar (on Home only) */}
+                    {/* Mobile Import Trigger Pill (on Home only) */}
                     {!isLearningHub && !isSocialHub && !isLiveRoomsPage && (
-                        <div className="flex md:hidden flex-1 max-w-[200px] min-w-0 bg-white dark:bg-gray-700 border border-orange-100 dark:border-gray-600 rounded-full pl-2.5 pr-1 py-0.5 items-center gap-1.5 shadow-sm">
-                            <svg viewBox="0 0 24 24" className="w-[14px] h-[14px] text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                        <button
+                            onClick={() => setIsMobileImportOpen(true)}
+                            className="flex md:hidden items-center gap-1.5 bg-orange-50/80 dark:bg-gray-700/80 hover:bg-orange-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 border border-orange-200/80 dark:border-gray-600 rounded-full px-2.5 py-1 text-[11px] font-bold shrink-0 shadow-sm active:scale-95 transition-all cursor-pointer"
+                            title="Import YouTube Video"
+                        >
+                            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.522 3.5 12 3.5 12 3.5s-7.522 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.029 0 12 0 12s0 3.971.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.478 20.5 12 20.5 12 20.5s7.522 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.971 24 12 24 12s0-3.971-.502-5.837z" />
                                 <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="white" />
                             </svg>
-                            <input
-                                type="text"
-                                placeholder="Paste YouTube link"
-                                className="w-full bg-transparent outline-none text-[11px] text-gray-800 dark:text-gray-200 placeholder-gray-400 font-semibold"
-                                value={url}
-                                onChange={(e) => setUrl(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleImport()}
-                            />
-                            <button 
-                                onClick={handleImport} 
-                                disabled={loading}
-                                className="bg-[#FF5100] text-white rounded-full px-3 py-1 font-bold text-[9px] uppercase shrink-0 active:scale-95 transition-transform cursor-pointer"
-                            >
-                                {loading ? "..." : "Import"}
-                            </button>
-                        </div>
+                            <span className="text-[11px] font-extrabold text-[#FF5100]">Import</span>
+                        </button>
                     )}
                     
                     {/* Bell Notification Action */}
@@ -292,6 +285,41 @@ const TopBar = ({ onMenuClick }) => {
                     </button>
                 </div>
             </div>
+
+            {/* Mobile Expandable Import Bar (Overlay) */}
+            {isMobileImportOpen && (
+                <div className="absolute inset-0 z-50 bg-white dark:bg-gray-800 flex items-center px-2.5 sm:px-4 gap-2 shadow-md">
+                    <div className="flex flex-1 items-center bg-gray-50 dark:bg-gray-700/90 border border-orange-200 dark:border-gray-600 rounded-full pl-3 pr-1 py-1 gap-2 min-w-0 shadow-inner">
+                        <svg viewBox="0 0 24 24" className="w-4 h-4 text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.522 3.5 12 3.5 12 3.5s-7.522 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.029 0 12 0 12s0 3.971.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.478 20.5 12 20.5 12 20.5s7.522 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.971 24 12 24 12s0-3.971-.502-5.837z" />
+                            <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="white" />
+                        </svg>
+                        <input
+                            type="text"
+                            autoFocus
+                            placeholder="Paste YouTube playlist or video link..."
+                            className="w-full min-w-0 bg-transparent outline-none text-xs text-gray-800 dark:text-gray-200 placeholder-gray-400 font-semibold"
+                            value={url}
+                            onChange={(e) => setUrl(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleImport()}
+                        />
+                        <button
+                            onClick={handleImport}
+                            disabled={loading}
+                            className="bg-[#FF5100] text-white rounded-full px-3 py-1 font-bold text-[10px] uppercase shrink-0 active:scale-95 transition-transform cursor-pointer"
+                        >
+                            {loading ? "..." : "Import"}
+                        </button>
+                    </div>
+                    <button
+                        onClick={() => setIsMobileImportOpen(false)}
+                        className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-full shrink-0 active:scale-90 transition-transform cursor-pointer"
+                        title="Close"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+            )}
 
             {/* Learning Hub Subsections Bar (Mobile Only: lg:hidden) - Perfectly equal gaps, fixed non-scrollable */}
             {isLearningHub && (
