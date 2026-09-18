@@ -13,7 +13,8 @@ export default function UserAvatar({
   name = 'User',
   className = "w-10 h-10 rounded-full",
   textClassName = "",
-  alt
+  alt,
+  loading = "eager"
 }) {
   const [displaySrc, setDisplaySrc] = useState(src);
   const [imgError, setImgError] = useState(false);
@@ -113,7 +114,7 @@ export default function UserAvatar({
       alt={alt || name || 'Avatar'}
       className={`object-cover shrink-0 ${className}`}
       onError={handleImageError}
-      loading="lazy"
+      loading={loading}
       referrerPolicy="no-referrer"
     />
   );

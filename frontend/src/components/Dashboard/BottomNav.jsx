@@ -93,14 +93,22 @@ const BottomNav = () => {
                             >
                                 <div className={`transition-all duration-300 z-10 flex flex-col items-center justify-center ${isActive ? 'scale-105 text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
                                     {item.name === 'Profile' ? (
-                                        <div className={`w-[22px] h-[22px] rounded-full overflow-hidden border transition-all ${isActive ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-gray-300 dark:border-gray-600'}`}>
-                                            <UserAvatar 
-                                                src={socialUser?.profilePicture || socialUser?.avatar} 
-                                                name={socialUser?.name} 
-                                                className="w-full h-full rounded-full" 
-                                                textClassName="text-[10px] font-bold"
+                                        (socialUser?.profilePicture || socialUser?.avatar) ? (
+                                            <div className={`w-[22px] h-[22px] rounded-full overflow-hidden border transition-all ${isActive ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-gray-300 dark:border-gray-600'}`}>
+                                                <UserAvatar 
+                                                    src={socialUser?.profilePicture || socialUser?.avatar} 
+                                                    name={socialUser?.name} 
+                                                    className="w-full h-full rounded-full" 
+                                                    loading="eager"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <User 
+                                                size={22} 
+                                                strokeWidth={isActive ? 2.5 : 2} 
+                                                className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
                                             />
-                                        </div>
+                                        )
                                     ) : (
                                         <item.icon 
                                             size={22} 

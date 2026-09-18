@@ -373,8 +373,10 @@ if (typeof window !== 'undefined') {
         });
 
         let permStatus = await PushNotifications.checkPermissions();
-        if (permStatus.receive === 'prompt') {
-          permStatus = await PushNotifications.requestPermissions();
+        if (permStatus.receive === 'prompt' || permStatus.receive === 'prompt-with-rationale') {
+          permStatus = await PushNotifications.requestPermissions({
+            permissions: ['alert', 'badge', 'sound']
+          });
         }
         if (permStatus.receive === 'granted') {
           if (Capacitor.getPlatform() === 'android') {
@@ -395,14 +397,19 @@ if (typeof window !== 'undefined') {
               console.warn('[Capacitor] Error creating notification channel:', chanErr);
             }
           }
-          await PushNotifications.register();
-          
+
           PushNotifications.addListener('registration', async (token) => {
-            console.log('Capacitor native FCM token registered:', token.value);
+            console.log('Capacitor native push/FCM token registered:', token.value);
             localStorage.setItem('native_fcm_token', token.value);
             await saveAnonymousFcmToken(token.value);
             await saveNativeFcmToken(token.value);
           });
+
+          PushNotifications.addListener('registrationError', (error) => {
+            console.warn('[Capacitor] Error registering for push notifications:', error);
+          });
+
+          await PushNotifications.register();
         }
       }
     } catch (e) {
