@@ -53,6 +53,8 @@ router.post('/oauth-login/', authMiddleware, authController.loginOrRegister);
 router.post('/auth/apple', authController.handleAppleLogin);
 router.post('/auth/apple-login', authController.handleAppleLogin);
 router.post('/auth/demo-login', authController.handleDemoReviewerLogin);
+router.post('/auth/linkedin', authController.handleLinkedInLogin);
+router.post('/auth/linkedin-login', authController.handleLinkedInLogin);
 router.post('/profile/', authMiddleware, authController.getProfile);
 router.delete('/profile', authMiddleware, authController.deleteAccount);
 router.post('/delete-account', authMiddleware, authController.deleteAccount);

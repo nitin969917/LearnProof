@@ -5,6 +5,7 @@ import BottomNav from "./BottomNav";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, Menu, Plus, RefreshCw, X, Users } from "lucide-react";
 import ProfileModal from "./ProfileModal";
+import StudentProfileSetupModal from "../Common/StudentProfileSetupModal";
 import { useAuth } from "../../context/AuthContext.jsx";
 import socialApi from "../../api/socialApi.js";
 import { useSocialStatusStore } from "../../store/socialStatusStore.js";
@@ -720,6 +721,7 @@ const DashboardLayout = () => {
                 isOpen={isProfileModalOpen}
                 onClose={() => setIsProfileModalOpen(false)}
             />
+            <StudentProfileSetupModal />
         </div>
     );
 

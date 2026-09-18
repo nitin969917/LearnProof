@@ -81,6 +81,7 @@ const TermsOfService = lazyWithRetry(() => import('./components/Common/TermsOfSe
 const DownloadPage = lazyWithRetry(() => import('./components/Common/DownloadPage'));
 const AmbassadorLanding = lazyWithRetry(() => import('./components/Common/AmbassadorLanding'));
 const AmbassadorDashboard = lazyWithRetry(() => import('./components/Dashboard/AmbassadorDashboard'));
+const LinkedInCallback = lazyWithRetry(() => import('./components/Common/LinkedInCallback'));
 
 const PageLoader = () => (
     <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white">
@@ -527,6 +528,7 @@ const App = () => {
                                 <Route path='/support' element={<Support />} />
                                 <Route path='/delete-account' element={<DeleteAccount />} />
                                 <Route path='/login' element={<LoginPage />} />
+                                <Route path='/auth/linkedin/callback' element={<LinkedInCallback />} />
                                 <Route path='/download' element={<DownloadPage />} />
                                 <Route path='/ambassador' element={<AmbassadorLanding />} />
                                 <Route path='/referrals' element={<AmbassadorLanding />} />

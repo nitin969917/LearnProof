@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const matrixService = require('../services/matrix.service');
 const cacheService = require('../services/cache.service');
 const JWT_SECRET = process.env.JWT_SECRET || 'learnproof_default_secret_9988';
@@ -320,6 +321,169 @@ const deleteAccount = async (req, res) => {
     }
 };
 
+/**
+ * LinkedIn Sign-In Handler (OpenID Connect)
+ */
+const handleLinkedInLogin = async (req, res) => {
+    try {
+        const { code, redirectUri } = req.body;
+        if (!code) {
+            return res.status(400).json({ error: 'Missing LinkedIn authorization code' });
+        }
+
+        const clientId = process.env.LINKEDIN_CLIENT_ID || '77qo9i0sx1sbav';
+        const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
+        if (!clientSecret) {
+            console.error('[LinkedIn Auth] Missing LINKEDIN_CLIENT_SECRET in environment');
+            return res.status(500).json({ error: 'LinkedIn authentication is not properly configured on server' });
+        }
+        const targetRedirectUri = redirectUri || process.env.LINKEDIN_REDIRECT_URI || 'https://learnproofai.com/auth/linkedin/callback';
+
+        // 1. Exchange authorization code for LinkedIn access token
+        const params = new URLSearchParams();
+        params.append('grant_type', 'authorization_code');
+        params.append('code', code);
+        params.append('client_id', clientId);
+        params.append('client_secret', clientSecret);
+        params.append('redirect_uri', targetRedirectUri);
+
+        const tokenResponse = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', params.toString(), {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+
+        const { access_token } = tokenResponse.data;
+        if (!access_token) {
+            return res.status(400).json({ error: 'Failed to retrieve access token from LinkedIn' });
+        }
+
+        // 2. Fetch User Profile Info via OpenID Connect UserInfo endpoint
+        const userInfoResponse = await axios.get('https://api.linkedin.com/v2/userinfo', {
+            headers: {
+                'Authorization': `Bearer ${access_token}`
+            }
+        });
+
+        const userInfo = userInfoResponse.data;
+        console.log('[LinkedIn Auth] UserInfo received:', userInfo.sub, userInfo.email, userInfo.name);
+
+        const linkedinSub = userInfo.sub;
+        const uid = `linkedin_${linkedinSub}`;
+        const userEmail = userInfo.email ? userInfo.email.toLowerCase() : `${linkedinSub}@linkedin.user`;
+        const displayName = userInfo.name || [userInfo.given_name, userInfo.family_name].filter(Boolean).join(' ') || 'LinkedIn User';
+        const pictureUrl = userInfo.picture || '';
+
+        // 3. Check if user already exists by uid or email in UserProfile
+        let user = await prisma.userProfile.findUnique({ where: { uid } });
+        if (!user && userEmail) {
+            user = await prisma.userProfile.findUnique({ where: { email: userEmail } });
+            if (user && !user.uid.startsWith('linkedin_')) {
+                // Link account
+                user = await prisma.userProfile.update({
+                    where: { id: user.id },
+                    data: {
+                        uid,
+                        profile_pic: user.profile_pic || pictureUrl
+                    }
+                });
+            }
+        }
+
+        let isNewUser = false;
+        if (!user) {
+            isNewUser = true;
+            user = await prisma.userProfile.create({
+                data: {
+                    uid,
+                    email: userEmail,
+                    name: displayName,
+                    profile_pic: pictureUrl
+                }
+            });
+        } else if (!user.profile_pic && pictureUrl) {
+            user = await prisma.userProfile.update({
+                where: { id: user.id },
+                data: { profile_pic: pictureUrl }
+            });
+        }
+
+        // Also ensure user exists in social users DB (datingPrisma)
+        try {
+            const datingPrisma = require('../utils/datingPrisma');
+            const existingSocial = await datingPrisma.user.findFirst({
+                where: { OR: [{ email: userEmail }, { googleId: uid }] }
+            });
+            if (!existingSocial) {
+                await datingPrisma.user.create({
+                    data: {
+                        name: displayName,
+                        email: userEmail,
+                        googleId: uid,
+                        profilePicture: pictureUrl
+                    }
+                });
+            }
+        } catch (socialErr) {
+            console.warn('[LinkedIn Auth] Social user sync skipped/warning:', socialErr.message);
+        }
+
+        // Cache profile in Redis
+        const cacheKey = `user:profile:${uid}`;
+        await cacheService.set(cacheKey, user, 3600);
+
+        // Generate standard 30-day session token
+        const newSessionToken = jwt.sign(
+            { uid: user.uid, email: user.email, name: user.name, picture: user.profile_pic || '', id: user.id },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+
+        const responseData = {
+            ...user,
+            token: newSessionToken,
+            isNewUser
+        };
+
+        // Provision Matrix chat if enabled
+        if (matrixService.ENABLE_MATRIX_CHAT) {
+            try {
+                const matrixCacheKey = `matrix:creds:${user.id}`;
+                const cachedCreds = await cacheService.get(matrixCacheKey);
+                if (cachedCreds) {
+                    responseData.matrixCredentials = cachedCreds;
+                } else {
+                    const matrixUsername = `user_${user.id}`;
+                    const matrixPassword = crypto
+                        .createHmac('sha256', JWT_SECRET)
+                        .update(user.uid)
+                        .digest('hex');
+                    const matrixCreds = await matrixService.registerUser(matrixUsername, matrixPassword);
+                    if (matrixCreds) {
+                        const credsPayload = {
+                            userId: matrixCreds.userId,
+                            accessToken: matrixCreds.accessToken,
+                            homeserverUrl: process.env.MATRIX_CLIENT_HOMESERVER_URL || process.env.MATRIX_HOMESERVER_URL || 'http://localhost:8009'
+                        };
+                        responseData.matrixCredentials = credsPayload;
+                        await cacheService.set(matrixCacheKey, credsPayload, 43200);
+                    }
+                }
+            } catch (matrixErr) {
+                console.warn('Matrix sync warning on LinkedIn login:', matrixErr.message);
+            }
+        }
+
+        return res.status(200).json(responseData);
+    } catch (err) {
+        console.error('LinkedIn Sign-In error:', err.response?.data || err.message);
+        return res.status(500).json({ 
+            error: 'Failed to authenticate with LinkedIn', 
+            details: err.response?.data?.error_description || err.message 
+        });
+    }
+};
+
 module.exports = {
     loginOrRegister,
     getProfile,
@@ -327,5 +491,6 @@ module.exports = {
     getPublicStats,
     handleAppleLogin,
     handleDemoReviewerLogin,
+    handleLinkedInLogin,
     deleteAccount
 };
