@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const datingPrisma = require('../utils/datingPrisma');
 const { generateIntuition, translateText, answerVideoDoubt } = require('../services/ai.service');
 const cacheService = require('../services/cache.service');
 
@@ -296,7 +297,7 @@ const askVideoDoubt = async (req, res) => {
 const reportContent = async (req, res) => {
     try {
         const { targetType, targetId, reason, details } = req.body;
-        const reporterId = req.user?.id || 'anonymous';
+        const reporterId = String(req.user?.id || 'anonymous');
         const reporterEmail = req.user?.email || 'anonymous';
 
         if (!targetType || !targetId || !reason) {
@@ -304,21 +305,28 @@ const reportContent = async (req, res) => {
         }
 
         const reportRecord = {
-            id: Date.now(),
-            targetType,
-            targetId,
-            reason,
-            details: details || '',
+            targetType: String(targetType),
+            targetId: String(targetId),
+            reason: String(reason),
+            details: String(details || ''),
             reporterId,
-            reporterEmail,
-            createdAt: new Date().toISOString()
+            reporterEmail
         };
 
         try {
-            await cacheService.set(`report:${reportRecord.id}`, reportRecord, 86400 * 7);
+            await datingPrisma.$executeRaw`
+                INSERT INTO "social_reports" ("targetType", "targetId", "reason", "details", "status", "reporterId", "reporterEmail", "createdAt", "updatedAt")
+                VALUES (${reportRecord.targetType}, ${reportRecord.targetId}, ${reportRecord.reason}, ${reportRecord.details}, 'pending', ${reportRecord.reporterId}, ${reportRecord.reporterEmail}, NOW(), NOW())
+            `;
+        } catch (dbErr) {
+            console.error('Failed to insert report into database:', dbErr);
+        }
+
+        try {
+            await cacheService.set(`report:${Date.now()}`, reportRecord, 86400 * 7);
         } catch (e) {}
 
-        console.log(`[UGC Moderation] New report received:`, reportRecord);
+        console.log(`[UGC Moderation] New report received and stored:`, reportRecord);
 
         return res.status(200).json({
             success: true,

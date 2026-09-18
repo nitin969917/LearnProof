@@ -28,8 +28,27 @@ const datingPrisma = new PrismaClient({
       ADD COLUMN IF NOT EXISTS "isStartedNotificationSent" BOOLEAN NOT NULL DEFAULT false;
     `);
     await datingPrisma.$executeRawUnsafe(`
-      ALTER TABLE "social_users" 
-      ADD COLUMN IF NOT EXISTS "coverImage" TEXT;
+      CREATE TABLE IF NOT EXISTS "social_reports" (
+        "id" SERIAL PRIMARY KEY,
+        "targetType" VARCHAR(50) NOT NULL DEFAULT 'post',
+        "targetId" VARCHAR(100) NOT NULL,
+        "reason" VARCHAR(255) NOT NULL,
+        "details" TEXT,
+        "status" VARCHAR(50) NOT NULL DEFAULT 'pending',
+        "reporterId" VARCHAR(100),
+        "reporterEmail" VARCHAR(255),
+        "actionTaken" VARCHAR(100),
+        "resolvedAt" TIMESTAMP WITH TIME ZONE,
+        "resolvedBy" VARCHAR(255),
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+    await datingPrisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "idx_social_reports_status" ON "social_reports"("status");
+    `);
+    await datingPrisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "idx_social_reports_target" ON "social_reports"("targetType", "targetId");
     `);
   } catch (err) {
     // Ignore if not supported by current dialect or already exists

@@ -139,6 +139,12 @@ router.post('/admin/notification-templates/', authMiddleware, isAdminMiddleware,
 router.get('/admin/apps', authMiddleware, isAdminMiddleware, adminController.getApps);
 router.post('/admin/apps/upload', authMiddleware, isAdminMiddleware, uploadApp.single('appFile'), adminController.uploadAppFile);
 
+// Admin UGC Moderation & Reports
+router.get('/admin/reports', authMiddleware, isAdminMiddleware, adminController.getReportedContent);
+router.post('/admin/reports/:id/action', authMiddleware, isAdminMiddleware, adminController.handleReportAction);
+router.delete('/admin/reports/:id', authMiddleware, isAdminMiddleware, adminController.deleteReport);
+router.delete('/admin/social/posts/:id', authMiddleware, isAdminMiddleware, adminController.deleteSocialPost);
+
 // Messages & Inbox
 router.post('/messages/send/', authMiddleware, isAdminMiddleware, messageController.sendMessage);
 router.post('/messages/inbox/', authMiddleware, messageController.getMessages);

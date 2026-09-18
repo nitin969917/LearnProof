@@ -1,5 +1,7 @@
 const prisma = require('../lib/prisma');
 const redis = require('../lib/redis');
+const datingPrisma = require('../utils/datingPrisma');
+const cacheService = require('../services/cache.service');
 
 /**
  * Helper to calculate percentage growth
@@ -609,6 +611,247 @@ const uploadAppFile = async (req, res) => {
     }
 };
 
+/**
+ * UGC Content Moderation: Get all reports with counts and enriched content
+ */
+const getReportedContent = async (req, res) => {
+    try {
+        const { status, targetType, page = 1, limit = 50 } = req.query;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        let whereClauses = [];
+        if (status && status !== 'all') {
+            whereClauses.push(`status = '${status.replace(/'/g, "''")}'`);
+        }
+        if (targetType && targetType !== 'all') {
+            whereClauses.push(`"targetType" = '${targetType.replace(/'/g, "''")}'`);
+        }
+
+        const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+        // Fetch counts
+        const [counts] = await datingPrisma.$queryRawUnsafe(`
+            SELECT 
+                COUNT(*)::int as total,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END)::int as pending,
+                COUNT(CASE WHEN status = 'resolved' THEN 1 END)::int as resolved,
+                COUNT(CASE WHEN status = 'dismissed' THEN 1 END)::int as dismissed
+            FROM "social_reports"
+        `);
+
+        // Fetch reports
+        const reports = await datingPrisma.$queryRawUnsafe(`
+            SELECT * FROM "social_reports"
+            ${whereSql}
+            ORDER BY "createdAt" DESC
+            LIMIT ${parseInt(limit)} OFFSET ${offset}
+        `);
+
+        // Enrich post reports with live post & author details
+        const postIds = reports
+            .filter(r => r.targetType === 'post' && !isNaN(parseInt(r.targetId)))
+            .map(r => parseInt(r.targetId));
+
+        let postMap = new Map();
+        if (postIds.length > 0) {
+            const posts = await datingPrisma.post.findMany({
+                where: { id: { in: postIds } },
+                include: {
+                    author: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            profilePicture: true,
+                            collegeName: true,
+                            department: true
+                        }
+                    },
+                    likes: { select: { id: true } },
+                    comments: { select: { id: true } }
+                }
+            });
+            posts.forEach(p => postMap.set(p.id, p));
+        }
+
+        // Check if any reported users exist
+        const userIds = reports
+            .filter(r => r.targetType === 'user' && !isNaN(parseInt(r.targetId)))
+            .map(r => parseInt(r.targetId));
+
+        let userMap = new Map();
+        if (userIds.length > 0) {
+            const users = await datingPrisma.user.findMany({
+                where: { id: { in: userIds } },
+                select: { id: true, name: true, email: true, profilePicture: true, collegeName: true }
+            });
+            users.forEach(u => userMap.set(u.id, u));
+        }
+
+        const enrichedReports = reports.map(r => {
+            let targetContent = null;
+            let targetUser = null;
+
+            if (r.targetType === 'post') {
+                const p = postMap.get(parseInt(r.targetId));
+                if (p) {
+                    targetContent = {
+                        id: p.id,
+                        content: p.content,
+                        image: p.image,
+                        createdAt: p.createdAt,
+                        likesCount: p.likes?.length || 0,
+                        commentsCount: p.comments?.length || 0,
+                        author: p.author,
+                        exists: true
+                    };
+                } else {
+                    targetContent = {
+                        id: parseInt(r.targetId),
+                        exists: false,
+                        message: 'Post has been removed or deleted'
+                    };
+                }
+            } else if (r.targetType === 'user') {
+                const u = userMap.get(parseInt(r.targetId));
+                targetUser = u ? { ...u, exists: true } : { exists: false, message: 'User not found' };
+            }
+
+            return {
+                ...r,
+                targetContent,
+                targetUser
+            };
+        });
+
+        res.json({
+            reports: enrichedReports,
+            counts: {
+                total: counts?.total || 0,
+                pending: counts?.pending || 0,
+                resolved: counts?.resolved || 0,
+                dismissed: counts?.dismissed || 0
+            }
+        });
+    } catch (err) {
+        console.error('getReportedContent error:', err);
+        res.status(500).json({ error: 'Failed to fetch reported content', details: err.message });
+    }
+};
+
+/**
+ * UGC Content Moderation: Take Action on Report
+ */
+const handleReportAction = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { action, deletePost: shouldDeletePost, reasonNote } = req.body;
+        const adminEmail = req.user?.email || 'admin';
+
+        const reports = await datingPrisma.$queryRawUnsafe(`
+            SELECT * FROM "social_reports" WHERE id = ${parseInt(id)} LIMIT 1
+        `);
+        const report = reports?.[0];
+
+        if (!report) {
+            return res.status(404).json({ error: 'Report not found' });
+        }
+
+        const targetId = parseInt(report.targetId);
+
+        if (action === 'delete_post' || shouldDeletePost) {
+            if (report.targetType === 'post' && !isNaN(targetId)) {
+                try {
+                    await datingPrisma.comment.deleteMany({ where: { postId: targetId } });
+                    await datingPrisma.post.delete({ where: { id: targetId } });
+                    await cacheService.delByPattern('user:feed:*');
+                } catch (delErr) {
+                    console.warn('Post deletion notice:', delErr.message);
+                }
+            }
+        }
+
+        let newStatus = 'resolved';
+        let actionTakenText = action;
+
+        if (action === 'dismiss') {
+            newStatus = 'dismissed';
+            actionTakenText = 'Dismissed (Content Kept)';
+        } else if (action === 'delete_post') {
+            newStatus = 'resolved';
+            actionTakenText = 'Post Deleted by Admin';
+        } else if (action === 'ban_user') {
+            newStatus = 'resolved';
+            actionTakenText = 'Author Banned & Post Removed';
+        } else if (action === 'resolve') {
+            newStatus = 'resolved';
+            actionTakenText = reasonNote || 'Reviewed and Resolved';
+        }
+
+        await datingPrisma.$executeRawUnsafe(`
+            UPDATE "social_reports"
+            SET 
+                status = '${newStatus}',
+                "actionTaken" = '${actionTakenText.replace(/'/g, "''")}',
+                "resolvedAt" = NOW(),
+                "resolvedBy" = '${adminEmail.replace(/'/g, "''")}',
+                "updatedAt" = NOW()
+            WHERE id = ${parseInt(id)}
+        `);
+
+        res.json({
+            success: true,
+            message: `Report updated: ${actionTakenText}`
+        });
+    } catch (err) {
+        console.error('handleReportAction error:', err);
+        res.status(500).json({ error: 'Failed to process report action', details: err.message });
+    }
+};
+
+/**
+ * UGC Content Moderation: Delete Report Log
+ */
+const deleteReport = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await datingPrisma.$executeRawUnsafe(`
+            DELETE FROM "social_reports" WHERE id = ${parseInt(id)}
+        `);
+        res.json({ success: true, message: 'Report log deleted successfully' });
+    } catch (err) {
+        console.error('deleteReport error:', err);
+        res.status(500).json({ error: 'Failed to delete report log' });
+    }
+};
+
+/**
+ * UGC Content Moderation: Delete Social Post Directly
+ */
+const deleteSocialPost = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const postId = parseInt(id);
+        if (isNaN(postId)) return res.status(400).json({ error: 'Invalid post ID' });
+
+        await datingPrisma.comment.deleteMany({ where: { postId } });
+        await datingPrisma.post.delete({ where: { id: postId } });
+        await cacheService.delByPattern('user:feed:*');
+
+        // Mark any pending reports for this post as resolved
+        await datingPrisma.$executeRawUnsafe(`
+            UPDATE "social_reports"
+            SET status = 'resolved', "actionTaken" = 'Post Deleted by Admin', "resolvedAt" = NOW(), "resolvedBy" = '${(req.user?.email || 'admin').replace(/'/g, "''")}'
+            WHERE "targetType" = 'post' AND "targetId" = '${postId}'
+        `);
+
+        res.json({ success: true, message: 'Post and associated comments removed from feed' });
+    } catch (err) {
+        console.error('deleteSocialPost error:', err);
+        res.status(500).json({ error: 'Failed to delete post', details: err.message });
+    }
+};
+
 module.exports = {
     getDashboardStats,
     getUsers,
@@ -618,5 +861,9 @@ module.exports = {
     getUserDetails,
     getAnalyticsData,
     getApps,
-    uploadAppFile
+    uploadAppFile,
+    getReportedContent,
+    handleReportAction,
+    deleteReport,
+    deleteSocialPost
 };
