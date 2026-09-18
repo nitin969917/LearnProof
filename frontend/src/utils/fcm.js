@@ -9,6 +9,24 @@ import { useSocialMessageStore } from '../store/socialMessageStore';
  * Utility to request user's notification permission, register service worker,
  * retrieve the FCM token, and save it to the backend server.
  */
+export const getDevicePlatform = () => {
+  if (typeof window !== 'undefined' && window.Capacitor?.getPlatform) {
+    const p = window.Capacitor.getPlatform();
+    if (p === 'ios') return 'ios';
+    if (p === 'android') return 'android';
+  }
+  const isTWA = typeof window !== 'undefined' && (
+    window.matchMedia?.('(display-mode: standalone)')?.matches || 
+    window.navigator?.standalone === true || 
+    document.referrer?.includes('android-app://')
+  );
+  return isTWA ? 'twa' : 'web';
+};
+
+/**
+ * Utility to request user's notification permission, register service worker,
+ * retrieve the FCM token, and save it to the backend server.
+ */
 export const saveNativeFcmToken = async (token) => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
   const googleToken = localStorage.getItem('google_token');
@@ -20,16 +38,17 @@ export const saveNativeFcmToken = async (token) => {
 
   try {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const deviceType = getDevicePlatform();
     await axios.post(`${backendUrl}/api/save-fcm-token`, {
       token,
-      deviceType: 'twa',
+      deviceType,
       timezone
     }, {
       headers: {
         Authorization: `Bearer ${googleToken}`
       }
     });
-    console.log("Native FCM Token synchronized with backend database successfully.");
+    console.log(`Native FCM Token synchronized with backend database successfully (${deviceType}).`);
   } catch (error) {
     console.error("Failed to synchronize native FCM token with backend:", error);
   }
@@ -39,24 +58,49 @@ export const saveAnonymousFcmToken = async (token) => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
   try {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-    // Detect PWA or TWA display modes
-    const isTWA = window.matchMedia('(display-mode: standalone)').matches || 
-                  window.navigator.standalone === true || 
-                  document.referrer.includes('android-app://');
+    const deviceType = getDevicePlatform();
 
     await axios.post(`${backendUrl}/api/v1/devices/anonymous-token`, {
       token,
-      deviceType: isTWA ? 'twa' : 'web',
+      deviceType,
       timezone
     });
-    console.log("Anonymous FCM Token synchronized with backend database successfully.");
+    console.log(`Anonymous FCM Token synchronized with backend database successfully (${deviceType}).`);
   } catch (error) {
     console.error("Failed to synchronize anonymous FCM token with backend:", error);
   }
 };
 
 export const requestNotificationPermissionAndGetToken = async () => {
-  // Check if we are running in the native mobile app and have a native token
+  // Check if running inside Capacitor Native App (iOS or Android)
+  const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
+
+  if (isCapacitorNative) {
+    try {
+      const { PushNotifications } = await import('@capacitor/push-notifications');
+      let permStatus = await PushNotifications.checkPermissions();
+      if (permStatus.receive === 'prompt' || permStatus.receive === 'prompt-with-rationale') {
+        permStatus = await PushNotifications.requestPermissions({
+          permissions: ['alert', 'badge', 'sound']
+        });
+      }
+      if (permStatus.receive === 'granted') {
+        await PushNotifications.register();
+      }
+    } catch (capErr) {
+      console.warn("[Capacitor] Push permission request failed:", capErr);
+    }
+
+    const nativeToken = localStorage.getItem('native_fcm_token');
+    if (nativeToken) {
+      console.log("Found native FCM token in localStorage:", nativeToken);
+      await saveNativeFcmToken(nativeToken);
+      return nativeToken;
+    }
+    return null;
+  }
+
+  // Check if we are running in a browser with a stored native token
   const nativeToken = localStorage.getItem('native_fcm_token');
   if (nativeToken) {
     console.log("Found native FCM token in localStorage:", nativeToken);
@@ -372,6 +416,18 @@ if (typeof window !== 'undefined') {
           }
         });
 
+        // Attach registration listeners BEFORE requesting permissions or calling register()
+        PushNotifications.addListener('registration', async (token) => {
+          console.log('[Capacitor] Native push token registered:', token.value);
+          localStorage.setItem('native_fcm_token', token.value);
+          await saveAnonymousFcmToken(token.value);
+          await saveNativeFcmToken(token.value);
+        });
+
+        PushNotifications.addListener('registrationError', (error) => {
+          console.warn('[Capacitor] Error registering for push notifications:', error);
+        });
+
         let permStatus = await PushNotifications.checkPermissions();
         if (permStatus.receive === 'prompt' || permStatus.receive === 'prompt-with-rationale') {
           permStatus = await PushNotifications.requestPermissions({
@@ -397,17 +453,6 @@ if (typeof window !== 'undefined') {
               console.warn('[Capacitor] Error creating notification channel:', chanErr);
             }
           }
-
-          PushNotifications.addListener('registration', async (token) => {
-            console.log('Capacitor native push/FCM token registered:', token.value);
-            localStorage.setItem('native_fcm_token', token.value);
-            await saveAnonymousFcmToken(token.value);
-            await saveNativeFcmToken(token.value);
-          });
-
-          PushNotifications.addListener('registrationError', (error) => {
-            console.warn('[Capacitor] Error registering for push notifications:', error);
-          });
 
           await PushNotifications.register();
         }

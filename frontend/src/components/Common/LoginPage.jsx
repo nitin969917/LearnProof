@@ -172,14 +172,50 @@ const LoginPage = () => {
         }
     };
 
+    const platform = (typeof window !== 'undefined' && window.Capacitor?.getPlatform?.()) || 'web';
+    const isAndroid = platform === 'android';
+    const isIOS = platform === 'ios';
+    const isAppleDevice = typeof navigator !== 'undefined' && /Macintosh|iPhone|iPad|iPod/.test(navigator.userAgent);
+    const showAppleLogin = isIOS || (!isAndroid && isAppleDevice);
+
     const handleManualGoogleLogin = async () => {
-        // 1. Check if running in Capacitor Native app (Android or iOS) synchronously without network import overhead
+        // 1. Check if running in Capacitor Native app (Android or iOS)
         const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
 
         if (isCapacitorNative) {
+            setIsAuthenticating(true);
+            sessionStorage.setItem("is_authenticating", "true");
+
+            // Option A: On Android, use @codetrix-studio/capacitor-google-auth (GoogleAuth) registered natively in MainActivity.java
+            if (platform === 'android') {
+                try {
+                    const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+                    await GoogleAuth.initialize({
+                        clientId: '549492309059-crnp91q3v5ej09givjr6b10re7189ks9.apps.googleusercontent.com',
+                        scopes: ['profile', 'email'],
+                        grantOfflineAccess: true,
+                    });
+                    const googleUser = await GoogleAuth.signIn();
+                    console.log("Capacitor GoogleAuth response on Android:", googleUser);
+                    const idToken = googleUser?.authentication?.idToken || googleUser?.idToken;
+                    if (idToken) {
+                        await handleLoginFlow(idToken);
+                        return;
+                    }
+                } catch (gAuthErr) {
+                    console.warn("Android native GoogleAuth attempt failed:", gAuthErr);
+                    const errStr = gAuthErr?.message || (typeof gAuthErr === 'object' ? JSON.stringify(gAuthErr) : String(gAuthErr));
+                    if (errStr.includes('canceled') || errStr.includes('12501') || errStr.includes('CANCELED') || errStr.includes('USER_CANCELLED')) {
+                        setIsAuthenticating(false);
+                        sessionStorage.removeItem("is_authenticating");
+                        return;
+                    }
+                    // If plugin is not implemented or failed, continue to fallback without alerting
+                }
+            }
+
+            // Option B: Try @capgo/capacitor-social-login (registered for iOS SPM and newer builds)
             try {
-                setIsAuthenticating(true);
-                sessionStorage.setItem("is_authenticating", "true");
                 const { SocialLogin } = await import('@capgo/capacitor-social-login');
                 await SocialLogin.initialize({
                     google: {
@@ -200,25 +236,34 @@ const LoginPage = () => {
                 if (idToken) {
                     await handleLoginFlow(idToken);
                     return;
-                } else {
+                }
+            } catch (socialErr) {
+                console.warn("SocialLogin attempt failed/not implemented:", socialErr);
+                const errStr = socialErr?.message || (typeof socialErr === 'object' ? JSON.stringify(socialErr) : String(socialErr));
+                if (errStr.includes('canceled') || errStr.includes('12501') || errStr.includes('CANCELED') || errStr.includes('USER_CANCELLED')) {
                     setIsAuthenticating(false);
                     sessionStorage.removeItem("is_authenticating");
-                    toast.error("Google Sign-In failed: No ID token returned.");
                     return;
                 }
-            } catch (capErr) {
-                console.error("Capacitor native Google Sign-In error:", capErr);
-                setIsAuthenticating(false);
-                sessionStorage.removeItem("is_authenticating");
-                if (capErr?.code === 'USER_CANCELLED') {
-                    return;
-                }
-                const errStr = capErr?.message || (typeof capErr === 'object' ? JSON.stringify(capErr) : String(capErr));
-                if (errStr.includes('canceled') || errStr.includes('12501') || errStr.includes('CANCELED') || errStr.includes('USER_CANCELLED')) {
-                    return;
-                }
-                toast.error(errStr || "Google Sign-In failed.");
-                return;
+                // Do NOT show raw "plugin is not implemented" error toast!
+            }
+
+            // Option C: On iOS, try GoogleAuth if SocialLogin was not configured
+            if (platform === 'ios') {
+                try {
+                    const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
+                    await GoogleAuth.initialize({
+                        clientId: '549492309059-6k98pip4c51rdsh69cls1s7ti2s8ci8n.apps.googleusercontent.com',
+                        scopes: ['profile', 'email'],
+                        grantOfflineAccess: true,
+                    });
+                    const googleUser = await GoogleAuth.signIn();
+                    const idToken = googleUser?.authentication?.idToken || googleUser?.idToken;
+                    if (idToken) {
+                        await handleLoginFlow(idToken);
+                        return;
+                    }
+                } catch (_) {}
             }
         }
 
@@ -235,10 +280,10 @@ const LoginPage = () => {
             return;
         }
 
-        // Web (Mobile Browser & Desktop) — Immediate zero-delay redirect
+        // Web (Desktop & Mobile Browser) & Universal Webview Fallback — Immediate zero-delay redirect
         setIsAuthenticating(true);
         sessionStorage.setItem("is_authenticating", "true");
-        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '549492309059-crnp91q3v5ej09givjr6b10re7189ks9.apps.googleusercontent.com';
         const redirectUri = window.location.origin;
         const nonce = Math.random().toString(36).substring(2);
         const redirectTo = resolvePostAuthRedirect();
@@ -519,18 +564,20 @@ const LoginPage = () => {
                             <span>Continue with Google</span>
                         </motion.button>
 
-                        {/* Sign in with Apple (Mandatory for App Store Guideline 4.8) */}
-                        <motion.button 
-                            whileHover={{ scale: 1.01, y: -0.5 }}
-                            whileTap={{ scale: 0.99 }}
-                            onClick={handleManualAppleLogin}
-                            className="w-full flex items-center justify-center gap-2.5 px-6 bg-black text-white hover:bg-zinc-900 border border-black rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.15)] transition-all duration-300 font-bold text-xs h-12 cursor-pointer"
-                        >
-                            <svg className="w-4 h-4 fill-current mb-0.5 shrink-0" viewBox="0 0 170 170">
-                                <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.81-11.96-14.31-5.77-8.8-10.34-18.73-13.72-29.79-3.37-11.06-5.06-21.84-5.06-32.34 0-14.35 3.59-26.06 10.77-35.12 7.18-9.06 16.2-13.67 27.06-13.84 4.58 0 9.77 1.25 15.57 3.75 5.8 2.5 9.78 3.84 11.96 4.02 1.96-.28 5.99-1.68 12.09-4.22 6.1-2.54 11.39-3.71 15.86-3.51 11.85.62 21.6 4.87 29.25 12.75-10.45 6.32-15.58 14.99-15.38 26.01.2 8.78 3.59 16.27 10.18 22.47 6.59 6.2 14.54 9.68 23.85 10.45-2.07 6.1-4.68 12.51-7.83 19.23zM119.22 31.84c0-7.39 2.65-14.18 7.95-20.37 5.3-6.19 11.75-9.97 19.35-11.34.2 1.34.3 2.55.3 3.63 0 7.39-2.65 14.18-7.95 20.37-5.3 6.19-11.75 9.97-19.35 11.34-.2-1.34-.3-2.55-.3-3.63z"/>
-                            </svg>
-                            <span>Continue with Apple</span>
-                        </motion.button>
+                        {/* Sign in with Apple (Mandatory for App Store Guideline 4.8 on iOS) */}
+                        {showAppleLogin && (
+                            <motion.button 
+                                whileHover={{ scale: 1.01, y: -0.5 }}
+                                whileTap={{ scale: 0.99 }}
+                                onClick={handleManualAppleLogin}
+                                className="w-full flex items-center justify-center gap-2.5 px-6 bg-black text-white hover:bg-zinc-900 border border-black rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.15)] transition-all duration-300 font-bold text-xs h-12 cursor-pointer"
+                            >
+                                <svg className="w-4 h-4 fill-current mb-0.5 shrink-0" viewBox="0 0 170 170">
+                                    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.81-11.96-14.31-5.77-8.8-10.34-18.73-13.72-29.79-3.37-11.06-5.06-21.84-5.06-32.34 0-14.35 3.59-26.06 10.77-35.12 7.18-9.06 16.2-13.67 27.06-13.84 4.58 0 9.77 1.25 15.57 3.75 5.8 2.5 9.78 3.84 11.96 4.02 1.96-.28 5.99-1.68 12.09-4.22 6.1-2.54 11.39-3.71 15.86-3.51 11.85.62 21.6 4.87 29.25 12.75-10.45 6.32-15.58 14.99-15.38 26.01.2 8.78 3.59 16.27 10.18 22.47 6.59 6.2 14.54 9.68 23.85 10.45-2.07 6.1-4.68 12.51-7.83 19.23zM119.22 31.84c0-7.39 2.65-14.18 7.95-20.37 5.3-6.19 11.75-9.97 19.35-11.34.2 1.34.3 2.55.3 3.63 0 7.39-2.65 14.18-7.95 20.37-5.3 6.19-11.75 9.97-19.35 11.34-.2-1.34-.3-2.55-.3-3.63z"/>
+                                </svg>
+                                <span>Continue with Apple</span>
+                            </motion.button>
+                        )}
 
                         {/* Terms of Service agreement text */}
                         <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center leading-normal px-2 pt-0.5">

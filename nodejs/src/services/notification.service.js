@@ -243,6 +243,22 @@ const attemptSendNotification = async (userId, token, type, title, body, startOf
                         defaultVibrateTimings: true
                     }
                 },
+                apns: {
+                    headers: {
+                        'apns-priority': '10',
+                        'apns-push-type': 'alert'
+                    },
+                    payload: {
+                        aps: {
+                            alert: {
+                                title,
+                                body
+                            },
+                            badge: 1,
+                            sound: 'default'
+                        }
+                    }
+                },
                 token
             };
             

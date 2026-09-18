@@ -154,6 +154,22 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
             defaultVibrateTimings: true
           },
           data: serializedData
+        },
+        apns: {
+          headers: {
+            'apns-priority': '10',
+            'apns-push-type': 'alert'
+          },
+          payload: {
+            aps: {
+              alert: {
+                title,
+                body
+              },
+              badge: 1,
+              sound: 'default'
+            }
+          }
         }
       });
 

@@ -1,12 +1,46 @@
 const prisma = require('../lib/prisma');
 const admin = require('../lib/firebaseAdmin');
+const axios = require('axios');
+
+/**
+ * Converts a native Apple APNs device token (64 hex characters) to an FCM registration token.
+ */
+const convertApnsToFcmToken = async (apnsToken) => {
+    try {
+        if (!admin || admin.apps.length === 0) return apnsToken;
+        const tokenObj = await admin.app().options.credential.getAccessToken();
+        const accessToken = tokenObj.access_token;
+        if (!accessToken) return apnsToken;
+
+        const bundleId = 'com.learnproof.learn_proof_twa';
+        const response = await axios.post('https://iid.googleapis.com/iid/v1:batchImport', {
+            application: bundleId,
+            sandbox: false,
+            apns_tokens: [apnsToken]
+        }, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.data && response.data.results && response.data.results[0]?.status === 'OK') {
+            const registrationToken = response.data.results[0].registration_token;
+            console.log(`[APNs Converter] Converted APNs token ${apnsToken.substring(0, 10)}... to FCM token ${registrationToken.substring(0, 15)}...`);
+            return registrationToken;
+        }
+    } catch (err) {
+        console.warn('[APNs Converter] Could not convert APNs token to FCM token:', err.response?.data || err.message);
+    }
+    return apnsToken;
+};
 
 /**
  * Saves or updates an FCM token for the authenticated user.
  * Expects { token: string, deviceType?: string, timezone?: string } in body.
  */
 const saveFcmToken = async (req, res) => {
-    const { token, deviceType, timezone } = req.body;
+    let { token, deviceType, timezone } = req.body;
     const user = req.user; // populated by authMiddleware
 
     if (!token) {
@@ -14,6 +48,14 @@ const saveFcmToken = async (req, res) => {
     }
 
     try {
+        // If token is an iOS APNs device token (64-char hex string), attempt conversion to FCM registration token
+        if (/^[0-9a-fA-F]{64}$/.test(token)) {
+            const converted = await convertApnsToFcmToken(token);
+            if (converted && converted !== token) {
+                token = converted;
+            }
+        }
+
         // Upsert the token to associate it with the logged-in user
         // and update deviceType/timezone if they have changed.
         const fcmToken = await prisma.userFcmToken.upsert({
@@ -124,6 +166,22 @@ const sendExplicitPush = async (req, res) => {
                     defaultSound: true,
                     defaultVibrateTimings: true
                 }
+            },
+            apns: {
+                headers: {
+                    'apns-priority': '10',
+                    'apns-push-type': 'alert'
+                },
+                payload: {
+                    aps: {
+                        alert: {
+                            title,
+                            body
+                        },
+                        badge: 1,
+                        sound: 'default'
+                    }
+                }
             }
         });
 
@@ -143,7 +201,7 @@ const sendExplicitPush = async (req, res) => {
             });
 
             if (failedTokens.length > 0) {
-                console.log(`[Admin Push] Cleaning up ${failedTokens.length} stale tokens from database.`);
+                console.log(`[Admin Push] Cleaning up ${failedTokens.length} expired/invalid FCM tokens from DB.`);
                 await prisma.userFcmToken.deleteMany({
                     where: { token: { in: failedTokens } }
                 });
@@ -155,26 +213,28 @@ const sendExplicitPush = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: `Notifications sent successfully to ${response.successCount} devices.`,
-            sentCount: response.successCount,
-            failureCount: response.failureCount
+            message: `Dispatched push notifications. Success: ${response.successCount}, Failed: ${response.failureCount}`,
+            data: {
+                successCount: response.successCount,
+                failureCount: response.failureCount
+            }
         });
 
     } catch (error) {
-        console.error('Error sending admin push notifications:', error);
+        console.error('Error sending explicit push notification:', error);
         res.status(500).json({ error: 'Internal server error', details: error.message });
     }
 };
 
 /**
- * Admin endpoint to fetch all daily notification templates.
+ * Endpoint to retrieve all system notification templates.
  */
 const getNotificationTemplates = async (req, res) => {
     try {
         const templates = await prisma.notificationTemplate.findMany({
-            orderBy: { id: 'asc' }
+            orderBy: { hour: 'asc' }
         });
-        res.status(200).json(templates);
+        res.status(200).json({ success: true, data: templates });
     } catch (error) {
         console.error('Error fetching notification templates:', error);
         res.status(500).json({ error: 'Internal server error', details: error.message });
@@ -182,13 +242,14 @@ const getNotificationTemplates = async (req, res) => {
 };
 
 /**
- * Admin endpoint to update a daily notification template.
+ * Endpoint to update an existing notification template or toggle its status.
+ * Expects { type: string, title: string, body: string, hour: number, minute: number, enabled: boolean } in body.
  */
 const updateNotificationTemplate = async (req, res) => {
     const { type, title, body, hour, minute, enabled } = req.body;
 
     if (!type || !title || !body || hour === undefined || minute === undefined) {
-        return res.status(400).json({ error: 'Type, title, body, hour, and minute are required' });
+        return res.status(400).json({ error: 'All fields (type, title, body, hour, minute) are required' });
     }
 
     try {
@@ -228,13 +289,21 @@ const updateNotificationTemplate = async (req, res) => {
  * Expects { token: string, deviceType?: string, timezone?: string } in body.
  */
 const saveAnonymousFcmToken = async (req, res) => {
-    const { token, deviceType, timezone } = req.body;
+    let { token, deviceType, timezone } = req.body;
 
     if (!token) {
         return res.status(400).json({ error: 'Token is required' });
     }
 
     try {
+        // If token is an iOS APNs device token (64-char hex string), attempt conversion to FCM registration token
+        if (/^[0-9a-fA-F]{64}$/.test(token)) {
+            const converted = await convertApnsToFcmToken(token);
+            if (converted && converted !== token) {
+                token = converted;
+            }
+        }
+
         const anonymousDevice = await prisma.anonymousDevice.upsert({
             where: { token },
             update: {
