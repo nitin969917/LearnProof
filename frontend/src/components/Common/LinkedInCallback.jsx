@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -11,9 +11,11 @@ const LinkedInCallback = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
     const [statusMessage, setStatusMessage] = useState("Connecting with LinkedIn...");
+    const hasProcessedRef = useRef(false);
 
     useEffect(() => {
-        let isCancelled = false;
+        if (hasProcessedRef.current) return;
+        hasProcessedRef.current = true;
 
         const processLinkedInAuth = async () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -31,8 +33,7 @@ const LinkedInCallback = () => {
             }
 
             if (!code) {
-                console.error('[LinkedIn Callback] No authorization code found in URL');
-                toast.error("Missing authorization code from LinkedIn.");
+                console.warn('[LinkedIn Callback] No authorization code found in URL');
                 navigate('/login', { replace: true });
                 return;
             }
@@ -46,8 +47,6 @@ const LinkedInCallback = () => {
                     code,
                     redirectUri
                 });
-
-                if (isCancelled) return;
 
                 if (res.data && res.data.token) {
                     // Log in via AuthContext
@@ -73,19 +72,13 @@ const LinkedInCallback = () => {
                 }
             } catch (err) {
                 console.error('[LinkedIn Callback] Processing failed:', err);
-                if (!isCancelled) {
-                    const errMsg = err.response?.data?.details || err.response?.data?.error || err.message || "Failed to sign in with LinkedIn.";
-                    toast.error(errMsg);
-                    navigate('/login', { replace: true });
-                }
+                const errMsg = err.response?.data?.details || err.response?.data?.error || err.message || "Failed to sign in with LinkedIn.";
+                toast.error(errMsg);
+                navigate('/login', { replace: true });
             }
         };
 
         processLinkedInAuth();
-
-        return () => {
-            isCancelled = true;
-        };
     }, [login, navigate]);
 
     return (
