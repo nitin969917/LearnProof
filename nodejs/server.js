@@ -816,7 +816,7 @@ const corsOptions = {
     callback(null, origin || '*');
   },
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma', 'Expires', 'Accept', 'Origin'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
   credentials: true,
   optionsSuccessStatus: 204,

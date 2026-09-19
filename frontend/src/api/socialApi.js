@@ -10,11 +10,6 @@ const baseURL = `${backendUrl}/api`;
 
 const socialApi = axios.create({
   baseURL,
-  headers: {
-    'Cache-Control': 'no-cache, no-store, must-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0'
-  }
 });
 
 socialApi.interceptors.request.use((config) => {
@@ -32,10 +27,11 @@ socialApi.interceptors.request.use((config) => {
       config.params.token = token;
     }
   }
-  // Ensure iOS WKWebView and Capacitor never serve stale cached responses
-  config.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-  config.headers['Pragma'] = 'no-cache';
-  config.headers['Expires'] = '0';
+  // Add query timestamp on GET to prevent iOS WKWebView aggressive caching without triggering CORS header preflight errors
+  if (config.method && config.method.toLowerCase() === 'get') {
+    config.params = config.params || {};
+    config.params._t = Date.now();
+  }
   return config;
 });
 
