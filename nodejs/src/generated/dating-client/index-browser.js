@@ -249,6 +249,13 @@ exports.Prisma.GroupMessageScalarFieldEnum = {
   senderId: 'senderId'
 };
 
+exports.Prisma.BlockedUserScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  blockedUserId: 'blockedUserId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -276,7 +283,8 @@ exports.Prisma.ModelName = {
   LanguageRoom: 'LanguageRoom',
   Group: 'Group',
   GroupMember: 'GroupMember',
-  GroupMessage: 'GroupMessage'
+  GroupMessage: 'GroupMessage',
+  BlockedUser: 'BlockedUser'
 };
 
 /**

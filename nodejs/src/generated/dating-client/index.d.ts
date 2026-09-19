@@ -68,6 +68,11 @@ export type GroupMember = $Result.DefaultSelection<Prisma.$GroupMemberPayload>
  * 
  */
 export type GroupMessage = $Result.DefaultSelection<Prisma.$GroupMessagePayload>
+/**
+ * Model BlockedUser
+ * 
+ */
+export type BlockedUser = $Result.DefaultSelection<Prisma.$BlockedUserPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -296,6 +301,16 @@ export class PrismaClient<
     * ```
     */
   get groupMessage(): Prisma.GroupMessageDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.blockedUser`: Exposes CRUD operations for the **BlockedUser** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more BlockedUsers
+    * const blockedUsers = await prisma.blockedUser.findMany()
+    * ```
+    */
+  get blockedUser(): Prisma.BlockedUserDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -747,7 +762,8 @@ export namespace Prisma {
     LanguageRoom: 'LanguageRoom',
     Group: 'Group',
     GroupMember: 'GroupMember',
-    GroupMessage: 'GroupMessage'
+    GroupMessage: 'GroupMessage',
+    BlockedUser: 'BlockedUser'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -766,7 +782,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "post" | "friendship" | "message" | "comment" | "crush" | "closeFriendRequest" | "languageRoom" | "group" | "groupMember" | "groupMessage"
+      modelProps: "user" | "post" | "friendship" | "message" | "comment" | "crush" | "closeFriendRequest" | "languageRoom" | "group" | "groupMember" | "groupMessage" | "blockedUser"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1584,6 +1600,80 @@ export namespace Prisma {
           }
         }
       }
+      BlockedUser: {
+        payload: Prisma.$BlockedUserPayload<ExtArgs>
+        fields: Prisma.BlockedUserFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.BlockedUserFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BlockedUserPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.BlockedUserFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BlockedUserPayload>
+          }
+          findFirst: {
+            args: Prisma.BlockedUserFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BlockedUserPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.BlockedUserFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BlockedUserPayload>
+          }
+          findMany: {
+            args: Prisma.BlockedUserFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BlockedUserPayload>[]
+          }
+          create: {
+            args: Prisma.BlockedUserCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BlockedUserPayload>
+          }
+          createMany: {
+            args: Prisma.BlockedUserCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.BlockedUserCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BlockedUserPayload>[]
+          }
+          delete: {
+            args: Prisma.BlockedUserDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BlockedUserPayload>
+          }
+          update: {
+            args: Prisma.BlockedUserUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BlockedUserPayload>
+          }
+          deleteMany: {
+            args: Prisma.BlockedUserDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.BlockedUserUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.BlockedUserUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BlockedUserPayload>[]
+          }
+          upsert: {
+            args: Prisma.BlockedUserUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BlockedUserPayload>
+          }
+          aggregate: {
+            args: Prisma.BlockedUserAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateBlockedUser>
+          }
+          groupBy: {
+            args: Prisma.BlockedUserGroupByArgs<ExtArgs>
+            result: $Utils.Optional<BlockedUserGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.BlockedUserCountArgs<ExtArgs>
+            result: $Utils.Optional<BlockedUserCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1691,6 +1781,7 @@ export namespace Prisma {
     group?: GroupOmit
     groupMember?: GroupMemberOmit
     groupMessage?: GroupMessageOmit
+    blockedUser?: BlockedUserOmit
   }
 
   /* Types for Logging */
@@ -1786,6 +1877,8 @@ export namespace Prisma {
     createdGroups: number
     groupMembers: number
     groupMessages: number
+    blockedUsers: number
+    blockedByUsers: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -1804,6 +1897,8 @@ export namespace Prisma {
     createdGroups?: boolean | UserCountOutputTypeCountCreatedGroupsArgs
     groupMembers?: boolean | UserCountOutputTypeCountGroupMembersArgs
     groupMessages?: boolean | UserCountOutputTypeCountGroupMessagesArgs
+    blockedUsers?: boolean | UserCountOutputTypeCountBlockedUsersArgs
+    blockedByUsers?: boolean | UserCountOutputTypeCountBlockedByUsersArgs
   }
 
   // Custom InputTypes
@@ -1920,6 +2015,20 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountGroupMessagesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: GroupMessageWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountBlockedUsersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: BlockedUserWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountBlockedByUsersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: BlockedUserWhereInput
   }
 
 
@@ -2388,6 +2497,8 @@ export namespace Prisma {
     createdGroups?: boolean | User$createdGroupsArgs<ExtArgs>
     groupMembers?: boolean | User$groupMembersArgs<ExtArgs>
     groupMessages?: boolean | User$groupMessagesArgs<ExtArgs>
+    blockedUsers?: boolean | User$blockedUsersArgs<ExtArgs>
+    blockedByUsers?: boolean | User$blockedByUsersArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -2495,6 +2606,8 @@ export namespace Prisma {
     createdGroups?: boolean | User$createdGroupsArgs<ExtArgs>
     groupMembers?: boolean | User$groupMembersArgs<ExtArgs>
     groupMessages?: boolean | User$groupMessagesArgs<ExtArgs>
+    blockedUsers?: boolean | User$blockedUsersArgs<ExtArgs>
+    blockedByUsers?: boolean | User$blockedByUsersArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -2518,6 +2631,8 @@ export namespace Prisma {
       createdGroups: Prisma.$GroupPayload<ExtArgs>[]
       groupMembers: Prisma.$GroupMemberPayload<ExtArgs>[]
       groupMessages: Prisma.$GroupMessagePayload<ExtArgs>[]
+      blockedUsers: Prisma.$BlockedUserPayload<ExtArgs>[]
+      blockedByUsers: Prisma.$BlockedUserPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
@@ -2955,6 +3070,8 @@ export namespace Prisma {
     createdGroups<T extends User$createdGroupsArgs<ExtArgs> = {}>(args?: Subset<T, User$createdGroupsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     groupMembers<T extends User$groupMembersArgs<ExtArgs> = {}>(args?: Subset<T, User$groupMembersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     groupMessages<T extends User$groupMessagesArgs<ExtArgs> = {}>(args?: Subset<T, User$groupMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GroupMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    blockedUsers<T extends User$blockedUsersArgs<ExtArgs> = {}>(args?: Subset<T, User$blockedUsersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    blockedByUsers<T extends User$blockedByUsersArgs<ExtArgs> = {}>(args?: Subset<T, User$blockedByUsersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3755,6 +3872,54 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: GroupMessageScalarFieldEnum | GroupMessageScalarFieldEnum[]
+  }
+
+  /**
+   * User.blockedUsers
+   */
+  export type User$blockedUsersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+    where?: BlockedUserWhereInput
+    orderBy?: BlockedUserOrderByWithRelationInput | BlockedUserOrderByWithRelationInput[]
+    cursor?: BlockedUserWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: BlockedUserScalarFieldEnum | BlockedUserScalarFieldEnum[]
+  }
+
+  /**
+   * User.blockedByUsers
+   */
+  export type User$blockedByUsersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+    where?: BlockedUserWhereInput
+    orderBy?: BlockedUserOrderByWithRelationInput | BlockedUserOrderByWithRelationInput[]
+    cursor?: BlockedUserWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: BlockedUserScalarFieldEnum | BlockedUserScalarFieldEnum[]
   }
 
   /**
@@ -15188,6 +15353,1101 @@ export namespace Prisma {
 
 
   /**
+   * Model BlockedUser
+   */
+
+  export type AggregateBlockedUser = {
+    _count: BlockedUserCountAggregateOutputType | null
+    _avg: BlockedUserAvgAggregateOutputType | null
+    _sum: BlockedUserSumAggregateOutputType | null
+    _min: BlockedUserMinAggregateOutputType | null
+    _max: BlockedUserMaxAggregateOutputType | null
+  }
+
+  export type BlockedUserAvgAggregateOutputType = {
+    id: number | null
+    userId: number | null
+    blockedUserId: number | null
+  }
+
+  export type BlockedUserSumAggregateOutputType = {
+    id: number | null
+    userId: number | null
+    blockedUserId: number | null
+  }
+
+  export type BlockedUserMinAggregateOutputType = {
+    id: number | null
+    userId: number | null
+    blockedUserId: number | null
+    createdAt: Date | null
+  }
+
+  export type BlockedUserMaxAggregateOutputType = {
+    id: number | null
+    userId: number | null
+    blockedUserId: number | null
+    createdAt: Date | null
+  }
+
+  export type BlockedUserCountAggregateOutputType = {
+    id: number
+    userId: number
+    blockedUserId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type BlockedUserAvgAggregateInputType = {
+    id?: true
+    userId?: true
+    blockedUserId?: true
+  }
+
+  export type BlockedUserSumAggregateInputType = {
+    id?: true
+    userId?: true
+    blockedUserId?: true
+  }
+
+  export type BlockedUserMinAggregateInputType = {
+    id?: true
+    userId?: true
+    blockedUserId?: true
+    createdAt?: true
+  }
+
+  export type BlockedUserMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    blockedUserId?: true
+    createdAt?: true
+  }
+
+  export type BlockedUserCountAggregateInputType = {
+    id?: true
+    userId?: true
+    blockedUserId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type BlockedUserAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which BlockedUser to aggregate.
+     */
+    where?: BlockedUserWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BlockedUsers to fetch.
+     */
+    orderBy?: BlockedUserOrderByWithRelationInput | BlockedUserOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: BlockedUserWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BlockedUsers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BlockedUsers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned BlockedUsers
+    **/
+    _count?: true | BlockedUserCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: BlockedUserAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: BlockedUserSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: BlockedUserMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: BlockedUserMaxAggregateInputType
+  }
+
+  export type GetBlockedUserAggregateType<T extends BlockedUserAggregateArgs> = {
+        [P in keyof T & keyof AggregateBlockedUser]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateBlockedUser[P]>
+      : GetScalarType<T[P], AggregateBlockedUser[P]>
+  }
+
+
+
+
+  export type BlockedUserGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: BlockedUserWhereInput
+    orderBy?: BlockedUserOrderByWithAggregationInput | BlockedUserOrderByWithAggregationInput[]
+    by: BlockedUserScalarFieldEnum[] | BlockedUserScalarFieldEnum
+    having?: BlockedUserScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: BlockedUserCountAggregateInputType | true
+    _avg?: BlockedUserAvgAggregateInputType
+    _sum?: BlockedUserSumAggregateInputType
+    _min?: BlockedUserMinAggregateInputType
+    _max?: BlockedUserMaxAggregateInputType
+  }
+
+  export type BlockedUserGroupByOutputType = {
+    id: number
+    userId: number
+    blockedUserId: number
+    createdAt: Date
+    _count: BlockedUserCountAggregateOutputType | null
+    _avg: BlockedUserAvgAggregateOutputType | null
+    _sum: BlockedUserSumAggregateOutputType | null
+    _min: BlockedUserMinAggregateOutputType | null
+    _max: BlockedUserMaxAggregateOutputType | null
+  }
+
+  type GetBlockedUserGroupByPayload<T extends BlockedUserGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<BlockedUserGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof BlockedUserGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], BlockedUserGroupByOutputType[P]>
+            : GetScalarType<T[P], BlockedUserGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type BlockedUserSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    blockedUserId?: boolean
+    createdAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    blockedUser?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["blockedUser"]>
+
+  export type BlockedUserSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    blockedUserId?: boolean
+    createdAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    blockedUser?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["blockedUser"]>
+
+  export type BlockedUserSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    blockedUserId?: boolean
+    createdAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    blockedUser?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["blockedUser"]>
+
+  export type BlockedUserSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    blockedUserId?: boolean
+    createdAt?: boolean
+  }
+
+  export type BlockedUserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "blockedUserId" | "createdAt", ExtArgs["result"]["blockedUser"]>
+  export type BlockedUserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    blockedUser?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type BlockedUserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    blockedUser?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type BlockedUserIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    blockedUser?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $BlockedUserPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "BlockedUser"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+      blockedUser: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      userId: number
+      blockedUserId: number
+      createdAt: Date
+    }, ExtArgs["result"]["blockedUser"]>
+    composites: {}
+  }
+
+  type BlockedUserGetPayload<S extends boolean | null | undefined | BlockedUserDefaultArgs> = $Result.GetResult<Prisma.$BlockedUserPayload, S>
+
+  type BlockedUserCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<BlockedUserFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: BlockedUserCountAggregateInputType | true
+    }
+
+  export interface BlockedUserDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['BlockedUser'], meta: { name: 'BlockedUser' } }
+    /**
+     * Find zero or one BlockedUser that matches the filter.
+     * @param {BlockedUserFindUniqueArgs} args - Arguments to find a BlockedUser
+     * @example
+     * // Get one BlockedUser
+     * const blockedUser = await prisma.blockedUser.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends BlockedUserFindUniqueArgs>(args: SelectSubset<T, BlockedUserFindUniqueArgs<ExtArgs>>): Prisma__BlockedUserClient<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one BlockedUser that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {BlockedUserFindUniqueOrThrowArgs} args - Arguments to find a BlockedUser
+     * @example
+     * // Get one BlockedUser
+     * const blockedUser = await prisma.blockedUser.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends BlockedUserFindUniqueOrThrowArgs>(args: SelectSubset<T, BlockedUserFindUniqueOrThrowArgs<ExtArgs>>): Prisma__BlockedUserClient<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first BlockedUser that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BlockedUserFindFirstArgs} args - Arguments to find a BlockedUser
+     * @example
+     * // Get one BlockedUser
+     * const blockedUser = await prisma.blockedUser.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends BlockedUserFindFirstArgs>(args?: SelectSubset<T, BlockedUserFindFirstArgs<ExtArgs>>): Prisma__BlockedUserClient<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first BlockedUser that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BlockedUserFindFirstOrThrowArgs} args - Arguments to find a BlockedUser
+     * @example
+     * // Get one BlockedUser
+     * const blockedUser = await prisma.blockedUser.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends BlockedUserFindFirstOrThrowArgs>(args?: SelectSubset<T, BlockedUserFindFirstOrThrowArgs<ExtArgs>>): Prisma__BlockedUserClient<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more BlockedUsers that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BlockedUserFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all BlockedUsers
+     * const blockedUsers = await prisma.blockedUser.findMany()
+     * 
+     * // Get first 10 BlockedUsers
+     * const blockedUsers = await prisma.blockedUser.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const blockedUserWithIdOnly = await prisma.blockedUser.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends BlockedUserFindManyArgs>(args?: SelectSubset<T, BlockedUserFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a BlockedUser.
+     * @param {BlockedUserCreateArgs} args - Arguments to create a BlockedUser.
+     * @example
+     * // Create one BlockedUser
+     * const BlockedUser = await prisma.blockedUser.create({
+     *   data: {
+     *     // ... data to create a BlockedUser
+     *   }
+     * })
+     * 
+     */
+    create<T extends BlockedUserCreateArgs>(args: SelectSubset<T, BlockedUserCreateArgs<ExtArgs>>): Prisma__BlockedUserClient<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many BlockedUsers.
+     * @param {BlockedUserCreateManyArgs} args - Arguments to create many BlockedUsers.
+     * @example
+     * // Create many BlockedUsers
+     * const blockedUser = await prisma.blockedUser.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends BlockedUserCreateManyArgs>(args?: SelectSubset<T, BlockedUserCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many BlockedUsers and returns the data saved in the database.
+     * @param {BlockedUserCreateManyAndReturnArgs} args - Arguments to create many BlockedUsers.
+     * @example
+     * // Create many BlockedUsers
+     * const blockedUser = await prisma.blockedUser.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many BlockedUsers and only return the `id`
+     * const blockedUserWithIdOnly = await prisma.blockedUser.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends BlockedUserCreateManyAndReturnArgs>(args?: SelectSubset<T, BlockedUserCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a BlockedUser.
+     * @param {BlockedUserDeleteArgs} args - Arguments to delete one BlockedUser.
+     * @example
+     * // Delete one BlockedUser
+     * const BlockedUser = await prisma.blockedUser.delete({
+     *   where: {
+     *     // ... filter to delete one BlockedUser
+     *   }
+     * })
+     * 
+     */
+    delete<T extends BlockedUserDeleteArgs>(args: SelectSubset<T, BlockedUserDeleteArgs<ExtArgs>>): Prisma__BlockedUserClient<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one BlockedUser.
+     * @param {BlockedUserUpdateArgs} args - Arguments to update one BlockedUser.
+     * @example
+     * // Update one BlockedUser
+     * const blockedUser = await prisma.blockedUser.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends BlockedUserUpdateArgs>(args: SelectSubset<T, BlockedUserUpdateArgs<ExtArgs>>): Prisma__BlockedUserClient<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more BlockedUsers.
+     * @param {BlockedUserDeleteManyArgs} args - Arguments to filter BlockedUsers to delete.
+     * @example
+     * // Delete a few BlockedUsers
+     * const { count } = await prisma.blockedUser.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends BlockedUserDeleteManyArgs>(args?: SelectSubset<T, BlockedUserDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more BlockedUsers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BlockedUserUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many BlockedUsers
+     * const blockedUser = await prisma.blockedUser.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends BlockedUserUpdateManyArgs>(args: SelectSubset<T, BlockedUserUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more BlockedUsers and returns the data updated in the database.
+     * @param {BlockedUserUpdateManyAndReturnArgs} args - Arguments to update many BlockedUsers.
+     * @example
+     * // Update many BlockedUsers
+     * const blockedUser = await prisma.blockedUser.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more BlockedUsers and only return the `id`
+     * const blockedUserWithIdOnly = await prisma.blockedUser.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends BlockedUserUpdateManyAndReturnArgs>(args: SelectSubset<T, BlockedUserUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one BlockedUser.
+     * @param {BlockedUserUpsertArgs} args - Arguments to update or create a BlockedUser.
+     * @example
+     * // Update or create a BlockedUser
+     * const blockedUser = await prisma.blockedUser.upsert({
+     *   create: {
+     *     // ... data to create a BlockedUser
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the BlockedUser we want to update
+     *   }
+     * })
+     */
+    upsert<T extends BlockedUserUpsertArgs>(args: SelectSubset<T, BlockedUserUpsertArgs<ExtArgs>>): Prisma__BlockedUserClient<$Result.GetResult<Prisma.$BlockedUserPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of BlockedUsers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BlockedUserCountArgs} args - Arguments to filter BlockedUsers to count.
+     * @example
+     * // Count the number of BlockedUsers
+     * const count = await prisma.blockedUser.count({
+     *   where: {
+     *     // ... the filter for the BlockedUsers we want to count
+     *   }
+     * })
+    **/
+    count<T extends BlockedUserCountArgs>(
+      args?: Subset<T, BlockedUserCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], BlockedUserCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a BlockedUser.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BlockedUserAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends BlockedUserAggregateArgs>(args: Subset<T, BlockedUserAggregateArgs>): Prisma.PrismaPromise<GetBlockedUserAggregateType<T>>
+
+    /**
+     * Group by BlockedUser.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BlockedUserGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends BlockedUserGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: BlockedUserGroupByArgs['orderBy'] }
+        : { orderBy?: BlockedUserGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, BlockedUserGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetBlockedUserGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the BlockedUser model
+   */
+  readonly fields: BlockedUserFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for BlockedUser.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__BlockedUserClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    blockedUser<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the BlockedUser model
+   */
+  interface BlockedUserFieldRefs {
+    readonly id: FieldRef<"BlockedUser", 'Int'>
+    readonly userId: FieldRef<"BlockedUser", 'Int'>
+    readonly blockedUserId: FieldRef<"BlockedUser", 'Int'>
+    readonly createdAt: FieldRef<"BlockedUser", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * BlockedUser findUnique
+   */
+  export type BlockedUserFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+    /**
+     * Filter, which BlockedUser to fetch.
+     */
+    where: BlockedUserWhereUniqueInput
+  }
+
+  /**
+   * BlockedUser findUniqueOrThrow
+   */
+  export type BlockedUserFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+    /**
+     * Filter, which BlockedUser to fetch.
+     */
+    where: BlockedUserWhereUniqueInput
+  }
+
+  /**
+   * BlockedUser findFirst
+   */
+  export type BlockedUserFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+    /**
+     * Filter, which BlockedUser to fetch.
+     */
+    where?: BlockedUserWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BlockedUsers to fetch.
+     */
+    orderBy?: BlockedUserOrderByWithRelationInput | BlockedUserOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for BlockedUsers.
+     */
+    cursor?: BlockedUserWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BlockedUsers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BlockedUsers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of BlockedUsers.
+     */
+    distinct?: BlockedUserScalarFieldEnum | BlockedUserScalarFieldEnum[]
+  }
+
+  /**
+   * BlockedUser findFirstOrThrow
+   */
+  export type BlockedUserFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+    /**
+     * Filter, which BlockedUser to fetch.
+     */
+    where?: BlockedUserWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BlockedUsers to fetch.
+     */
+    orderBy?: BlockedUserOrderByWithRelationInput | BlockedUserOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for BlockedUsers.
+     */
+    cursor?: BlockedUserWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BlockedUsers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BlockedUsers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of BlockedUsers.
+     */
+    distinct?: BlockedUserScalarFieldEnum | BlockedUserScalarFieldEnum[]
+  }
+
+  /**
+   * BlockedUser findMany
+   */
+  export type BlockedUserFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+    /**
+     * Filter, which BlockedUsers to fetch.
+     */
+    where?: BlockedUserWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BlockedUsers to fetch.
+     */
+    orderBy?: BlockedUserOrderByWithRelationInput | BlockedUserOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing BlockedUsers.
+     */
+    cursor?: BlockedUserWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BlockedUsers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BlockedUsers.
+     */
+    skip?: number
+    distinct?: BlockedUserScalarFieldEnum | BlockedUserScalarFieldEnum[]
+  }
+
+  /**
+   * BlockedUser create
+   */
+  export type BlockedUserCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+    /**
+     * The data needed to create a BlockedUser.
+     */
+    data: XOR<BlockedUserCreateInput, BlockedUserUncheckedCreateInput>
+  }
+
+  /**
+   * BlockedUser createMany
+   */
+  export type BlockedUserCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many BlockedUsers.
+     */
+    data: BlockedUserCreateManyInput | BlockedUserCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * BlockedUser createManyAndReturn
+   */
+  export type BlockedUserCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * The data used to create many BlockedUsers.
+     */
+    data: BlockedUserCreateManyInput | BlockedUserCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * BlockedUser update
+   */
+  export type BlockedUserUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+    /**
+     * The data needed to update a BlockedUser.
+     */
+    data: XOR<BlockedUserUpdateInput, BlockedUserUncheckedUpdateInput>
+    /**
+     * Choose, which BlockedUser to update.
+     */
+    where: BlockedUserWhereUniqueInput
+  }
+
+  /**
+   * BlockedUser updateMany
+   */
+  export type BlockedUserUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update BlockedUsers.
+     */
+    data: XOR<BlockedUserUpdateManyMutationInput, BlockedUserUncheckedUpdateManyInput>
+    /**
+     * Filter which BlockedUsers to update
+     */
+    where?: BlockedUserWhereInput
+    /**
+     * Limit how many BlockedUsers to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * BlockedUser updateManyAndReturn
+   */
+  export type BlockedUserUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * The data used to update BlockedUsers.
+     */
+    data: XOR<BlockedUserUpdateManyMutationInput, BlockedUserUncheckedUpdateManyInput>
+    /**
+     * Filter which BlockedUsers to update
+     */
+    where?: BlockedUserWhereInput
+    /**
+     * Limit how many BlockedUsers to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * BlockedUser upsert
+   */
+  export type BlockedUserUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+    /**
+     * The filter to search for the BlockedUser to update in case it exists.
+     */
+    where: BlockedUserWhereUniqueInput
+    /**
+     * In case the BlockedUser found by the `where` argument doesn't exist, create a new BlockedUser with this data.
+     */
+    create: XOR<BlockedUserCreateInput, BlockedUserUncheckedCreateInput>
+    /**
+     * In case the BlockedUser was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<BlockedUserUpdateInput, BlockedUserUncheckedUpdateInput>
+  }
+
+  /**
+   * BlockedUser delete
+   */
+  export type BlockedUserDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+    /**
+     * Filter which BlockedUser to delete.
+     */
+    where: BlockedUserWhereUniqueInput
+  }
+
+  /**
+   * BlockedUser deleteMany
+   */
+  export type BlockedUserDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which BlockedUsers to delete
+     */
+    where?: BlockedUserWhereInput
+    /**
+     * Limit how many BlockedUsers to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * BlockedUser without action
+   */
+  export type BlockedUserDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BlockedUser
+     */
+    select?: BlockedUserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the BlockedUser
+     */
+    omit?: BlockedUserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BlockedUserInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -15362,6 +16622,16 @@ export namespace Prisma {
   export type GroupMessageScalarFieldEnum = (typeof GroupMessageScalarFieldEnum)[keyof typeof GroupMessageScalarFieldEnum]
 
 
+  export const BlockedUserScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    blockedUserId: 'blockedUserId',
+    createdAt: 'createdAt'
+  };
+
+  export type BlockedUserScalarFieldEnum = (typeof BlockedUserScalarFieldEnum)[keyof typeof BlockedUserScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -15502,6 +16772,8 @@ export namespace Prisma {
     createdGroups?: GroupListRelationFilter
     groupMembers?: GroupMemberListRelationFilter
     groupMessages?: GroupMessageListRelationFilter
+    blockedUsers?: BlockedUserListRelationFilter
+    blockedByUsers?: BlockedUserListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -15546,6 +16818,8 @@ export namespace Prisma {
     createdGroups?: GroupOrderByRelationAggregateInput
     groupMembers?: GroupMemberOrderByRelationAggregateInput
     groupMessages?: GroupMessageOrderByRelationAggregateInput
+    blockedUsers?: BlockedUserOrderByRelationAggregateInput
+    blockedByUsers?: BlockedUserOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -15593,6 +16867,8 @@ export namespace Prisma {
     createdGroups?: GroupListRelationFilter
     groupMembers?: GroupMemberListRelationFilter
     groupMessages?: GroupMessageListRelationFilter
+    blockedUsers?: BlockedUserListRelationFilter
+    blockedByUsers?: BlockedUserListRelationFilter
   }, "id" | "email" | "googleId">
 
   export type UserOrderByWithAggregationInput = {
@@ -16363,6 +17639,62 @@ export namespace Prisma {
     senderId?: IntWithAggregatesFilter<"GroupMessage"> | number
   }
 
+  export type BlockedUserWhereInput = {
+    AND?: BlockedUserWhereInput | BlockedUserWhereInput[]
+    OR?: BlockedUserWhereInput[]
+    NOT?: BlockedUserWhereInput | BlockedUserWhereInput[]
+    id?: IntFilter<"BlockedUser"> | number
+    userId?: IntFilter<"BlockedUser"> | number
+    blockedUserId?: IntFilter<"BlockedUser"> | number
+    createdAt?: DateTimeFilter<"BlockedUser"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    blockedUser?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type BlockedUserOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    blockedUserId?: SortOrder
+    createdAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+    blockedUser?: UserOrderByWithRelationInput
+  }
+
+  export type BlockedUserWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    userId_blockedUserId?: BlockedUserUserIdBlockedUserIdCompoundUniqueInput
+    AND?: BlockedUserWhereInput | BlockedUserWhereInput[]
+    OR?: BlockedUserWhereInput[]
+    NOT?: BlockedUserWhereInput | BlockedUserWhereInput[]
+    userId?: IntFilter<"BlockedUser"> | number
+    blockedUserId?: IntFilter<"BlockedUser"> | number
+    createdAt?: DateTimeFilter<"BlockedUser"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    blockedUser?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "userId_blockedUserId">
+
+  export type BlockedUserOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    blockedUserId?: SortOrder
+    createdAt?: SortOrder
+    _count?: BlockedUserCountOrderByAggregateInput
+    _avg?: BlockedUserAvgOrderByAggregateInput
+    _max?: BlockedUserMaxOrderByAggregateInput
+    _min?: BlockedUserMinOrderByAggregateInput
+    _sum?: BlockedUserSumOrderByAggregateInput
+  }
+
+  export type BlockedUserScalarWhereWithAggregatesInput = {
+    AND?: BlockedUserScalarWhereWithAggregatesInput | BlockedUserScalarWhereWithAggregatesInput[]
+    OR?: BlockedUserScalarWhereWithAggregatesInput[]
+    NOT?: BlockedUserScalarWhereWithAggregatesInput | BlockedUserScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"BlockedUser"> | number
+    userId?: IntWithAggregatesFilter<"BlockedUser"> | number
+    blockedUserId?: IntWithAggregatesFilter<"BlockedUser"> | number
+    createdAt?: DateTimeWithAggregatesFilter<"BlockedUser"> | Date | string
+  }
+
   export type UserCreateInput = {
     name: string
     email: string
@@ -16404,6 +17736,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -16448,6 +17782,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUpdateInput = {
@@ -16491,6 +17827,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -16535,6 +17873,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -17285,6 +18625,50 @@ export namespace Prisma {
     senderId?: IntFieldUpdateOperationsInput | number
   }
 
+  export type BlockedUserCreateInput = {
+    createdAt?: Date | string
+    user: UserCreateNestedOneWithoutBlockedUsersInput
+    blockedUser: UserCreateNestedOneWithoutBlockedByUsersInput
+  }
+
+  export type BlockedUserUncheckedCreateInput = {
+    id?: number
+    userId: number
+    blockedUserId: number
+    createdAt?: Date | string
+  }
+
+  export type BlockedUserUpdateInput = {
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutBlockedUsersNestedInput
+    blockedUser?: UserUpdateOneRequiredWithoutBlockedByUsersNestedInput
+  }
+
+  export type BlockedUserUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    userId?: IntFieldUpdateOperationsInput | number
+    blockedUserId?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BlockedUserCreateManyInput = {
+    id?: number
+    userId: number
+    blockedUserId: number
+    createdAt?: Date | string
+  }
+
+  export type BlockedUserUpdateManyMutationInput = {
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BlockedUserUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    userId?: IntFieldUpdateOperationsInput | number
+    blockedUserId?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type IntFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -17397,6 +18781,12 @@ export namespace Prisma {
     none?: GroupMessageWhereInput
   }
 
+  export type BlockedUserListRelationFilter = {
+    every?: BlockedUserWhereInput
+    some?: BlockedUserWhereInput
+    none?: BlockedUserWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -17439,6 +18829,10 @@ export namespace Prisma {
   }
 
   export type GroupMessageOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type BlockedUserOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -18099,6 +19493,44 @@ export namespace Prisma {
     senderId?: SortOrder
   }
 
+  export type BlockedUserUserIdBlockedUserIdCompoundUniqueInput = {
+    userId: number
+    blockedUserId: number
+  }
+
+  export type BlockedUserCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    blockedUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type BlockedUserAvgOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    blockedUserId?: SortOrder
+  }
+
+  export type BlockedUserMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    blockedUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type BlockedUserMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    blockedUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type BlockedUserSumOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    blockedUserId?: SortOrder
+  }
+
   export type PostCreateNestedManyWithoutAuthorInput = {
     create?: XOR<PostCreateWithoutAuthorInput, PostUncheckedCreateWithoutAuthorInput> | PostCreateWithoutAuthorInput[] | PostUncheckedCreateWithoutAuthorInput[]
     connectOrCreate?: PostCreateOrConnectWithoutAuthorInput | PostCreateOrConnectWithoutAuthorInput[]
@@ -18203,6 +19635,20 @@ export namespace Prisma {
     connect?: GroupMessageWhereUniqueInput | GroupMessageWhereUniqueInput[]
   }
 
+  export type BlockedUserCreateNestedManyWithoutUserInput = {
+    create?: XOR<BlockedUserCreateWithoutUserInput, BlockedUserUncheckedCreateWithoutUserInput> | BlockedUserCreateWithoutUserInput[] | BlockedUserUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: BlockedUserCreateOrConnectWithoutUserInput | BlockedUserCreateOrConnectWithoutUserInput[]
+    createMany?: BlockedUserCreateManyUserInputEnvelope
+    connect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+  }
+
+  export type BlockedUserCreateNestedManyWithoutBlockedUserInput = {
+    create?: XOR<BlockedUserCreateWithoutBlockedUserInput, BlockedUserUncheckedCreateWithoutBlockedUserInput> | BlockedUserCreateWithoutBlockedUserInput[] | BlockedUserUncheckedCreateWithoutBlockedUserInput[]
+    connectOrCreate?: BlockedUserCreateOrConnectWithoutBlockedUserInput | BlockedUserCreateOrConnectWithoutBlockedUserInput[]
+    createMany?: BlockedUserCreateManyBlockedUserInputEnvelope
+    connect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+  }
+
   export type PostUncheckedCreateNestedManyWithoutAuthorInput = {
     create?: XOR<PostCreateWithoutAuthorInput, PostUncheckedCreateWithoutAuthorInput> | PostCreateWithoutAuthorInput[] | PostUncheckedCreateWithoutAuthorInput[]
     connectOrCreate?: PostCreateOrConnectWithoutAuthorInput | PostCreateOrConnectWithoutAuthorInput[]
@@ -18305,6 +19751,20 @@ export namespace Prisma {
     connectOrCreate?: GroupMessageCreateOrConnectWithoutSenderInput | GroupMessageCreateOrConnectWithoutSenderInput[]
     createMany?: GroupMessageCreateManySenderInputEnvelope
     connect?: GroupMessageWhereUniqueInput | GroupMessageWhereUniqueInput[]
+  }
+
+  export type BlockedUserUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<BlockedUserCreateWithoutUserInput, BlockedUserUncheckedCreateWithoutUserInput> | BlockedUserCreateWithoutUserInput[] | BlockedUserUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: BlockedUserCreateOrConnectWithoutUserInput | BlockedUserCreateOrConnectWithoutUserInput[]
+    createMany?: BlockedUserCreateManyUserInputEnvelope
+    connect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+  }
+
+  export type BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput = {
+    create?: XOR<BlockedUserCreateWithoutBlockedUserInput, BlockedUserUncheckedCreateWithoutBlockedUserInput> | BlockedUserCreateWithoutBlockedUserInput[] | BlockedUserUncheckedCreateWithoutBlockedUserInput[]
+    connectOrCreate?: BlockedUserCreateOrConnectWithoutBlockedUserInput | BlockedUserCreateOrConnectWithoutBlockedUserInput[]
+    createMany?: BlockedUserCreateManyBlockedUserInputEnvelope
+    connect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -18528,6 +19988,34 @@ export namespace Prisma {
     deleteMany?: GroupMessageScalarWhereInput | GroupMessageScalarWhereInput[]
   }
 
+  export type BlockedUserUpdateManyWithoutUserNestedInput = {
+    create?: XOR<BlockedUserCreateWithoutUserInput, BlockedUserUncheckedCreateWithoutUserInput> | BlockedUserCreateWithoutUserInput[] | BlockedUserUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: BlockedUserCreateOrConnectWithoutUserInput | BlockedUserCreateOrConnectWithoutUserInput[]
+    upsert?: BlockedUserUpsertWithWhereUniqueWithoutUserInput | BlockedUserUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: BlockedUserCreateManyUserInputEnvelope
+    set?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    disconnect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    delete?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    connect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    update?: BlockedUserUpdateWithWhereUniqueWithoutUserInput | BlockedUserUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: BlockedUserUpdateManyWithWhereWithoutUserInput | BlockedUserUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: BlockedUserScalarWhereInput | BlockedUserScalarWhereInput[]
+  }
+
+  export type BlockedUserUpdateManyWithoutBlockedUserNestedInput = {
+    create?: XOR<BlockedUserCreateWithoutBlockedUserInput, BlockedUserUncheckedCreateWithoutBlockedUserInput> | BlockedUserCreateWithoutBlockedUserInput[] | BlockedUserUncheckedCreateWithoutBlockedUserInput[]
+    connectOrCreate?: BlockedUserCreateOrConnectWithoutBlockedUserInput | BlockedUserCreateOrConnectWithoutBlockedUserInput[]
+    upsert?: BlockedUserUpsertWithWhereUniqueWithoutBlockedUserInput | BlockedUserUpsertWithWhereUniqueWithoutBlockedUserInput[]
+    createMany?: BlockedUserCreateManyBlockedUserInputEnvelope
+    set?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    disconnect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    delete?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    connect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    update?: BlockedUserUpdateWithWhereUniqueWithoutBlockedUserInput | BlockedUserUpdateWithWhereUniqueWithoutBlockedUserInput[]
+    updateMany?: BlockedUserUpdateManyWithWhereWithoutBlockedUserInput | BlockedUserUpdateManyWithWhereWithoutBlockedUserInput[]
+    deleteMany?: BlockedUserScalarWhereInput | BlockedUserScalarWhereInput[]
+  }
+
   export type IntFieldUpdateOperationsInput = {
     set?: number
     increment?: number
@@ -18743,6 +20231,34 @@ export namespace Prisma {
     update?: GroupMessageUpdateWithWhereUniqueWithoutSenderInput | GroupMessageUpdateWithWhereUniqueWithoutSenderInput[]
     updateMany?: GroupMessageUpdateManyWithWhereWithoutSenderInput | GroupMessageUpdateManyWithWhereWithoutSenderInput[]
     deleteMany?: GroupMessageScalarWhereInput | GroupMessageScalarWhereInput[]
+  }
+
+  export type BlockedUserUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<BlockedUserCreateWithoutUserInput, BlockedUserUncheckedCreateWithoutUserInput> | BlockedUserCreateWithoutUserInput[] | BlockedUserUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: BlockedUserCreateOrConnectWithoutUserInput | BlockedUserCreateOrConnectWithoutUserInput[]
+    upsert?: BlockedUserUpsertWithWhereUniqueWithoutUserInput | BlockedUserUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: BlockedUserCreateManyUserInputEnvelope
+    set?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    disconnect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    delete?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    connect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    update?: BlockedUserUpdateWithWhereUniqueWithoutUserInput | BlockedUserUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: BlockedUserUpdateManyWithWhereWithoutUserInput | BlockedUserUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: BlockedUserScalarWhereInput | BlockedUserScalarWhereInput[]
+  }
+
+  export type BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput = {
+    create?: XOR<BlockedUserCreateWithoutBlockedUserInput, BlockedUserUncheckedCreateWithoutBlockedUserInput> | BlockedUserCreateWithoutBlockedUserInput[] | BlockedUserUncheckedCreateWithoutBlockedUserInput[]
+    connectOrCreate?: BlockedUserCreateOrConnectWithoutBlockedUserInput | BlockedUserCreateOrConnectWithoutBlockedUserInput[]
+    upsert?: BlockedUserUpsertWithWhereUniqueWithoutBlockedUserInput | BlockedUserUpsertWithWhereUniqueWithoutBlockedUserInput[]
+    createMany?: BlockedUserCreateManyBlockedUserInputEnvelope
+    set?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    disconnect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    delete?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    connect?: BlockedUserWhereUniqueInput | BlockedUserWhereUniqueInput[]
+    update?: BlockedUserUpdateWithWhereUniqueWithoutBlockedUserInput | BlockedUserUpdateWithWhereUniqueWithoutBlockedUserInput[]
+    updateMany?: BlockedUserUpdateManyWithWhereWithoutBlockedUserInput | BlockedUserUpdateManyWithWhereWithoutBlockedUserInput[]
+    deleteMany?: BlockedUserScalarWhereInput | BlockedUserScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutPostsInput = {
@@ -19153,6 +20669,34 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutGroupMessagesInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutGroupMessagesInput, UserUpdateWithoutGroupMessagesInput>, UserUncheckedUpdateWithoutGroupMessagesInput>
+  }
+
+  export type UserCreateNestedOneWithoutBlockedUsersInput = {
+    create?: XOR<UserCreateWithoutBlockedUsersInput, UserUncheckedCreateWithoutBlockedUsersInput>
+    connectOrCreate?: UserCreateOrConnectWithoutBlockedUsersInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutBlockedByUsersInput = {
+    create?: XOR<UserCreateWithoutBlockedByUsersInput, UserUncheckedCreateWithoutBlockedByUsersInput>
+    connectOrCreate?: UserCreateOrConnectWithoutBlockedByUsersInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserUpdateOneRequiredWithoutBlockedUsersNestedInput = {
+    create?: XOR<UserCreateWithoutBlockedUsersInput, UserUncheckedCreateWithoutBlockedUsersInput>
+    connectOrCreate?: UserCreateOrConnectWithoutBlockedUsersInput
+    upsert?: UserUpsertWithoutBlockedUsersInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutBlockedUsersInput, UserUpdateWithoutBlockedUsersInput>, UserUncheckedUpdateWithoutBlockedUsersInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutBlockedByUsersNestedInput = {
+    create?: XOR<UserCreateWithoutBlockedByUsersInput, UserUncheckedCreateWithoutBlockedByUsersInput>
+    connectOrCreate?: UserCreateOrConnectWithoutBlockedByUsersInput
+    upsert?: UserUpsertWithoutBlockedByUsersInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutBlockedByUsersInput, UserUpdateWithoutBlockedByUsersInput>, UserUncheckedUpdateWithoutBlockedByUsersInput>
   }
 
   export type NestedIntFilter<$PrismaModel = never> = {
@@ -19731,6 +21275,48 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type BlockedUserCreateWithoutUserInput = {
+    createdAt?: Date | string
+    blockedUser: UserCreateNestedOneWithoutBlockedByUsersInput
+  }
+
+  export type BlockedUserUncheckedCreateWithoutUserInput = {
+    id?: number
+    blockedUserId: number
+    createdAt?: Date | string
+  }
+
+  export type BlockedUserCreateOrConnectWithoutUserInput = {
+    where: BlockedUserWhereUniqueInput
+    create: XOR<BlockedUserCreateWithoutUserInput, BlockedUserUncheckedCreateWithoutUserInput>
+  }
+
+  export type BlockedUserCreateManyUserInputEnvelope = {
+    data: BlockedUserCreateManyUserInput | BlockedUserCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type BlockedUserCreateWithoutBlockedUserInput = {
+    createdAt?: Date | string
+    user: UserCreateNestedOneWithoutBlockedUsersInput
+  }
+
+  export type BlockedUserUncheckedCreateWithoutBlockedUserInput = {
+    id?: number
+    userId: number
+    createdAt?: Date | string
+  }
+
+  export type BlockedUserCreateOrConnectWithoutBlockedUserInput = {
+    where: BlockedUserWhereUniqueInput
+    create: XOR<BlockedUserCreateWithoutBlockedUserInput, BlockedUserUncheckedCreateWithoutBlockedUserInput>
+  }
+
+  export type BlockedUserCreateManyBlockedUserInputEnvelope = {
+    data: BlockedUserCreateManyBlockedUserInput | BlockedUserCreateManyBlockedUserInput[]
+    skipDuplicates?: boolean
+  }
+
   export type PostUpsertWithWhereUniqueWithoutAuthorInput = {
     where: PostWhereUniqueInput
     update: XOR<PostUpdateWithoutAuthorInput, PostUncheckedUpdateWithoutAuthorInput>
@@ -20100,6 +21686,48 @@ export namespace Prisma {
     senderId?: IntFilter<"GroupMessage"> | number
   }
 
+  export type BlockedUserUpsertWithWhereUniqueWithoutUserInput = {
+    where: BlockedUserWhereUniqueInput
+    update: XOR<BlockedUserUpdateWithoutUserInput, BlockedUserUncheckedUpdateWithoutUserInput>
+    create: XOR<BlockedUserCreateWithoutUserInput, BlockedUserUncheckedCreateWithoutUserInput>
+  }
+
+  export type BlockedUserUpdateWithWhereUniqueWithoutUserInput = {
+    where: BlockedUserWhereUniqueInput
+    data: XOR<BlockedUserUpdateWithoutUserInput, BlockedUserUncheckedUpdateWithoutUserInput>
+  }
+
+  export type BlockedUserUpdateManyWithWhereWithoutUserInput = {
+    where: BlockedUserScalarWhereInput
+    data: XOR<BlockedUserUpdateManyMutationInput, BlockedUserUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type BlockedUserScalarWhereInput = {
+    AND?: BlockedUserScalarWhereInput | BlockedUserScalarWhereInput[]
+    OR?: BlockedUserScalarWhereInput[]
+    NOT?: BlockedUserScalarWhereInput | BlockedUserScalarWhereInput[]
+    id?: IntFilter<"BlockedUser"> | number
+    userId?: IntFilter<"BlockedUser"> | number
+    blockedUserId?: IntFilter<"BlockedUser"> | number
+    createdAt?: DateTimeFilter<"BlockedUser"> | Date | string
+  }
+
+  export type BlockedUserUpsertWithWhereUniqueWithoutBlockedUserInput = {
+    where: BlockedUserWhereUniqueInput
+    update: XOR<BlockedUserUpdateWithoutBlockedUserInput, BlockedUserUncheckedUpdateWithoutBlockedUserInput>
+    create: XOR<BlockedUserCreateWithoutBlockedUserInput, BlockedUserUncheckedCreateWithoutBlockedUserInput>
+  }
+
+  export type BlockedUserUpdateWithWhereUniqueWithoutBlockedUserInput = {
+    where: BlockedUserWhereUniqueInput
+    data: XOR<BlockedUserUpdateWithoutBlockedUserInput, BlockedUserUncheckedUpdateWithoutBlockedUserInput>
+  }
+
+  export type BlockedUserUpdateManyWithWhereWithoutBlockedUserInput = {
+    where: BlockedUserScalarWhereInput
+    data: XOR<BlockedUserUpdateManyMutationInput, BlockedUserUncheckedUpdateManyWithoutBlockedUserInput>
+  }
+
   export type UserCreateWithoutPostsInput = {
     name: string
     email: string
@@ -20140,6 +21768,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutPostsInput = {
@@ -20183,6 +21813,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutPostsInput = {
@@ -20230,6 +21862,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutLikedPostsInput = {
@@ -20273,6 +21907,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutLikedPostsInput = {
@@ -20356,6 +21992,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPostsInput = {
@@ -20399,6 +22037,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUpsertWithWhereUniqueWithoutLikedPostsInput = {
@@ -20505,6 +22145,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutSentFriendRequestsInput = {
@@ -20548,6 +22190,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutSentFriendRequestsInput = {
@@ -20595,6 +22239,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutReceivedFriendRequestsInput = {
@@ -20638,6 +22284,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutReceivedFriendRequestsInput = {
@@ -20696,6 +22344,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSentFriendRequestsInput = {
@@ -20739,6 +22389,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUpsertWithoutReceivedFriendRequestsInput = {
@@ -20792,6 +22444,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutReceivedFriendRequestsInput = {
@@ -20835,6 +22489,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserCreateWithoutSentMessagesInput = {
@@ -20877,6 +22533,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutSentMessagesInput = {
@@ -20920,6 +22578,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutSentMessagesInput = {
@@ -20967,6 +22627,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutReceivedMessagesInput = {
@@ -21010,6 +22672,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutReceivedMessagesInput = {
@@ -21068,6 +22732,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSentMessagesInput = {
@@ -21111,6 +22777,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUpsertWithoutReceivedMessagesInput = {
@@ -21164,6 +22832,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutReceivedMessagesInput = {
@@ -21207,6 +22877,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type PostCreateWithoutCommentsInput = {
@@ -21275,6 +22947,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutCommentsInput = {
@@ -21318,6 +22992,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutCommentsInput = {
@@ -21408,6 +23084,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCommentsInput = {
@@ -21451,6 +23129,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserCreateWithoutMyCrushesInput = {
@@ -21493,6 +23173,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutMyCrushesInput = {
@@ -21536,6 +23218,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutMyCrushesInput = {
@@ -21583,6 +23267,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutCrushedByInput = {
@@ -21626,6 +23312,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutCrushedByInput = {
@@ -21684,6 +23372,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMyCrushesInput = {
@@ -21727,6 +23417,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUpsertWithoutCrushedByInput = {
@@ -21780,6 +23472,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCrushedByInput = {
@@ -21823,6 +23517,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserCreateWithoutSentCloseFriendRequestsInput = {
@@ -21865,6 +23561,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutSentCloseFriendRequestsInput = {
@@ -21908,6 +23606,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutSentCloseFriendRequestsInput = {
@@ -21955,6 +23655,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutReceivedCloseFriendRequestsInput = {
@@ -21998,6 +23700,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutReceivedCloseFriendRequestsInput = {
@@ -22056,6 +23760,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSentCloseFriendRequestsInput = {
@@ -22099,6 +23805,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUpsertWithoutReceivedCloseFriendRequestsInput = {
@@ -22152,6 +23860,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutReceivedCloseFriendRequestsInput = {
@@ -22195,6 +23905,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserCreateWithoutLanguageRoomsInput = {
@@ -22237,6 +23949,8 @@ export namespace Prisma {
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutLanguageRoomsInput = {
@@ -22280,6 +23994,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutLanguageRoomsInput = {
@@ -22338,6 +24054,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLanguageRoomsInput = {
@@ -22381,6 +24099,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserCreateWithoutCreatedGroupsInput = {
@@ -22423,6 +24143,8 @@ export namespace Prisma {
     languageRooms?: LanguageRoomCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutCreatedGroupsInput = {
@@ -22466,6 +24188,8 @@ export namespace Prisma {
     languageRooms?: LanguageRoomUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutCreatedGroupsInput = {
@@ -22570,6 +24294,8 @@ export namespace Prisma {
     languageRooms?: LanguageRoomUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCreatedGroupsInput = {
@@ -22613,6 +24339,8 @@ export namespace Prisma {
     languageRooms?: LanguageRoomUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type GroupMemberUpsertWithWhereUniqueWithoutGroupInput = {
@@ -22715,6 +24443,8 @@ export namespace Prisma {
     languageRooms?: LanguageRoomCreateNestedManyWithoutCreatorInput
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutGroupMembersInput = {
@@ -22758,6 +24488,8 @@ export namespace Prisma {
     languageRooms?: LanguageRoomUncheckedCreateNestedManyWithoutCreatorInput
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutGroupMembersInput = {
@@ -22850,6 +24582,8 @@ export namespace Prisma {
     languageRooms?: LanguageRoomUpdateManyWithoutCreatorNestedInput
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutGroupMembersInput = {
@@ -22893,6 +24627,8 @@ export namespace Prisma {
     languageRooms?: LanguageRoomUncheckedUpdateManyWithoutCreatorNestedInput
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type GroupCreateWithoutMessagesInput = {
@@ -22963,6 +24699,8 @@ export namespace Prisma {
     languageRooms?: LanguageRoomCreateNestedManyWithoutCreatorInput
     createdGroups?: GroupCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserUncheckedCreateWithoutGroupMessagesInput = {
@@ -23006,6 +24744,8 @@ export namespace Prisma {
     languageRooms?: LanguageRoomUncheckedCreateNestedManyWithoutCreatorInput
     createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
     groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
   }
 
   export type UserCreateOrConnectWithoutGroupMessagesInput = {
@@ -23098,6 +24838,8 @@ export namespace Prisma {
     languageRooms?: LanguageRoomUpdateManyWithoutCreatorNestedInput
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutGroupMessagesInput = {
@@ -23141,6 +24883,396 @@ export namespace Prisma {
     languageRooms?: LanguageRoomUncheckedUpdateManyWithoutCreatorNestedInput
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
+  }
+
+  export type UserCreateWithoutBlockedUsersInput = {
+    name: string
+    email: string
+    emailVisibility?: string
+    password?: string | null
+    googleId?: string | null
+    bio?: string | null
+    profilePicture?: string | null
+    coverImage?: string | null
+    collegeName?: string | null
+    department?: string | null
+    yearOfStudy?: string | null
+    phoneNumber?: string | null
+    phoneVisibility?: string
+    whatsappNumber?: string | null
+    whatsappVisibility?: string
+    instagramHandle?: string | null
+    instagramVisibility?: string
+    facebookUrl?: string | null
+    facebookVisibility?: string
+    snapchatUsername?: string | null
+    snapchatVisibility?: string
+    linkedinUrl?: string | null
+    linkedinVisibility?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    posts?: PostCreateNestedManyWithoutAuthorInput
+    comments?: CommentCreateNestedManyWithoutAuthorInput
+    likedPosts?: PostCreateNestedManyWithoutLikesInput
+    sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
+    receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
+    sentMessages?: MessageCreateNestedManyWithoutSenderInput
+    receivedMessages?: MessageCreateNestedManyWithoutReceiverInput
+    myCrushes?: CrushCreateNestedManyWithoutUserInput
+    crushedBy?: CrushCreateNestedManyWithoutCrushInput
+    sentCloseFriendRequests?: CloseFriendRequestCreateNestedManyWithoutSenderInput
+    receivedCloseFriendRequests?: CloseFriendRequestCreateNestedManyWithoutReceiverInput
+    languageRooms?: LanguageRoomCreateNestedManyWithoutCreatorInput
+    createdGroups?: GroupCreateNestedManyWithoutCreatorInput
+    groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
+    groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedByUsers?: BlockedUserCreateNestedManyWithoutBlockedUserInput
+  }
+
+  export type UserUncheckedCreateWithoutBlockedUsersInput = {
+    id?: number
+    name: string
+    email: string
+    emailVisibility?: string
+    password?: string | null
+    googleId?: string | null
+    bio?: string | null
+    profilePicture?: string | null
+    coverImage?: string | null
+    collegeName?: string | null
+    department?: string | null
+    yearOfStudy?: string | null
+    phoneNumber?: string | null
+    phoneVisibility?: string
+    whatsappNumber?: string | null
+    whatsappVisibility?: string
+    instagramHandle?: string | null
+    instagramVisibility?: string
+    facebookUrl?: string | null
+    facebookVisibility?: string
+    snapchatUsername?: string | null
+    snapchatVisibility?: string
+    linkedinUrl?: string | null
+    linkedinVisibility?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
+    comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
+    likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
+    receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
+    sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
+    receivedMessages?: MessageUncheckedCreateNestedManyWithoutReceiverInput
+    myCrushes?: CrushUncheckedCreateNestedManyWithoutUserInput
+    crushedBy?: CrushUncheckedCreateNestedManyWithoutCrushInput
+    sentCloseFriendRequests?: CloseFriendRequestUncheckedCreateNestedManyWithoutSenderInput
+    receivedCloseFriendRequests?: CloseFriendRequestUncheckedCreateNestedManyWithoutReceiverInput
+    languageRooms?: LanguageRoomUncheckedCreateNestedManyWithoutCreatorInput
+    createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
+    groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedByUsers?: BlockedUserUncheckedCreateNestedManyWithoutBlockedUserInput
+  }
+
+  export type UserCreateOrConnectWithoutBlockedUsersInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutBlockedUsersInput, UserUncheckedCreateWithoutBlockedUsersInput>
+  }
+
+  export type UserCreateWithoutBlockedByUsersInput = {
+    name: string
+    email: string
+    emailVisibility?: string
+    password?: string | null
+    googleId?: string | null
+    bio?: string | null
+    profilePicture?: string | null
+    coverImage?: string | null
+    collegeName?: string | null
+    department?: string | null
+    yearOfStudy?: string | null
+    phoneNumber?: string | null
+    phoneVisibility?: string
+    whatsappNumber?: string | null
+    whatsappVisibility?: string
+    instagramHandle?: string | null
+    instagramVisibility?: string
+    facebookUrl?: string | null
+    facebookVisibility?: string
+    snapchatUsername?: string | null
+    snapchatVisibility?: string
+    linkedinUrl?: string | null
+    linkedinVisibility?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    posts?: PostCreateNestedManyWithoutAuthorInput
+    comments?: CommentCreateNestedManyWithoutAuthorInput
+    likedPosts?: PostCreateNestedManyWithoutLikesInput
+    sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
+    receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
+    sentMessages?: MessageCreateNestedManyWithoutSenderInput
+    receivedMessages?: MessageCreateNestedManyWithoutReceiverInput
+    myCrushes?: CrushCreateNestedManyWithoutUserInput
+    crushedBy?: CrushCreateNestedManyWithoutCrushInput
+    sentCloseFriendRequests?: CloseFriendRequestCreateNestedManyWithoutSenderInput
+    receivedCloseFriendRequests?: CloseFriendRequestCreateNestedManyWithoutReceiverInput
+    languageRooms?: LanguageRoomCreateNestedManyWithoutCreatorInput
+    createdGroups?: GroupCreateNestedManyWithoutCreatorInput
+    groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
+    groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutBlockedByUsersInput = {
+    id?: number
+    name: string
+    email: string
+    emailVisibility?: string
+    password?: string | null
+    googleId?: string | null
+    bio?: string | null
+    profilePicture?: string | null
+    coverImage?: string | null
+    collegeName?: string | null
+    department?: string | null
+    yearOfStudy?: string | null
+    phoneNumber?: string | null
+    phoneVisibility?: string
+    whatsappNumber?: string | null
+    whatsappVisibility?: string
+    instagramHandle?: string | null
+    instagramVisibility?: string
+    facebookUrl?: string | null
+    facebookVisibility?: string
+    snapchatUsername?: string | null
+    snapchatVisibility?: string
+    linkedinUrl?: string | null
+    linkedinVisibility?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
+    comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
+    likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
+    receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
+    sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
+    receivedMessages?: MessageUncheckedCreateNestedManyWithoutReceiverInput
+    myCrushes?: CrushUncheckedCreateNestedManyWithoutUserInput
+    crushedBy?: CrushUncheckedCreateNestedManyWithoutCrushInput
+    sentCloseFriendRequests?: CloseFriendRequestUncheckedCreateNestedManyWithoutSenderInput
+    receivedCloseFriendRequests?: CloseFriendRequestUncheckedCreateNestedManyWithoutReceiverInput
+    languageRooms?: LanguageRoomUncheckedCreateNestedManyWithoutCreatorInput
+    createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
+    groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+    blockedUsers?: BlockedUserUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutBlockedByUsersInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutBlockedByUsersInput, UserUncheckedCreateWithoutBlockedByUsersInput>
+  }
+
+  export type UserUpsertWithoutBlockedUsersInput = {
+    update: XOR<UserUpdateWithoutBlockedUsersInput, UserUncheckedUpdateWithoutBlockedUsersInput>
+    create: XOR<UserCreateWithoutBlockedUsersInput, UserUncheckedCreateWithoutBlockedUsersInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutBlockedUsersInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutBlockedUsersInput, UserUncheckedUpdateWithoutBlockedUsersInput>
+  }
+
+  export type UserUpdateWithoutBlockedUsersInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
+    collegeName?: NullableStringFieldUpdateOperationsInput | string | null
+    department?: NullableStringFieldUpdateOperationsInput | string | null
+    yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneVisibility?: StringFieldUpdateOperationsInput | string
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappVisibility?: StringFieldUpdateOperationsInput | string
+    instagramHandle?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramVisibility?: StringFieldUpdateOperationsInput | string
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookVisibility?: StringFieldUpdateOperationsInput | string
+    snapchatUsername?: NullableStringFieldUpdateOperationsInput | string | null
+    snapchatVisibility?: StringFieldUpdateOperationsInput | string
+    linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    linkedinVisibility?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    posts?: PostUpdateManyWithoutAuthorNestedInput
+    comments?: CommentUpdateManyWithoutAuthorNestedInput
+    likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
+    receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
+    sentMessages?: MessageUpdateManyWithoutSenderNestedInput
+    receivedMessages?: MessageUpdateManyWithoutReceiverNestedInput
+    myCrushes?: CrushUpdateManyWithoutUserNestedInput
+    crushedBy?: CrushUpdateManyWithoutCrushNestedInput
+    sentCloseFriendRequests?: CloseFriendRequestUpdateManyWithoutSenderNestedInput
+    receivedCloseFriendRequests?: CloseFriendRequestUpdateManyWithoutReceiverNestedInput
+    languageRooms?: LanguageRoomUpdateManyWithoutCreatorNestedInput
+    createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
+    groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
+    groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutBlockedUsersInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
+    collegeName?: NullableStringFieldUpdateOperationsInput | string | null
+    department?: NullableStringFieldUpdateOperationsInput | string | null
+    yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneVisibility?: StringFieldUpdateOperationsInput | string
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappVisibility?: StringFieldUpdateOperationsInput | string
+    instagramHandle?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramVisibility?: StringFieldUpdateOperationsInput | string
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookVisibility?: StringFieldUpdateOperationsInput | string
+    snapchatUsername?: NullableStringFieldUpdateOperationsInput | string | null
+    snapchatVisibility?: StringFieldUpdateOperationsInput | string
+    linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    linkedinVisibility?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
+    comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
+    likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
+    receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
+    sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
+    receivedMessages?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
+    myCrushes?: CrushUncheckedUpdateManyWithoutUserNestedInput
+    crushedBy?: CrushUncheckedUpdateManyWithoutCrushNestedInput
+    sentCloseFriendRequests?: CloseFriendRequestUncheckedUpdateManyWithoutSenderNestedInput
+    receivedCloseFriendRequests?: CloseFriendRequestUncheckedUpdateManyWithoutReceiverNestedInput
+    languageRooms?: LanguageRoomUncheckedUpdateManyWithoutCreatorNestedInput
+    createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
+    groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
+  }
+
+  export type UserUpsertWithoutBlockedByUsersInput = {
+    update: XOR<UserUpdateWithoutBlockedByUsersInput, UserUncheckedUpdateWithoutBlockedByUsersInput>
+    create: XOR<UserCreateWithoutBlockedByUsersInput, UserUncheckedCreateWithoutBlockedByUsersInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutBlockedByUsersInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutBlockedByUsersInput, UserUncheckedUpdateWithoutBlockedByUsersInput>
+  }
+
+  export type UserUpdateWithoutBlockedByUsersInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
+    collegeName?: NullableStringFieldUpdateOperationsInput | string | null
+    department?: NullableStringFieldUpdateOperationsInput | string | null
+    yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneVisibility?: StringFieldUpdateOperationsInput | string
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappVisibility?: StringFieldUpdateOperationsInput | string
+    instagramHandle?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramVisibility?: StringFieldUpdateOperationsInput | string
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookVisibility?: StringFieldUpdateOperationsInput | string
+    snapchatUsername?: NullableStringFieldUpdateOperationsInput | string | null
+    snapchatVisibility?: StringFieldUpdateOperationsInput | string
+    linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    linkedinVisibility?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    posts?: PostUpdateManyWithoutAuthorNestedInput
+    comments?: CommentUpdateManyWithoutAuthorNestedInput
+    likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
+    receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
+    sentMessages?: MessageUpdateManyWithoutSenderNestedInput
+    receivedMessages?: MessageUpdateManyWithoutReceiverNestedInput
+    myCrushes?: CrushUpdateManyWithoutUserNestedInput
+    crushedBy?: CrushUpdateManyWithoutCrushNestedInput
+    sentCloseFriendRequests?: CloseFriendRequestUpdateManyWithoutSenderNestedInput
+    receivedCloseFriendRequests?: CloseFriendRequestUpdateManyWithoutReceiverNestedInput
+    languageRooms?: LanguageRoomUpdateManyWithoutCreatorNestedInput
+    createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
+    groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
+    groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutBlockedByUsersInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    emailVisibility?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
+    collegeName?: NullableStringFieldUpdateOperationsInput | string | null
+    department?: NullableStringFieldUpdateOperationsInput | string | null
+    yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneVisibility?: StringFieldUpdateOperationsInput | string
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappVisibility?: StringFieldUpdateOperationsInput | string
+    instagramHandle?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramVisibility?: StringFieldUpdateOperationsInput | string
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookVisibility?: StringFieldUpdateOperationsInput | string
+    snapchatUsername?: NullableStringFieldUpdateOperationsInput | string | null
+    snapchatVisibility?: StringFieldUpdateOperationsInput | string
+    linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    linkedinVisibility?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
+    comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
+    likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
+    receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
+    sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
+    receivedMessages?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
+    myCrushes?: CrushUncheckedUpdateManyWithoutUserNestedInput
+    crushedBy?: CrushUncheckedUpdateManyWithoutCrushNestedInput
+    sentCloseFriendRequests?: CloseFriendRequestUncheckedUpdateManyWithoutSenderNestedInput
+    receivedCloseFriendRequests?: CloseFriendRequestUncheckedUpdateManyWithoutReceiverNestedInput
+    languageRooms?: LanguageRoomUncheckedUpdateManyWithoutCreatorNestedInput
+    createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
+    groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PostCreateManyAuthorInput = {
@@ -23262,6 +25394,18 @@ export namespace Prisma {
     isDeleted?: boolean
     createdAt?: Date | string
     groupId: number
+  }
+
+  export type BlockedUserCreateManyUserInput = {
+    id?: number
+    blockedUserId: number
+    createdAt?: Date | string
+  }
+
+  export type BlockedUserCreateManyBlockedUserInput = {
+    id?: number
+    userId: number
+    createdAt?: Date | string
   }
 
   export type PostUpdateWithoutAuthorInput = {
@@ -23652,6 +25796,40 @@ export namespace Prisma {
     groupId?: IntFieldUpdateOperationsInput | number
   }
 
+  export type BlockedUserUpdateWithoutUserInput = {
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    blockedUser?: UserUpdateOneRequiredWithoutBlockedByUsersNestedInput
+  }
+
+  export type BlockedUserUncheckedUpdateWithoutUserInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    blockedUserId?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BlockedUserUncheckedUpdateManyWithoutUserInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    blockedUserId?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BlockedUserUpdateWithoutBlockedUserInput = {
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutBlockedUsersNestedInput
+  }
+
+  export type BlockedUserUncheckedUpdateWithoutBlockedUserInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    userId?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BlockedUserUncheckedUpdateManyWithoutBlockedUserInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    userId?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type CommentCreateManyPostInput = {
     id?: number
     content: string
@@ -23700,6 +25878,8 @@ export namespace Prisma {
     createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLikedPostsInput = {
@@ -23743,6 +25923,8 @@ export namespace Prisma {
     createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
     groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
     groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+    blockedUsers?: BlockedUserUncheckedUpdateManyWithoutUserNestedInput
+    blockedByUsers?: BlockedUserUncheckedUpdateManyWithoutBlockedUserNestedInput
   }
 
   export type UserUncheckedUpdateManyWithoutLikedPostsInput = {

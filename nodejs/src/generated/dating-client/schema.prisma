@@ -66,6 +66,9 @@ model User {
   groupMembers  GroupMember[]
   groupMessages GroupMessage[]
 
+  blockedUsers   BlockedUser[] @relation("UserBlocks")
+  blockedByUsers BlockedUser[] @relation("BlockedByUsers")
+
   @@index([name])
   @@index([collegeName])
   @@index([department])
@@ -244,4 +247,19 @@ model GroupMessage {
   sender   User @relation(fields: [senderId], references: [id])
 
   @@map("social_group_messages")
+}
+
+model BlockedUser {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  blockedUserId Int
+  createdAt     DateTime @default(now())
+
+  user        User @relation("UserBlocks", fields: [userId], references: [id], onDelete: Cascade)
+  blockedUser User @relation("BlockedByUsers", fields: [blockedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, blockedUserId])
+  @@index([userId])
+  @@index([blockedUserId])
+  @@map("social_blocked_users")
 }

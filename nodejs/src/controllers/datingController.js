@@ -958,13 +958,33 @@ const getFriendships = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
+    // Fetch blocked users (both blocked by user, and users who blocked user)
+    let blockedUserIds = new Set();
+    try {
+      const blockedRecords = await datingPrisma.blockedUser.findMany({
+        where: {
+          OR: [
+            { userId: userId },
+            { blockedUserId: userId }
+          ]
+        },
+        select: { userId: true, blockedUserId: true }
+      });
+      blockedRecords.forEach(b => {
+        if (b.userId === userId) blockedUserIds.add(b.blockedUserId);
+        if (b.blockedUserId === userId) blockedUserIds.add(b.userId);
+      });
+    } catch (bErr) {
+      console.warn('Blocked users fetch in getFriendships warning:', bErr.message);
+    }
+
     const acceptedFriendships = friendships.filter(f => f.status === 'accepted');
 
-    // Deduplicate accepted friends by user ID
+    // Deduplicate accepted friends by user ID and exclude blocked users
     const friendsMap = new Map();
     acceptedFriendships.forEach(f => {
       const friend = f.senderId === userId ? f.receiver : f.sender;
-      if (friend && !friendsMap.has(friend.id)) {
+      if (friend && !friendsMap.has(friend.id) && !blockedUserIds.has(friend.id)) {
         friendsMap.set(friend.id, {
           id: friend.id,
           name: friend.name,
@@ -1028,10 +1048,10 @@ const getFriendships = async (req, res) => {
       lastMessage: lastMessageMap.get(friend.id) || null,
     }));
 
-    // Deduplicate pending requests by senderId
+    // Deduplicate pending requests by senderId and exclude blocked users
     const pendingMap = new Map();
     friendships
-      .filter(f => f.status === 'pending' && f.receiverId === userId)
+      .filter(f => f.status === 'pending' && f.receiverId === userId && !blockedUserIds.has(f.senderId))
       .forEach(req => {
         if (!pendingMap.has(req.senderId)) {
           pendingMap.set(req.senderId, req);

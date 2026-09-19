@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Users, Clock, UserCheck, Check, X, Star, MessageSquare, 
   UserX, Search, Compass, ChevronRight, ChevronLeft, MoreVertical, 
-  ArrowRight, User, GraduationCap, SlidersHorizontal, Eye
+  ArrowRight, User, GraduationCap, SlidersHorizontal, Eye, Ban, ShieldAlert
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
@@ -39,8 +40,10 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   const { confirm } = useModal();
 
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [loadingBlocked, setLoadingBlocked] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [mobileTab, setMobileTab] = useState('connections'); // 'connections' | 'pending'
+  const [mobileTab, setMobileTab] = useState('connections'); // 'connections' | 'pending' | 'blocked'
   const [sortBy, setSortBy] = useState('recent'); // 'recent' | 'name' | 'online'
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [activeMenuFriendId, setActiveMenuFriendId] = useState(null);
@@ -59,9 +62,23 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
     }
   };
 
+  // Fetch and sync blocked users
+  const syncBlockedUsers = async () => {
+    try {
+      setLoadingBlocked(true);
+      const response = await socialApi.get('/social/blocked-users');
+      setBlockedUsers(Array.isArray(response.data?.blockedUsers) ? response.data.blockedUsers : []);
+    } catch (err) {
+      console.error('Failed to fetch blocked users', err);
+    } finally {
+      setLoadingBlocked(false);
+    }
+  };
+
   useEffect(() => {
     fetchFriends();
     syncPending();
+    syncBlockedUsers();
   }, []);
 
   // Close menus on outside click
@@ -139,6 +156,48 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
       syncPending();
     } catch (err) {
       console.error('Failed to ignore request', err);
+    }
+  };
+
+  const handleBlockFriend = async (userId, name) => {
+    setActiveMenuFriendId(null);
+    const confirmed = await confirm({
+      title: `Block ${name}?`,
+      message: `Are you sure you want to block ${name}? They will be removed from your connections, and you will not see each other's posts, comments, or messages. You can unblock them anytime from Blocked Users.`,
+      confirmText: 'Block User',
+      cancelText: 'Cancel',
+      type: 'danger',
+    });
+    if (!confirmed) return;
+    try {
+      await socialApi.post('/social/block', { targetUserId: userId });
+      toast.success(`${name} has been blocked.`);
+      fetchFriends(true);
+      syncPending();
+      syncBlockedUsers();
+    } catch (err) {
+      console.error('Failed to block friend', err);
+      toast.error('Failed to block user.');
+    }
+  };
+
+  const handleUnblockUser = async (userId, name) => {
+    const confirmed = await confirm({
+      title: `Unblock ${name}?`,
+      message: `Are you sure you want to unblock ${name}? They will be removed from your blocked list and you will be able to search and connect again.`,
+      confirmText: 'Unblock',
+      cancelText: 'Cancel',
+      type: 'warning',
+    });
+    if (!confirmed) return;
+    try {
+      await socialApi.post('/social/unblock', { targetUserId: userId });
+      toast.success(`${name} has been unblocked.`);
+      syncBlockedUsers();
+      fetchFriends(true);
+    } catch (err) {
+      console.error('Failed to unblock user', err);
+      toast.error('Failed to unblock user.');
     }
   };
 
@@ -250,18 +309,18 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
         </div>
       </div>
 
-      {/* ── Mobile Segmented Control Pills (My Connections vs Pending Requests) ── */}
+      {/* ── Mobile Segmented Control Pills (My Connections vs Pending Requests vs Blocked Users) ── */}
       <div className="sm:hidden flex items-center bg-gray-100/90 dark:bg-gray-800/90 p-1 rounded-full border border-gray-200/80 dark:border-gray-700">
         <button
           type="button"
           onClick={() => setMobileTab('connections')}
-          className={`flex-1 py-2.5 px-4 rounded-full font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`flex-1 py-2 px-2.5 rounded-full font-black text-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
             mobileTab === 'connections'
               ? 'bg-orange-500 text-white shadow-sm'
               : 'text-gray-600 dark:text-gray-300 hover:text-orange-500'
           }`}
         >
-          <span>My Connections</span>
+          <span>Connections</span>
           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
             mobileTab === 'connections' ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
           }`}>
@@ -272,16 +331,35 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
         <button
           type="button"
           onClick={() => setMobileTab('pending')}
-          className={`flex-1 py-2.5 px-4 rounded-full font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`flex-1 py-2 px-2.5 rounded-full font-black text-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
             mobileTab === 'pending'
               ? 'bg-orange-500 text-white shadow-sm'
               : 'text-gray-600 dark:text-gray-300 hover:text-orange-500'
           }`}
         >
-          <span>Pending Requests</span>
+          <span>Pending</span>
           {pendingRequests.length > 0 && (
             <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">
               {pendingRequests.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMobileTab('blocked')}
+          className={`flex-1 py-2 px-2.5 rounded-full font-black text-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
+            mobileTab === 'blocked'
+              ? 'bg-orange-500 text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-300 hover:text-orange-500'
+          }`}
+        >
+          <span>Blocked</span>
+          {blockedUsers.length > 0 && (
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+              mobileTab === 'blocked' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+            }`}>
+              {blockedUsers.length}
             </span>
           )}
         </button>
@@ -290,9 +368,13 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
       {/* ── Main 2-Column Desktop Grid / Tabbed Mobile View ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* ── LEFT COLUMN: Pending Requests ── */}
-        <div className={`lg:col-span-5 flex-col gap-4 ${mobileTab === 'pending' ? 'flex' : 'hidden lg:flex'}`}>
-          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-2xs space-y-4">
+        {/* ── LEFT COLUMN: Pending Requests & Blocked Users ── */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          
+          {/* Pending Requests Card */}
+          <div className={`bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-2xs space-y-4 ${
+            mobileTab === 'pending' ? 'block' : 'hidden lg:block'
+          }`}>
             
             {/* Card Header */}
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
@@ -394,6 +476,87 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
               )}
             </div>
           </div>
+
+          {/* Blocked Users Card */}
+          <div className={`bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-2xs space-y-4 ${
+            mobileTab === 'blocked' ? 'block' : 'hidden lg:block'
+          }`}>
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-500 flex items-center justify-center">
+                  <Ban size={15} />
+                </div>
+                <h2 className="text-sm sm:text-base font-black text-gray-900 dark:text-white">
+                  Blocked Users
+                </h2>
+                {blockedUsers.length > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow-2xs">
+                    {blockedUsers.length}
+                  </span>
+                )}
+              </div>
+              
+              {blockedUsers.length > 0 && (
+                <span className="text-xs font-bold text-gray-400">
+                  {blockedUsers.length} {blockedUsers.length === 1 ? 'User' : 'Users'}
+                </span>
+              )}
+            </div>
+
+            {/* Blocked Users List */}
+            <div className="space-y-3">
+              {blockedUsers.map((bUser) => {
+                const bSubtitle = bUser.department 
+                  ? `${bUser.department}${bUser.collegeName ? ` • ${bUser.collegeName}` : ''}`
+                  : (bUser.collegeName || 'Blocked learner');
+
+                return (
+                  <div 
+                    key={bUser.id}
+                    className="p-3.5 rounded-2xl bg-gray-50/80 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3 transition hover:border-gray-200"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <UserAvatar 
+                        src={bUser.profilePicture} 
+                        name={bUser.name} 
+                        className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700 object-cover shrink-0 grayscale opacity-80" 
+                        textClassName="text-sm font-bold"
+                      />
+                      <div className="min-w-0 text-left">
+                        <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white truncate">
+                          {bUser.name}
+                        </h4>
+                        <p className="text-[11px] text-gray-400 truncate">
+                          {bSubtitle}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleUnblockUser(bUser.id, bUser.name)}
+                      className="px-3.5 py-1.5 bg-white dark:bg-gray-800 hover:bg-orange-50 dark:hover:bg-orange-950/40 border border-gray-200 dark:border-gray-700 hover:border-orange-300 text-gray-700 dark:text-gray-200 hover:text-orange-600 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer shadow-2xs flex items-center gap-1"
+                    >
+                      <span>Unblock</span>
+                    </button>
+                  </div>
+                );
+              })}
+
+              {blockedUsers.length === 0 && (
+                <div className="py-8 text-center text-gray-400 dark:text-gray-500 space-y-1.5">
+                  <div className="w-10 h-10 rounded-2xl bg-gray-50 dark:bg-gray-800/80 text-gray-400 flex items-center justify-center mx-auto mb-2">
+                    <Ban size={18} className="opacity-50" />
+                  </div>
+                  <p className="text-xs font-bold text-gray-700 dark:text-gray-300">No Blocked Users</p>
+                  <p className="text-[11px] text-gray-400 max-w-xs mx-auto">
+                    Users you block will appear here. They cannot view your posts, send requests, or chat with you.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
 
         {/* ── RIGHT COLUMN: My Connections ── */}
@@ -609,10 +772,19 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                               <button
                                 type="button"
                                 onClick={() => handleRemoveFriend(friend.id, friend.name)}
-                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition flex items-center gap-2 cursor-pointer"
+                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-2 cursor-pointer"
                               >
                                 <UserX size={14} />
                                 <span>Remove Connection</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleBlockFriend(friend.id, friend.name)}
+                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition flex items-center gap-2 cursor-pointer"
+                              >
+                                <Ban size={14} />
+                                <span>Block User</span>
                               </button>
                             </motion.div>
                           )}

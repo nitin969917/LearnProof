@@ -110,6 +110,7 @@ router.post('/video-ask-ai/', authMiddleware, socialController.askVideoDoubt);
 // UGC Safety & Moderation (Apple Guideline 1.2)
 router.post('/social/report', authMiddleware, socialController.reportContent);
 router.post('/social/block', authMiddleware, socialController.blockUser);
+router.post('/social/unblock', authMiddleware, socialController.unblockUser);
 router.get('/social/blocked-users', authMiddleware, socialController.getBlockedUsers);
 
 // Quiz & Engagement

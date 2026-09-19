@@ -350,26 +350,74 @@ const blockUser = async (req, res) => {
             return res.status(400).json({ error: 'Missing targetUserId' });
         }
 
-        if (String(targetUserId) === String(currentUserId)) {
+        const numericTargetId = parseInt(targetUserId, 10);
+        if (numericTargetId === currentUserId) {
             return res.status(400).json({ error: 'Cannot block yourself' });
         }
 
+        // 1. Persist block record in database
+        try {
+            await datingPrisma.blockedUser.upsert({
+                where: {
+                    userId_blockedUserId: {
+                        userId: currentUserId,
+                        blockedUserId: numericTargetId
+                    }
+                },
+                update: {},
+                create: {
+                    userId: currentUserId,
+                    blockedUserId: numericTargetId
+                }
+            });
+        } catch (dbErr) {
+            console.warn('[UGC Moderation] DB block upsert warning (falling back):', dbErr.message);
+        }
+
+        // 2. Remove any existing friendship or pending connection
+        try {
+            await datingPrisma.friendship.deleteMany({
+                where: {
+                    OR: [
+                        { senderId: currentUserId, receiverId: numericTargetId },
+                        { senderId: numericTargetId, receiverId: currentUserId }
+                    ]
+                }
+            });
+
+            await datingPrisma.closeFriendRequest.deleteMany({
+                where: {
+                    OR: [
+                        { senderId: currentUserId, receiverId: numericTargetId },
+                        { senderId: numericTargetId, receiverId: currentUserId }
+                    ]
+                }
+            });
+        } catch (fErr) {
+            console.warn('[UGC Moderation] Friendship cleanup warning on block:', fErr.message);
+        }
+
+        // 3. Update Redis cache
         const cacheKey = `user:${currentUserId}:blocked`;
         let blocked = await cacheService.get(cacheKey);
         if (!Array.isArray(blocked)) {
             blocked = [];
         }
 
-        if (!blocked.includes(targetUserId)) {
-            blocked.push(targetUserId);
+        if (!blocked.includes(numericTargetId) && !blocked.includes(String(numericTargetId))) {
+            blocked.push(numericTargetId);
             await cacheService.set(cacheKey, blocked, 86400 * 30);
         }
 
-        console.log(`[UGC Moderation] User ${currentUserId} blocked user ${targetUserId}`);
+        // Invalidate friends list cache for both users
+        await cacheService.del(`user:friendships:${currentUserId}`);
+        await cacheService.del(`user:friendships:${numericTargetId}`);
+
+        console.log(`[UGC Moderation] User ${currentUserId} blocked user ${numericTargetId}`);
 
         return res.status(200).json({
             success: true,
-            message: 'User has been blocked. You will no longer see content from this user.',
+            message: 'User has been blocked. They have been removed from your connections.',
             blockedUsers: blocked
         });
     } catch (err) {
@@ -379,17 +427,111 @@ const blockUser = async (req, res) => {
 };
 
 /**
- * UGC Get Blocked Users
+ * UGC Unblock User
+ */
+const unblockUser = async (req, res) => {
+    try {
+        const { targetUserId } = req.body;
+        const currentUserId = req.user?.id;
+
+        if (!targetUserId) {
+            return res.status(400).json({ error: 'Missing targetUserId' });
+        }
+
+        const numericTargetId = parseInt(targetUserId, 10);
+
+        // 1. Remove block record from database
+        try {
+            await datingPrisma.blockedUser.deleteMany({
+                where: {
+                    userId: currentUserId,
+                    blockedUserId: numericTargetId
+                }
+            });
+        } catch (dbErr) {
+            console.warn('[UGC Moderation] DB unblock warning:', dbErr.message);
+        }
+
+        // 2. Update Redis cache
+        const cacheKey = `user:${currentUserId}:blocked`;
+        let blocked = await cacheService.get(cacheKey);
+        if (Array.isArray(blocked)) {
+            blocked = blocked.filter(id => id !== numericTargetId && id !== String(numericTargetId));
+            await cacheService.set(cacheKey, blocked, 86400 * 30);
+        } else {
+            blocked = [];
+        }
+
+        // Invalidate friends list cache
+        await cacheService.del(`user:friendships:${currentUserId}`);
+        await cacheService.del(`user:friendships:${numericTargetId}`);
+
+        console.log(`[UGC Moderation] User ${currentUserId} unblocked user ${numericTargetId}`);
+
+        return res.status(200).json({
+            success: true,
+            message: 'User has been unblocked.',
+            blockedUsers: blocked
+        });
+    } catch (err) {
+        console.error('unblockUser error:', err);
+        return res.status(500).json({ error: 'Failed to unblock user', details: err.message });
+    }
+};
+
+/**
+ * UGC Get Blocked Users (with full user profiles for the UI)
  */
 const getBlockedUsers = async (req, res) => {
     try {
         const currentUserId = req.user?.id;
-        const cacheKey = `user:${currentUserId}:blocked`;
-        const blocked = await cacheService.get(cacheKey) || [];
 
-        return res.status(200).json({
-            blockedUsers: Array.isArray(blocked) ? blocked : []
-        });
+        // Fetch from database with user profile details
+        try {
+            const blockedRecords = await datingPrisma.blockedUser.findMany({
+                where: { userId: currentUserId },
+                include: {
+                    blockedUser: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            profilePicture: true,
+                            collegeName: true,
+                            department: true,
+                            yearOfStudy: true
+                        }
+                    }
+                },
+                orderBy: { createdAt: 'desc' }
+            });
+
+            const blockedUsers = blockedRecords
+                .filter(b => b.blockedUser)
+                .map(b => ({
+                    ...b.blockedUser,
+                    blockedAt: b.createdAt
+                }));
+
+            const blockedUserIds = blockedUsers.map(u => u.id);
+
+            // Sync Redis cache
+            const cacheKey = `user:${currentUserId}:blocked`;
+            await cacheService.set(cacheKey, blockedUserIds, 86400 * 30);
+
+            return res.status(200).json({
+                blockedUsers,
+                blockedUserIds
+            });
+        } catch (dbErr) {
+            console.warn('[UGC Moderation] DB getBlockedUsers warning, fallback to cache:', dbErr.message);
+            const cacheKey = `user:${currentUserId}:blocked`;
+            const blocked = await cacheService.get(cacheKey) || [];
+            return res.status(200).json({
+                blockedUsers: [],
+                blockedUserIds: Array.isArray(blocked) ? blocked : []
+            });
+        }
     } catch (err) {
         console.error('getBlockedUsers error:', err);
         return res.status(500).json({ error: 'Failed to get blocked users' });
@@ -406,5 +548,7 @@ module.exports = {
     askVideoDoubt,
     reportContent,
     blockUser,
+    unblockUser,
     getBlockedUsers
 };
+

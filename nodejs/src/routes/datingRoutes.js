@@ -79,6 +79,7 @@ router.get('/social/friend-requests/count', datingAuth, getPendingFriendCount);
 // UGC Safety & Moderation (Apple Guideline 1.2)
 router.post('/social/report', datingAuth, socialController.reportContent);
 router.post('/social/block', datingAuth, socialController.blockUser);
+router.post('/social/unblock', datingAuth, socialController.unblockUser);
 router.get('/social/blocked-users', datingAuth, socialController.getBlockedUsers);
 
 // Direct message history
