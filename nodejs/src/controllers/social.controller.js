@@ -339,12 +339,41 @@ const reportContent = async (req, res) => {
 };
 
 /**
+ * Helper to ensure we always resolve the internal social_users ID (datingPrisma.user)
+ */
+const resolveSocialUserId = async (req) => {
+    let socialId = req.user?.id;
+    const userEmail = req.user?.email;
+    const userUid = req.user?.uid || req.user?.googleId;
+
+    if (userEmail || userUid) {
+        try {
+            const socialUser = await datingPrisma.user.findFirst({
+                where: {
+                    OR: [
+                        ...(userEmail ? [{ email: userEmail }] : []),
+                        ...(userUid ? [{ googleId: userUid }] : [])
+                    ]
+                },
+                select: { id: true }
+            });
+            if (socialUser) {
+                socialId = socialUser.id;
+            }
+        } catch (e) {
+            console.warn('[resolveSocialUserId] Lookup warning:', e.message);
+        }
+    }
+    return socialId;
+};
+
+/**
  * UGC Block User (Apple Guideline 1.2)
  */
 const blockUser = async (req, res) => {
     try {
         const { targetUserId } = req.body;
-        const currentUserId = req.user?.id;
+        const currentUserId = await resolveSocialUserId(req);
 
         if (!targetUserId) {
             return res.status(400).json({ error: 'Missing targetUserId' });
@@ -409,9 +438,10 @@ const blockUser = async (req, res) => {
             await cacheService.set(cacheKey, blocked, 86400 * 30);
         }
 
-        // Invalidate friends list cache for both users
+        // Invalidate friends list cache for all patterns
         await cacheService.del(`user:friendships:${currentUserId}`);
         await cacheService.del(`user:friendships:${numericTargetId}`);
+        await cacheService.delByPattern('user:friendships:*').catch(() => {});
 
         console.log(`[UGC Moderation] User ${currentUserId} blocked user ${numericTargetId}`);
 
@@ -432,7 +462,7 @@ const blockUser = async (req, res) => {
 const unblockUser = async (req, res) => {
     try {
         const { targetUserId } = req.body;
-        const currentUserId = req.user?.id;
+        const currentUserId = await resolveSocialUserId(req);
 
         if (!targetUserId) {
             return res.status(400).json({ error: 'Missing targetUserId' });
@@ -465,6 +495,7 @@ const unblockUser = async (req, res) => {
         // Invalidate friends list cache
         await cacheService.del(`user:friendships:${currentUserId}`);
         await cacheService.del(`user:friendships:${numericTargetId}`);
+        await cacheService.delByPattern('user:friendships:*').catch(() => {});
 
         console.log(`[UGC Moderation] User ${currentUserId} unblocked user ${numericTargetId}`);
 
@@ -484,7 +515,7 @@ const unblockUser = async (req, res) => {
  */
 const getBlockedUsers = async (req, res) => {
     try {
-        const currentUserId = req.user?.id;
+        const currentUserId = await resolveSocialUserId(req);
 
         // Fetch from database with user profile details
         try {

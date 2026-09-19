@@ -169,6 +169,31 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
       type: 'danger',
     });
     if (!confirmed) return;
+
+    // 1. INSTANT REAL-TIME OPTIMISTIC UPDATE:
+    const friendToBlock = friends.find(f => f.id === userId);
+    useSocialFeedStore.setState(state => ({
+      friends: state.friends.filter(f => f.id !== userId),
+      closeFriends: state.closeFriends.filter(f => f.id !== userId)
+    }));
+    setPendingRequests(prev => prev.filter(r => r.senderId !== userId && r.sender?.id !== userId));
+
+    // Immediately reflect in Blocked Users card in real time
+    if (friendToBlock) {
+      setBlockedUsers(prev => [
+        {
+          id: friendToBlock.id,
+          name: friendToBlock.name,
+          profilePicture: friendToBlock.profilePicture,
+          collegeName: friendToBlock.collegeName,
+          department: friendToBlock.department,
+          yearOfStudy: friendToBlock.yearOfStudy,
+          blockedAt: new Date().toISOString()
+        },
+        ...prev.filter(b => b.id !== userId)
+      ]);
+    }
+
     try {
       await socialApi.post('/social/block', { targetUserId: userId });
       toast.success(`${name} has been blocked.`);
@@ -178,6 +203,8 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
     } catch (err) {
       console.error('Failed to block friend', err);
       toast.error('Failed to block user.');
+      fetchFriends(true);
+      syncBlockedUsers();
     }
   };
 
@@ -190,6 +217,10 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
       type: 'warning',
     });
     if (!confirmed) return;
+
+    // 1. INSTANT REAL-TIME OPTIMISTIC UPDATE:
+    setBlockedUsers(prev => prev.filter(b => b.id !== userId));
+
     try {
       await socialApi.post('/social/unblock', { targetUserId: userId });
       toast.success(`${name} has been unblocked.`);
@@ -198,12 +229,15 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
     } catch (err) {
       console.error('Failed to unblock user', err);
       toast.error('Failed to unblock user.');
+      syncBlockedUsers();
     }
   };
 
   // Filter and sort connections
+  const blockedIdsSet = new Set(blockedUsers.map(b => b.id));
   const filteredFriends = friends
     .filter((friend, idx, self) => self.findIndex(f => f.id === friend.id) === idx)
+    .filter(friend => !blockedIdsSet.has(friend.id))
     .filter(friend => {
       const q = searchQuery.toLowerCase().trim();
       if (!q) return true;

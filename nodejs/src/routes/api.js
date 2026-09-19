@@ -108,10 +108,10 @@ router.get('/video-intuition/', authMiddleware, socialController.getIntuition);
 router.post('/video-ask-ai/', authMiddleware, socialController.askVideoDoubt);
 
 // UGC Safety & Moderation (Apple Guideline 1.2)
-router.post('/social/report', authMiddleware, socialController.reportContent);
-router.post('/social/block', authMiddleware, socialController.blockUser);
-router.post('/social/unblock', authMiddleware, socialController.unblockUser);
-router.get('/social/blocked-users', authMiddleware, socialController.getBlockedUsers);
+router.post('/social/report', datingAuth, socialController.reportContent);
+router.post('/social/block', datingAuth, socialController.blockUser);
+router.post('/social/unblock', datingAuth, socialController.unblockUser);
+router.get('/social/blocked-users', datingAuth, socialController.getBlockedUsers);
 
 // Quiz & Engagement
 router.post('/quiz-list/', authMiddleware, quizController.getQuizList);
