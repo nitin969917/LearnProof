@@ -1,9 +1,7 @@
 import axios from 'axios';
 
 let backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
-if (typeof window !== 'undefined' && window.location.hostname.includes('learnproofai.com')) {
-  backendUrl = window.location.origin;
-} else if (backendUrl.includes('learnproofai.com') && !backendUrl.includes('api.learnproofai.com')) {
+if (backendUrl.includes('learnproofai.com') && !backendUrl.includes('api.learnproofai.com')) {
   backendUrl = 'https://api.learnproofai.com';
 }
 const baseURL = `${backendUrl}/api`;
