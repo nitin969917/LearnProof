@@ -65,10 +65,23 @@ const DashboardHome = () => {
         apiCache.fetchSWR({
             key: `user:referral:${userKey}`,
             fetcher: async () => {
-                const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/my-code`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                return res.data;
+                let data;
+                if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+                    const { CapacitorHttp } = await import('@capacitor/core');
+                    const res = await CapacitorHttp.get({
+                        url: `${import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com'}/api/referrals/my-code`,
+                        headers: { Authorization: `Bearer ${token}` },
+                        params: { idToken: token, token }
+                    });
+                    data = res.data;
+                } else {
+                    const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/my-code`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                        params: { idToken: token, token }
+                    });
+                    data = res.data;
+                }
+                return data;
             },
             onSuccess: (data) => {
                 if (data?.success && data?.referralCode) {

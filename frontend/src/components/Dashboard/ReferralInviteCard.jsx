@@ -14,11 +14,24 @@ export default function ReferralInviteCard({ compact = false }) {
         const fetchCode = async () => {
             if (!token) return;
             try {
-                const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/my-code`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (res.data?.success) {
-                    setReferralData(res.data);
+                let data;
+                if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+                    const { CapacitorHttp } = await import('@capacitor/core');
+                    const res = await CapacitorHttp.get({
+                        url: `${import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com'}/api/referrals/my-code`,
+                        headers: { Authorization: `Bearer ${token}` },
+                        params: { idToken: token, token }
+                    });
+                    data = res.data;
+                } else {
+                    const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/my-code`, {
+                        headers: { Authorization: `Bearer ${token}` },
+                        params: { idToken: token, token }
+                    });
+                    data = res.data;
+                }
+                if (data?.success) {
+                    setReferralData(data);
                 }
             } catch (err) {
                 console.debug('Failed to fetch personal referral code:', err?.message);
