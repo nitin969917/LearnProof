@@ -97,7 +97,7 @@ const DashboardLayout = () => {
 
     useEffect(() => {
         if (user) {
-            fetchSocialUser();
+            fetchSocialUser(false, user);
         }
     }, [user, fetchSocialUser]);
 

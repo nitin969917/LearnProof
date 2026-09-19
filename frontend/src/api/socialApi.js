@@ -10,12 +10,19 @@ const baseURL = `${backendUrl}/api`;
 
 const socialApi = axios.create({
   baseURL,
+  timeout: 15000,
 });
 
 socialApi.interceptors.request.use((config) => {
   const token = localStorage.getItem('google_token');
   if (token) {
+    config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
+    // Fallback query parameter for iOS WebKit/Capacitor where custom headers may be dropped
+    config.params = config.params || {};
+    if (!config.params.idToken) {
+      config.params.idToken = token;
+    }
   }
   return config;
 });

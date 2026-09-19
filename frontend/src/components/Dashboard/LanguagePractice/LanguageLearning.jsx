@@ -164,7 +164,7 @@ export default function LanguageLearning() {
     fetchRooms();
     fetchFriends();
     if (user && !socialUser) {
-      fetchSocialUser();
+      fetchSocialUser(false, user);
     }
   }, [user, socialUser, fetchSocialUser, fetchFriends]);
 
