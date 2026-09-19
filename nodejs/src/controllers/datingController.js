@@ -53,6 +53,9 @@ const invalidateProfileCache = async (userId, email) => {
       // Also clear the auth middleware cache so profile updates are reflected immediately
       email ? cacheService.del(`social:user:email:${email}`) : cacheService.delByPattern('social:user:email:*'),
     ]);
+  } catch (err) {
+    console.error('Failed to invalidate profile cache:', err);
+  }
 };
 
 /**
