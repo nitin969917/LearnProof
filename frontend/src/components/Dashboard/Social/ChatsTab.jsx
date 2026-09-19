@@ -1027,12 +1027,12 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       <div 
         className={`${
           selectedChat ? 'hidden md:flex' : 'flex'
-        } flex-col w-full md:w-[340px] lg:w-[380px] shrink-0 border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900`}
+        } flex-col w-full md:w-[340px] lg:w-[380px] h-full min-h-0 shrink-0 border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900`}
       >
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col gap-3 flex-shrink-0">
-          {/* Top Title Row + Compose Button */}
-          <div className="flex items-center justify-between">
+        <div className="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col gap-2.5 sm:gap-3 flex-shrink-0">
+          {/* Desktop Top Title Row + Compose Button (hidden on mobile to maximize chat area) */}
+          <div className="hidden md:flex items-center justify-between">
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
               Chats
             </h2>
@@ -1048,28 +1048,40 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
             </div>
           </div>
 
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-1">
-            {[
-              { id: 'all', name: 'All' },
-              { id: 'direct', name: 'Direct' },
-              { id: 'groups', name: 'Groups' }
-            ].map(filter => {
-              const isActive = activeFilter === filter.id;
-              return (
-                <button
-                  key={filter.id}
-                  onClick={() => setActiveFilter(filter.id)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer select-none ${
-                    isActive 
-                      ? 'bg-orange-50 dark:bg-orange-950/40 text-[#FF5722] border border-orange-200/80 dark:border-orange-800/60 shadow-xs'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
-                  }`}
-                >
-                  {filter.name}
-                </button>
-              );
-            })}
+          {/* Filter Tabs + Mobile Compose Button */}
+          <div className="flex items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-800 pb-2 md:pb-1">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {[
+                { id: 'all', name: 'All' },
+                { id: 'direct', name: 'Direct' },
+                { id: 'groups', name: 'Groups' }
+              ].map(filter => {
+                const isActive = activeFilter === filter.id;
+                return (
+                  <button
+                    key={filter.id}
+                    onClick={() => setActiveFilter(filter.id)}
+                    className={`px-3.5 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer select-none ${
+                      isActive 
+                        ? 'bg-orange-50 dark:bg-orange-950/40 text-[#FF5722] border border-orange-200/80 dark:border-orange-800/60 shadow-xs'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800'
+                    }`}
+                  >
+                    {filter.name}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Mobile-only Compose Button */}
+            <button
+              type="button"
+              onClick={() => setShowNewDirectChatModal(true)}
+              title="New Chat"
+              className="md:hidden w-9 h-9 rounded-xl bg-[#FF5722] hover:bg-[#F4511E] text-white flex items-center justify-center transition-all cursor-pointer shadow-sm shadow-orange-500/20 active:scale-95 shrink-0"
+            >
+              <SquarePen size={17} strokeWidth={2.2} />
+            </button>
           </div>
 
           {/* Search Bar */}
@@ -1085,8 +1097,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           </div>
         </div>
 
-        {/* Sidebar list items */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        {/* Sidebar list items with pb-36 on mobile so every single chat scrolls well above BottomNav */}
+        <div className="flex-1 overflow-y-auto p-2 pb-36 md:pb-6 space-y-1 overscroll-y-contain touch-pan-y">
           {loading ? (
             <div className="flex flex-col items-center justify-center p-12 text-xs text-gray-400 gap-2 font-medium">
               <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#FF5722] border-t-transparent"></div>
