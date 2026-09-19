@@ -10,10 +10,7 @@ export const useSocialFeedStore = create((set, get) => ({
       const saved = localStorage.getItem('learnproof_social_user');
       if (!saved || saved === 'undefined' || saved === 'null') return null;
       const parsed = JSON.parse(saved);
-      if (parsed && typeof parsed === 'object' && typeof parsed.id === 'number' && parsed.id > 0 && parsed.id < 2147483647) {
-        return parsed;
-      }
-      return null;
+      return parsed && typeof parsed === 'object' && parsed.id ? parsed : null;
     } catch {
       return null;
     }
@@ -127,24 +124,8 @@ export const useSocialFeedStore = create((set, get) => ({
     });
   },
 
-  fetchSocialUser: async (force = false, authUser = null) => {
-    const currentSocialUser = get().socialUser;
-    const hasValidNumericId = currentSocialUser && typeof currentSocialUser.id === 'number' && currentSocialUser.id > 0 && currentSocialUser.id < 2147483647;
-    if (hasValidNumericId && !force) return;
-
-    // Optimistically set fallback user display if available, using 'me' as id fallback
-    if (!currentSocialUser && authUser) {
-      set({
-        socialUser: {
-          id: (typeof authUser.id === 'number' && authUser.id < 2147483647) ? authUser.id : 'me',
-          name: authUser.name || 'Student',
-          email: authUser.email || '',
-          profilePicture: authUser.picture || '',
-          bio: ''
-        }
-      });
-    }
-
+  fetchSocialUser: async (force = false) => {
+    if (get().socialUser && !force) return;
     set({ loadingSocialUser: true });
     try {
       const response = await socialApi.get('/users/me');
@@ -161,17 +142,6 @@ export const useSocialFeedStore = create((set, get) => ({
       }
     } catch (err) {
       console.error('Failed to fetch social user', err);
-      if (!get().socialUser && authUser) {
-        set({
-          socialUser: {
-            id: (typeof authUser.id === 'number' && authUser.id < 2147483647) ? authUser.id : 'me',
-            name: authUser.name || 'Student',
-            email: authUser.email || '',
-            profilePicture: authUser.picture || '',
-            bio: ''
-          }
-        });
-      }
       set({ loadingSocialUser: false });
     }
   },

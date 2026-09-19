@@ -169,8 +169,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   }, [expandedSection]);
 
   const effectiveCurrentUserId = currentUserId || socialUser?.id || user?.id;
-  const isOwnProfile = !viewUserId || viewUserId === 'me' || (effectiveCurrentUserId && String(viewUserId) === String(effectiveCurrentUserId));
-  const targetId = isOwnProfile ? 'me' : viewUserId;
+  const targetId = viewUserId ? parseInt(viewUserId, 10) : effectiveCurrentUserId;
+  const isOwnProfile = !viewUserId || (effectiveCurrentUserId && parseInt(viewUserId, 10) === parseInt(effectiveCurrentUserId, 10));
   const isMobileOrApp = typeof navigator !== 'undefined' && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || navigator.userAgent.includes('LearnProofApp'));
 
   const isOnline = isOwnProfile ? true : (
@@ -182,20 +182,22 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   );
 
   useEffect(() => {
-    fetchProfile();
-    fetchUserPosts();
-    if (isOwnProfile) {
-      fetchFriends();
-    } else {
-      setActiveTab('posts');
+    if (targetId) {
+      fetchProfile();
+      fetchUserPosts();
+      if (isOwnProfile) {
+        fetchFriends();
+      } else {
+        setActiveTab('posts');
+      }
     }
-  }, [viewUserId, isOwnProfile]);
+  }, [targetId, isOwnProfile]);
 
   const fetchUserPosts = async () => {
+    if (!targetId) return;
     setPostsLoading(true);
     try {
-      const authorQuery = isOwnProfile ? 'me' : targetId;
-      const response = await socialApi.get(`/posts/feed?authorId=${authorQuery}`);
+      const response = await socialApi.get(`/posts/feed?authorId=${targetId}`);
       const postsData = Array.isArray(response.data) ? response.data : [];
       setPosts(postsData);
     } catch (err) {
@@ -207,10 +209,10 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   };
 
   const fetchProfile = async () => {
+    if (!targetId) return;
     setLoading(true);
     try {
-      const endpoint = isOwnProfile ? '/users/profile/me' : `/users/profile/${targetId}`;
-      const response = await socialApi.get(endpoint);
+      const response = await socialApi.get(`/users/profile/${targetId}`);
       setProfile(response.data);
       setFormData({
         ...response.data,

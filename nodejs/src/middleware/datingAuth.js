@@ -4,65 +4,37 @@ const { verifyFirebaseToken } = require('./auth');
 const cacheService = require('../services/cache.service');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'learnproof_default_secret_9988';
+
 const datingAuth = async (req, res, next) => {
-  let bearerToken = null;
-  const authHeader = req.headers['authorization'];
-  if (authHeader && typeof authHeader === 'string') {
-    const match = authHeader.match(/^bearer\s+(.+)$/i);
-    if (match && match[1]) {
-      bearerToken = match[1].trim();
-    } else {
-      bearerToken = authHeader.replace(/^bearer\s+/i, '').trim();
-    }
-  }
-  let idToken = req.body?.idToken || req.query?.idToken || req.query?.token || req.body?.token || bearerToken;
+  let idToken = req.body.idToken || req.query.idToken || req.query.token || req.body.token || req.headers['authorization']?.split('Bearer ')[1];
   
   if (!idToken) {
     return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
 
   try {
-    let decoded = null;
+    let decoded;
     try {
       decoded = jwt.verify(idToken, JWT_SECRET);
     } catch (jwtErr) {
-      try {
-        // Fallback to Google/Firebase verification
-        const googleDecoded = await verifyFirebaseToken(idToken);
-        decoded = {
-          email: googleDecoded.email,
-          uid: googleDecoded.uid,
-          name: googleDecoded.name,
-          picture: googleDecoded.picture
-        };
-      } catch (fbErr) {
-        // Fallback for Apple Sign-In / Demo token payload
-        const unverified = jwt.decode(idToken);
-        if (unverified && typeof unverified === 'object') {
-          const userUid = unverified.uid || unverified.sub || unverified.id;
-          if (userUid) {
-            decoded = {
-              email: unverified.email || `${userUid}@learnproofai.com`,
-              uid: String(userUid),
-              name: unverified.name || 'Student',
-              picture: unverified.picture || ''
-            };
-          }
-        }
-        if (!decoded) {
-          throw fbErr;
-        }
-      }
+      // Fallback to Google/Firebase verification
+      const googleDecoded = await verifyFirebaseToken(idToken);
+      decoded = {
+        email: googleDecoded.email,
+        uid: googleDecoded.uid,
+        name: googleDecoded.name,
+        picture: googleDecoded.picture
+      };
     }
 
-    if (!decoded || (!decoded.email && !decoded.uid)) {
+    if (!decoded || !decoded.email) {
       return res.status(401).json({ error: 'Unauthorized: Invalid token payload' });
     }
 
-    const userEmail = decoded.email || `${decoded.uid}@learnproofai.com`;
-
     // ── Redis cache: avoid DB hit on every request ─────────────────────────
-    const cacheKey = `social:user:email:${userEmail}`;
+    // Each authenticated page load makes 3-5 API calls. Without caching, each
+    // call hits the DB just to find the user. Cache for 5 minutes.
+    const cacheKey = `social:user:email:${decoded.email}`;
     let user = await cacheService.get(cacheKey);
 
     if (!user) {
@@ -70,8 +42,8 @@ const datingAuth = async (req, res, next) => {
       user = await datingPrisma.user.findFirst({
         where: {
           OR: [
-            { email: userEmail },
-            ...(decoded.uid ? [{ googleId: decoded.uid }] : [])
+            { email: decoded.email },
+            { googleId: decoded.uid }
           ]
         }
       });
@@ -80,25 +52,22 @@ const datingAuth = async (req, res, next) => {
         // Auto-provision: first time this user accesses the Social Hub
         user = await datingPrisma.user.create({
           data: {
-            name: decoded.name || userEmail.split('@')[0],
-            email: userEmail,
+            name: decoded.name || decoded.email.split('@')[0],
+            email: decoded.email,
             googleId: decoded.uid || null,
             profilePicture: decoded.picture || ''
           }
         });
       } else if (decoded.uid && !user.googleId) {
-        // Backfill missing googleId safely without throwing
-        try {
-          user = await datingPrisma.user.update({
-            where: { id: user.id },
-            data: { googleId: decoded.uid }
-          });
-        } catch (updateErr) {
-          console.warn('Could not backfill googleId:', updateErr.message);
-        }
+        // Backfill missing googleId
+        user = await datingPrisma.user.update({
+          where: { id: user.id },
+          data: { googleId: decoded.uid }
+        });
       }
 
       // Cache the user object for 5 minutes
+      // Invalidated on profile update (invalidateProfileCache deletes 'social:user:email:*')
       await cacheService.set(cacheKey, user, 300);
     }
 

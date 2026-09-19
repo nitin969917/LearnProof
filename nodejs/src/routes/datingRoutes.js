@@ -65,7 +65,6 @@ router.get('/users/me', datingAuth, (req, res) => res.json(req.user));
 router.get('/users/search', datingAuth, searchUsers);
 router.get('/users/suggested', datingAuth, getSuggestedUsers);
 router.get('/users/profile/:userId', datingAuth, getProfile);
-router.get('/users/profile', datingAuth, getProfile);
 router.put('/users/profile', datingAuth, updateProfile);
 
 // Social connection routes
