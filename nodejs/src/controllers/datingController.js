@@ -53,9 +53,37 @@ const invalidateProfileCache = async (userId, email) => {
       // Also clear the auth middleware cache so profile updates are reflected immediately
       email ? cacheService.del(`social:user:email:${email}`) : cacheService.delByPattern('social:user:email:*'),
     ]);
-  } catch (err) {
-    console.error('Failed to invalidate profile cache:', err);
+};
+
+/**
+ * Safely resolves any user identifier (numeric ID, string UID, email, or 'me')
+ * to a valid numeric PostgreSQL ID in datingPrisma.user.
+ */
+const resolveUserId = async (userParam, currentUserId = null) => {
+  if (!userParam || userParam === 'me') return currentUserId;
+  const str = String(userParam).trim();
+  if (!str || str === 'me') return currentUserId;
+  
+  const num = parseInt(str, 10);
+  if (!isNaN(num) && num > 0 && num < 2147483647 && String(num) === str) {
+    return num;
   }
+  
+  try {
+    const user = await datingPrisma.user.findFirst({
+      where: {
+        OR: [
+          { googleId: str },
+          { email: str }
+        ]
+      },
+      select: { id: true }
+    });
+    if (user) return user.id;
+  } catch (err) {
+    console.warn('resolveUserId lookup warning:', err.message);
+  }
+  return currentUserId || null;
 };
 
 
@@ -152,7 +180,7 @@ const getFeed = async (req, res) => {
   const userId = req.user.id;
   const limit = parseInt(req.query.limit) || 10;
   const page = parseInt(req.query.page) || 0;
-  const targetAuthorId = req.query.authorId ? parseInt(req.query.authorId, 10) : null;
+  const targetAuthorId = req.query.authorId ? await resolveUserId(req.query.authorId, userId) : null;
 
   try {
     const cacheKey = `user:feed:${userId}:${limit}:${page}:${targetAuthorId || 'all'}`;
@@ -384,14 +412,19 @@ const getProfile = async (req, res) => {
   const currentUserId = req.user.id;
 
   try {
-    const cacheKey = `user:profile:${currentUserId}:${profileIdParam}`;
+    const resolvedProfileId = await resolveUserId(profileIdParam, currentUserId);
+    if (!resolvedProfileId) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const cacheKey = `user:profile:${currentUserId}:${resolvedProfileId}`;
     const cached = await cacheService.get(cacheKey);
     if (cached) {
       return res.json(cached);
     }
 
     const profileUser = await datingPrisma.user.findUnique({
-      where: { id: parseInt(profileIdParam) },
+      where: { id: resolvedProfileId },
       include: {
         _count: {
           select: {
@@ -705,10 +738,10 @@ const getSuggestedUsers = async (req, res) => {
 const sendFriendRequest = async (req, res) => {
   const { receiverId } = req.body;
   const senderId = req.user.id;
-  const rId = parseInt(receiverId);
+  const rId = await resolveUserId(receiverId);
 
-  if (senderId === rId) {
-    return res.status(400).json({ error: 'Cannot send request to yourself' });
+  if (!rId || senderId === rId) {
+    return res.status(400).json({ error: 'Cannot send request to yourself or invalid user' });
   }
 
   try {
@@ -843,11 +876,14 @@ const removeFriendship = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    const targetId = await resolveUserId(targetUserId);
+    if (!targetId) return res.status(404).json({ error: 'Target user not found' });
+
     const friendship = await datingPrisma.friendship.findFirst({
       where: {
         OR: [
-          { senderId: userId, receiverId: parseInt(targetUserId) },
-          { senderId: parseInt(targetUserId), receiverId: userId }
+          { senderId: userId, receiverId: targetId },
+          { senderId: targetId, receiverId: userId }
         ]
       }
     });
@@ -861,8 +897,8 @@ const removeFriendship = async (req, res) => {
     await datingPrisma.closeFriendRequest.deleteMany({
       where: {
         OR: [
-          { senderId: userId, receiverId: parseInt(targetUserId) },
-          { senderId: parseInt(targetUserId), receiverId: userId }
+          { senderId: userId, receiverId: targetId },
+          { senderId: targetId, receiverId: userId }
         ]
       }
     });
@@ -883,12 +919,15 @@ const toggleCloseFriend = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    const targetFriendId = await resolveUserId(friendId);
+    if (!targetFriendId) return res.status(404).json({ error: 'User not found' });
+
     const friendship = await datingPrisma.friendship.findFirst({
       where: {
         status: 'accepted',
         OR: [
-          { senderId: userId, receiverId: parseInt(friendId) },
-          { senderId: parseInt(friendId), receiverId: userId }
+          { senderId: userId, receiverId: targetFriendId },
+          { senderId: targetFriendId, receiverId: userId }
         ]
       }
     });
@@ -898,7 +937,7 @@ const toggleCloseFriend = async (req, res) => {
     const existingCloseFriend = await datingPrisma.closeFriendRequest.findFirst({
       where: {
         senderId: userId,
-        receiverId: parseInt(friendId),
+        receiverId: targetFriendId,
         status: 'accepted'
       }
     });
@@ -912,7 +951,7 @@ const toggleCloseFriend = async (req, res) => {
       await datingPrisma.closeFriendRequest.create({
         data: {
           senderId: userId,
-          receiverId: parseInt(friendId),
+          receiverId: targetFriendId,
           status: 'accepted'
         }
       });

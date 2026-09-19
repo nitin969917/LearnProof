@@ -76,7 +76,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   };
 
   useEffect(() => {
-    fetchFriends();
+    fetchFriends(true);
     syncPending();
     syncBlockedUsers();
   }, []);

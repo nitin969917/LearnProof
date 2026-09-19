@@ -446,13 +446,14 @@ export default function SocialDashboard() {
             </div>
             <div className={activeTab === 'friends' ? 'block' : 'hidden'}>
               <FriendsTab 
+                currentUserId={socialUser?.id || 'me'}
                 onViewProfile={viewUserProfile} 
                 onSelectChatUser={startDirectChat} 
               />
             </div>
             <div className={activeTab === 'chat' ? 'h-full block' : 'hidden'}>
               <ChatsTab 
-                currentUserId={effectiveSocialUser?.id || user?.id}
+                currentUserId={socialUser?.id || 'me'}
                 selectedContact={selectedChatContact}
                 onClearSelectedContact={() => setSelectedChatContact(null)}
                 onToggleHeader={setHideHeader}
@@ -461,7 +462,7 @@ export default function SocialDashboard() {
             </div>
             <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
               <ProfileTab 
-                currentUserId={effectiveSocialUser?.id || user?.id}
+                currentUserId={socialUser?.id || 'me'}
                 viewUserId={selectedProfileId}
                 onBackToFeed={() => handleTabChange('feed')}
                 onSelectChatUser={startDirectChat}

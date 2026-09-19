@@ -10,7 +10,10 @@ export const useSocialFeedStore = create((set, get) => ({
       const saved = localStorage.getItem('learnproof_social_user');
       if (!saved || saved === 'undefined' || saved === 'null') return null;
       const parsed = JSON.parse(saved);
-      return parsed && typeof parsed === 'object' && parsed.id ? parsed : null;
+      if (parsed && typeof parsed === 'object' && typeof parsed.id === 'number' && parsed.id > 0 && parsed.id < 2147483647) {
+        return parsed;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -125,13 +128,15 @@ export const useSocialFeedStore = create((set, get) => ({
   },
 
   fetchSocialUser: async (force = false, authUser = null) => {
-    if (get().socialUser && !force) return;
+    const currentSocialUser = get().socialUser;
+    const hasValidNumericId = currentSocialUser && typeof currentSocialUser.id === 'number' && currentSocialUser.id > 0 && currentSocialUser.id < 2147483647;
+    if (hasValidNumericId && !force) return;
 
-    // Optimistically set fallback user if available to prevent UI lockup
-    if (!get().socialUser && authUser) {
+    // Optimistically set fallback user display if available, using 'me' as id fallback
+    if (!currentSocialUser && authUser) {
       set({
         socialUser: {
-          id: authUser.id || authUser.uid,
+          id: (typeof authUser.id === 'number' && authUser.id < 2147483647) ? authUser.id : 'me',
           name: authUser.name || 'Student',
           email: authUser.email || '',
           profilePicture: authUser.picture || '',
@@ -159,7 +164,7 @@ export const useSocialFeedStore = create((set, get) => ({
       if (!get().socialUser && authUser) {
         set({
           socialUser: {
-            id: authUser.id || authUser.uid,
+            id: (typeof authUser.id === 'number' && authUser.id < 2147483647) ? authUser.id : 'me',
             name: authUser.name || 'Student',
             email: authUser.email || '',
             profilePicture: authUser.picture || '',
