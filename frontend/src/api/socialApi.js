@@ -1,9 +1,11 @@
 import axios from 'axios';
 
-// Use the same backend URL as the rest of the app (VITE_BACKEND_URL env var)
-// Previously used window.location.host which pointed to Cloudflare Pages (static host)
-// and caused 405 Method Not Allowed for POST requests
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+let backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+if (typeof window !== 'undefined' && window.location.hostname.includes('learnproofai.com')) {
+  backendUrl = 'https://api.learnproofai.com';
+} else if (backendUrl.includes('learnproofai.com') && !backendUrl.includes('api.learnproofai.com')) {
+  backendUrl = 'https://api.learnproofai.com';
+}
 const baseURL = `${backendUrl}/api`;
 
 const socialApi = axios.create({

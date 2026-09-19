@@ -59,7 +59,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_BACKEND_URL=https://learnproofai.com
+        - VITE_BACKEND_URL=https://api.learnproofai.com
         - VITE_GOOGLE_CLIENT_ID=557947080645-2iqd1t1h79b273ktjqthcg6q23k9pem1.apps.googleusercontent.com
         - VITE_ADMIN_EMAIL=nitin9699176009@gmail.com,kakadeavishkar84@gmail.com
     container_name: learnproof-frontend

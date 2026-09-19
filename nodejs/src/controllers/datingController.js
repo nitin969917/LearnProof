@@ -964,28 +964,36 @@ const getFriendships = async (req, res) => {
       const blockedRecords = await datingPrisma.blockedUser.findMany({
         where: {
           OR: [
-            { userId: userId },
-            { blockedUserId: userId }
+            { userId: Number(userId) },
+            { blockedUserId: Number(userId) }
           ]
         },
         select: { userId: true, blockedUserId: true }
       });
       blockedRecords.forEach(b => {
-        if (b.userId === userId) blockedUserIds.add(b.blockedUserId);
-        if (b.blockedUserId === userId) blockedUserIds.add(b.userId);
+        if (Number(b.userId) === Number(userId)) blockedUserIds.add(Number(b.blockedUserId));
+        if (Number(b.blockedUserId) === Number(userId)) blockedUserIds.add(Number(b.userId));
       });
     } catch (bErr) {
       console.warn('Blocked users fetch in getFriendships warning:', bErr.message);
     }
+
+    // Also consult Redis cache for blocked users as defensive fallback
+    try {
+      const cachedBlocked = await cacheService.get(`user:${userId}:blocked`);
+      if (Array.isArray(cachedBlocked)) {
+        cachedBlocked.forEach(id => blockedUserIds.add(Number(id)));
+      }
+    } catch (rErr) {}
 
     const acceptedFriendships = friendships.filter(f => f.status === 'accepted');
 
     // Deduplicate accepted friends by user ID and exclude blocked users
     const friendsMap = new Map();
     acceptedFriendships.forEach(f => {
-      const friend = f.senderId === userId ? f.receiver : f.sender;
-      if (friend && !friendsMap.has(friend.id) && !blockedUserIds.has(friend.id)) {
-        friendsMap.set(friend.id, {
+      const friend = Number(f.senderId) === Number(userId) ? f.receiver : f.sender;
+      if (friend && !friendsMap.has(Number(friend.id)) && !blockedUserIds.has(Number(friend.id))) {
+        friendsMap.set(Number(friend.id), {
           id: friend.id,
           name: friend.name,
           email: friend.email,
@@ -1051,10 +1059,10 @@ const getFriendships = async (req, res) => {
     // Deduplicate pending requests by senderId and exclude blocked users
     const pendingMap = new Map();
     friendships
-      .filter(f => f.status === 'pending' && f.receiverId === userId && !blockedUserIds.has(f.senderId))
+      .filter(f => f.status === 'pending' && Number(f.receiverId) === Number(userId) && !blockedUserIds.has(Number(f.senderId)))
       .forEach(req => {
-        if (!pendingMap.has(req.senderId)) {
-          pendingMap.set(req.senderId, req);
+        if (!pendingMap.has(Number(req.senderId))) {
+          pendingMap.set(Number(req.senderId), req);
         }
       });
     const pending = Array.from(pendingMap.values());

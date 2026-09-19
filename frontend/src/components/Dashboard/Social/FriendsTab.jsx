@@ -170,13 +170,22 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
     });
     if (!confirmed) return;
 
+    const targetIdNum = Number(userId);
+
     // 1. INSTANT REAL-TIME OPTIMISTIC UPDATE:
-    const friendToBlock = friends.find(f => f.id === userId);
+    const friendToBlock = friends.find(f => Number(f.id) === targetIdNum);
+    
+    // Immediately remove from Zustand store friends and closeFriends
     useSocialFeedStore.setState(state => ({
-      friends: state.friends.filter(f => f.id !== userId),
-      closeFriends: state.closeFriends.filter(f => f.id !== userId)
+      friends: state.friends.filter(f => Number(f.id) !== targetIdNum),
+      closeFriends: state.closeFriends.filter(f => Number(f.id) !== targetIdNum)
     }));
-    setPendingRequests(prev => prev.filter(r => r.senderId !== userId && r.sender?.id !== userId));
+
+    // Immediately remove from pending requests
+    setPendingRequests(prev => prev.filter(r => 
+      Number(r.senderId || r.sender?.id) !== targetIdNum && 
+      Number(r.receiverId || r.receiver?.id) !== targetIdNum
+    ));
 
     // Immediately reflect in Blocked Users card in real time
     if (friendToBlock) {
@@ -190,16 +199,18 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
           yearOfStudy: friendToBlock.yearOfStudy,
           blockedAt: new Date().toISOString()
         },
-        ...prev.filter(b => b.id !== userId)
+        ...prev.filter(b => Number(b.id) !== targetIdNum)
       ]);
     }
 
     try {
-      await socialApi.post('/social/block', { targetUserId: userId });
+      await socialApi.post('/social/block', { targetUserId: targetIdNum });
       toast.success(`${name} has been blocked.`);
-      fetchFriends(true);
-      syncPending();
-      syncBlockedUsers();
+      await Promise.allSettled([
+        fetchFriends(true),
+        syncPending(),
+        syncBlockedUsers()
+      ]);
     } catch (err) {
       console.error('Failed to block friend', err);
       toast.error('Failed to block user.');
@@ -218,14 +229,18 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
     });
     if (!confirmed) return;
 
+    const targetIdNum = Number(userId);
+
     // 1. INSTANT REAL-TIME OPTIMISTIC UPDATE:
-    setBlockedUsers(prev => prev.filter(b => b.id !== userId));
+    setBlockedUsers(prev => prev.filter(b => Number(b.id) !== targetIdNum));
 
     try {
-      await socialApi.post('/social/unblock', { targetUserId: userId });
+      await socialApi.post('/social/unblock', { targetUserId: targetIdNum });
       toast.success(`${name} has been unblocked.`);
-      syncBlockedUsers();
-      fetchFriends(true);
+      await Promise.allSettled([
+        syncBlockedUsers(),
+        fetchFriends(true)
+      ]);
     } catch (err) {
       console.error('Failed to unblock user', err);
       toast.error('Failed to unblock user.');
@@ -234,10 +249,10 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   };
 
   // Filter and sort connections
-  const blockedIdsSet = new Set(blockedUsers.map(b => b.id));
+  const blockedIdsSet = new Set(blockedUsers.map(b => Number(b.id)));
   const filteredFriends = friends
-    .filter((friend, idx, self) => self.findIndex(f => f.id === friend.id) === idx)
-    .filter(friend => !blockedIdsSet.has(friend.id))
+    .filter((friend, idx, self) => self.findIndex(f => Number(f.id) === Number(friend.id)) === idx)
+    .filter(friend => !blockedIdsSet.has(Number(friend.id)))
     .filter(friend => {
       const q = searchQuery.toLowerCase().trim();
       if (!q) return true;
@@ -248,8 +263,8 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
       return name.includes(q) || college.includes(q) || department.includes(q) || email.includes(q);
     })
     .sort((a, b) => {
-      const isAOnline = onlineUserIds.some(id => id.toString() === a.id.toString());
-      const isBOnline = onlineUserIds.some(id => id.toString() === b.id.toString());
+      const isAOnline = onlineUserIds.some(id => Number(id) === Number(a.id));
+      const isBOnline = onlineUserIds.some(id => Number(id) === Number(b.id));
       if (sortBy === 'online') {
         if (isAOnline !== isBOnline) return isAOnline ? -1 : 1;
         return (a.name || '').localeCompare(b.name || '');
@@ -358,7 +373,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
             mobileTab === 'connections' ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
           }`}>
-            {friends.length}
+            {filteredFriends.length}
           </span>
         </button>
 
@@ -604,7 +619,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                   <UserCheck size={16} />
                 </div>
                 <h2 className="text-xs sm:text-base font-black text-gray-900 dark:text-white truncate">
-                  My Connections <span className="text-gray-400 font-bold text-xs">({friends.length})</span>
+                  My Connections <span className="text-gray-400 font-bold text-xs">({filteredFriends.length})</span>
                 </h2>
               </div>
 

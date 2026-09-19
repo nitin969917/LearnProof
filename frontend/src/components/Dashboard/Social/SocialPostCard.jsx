@@ -119,15 +119,11 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
   const handleReportPost = async () => {
     try {
       setIsSubmittingReport(true);
-      const token = localStorage.getItem('google_token');
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
-      await axios.post(`${backendUrl}/api/social/report`, {
+      await socialApi.post('/social/report', {
         targetType: 'post',
         targetId: post.id,
         reason: reportReason,
         details: reportDetails
-      }, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
       toast.success("Report submitted. Our safety team reviews all reports within 24 hours.");
       setShowReportModal(false);
@@ -142,6 +138,9 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
   const handleBlockUser = async () => {
     setShowMenu(false);
     const authorName = post.author?.name || 'this user';
+    const targetUserId = post.authorId || post.author?.id;
+    if (!targetUserId) return;
+
     const confirmed = await confirm({
       title: `Block ${authorName}?`,
       message: `You will no longer see posts or comments from ${authorName}.`,
@@ -150,17 +149,21 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
     });
     if (!confirmed) return;
 
+    const targetIdNum = Number(targetUserId);
+
+    // Optimistic UI updates
+    setIsBlocked(true);
+    useSocialFeedStore.setState(state => ({
+      posts: state.posts.filter(p => Number(p.authorId || p.author?.id) !== targetIdNum),
+      friends: state.friends.filter(f => Number(f.id) !== targetIdNum),
+      closeFriends: state.closeFriends.filter(f => Number(f.id) !== targetIdNum)
+    }));
+
     try {
-      const token = localStorage.getItem('google_token');
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
-      await axios.post(`${backendUrl}/api/social/block`, {
-        targetUserId: post.authorId || post.author?.id
-      }, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-      setIsBlocked(true);
+      await socialApi.post('/social/block', { targetUserId: targetIdNum });
       toast.success(`${authorName} has been blocked.`);
     } catch (err) {
+      console.error('Failed to block user', err);
       toast.error("Failed to block user.");
     }
   };
