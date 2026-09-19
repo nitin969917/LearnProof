@@ -39,7 +39,8 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
   const { confirm } = useModal();
 
-  const [pendingRequests, setPendingRequests] = useState([]);
+  const storePending = useSocialFeedStore(state => state.pendingRequests);
+  const [pendingRequests, setPendingRequests] = useState(() => storePending || []);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [loadingBlocked, setLoadingBlocked] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,7 +53,14 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
 
   const sortDropdownRef = useRef(null);
 
-  // Fetch and sync pending requests
+  // Sync pending from store
+  useEffect(() => {
+    if (Array.isArray(storePending)) {
+      setPendingRequests(storePending);
+    }
+  }, [storePending]);
+
+  // Fetch and sync pending requests as defensive fallback
   const syncPending = async () => {
     try {
       const response = await socialApi.get('/social/friendships');
@@ -76,8 +84,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   };
 
   useEffect(() => {
-    fetchFriends();
-    syncPending();
+    fetchFriends(true);
     syncBlockedUsers();
   }, []);
 

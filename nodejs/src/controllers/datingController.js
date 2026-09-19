@@ -58,6 +58,36 @@ const invalidateProfileCache = async (userId, email) => {
   }
 };
 
+/**
+ * Safely resolves user identifier (numeric DB ID, 'me'/'self', Google UID, or email)
+ * to PostgreSQL integer ID without crashing on 32-bit integer overflow.
+ */
+const resolveUserId = async (param, defaultId = null) => {
+  if (!param || param === 'me' || param === 'self') {
+    return defaultId;
+  }
+  const strParam = String(param).trim();
+  const num = parseInt(strParam, 10);
+  if (!isNaN(num) && num > 0 && num < 2147483647 && String(num) === strParam) {
+    return num;
+  }
+  try {
+    const found = await datingPrisma.user.findFirst({
+      where: {
+        OR: [
+          { googleId: strParam },
+          { email: { equals: strParam, mode: 'insensitive' } }
+        ]
+      },
+      select: { id: true }
+    });
+    return found ? found.id : null;
+  } catch (err) {
+    console.error('[resolveUserId] Lookup error:', err.message);
+    return null;
+  }
+};
+
 
 // ==========================================
 // POST CONTROLLERS
@@ -152,9 +182,13 @@ const getFeed = async (req, res) => {
   const userId = req.user.id;
   const limit = parseInt(req.query.limit) || 10;
   const page = parseInt(req.query.page) || 0;
-  const targetAuthorId = req.query.authorId ? parseInt(req.query.authorId, 10) : null;
 
   try {
+    let targetAuthorId = null;
+    if (req.query.authorId) {
+      targetAuthorId = await resolveUserId(req.query.authorId, userId);
+    }
+
     const cacheKey = `user:feed:${userId}:${limit}:${page}:${targetAuthorId || 'all'}`;
     const cached = await cacheService.get(cacheKey);
     if (cached) {
@@ -384,14 +418,19 @@ const getProfile = async (req, res) => {
   const currentUserId = req.user.id;
 
   try {
-    const cacheKey = `user:profile:${currentUserId}:${profileIdParam}`;
+    const targetUserId = await resolveUserId(profileIdParam, currentUserId);
+    if (!targetUserId) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const cacheKey = `user:profile:${currentUserId}:${targetUserId}`;
     const cached = await cacheService.get(cacheKey);
     if (cached) {
       return res.json(cached);
     }
 
     const profileUser = await datingPrisma.user.findUnique({
-      where: { id: parseInt(profileIdParam) },
+      where: { id: targetUserId },
       include: {
         _count: {
           select: {
@@ -843,11 +882,14 @@ const removeFriendship = async (req, res) => {
   const userId = req.user.id;
 
   try {
+    const resolvedTargetId = await resolveUserId(targetUserId, null);
+    if (!resolvedTargetId) return res.status(404).json({ error: 'Target user not found' });
+
     const friendship = await datingPrisma.friendship.findFirst({
       where: {
         OR: [
-          { senderId: userId, receiverId: parseInt(targetUserId) },
-          { senderId: parseInt(targetUserId), receiverId: userId }
+          { senderId: userId, receiverId: resolvedTargetId },
+          { senderId: resolvedTargetId, receiverId: userId }
         ]
       }
     });
@@ -861,8 +903,8 @@ const removeFriendship = async (req, res) => {
     await datingPrisma.closeFriendRequest.deleteMany({
       where: {
         OR: [
-          { senderId: userId, receiverId: parseInt(targetUserId) },
-          { senderId: parseInt(targetUserId), receiverId: userId }
+          { senderId: userId, receiverId: resolvedTargetId },
+          { senderId: resolvedTargetId, receiverId: userId }
         ]
       }
     });
@@ -1108,12 +1150,17 @@ const getMessages = async (req, res) => {
   const PAGE_SIZE = 50;
 
   try {
+    const resolvedTargetId = await resolveUserId(targetUserId, null);
+    if (!resolvedTargetId) {
+      return res.json([]);
+    }
+
     const messages = await datingPrisma.message.findMany({
       where: {
         isDeleted: false,
         OR: [
-          { senderId: userId, receiverId: parseInt(targetUserId) },
-          { senderId: parseInt(targetUserId), receiverId: userId }
+          { senderId: userId, receiverId: resolvedTargetId },
+          { senderId: resolvedTargetId, receiverId: userId }
         ]
       },
       select: {
@@ -1133,7 +1180,7 @@ const getMessages = async (req, res) => {
     // Mark messages as read (non-blocking — don't await)
     datingPrisma.message.updateMany({
       where: {
-        senderId: parseInt(targetUserId),
+        senderId: resolvedTargetId,
         receiverId: userId,
         isRead: false,
       },

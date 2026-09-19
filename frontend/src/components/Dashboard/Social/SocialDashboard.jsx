@@ -325,7 +325,7 @@ export default function SocialDashboard() {
     }
     if (tabId === 'profile') {
       localStorage.removeItem('social_selected_profile_id');
-      setSelectedProfileId(effectiveSocialUser?.id || null);
+      setSelectedProfileId(null);
       navigate('/dashboard/social/profile');
       return;
     }

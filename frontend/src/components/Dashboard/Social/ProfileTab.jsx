@@ -169,8 +169,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   }, [expandedSection]);
 
   const effectiveCurrentUserId = currentUserId || socialUser?.id || user?.id;
-  const targetId = viewUserId ? parseInt(viewUserId, 10) : effectiveCurrentUserId;
-  const isOwnProfile = !viewUserId || (effectiveCurrentUserId && parseInt(viewUserId, 10) === parseInt(effectiveCurrentUserId, 10));
+  const isOwnProfile = !viewUserId || viewUserId === 'me' || viewUserId === 'self' || (effectiveCurrentUserId && String(viewUserId) === String(effectiveCurrentUserId));
+  const targetId = isOwnProfile ? 'me' : (parseInt(viewUserId, 10) || viewUserId);
   const isMobileOrApp = typeof navigator !== 'undefined' && (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || navigator.userAgent.includes('LearnProofApp'));
 
   const isOnline = isOwnProfile ? true : (
@@ -182,22 +182,20 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   );
 
   useEffect(() => {
-    if (targetId) {
-      fetchProfile();
-      fetchUserPosts();
-      if (isOwnProfile) {
-        fetchFriends();
-      } else {
-        setActiveTab('posts');
-      }
+    fetchProfile();
+    fetchUserPosts();
+    if (isOwnProfile) {
+      fetchFriends();
+    } else {
+      setActiveTab('posts');
     }
-  }, [targetId, isOwnProfile]);
+  }, [viewUserId, isOwnProfile]);
 
   const fetchUserPosts = async () => {
-    if (!targetId) return;
     setPostsLoading(true);
     try {
-      const response = await socialApi.get(`/posts/feed?authorId=${targetId}`);
+      const authorQuery = isOwnProfile ? 'me' : (profile?.id || targetId);
+      const response = await socialApi.get(`/posts/feed?authorId=${authorQuery}`);
       const postsData = Array.isArray(response.data) ? response.data : [];
       setPosts(postsData);
     } catch (err) {
@@ -209,11 +207,14 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   };
 
   const fetchProfile = async () => {
-    if (!targetId) return;
     setLoading(true);
     try {
-      const response = await socialApi.get(`/users/profile/${targetId}`);
+      const endpoint = isOwnProfile ? '/users/profile/me' : `/users/profile/${targetId}`;
+      const response = await socialApi.get(endpoint);
       setProfile(response.data);
+      if (response.data?.id && updateSocialUser && isOwnProfile) {
+        updateSocialUser(response.data);
+      }
       setFormData({
         ...response.data,
         phoneVisibility: response.data.phoneVisibility || 'public',

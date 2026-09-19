@@ -60,7 +60,12 @@ const datingAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'Unauthorized: Invalid token payload' });
     }
 
-    const userEmail = decoded.email || `${decoded.uid}@learnproofai.com`;
+    const userEmail = (decoded.email || `${decoded.uid}@learnproofai.com`).toLowerCase();
+
+    // Prevent aggressive caching on iOS WKWebView, Safari, and CFNetwork
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
     // ── Redis cache: avoid DB hit on every request ─────────────────────────
     const cacheKey = `social:user:email:${userEmail}`;
@@ -71,8 +76,8 @@ const datingAuth = async (req, res, next) => {
       user = await datingPrisma.user.findFirst({
         where: {
           OR: [
-            { email: userEmail },
-            ...(decoded.uid ? [{ googleId: decoded.uid }] : [])
+            { email: { equals: userEmail, mode: 'insensitive' } },
+            ...(decoded.uid ? [{ googleId: String(decoded.uid) }] : [])
           ]
         }
       });

@@ -10,7 +10,7 @@ export const useSocialFeedStore = create((set, get) => ({
       const saved = localStorage.getItem('learnproof_social_user');
       if (!saved || saved === 'undefined' || saved === 'null') return null;
       const parsed = JSON.parse(saved);
-      return parsed && typeof parsed === 'object' && parsed.id ? parsed : null;
+      return parsed && typeof parsed === 'object' && typeof parsed.id === 'number' ? parsed : null;
     } catch {
       return null;
     }
@@ -125,13 +125,14 @@ export const useSocialFeedStore = create((set, get) => ({
   },
 
   fetchSocialUser: async (force = false, authUser = null) => {
-    if (get().socialUser && !force) return;
+    // If we already have a verified user with a numeric database ID, avoid redundant network hit unless forced
+    if (get().socialUser && typeof get().socialUser.id === 'number' && !force) return;
 
     // Optimistically set fallback user if available to prevent UI lockup
     if (!get().socialUser && authUser) {
       set({
         socialUser: {
-          id: authUser.id || authUser.uid,
+          id: typeof authUser.id === 'number' ? authUser.id : null,
           name: authUser.name || 'Student',
           email: authUser.email || '',
           profilePicture: authUser.picture || '',
@@ -220,9 +221,9 @@ export const useSocialFeedStore = create((set, get) => ({
       const response = await socialApi.get('/social/friendships');
       const rawFriends = Array.isArray(response.data?.friends) ? response.data.friends : [];
       const rawPending = Array.isArray(response.data?.pending) ? response.data.pending : [];
-      // Enforce strict uniqueness by user ID
+      // Enforce strict uniqueness by user ID (numeric comparison)
       const allFriends = rawFriends.filter((f, idx, self) => 
-        self.findIndex(item => item.id === f.id) === idx
+        self.findIndex(item => Number(item.id) === Number(f.id)) === idx
       );
       const close = allFriends.filter(f => f.isCloseFriend);
       set({ 
@@ -235,7 +236,7 @@ export const useSocialFeedStore = create((set, get) => ({
       });
     } catch (err) {
       console.error('Failed to fetch friends', err);
-      set({ loadingFriends: false });
+      set({ loadingFriends: false, hasLoadedFriends: true });
     }
   },
 
