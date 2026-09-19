@@ -198,9 +198,17 @@ export default function SocialDashboard() {
 
   const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
 
+  const effectiveSocialUser = socialUser || (user ? {
+    id: user.id || user.uid,
+    name: user.name || 'Student',
+    email: user.email || '',
+    profilePicture: user.picture || '',
+    avatar: user.picture || ''
+  } : null);
+
   useEffect(() => {
     if (user) {
-      fetchSocialUser();
+      fetchSocialUser(false, user);
     }
   }, [user, fetchSocialUser]);
 
@@ -317,7 +325,7 @@ export default function SocialDashboard() {
     }
     if (tabId === 'profile') {
       localStorage.removeItem('social_selected_profile_id');
-      setSelectedProfileId(socialUser?.id || null);
+      setSelectedProfileId(effectiveSocialUser?.id || null);
       navigate('/dashboard/social/profile');
       return;
     }
@@ -330,11 +338,38 @@ export default function SocialDashboard() {
     { id: 'chat', name: 'Chats', icon: MessageSquare, badge: totalUnreadCount > 0 ? totalUnreadCount : null },
   ];
 
-  if (!socialUser) {
+  const [syncTimedOut, setSyncTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!effectiveSocialUser) {
+      const timer = setTimeout(() => {
+        setSyncTimedOut(true);
+      }, 4000);
+      return () => clearTimeout(timer);
+    } else {
+      setSyncTimedOut(false);
+    }
+  }, [effectiveSocialUser]);
+
+  if (!effectiveSocialUser) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-gray-500">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent mb-2"></div>
-        <span>Syncing social status...</span>
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-gray-500 px-4">
+        {!syncTimedOut ? (
+          <>
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent mb-2"></div>
+            <span>Syncing social status...</span>
+          </>
+        ) : (
+          <div className="flex flex-col items-center text-center">
+            <span className="text-gray-600 dark:text-gray-300 font-medium mb-3">Connecting to Social Hub...</span>
+            <button
+              onClick={() => fetchSocialUser(true, user)}
+              className="px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-bold shadow hover:bg-orange-600 transition-all cursor-pointer"
+            >
+              Retry Connection
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -375,13 +410,13 @@ export default function SocialDashboard() {
         <button
           onClick={() => handleTabChange('profile')}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-            activeTab === 'profile' && (!selectedProfileId || String(selectedProfileId) === String(socialUser?.id || user?.id))
+            activeTab === 'profile' && (!selectedProfileId || String(selectedProfileId) === String(effectiveSocialUser?.id || user?.id))
               ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
               : 'text-gray-600 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600'
           }`}
         >
           <div className="w-6 h-6 rounded-full overflow-hidden border border-current">
-            <UserAvatar src={socialUser?.profilePicture || socialUser?.avatar || user?.picture} name={socialUser?.name || user?.name} className="w-full h-full" textClassName="text-[9px]" />
+            <UserAvatar src={effectiveSocialUser?.profilePicture || effectiveSocialUser?.avatar || user?.picture} name={effectiveSocialUser?.name || user?.name} className="w-full h-full" textClassName="text-[9px]" />
           </div>
           <span>My Profile</span>
         </button>
@@ -395,8 +430,8 @@ export default function SocialDashboard() {
           <div className={`w-full ${(hideHeader || activeTab === 'chat') ? 'h-full' : ''}`}>
             <div className={activeTab === 'feed' ? 'block' : 'hidden'}>
               <FeedTab 
-                currentUserId={socialUser?.id || user?.id} 
-                socialUser={socialUser}
+                currentUserId={effectiveSocialUser?.id || user?.id} 
+                socialUser={effectiveSocialUser}
                 onViewProfile={viewUserProfile} 
                 onSelectChatUser={startDirectChat} 
                 postCreatedTrigger={postCreatedTrigger}
@@ -417,7 +452,7 @@ export default function SocialDashboard() {
             </div>
             <div className={activeTab === 'chat' ? 'h-full block' : 'hidden'}>
               <ChatsTab 
-                currentUserId={socialUser?.id || user?.id}
+                currentUserId={effectiveSocialUser?.id || user?.id}
                 selectedContact={selectedChatContact}
                 onClearSelectedContact={() => setSelectedChatContact(null)}
                 onToggleHeader={setHideHeader}
@@ -426,7 +461,7 @@ export default function SocialDashboard() {
             </div>
             <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
               <ProfileTab 
-                currentUserId={socialUser?.id || user?.id}
+                currentUserId={effectiveSocialUser?.id || user?.id}
                 viewUserId={selectedProfileId}
                 onBackToFeed={() => handleTabChange('feed')}
                 onSelectChatUser={startDirectChat}

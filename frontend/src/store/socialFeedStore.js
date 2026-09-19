@@ -124,8 +124,22 @@ export const useSocialFeedStore = create((set, get) => ({
     });
   },
 
-  fetchSocialUser: async (force = false) => {
+  fetchSocialUser: async (force = false, authUser = null) => {
     if (get().socialUser && !force) return;
+
+    // Optimistically set fallback user if available to prevent UI lockup
+    if (!get().socialUser && authUser) {
+      set({
+        socialUser: {
+          id: authUser.id || authUser.uid,
+          name: authUser.name || 'Student',
+          email: authUser.email || '',
+          profilePicture: authUser.picture || '',
+          avatar: authUser.picture || ''
+        }
+      });
+    }
+
     set({ loadingSocialUser: true });
     try {
       const response = await socialApi.get('/users/me');
@@ -142,6 +156,18 @@ export const useSocialFeedStore = create((set, get) => ({
       }
     } catch (err) {
       console.error('Failed to fetch social user', err);
+      // Keep optimistic user if available
+      if (!get().socialUser && authUser) {
+        set({
+          socialUser: {
+            id: authUser.id || authUser.uid,
+            name: authUser.name || 'Student',
+            email: authUser.email || '',
+            profilePicture: authUser.picture || '',
+            avatar: authUser.picture || ''
+          }
+        });
+      }
       set({ loadingSocialUser: false });
     }
   },
