@@ -53,6 +53,22 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
 
   const sortDropdownRef = useRef(null);
 
+  // Close friend options menu when clicking outside
+  useEffect(() => {
+    if (!activeMenuFriendId) return;
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.friend-menu-container')) {
+        setActiveMenuFriendId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [activeMenuFriendId]);
+
   // Sync pending from store
   useEffect(() => {
     if (Array.isArray(storePending)) {

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Flame } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Flame, X } from "lucide-react";
 
 const CalendarCard = () => {
     const { token } = useAuth();
@@ -64,11 +64,20 @@ const CalendarCard = () => {
         if (token) fetchActivityData();
     }, [token]);
 
-    // Close popover when clicking anywhere else
+    // Close popover when clicking anywhere else or pressing Escape
     useEffect(() => {
         const handleClickOutside = () => setActiveDate(null);
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape") setActiveDate(null);
+        };
         document.addEventListener("click", handleClickOutside);
-        return () => document.removeEventListener("click", handleClickOutside);
+        document.addEventListener("touchstart", handleClickOutside);
+        document.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.removeEventListener("click", handleClickOutside);
+            document.removeEventListener("touchstart", handleClickOutside);
+            document.removeEventListener("keydown", handleKeyDown);
+        };
     }, []);
 
     const getDaysInMonth = (month, year) => {
@@ -193,7 +202,19 @@ const CalendarCard = () => {
                                         {/* Mobile Backdrop - only visible when active on small screens */}
                                         <div className="fixed inset-0 bg-black/40 -z-10 sm:hidden" onClick={() => setActiveDate(null)} />
                                         <div className="font-semibold mb-2 text-orange-400 border-b border-gray-700 pb-1 flex justify-between items-center">
-                                            <span>{monthNames[currentMonth]} {day}, {currentYear}</span>
+                                            <span className="text-xs font-bold text-orange-400">{monthNames[currentMonth]} {day}, {currentYear}</span>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveDate(null);
+                                                }}
+                                                className="text-gray-400 hover:text-white p-1 -mr-1 rounded-md hover:bg-gray-800 transition cursor-pointer active:scale-90"
+                                                title="Close details"
+                                                aria-label="Close"
+                                            >
+                                                <X size={15} />
+                                            </button>
                                         </div>
                                         <div className="flex items-center gap-1.5 text-xs text-gray-300 my-2 font-semibold">
                                             <span>⏱️ Screen Time:</span>

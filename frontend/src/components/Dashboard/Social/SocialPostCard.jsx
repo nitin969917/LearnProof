@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Star, Trash2, Edit3, X, Check, Flag, UserX, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -41,6 +41,22 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
   const updatePost = useSocialFeedStore(state => state.updatePost);
 
   const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showMenu]);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(post.content);
   const [editedVisibility, setEditedVisibility] = useState(post.visibility);
@@ -368,7 +384,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
           </div>
         </div>
         
-        <div className="relative">
+        <div className="relative" ref={menuRef}>
           <button 
             onClick={() => setShowMenu(!showMenu)}
             className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition cursor-pointer"
