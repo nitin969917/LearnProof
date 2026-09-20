@@ -733,16 +733,15 @@ export default function SocialDashboard() {
 
             {/* Author Identity & Audience Row */}
             <div className="px-5 pt-3.5 pb-2 flex items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <UserAvatar user={socialUser || user} size="md" />
-                <div className="min-w-0">
-                  <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white truncate">
-                    {socialUser?.name || user?.name || 'You'}
-                  </h4>
-                  <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
-                    {socialUser?.collegeName || user?.collegeName || 'Student'}
-                  </p>
-                </div>
+              <div className="flex items-center gap-3 min-w-0">
+                <UserAvatar 
+                  src={effectiveSocialUser?.profilePicture || effectiveSocialUser?.avatar || user?.picture || user?.profilePicture || user?.photoURL} 
+                  name={effectiveSocialUser?.name || user?.name || 'You'} 
+                  className="w-10 h-10 rounded-full shrink-0 object-cover shadow-xs border border-gray-150 dark:border-gray-700" 
+                />
+                <h4 className="font-extrabold text-sm text-gray-900 dark:text-white truncate">
+                  {effectiveSocialUser?.name || user?.name || 'You'}
+                </h4>
               </div>
               
               <PostVisibilitySelector

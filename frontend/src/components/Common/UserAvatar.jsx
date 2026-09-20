@@ -10,13 +10,16 @@ import { isLikelyHeicSource, isNativeHeicSupported, convertHeicSourceToJpeg, res
  */
 export default function UserAvatar({
   src,
+  user,
   name = 'User',
   className = "w-10 h-10 rounded-full",
   textClassName = "",
   alt,
   loading = "eager"
 }) {
-  const resolvedSrc = resolveMediaUrl(src);
+  const effectiveSrc = src || user?.profilePicture || user?.avatar || user?.picture || user?.profile_pic || user?.photoURL;
+  const effectiveName = name !== 'User' ? name : (user?.name || user?.username || name);
+  const resolvedSrc = resolveMediaUrl(effectiveSrc);
   const [displaySrc, setDisplaySrc] = useState(resolvedSrc);
   const [imgError, setImgError] = useState(false);
   const convertingRef = useRef(false);
