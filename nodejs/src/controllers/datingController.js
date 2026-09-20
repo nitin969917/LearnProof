@@ -395,6 +395,12 @@ const getFeed = async (req, res) => {
             id: true,
           },
         },
+        savedBy: {
+          where: { id: userId },
+          select: {
+            id: true,
+          },
+        },
         _count: {
           select: {
             likes: true,
@@ -536,6 +542,12 @@ const getLikedPosts = async (req, res) => {
             id: true,
           },
         },
+        savedBy: {
+          where: { id: userId },
+          select: {
+            id: true,
+          },
+        },
         _count: {
           select: {
             likes: true,
@@ -552,6 +564,243 @@ const getLikedPosts = async (req, res) => {
   } catch (error) {
     console.error('Failed to fetch liked posts:', error);
     res.status(500).json({ error: 'Failed to fetch liked posts' });
+  }
+};
+
+const getCommentedPosts = async (req, res) => {
+  const userId = req.user.id;
+  const targetParam = req.params.userId;
+  const targetUserId = (!targetParam || targetParam === 'me')
+    ? userId
+    : parseInt(targetParam, 10);
+
+  if (isNaN(targetUserId)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  try {
+    const friendRecords = await datingPrisma.friendship.findMany({
+      where: {
+        OR: [
+          { senderId: userId, status: 'accepted' },
+          { receiverId: userId, status: 'accepted' }
+        ]
+      }
+    });
+    const friendIds = friendRecords.map(f => f.senderId === userId ? f.receiverId : f.senderId);
+
+    const closeFriendRecords = await datingPrisma.closeFriendRequest.findMany({
+      where: { receiverId: userId }
+    });
+    const closeFriendIds = closeFriendRecords.map(cf => cf.senderId);
+
+    const visibilityCondition = {
+      OR: [
+        { authorId: userId },
+        { visibility: 'public' },
+        { visibility: 'friends', authorId: { in: friendIds } },
+        { visibility: 'close_friends', authorId: { in: closeFriendIds } }
+      ]
+    };
+
+    const posts = await datingPrisma.post.findMany({
+      where: {
+        AND: [
+          {
+            comments: {
+              some: { authorId: targetUserId }
+            }
+          },
+          visibilityCondition
+        ]
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+        likes: {
+          where: { id: userId },
+          select: { id: true },
+        },
+        savedBy: {
+          where: { id: userId },
+          select: { id: true },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.json(posts);
+  } catch (error) {
+    console.error('Failed to fetch commented posts:', error);
+    res.status(500).json({ error: 'Failed to fetch commented posts' });
+  }
+};
+
+const getSavedPosts = async (req, res) => {
+  const userId = req.user.id;
+  const targetParam = req.params.userId;
+  const targetUserId = (!targetParam || targetParam === 'me')
+    ? userId
+    : parseInt(targetParam, 10);
+
+  if (isNaN(targetUserId)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  try {
+    const friendRecords = await datingPrisma.friendship.findMany({
+      where: {
+        OR: [
+          { senderId: userId, status: 'accepted' },
+          { receiverId: userId, status: 'accepted' }
+        ]
+      }
+    });
+    const friendIds = friendRecords.map(f => f.senderId === userId ? f.receiverId : f.senderId);
+
+    const closeFriendRecords = await datingPrisma.closeFriendRequest.findMany({
+      where: { receiverId: userId }
+    });
+    const closeFriendIds = closeFriendRecords.map(cf => cf.senderId);
+
+    const visibilityCondition = {
+      OR: [
+        { authorId: userId },
+        { visibility: 'public' },
+        { visibility: 'friends', authorId: { in: friendIds } },
+        { visibility: 'close_friends', authorId: { in: closeFriendIds } }
+      ]
+    };
+
+    const posts = await datingPrisma.post.findMany({
+      where: {
+        AND: [
+          {
+            savedBy: {
+              some: { id: targetUserId }
+            }
+          },
+          visibilityCondition
+        ]
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+        likes: {
+          where: { id: userId },
+          select: { id: true },
+        },
+        savedBy: {
+          where: { id: userId },
+          select: { id: true },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.json(posts);
+  } catch (error) {
+    console.error('Failed to fetch saved posts:', error);
+    res.status(500).json({ error: 'Failed to fetch saved posts' });
+  }
+};
+
+const getActivityCounts = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const [likedCount, commentedCount, savedCount] = await Promise.all([
+      datingPrisma.post.count({
+        where: { likes: { some: { id: userId } } }
+      }),
+      datingPrisma.post.count({
+        where: { comments: { some: { authorId: userId } } }
+      }),
+      datingPrisma.post.count({
+        where: { savedBy: { some: { id: userId } } }
+      })
+    ]);
+
+    res.json({
+      likedCount,
+      commentedCount,
+      savedCount,
+      totalCount: likedCount + commentedCount + savedCount
+    });
+  } catch (error) {
+    console.error('Failed to fetch activity counts:', error);
+    res.status(500).json({ error: 'Failed to fetch activity counts' });
+  }
+};
+
+const savePost = async (req, res) => {
+  const { postId } = req.params;
+  const userId = req.user.id;
+  const numPostId = parseInt(postId, 10);
+
+  try {
+    const post = await datingPrisma.post.findUnique({
+      where: { id: numPostId },
+      include: {
+        savedBy: { select: { id: true } }
+      },
+    });
+
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    const isSaved = (post.savedBy || []).some((user) => user.id === userId);
+
+    await datingPrisma.post.update({
+      where: { id: numPostId },
+      data: {
+        savedBy: isSaved
+          ? { disconnect: { id: userId } }
+          : { connect: { id: userId } },
+      },
+    });
+
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('POST_SAVE_UPDATED', {
+          postId: numPostId,
+          userId,
+          isSaved: !isSaved
+        });
+      }
+    } catch (wsErr) {
+      console.error('Failed to emit save update socket:', wsErr);
+    }
+
+    res.json({ saved: !isSaved });
+  } catch (error) {
+    console.error('Failed to toggle save post:', error);
+    res.status(500).json({ error: 'Failed to toggle save post' });
   }
 };
 
@@ -3123,6 +3372,12 @@ const getPost = async (req, res) => {
             id: true,
           },
         },
+        savedBy: {
+          where: { id: userId },
+          select: {
+            id: true,
+          },
+        },
         _count: {
           select: {
             likes: true,
@@ -3243,6 +3498,10 @@ module.exports = {
   getTags,
   likePost,
   getLikedPosts,
+  getCommentedPosts,
+  getSavedPosts,
+  getActivityCounts,
+  savePost,
   updatePost,
   deletePost,
   getProfile,

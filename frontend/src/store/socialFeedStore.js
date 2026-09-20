@@ -443,6 +443,67 @@ export const useSocialFeedStore = create((set, get) => ({
     }
   },
 
+  savePost: async (postId, currentUserId) => {
+    const posts = get().posts;
+    const postIndex = posts.findIndex(p => p.id === postId);
+    let post = null;
+
+    if (postIndex !== -1) {
+      post = posts[postIndex];
+      const isSaved = post.savedBy?.some(u => u.id === currentUserId);
+      const nextSaved = !isSaved;
+
+      const updatedPost = {
+        ...post,
+        savedBy: nextSaved
+          ? [...(post.savedBy || []), { id: currentUserId }]
+          : (post.savedBy || []).filter(u => u.id !== currentUserId)
+      };
+
+      const newPosts = [...posts];
+      newPosts[postIndex] = updatedPost;
+      set({ posts: newPosts });
+    }
+
+    try {
+      const res = await socialApi.post(`/posts/${postId}/save`);
+      return res.data;
+    } catch (err) {
+      console.error('Failed to toggle save post', err);
+      if (postIndex !== -1 && post) {
+        const revertedPosts = [...get().posts];
+        revertedPosts[postIndex] = post;
+        set({ posts: revertedPosts });
+      }
+      throw err;
+    }
+  },
+
+  handlePostSaveUpdated: ({ postId, userId, isSaved }) => {
+    const currentUserId = get().socialUser?.id;
+    set((state) => ({
+      posts: state.posts.map(post => {
+        if (post.id === postId) {
+          let updatedSaved = post.savedBy || [];
+          if (currentUserId && userId === currentUserId) {
+            if (isSaved) {
+              if (!updatedSaved.some(u => u.id === currentUserId)) {
+                updatedSaved = [...updatedSaved, { id: currentUserId }];
+              }
+            } else {
+              updatedSaved = updatedSaved.filter(u => u.id !== currentUserId);
+            }
+          }
+          return {
+            ...post,
+            savedBy: updatedSaved
+          };
+        }
+        return post;
+      })
+    }));
+  },
+
   handlePostLikeUpdated: ({ postId, userId, isLiked, likesCount }) => {
     const currentUserId = get().socialUser?.id;
     set((state) => ({

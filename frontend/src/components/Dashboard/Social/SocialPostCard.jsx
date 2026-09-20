@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Star, Trash2, Edit3, X, Check, Flag, UserX, AlertCircle } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Star, Trash2, Edit3, X, Check, Flag, UserX, AlertCircle, Bookmark } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import socialApi from '../../../api/socialApi.js';
@@ -32,11 +32,12 @@ const renderContentWithHashtags = (text, onTagClick) => {
   });
 };
 
-export default function SocialPostCard({ post, onLike, currentUserId, onViewProfile, onTagClick }) {
+export default function SocialPostCard({ post, onLike, onSave, currentUserId, onViewProfile, onTagClick }) {
   const isAuthor = currentUserId === post.authorId;
   const { confirm } = useModal();
 
   const likePost = useSocialFeedStore(state => state.likePost);
+  const savePost = useSocialFeedStore(state => state.savePost);
   const deletePost = useSocialFeedStore(state => state.deletePost);
   const updatePost = useSocialFeedStore(state => state.updatePost);
 
@@ -81,6 +82,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
 
   // Derived values from store-managed post prop
   const liked = post.likes?.some((l) => l.id === currentUserId);
+  const saved = post.savedBy?.some((l) => l.id === currentUserId) || post.isSaved || false;
   const likesCount = post._count?.likes || 0;
 
   // Local state only for comments count
@@ -130,6 +132,17 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
       if (onLike) onLike(post.id);
     } catch (err) {
       console.error('Error liking post', err);
+    }
+  };
+
+  const handleSave = async (e) => {
+    if (e) e.stopPropagation();
+    setShowMenu(false);
+    try {
+      await savePost(post.id, currentUserId);
+      if (onSave) onSave(post.id);
+    } catch (err) {
+      console.error('Error saving post', err);
     }
   };
 
@@ -398,7 +411,14 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
             <MoreHorizontal size={20} />
           </button>
           {showMenu && (
-            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 min-w-[150px] p-1.5 flex flex-col gap-1">
+            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 min-w-[160px] p-1.5 flex flex-col gap-1">
+              <button 
+                onClick={handleSave}
+                className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 dark:hover:text-orange-400 transition font-medium cursor-pointer"
+              >
+                <Bookmark size={15} fill={saved ? 'currentColor' : 'transparent'} className={saved ? 'text-amber-500' : ''} />
+                <span>{saved ? 'Remove from Saved' : 'Save Post'}</span>
+              </button>
               {isAuthor ? (
                 <>
                   <button 
@@ -532,9 +552,10 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
 
         <button 
           onClick={handleShare}
-          className={`hover:text-orange-500 ml-auto transition-colors flex items-center gap-1.5 text-xs font-semibold ${
+          className={`hover:text-orange-500 ml-auto transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
             isShared ? 'text-green-500 hover:text-green-500' : 'text-gray-500 dark:text-gray-400'
           }`}
+          title="Share post"
         >
           {isShared ? (
             <>
@@ -544,6 +565,16 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
           ) : (
             <Share2 size={18} />
           )}
+        </button>
+
+        <button 
+          onClick={handleSave}
+          className={`transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+            saved ? 'text-amber-500 hover:text-amber-600' : 'text-gray-500 dark:text-gray-400 hover:text-amber-500'
+          }`}
+          title={saved ? "Remove from saved" : "Save post"}
+        >
+          <Bookmark size={18} fill={saved ? 'currentColor' : 'transparent'} />
         </button>
       </div>
 

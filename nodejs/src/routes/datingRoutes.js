@@ -8,6 +8,10 @@ const {
   getTags,
   likePost,
   getLikedPosts,
+  getCommentedPosts,
+  getSavedPosts,
+  getActivityCounts,
+  savePost,
   updatePost,
   deletePost,
   getProfile,
@@ -52,11 +56,25 @@ const {
 router.post('/posts', datingAuth, createPost);
 router.get('/posts/feed', datingAuth, getFeed);
 router.get('/posts/tags', getTags);
+
+// Activity routes
+router.get('/posts/activity/counts', datingAuth, getActivityCounts);
+router.get('/posts/activity/liked', datingAuth, getLikedPosts);
+router.get('/posts/activity/liked/:userId', datingAuth, getLikedPosts);
+router.get('/posts/activity/commented', datingAuth, getCommentedPosts);
+router.get('/posts/activity/commented/:userId', datingAuth, getCommentedPosts);
+router.get('/posts/activity/saved', datingAuth, getSavedPosts);
+router.get('/posts/activity/saved/:userId', datingAuth, getSavedPosts);
+
+// Backward-compatible liked routes
 router.get('/posts/liked', datingAuth, getLikedPosts);
 router.get('/posts/liked/:userId', datingAuth, getLikedPosts);
+
+// Single post routes (placed after specific paths)
 router.get('/posts/:postId', datingAuth, getPost);
 router.get('/posts/:postId/likes', datingAuth, getPostLikes);
 router.post('/posts/:postId/like', datingAuth, likePost);
+router.post('/posts/:postId/save', datingAuth, savePost);
 router.put('/posts/:postId', datingAuth, updatePost);
 router.delete('/posts/:postId', datingAuth, deletePost);
 

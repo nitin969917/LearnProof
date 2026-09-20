@@ -1774,6 +1774,7 @@ export namespace Prisma {
     posts: number
     comments: number
     likedPosts: number
+    savedPosts: number
     sentFriendRequests: number
     receivedFriendRequests: number
     sentMessages: number
@@ -1792,6 +1793,7 @@ export namespace Prisma {
     posts?: boolean | UserCountOutputTypeCountPostsArgs
     comments?: boolean | UserCountOutputTypeCountCommentsArgs
     likedPosts?: boolean | UserCountOutputTypeCountLikedPostsArgs
+    savedPosts?: boolean | UserCountOutputTypeCountSavedPostsArgs
     sentFriendRequests?: boolean | UserCountOutputTypeCountSentFriendRequestsArgs
     receivedFriendRequests?: boolean | UserCountOutputTypeCountReceivedFriendRequestsArgs
     sentMessages?: boolean | UserCountOutputTypeCountSentMessagesArgs
@@ -1835,6 +1837,13 @@ export namespace Prisma {
    * UserCountOutputType without action
    */
   export type UserCountOutputTypeCountLikedPostsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PostWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountSavedPostsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PostWhereInput
   }
 
@@ -1929,11 +1938,13 @@ export namespace Prisma {
 
   export type PostCountOutputType = {
     likes: number
+    savedBy: number
     comments: number
   }
 
   export type PostCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     likes?: boolean | PostCountOutputTypeCountLikesArgs
+    savedBy?: boolean | PostCountOutputTypeCountSavedByArgs
     comments?: boolean | PostCountOutputTypeCountCommentsArgs
   }
 
@@ -1952,6 +1963,13 @@ export namespace Prisma {
    * PostCountOutputType without action
    */
   export type PostCountOutputTypeCountLikesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserWhereInput
+  }
+
+  /**
+   * PostCountOutputType without action
+   */
+  export type PostCountOutputTypeCountSavedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: UserWhereInput
   }
 
@@ -2035,6 +2053,7 @@ export namespace Prisma {
     googleId: string | null
     bio: string | null
     profilePicture: string | null
+    coverImage: string | null
     collegeName: string | null
     department: string | null
     yearOfStudy: string | null
@@ -2062,6 +2081,7 @@ export namespace Prisma {
     googleId: string | null
     bio: string | null
     profilePicture: string | null
+    coverImage: string | null
     collegeName: string | null
     department: string | null
     yearOfStudy: string | null
@@ -2089,6 +2109,7 @@ export namespace Prisma {
     googleId: number
     bio: number
     profilePicture: number
+    coverImage: number
     collegeName: number
     department: number
     yearOfStudy: number
@@ -2126,6 +2147,7 @@ export namespace Prisma {
     googleId?: true
     bio?: true
     profilePicture?: true
+    coverImage?: true
     collegeName?: true
     department?: true
     yearOfStudy?: true
@@ -2153,6 +2175,7 @@ export namespace Prisma {
     googleId?: true
     bio?: true
     profilePicture?: true
+    coverImage?: true
     collegeName?: true
     department?: true
     yearOfStudy?: true
@@ -2180,6 +2203,7 @@ export namespace Prisma {
     googleId?: true
     bio?: true
     profilePicture?: true
+    coverImage?: true
     collegeName?: true
     department?: true
     yearOfStudy?: true
@@ -2294,6 +2318,7 @@ export namespace Prisma {
     googleId: string | null
     bio: string | null
     profilePicture: string | null
+    coverImage: string | null
     collegeName: string | null
     department: string | null
     yearOfStudy: string | null
@@ -2340,6 +2365,7 @@ export namespace Prisma {
     googleId?: boolean
     bio?: boolean
     profilePicture?: boolean
+    coverImage?: boolean
     collegeName?: boolean
     department?: boolean
     yearOfStudy?: boolean
@@ -2360,6 +2386,7 @@ export namespace Prisma {
     posts?: boolean | User$postsArgs<ExtArgs>
     comments?: boolean | User$commentsArgs<ExtArgs>
     likedPosts?: boolean | User$likedPostsArgs<ExtArgs>
+    savedPosts?: boolean | User$savedPostsArgs<ExtArgs>
     sentFriendRequests?: boolean | User$sentFriendRequestsArgs<ExtArgs>
     receivedFriendRequests?: boolean | User$receivedFriendRequestsArgs<ExtArgs>
     sentMessages?: boolean | User$sentMessagesArgs<ExtArgs>
@@ -2383,6 +2410,7 @@ export namespace Prisma {
     googleId?: boolean
     bio?: boolean
     profilePicture?: boolean
+    coverImage?: boolean
     collegeName?: boolean
     department?: boolean
     yearOfStudy?: boolean
@@ -2410,6 +2438,7 @@ export namespace Prisma {
     googleId?: boolean
     bio?: boolean
     profilePicture?: boolean
+    coverImage?: boolean
     collegeName?: boolean
     department?: boolean
     yearOfStudy?: boolean
@@ -2437,6 +2466,7 @@ export namespace Prisma {
     googleId?: boolean
     bio?: boolean
     profilePicture?: boolean
+    coverImage?: boolean
     collegeName?: boolean
     department?: boolean
     yearOfStudy?: boolean
@@ -2456,11 +2486,12 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "password" | "googleId" | "bio" | "profilePicture" | "collegeName" | "department" | "yearOfStudy" | "phoneNumber" | "phoneVisibility" | "whatsappNumber" | "whatsappVisibility" | "instagramHandle" | "instagramVisibility" | "facebookUrl" | "facebookVisibility" | "snapchatUsername" | "snapchatVisibility" | "linkedinUrl" | "linkedinVisibility" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "password" | "googleId" | "bio" | "profilePicture" | "coverImage" | "collegeName" | "department" | "yearOfStudy" | "phoneNumber" | "phoneVisibility" | "whatsappNumber" | "whatsappVisibility" | "instagramHandle" | "instagramVisibility" | "facebookUrl" | "facebookVisibility" | "snapchatUsername" | "snapchatVisibility" | "linkedinUrl" | "linkedinVisibility" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     posts?: boolean | User$postsArgs<ExtArgs>
     comments?: boolean | User$commentsArgs<ExtArgs>
     likedPosts?: boolean | User$likedPostsArgs<ExtArgs>
+    savedPosts?: boolean | User$savedPostsArgs<ExtArgs>
     sentFriendRequests?: boolean | User$sentFriendRequestsArgs<ExtArgs>
     receivedFriendRequests?: boolean | User$receivedFriendRequestsArgs<ExtArgs>
     sentMessages?: boolean | User$sentMessagesArgs<ExtArgs>
@@ -2484,6 +2515,7 @@ export namespace Prisma {
       posts: Prisma.$PostPayload<ExtArgs>[]
       comments: Prisma.$CommentPayload<ExtArgs>[]
       likedPosts: Prisma.$PostPayload<ExtArgs>[]
+      savedPosts: Prisma.$PostPayload<ExtArgs>[]
       sentFriendRequests: Prisma.$FriendshipPayload<ExtArgs>[]
       receivedFriendRequests: Prisma.$FriendshipPayload<ExtArgs>[]
       sentMessages: Prisma.$MessagePayload<ExtArgs>[]
@@ -2505,6 +2537,7 @@ export namespace Prisma {
       googleId: string | null
       bio: string | null
       profilePicture: string | null
+      coverImage: string | null
       collegeName: string | null
       department: string | null
       yearOfStudy: string | null
@@ -2919,6 +2952,7 @@ export namespace Prisma {
     posts<T extends User$postsArgs<ExtArgs> = {}>(args?: Subset<T, User$postsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     comments<T extends User$commentsArgs<ExtArgs> = {}>(args?: Subset<T, User$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     likedPosts<T extends User$likedPostsArgs<ExtArgs> = {}>(args?: Subset<T, User$likedPostsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    savedPosts<T extends User$savedPostsArgs<ExtArgs> = {}>(args?: Subset<T, User$savedPostsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     sentFriendRequests<T extends User$sentFriendRequestsArgs<ExtArgs> = {}>(args?: Subset<T, User$sentFriendRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FriendshipPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     receivedFriendRequests<T extends User$receivedFriendRequestsArgs<ExtArgs> = {}>(args?: Subset<T, User$receivedFriendRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FriendshipPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     sentMessages<T extends User$sentMessagesArgs<ExtArgs> = {}>(args?: Subset<T, User$sentMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2967,6 +3001,7 @@ export namespace Prisma {
     readonly googleId: FieldRef<"User", 'String'>
     readonly bio: FieldRef<"User", 'String'>
     readonly profilePicture: FieldRef<"User", 'String'>
+    readonly coverImage: FieldRef<"User", 'String'>
     readonly collegeName: FieldRef<"User", 'String'>
     readonly department: FieldRef<"User", 'String'>
     readonly yearOfStudy: FieldRef<"User", 'String'>
@@ -3421,6 +3456,30 @@ export namespace Prisma {
    * User.likedPosts
    */
   export type User$likedPostsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Post
+     */
+    select?: PostSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Post
+     */
+    omit?: PostOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PostInclude<ExtArgs> | null
+    where?: PostWhereInput
+    orderBy?: PostOrderByWithRelationInput | PostOrderByWithRelationInput[]
+    cursor?: PostWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PostScalarFieldEnum | PostScalarFieldEnum[]
+  }
+
+  /**
+   * User.savedPosts
+   */
+  export type User$savedPostsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
      * Select specific fields to fetch from the Post
      */
@@ -3968,6 +4027,7 @@ export namespace Prisma {
     authorId?: boolean
     author?: boolean | UserDefaultArgs<ExtArgs>
     likes?: boolean | Post$likesArgs<ExtArgs>
+    savedBy?: boolean | Post$savedByArgs<ExtArgs>
     comments?: boolean | Post$commentsArgs<ExtArgs>
     _count?: boolean | PostCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["post"]>
@@ -4008,6 +4068,7 @@ export namespace Prisma {
   export type PostInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     author?: boolean | UserDefaultArgs<ExtArgs>
     likes?: boolean | Post$likesArgs<ExtArgs>
+    savedBy?: boolean | Post$savedByArgs<ExtArgs>
     comments?: boolean | Post$commentsArgs<ExtArgs>
     _count?: boolean | PostCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -4023,6 +4084,7 @@ export namespace Prisma {
     objects: {
       author: Prisma.$UserPayload<ExtArgs>
       likes: Prisma.$UserPayload<ExtArgs>[]
+      savedBy: Prisma.$UserPayload<ExtArgs>[]
       comments: Prisma.$CommentPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -4429,6 +4491,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     author<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     likes<T extends Post$likesArgs<ExtArgs> = {}>(args?: Subset<T, Post$likesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    savedBy<T extends Post$savedByArgs<ExtArgs> = {}>(args?: Subset<T, Post$savedByArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     comments<T extends Post$commentsArgs<ExtArgs> = {}>(args?: Subset<T, Post$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CommentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -4863,6 +4926,30 @@ export namespace Prisma {
    * Post.likes
    */
   export type Post$likesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+    orderBy?: UserOrderByWithRelationInput | UserOrderByWithRelationInput[]
+    cursor?: UserWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+  }
+
+  /**
+   * Post.savedBy
+   */
+  export type Post$savedByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
      * Select specific fields to fetch from the User
      */
@@ -10554,6 +10641,10 @@ export namespace Prisma {
     mediaType: string | null
     maxParticipants: number | null
     isFriendsOnly: boolean | null
+    isPrivate: boolean | null
+    invitedUserIds: string | null
+    scheduledFor: Date | null
+    isStartedNotificationSent: boolean | null
     createdAt: Date | null
     creatorId: number | null
   }
@@ -10567,6 +10658,10 @@ export namespace Prisma {
     mediaType: string | null
     maxParticipants: number | null
     isFriendsOnly: boolean | null
+    isPrivate: boolean | null
+    invitedUserIds: string | null
+    scheduledFor: Date | null
+    isStartedNotificationSent: boolean | null
     createdAt: Date | null
     creatorId: number | null
   }
@@ -10580,6 +10675,10 @@ export namespace Prisma {
     mediaType: number
     maxParticipants: number
     isFriendsOnly: number
+    isPrivate: number
+    invitedUserIds: number
+    scheduledFor: number
+    isStartedNotificationSent: number
     createdAt: number
     creatorId: number
     _all: number
@@ -10607,6 +10706,10 @@ export namespace Prisma {
     mediaType?: true
     maxParticipants?: true
     isFriendsOnly?: true
+    isPrivate?: true
+    invitedUserIds?: true
+    scheduledFor?: true
+    isStartedNotificationSent?: true
     createdAt?: true
     creatorId?: true
   }
@@ -10620,6 +10723,10 @@ export namespace Prisma {
     mediaType?: true
     maxParticipants?: true
     isFriendsOnly?: true
+    isPrivate?: true
+    invitedUserIds?: true
+    scheduledFor?: true
+    isStartedNotificationSent?: true
     createdAt?: true
     creatorId?: true
   }
@@ -10633,6 +10740,10 @@ export namespace Prisma {
     mediaType?: true
     maxParticipants?: true
     isFriendsOnly?: true
+    isPrivate?: true
+    invitedUserIds?: true
+    scheduledFor?: true
+    isStartedNotificationSent?: true
     createdAt?: true
     creatorId?: true
     _all?: true
@@ -10733,6 +10844,10 @@ export namespace Prisma {
     mediaType: string
     maxParticipants: number
     isFriendsOnly: boolean
+    isPrivate: boolean
+    invitedUserIds: string | null
+    scheduledFor: Date | null
+    isStartedNotificationSent: boolean
     createdAt: Date
     creatorId: number
     _count: LanguageRoomCountAggregateOutputType | null
@@ -10765,6 +10880,10 @@ export namespace Prisma {
     mediaType?: boolean
     maxParticipants?: boolean
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: boolean
+    scheduledFor?: boolean
+    isStartedNotificationSent?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10779,6 +10898,10 @@ export namespace Prisma {
     mediaType?: boolean
     maxParticipants?: boolean
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: boolean
+    scheduledFor?: boolean
+    isStartedNotificationSent?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10793,6 +10916,10 @@ export namespace Prisma {
     mediaType?: boolean
     maxParticipants?: boolean
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: boolean
+    scheduledFor?: boolean
+    isStartedNotificationSent?: boolean
     createdAt?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
@@ -10807,11 +10934,15 @@ export namespace Prisma {
     mediaType?: boolean
     maxParticipants?: boolean
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: boolean
+    scheduledFor?: boolean
+    isStartedNotificationSent?: boolean
     createdAt?: boolean
     creatorId?: boolean
   }
 
-  export type LanguageRoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "roomName" | "topic" | "language" | "roomType" | "mediaType" | "maxParticipants" | "isFriendsOnly" | "createdAt" | "creatorId", ExtArgs["result"]["languageRoom"]>
+  export type LanguageRoomOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "roomName" | "topic" | "language" | "roomType" | "mediaType" | "maxParticipants" | "isFriendsOnly" | "isPrivate" | "invitedUserIds" | "scheduledFor" | "isStartedNotificationSent" | "createdAt" | "creatorId", ExtArgs["result"]["languageRoom"]>
   export type LanguageRoomInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     creator?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -10836,6 +10967,10 @@ export namespace Prisma {
       mediaType: string
       maxParticipants: number
       isFriendsOnly: boolean
+      isPrivate: boolean
+      invitedUserIds: string | null
+      scheduledFor: Date | null
+      isStartedNotificationSent: boolean
       createdAt: Date
       creatorId: number
     }, ExtArgs["result"]["languageRoom"]>
@@ -11270,6 +11405,10 @@ export namespace Prisma {
     readonly mediaType: FieldRef<"LanguageRoom", 'String'>
     readonly maxParticipants: FieldRef<"LanguageRoom", 'Int'>
     readonly isFriendsOnly: FieldRef<"LanguageRoom", 'Boolean'>
+    readonly isPrivate: FieldRef<"LanguageRoom", 'Boolean'>
+    readonly invitedUserIds: FieldRef<"LanguageRoom", 'String'>
+    readonly scheduledFor: FieldRef<"LanguageRoom", 'DateTime'>
+    readonly isStartedNotificationSent: FieldRef<"LanguageRoom", 'Boolean'>
     readonly createdAt: FieldRef<"LanguageRoom", 'DateTime'>
     readonly creatorId: FieldRef<"LanguageRoom", 'Int'>
   }
@@ -15106,6 +15245,7 @@ export namespace Prisma {
     googleId: 'googleId',
     bio: 'bio',
     profilePicture: 'profilePicture',
+    coverImage: 'coverImage',
     collegeName: 'collegeName',
     department: 'department',
     yearOfStudy: 'yearOfStudy',
@@ -15210,6 +15350,10 @@ export namespace Prisma {
     mediaType: 'mediaType',
     maxParticipants: 'maxParticipants',
     isFriendsOnly: 'isFriendsOnly',
+    isPrivate: 'isPrivate',
+    invitedUserIds: 'invitedUserIds',
+    scheduledFor: 'scheduledFor',
+    isStartedNotificationSent: 'isStartedNotificationSent',
     createdAt: 'createdAt',
     creatorId: 'creatorId'
   };
@@ -15323,6 +15467,7 @@ export namespace Prisma {
     googleId?: StringNullableFilter<"User"> | string | null
     bio?: StringNullableFilter<"User"> | string | null
     profilePicture?: StringNullableFilter<"User"> | string | null
+    coverImage?: StringNullableFilter<"User"> | string | null
     collegeName?: StringNullableFilter<"User"> | string | null
     department?: StringNullableFilter<"User"> | string | null
     yearOfStudy?: StringNullableFilter<"User"> | string | null
@@ -15343,6 +15488,7 @@ export namespace Prisma {
     posts?: PostListRelationFilter
     comments?: CommentListRelationFilter
     likedPosts?: PostListRelationFilter
+    savedPosts?: PostListRelationFilter
     sentFriendRequests?: FriendshipListRelationFilter
     receivedFriendRequests?: FriendshipListRelationFilter
     sentMessages?: MessageListRelationFilter
@@ -15365,6 +15511,7 @@ export namespace Prisma {
     googleId?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
     profilePicture?: SortOrderInput | SortOrder
+    coverImage?: SortOrderInput | SortOrder
     collegeName?: SortOrderInput | SortOrder
     department?: SortOrderInput | SortOrder
     yearOfStudy?: SortOrderInput | SortOrder
@@ -15385,6 +15532,7 @@ export namespace Prisma {
     posts?: PostOrderByRelationAggregateInput
     comments?: CommentOrderByRelationAggregateInput
     likedPosts?: PostOrderByRelationAggregateInput
+    savedPosts?: PostOrderByRelationAggregateInput
     sentFriendRequests?: FriendshipOrderByRelationAggregateInput
     receivedFriendRequests?: FriendshipOrderByRelationAggregateInput
     sentMessages?: MessageOrderByRelationAggregateInput
@@ -15410,6 +15558,7 @@ export namespace Prisma {
     password?: StringNullableFilter<"User"> | string | null
     bio?: StringNullableFilter<"User"> | string | null
     profilePicture?: StringNullableFilter<"User"> | string | null
+    coverImage?: StringNullableFilter<"User"> | string | null
     collegeName?: StringNullableFilter<"User"> | string | null
     department?: StringNullableFilter<"User"> | string | null
     yearOfStudy?: StringNullableFilter<"User"> | string | null
@@ -15430,6 +15579,7 @@ export namespace Prisma {
     posts?: PostListRelationFilter
     comments?: CommentListRelationFilter
     likedPosts?: PostListRelationFilter
+    savedPosts?: PostListRelationFilter
     sentFriendRequests?: FriendshipListRelationFilter
     receivedFriendRequests?: FriendshipListRelationFilter
     sentMessages?: MessageListRelationFilter
@@ -15452,6 +15602,7 @@ export namespace Prisma {
     googleId?: SortOrderInput | SortOrder
     bio?: SortOrderInput | SortOrder
     profilePicture?: SortOrderInput | SortOrder
+    coverImage?: SortOrderInput | SortOrder
     collegeName?: SortOrderInput | SortOrder
     department?: SortOrderInput | SortOrder
     yearOfStudy?: SortOrderInput | SortOrder
@@ -15487,6 +15638,7 @@ export namespace Prisma {
     googleId?: StringNullableWithAggregatesFilter<"User"> | string | null
     bio?: StringNullableWithAggregatesFilter<"User"> | string | null
     profilePicture?: StringNullableWithAggregatesFilter<"User"> | string | null
+    coverImage?: StringNullableWithAggregatesFilter<"User"> | string | null
     collegeName?: StringNullableWithAggregatesFilter<"User"> | string | null
     department?: StringNullableWithAggregatesFilter<"User"> | string | null
     yearOfStudy?: StringNullableWithAggregatesFilter<"User"> | string | null
@@ -15519,6 +15671,7 @@ export namespace Prisma {
     authorId?: IntFilter<"Post"> | number
     author?: XOR<UserScalarRelationFilter, UserWhereInput>
     likes?: UserListRelationFilter
+    savedBy?: UserListRelationFilter
     comments?: CommentListRelationFilter
   }
 
@@ -15532,6 +15685,7 @@ export namespace Prisma {
     authorId?: SortOrder
     author?: UserOrderByWithRelationInput
     likes?: UserOrderByRelationAggregateInput
+    savedBy?: UserOrderByRelationAggregateInput
     comments?: CommentOrderByRelationAggregateInput
   }
 
@@ -15548,6 +15702,7 @@ export namespace Prisma {
     authorId?: IntFilter<"Post"> | number
     author?: XOR<UserScalarRelationFilter, UserWhereInput>
     likes?: UserListRelationFilter
+    savedBy?: UserListRelationFilter
     comments?: CommentListRelationFilter
   }, "id">
 
@@ -15919,6 +16074,10 @@ export namespace Prisma {
     mediaType?: StringFilter<"LanguageRoom"> | string
     maxParticipants?: IntFilter<"LanguageRoom"> | number
     isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
+    isPrivate?: BoolFilter<"LanguageRoom"> | boolean
+    invitedUserIds?: StringNullableFilter<"LanguageRoom"> | string | null
+    scheduledFor?: DateTimeNullableFilter<"LanguageRoom"> | Date | string | null
+    isStartedNotificationSent?: BoolFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -15933,6 +16092,10 @@ export namespace Prisma {
     mediaType?: SortOrder
     maxParticipants?: SortOrder
     isFriendsOnly?: SortOrder
+    isPrivate?: SortOrder
+    invitedUserIds?: SortOrderInput | SortOrder
+    scheduledFor?: SortOrderInput | SortOrder
+    isStartedNotificationSent?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
     creator?: UserOrderByWithRelationInput
@@ -15950,6 +16113,10 @@ export namespace Prisma {
     mediaType?: StringFilter<"LanguageRoom"> | string
     maxParticipants?: IntFilter<"LanguageRoom"> | number
     isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
+    isPrivate?: BoolFilter<"LanguageRoom"> | boolean
+    invitedUserIds?: StringNullableFilter<"LanguageRoom"> | string | null
+    scheduledFor?: DateTimeNullableFilter<"LanguageRoom"> | Date | string | null
+    isStartedNotificationSent?: BoolFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -15964,6 +16131,10 @@ export namespace Prisma {
     mediaType?: SortOrder
     maxParticipants?: SortOrder
     isFriendsOnly?: SortOrder
+    isPrivate?: SortOrder
+    invitedUserIds?: SortOrderInput | SortOrder
+    scheduledFor?: SortOrderInput | SortOrder
+    isStartedNotificationSent?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
     _count?: LanguageRoomCountOrderByAggregateInput
@@ -15985,6 +16156,10 @@ export namespace Prisma {
     mediaType?: StringWithAggregatesFilter<"LanguageRoom"> | string
     maxParticipants?: IntWithAggregatesFilter<"LanguageRoom"> | number
     isFriendsOnly?: BoolWithAggregatesFilter<"LanguageRoom"> | boolean
+    isPrivate?: BoolWithAggregatesFilter<"LanguageRoom"> | boolean
+    invitedUserIds?: StringNullableWithAggregatesFilter<"LanguageRoom"> | string | null
+    scheduledFor?: DateTimeNullableWithAggregatesFilter<"LanguageRoom"> | Date | string | null
+    isStartedNotificationSent?: BoolWithAggregatesFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"LanguageRoom"> | Date | string
     creatorId?: IntWithAggregatesFilter<"LanguageRoom"> | number
   }
@@ -16195,6 +16370,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -16215,6 +16391,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -16237,6 +16414,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -16257,6 +16435,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -16278,6 +16457,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16298,6 +16478,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -16320,6 +16501,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16340,6 +16522,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -16362,6 +16545,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -16388,6 +16572,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16415,6 +16600,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -16442,6 +16628,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     author: UserCreateNestedOneWithoutPostsInput
     likes?: UserCreateNestedManyWithoutLikedPostsInput
+    savedBy?: UserCreateNestedManyWithoutSavedPostsInput
     comments?: CommentCreateNestedManyWithoutPostInput
   }
 
@@ -16454,6 +16641,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     authorId: number
     likes?: UserUncheckedCreateNestedManyWithoutLikedPostsInput
+    savedBy?: UserUncheckedCreateNestedManyWithoutSavedPostsInput
     comments?: CommentUncheckedCreateNestedManyWithoutPostInput
   }
 
@@ -16465,6 +16653,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     author?: UserUpdateOneRequiredWithoutPostsNestedInput
     likes?: UserUpdateManyWithoutLikedPostsNestedInput
+    savedBy?: UserUpdateManyWithoutSavedPostsNestedInput
     comments?: CommentUpdateManyWithoutPostNestedInput
   }
 
@@ -16477,6 +16666,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     authorId?: IntFieldUpdateOperationsInput | number
     likes?: UserUncheckedUpdateManyWithoutLikedPostsNestedInput
+    savedBy?: UserUncheckedUpdateManyWithoutSavedPostsNestedInput
     comments?: CommentUncheckedUpdateManyWithoutPostNestedInput
   }
 
@@ -16806,6 +16996,10 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
     creator: UserCreateNestedOneWithoutLanguageRoomsInput
   }
@@ -16819,6 +17013,10 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
     creatorId: number
   }
@@ -16831,6 +17029,10 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creator?: UserUpdateOneRequiredWithoutLanguageRoomsNestedInput
   }
@@ -16844,6 +17046,10 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creatorId?: IntFieldUpdateOperationsInput | number
   }
@@ -16857,6 +17063,10 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
     creatorId: number
   }
@@ -16869,6 +17079,10 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -16881,6 +17095,10 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     creatorId?: IntFieldUpdateOperationsInput | number
   }
@@ -17231,6 +17449,7 @@ export namespace Prisma {
     googleId?: SortOrder
     bio?: SortOrder
     profilePicture?: SortOrder
+    coverImage?: SortOrder
     collegeName?: SortOrder
     department?: SortOrder
     yearOfStudy?: SortOrder
@@ -17262,6 +17481,7 @@ export namespace Prisma {
     googleId?: SortOrder
     bio?: SortOrder
     profilePicture?: SortOrder
+    coverImage?: SortOrder
     collegeName?: SortOrder
     department?: SortOrder
     yearOfStudy?: SortOrder
@@ -17289,6 +17509,7 @@ export namespace Prisma {
     googleId?: SortOrder
     bio?: SortOrder
     profilePicture?: SortOrder
+    coverImage?: SortOrder
     collegeName?: SortOrder
     department?: SortOrder
     yearOfStudy?: SortOrder
@@ -17659,6 +17880,17 @@ export namespace Prisma {
     receiverId?: SortOrder
   }
 
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | null
+    notIn?: Date[] | string[] | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type LanguageRoomCountOrderByAggregateInput = {
     id?: SortOrder
     roomName?: SortOrder
@@ -17668,6 +17900,10 @@ export namespace Prisma {
     mediaType?: SortOrder
     maxParticipants?: SortOrder
     isFriendsOnly?: SortOrder
+    isPrivate?: SortOrder
+    invitedUserIds?: SortOrder
+    scheduledFor?: SortOrder
+    isStartedNotificationSent?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17687,6 +17923,10 @@ export namespace Prisma {
     mediaType?: SortOrder
     maxParticipants?: SortOrder
     isFriendsOnly?: SortOrder
+    isPrivate?: SortOrder
+    invitedUserIds?: SortOrder
+    scheduledFor?: SortOrder
+    isStartedNotificationSent?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17700,6 +17940,10 @@ export namespace Prisma {
     mediaType?: SortOrder
     maxParticipants?: SortOrder
     isFriendsOnly?: SortOrder
+    isPrivate?: SortOrder
+    invitedUserIds?: SortOrder
+    scheduledFor?: SortOrder
+    isStartedNotificationSent?: SortOrder
     createdAt?: SortOrder
     creatorId?: SortOrder
   }
@@ -17708,6 +17952,20 @@ export namespace Prisma {
     id?: SortOrder
     maxParticipants?: SortOrder
     creatorId?: SortOrder
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | null
+    notIn?: Date[] | string[] | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type GroupCountOrderByAggregateInput = {
@@ -17855,6 +18113,12 @@ export namespace Prisma {
     connect?: PostWhereUniqueInput | PostWhereUniqueInput[]
   }
 
+  export type PostCreateNestedManyWithoutSavedByInput = {
+    create?: XOR<PostCreateWithoutSavedByInput, PostUncheckedCreateWithoutSavedByInput> | PostCreateWithoutSavedByInput[] | PostUncheckedCreateWithoutSavedByInput[]
+    connectOrCreate?: PostCreateOrConnectWithoutSavedByInput | PostCreateOrConnectWithoutSavedByInput[]
+    connect?: PostWhereUniqueInput | PostWhereUniqueInput[]
+  }
+
   export type FriendshipCreateNestedManyWithoutSenderInput = {
     create?: XOR<FriendshipCreateWithoutSenderInput, FriendshipUncheckedCreateWithoutSenderInput> | FriendshipCreateWithoutSenderInput[] | FriendshipUncheckedCreateWithoutSenderInput[]
     connectOrCreate?: FriendshipCreateOrConnectWithoutSenderInput | FriendshipCreateOrConnectWithoutSenderInput[]
@@ -17956,6 +18220,12 @@ export namespace Prisma {
   export type PostUncheckedCreateNestedManyWithoutLikesInput = {
     create?: XOR<PostCreateWithoutLikesInput, PostUncheckedCreateWithoutLikesInput> | PostCreateWithoutLikesInput[] | PostUncheckedCreateWithoutLikesInput[]
     connectOrCreate?: PostCreateOrConnectWithoutLikesInput | PostCreateOrConnectWithoutLikesInput[]
+    connect?: PostWhereUniqueInput | PostWhereUniqueInput[]
+  }
+
+  export type PostUncheckedCreateNestedManyWithoutSavedByInput = {
+    create?: XOR<PostCreateWithoutSavedByInput, PostUncheckedCreateWithoutSavedByInput> | PostCreateWithoutSavedByInput[] | PostUncheckedCreateWithoutSavedByInput[]
+    connectOrCreate?: PostCreateOrConnectWithoutSavedByInput | PostCreateOrConnectWithoutSavedByInput[]
     connect?: PostWhereUniqueInput | PostWhereUniqueInput[]
   }
 
@@ -18093,6 +18363,19 @@ export namespace Prisma {
     connect?: PostWhereUniqueInput | PostWhereUniqueInput[]
     update?: PostUpdateWithWhereUniqueWithoutLikesInput | PostUpdateWithWhereUniqueWithoutLikesInput[]
     updateMany?: PostUpdateManyWithWhereWithoutLikesInput | PostUpdateManyWithWhereWithoutLikesInput[]
+    deleteMany?: PostScalarWhereInput | PostScalarWhereInput[]
+  }
+
+  export type PostUpdateManyWithoutSavedByNestedInput = {
+    create?: XOR<PostCreateWithoutSavedByInput, PostUncheckedCreateWithoutSavedByInput> | PostCreateWithoutSavedByInput[] | PostUncheckedCreateWithoutSavedByInput[]
+    connectOrCreate?: PostCreateOrConnectWithoutSavedByInput | PostCreateOrConnectWithoutSavedByInput[]
+    upsert?: PostUpsertWithWhereUniqueWithoutSavedByInput | PostUpsertWithWhereUniqueWithoutSavedByInput[]
+    set?: PostWhereUniqueInput | PostWhereUniqueInput[]
+    disconnect?: PostWhereUniqueInput | PostWhereUniqueInput[]
+    delete?: PostWhereUniqueInput | PostWhereUniqueInput[]
+    connect?: PostWhereUniqueInput | PostWhereUniqueInput[]
+    update?: PostUpdateWithWhereUniqueWithoutSavedByInput | PostUpdateWithWhereUniqueWithoutSavedByInput[]
+    updateMany?: PostUpdateManyWithWhereWithoutSavedByInput | PostUpdateManyWithWhereWithoutSavedByInput[]
     deleteMany?: PostScalarWhereInput | PostScalarWhereInput[]
   }
 
@@ -18313,6 +18596,19 @@ export namespace Prisma {
     deleteMany?: PostScalarWhereInput | PostScalarWhereInput[]
   }
 
+  export type PostUncheckedUpdateManyWithoutSavedByNestedInput = {
+    create?: XOR<PostCreateWithoutSavedByInput, PostUncheckedCreateWithoutSavedByInput> | PostCreateWithoutSavedByInput[] | PostUncheckedCreateWithoutSavedByInput[]
+    connectOrCreate?: PostCreateOrConnectWithoutSavedByInput | PostCreateOrConnectWithoutSavedByInput[]
+    upsert?: PostUpsertWithWhereUniqueWithoutSavedByInput | PostUpsertWithWhereUniqueWithoutSavedByInput[]
+    set?: PostWhereUniqueInput | PostWhereUniqueInput[]
+    disconnect?: PostWhereUniqueInput | PostWhereUniqueInput[]
+    delete?: PostWhereUniqueInput | PostWhereUniqueInput[]
+    connect?: PostWhereUniqueInput | PostWhereUniqueInput[]
+    update?: PostUpdateWithWhereUniqueWithoutSavedByInput | PostUpdateWithWhereUniqueWithoutSavedByInput[]
+    updateMany?: PostUpdateManyWithWhereWithoutSavedByInput | PostUpdateManyWithWhereWithoutSavedByInput[]
+    deleteMany?: PostScalarWhereInput | PostScalarWhereInput[]
+  }
+
   export type FriendshipUncheckedUpdateManyWithoutSenderNestedInput = {
     create?: XOR<FriendshipCreateWithoutSenderInput, FriendshipUncheckedCreateWithoutSenderInput> | FriendshipCreateWithoutSenderInput[] | FriendshipUncheckedCreateWithoutSenderInput[]
     connectOrCreate?: FriendshipCreateOrConnectWithoutSenderInput | FriendshipCreateOrConnectWithoutSenderInput[]
@@ -18493,6 +18789,12 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
   }
 
+  export type UserCreateNestedManyWithoutSavedPostsInput = {
+    create?: XOR<UserCreateWithoutSavedPostsInput, UserUncheckedCreateWithoutSavedPostsInput> | UserCreateWithoutSavedPostsInput[] | UserUncheckedCreateWithoutSavedPostsInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutSavedPostsInput | UserCreateOrConnectWithoutSavedPostsInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+  }
+
   export type CommentCreateNestedManyWithoutPostInput = {
     create?: XOR<CommentCreateWithoutPostInput, CommentUncheckedCreateWithoutPostInput> | CommentCreateWithoutPostInput[] | CommentUncheckedCreateWithoutPostInput[]
     connectOrCreate?: CommentCreateOrConnectWithoutPostInput | CommentCreateOrConnectWithoutPostInput[]
@@ -18503,6 +18805,12 @@ export namespace Prisma {
   export type UserUncheckedCreateNestedManyWithoutLikedPostsInput = {
     create?: XOR<UserCreateWithoutLikedPostsInput, UserUncheckedCreateWithoutLikedPostsInput> | UserCreateWithoutLikedPostsInput[] | UserUncheckedCreateWithoutLikedPostsInput[]
     connectOrCreate?: UserCreateOrConnectWithoutLikedPostsInput | UserCreateOrConnectWithoutLikedPostsInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+  }
+
+  export type UserUncheckedCreateNestedManyWithoutSavedPostsInput = {
+    create?: XOR<UserCreateWithoutSavedPostsInput, UserUncheckedCreateWithoutSavedPostsInput> | UserCreateWithoutSavedPostsInput[] | UserUncheckedCreateWithoutSavedPostsInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutSavedPostsInput | UserCreateOrConnectWithoutSavedPostsInput[]
     connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
   }
 
@@ -18534,6 +18842,19 @@ export namespace Prisma {
     deleteMany?: UserScalarWhereInput | UserScalarWhereInput[]
   }
 
+  export type UserUpdateManyWithoutSavedPostsNestedInput = {
+    create?: XOR<UserCreateWithoutSavedPostsInput, UserUncheckedCreateWithoutSavedPostsInput> | UserCreateWithoutSavedPostsInput[] | UserUncheckedCreateWithoutSavedPostsInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutSavedPostsInput | UserCreateOrConnectWithoutSavedPostsInput[]
+    upsert?: UserUpsertWithWhereUniqueWithoutSavedPostsInput | UserUpsertWithWhereUniqueWithoutSavedPostsInput[]
+    set?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    disconnect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    delete?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    update?: UserUpdateWithWhereUniqueWithoutSavedPostsInput | UserUpdateWithWhereUniqueWithoutSavedPostsInput[]
+    updateMany?: UserUpdateManyWithWhereWithoutSavedPostsInput | UserUpdateManyWithWhereWithoutSavedPostsInput[]
+    deleteMany?: UserScalarWhereInput | UserScalarWhereInput[]
+  }
+
   export type CommentUpdateManyWithoutPostNestedInput = {
     create?: XOR<CommentCreateWithoutPostInput, CommentUncheckedCreateWithoutPostInput> | CommentCreateWithoutPostInput[] | CommentUncheckedCreateWithoutPostInput[]
     connectOrCreate?: CommentCreateOrConnectWithoutPostInput | CommentCreateOrConnectWithoutPostInput[]
@@ -18558,6 +18879,19 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
     update?: UserUpdateWithWhereUniqueWithoutLikedPostsInput | UserUpdateWithWhereUniqueWithoutLikedPostsInput[]
     updateMany?: UserUpdateManyWithWhereWithoutLikedPostsInput | UserUpdateManyWithWhereWithoutLikedPostsInput[]
+    deleteMany?: UserScalarWhereInput | UserScalarWhereInput[]
+  }
+
+  export type UserUncheckedUpdateManyWithoutSavedPostsNestedInput = {
+    create?: XOR<UserCreateWithoutSavedPostsInput, UserUncheckedCreateWithoutSavedPostsInput> | UserCreateWithoutSavedPostsInput[] | UserUncheckedCreateWithoutSavedPostsInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutSavedPostsInput | UserCreateOrConnectWithoutSavedPostsInput[]
+    upsert?: UserUpsertWithWhereUniqueWithoutSavedPostsInput | UserUpsertWithWhereUniqueWithoutSavedPostsInput[]
+    set?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    disconnect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    delete?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    update?: UserUpdateWithWhereUniqueWithoutSavedPostsInput | UserUpdateWithWhereUniqueWithoutSavedPostsInput[]
+    updateMany?: UserUpdateManyWithWhereWithoutSavedPostsInput | UserUpdateManyWithWhereWithoutSavedPostsInput[]
     deleteMany?: UserScalarWhereInput | UserScalarWhereInput[]
   }
 
@@ -18723,6 +19057,10 @@ export namespace Prisma {
     create?: XOR<UserCreateWithoutLanguageRoomsInput, UserUncheckedCreateWithoutLanguageRoomsInput>
     connectOrCreate?: UserCreateOrConnectWithoutLanguageRoomsInput
     connect?: UserWhereUniqueInput
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
   }
 
   export type UserUpdateOneRequiredWithoutLanguageRoomsNestedInput = {
@@ -19036,6 +19374,31 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | null
+    notIn?: Date[] | string[] | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | null
+    notIn?: Date[] | string[] | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
   export type PostCreateWithoutAuthorInput = {
     content: string
     image?: string | null
@@ -19043,6 +19406,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     likes?: UserCreateNestedManyWithoutLikedPostsInput
+    savedBy?: UserCreateNestedManyWithoutSavedPostsInput
     comments?: CommentCreateNestedManyWithoutPostInput
   }
 
@@ -19054,6 +19418,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     likes?: UserUncheckedCreateNestedManyWithoutLikedPostsInput
+    savedBy?: UserUncheckedCreateNestedManyWithoutSavedPostsInput
     comments?: CommentUncheckedCreateNestedManyWithoutPostInput
   }
 
@@ -19097,6 +19462,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     author: UserCreateNestedOneWithoutPostsInput
+    savedBy?: UserCreateNestedManyWithoutSavedPostsInput
     comments?: CommentCreateNestedManyWithoutPostInput
   }
 
@@ -19108,12 +19474,41 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     authorId: number
+    savedBy?: UserUncheckedCreateNestedManyWithoutSavedPostsInput
     comments?: CommentUncheckedCreateNestedManyWithoutPostInput
   }
 
   export type PostCreateOrConnectWithoutLikesInput = {
     where: PostWhereUniqueInput
     create: XOR<PostCreateWithoutLikesInput, PostUncheckedCreateWithoutLikesInput>
+  }
+
+  export type PostCreateWithoutSavedByInput = {
+    content: string
+    image?: string | null
+    visibility?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    author: UserCreateNestedOneWithoutPostsInput
+    likes?: UserCreateNestedManyWithoutLikedPostsInput
+    comments?: CommentCreateNestedManyWithoutPostInput
+  }
+
+  export type PostUncheckedCreateWithoutSavedByInput = {
+    id?: number
+    content: string
+    image?: string | null
+    visibility?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    authorId: number
+    likes?: UserUncheckedCreateNestedManyWithoutLikedPostsInput
+    comments?: CommentUncheckedCreateNestedManyWithoutPostInput
+  }
+
+  export type PostCreateOrConnectWithoutSavedByInput = {
+    where: PostWhereUniqueInput
+    create: XOR<PostCreateWithoutSavedByInput, PostUncheckedCreateWithoutSavedByInput>
   }
 
   export type FriendshipCreateWithoutSenderInput = {
@@ -19316,6 +19711,10 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
   }
 
@@ -19328,6 +19727,10 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
   }
 
@@ -19487,6 +19890,22 @@ export namespace Prisma {
   export type PostUpdateManyWithWhereWithoutLikesInput = {
     where: PostScalarWhereInput
     data: XOR<PostUpdateManyMutationInput, PostUncheckedUpdateManyWithoutLikesInput>
+  }
+
+  export type PostUpsertWithWhereUniqueWithoutSavedByInput = {
+    where: PostWhereUniqueInput
+    update: XOR<PostUpdateWithoutSavedByInput, PostUncheckedUpdateWithoutSavedByInput>
+    create: XOR<PostCreateWithoutSavedByInput, PostUncheckedCreateWithoutSavedByInput>
+  }
+
+  export type PostUpdateWithWhereUniqueWithoutSavedByInput = {
+    where: PostWhereUniqueInput
+    data: XOR<PostUpdateWithoutSavedByInput, PostUncheckedUpdateWithoutSavedByInput>
+  }
+
+  export type PostUpdateManyWithWhereWithoutSavedByInput = {
+    where: PostScalarWhereInput
+    data: XOR<PostUpdateManyMutationInput, PostUncheckedUpdateManyWithoutSavedByInput>
   }
 
   export type FriendshipUpsertWithWhereUniqueWithoutSenderInput = {
@@ -19693,6 +20112,10 @@ export namespace Prisma {
     mediaType?: StringFilter<"LanguageRoom"> | string
     maxParticipants?: IntFilter<"LanguageRoom"> | number
     isFriendsOnly?: BoolFilter<"LanguageRoom"> | boolean
+    isPrivate?: BoolFilter<"LanguageRoom"> | boolean
+    invitedUserIds?: StringNullableFilter<"LanguageRoom"> | string | null
+    scheduledFor?: DateTimeNullableFilter<"LanguageRoom"> | Date | string | null
+    isStartedNotificationSent?: BoolFilter<"LanguageRoom"> | boolean
     createdAt?: DateTimeFilter<"LanguageRoom"> | Date | string
     creatorId?: IntFilter<"LanguageRoom"> | number
   }
@@ -19788,6 +20211,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -19807,6 +20231,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -19829,6 +20254,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -19848,6 +20274,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -19874,6 +20301,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -19893,6 +20321,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -19915,6 +20344,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -19934,6 +20364,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -19951,6 +20382,96 @@ export namespace Prisma {
   export type UserCreateOrConnectWithoutLikedPostsInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutLikedPostsInput, UserUncheckedCreateWithoutLikedPostsInput>
+  }
+
+  export type UserCreateWithoutSavedPostsInput = {
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    bio?: string | null
+    profilePicture?: string | null
+    coverImage?: string | null
+    collegeName?: string | null
+    department?: string | null
+    yearOfStudy?: string | null
+    phoneNumber?: string | null
+    phoneVisibility?: string
+    whatsappNumber?: string | null
+    whatsappVisibility?: string
+    instagramHandle?: string | null
+    instagramVisibility?: string
+    facebookUrl?: string | null
+    facebookVisibility?: string
+    snapchatUsername?: string | null
+    snapchatVisibility?: string
+    linkedinUrl?: string | null
+    linkedinVisibility?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    posts?: PostCreateNestedManyWithoutAuthorInput
+    comments?: CommentCreateNestedManyWithoutAuthorInput
+    likedPosts?: PostCreateNestedManyWithoutLikesInput
+    sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
+    receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
+    sentMessages?: MessageCreateNestedManyWithoutSenderInput
+    receivedMessages?: MessageCreateNestedManyWithoutReceiverInput
+    myCrushes?: CrushCreateNestedManyWithoutUserInput
+    crushedBy?: CrushCreateNestedManyWithoutCrushInput
+    sentCloseFriendRequests?: CloseFriendRequestCreateNestedManyWithoutSenderInput
+    receivedCloseFriendRequests?: CloseFriendRequestCreateNestedManyWithoutReceiverInput
+    languageRooms?: LanguageRoomCreateNestedManyWithoutCreatorInput
+    createdGroups?: GroupCreateNestedManyWithoutCreatorInput
+    groupMembers?: GroupMemberCreateNestedManyWithoutUserInput
+    groupMessages?: GroupMessageCreateNestedManyWithoutSenderInput
+  }
+
+  export type UserUncheckedCreateWithoutSavedPostsInput = {
+    id?: number
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    bio?: string | null
+    profilePicture?: string | null
+    coverImage?: string | null
+    collegeName?: string | null
+    department?: string | null
+    yearOfStudy?: string | null
+    phoneNumber?: string | null
+    phoneVisibility?: string
+    whatsappNumber?: string | null
+    whatsappVisibility?: string
+    instagramHandle?: string | null
+    instagramVisibility?: string
+    facebookUrl?: string | null
+    facebookVisibility?: string
+    snapchatUsername?: string | null
+    snapchatVisibility?: string
+    linkedinUrl?: string | null
+    linkedinVisibility?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
+    comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
+    likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
+    receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
+    sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
+    receivedMessages?: MessageUncheckedCreateNestedManyWithoutReceiverInput
+    myCrushes?: CrushUncheckedCreateNestedManyWithoutUserInput
+    crushedBy?: CrushUncheckedCreateNestedManyWithoutCrushInput
+    sentCloseFriendRequests?: CloseFriendRequestUncheckedCreateNestedManyWithoutSenderInput
+    receivedCloseFriendRequests?: CloseFriendRequestUncheckedCreateNestedManyWithoutReceiverInput
+    languageRooms?: LanguageRoomUncheckedCreateNestedManyWithoutCreatorInput
+    createdGroups?: GroupUncheckedCreateNestedManyWithoutCreatorInput
+    groupMembers?: GroupMemberUncheckedCreateNestedManyWithoutUserInput
+    groupMessages?: GroupMessageUncheckedCreateNestedManyWithoutSenderInput
+  }
+
+  export type UserCreateOrConnectWithoutSavedPostsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutSavedPostsInput, UserUncheckedCreateWithoutSavedPostsInput>
   }
 
   export type CommentCreateWithoutPostInput = {
@@ -19995,6 +20516,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20014,6 +20536,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -20036,6 +20559,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20055,6 +20579,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -20096,6 +20621,7 @@ export namespace Prisma {
     googleId?: StringNullableFilter<"User"> | string | null
     bio?: StringNullableFilter<"User"> | string | null
     profilePicture?: StringNullableFilter<"User"> | string | null
+    coverImage?: StringNullableFilter<"User"> | string | null
     collegeName?: StringNullableFilter<"User"> | string | null
     department?: StringNullableFilter<"User"> | string | null
     yearOfStudy?: StringNullableFilter<"User"> | string | null
@@ -20113,6 +20639,22 @@ export namespace Prisma {
     linkedinVisibility?: StringFilter<"User"> | string
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
+  }
+
+  export type UserUpsertWithWhereUniqueWithoutSavedPostsInput = {
+    where: UserWhereUniqueInput
+    update: XOR<UserUpdateWithoutSavedPostsInput, UserUncheckedUpdateWithoutSavedPostsInput>
+    create: XOR<UserCreateWithoutSavedPostsInput, UserUncheckedCreateWithoutSavedPostsInput>
+  }
+
+  export type UserUpdateWithWhereUniqueWithoutSavedPostsInput = {
+    where: UserWhereUniqueInput
+    data: XOR<UserUpdateWithoutSavedPostsInput, UserUncheckedUpdateWithoutSavedPostsInput>
+  }
+
+  export type UserUpdateManyWithWhereWithoutSavedPostsInput = {
+    where: UserScalarWhereInput
+    data: XOR<UserUpdateManyMutationInput, UserUncheckedUpdateManyWithoutSavedPostsInput>
   }
 
   export type CommentUpsertWithWhereUniqueWithoutPostInput = {
@@ -20138,6 +20680,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20158,6 +20701,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
     receivedMessages?: MessageCreateNestedManyWithoutReceiverInput
@@ -20179,6 +20723,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20199,6 +20744,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
     receivedMessages?: MessageUncheckedCreateNestedManyWithoutReceiverInput
@@ -20224,6 +20770,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20244,6 +20791,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
     receivedMessages?: MessageCreateNestedManyWithoutReceiverInput
@@ -20265,6 +20813,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20285,6 +20834,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
     receivedMessages?: MessageUncheckedCreateNestedManyWithoutReceiverInput
@@ -20321,6 +20871,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20341,6 +20892,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
     receivedMessages?: MessageUpdateManyWithoutReceiverNestedInput
@@ -20362,6 +20914,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20382,6 +20935,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
     receivedMessages?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
@@ -20413,6 +20967,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20433,6 +20988,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
     receivedMessages?: MessageUpdateManyWithoutReceiverNestedInput
@@ -20454,6 +21010,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20474,6 +21031,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
     receivedMessages?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
@@ -20494,6 +21052,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20514,6 +21073,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     receivedMessages?: MessageCreateNestedManyWithoutReceiverInput
@@ -20535,6 +21095,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20555,6 +21116,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     receivedMessages?: MessageUncheckedCreateNestedManyWithoutReceiverInput
@@ -20580,6 +21142,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20600,6 +21163,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -20621,6 +21185,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20641,6 +21206,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -20677,6 +21243,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20697,6 +21264,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     receivedMessages?: MessageUpdateManyWithoutReceiverNestedInput
@@ -20718,6 +21286,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20738,6 +21307,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     receivedMessages?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
@@ -20769,6 +21339,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20789,6 +21360,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -20810,6 +21382,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -20830,6 +21403,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -20851,6 +21425,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     author: UserCreateNestedOneWithoutPostsInput
     likes?: UserCreateNestedManyWithoutLikedPostsInput
+    savedBy?: UserCreateNestedManyWithoutSavedPostsInput
   }
 
   export type PostUncheckedCreateWithoutCommentsInput = {
@@ -20862,6 +21437,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     authorId: number
     likes?: UserUncheckedCreateNestedManyWithoutLikedPostsInput
+    savedBy?: UserUncheckedCreateNestedManyWithoutSavedPostsInput
   }
 
   export type PostCreateOrConnectWithoutCommentsInput = {
@@ -20876,6 +21452,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20895,6 +21472,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     posts?: PostCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -20917,6 +21495,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -20936,6 +21515,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -20974,6 +21554,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     author?: UserUpdateOneRequiredWithoutPostsNestedInput
     likes?: UserUpdateManyWithoutLikedPostsNestedInput
+    savedBy?: UserUpdateManyWithoutSavedPostsNestedInput
   }
 
   export type PostUncheckedUpdateWithoutCommentsInput = {
@@ -20985,6 +21566,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     authorId?: IntFieldUpdateOperationsInput | number
     likes?: UserUncheckedUpdateManyWithoutLikedPostsNestedInput
+    savedBy?: UserUncheckedUpdateManyWithoutSavedPostsNestedInput
   }
 
   export type UserUpsertWithoutCommentsInput = {
@@ -21005,6 +21587,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21024,6 +21607,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     posts?: PostUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -21046,6 +21630,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21065,6 +21650,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -21086,6 +21672,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21106,6 +21693,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -21127,6 +21715,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21147,6 +21736,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -21172,6 +21762,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21192,6 +21783,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -21213,6 +21805,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21233,6 +21826,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -21269,6 +21863,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21289,6 +21884,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -21310,6 +21906,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21330,6 +21927,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -21361,6 +21959,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21381,6 +21980,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -21402,6 +22002,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21422,6 +22023,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -21442,6 +22044,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21462,6 +22065,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -21483,6 +22087,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21503,6 +22108,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -21528,6 +22134,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21548,6 +22155,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -21569,6 +22177,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21589,6 +22198,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -21625,6 +22235,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21645,6 +22256,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -21666,6 +22278,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21686,6 +22299,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -21717,6 +22331,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21737,6 +22352,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -21758,6 +22374,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21778,6 +22395,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -21798,6 +22416,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21818,6 +22437,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -21839,6 +22459,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21859,6 +22480,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -21895,6 +22517,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21915,6 +22538,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -21936,6 +22560,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -21956,6 +22581,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -21976,6 +22602,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -21996,6 +22623,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -22017,6 +22645,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22037,6 +22666,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -22117,6 +22747,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22137,6 +22768,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -22158,6 +22790,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22178,6 +22811,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -22258,6 +22892,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22278,6 +22913,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -22299,6 +22935,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22319,6 +22956,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -22389,6 +23027,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22409,6 +23048,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -22430,6 +23070,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22450,6 +23091,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -22498,6 +23140,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22518,6 +23161,7 @@ export namespace Prisma {
     posts?: PostCreateNestedManyWithoutAuthorInput
     comments?: CommentCreateNestedManyWithoutAuthorInput
     likedPosts?: PostCreateNestedManyWithoutLikesInput
+    savedPosts?: PostCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageCreateNestedManyWithoutSenderInput
@@ -22539,6 +23183,7 @@ export namespace Prisma {
     googleId?: string | null
     bio?: string | null
     profilePicture?: string | null
+    coverImage?: string | null
     collegeName?: string | null
     department?: string | null
     yearOfStudy?: string | null
@@ -22559,6 +23204,7 @@ export namespace Prisma {
     posts?: PostUncheckedCreateNestedManyWithoutAuthorInput
     comments?: CommentUncheckedCreateNestedManyWithoutAuthorInput
     likedPosts?: PostUncheckedCreateNestedManyWithoutLikesInput
+    savedPosts?: PostUncheckedCreateNestedManyWithoutSavedByInput
     sentFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutSenderInput
     receivedFriendRequests?: FriendshipUncheckedCreateNestedManyWithoutReceiverInput
     sentMessages?: MessageUncheckedCreateNestedManyWithoutSenderInput
@@ -22629,6 +23275,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22649,6 +23296,7 @@ export namespace Prisma {
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -22670,6 +23318,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -22690,6 +23339,7 @@ export namespace Prisma {
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
     likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -22793,6 +23443,10 @@ export namespace Prisma {
     mediaType?: string
     maxParticipants?: number
     isFriendsOnly?: boolean
+    isPrivate?: boolean
+    invitedUserIds?: string | null
+    scheduledFor?: Date | string | null
+    isStartedNotificationSent?: boolean
     createdAt?: Date | string
   }
 
@@ -22827,6 +23481,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     likes?: UserUpdateManyWithoutLikedPostsNestedInput
+    savedBy?: UserUpdateManyWithoutSavedPostsNestedInput
     comments?: CommentUpdateManyWithoutPostNestedInput
   }
 
@@ -22838,6 +23493,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     likes?: UserUncheckedUpdateManyWithoutLikedPostsNestedInput
+    savedBy?: UserUncheckedUpdateManyWithoutSavedPostsNestedInput
     comments?: CommentUncheckedUpdateManyWithoutPostNestedInput
   }
 
@@ -22880,6 +23536,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     author?: UserUpdateOneRequiredWithoutPostsNestedInput
+    savedBy?: UserUpdateManyWithoutSavedPostsNestedInput
     comments?: CommentUpdateManyWithoutPostNestedInput
   }
 
@@ -22891,10 +23548,44 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     authorId?: IntFieldUpdateOperationsInput | number
+    savedBy?: UserUncheckedUpdateManyWithoutSavedPostsNestedInput
     comments?: CommentUncheckedUpdateManyWithoutPostNestedInput
   }
 
   export type PostUncheckedUpdateManyWithoutLikesInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    content?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    visibility?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    authorId?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type PostUpdateWithoutSavedByInput = {
+    content?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    visibility?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    author?: UserUpdateOneRequiredWithoutPostsNestedInput
+    likes?: UserUpdateManyWithoutLikedPostsNestedInput
+    comments?: CommentUpdateManyWithoutPostNestedInput
+  }
+
+  export type PostUncheckedUpdateWithoutSavedByInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    content?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    visibility?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    authorId?: IntFieldUpdateOperationsInput | number
+    likes?: UserUncheckedUpdateManyWithoutLikedPostsNestedInput
+    comments?: CommentUncheckedUpdateManyWithoutPostNestedInput
+  }
+
+  export type PostUncheckedUpdateManyWithoutSavedByInput = {
     id?: IntFieldUpdateOperationsInput | number
     content?: StringFieldUpdateOperationsInput | string
     image?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23096,6 +23787,10 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -23108,6 +23803,10 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -23120,6 +23819,10 @@ export namespace Prisma {
     mediaType?: StringFieldUpdateOperationsInput | string
     maxParticipants?: IntFieldUpdateOperationsInput | number
     isFriendsOnly?: BoolFieldUpdateOperationsInput | boolean
+    isPrivate?: BoolFieldUpdateOperationsInput | boolean
+    invitedUserIds?: NullableStringFieldUpdateOperationsInput | string | null
+    scheduledFor?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    isStartedNotificationSent?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -23211,6 +23914,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23230,6 +23934,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     posts?: PostUpdateManyWithoutAuthorNestedInput
     comments?: CommentUpdateManyWithoutAuthorNestedInput
+    savedPosts?: PostUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUpdateManyWithoutSenderNestedInput
@@ -23252,6 +23957,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23271,6 +23977,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
     comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
+    savedPosts?: PostUncheckedUpdateManyWithoutSavedByNestedInput
     sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
     receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
     sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
@@ -23293,6 +24000,120 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     bio?: NullableStringFieldUpdateOperationsInput | string | null
     profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
+    collegeName?: NullableStringFieldUpdateOperationsInput | string | null
+    department?: NullableStringFieldUpdateOperationsInput | string | null
+    yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneVisibility?: StringFieldUpdateOperationsInput | string
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappVisibility?: StringFieldUpdateOperationsInput | string
+    instagramHandle?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramVisibility?: StringFieldUpdateOperationsInput | string
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookVisibility?: StringFieldUpdateOperationsInput | string
+    snapchatUsername?: NullableStringFieldUpdateOperationsInput | string | null
+    snapchatVisibility?: StringFieldUpdateOperationsInput | string
+    linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    linkedinVisibility?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserUpdateWithoutSavedPostsInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
+    collegeName?: NullableStringFieldUpdateOperationsInput | string | null
+    department?: NullableStringFieldUpdateOperationsInput | string | null
+    yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneVisibility?: StringFieldUpdateOperationsInput | string
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappVisibility?: StringFieldUpdateOperationsInput | string
+    instagramHandle?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramVisibility?: StringFieldUpdateOperationsInput | string
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookVisibility?: StringFieldUpdateOperationsInput | string
+    snapchatUsername?: NullableStringFieldUpdateOperationsInput | string | null
+    snapchatVisibility?: StringFieldUpdateOperationsInput | string
+    linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    linkedinVisibility?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    posts?: PostUpdateManyWithoutAuthorNestedInput
+    comments?: CommentUpdateManyWithoutAuthorNestedInput
+    likedPosts?: PostUpdateManyWithoutLikesNestedInput
+    sentFriendRequests?: FriendshipUpdateManyWithoutSenderNestedInput
+    receivedFriendRequests?: FriendshipUpdateManyWithoutReceiverNestedInput
+    sentMessages?: MessageUpdateManyWithoutSenderNestedInput
+    receivedMessages?: MessageUpdateManyWithoutReceiverNestedInput
+    myCrushes?: CrushUpdateManyWithoutUserNestedInput
+    crushedBy?: CrushUpdateManyWithoutCrushNestedInput
+    sentCloseFriendRequests?: CloseFriendRequestUpdateManyWithoutSenderNestedInput
+    receivedCloseFriendRequests?: CloseFriendRequestUpdateManyWithoutReceiverNestedInput
+    languageRooms?: LanguageRoomUpdateManyWithoutCreatorNestedInput
+    createdGroups?: GroupUpdateManyWithoutCreatorNestedInput
+    groupMembers?: GroupMemberUpdateManyWithoutUserNestedInput
+    groupMessages?: GroupMessageUpdateManyWithoutSenderNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutSavedPostsInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
+    collegeName?: NullableStringFieldUpdateOperationsInput | string | null
+    department?: NullableStringFieldUpdateOperationsInput | string | null
+    yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneVisibility?: StringFieldUpdateOperationsInput | string
+    whatsappNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    whatsappVisibility?: StringFieldUpdateOperationsInput | string
+    instagramHandle?: NullableStringFieldUpdateOperationsInput | string | null
+    instagramVisibility?: StringFieldUpdateOperationsInput | string
+    facebookUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    facebookVisibility?: StringFieldUpdateOperationsInput | string
+    snapchatUsername?: NullableStringFieldUpdateOperationsInput | string | null
+    snapchatVisibility?: StringFieldUpdateOperationsInput | string
+    linkedinUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    linkedinVisibility?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    posts?: PostUncheckedUpdateManyWithoutAuthorNestedInput
+    comments?: CommentUncheckedUpdateManyWithoutAuthorNestedInput
+    likedPosts?: PostUncheckedUpdateManyWithoutLikesNestedInput
+    sentFriendRequests?: FriendshipUncheckedUpdateManyWithoutSenderNestedInput
+    receivedFriendRequests?: FriendshipUncheckedUpdateManyWithoutReceiverNestedInput
+    sentMessages?: MessageUncheckedUpdateManyWithoutSenderNestedInput
+    receivedMessages?: MessageUncheckedUpdateManyWithoutReceiverNestedInput
+    myCrushes?: CrushUncheckedUpdateManyWithoutUserNestedInput
+    crushedBy?: CrushUncheckedUpdateManyWithoutCrushNestedInput
+    sentCloseFriendRequests?: CloseFriendRequestUncheckedUpdateManyWithoutSenderNestedInput
+    receivedCloseFriendRequests?: CloseFriendRequestUncheckedUpdateManyWithoutReceiverNestedInput
+    languageRooms?: LanguageRoomUncheckedUpdateManyWithoutCreatorNestedInput
+    createdGroups?: GroupUncheckedUpdateManyWithoutCreatorNestedInput
+    groupMembers?: GroupMemberUncheckedUpdateManyWithoutUserNestedInput
+    groupMessages?: GroupMessageUncheckedUpdateManyWithoutSenderNestedInput
+  }
+
+  export type UserUncheckedUpdateManyWithoutSavedPostsInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    bio?: NullableStringFieldUpdateOperationsInput | string | null
+    profilePicture?: NullableStringFieldUpdateOperationsInput | string | null
+    coverImage?: NullableStringFieldUpdateOperationsInput | string | null
     collegeName?: NullableStringFieldUpdateOperationsInput | string | null
     department?: NullableStringFieldUpdateOperationsInput | string | null
     yearOfStudy?: NullableStringFieldUpdateOperationsInput | string | null

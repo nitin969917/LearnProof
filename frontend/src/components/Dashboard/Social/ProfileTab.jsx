@@ -5,7 +5,7 @@ import {
   Linkedin, Sparkles, ArrowLeft, ChevronRight, Camera, Heart, 
   Settings, Plus, FileText, Lightbulb, Check, X, ExternalLink,
   Users as UsersIcon, Share2, Compass, Award, Globe, Lock, Eye, EyeOff, Trash2,
-  MoreVertical, UserX, Ban
+  MoreVertical, UserX, Ban, Activity, Bookmark, MessageCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import socialApi from '../../../api/socialApi.js';
@@ -97,15 +97,21 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [likedPosts, setLikedPosts] = useState([]);
+  const [likedPostsLoading, setLikedPostsLoading] = useState(false);
+  const [commentedPosts, setCommentedPosts] = useState([]);
+  const [commentedPostsLoading, setCommentedPostsLoading] = useState(false);
+  const [savedPosts, setSavedPosts] = useState([]);
+  const [savedPostsLoading, setSavedPostsLoading] = useState(false);
+  const [activitySubTab, setActivitySubTab] = useState('liked'); // 'liked', 'commented', 'saved'
+  const [activityCounts, setActivityCounts] = useState({ likedCount: 0, commentedCount: 0, savedCount: 0, totalCount: 0 });
   const [friendsList, setFriendsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
-  const [likedPostsLoading, setLikedPostsLoading] = useState(false);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
   const [expandedSection, setExpandedSection] = useState(null); // 'academics', 'contact', 'social', 'settings'
-  const [activeTab, setActiveTab] = useState('posts'); // 'posts', 'likes', 'friends'
+  const [activeTab, setActiveTab] = useState('posts'); // 'posts', 'activity', 'friends'
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const fileInputRef = useRef(null);
   const coverInputRef = useRef(null);
@@ -205,11 +211,14 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   useEffect(() => {
     setPosts([]);
     setLikedPosts([]);
+    setCommentedPosts([]);
+    setSavedPosts([]);
     setProfile(null);
     fetchProfile();
     fetchUserPosts();
     if (isOwnProfile) {
       fetchFriends();
+      fetchActivityCounts();
       fetchLikedPosts();
     } else {
       setActiveTab('posts');
@@ -231,13 +240,29 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     }
   };
 
+  const fetchActivityCounts = async () => {
+    if (!isOwnProfile) return;
+    try {
+      const res = await socialApi.get('/posts/activity/counts');
+      if (res.data) {
+        setActivityCounts(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch activity counts', err);
+    }
+  };
+
   const fetchLikedPosts = async () => {
     setLikedPostsLoading(true);
     try {
-      const authorQuery = isOwnProfile ? 'me' : targetId;
-      const response = await socialApi.get(`/posts/liked/${authorQuery}`);
+      const response = await socialApi.get('/posts/activity/liked');
       const postsData = Array.isArray(response.data) ? response.data : [];
       setLikedPosts(postsData);
+      setActivityCounts((prev) => ({
+        ...prev,
+        likedCount: postsData.length,
+        totalCount: postsData.length + prev.commentedCount + prev.savedCount,
+      }));
     } catch (err) {
       console.error('Failed to fetch liked posts', err);
       setLikedPosts([]);
@@ -246,7 +271,52 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     }
   };
 
-  // Real-time synchronization for likes and post events
+  const fetchCommentedPosts = async () => {
+    setCommentedPostsLoading(true);
+    try {
+      const response = await socialApi.get('/posts/activity/commented');
+      const postsData = Array.isArray(response.data) ? response.data : [];
+      setCommentedPosts(postsData);
+      setActivityCounts((prev) => ({
+        ...prev,
+        commentedCount: postsData.length,
+        totalCount: prev.likedCount + postsData.length + prev.savedCount,
+      }));
+    } catch (err) {
+      console.error('Failed to fetch commented posts', err);
+      setCommentedPosts([]);
+    } finally {
+      setCommentedPostsLoading(false);
+    }
+  };
+
+  const fetchSavedPosts = async () => {
+    setSavedPostsLoading(true);
+    try {
+      const response = await socialApi.get('/posts/activity/saved');
+      const postsData = Array.isArray(response.data) ? response.data : [];
+      setSavedPosts(postsData);
+      setActivityCounts((prev) => ({
+        ...prev,
+        savedCount: postsData.length,
+        totalCount: prev.likedCount + prev.commentedCount + postsData.length,
+      }));
+    } catch (err) {
+      console.error('Failed to fetch saved posts', err);
+      setSavedPosts([]);
+    } finally {
+      setSavedPostsLoading(false);
+    }
+  };
+
+  const fetchActivityData = (subTab = activitySubTab) => {
+    fetchActivityCounts();
+    if (subTab === 'liked') fetchLikedPosts();
+    else if (subTab === 'commented') fetchCommentedPosts();
+    else if (subTab === 'saved') fetchSavedPosts();
+  };
+
+  // Real-time synchronization for likes, saves, comments and post events
   useEffect(() => {
     const handleLikeUpdate = (e) => {
       const data = e.detail;
@@ -285,6 +355,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           } else {
             fetchLikedPosts();
           }
+          fetchActivityCounts();
         } else {
           setLikedPosts((prev) =>
             prev.map((p) => {
@@ -304,11 +375,63 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       }
     };
 
+    const handleSaveUpdate = (e) => {
+      const data = e.detail;
+      if (!data) return;
+
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id === data.postId) {
+            let updatedSaved = p.savedBy || [];
+            if (effectiveCurrentUserId && data.userId === effectiveCurrentUserId) {
+              if (data.isSaved) {
+                if (!updatedSaved.some((u) => u.id === effectiveCurrentUserId)) {
+                  updatedSaved = [...updatedSaved, { id: effectiveCurrentUserId }];
+                }
+              } else {
+                updatedSaved = updatedSaved.filter((u) => u.id !== effectiveCurrentUserId);
+              }
+            }
+            return {
+              ...p,
+              savedBy: updatedSaved,
+              isSaved: effectiveCurrentUserId && data.userId === effectiveCurrentUserId ? data.isSaved : p.isSaved,
+            };
+          }
+          return p;
+        })
+      );
+
+      if (isOwnProfile) {
+        if (data.userId === effectiveCurrentUserId) {
+          if (!data.isSaved) {
+            setSavedPosts((prev) => prev.filter((p) => p.id !== data.postId));
+          } else {
+            fetchSavedPosts();
+          }
+          fetchActivityCounts();
+        }
+      }
+    };
+
+    const handleCommentAdded = (e) => {
+      const data = e.detail;
+      if (isOwnProfile) {
+        if (data?.comment?.authorId === effectiveCurrentUserId) {
+          fetchCommentedPosts();
+          fetchActivityCounts();
+        }
+      }
+    };
+
     const handlePostDeleted = (e) => {
       const data = e.detail;
       if (!data?.postId) return;
       setPosts((prev) => prev.filter((p) => p.id !== data.postId));
       setLikedPosts((prev) => prev.filter((p) => p.id !== data.postId));
+      setCommentedPosts((prev) => prev.filter((p) => p.id !== data.postId));
+      setSavedPosts((prev) => prev.filter((p) => p.id !== data.postId));
+      fetchActivityCounts();
     };
 
     const handlePostUpdated = (e) => {
@@ -316,14 +439,20 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       if (!updated?.id) return;
       setPosts((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
       setLikedPosts((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
+      setCommentedPosts((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
+      setSavedPosts((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
     };
 
     window.addEventListener('social:post_like_updated', handleLikeUpdate);
+    window.addEventListener('social:post_save_updated', handleSaveUpdate);
+    window.addEventListener('social:post_comment_added', handleCommentAdded);
     window.addEventListener('social:post_deleted', handlePostDeleted);
     window.addEventListener('social:post_updated', handlePostUpdated);
 
     return () => {
       window.removeEventListener('social:post_like_updated', handleLikeUpdate);
+      window.removeEventListener('social:post_save_updated', handleSaveUpdate);
+      window.removeEventListener('social:post_comment_added', handleCommentAdded);
       window.removeEventListener('social:post_deleted', handlePostDeleted);
       window.removeEventListener('social:post_updated', handlePostUpdated);
     };
@@ -1585,24 +1714,24 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {isOwnProfile && (
               <button
                 onClick={() => {
-                  setActiveTab('likes');
-                  fetchLikedPosts();
+                  setActiveTab('activity');
+                  fetchActivityData(activitySubTab);
                 }}
                 className={`flex items-center gap-2 py-3.5 sm:py-4 border-b-2 font-black text-xs sm:text-sm transition-all cursor-pointer ${
-                  activeTab === 'likes'
+                  activeTab === 'activity'
                     ? 'border-orange-500 text-orange-600 dark:text-orange-400'
                     : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
                 }`}
               >
-                <Heart size={17} className={activeTab === 'likes' ? 'text-orange-500' : 'text-gray-400'} />
-                <span>Likes</span>
-                {likedPosts.length > 0 && (
+                <Activity size={17} className={activeTab === 'activity' ? 'text-orange-500' : 'text-gray-400'} />
+                <span>Activity</span>
+                {(activityCounts.totalCount > 0 || (likedPosts.length + commentedPosts.length + savedPosts.length) > 0) && (
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                    activeTab === 'likes'
+                    activeTab === 'activity'
                       ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300'
                       : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
                   }`}>
-                    {likedPosts.length}
+                    {activityCounts.totalCount || (likedPosts.length + commentedPosts.length + savedPosts.length)}
                   </span>
                 )}
               </button>
@@ -1711,38 +1840,187 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             </div>
           )}
 
-          {isOwnProfile && activeTab === 'likes' && (
+          {isOwnProfile && activeTab === 'activity' && (
             <div className="flex flex-col gap-4">
-              {likedPostsLoading ? (
-                <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-12 text-center text-gray-400">
-                  <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                  <p className="text-xs font-bold">Loading liked posts...</p>
-                </div>
-              ) : likedPosts.length > 0 ? (
-                likedPosts.map((post) => (
-                  <SocialPostCard
-                    key={post.id}
-                    post={post}
-                    onLike={() => {
-                      fetchLikedPosts();
-                      fetchUserPosts();
-                    }}
-                    currentUserId={effectiveCurrentUserId}
-                    onViewProfile={onViewProfile}
-                    onTagClick={(tag) => {
-                      setSelectedTag(tag);
-                      navigate('/dashboard/social/feed');
-                    }}
-                  />
-                ))
-              ) : (
-                <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-8 sm:p-12 text-center text-gray-500 space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/30 text-rose-500 flex items-center justify-center mx-auto border border-rose-100 dark:border-rose-900/30">
-                    <Heart size={24} />
+              {/* Activity Sub-Tabs (Liked, Commented, Saved) */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-1.5 flex items-center gap-1.5 shadow-2xs">
+                <button
+                  onClick={() => {
+                    setActivitySubTab('liked');
+                    fetchLikedPosts();
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                    activitySubTab === 'liked'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/20'
+                      : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  <Heart size={15} fill={activitySubTab === 'liked' ? 'currentColor' : 'transparent'} />
+                  <span>Liked</span>
+                  {(likedPosts.length > 0 || activityCounts.likedCount > 0) && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                      activitySubTab === 'liked' ? 'bg-white/25 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                    }`}>
+                      {likedPosts.length || activityCounts.likedCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActivitySubTab('commented');
+                    fetchCommentedPosts();
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                    activitySubTab === 'commented'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/20'
+                      : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  <MessageCircle size={15} fill={activitySubTab === 'commented' ? 'currentColor' : 'transparent'} />
+                  <span>Commented</span>
+                  {(commentedPosts.length > 0 || activityCounts.commentedCount > 0) && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                      activitySubTab === 'commented' ? 'bg-white/25 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                    }`}>
+                      {commentedPosts.length || activityCounts.commentedCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActivitySubTab('saved');
+                    fetchSavedPosts();
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-3 rounded-xl font-bold text-xs sm:text-sm transition-all cursor-pointer ${
+                    activitySubTab === 'saved'
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/20'
+                      : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  <Bookmark size={15} fill={activitySubTab === 'saved' ? 'currentColor' : 'transparent'} />
+                  <span>Saved</span>
+                  {(savedPosts.length > 0 || activityCounts.savedCount > 0) && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                      activitySubTab === 'saved' ? 'bg-white/25 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                    }`}>
+                      {savedPosts.length || activityCounts.savedCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {/* Sub-Tab Stream Content */}
+              {activitySubTab === 'liked' && (
+                likedPostsLoading ? (
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-12 text-center text-gray-400">
+                    <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    <p className="text-xs font-bold">Loading liked posts...</p>
                   </div>
-                  <h4 className="font-black text-base text-gray-900 dark:text-white">No Liked Posts Yet</h4>
-                  <p className="text-xs text-gray-400 max-w-sm mx-auto">Posts you like or bookmark on the Social Hub feed will appear here.</p>
-                </div>
+                ) : likedPosts.length > 0 ? (
+                  likedPosts.map((post) => (
+                    <SocialPostCard
+                      key={post.id}
+                      post={post}
+                      onLike={() => {
+                        fetchLikedPosts();
+                        fetchUserPosts();
+                      }}
+                      onSave={() => {
+                        fetchSavedPosts();
+                      }}
+                      currentUserId={effectiveCurrentUserId}
+                      onViewProfile={onViewProfile}
+                      onTagClick={(tag) => {
+                        setSelectedTag(tag);
+                        navigate('/dashboard/social/feed');
+                      }}
+                    />
+                  ))
+                ) : (
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-8 sm:p-12 text-center text-gray-500 space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/30 text-rose-500 flex items-center justify-center mx-auto border border-rose-100 dark:border-rose-900/30">
+                      <Heart size={24} />
+                    </div>
+                    <h4 className="font-black text-base text-gray-900 dark:text-white">No Liked Posts Yet</h4>
+                    <p className="text-xs text-gray-400 max-w-sm mx-auto">Posts you like on the Social Hub feed will appear here.</p>
+                  </div>
+                )
+              )}
+
+              {activitySubTab === 'commented' && (
+                commentedPostsLoading ? (
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-12 text-center text-gray-400">
+                    <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    <p className="text-xs font-bold">Loading commented posts...</p>
+                  </div>
+                ) : commentedPosts.length > 0 ? (
+                  commentedPosts.map((post) => (
+                    <SocialPostCard
+                      key={post.id}
+                      post={post}
+                      onLike={() => {
+                        fetchLikedPosts();
+                        fetchUserPosts();
+                      }}
+                      onSave={() => {
+                        fetchSavedPosts();
+                      }}
+                      currentUserId={effectiveCurrentUserId}
+                      onViewProfile={onViewProfile}
+                      onTagClick={(tag) => {
+                        setSelectedTag(tag);
+                        navigate('/dashboard/social/feed');
+                      }}
+                    />
+                  ))
+                ) : (
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-8 sm:p-12 text-center text-gray-500 space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/30 text-blue-500 flex items-center justify-center mx-auto border border-blue-100 dark:border-blue-900/30">
+                      <MessageCircle size={24} />
+                    </div>
+                    <h4 className="font-black text-base text-gray-900 dark:text-white">No Commented Posts Yet</h4>
+                    <p className="text-xs text-gray-400 max-w-sm mx-auto">Discussions and posts you contribute comments to will appear here.</p>
+                  </div>
+                )
+              )}
+
+              {activitySubTab === 'saved' && (
+                savedPostsLoading ? (
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-12 text-center text-gray-400">
+                    <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    <p className="text-xs font-bold">Loading saved posts...</p>
+                  </div>
+                ) : savedPosts.length > 0 ? (
+                  savedPosts.map((post) => (
+                    <SocialPostCard
+                      key={post.id}
+                      post={post}
+                      onLike={() => {
+                        fetchLikedPosts();
+                        fetchUserPosts();
+                      }}
+                      onSave={() => {
+                        fetchSavedPosts();
+                      }}
+                      currentUserId={effectiveCurrentUserId}
+                      onViewProfile={onViewProfile}
+                      onTagClick={(tag) => {
+                        setSelectedTag(tag);
+                        navigate('/dashboard/social/feed');
+                      }}
+                    />
+                  ))
+                ) : (
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-8 sm:p-12 text-center text-gray-500 space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/30 text-amber-500 flex items-center justify-center mx-auto border border-amber-100 dark:border-amber-900/30">
+                      <Bookmark size={24} />
+                    </div>
+                    <h4 className="font-black text-base text-gray-900 dark:text-white">No Saved Posts Yet</h4>
+                    <p className="text-xs text-gray-400 max-w-sm mx-auto">Posts you bookmark or save for later will appear here.</p>
+                  </div>
+                )
               )}
             </div>
           )}

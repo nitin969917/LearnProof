@@ -126,6 +126,7 @@ exports.Prisma.UserScalarFieldEnum = {
   googleId: 'googleId',
   bio: 'bio',
   profilePicture: 'profilePicture',
+  coverImage: 'coverImage',
   collegeName: 'collegeName',
   department: 'department',
   yearOfStudy: 'yearOfStudy',
@@ -209,6 +210,10 @@ exports.Prisma.LanguageRoomScalarFieldEnum = {
   mediaType: 'mediaType',
   maxParticipants: 'maxParticipants',
   isFriendsOnly: 'isFriendsOnly',
+  isPrivate: 'isPrivate',
+  invitedUserIds: 'invitedUserIds',
+  scheduledFor: 'scheduledFor',
+  isStartedNotificationSent: 'isStartedNotificationSent',
   createdAt: 'createdAt',
   creatorId: 'creatorId'
 };

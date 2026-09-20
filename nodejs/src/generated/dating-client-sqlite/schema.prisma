@@ -16,6 +16,7 @@ model User {
   googleId       String? @unique
   bio            String?
   profilePicture String?
+  coverImage     String?
   collegeName    String?
   department     String?
   yearOfStudy    String?
@@ -46,6 +47,7 @@ model User {
   posts      Post[]
   comments   Comment[]
   likedPosts Post[]    @relation("PostLikes")
+  savedPosts Post[]    @relation("PostSaves")
 
   sentFriendRequests     Friendship[] @relation("SentFriendRequests")
   receivedFriendRequests Friendship[] @relation("ReceivedFriendRequests")
@@ -81,6 +83,7 @@ model Post {
   author   User @relation(fields: [authorId], references: [id])
 
   likes    User[]    @relation("PostLikes")
+  savedBy  User[]    @relation("PostSaves")
   comments Comment[]
 
   @@index([authorId])
@@ -170,18 +173,24 @@ model CloseFriendRequest {
 }
 
 model LanguageRoom {
-  id              Int      @id @default(autoincrement())
-  roomName        String   @unique
-  topic           String
-  language        String
-  roomType        String   @default("group") // "group" or "1-on-1"
-  mediaType       String   @default("audio") // "audio" or "video"
-  maxParticipants Int      @default(10)
-  isFriendsOnly   Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  id                        Int       @id @default(autoincrement())
+  roomName                  String    @unique
+  topic                     String
+  language                  String
+  roomType                  String    @default("group") // "group" or "1-on-1"
+  mediaType                 String    @default("audio") // "audio" or "video"
+  maxParticipants           Int       @default(10)
+  isFriendsOnly             Boolean   @default(false)
+  isPrivate                 Boolean   @default(false)
+  invitedUserIds            String?   @default("[]")
+  scheduledFor              DateTime?
+  isStartedNotificationSent Boolean   @default(false)
+  createdAt                 DateTime  @default(now())
 
   creatorId Int
   creator   User @relation(fields: [creatorId], references: [id])
+
+  @@map("social_language_rooms")
 }
 
 model Group {

@@ -48,6 +48,7 @@ model User {
   posts             Post[]
   comments          Comment[]
   likedPosts        Post[]   @relation("PostLikes")
+  savedPosts        Post[]   @relation("PostSaves")
   
   sentFriendRequests     Friendship[] @relation("SentFriendRequests")
   receivedFriendRequests Friendship[] @relation("ReceivedFriendRequests")
@@ -83,6 +84,7 @@ model Post {
   author      User      @relation(fields: [authorId], references: [id])
   
   likes       User[]    @relation("PostLikes")
+  savedBy     User[]    @relation("PostSaves")
   comments    Comment[]
 
   @@index([authorId])

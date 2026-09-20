@@ -24,6 +24,7 @@ export const useSocialStatusStore = create((set, get) => ({
     socket.off('userStatus');
     socket.off('NEW_POST');
     socket.off('POST_LIKE_UPDATED');
+    socket.off('POST_SAVE_UPDATED');
     socket.off('POST_COMMENT_ADDED');
     socket.off('POST_COMMENT_DELETED');
     socket.off('POST_DELETED');
@@ -60,14 +61,22 @@ export const useSocialStatusStore = create((set, get) => ({
       window.dispatchEvent(new CustomEvent('social:post_like_updated', { detail: data }));
     });
 
+    socket.on('POST_SAVE_UPDATED', (data) => {
+      console.log('Real-time post save update received:', data);
+      useSocialFeedStore.getState().handlePostSaveUpdated(data);
+      window.dispatchEvent(new CustomEvent('social:post_save_updated', { detail: data }));
+    });
+
     socket.on('POST_COMMENT_ADDED', (data) => {
       console.log('Real-time comment added received:', data);
       useSocialFeedStore.getState().handlePostCommentAdded(data);
+      window.dispatchEvent(new CustomEvent('social:post_comment_added', { detail: data }));
     });
 
     socket.on('POST_COMMENT_DELETED', (data) => {
       console.log('Real-time comment deleted received:', data);
       useSocialFeedStore.getState().handlePostCommentDeleted(data);
+      window.dispatchEvent(new CustomEvent('social:post_comment_deleted', { detail: data }));
     });
 
     socket.on('POST_DELETED', (data) => {
