@@ -105,6 +105,7 @@ router.get('/video-comment/', authMiddleware, socialController.getComments);
 router.post('/video-comment/', authMiddleware, socialController.postComment);
 router.delete('/video-comment/', authMiddleware, socialController.deleteComment);
 router.get('/video-intuition/', authMiddleware, socialController.getIntuition);
+router.post('/video-intuition/', authMiddleware, socialController.getIntuition);
 router.post('/video-ask-ai/', authMiddleware, socialController.askVideoDoubt);
 
 // UGC Safety & Moderation (Apple Guideline 1.2)

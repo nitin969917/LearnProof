@@ -7,7 +7,7 @@ const cacheService = require('../services/cache.service');
  * Social & Feedback Controller
  */
 const getNote = async (req, res) => {
-    const { videoId } = req.query;
+    const videoId = req.query.videoId || req.body?.videoId;
     const { uid } = req.user;
 
     try {
@@ -82,7 +82,7 @@ const saveNote = async (req, res) => {
 };
 
 const getComments = async (req, res) => {
-    const { videoId } = req.query;
+    const videoId = req.query.videoId || req.body?.videoId;
 
     try {
         const cacheKey = `video:comments:${videoId}`;
@@ -182,9 +182,15 @@ const deleteComment = async (req, res) => {
 };
 
 const getIntuition = async (req, res) => {
-    const { videoId, targetLanguage, deepVisual } = req.query;
+    const videoId = req.query.videoId || req.body?.videoId;
+    const targetLanguage = req.query.targetLanguage || req.body?.targetLanguage;
+    const deepVisual = req.query.deepVisual || req.body?.deepVisual;
     const requestedLang = targetLanguage && targetLanguage !== 'auto' ? targetLanguage : 'English';
-    const isDeepVisual = deepVisual === 'true';
+    const isDeepVisual = deepVisual === 'true' || deepVisual === true;
+
+    if (!videoId) {
+        return res.status(400).json({ error: 'videoId is required' });
+    }
 
     try {
         // --- STEP 1: Check Cache for this specific language ---
@@ -193,7 +199,8 @@ const getIntuition = async (req, res) => {
         
         // If deepVisual is requested but the cached version is not multimodal, bypass cache to regenerate
         const isCachedMultimodal = cached && cached.model_name && cached.model_name.includes('(multimodal)');
-        const skipCache = req.query.refresh || (isDeepVisual && !isCachedMultimodal);
+        const isForceRefresh = req.query.refresh === 'true' || req.query.refresh === true || req.body?.refresh === 'true' || req.body?.refresh === true;
+        const skipCache = isForceRefresh || (isDeepVisual && !isCachedMultimodal);
 
         if (cached && !skipCache) return res.status(200).json(cached);
 
@@ -203,7 +210,6 @@ const getIntuition = async (req, res) => {
         // Force master regeneration only if missing, generated without transcript (and not multimodal),
         // or if deep visual analysis is requested but the existing version is transcript-based.
         const isMultimodal = englishIntuition && englishIntuition.model_name && englishIntuition.model_name.includes('(multimodal)');
-        const isForceRefresh = req.query.refresh === 'true' || req.query.refresh === true;
         const isStale = englishIntuition && (
             (!englishIntuition.transcript_used && !isMultimodal) ||
             (isDeepVisual && !isMultimodal) ||

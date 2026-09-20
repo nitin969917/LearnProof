@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
+import socialApi from "../api/socialApi";
 import toast from "react-hot-toast";
 import {
   PlayCircle,
@@ -889,7 +890,23 @@ const Classroom = () => {
 
   const fetchDiscussionData = async () => {
     try {
-      const noteRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/video-note/?idToken=${token}&videoId=${videoId}`);
+      const effectiveToken = token || (typeof window !== 'undefined' ? localStorage.getItem('google_token') : null);
+      if (!effectiveToken || !videoId) return;
+
+      const safeParams = { idToken: effectiveToken, videoId, _t: Date.now() };
+
+      let noteRes;
+      try {
+        noteRes = await socialApi.get('/video-note/', {
+          params: safeParams,
+          headers: { Authorization: `Bearer ${effectiveToken}` }
+        });
+      } catch (_) {
+        noteRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/video-note/?idToken=${encodeURIComponent(effectiveToken)}&videoId=${encodeURIComponent(videoId)}&_t=${Date.now()}`, {
+          headers: { Authorization: `Bearer ${effectiveToken}` }
+        });
+      }
+
       setNoteContent(noteRes.data.content || "");
       if (noteRes.data.files && noteRes.data.files.length > 0) {
         setNoteFiles(noteRes.data.files.map(f => ({
@@ -901,7 +918,18 @@ const Classroom = () => {
         setNoteFiles([]);
       }
 
-      const commentRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/video-comment/?idToken=${token}&videoId=${videoId}`);
+      let commentRes;
+      try {
+        commentRes = await socialApi.get('/video-comment/', {
+          params: safeParams,
+          headers: { Authorization: `Bearer ${effectiveToken}` }
+        });
+      } catch (_) {
+        commentRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/video-comment/?idToken=${encodeURIComponent(effectiveToken)}&videoId=${encodeURIComponent(videoId)}&_t=${Date.now()}`, {
+          headers: { Authorization: `Bearer ${effectiveToken}` }
+        });
+      }
+
       setComments(commentRes.data || []);
     } catch (err) {
       console.error("Failed to fetch notes or comments", err);
@@ -912,17 +940,54 @@ const Classroom = () => {
     // If a specific language is requested or forceRefresh, we fetch
     if (!lang && !forceRefresh && intuitionContent) return;
 
+    const effectiveToken = token || (typeof window !== 'undefined' ? localStorage.getItem("google_token") : null);
+    if (!effectiveToken || !videoId) return;
+
     setLoadingIntuition(true);
     if (lang) setSelectedLanguage(lang); // Track the user's choice
 
     try {
-      const url = `${import.meta.env.VITE_BACKEND_URL}/api/video-intuition/?idToken=${token}&videoId=${videoId}${lang ? `&targetLanguage=${lang}` : ''}${forceRefresh ? '&refresh=true' : ''}`;
-      const res = await axios.get(url);
-      setIntuitionContent(res.data.content);
-      setModelName(res.data.model_name || "");
-      setActiveChapterIndex(0);
-      if (forceRefresh) {
-        toast.success("Regenerated deep, multi-topic study notes!");
+      const payload = {
+        idToken: effectiveToken,
+        videoId,
+        targetLanguage: lang || selectedLanguage || 'English',
+        refresh: forceRefresh ? 'true' : 'false',
+        _t: Date.now()
+      };
+
+      let res;
+      try {
+        // Preferred: POST avoids iOS query length / encoding issues in WKWebView & CapacitorHttp
+        res = await socialApi.post('/video-intuition/', payload);
+      } catch (postErr) {
+        try {
+          // Fallback A: socialApi GET with native CapacitorHttp
+          res = await socialApi.get('/video-intuition/', {
+            params: payload,
+            headers: { Authorization: `Bearer ${effectiveToken}` }
+          });
+        } catch (apiErr) {
+          // Fallback B: direct axios with URLSearchParams and safe encoding
+          const queryParams = new URLSearchParams({
+            idToken: effectiveToken,
+            videoId: videoId,
+            ...(lang ? { targetLanguage: lang } : {}),
+            ...(forceRefresh ? { refresh: 'true' } : {}),
+            _t: Date.now().toString()
+          }).toString();
+          res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/video-intuition/?${queryParams}`, {
+            headers: { Authorization: `Bearer ${effectiveToken}` }
+          });
+        }
+      }
+
+      if (res?.data) {
+        setIntuitionContent(res.data.content);
+        setModelName(res.data.model_name || "");
+        setActiveChapterIndex(0);
+        if (forceRefresh) {
+          toast.success("Regenerated deep, multi-topic study notes!");
+        }
       }
     } catch (err) {
       console.error("Failed to fetch intuition", err);
