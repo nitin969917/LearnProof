@@ -1796,7 +1796,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     Contact & Social Visibility
                   </h4>
                   <span className="text-[10px] text-gray-400 font-semibold">
-                    Set Public (🌐), Friends (👥), or Private (🔒)
+                    Control audience for each detail
                   </span>
                 </div>
 

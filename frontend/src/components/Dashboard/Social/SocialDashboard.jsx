@@ -9,6 +9,7 @@ import FriendsTab from './FriendsTab.jsx';
 import ChatsTab from './ChatsTab.jsx';
 import ProfileTab from './ProfileTab.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
+import PostVisibilitySelector from './PostVisibilitySelector.jsx';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import UserAvatar from '../../Common/UserAvatar.jsx';
@@ -844,15 +845,11 @@ export default function SocialDashboard() {
                     <span>Tag</span>
                   </button>
 
-                  <select 
+                  <PostVisibilitySelector
                     value={visibility}
-                    onChange={(e) => setVisibility(e.target.value)}
-                    className="bg-transparent border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-2 text-gray-600 dark:text-gray-300 font-bold text-xs cursor-pointer outline-none focus:border-orange-500"
-                  >
-                    <option value="public" className="bg-white dark:bg-gray-800">🌐 Public</option>
-                    <option value="friends" className="bg-white dark:bg-gray-800">👥 Friends</option>
-                    <option value="close_friends" className="bg-white dark:bg-gray-800">⭐️ Close Friends</option>
-                  </select>
+                    onChange={setVisibility}
+                    placement="top"
+                  />
                 </div>
                 
                 <div className="flex gap-2">

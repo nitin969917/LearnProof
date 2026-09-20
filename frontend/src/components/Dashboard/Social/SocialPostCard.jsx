@@ -7,6 +7,7 @@ import { useModal } from '../../../context/ModalContext';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 import RenderableImage from '../../Common/RenderableImage.jsx';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
+import PostVisibilitySelector from './PostVisibilitySelector.jsx';
 
 const renderContentWithHashtags = (text, onTagClick) => {
   if (!text) return null;
@@ -380,15 +381,11 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
               className="w-full min-h-[100px] bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
             <div className="flex justify-between items-center">
-               <select 
+                <PostVisibilitySelector
                   value={editedVisibility}
-                  onChange={(e) => setEditedVisibility(e.target.value)}
-                  className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-700 dark:text-gray-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer font-medium"
-               >
-                  <option value="public">🌐 Public</option>
-                  <option value="friends">👥 Friends</option>
-                  <option value="close_friends">⭐️ Close Friends</option>
-               </select>
+                  onChange={setEditedVisibility}
+                  placement="bottom"
+                />
                <div className="flex gap-2">
                   <button 
                     onClick={() => { setIsEditing(false); setEditedContent(post.content); setEditedVisibility(post.visibility); }}
