@@ -5,6 +5,7 @@ const socialController = require('../controllers/social.controller');
 const {
   createPost,
   getFeed,
+  getTags,
   likePost,
   updatePost,
   deletePost,
@@ -49,6 +50,7 @@ const {
 // Post routes
 router.post('/posts', datingAuth, createPost);
 router.get('/posts/feed', datingAuth, getFeed);
+router.get('/posts/tags', getTags);
 router.get('/posts/:postId', datingAuth, getPost);
 router.get('/posts/:postId/likes', datingAuth, getPostLikes);
 router.post('/posts/:postId/like', datingAuth, likePost);

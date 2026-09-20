@@ -136,7 +136,7 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
       <div className="lg:col-span-8 flex flex-col gap-6">
         {/* ── What's on your mind? Create Post Card ── */}
         <div 
-          onClick={onOpenCreatePost}
+          onClick={() => onOpenCreatePost && onOpenCreatePost(false)}
           className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/80 dark:border-gray-700/80 p-3 sm:p-3.5 flex items-center gap-3 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 transition-all cursor-pointer group"
         >
           <div className="shrink-0">

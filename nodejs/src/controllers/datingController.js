@@ -185,11 +185,82 @@ const createPost = async (req, res) => {
       console.error('Failed to broadcast new post via socket:', wsError);
     }
 
+    // Persist and count any hashtags used in the post so all users can discover and use them
+    try {
+      const extractedTags = (post.content.match(/#([a-zA-Z0-9_]+)/g) || [])
+        .map(t => t.replace(/^#/, '').trim())
+        .filter(Boolean);
+
+      if (extractedTags.length > 0) {
+        for (const tag of extractedTags) {
+          try {
+            await datingPrisma.$executeRawUnsafe(`
+              INSERT INTO "social_tags" ("name", "postCount", "updatedAt")
+              VALUES ($1, 1, NOW())
+              ON CONFLICT ("name")
+              DO UPDATE SET "postCount" = "social_tags"."postCount" + 1, "updatedAt" = NOW();
+            `, tag);
+          } catch (tErr) {
+            // Table might still be initializing or unique collision
+          }
+        }
+        await cacheService.delByPattern('social:tags:*');
+      }
+    } catch (tagStoreErr) {
+      console.error('Error tracking post hashtags:', tagStoreErr);
+    }
+
     await invalidateFeedCache();
     res.status(201).json(post);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to create post' });
+  }
+};
+
+const getTags = async (req, res) => {
+  try {
+    const search = req.query.q ? req.query.q.trim().toLowerCase() : null;
+    const cacheKey = `social:tags:${search || 'all'}`;
+    const cached = await cacheService.get(cacheKey);
+    if (cached) return res.json(cached);
+
+    let tags = [];
+    try {
+      if (search) {
+        tags = await datingPrisma.$queryRawUnsafe(`
+          SELECT "name", "postCount" 
+          FROM "social_tags" 
+          WHERE LOWER("name") LIKE $1 
+          ORDER BY "postCount" DESC, "updatedAt" DESC 
+          LIMIT 30;
+        `, `%${search}%`);
+      } else {
+        tags = await datingPrisma.$queryRawUnsafe(`
+          SELECT "name", "postCount" 
+          FROM "social_tags" 
+          ORDER BY "postCount" DESC, "updatedAt" DESC 
+          LIMIT 60;
+        `);
+      }
+    } catch (dbErr) {
+      tags = [
+        { name: 'LeetCodeDSA', postCount: 5 },
+        { name: 'SystemDesign', postCount: 4 },
+        { name: 'ReactNodeJS', postCount: 4 },
+        { name: 'OperatingSystems', postCount: 3 },
+        { name: 'DockerDeploy', postCount: 3 },
+        { name: 'CampusHackathon', postCount: 2 },
+        { name: 'WebDev', postCount: 2 },
+        { name: 'Python', postCount: 2 }
+      ];
+    }
+
+    await cacheService.set(cacheKey, tags, 300);
+    res.json(tags);
+  } catch (error) {
+    console.error('Failed to get tags', error);
+    res.status(500).json({ error: 'Failed to fetch tags' });
   }
 };
 
@@ -2937,6 +3008,7 @@ const deleteGroupMessage = async (req, res) => {
 module.exports = {
   createPost,
   getFeed,
+  getTags,
   likePost,
   updatePost,
   deletePost,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Fragment } from 'react';
+import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
 import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe, Compass, Bell, Hash } from 'lucide-react';
 import { Link, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
@@ -96,7 +96,7 @@ export default function SocialDashboard() {
   const [hashtagMatchIndex, setHashtagMatchIndex] = useState(-1);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
 
-  const AVAILABLE_HASHTAGS = [
+  const DEFAULT_HASHTAGS = [
     'LeetCodeDSA',
     'SystemDesign',
     'ReactNodeJS',
@@ -117,6 +117,32 @@ export default function SocialDashboard() {
     'CloudComputing',
     'CleanCode'
   ];
+
+  const [communityTags, setCommunityTags] = useState(DEFAULT_HASHTAGS);
+
+  // Fetch community tags from backend API
+  const fetchCommunityTags = useCallback(async () => {
+    try {
+      const res = await socialApi.get('/posts/tags');
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        const names = res.data.map(t => t.name).filter(Boolean);
+        setCommunityTags(prev => Array.from(new Set([...names, ...prev])));
+      }
+    } catch (err) {
+      // Fallback to default tags quietly
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCommunityTags();
+  }, [fetchCommunityTags]);
+
+  // Refresh tags when create post modal opens so latest tags by other users are suggested
+  useEffect(() => {
+    if (showCreatePostModal) {
+      fetchCommunityTags();
+    }
+  }, [showCreatePostModal, fetchCommunityTags]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -271,38 +297,60 @@ export default function SocialDashboard() {
 
   const insertHashtag = (tag) => {
     if (hashtagMatchIndex === -1) return;
+    const cleanTag = tag.replace(/^#/, '').trim();
     const beforeHash = content.slice(0, hashtagMatchIndex);
     const cursorPos = textareaRef.current ? textareaRef.current.selectionStart : content.length;
     const afterCursor = content.slice(cursorPos);
-    const newContent = `${beforeHash}#${tag} ${afterCursor}`;
+    const newContent = `${beforeHash}#${cleanTag} ${afterCursor}`;
     setContent(newContent);
     setHashtagQuery(null);
     setHashtagMatchIndex(-1);
 
+    // Optimistically update community tags state so it's instantly available in current session
+    setCommunityTags(prev => {
+      if (!prev.some(t => t.toLowerCase() === cleanTag.toLowerCase())) {
+        return [cleanTag, ...prev];
+      }
+      return prev;
+    });
+
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.focus();
-        const nextPos = beforeHash.length + tag.length + 2; // +1 for #, +1 for space
+        const nextPos = beforeHash.length + cleanTag.length + 2; // +1 for #, +1 for space
         textareaRef.current.setSelectionRange(nextPos, nextPos);
       }
     }, 10);
   };
 
-  const filteredHashtags = hashtagQuery !== null
-    ? AVAILABLE_HASHTAGS.filter(tag => tag.toLowerCase().includes(hashtagQuery))
+  // Build suggestion list: matched community tags + option to create new tag if query doesn't match
+  const normalizedQuery = (hashtagQuery || '').toLowerCase().trim();
+  const matchedExisting = hashtagQuery !== null
+    ? communityTags.filter(tag => tag.toLowerCase().includes(normalizedQuery))
     : [];
 
+  const exactMatchExists = hashtagQuery !== null && communityTags.some(tag => tag.toLowerCase() === normalizedQuery);
+  const canCreateNew = Boolean(hashtagQuery && hashtagQuery.trim().length > 0 && !exactMatchExists);
+
+  const suggestionItems = [
+    ...(canCreateNew ? [{ name: hashtagQuery.trim(), isNew: true }] : []),
+    ...matchedExisting.map(tag => ({ name: tag, isNew: false }))
+  ];
+
   const handleKeyDownInTextarea = (e) => {
-    if (hashtagQuery !== null && filteredHashtags.length > 0) {
+    if (hashtagQuery !== null && suggestionItems.length > 0) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setActiveSuggestionIndex(prev => (prev + 1) % filteredHashtags.length);
+        setActiveSuggestionIndex(prev => (prev + 1) % suggestionItems.length);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setActiveSuggestionIndex(prev => (prev - 1 + filteredHashtags.length) % filteredHashtags.length);
+        setActiveSuggestionIndex(prev => (prev - 1 + suggestionItems.length) % suggestionItems.length);
       } else if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault();
-        insertHashtag(filteredHashtags[activeSuggestionIndex]);
+        const selected = suggestionItems[activeSuggestionIndex];
+        if (selected) {
+          insertHashtag(selected.name);
+        }
       } else if (e.key === 'Escape') {
         e.preventDefault();
         setHashtagQuery(null);
@@ -342,6 +390,13 @@ export default function SocialDashboard() {
         tags: extractedTags
       });
       addPostLocally(response.data);
+
+      // Store any new tags locally so other posts/searches immediately see them
+      if (extractedTags.length > 0) {
+        const cleanTags = extractedTags.map(t => t.replace(/^#/, '').trim()).filter(Boolean);
+        setCommunityTags(prev => Array.from(new Set([...cleanTags, ...prev])));
+      }
+
       setContent('');
       setSelectedImage(null);
       setHashtagQuery(null);
@@ -388,7 +443,7 @@ export default function SocialDashboard() {
 
   const openCreatePostModal = (withImagePicker = false) => {
     setShowCreatePostModal(true);
-    if (withImagePicker) {
+    if (withImagePicker === true) {
       setTimeout(() => {
         fileInputRef.current?.click();
       }, 150);
@@ -662,7 +717,7 @@ export default function SocialDashboard() {
                 />
 
                 {/* Auto Hashtag Suggestions Popup (LinkedIn / Instagram style) */}
-                {hashtagQuery !== null && filteredHashtags.length > 0 && (
+                {hashtagQuery !== null && suggestionItems.length > 0 && (
                   <div className="absolute left-0 right-0 top-full z-30 -mt-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden max-h-56 overflow-y-auto animate-in fade-in zoom-in-95">
                     <div className="px-3.5 py-2 bg-gray-50/90 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-700/70 flex items-center justify-between text-[11px] font-bold text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
@@ -672,13 +727,13 @@ export default function SocialDashboard() {
                       <span className="text-[10px] text-gray-400 font-normal">Press Enter or Tab to select</span>
                     </div>
                     <div className="p-1 space-y-0.5">
-                      {filteredHashtags.slice(0, 8).map((tag, idx) => {
+                      {suggestionItems.slice(0, 8).map((item, idx) => {
                         const isFocused = idx === activeSuggestionIndex;
                         return (
                           <button
-                            key={tag}
+                            key={`${item.name}-${item.isNew ? 'new' : 'existing'}`}
                             type="button"
-                            onClick={() => insertHashtag(tag)}
+                            onClick={() => insertHashtag(item.name)}
                             onMouseEnter={() => setActiveSuggestionIndex(idx)}
                             className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer ${
                               isFocused 
@@ -686,13 +741,27 @@ export default function SocialDashboard() {
                                 : 'hover:bg-orange-50/80 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200'
                             }`}
                           >
-                            <div className="flex items-center gap-2">
-                              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
-                                isFocused ? 'bg-white/20 text-white' : 'bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400'
-                              }`}>#</span>
-                              <span>{tag}</span>
+                            <div className="flex items-center gap-2 truncate">
+                              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${
+                                isFocused 
+                                  ? 'bg-white/20 text-white' 
+                                  : item.isNew 
+                                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400' 
+                                    : 'bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400'
+                              }`}>
+                                {item.isNew ? '+' : '#'}
+                              </span>
+                              <span className="truncate">{item.name}</span>
                             </div>
-                            <span className={`text-[10px] font-medium ${isFocused ? 'text-white/80' : 'text-gray-400'}`}>Topic</span>
+                            <span className={`text-[10px] font-medium shrink-0 ml-2 ${
+                              isFocused 
+                                ? 'text-white/80' 
+                                : item.isNew 
+                                  ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
+                                  : 'text-gray-400'
+                            }`}>
+                              {item.isNew ? 'Create new tag' : 'Topic'}
+                            </span>
                           </button>
                         );
                       })}
