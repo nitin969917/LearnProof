@@ -100,6 +100,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const [friendsList, setFriendsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [likedPostsLoading, setLikedPostsLoading] = useState(false);
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
@@ -203,11 +204,13 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
   useEffect(() => {
     setPosts([]);
+    setLikedPosts([]);
     setProfile(null);
     fetchProfile();
     fetchUserPosts();
     if (isOwnProfile) {
       fetchFriends();
+      fetchLikedPosts();
     } else {
       setActiveTab('posts');
     }
@@ -227,6 +230,104 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       setPostsLoading(false);
     }
   };
+
+  const fetchLikedPosts = async () => {
+    setLikedPostsLoading(true);
+    try {
+      const authorQuery = isOwnProfile ? 'me' : targetId;
+      const response = await socialApi.get(`/posts/liked/${authorQuery}`);
+      const postsData = Array.isArray(response.data) ? response.data : [];
+      setLikedPosts(postsData);
+    } catch (err) {
+      console.error('Failed to fetch liked posts', err);
+      setLikedPosts([]);
+    } finally {
+      setLikedPostsLoading(false);
+    }
+  };
+
+  // Real-time synchronization for likes and post events
+  useEffect(() => {
+    const handleLikeUpdate = (e) => {
+      const data = e.detail;
+      if (!data) return;
+
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (p.id === data.postId) {
+            let updatedLikes = p.likes || [];
+            if (effectiveCurrentUserId && data.userId === effectiveCurrentUserId) {
+              if (data.isLiked) {
+                if (!updatedLikes.some((l) => l.id === effectiveCurrentUserId)) {
+                  updatedLikes = [...updatedLikes, { id: effectiveCurrentUserId }];
+                }
+              } else {
+                updatedLikes = updatedLikes.filter((l) => l.id !== effectiveCurrentUserId);
+              }
+            }
+            return {
+              ...p,
+              likes: updatedLikes,
+              _count: {
+                ...p._count,
+                likes: typeof data.likesCount === 'number' ? data.likesCount : p._count?.likes,
+              },
+            };
+          }
+          return p;
+        })
+      );
+
+      if (isOwnProfile) {
+        if (data.userId === effectiveCurrentUserId) {
+          if (!data.isLiked) {
+            setLikedPosts((prev) => prev.filter((p) => p.id !== data.postId));
+          } else {
+            fetchLikedPosts();
+          }
+        } else {
+          setLikedPosts((prev) =>
+            prev.map((p) => {
+              if (p.id === data.postId) {
+                return {
+                  ...p,
+                  _count: {
+                    ...p._count,
+                    likes: typeof data.likesCount === 'number' ? data.likesCount : p._count?.likes,
+                  },
+                };
+              }
+              return p;
+            })
+          );
+        }
+      }
+    };
+
+    const handlePostDeleted = (e) => {
+      const data = e.detail;
+      if (!data?.postId) return;
+      setPosts((prev) => prev.filter((p) => p.id !== data.postId));
+      setLikedPosts((prev) => prev.filter((p) => p.id !== data.postId));
+    };
+
+    const handlePostUpdated = (e) => {
+      const updated = e.detail;
+      if (!updated?.id) return;
+      setPosts((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
+      setLikedPosts((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
+    };
+
+    window.addEventListener('social:post_like_updated', handleLikeUpdate);
+    window.addEventListener('social:post_deleted', handlePostDeleted);
+    window.addEventListener('social:post_updated', handlePostUpdated);
+
+    return () => {
+      window.removeEventListener('social:post_like_updated', handleLikeUpdate);
+      window.removeEventListener('social:post_deleted', handlePostDeleted);
+      window.removeEventListener('social:post_updated', handlePostUpdated);
+    };
+  }, [effectiveCurrentUserId, isOwnProfile]);
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -1483,7 +1584,10 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
             {isOwnProfile && (
               <button
-                onClick={() => setActiveTab('likes')}
+                onClick={() => {
+                  setActiveTab('likes');
+                  fetchLikedPosts();
+                }}
                 className={`flex items-center gap-2 py-3.5 sm:py-4 border-b-2 font-black text-xs sm:text-sm transition-all cursor-pointer ${
                   activeTab === 'likes'
                     ? 'border-orange-500 text-orange-600 dark:text-orange-400'
@@ -1492,6 +1596,15 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               >
                 <Heart size={17} className={activeTab === 'likes' ? 'text-orange-500' : 'text-gray-400'} />
                 <span>Likes</span>
+                {likedPosts.length > 0 && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                    activeTab === 'likes'
+                      ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                  }`}>
+                    {likedPosts.length}
+                  </span>
+                )}
               </button>
             )}
 
@@ -1599,12 +1712,38 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           )}
 
           {isOwnProfile && activeTab === 'likes' && (
-            <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-8 sm:p-12 text-center text-gray-500 space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/30 text-rose-500 flex items-center justify-center mx-auto border border-rose-100">
-                <Heart size={24} />
-              </div>
-              <h4 className="font-black text-base text-gray-900 dark:text-white">No Liked Posts Yet</h4>
-              <p className="text-xs text-gray-400 max-w-sm mx-auto">Posts you like or bookmark on the Social Hub feed will appear here.</p>
+            <div className="flex flex-col gap-4">
+              {likedPostsLoading ? (
+                <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-12 text-center text-gray-400">
+                  <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  <p className="text-xs font-bold">Loading liked posts...</p>
+                </div>
+              ) : likedPosts.length > 0 ? (
+                likedPosts.map((post) => (
+                  <SocialPostCard
+                    key={post.id}
+                    post={post}
+                    onLike={() => {
+                      fetchLikedPosts();
+                      fetchUserPosts();
+                    }}
+                    currentUserId={effectiveCurrentUserId}
+                    onViewProfile={onViewProfile}
+                    onTagClick={(tag) => {
+                      setSelectedTag(tag);
+                      navigate('/dashboard/social/feed');
+                    }}
+                  />
+                ))
+              ) : (
+                <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-8 sm:p-12 text-center text-gray-500 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/30 text-rose-500 flex items-center justify-center mx-auto border border-rose-100 dark:border-rose-900/30">
+                    <Heart size={24} />
+                  </div>
+                  <h4 className="font-black text-base text-gray-900 dark:text-white">No Liked Posts Yet</h4>
+                  <p className="text-xs text-gray-400 max-w-sm mx-auto">Posts you like or bookmark on the Social Hub feed will appear here.</p>
+                </div>
+              )}
             </div>
           )}
 

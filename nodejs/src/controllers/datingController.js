@@ -474,6 +474,87 @@ const likePost = async (req, res) => {
   }
 };
 
+const getLikedPosts = async (req, res) => {
+  const userId = req.user.id;
+  const targetParam = req.params.userId;
+  const targetUserId = (!targetParam || targetParam === 'me')
+    ? userId
+    : parseInt(targetParam, 10);
+
+  if (isNaN(targetUserId)) {
+    return res.status(400).json({ error: 'Invalid user ID' });
+  }
+
+  try {
+    // Determine permissions / friendship for visibility
+    const friendRecords = await datingPrisma.friendship.findMany({
+      where: {
+        OR: [
+          { senderId: userId, status: 'accepted' },
+          { receiverId: userId, status: 'accepted' }
+        ]
+      }
+    });
+    const friendIds = friendRecords.map(f => f.senderId === userId ? f.receiverId : f.senderId);
+
+    const closeFriendRecords = await datingPrisma.closeFriend.findMany({
+      where: { receiverId: userId }
+    });
+    const closeFriendIds = closeFriendRecords.map(cf => cf.senderId);
+
+    const visibilityCondition = {
+      OR: [
+        { authorId: userId },
+        { visibility: 'public' },
+        { visibility: 'friends', authorId: { in: friendIds } },
+        { visibility: 'close_friends', authorId: { in: closeFriendIds } }
+      ]
+    };
+
+    const posts = await datingPrisma.post.findMany({
+      where: {
+        AND: [
+          {
+            likes: {
+              some: { id: targetUserId }
+            }
+          },
+          visibilityCondition
+        ]
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+        likes: {
+          where: { id: userId },
+          select: {
+            id: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.json(posts);
+  } catch (error) {
+    console.error('Failed to fetch liked posts:', error);
+    res.status(500).json({ error: 'Failed to fetch liked posts' });
+  }
+};
+
 const updatePost = async (req, res) => {
   const { postId } = req.params;
   const { content, visibility } = req.body;
@@ -3161,6 +3242,7 @@ module.exports = {
   getFeed,
   getTags,
   likePost,
+  getLikedPosts,
   updatePost,
   deletePost,
   getProfile,

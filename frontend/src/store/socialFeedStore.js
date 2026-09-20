@@ -351,38 +351,43 @@ export const useSocialFeedStore = create((set, get) => ({
   likePost: async (postId, currentUserId) => {
     const posts = get().posts;
     const postIndex = posts.findIndex(p => p.id === postId);
-    if (postIndex === -1) return;
+    let post = null;
 
-    const post = posts[postIndex];
-    const liked = post.likes?.some(l => l.id === currentUserId);
-    const nextLiked = !liked;
+    if (postIndex !== -1) {
+      post = posts[postIndex];
+      const liked = post.likes?.some(l => l.id === currentUserId);
+      const nextLiked = !liked;
 
-    // Optimistic update
-    const updatedPost = {
-      ...post,
-      likes: nextLiked
-        ? [...(post.likes || []), { id: currentUserId }]
-        : (post.likes || []).filter(l => l.id !== currentUserId),
-      _count: {
-        ...post._count,
+      // Optimistic update
+      const updatedPost = {
+        ...post,
         likes: nextLiked
-          ? (post._count?.likes || 0) + 1
-          : Math.max(0, (post._count?.likes || 0) - 1)
-      }
-    };
+          ? [...(post.likes || []), { id: currentUserId }]
+          : (post.likes || []).filter(l => l.id !== currentUserId),
+        _count: {
+          ...post._count,
+          likes: nextLiked
+            ? (post._count?.likes || 0) + 1
+            : Math.max(0, (post._count?.likes || 0) - 1)
+        }
+      };
 
-    const newPosts = [...posts];
-    newPosts[postIndex] = updatedPost;
-    set({ posts: newPosts });
+      const newPosts = [...posts];
+      newPosts[postIndex] = updatedPost;
+      set({ posts: newPosts });
+    }
 
     try {
       await socialApi.post(`/posts/${postId}/like`);
     } catch (err) {
       console.error('Failed to like post', err);
       // Revert on failure
-      const revertedPosts = [...get().posts];
-      revertedPosts[postIndex] = post;
-      set({ posts: revertedPosts });
+      if (postIndex !== -1 && post) {
+        const revertedPosts = [...get().posts];
+        revertedPosts[postIndex] = post;
+        set({ posts: revertedPosts });
+      }
+      throw err;
     }
   },
 
@@ -390,7 +395,9 @@ export const useSocialFeedStore = create((set, get) => ({
     const posts = get().posts;
     const postToDelete = posts.find(p => p.id === postId);
     
-    set({ posts: posts.filter(p => p.id !== postId) });
+    if (postToDelete) {
+      set({ posts: posts.filter(p => p.id !== postId) });
+    }
 
     try {
       await socialApi.delete(`/posts/${postId}`);
@@ -400,33 +407,38 @@ export const useSocialFeedStore = create((set, get) => ({
       if (postToDelete) {
         set({ posts: [postToDelete, ...get().posts] });
       }
+      throw err;
     }
   },
 
   updatePost: async (postId, content, visibility) => {
     const posts = get().posts;
     const postIndex = posts.findIndex(p => p.id === postId);
-    if (postIndex === -1) return;
+    let originalPost = null;
 
-    const originalPost = posts[postIndex];
-    const updatedPost = {
-      ...originalPost,
-      content,
-      visibility
-    };
+    if (postIndex !== -1) {
+      originalPost = posts[postIndex];
+      const updatedPost = {
+        ...originalPost,
+        content,
+        visibility
+      };
 
-    const newPosts = [...posts];
-    newPosts[postIndex] = updatedPost;
-    set({ posts: newPosts });
+      const newPosts = [...posts];
+      newPosts[postIndex] = updatedPost;
+      set({ posts: newPosts });
+    }
 
     try {
       await socialApi.put(`/posts/${postId}`, { content, visibility });
     } catch (err) {
       console.error('Failed to update post', err);
       // Revert on failure
-      const revertedPosts = [...get().posts];
-      revertedPosts[postIndex] = originalPost;
-      set({ posts: revertedPosts });
+      if (postIndex !== -1 && originalPost) {
+        const revertedPosts = [...get().posts];
+        revertedPosts[postIndex] = originalPost;
+        set({ posts: revertedPosts });
+      }
       throw err;
     }
   },

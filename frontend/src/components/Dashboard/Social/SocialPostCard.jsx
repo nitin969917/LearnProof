@@ -124,8 +124,13 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
     };
   }, [post.id]);
 
-  const handleLike = () => {
-    likePost(post.id, currentUserId);
+  const handleLike = async () => {
+    try {
+      await likePost(post.id, currentUserId);
+      if (onLike) onLike(post.id);
+    } catch (err) {
+      console.error('Error liking post', err);
+    }
   };
 
   const fetchLikesList = async () => {

@@ -7,6 +7,7 @@ const {
   getFeed,
   getTags,
   likePost,
+  getLikedPosts,
   updatePost,
   deletePost,
   getProfile,
@@ -51,6 +52,8 @@ const {
 router.post('/posts', datingAuth, createPost);
 router.get('/posts/feed', datingAuth, getFeed);
 router.get('/posts/tags', getTags);
+router.get('/posts/liked', datingAuth, getLikedPosts);
+router.get('/posts/liked/:userId', datingAuth, getLikedPosts);
 router.get('/posts/:postId', datingAuth, getPost);
 router.get('/posts/:postId/likes', datingAuth, getPostLikes);
 router.post('/posts/:postId/like', datingAuth, likePost);
