@@ -3,6 +3,21 @@ const prisma = require('../lib/prisma');
 const admin = require('../lib/firebaseAdmin');
 const redis = require('../lib/redis');
 
+const isCriticalAlert = (type) => {
+  if (!type) return false;
+  const upper = String(type).toUpperCase();
+  const critical = [
+    'FRIEND_REQUEST_RECEIVED',
+    'FRIEND_REQUEST',
+    'FRIEND_REQUEST_ACCEPTED',
+    'FRIEND_ACCEPTED',
+    'ROOM_INVITE',
+    'LIVE_ROOM_INVITE',
+    'ADMIN_ALERT'
+  ];
+  return critical.includes(upper);
+};
+
 /**
  * Resolves a list of SQLite user IDs to their main PostgreSQL user profiles (via email),
  * queries their registered FCM push tokens, and dispatches a multicast message.
@@ -10,8 +25,9 @@ const redis = require('../lib/redis');
  * 
  * Implements Instagram-standard notification delivery:
  * - If receiver is actively viewing this specific chat, OS push notification is suppressed (0 sound, 0 tray popups).
- * - If receiver is active in the app (foreground), OS push notification is suppressed so the user
- *   only sees the quiet in-app floating banner without loud ringtones or phone vibration.
+ * - If receiver is active in the app (foreground), OS push notification is suppressed for high-frequency chat
+ *   so the user only sees the quiet in-app floating banner without loud ringtones or phone vibration.
+ * - Critical events (friend requests, room invitations, alerts) ALWAYS send OS push notifications.
  * - Push notifications are exclusively sent when receiver is offline or has backgrounded/locked the app.
  */
 const sendPushNotification = async (receiverUserIds, title, body, data = {}) => {
@@ -22,6 +38,12 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
     const eligibleReceiverIds = [];
     for (const recId of receiverUserIds) {
       const recIdStr = recId.toString();
+
+      // Critical alerts (friend requests, room invitations) must ALWAYS be delivered to OS push trays
+      if (isCriticalAlert(data?.type)) {
+        eligibleReceiverIds.push(recId);
+        continue;
+      }
 
       // Check if user is currently looking at this specific conversation
       if (data && data.type === 'CHAT_MESSAGE' && data.senderId) {
@@ -61,30 +83,60 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
       return;
     }
 
-    // 1. Get emails of target users in dating SQLite database
-    const sqliteUsers = await datingPrisma.user.findMany({
-      where: { id: { in: eligibleReceiverIds } },
-      select: { email: true }
-    });
-    
-    if (sqliteUsers.length === 0) return;
-    const emails = sqliteUsers.map(u => u.email);
+    // 1. Get emails of target users in dating SQLite database & PostgreSQL User table
+    const intIds = eligibleReceiverIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0);
+    const candidateEmails = new Set();
+
+    if (intIds.length > 0) {
+      const sqliteUsers = await datingPrisma.user.findMany({
+        where: { id: { in: intIds } },
+        select: { email: true }
+      });
+      sqliteUsers.forEach(u => {
+        if (u.email && u.email.trim()) {
+          candidateEmails.add(u.email.trim());
+          candidateEmails.add(u.email.trim().toLowerCase());
+        }
+      });
+
+      // Also check if any IDs correspond directly to main PostgreSQL User IDs
+      try {
+        const pgUsers = await prisma.user.findMany({
+          where: { id: { in: intIds } },
+          select: { email: true }
+        });
+        pgUsers.forEach(u => {
+          if (u.email && u.email.trim()) {
+            candidateEmails.add(u.email.trim());
+            candidateEmails.add(u.email.trim().toLowerCase());
+          }
+        });
+      } catch (_) {}
+    }
+
+    const emailList = Array.from(candidateEmails);
+    if (emailList.length === 0) {
+      console.log(`[Push Notification] No email addresses resolved for receiver IDs: ${eligibleReceiverIds.join(', ')}`);
+      return;
+    }
 
     // 2. Fetch active FCM tokens of corresponding users from PG database
     const tokenRecords = await prisma.userFcmToken.findMany({
       where: {
         user: {
-          email: { in: emails }
+          email: { in: emailList }
         }
       },
       select: { token: true }
     });
 
-    const tokens = tokenRecords.map(r => r.token);
+    const tokens = Array.from(new Set(tokenRecords.map(r => r.token).filter(Boolean)));
     if (tokens.length === 0) {
-      console.log(`[Push Notification] No registered device tokens found for users: ${emails.join(', ')}`);
+      console.log(`[Push Notification] No registered device tokens found for users: ${emailList.join(', ')}`);
       return;
     }
+
+    console.log(`[Push Notification] Dispatching push to ${tokens.length} token(s) for user(s) ${emailList.join(', ')} [type: ${data?.type || 'STANDARD'}]`);
 
     // 3. Compute relative clickAction URL based on data type or roomName
     let clickAction = '/dashboard';
