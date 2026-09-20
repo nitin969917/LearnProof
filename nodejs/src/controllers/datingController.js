@@ -497,7 +497,7 @@ const getLikedPosts = async (req, res) => {
     });
     const friendIds = friendRecords.map(f => f.senderId === userId ? f.receiverId : f.senderId);
 
-    const closeFriendRecords = await datingPrisma.closeFriend.findMany({
+    const closeFriendRecords = await datingPrisma.closeFriendRequest.findMany({
       where: { receiverId: userId }
     });
     const closeFriendIds = closeFriendRecords.map(cf => cf.senderId);
