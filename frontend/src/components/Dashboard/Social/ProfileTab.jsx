@@ -610,16 +610,21 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   return (
     <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 pb-28 font-sans">
       {/* ── Top Cover Banner ── */}
-      <div className="relative w-full h-44 sm:h-56 md:h-64 rounded-3xl overflow-hidden shadow-sm border border-gray-200/70 dark:border-gray-800 bg-gray-900 group">
-        <img
-          src={profile?.coverImage || PLATFORM_COVER_IMAGE}
-          alt={`${profile?.name || 'User'}'s Cover`}
-          className="w-full h-full object-cover object-center transition duration-300"
-          onError={(e) => {
-            e.currentTarget.src = PLATFORM_COVER_IMAGE;
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-black/20 pointer-events-none" />
+      <div className="relative w-full h-44 sm:h-56 md:h-64 rounded-3xl shadow-sm border border-gray-200/70 dark:border-gray-800 bg-gray-900 group">
+        {/* Cover image wrapper with overflow-hidden to clip corners without cutting off dropdowns */}
+        <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+          <img
+            src={profile?.coverImage || PLATFORM_COVER_IMAGE}
+            alt={`${profile?.name || 'User'}'s Cover`}
+            className={`w-full h-full object-cover transition duration-300 ${
+              profile?.coverImage ? 'object-center' : 'object-[82%_center] sm:object-center'
+            }`}
+            onError={(e) => {
+              e.currentTarget.src = PLATFORM_COVER_IMAGE;
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-black/20 pointer-events-none" />
+        </div>
 
         {/* Cover action controls (Only on own profile) */}
         {isOwnProfile && (
@@ -634,7 +639,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             <button
               type="button"
               onClick={() => coverInputRef.current?.click()}
-              className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/20 shadow-md transition active:scale-95 cursor-pointer z-10"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-xs font-bold rounded-xl border border-white/20 shadow-md transition active:scale-95 cursor-pointer z-10 outline-none focus:outline-none focus:ring-0 select-none"
               title="Change cover image (visible to everyone)"
             >
               <Camera size={14} />
@@ -647,18 +652,18 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           <>
             <button
               onClick={() => navigate(-1)}
-              className="absolute top-3 left-3 sm:top-4 sm:left-4 p-2 sm:p-2.5 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white rounded-xl border border-white/20 transition cursor-pointer z-10 flex items-center justify-center active:scale-95 shadow-sm"
+              className="absolute top-3 left-3 sm:top-4 sm:left-4 p-2 sm:p-2.5 bg-black/50 hover:bg-black/70 active:bg-black/80 backdrop-blur-md text-white rounded-xl border border-white/20 transition cursor-pointer z-10 flex items-center justify-center active:scale-95 shadow-sm outline-none focus:outline-none focus:ring-0 focus-visible:outline-none select-none"
               title="Back"
               aria-label="Back"
             >
               <ArrowLeft size={16} />
             </button>
 
-            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20" ref={optionsMenuRef}>
+            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-40" ref={optionsMenuRef}>
               <button
                 type="button"
                 onClick={() => setShowOptionsMenu(prev => !prev)}
-                className="p-2 sm:p-2.5 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white rounded-xl border border-white/20 transition cursor-pointer flex items-center justify-center active:scale-95 shadow-sm"
+                className="p-2 sm:p-2.5 bg-black/50 hover:bg-black/70 active:bg-black/80 backdrop-blur-md text-white rounded-xl border border-white/20 transition cursor-pointer flex items-center justify-center active:scale-95 shadow-sm outline-none focus:outline-none focus:ring-0 focus-visible:outline-none select-none"
                 title="More options"
                 aria-label="More options"
               >
@@ -672,7 +677,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -4 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-1.5 px-1.5 z-50 flex flex-col gap-0.5"
+                    className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 py-2 px-1.5 z-50 flex flex-col gap-0.5 select-none"
                   >
                     {/* View Profile */}
                     <button
@@ -681,9 +686,9 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                         setShowOptionsMenu(false);
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 transition flex items-center gap-2.5 cursor-pointer"
+                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 dark:hover:text-orange-400 transition flex items-center gap-3 cursor-pointer outline-none focus:outline-none"
                     >
-                      <Eye size={15} />
+                      <Eye size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                       <span>View Profile</span>
                     </button>
 
@@ -698,9 +703,9 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                           navigate('/dashboard/social/messages');
                         }
                       }}
-                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 transition flex items-center gap-2.5 cursor-pointer"
+                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 dark:hover:text-orange-400 transition flex items-center gap-3 cursor-pointer outline-none focus:outline-none"
                     >
-                      <MessageSquare size={15} />
+                      <MessageSquare size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                       <span>Send Message</span>
                     </button>
 
@@ -712,14 +717,14 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                           setShowOptionsMenu(false);
                           handleToggleCloseFriend();
                         }}
-                        className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 transition flex items-center gap-2.5 cursor-pointer"
+                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 dark:hover:text-orange-400 transition flex items-center gap-3 cursor-pointer outline-none focus:outline-none"
                       >
-                        <Star size={15} className={(profile?.isMyCloseFriend || profile?.isCloseFriend) ? 'fill-amber-400 text-amber-500' : ''} />
+                        <Star size={16} className={`shrink-0 ${(profile?.isMyCloseFriend || profile?.isCloseFriend) ? 'fill-amber-400 text-amber-500' : 'text-gray-500 dark:text-gray-400'}`} />
                         <span>{(profile?.isMyCloseFriend || profile?.isCloseFriend) ? 'Remove Close Friend' : 'Add to Close Friends'}</span>
                       </button>
                     )}
 
-                    <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+                    <div className="border-t border-gray-100 dark:border-gray-700/80 my-1" />
 
                     {/* Remove Connection (if friend) */}
                     {profile?.isFriend && (
@@ -729,9 +734,9 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                           setShowOptionsMenu(false);
                           handleRemoveFriendAction();
                         }}
-                        className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-2.5 cursor-pointer"
+                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-3 cursor-pointer outline-none focus:outline-none"
                       >
-                        <UserX size={15} />
+                        <UserX size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
                         <span>Remove Connection</span>
                       </button>
                     )}
@@ -743,9 +748,9 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                         setShowOptionsMenu(false);
                         handleBlockUserAction();
                       }}
-                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition flex items-center gap-2.5 cursor-pointer"
+                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition flex items-center gap-3 cursor-pointer outline-none focus:outline-none"
                     >
-                      <Ban size={15} />
+                      <Ban size={16} className="text-rose-500 shrink-0" />
                       <span>Block User</span>
                     </button>
                   </motion.div>
