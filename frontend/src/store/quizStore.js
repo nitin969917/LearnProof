@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import socialApi from '../api/socialApi.js';
 import axios from 'axios';
 
 export const useQuizStore = create((set, get) => ({
@@ -18,20 +19,58 @@ export const useQuizStore = create((set, get) => ({
 
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
-      const authHeader = {
-        headers: {
-          Authorization: `Bearer ${token}`
+
+      // 1. Fetch Playlist Quizzes (Uses Capacitor native adapter on iOS / Android)
+      const fetchPlaylists = async () => {
+        try {
+          const res = await socialApi.post('/quiz-list/', { idToken: token });
+          return res.data?.playlists || [];
+        } catch (e1) {
+          console.warn('socialApi.post /quiz-list/ fallback to direct axios:', e1);
+          const res = await axios.post(`${backendUrl}/api/quiz-list/`, { idToken: token }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          return res.data?.playlists || [];
         }
       };
 
-      const [quizListRes, historyRes] = await Promise.all([
-        axios.post(`${backendUrl}/api/quiz-list/`, { idToken: token }, authHeader),
-        axios.get(`${backendUrl}/api/quiz-history/?idToken=${token}`, authHeader)
+      // 2. Fetch Quiz History (Tries POST first to prevent iOS URL length / query param encoding issues, falls back to GET with cache buster)
+      const fetchHistory = async () => {
+        try {
+          // Preferred: POST avoids iOS WKWebView query length limits and URL encoding bugs
+          const res = await socialApi.post('/quiz-history/', { idToken: token });
+          return (res.data || []).filter(q => q && q.score !== null);
+        } catch (e1) {
+          try {
+            // Fallback A: socialApi GET with timestamp cache-buster for iOS WebKit
+            const res = await socialApi.get('/quiz-history/', {
+              params: { idToken: token, token: token, _t: Date.now() }
+            });
+            return (res.data || []).filter(q => q && q.score !== null);
+          } catch (e2) {
+            console.warn('socialApi /quiz-history/ fallback to direct axios:', e2);
+            // Fallback B: direct axios GET with safe encodeURIComponent
+            const safeToken = encodeURIComponent(token);
+            const res = await axios.get(`${backendUrl}/api/quiz-history/?idToken=${safeToken}&_t=${Date.now()}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            return (res.data || []).filter(q => q && q.score !== null);
+          }
+        }
+      };
+
+      // Use allSettled so one failure NEVER blocks the other from loading
+      const [playlistResult, historyResult] = await Promise.allSettled([
+        fetchPlaylists(),
+        fetchHistory()
       ]);
 
+      const newPlaylists = playlistResult.status === 'fulfilled' ? playlistResult.value : get().playlists;
+      const newHistory = historyResult.status === 'fulfilled' ? historyResult.value : get().history;
+
       set({
-        playlists: quizListRes.data?.playlists || [],
-        history: (historyRes.data || []).filter(q => q && q.score !== null),
+        playlists: newPlaylists,
+        history: newHistory,
         loading: false,
         hasLoadedOnce: true
       });

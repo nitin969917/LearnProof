@@ -9,5 +9,6 @@ router.post('/submit', authMiddleware, quizController.submitQuiz);
 router.post('/certificates', authMiddleware, quizController.getCertificates);
 router.post('/activity-graph', authMiddleware, quizController.getActivityGraph);
 router.get('/history', authMiddleware, quizController.getQuizHistory);
+router.post('/history', authMiddleware, quizController.getQuizHistory);
 
 module.exports = router;

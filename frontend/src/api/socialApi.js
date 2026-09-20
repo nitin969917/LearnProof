@@ -98,4 +98,5 @@ socialApi.interceptors.request.use((config) => {
   return config;
 });
 
+export { socialApi, socialApi as apiClient };
 export default socialApi;

@@ -120,7 +120,9 @@ router.post('/submit-quiz/', authMiddleware, quizController.submitQuiz);
 router.post('/certs/', authMiddleware, quizController.getCertificates);
 router.post('/activity/', authMiddleware, quizController.getActivityGraph);
 router.get('/quiz-history/', authMiddleware, quizController.getQuizHistory);
+router.post('/quiz-history/', authMiddleware, quizController.getQuizHistory);
 router.get('/quiz-history/:id', authMiddleware, quizController.getQuizHistoryDetails);
+router.post('/quiz-history/:id', authMiddleware, quizController.getQuizHistoryDetails);
 router.delete('/quiz-history/:id', authMiddleware, quizController.deleteQuizHistory);
 router.get('/verify-certificate/:certId', quizController.verifyCertificate);
 

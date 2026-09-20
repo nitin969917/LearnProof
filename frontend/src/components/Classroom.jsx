@@ -1212,9 +1212,22 @@ const Classroom = () => {
 
   const fetchQuizHistory = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/?idToken=${token}`);
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+      let data = [];
+      try {
+        const res = await axios.post(`${backendUrl}/api/quiz-history/`, { idToken: token }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        data = res.data;
+      } catch (_) {
+        const safeToken = encodeURIComponent(token || '');
+        const res = await axios.get(`${backendUrl}/api/quiz-history/?idToken=${safeToken}&_t=${Date.now()}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        data = res.data;
+      }
       // Only keep history relevant to this specific video
-      const historyForVideo = res.data.filter(q => {
+      const historyForVideo = (data || []).filter(q => {
         // Try all possible matches to be super resilient
         const matchesVid = q.video?.vid && String(q.video.vid) === String(videoId);
         const matchesDbId = video?.id && q.videoId === video.id;
@@ -1233,7 +1246,11 @@ const Classroom = () => {
     if (!window.confirm("Are you sure you want to delete this quiz attempt?")) return;
 
     try {
-      await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${id}?idToken=${token}`);
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+      const safeToken = encodeURIComponent(token || '');
+      await axios.delete(`${backendUrl}/api/quiz-history/${id}?idToken=${safeToken}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       toast.success("Quiz attempt deleted");
       if (selectedHistoryQuiz?.id === id) {
         setSelectedHistoryQuiz(null);
@@ -1264,7 +1281,11 @@ const Classroom = () => {
     setSelectedHistoryQuiz(hist);
     setLoadingHistoryDetails(true);
     try {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${hist.id}?idToken=${token}`);
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+      const safeToken = encodeURIComponent(token || '');
+      const res = await axios.get(`${backendUrl}/api/quiz-history/${hist.id}?idToken=${safeToken}&_t=${Date.now()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (res.data) {
         setSelectedHistoryQuiz(res.data);
       }

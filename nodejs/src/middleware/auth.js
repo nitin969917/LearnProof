@@ -88,16 +88,20 @@ const authMiddleware = async (req, res, next) => {
         try {
             const decoded = jwt.verify(idToken, JWT_SECRET);
             const userUid = decoded.uid || decoded.sub;
-            if (decoded && userUid) {
-                console.log('Valid Custom JWT session for:', userUid);
-                const cacheKey = `user:profile:${userUid}`;
+            if (decoded && (userUid || decoded.id)) {
+                const cacheKey = userUid ? `user:profile:${userUid}` : `user:profile:id:${decoded.id}`;
                 let user = await cacheService.get(cacheKey);
                 if (!user) {
-                    user = await prisma.userProfile.findUnique({ where: { uid: userUid } });
+                    if (decoded.id && typeof decoded.id === 'number') {
+                        user = await prisma.userProfile.findUnique({ where: { id: decoded.id } });
+                    }
+                    if (!user && userUid) {
+                        user = await prisma.userProfile.findUnique({ where: { uid: userUid } });
+                    }
                     if (!user && decoded.email) {
                         user = await prisma.userProfile.findUnique({ where: { email: decoded.email.toLowerCase() } });
                     }
-                    if (!user) {
+                    if (!user && userUid) {
                         user = await prisma.userProfile.create({
                             data: {
                                 uid: userUid,

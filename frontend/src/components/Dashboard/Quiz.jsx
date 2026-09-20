@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Play, CheckCircle, Circle, ArrowLeft, Clock, Sparkles, BookOpen, AlertCircle, X, Trophy, Lock, Award, ChevronLeft, ChevronRight, Video, Library, Trash2, Search } from 'lucide-react';
 import { useModal } from "../../context/ModalContext";
 import { useQuizStore } from "../../store/quizStore.js";
+import socialApi from "../../api/socialApi.js";
 import QuizMathText from '../Common/QuizMathText';
 
 const Quiz = () => {
@@ -136,15 +137,30 @@ const Quiz = () => {
                 setSelectedHistoryQuiz(found);
             } else if (effectiveToken) {
                 setLoadingQuizDetails(targetId);
-                axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${targetId}?idToken=${effectiveToken}`, {
-                    headers: { Authorization: `Bearer ${effectiveToken}` }
-                })
-                    .then(res => {
-                        addAttempt(res.data);
-                        setSelectedHistoryQuiz(res.data);
-                    })
-                    .catch(err => console.error("Failed to load attempt from URL:", err))
-                    .finally(() => setLoadingQuizDetails(null));
+                (async () => {
+                    try {
+                        let fullQuiz;
+                        try {
+                            const res = await socialApi.get(`/quiz-history/${targetId}`, {
+                                params: { idToken: effectiveToken, token: effectiveToken, _t: Date.now() }
+                            });
+                            fullQuiz = res.data;
+                        } catch (_) {
+                            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${targetId}?idToken=${encodeURIComponent(effectiveToken)}&_t=${Date.now()}`, {
+                                headers: { Authorization: `Bearer ${effectiveToken}` }
+                            });
+                            fullQuiz = res.data;
+                        }
+                        if (fullQuiz) {
+                            addAttempt(fullQuiz);
+                            setSelectedHistoryQuiz(fullQuiz);
+                        }
+                    } catch (err) {
+                        console.error("Failed to load attempt from URL:", err);
+                    } finally {
+                        setLoadingQuizDetails(null);
+                    }
+                })();
             }
         }
     }, [attemptParam, history, effectiveToken]);
@@ -214,14 +230,8 @@ const Quiz = () => {
                 addAttempt(res.data.quiz);
             }
 
-            // Fetch target lists in background to update progress
-            axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-list/`, { idToken: effectiveToken }, {
-                headers: { Authorization: `Bearer ${effectiveToken}` }
-            })
-                .then(listRes => {
-                    setPlaylists(listRes.data.playlists || []);
-                })
-                .catch(console.error);
+            // Refresh target lists in background to update progress
+            fetchQuizData(effectiveToken, true);
 
         } catch (err) {
             console.error(err);
@@ -240,12 +250,22 @@ const Quiz = () => {
 
         setLoadingQuizDetails(hist.id);
         try {
-            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${hist.id}?idToken=${effectiveToken}`, {
-                headers: { Authorization: `Bearer ${effectiveToken}` }
-            });
-            const fullQuiz = res.data;
-            addAttempt(fullQuiz);
-            setSelectedHistoryQuiz(fullQuiz);
+            let fullQuiz;
+            try {
+                const res = await socialApi.get(`/quiz-history/${hist.id}`, {
+                    params: { idToken: effectiveToken, token: effectiveToken, _t: Date.now() }
+                });
+                fullQuiz = res.data;
+            } catch (_) {
+                const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${hist.id}?idToken=${encodeURIComponent(effectiveToken)}&_t=${Date.now()}`, {
+                    headers: { Authorization: `Bearer ${effectiveToken}` }
+                });
+                fullQuiz = res.data;
+            }
+            if (fullQuiz) {
+                addAttempt(fullQuiz);
+                setSelectedHistoryQuiz(fullQuiz);
+            }
         } catch (err) {
             console.error("Failed to fetch quiz attempt details:", err);
             toast.error("Failed to load quiz details. Please try again.");
@@ -270,9 +290,15 @@ const Quiz = () => {
         if (!confirmed) return;
 
         try {
-            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${id}?idToken=${effectiveToken}`, {
-                headers: { Authorization: `Bearer ${effectiveToken}` }
-            });
+            try {
+                await socialApi.delete(`/quiz-history/${id}`, {
+                    params: { idToken: effectiveToken, token: effectiveToken }
+                });
+            } catch (_) {
+                await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${id}?idToken=${encodeURIComponent(effectiveToken)}`, {
+                    headers: { Authorization: `Bearer ${effectiveToken}` }
+                });
+            }
             toast.success("Quiz attempt deleted successfully");
             deleteAttempt(id);
             if (selectedHistoryQuiz?.id === id) {
