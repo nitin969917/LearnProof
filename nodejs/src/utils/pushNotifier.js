@@ -95,8 +95,14 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
         clickAction = `/dashboard/social/chats/direct/${data.senderId}`;
       } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
         clickAction = `/dashboard/social/chats/group/${data.groupId}`;
+      } else if (data.type === 'FRIEND_REQUEST_RECEIVED' || data.type === 'FRIEND_REQUEST') {
+        clickAction = '/dashboard/social?tab=friends&sub=pending';
+      } else if (data.type === 'FRIEND_REQUEST_ACCEPTED' || data.type === 'FRIEND_ACCEPTED') {
+        clickAction = '/dashboard/social?tab=friends';
       } else if (data.clickAction || data.click_action) {
         clickAction = data.clickAction || data.click_action;
+      } else if (data.url || data.path) {
+        clickAction = data.url || data.path;
       }
     }
 
@@ -136,6 +142,8 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
         data: serializedData,
         webpush: {
           notification: {
+            title,
+            body,
             icon: 'https://learnproofai.com/LP_M_logo.png',
             badge: 'https://learnproofai.com/LP_M_logo.png',
             data: serializedData

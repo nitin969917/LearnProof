@@ -349,6 +349,10 @@ const NotificationDeepLinkHandler = () => {
                 targetPath = `/dashboard/social/chats/direct/${data.senderId}`;
             } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
                 targetPath = `/dashboard/social/chats/group/${data.groupId}`;
+            } else if (data.type === 'FRIEND_REQUEST_RECEIVED' || data.type === 'FRIEND_REQUEST') {
+                targetPath = `/dashboard/social?tab=friends&sub=pending`;
+            } else if (data.type === 'FRIEND_REQUEST_ACCEPTED' || data.type === 'FRIEND_ACCEPTED') {
+                targetPath = `/dashboard/social?tab=friends`;
             } else if (data.clickAction && data.clickAction !== '/dashboard') {
                 targetPath = data.clickAction;
             } else if (data.click_action && data.click_action !== '/dashboard') {

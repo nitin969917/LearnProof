@@ -4,7 +4,7 @@ import {
   UserX, Search, Compass, ChevronRight, ChevronLeft, MoreVertical, 
   ArrowRight, User, GraduationCap, SlidersHorizontal, Eye, Ban, ShieldAlert
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
@@ -32,6 +32,7 @@ function formatTimeAgo(dateString) {
 
 export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const friends = useSocialFeedStore(state => state.friends);
   const fetchFriends = useSocialFeedStore(state => state.fetchFriends);
   const loadingFriends = useSocialFeedStore(state => state.loadingFriends);
@@ -39,12 +40,19 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
   const { confirm } = useModal();
 
+  const getInitialTab = () => {
+    const sub = searchParams.get('sub') || searchParams.get('view') || searchParams.get('section');
+    if (sub === 'pending' || sub === 'requests') return 'pending';
+    if (sub === 'blocked') return 'blocked';
+    return 'connections';
+  };
+
   const storePending = useSocialFeedStore(state => state.pendingRequests);
   const [pendingRequests, setPendingRequests] = useState(() => storePending || []);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [loadingBlocked, setLoadingBlocked] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [mobileTab, setMobileTab] = useState('connections'); // 'connections' | 'pending' | 'blocked'
+  const [mobileTab, setMobileTab] = useState(getInitialTab); // 'connections' | 'pending' | 'blocked'
   const [sortBy, setSortBy] = useState('recent'); // 'recent' | 'name' | 'online'
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [activeMenuFriendId, setActiveMenuFriendId] = useState(null);
@@ -52,6 +60,22 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   const PAGE_SIZE = 10;
 
   const sortDropdownRef = useRef(null);
+  const pendingCardRef = useRef(null);
+
+  // Switch to pending tab and scroll into view if ?sub=pending is present
+  useEffect(() => {
+    const sub = searchParams.get('sub') || searchParams.get('view') || searchParams.get('section');
+    if (sub === 'pending' || sub === 'requests') {
+      setMobileTab('pending');
+      setTimeout(() => {
+        pendingCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 150);
+    } else if (sub === 'blocked') {
+      setMobileTab('blocked');
+    } else if (sub === 'connections') {
+      setMobileTab('connections');
+    }
+  }, [searchParams]);
 
   // Close friend options menu when clicking outside
   useEffect(() => {
@@ -458,9 +482,12 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
         <div className={`lg:col-span-5 flex-col gap-4 sm:gap-6 ${mobileTab === 'connections' ? 'hidden lg:flex' : 'flex'}`}>
           
           {/* Pending Requests Card */}
-          <div className={`bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-2xs space-y-4 ${
-            mobileTab === 'pending' ? 'block' : 'hidden lg:block'
-          }`}>
+          <div 
+            ref={pendingCardRef}
+            className={`bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-2xs space-y-4 ${
+              mobileTab === 'pending' ? 'block' : 'hidden lg:block'
+            }`}
+          >
             
             {/* Card Header */}
             <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">

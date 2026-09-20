@@ -990,7 +990,8 @@ const sendFriendRequest = async (req, res) => {
           type: 'FRIEND_REQUEST_RECEIVED',
           requestId: friendship.id,
           senderId: senderId,
-          url: '/dashboard/social?tab=friends'
+          url: '/dashboard/social?tab=friends&sub=pending',
+          clickAction: '/dashboard/social?tab=friends&sub=pending'
         }
       );
     } catch (pnErr) {

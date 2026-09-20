@@ -350,7 +350,7 @@ const DashboardLayout = () => {
                 <div
                     onClick={() => {
                         toast.dismiss(t.id);
-                        navigate('/dashboard/social?tab=friends');
+                        navigate('/dashboard/social?tab=friends&sub=pending');
                     }}
                     className={`${
                         t.visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-3 scale-95'

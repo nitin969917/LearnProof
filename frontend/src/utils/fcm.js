@@ -201,6 +201,10 @@ export const resolveNotificationPath = (data) => {
     path = `/dashboard/social/chats/direct/${data.senderId}`;
   } else if (data.type === 'GROUP_MESSAGE' && data.groupId) {
     path = `/dashboard/social/chats/group/${data.groupId}`;
+  } else if (data.type === 'FRIEND_REQUEST_RECEIVED' || data.type === 'FRIEND_REQUEST') {
+    path = `/dashboard/social?tab=friends&sub=pending`;
+  } else if (data.type === 'FRIEND_REQUEST_ACCEPTED' || data.type === 'FRIEND_ACCEPTED') {
+    path = `/dashboard/social?tab=friends`;
   } else if (data.clickAction && data.clickAction !== '/dashboard') {
     path = data.clickAction;
   } else if (data.click_action && data.click_action !== '/dashboard') {
@@ -230,10 +234,14 @@ if (messaging) {
     if (payload.notification) {
       const data = payload.data || {};
       
-      // Suppress in-app toast for chat/group messages (handled directly by active socket listeners)
+      // Suppress in-app toast for messages and friend events (handled directly by active socket listeners)
       if (
         data.type === 'CHAT_MESSAGE' || 
-        data.type === 'GROUP_MESSAGE'
+        data.type === 'GROUP_MESSAGE' ||
+        data.type === 'FRIEND_REQUEST_RECEIVED' ||
+        data.type === 'FRIEND_REQUEST' ||
+        data.type === 'FRIEND_REQUEST_ACCEPTED' ||
+        data.type === 'FRIEND_ACCEPTED'
       ) {
         return;
       }
@@ -352,10 +360,14 @@ if (typeof window !== 'undefined') {
           if (notification.title) {
             const notifData = notification.data || {};
 
-            // Suppress in-app toast for chat/group messages and public live room broadcasts
+            // Suppress in-app toast for chat/group messages, friend requests, and public live room broadcasts
             if (
               notifData.type === 'CHAT_MESSAGE' || 
               notifData.type === 'GROUP_MESSAGE' || 
+              notifData.type === 'FRIEND_REQUEST_RECEIVED' ||
+              notifData.type === 'FRIEND_REQUEST' ||
+              notifData.type === 'FRIEND_REQUEST_ACCEPTED' ||
+              notifData.type === 'FRIEND_ACCEPTED' ||
               notifData.type === 'LIVE_ROOM_CREATED' || 
               notifData.type === 'LIVE_ROOM_SCHEDULED'
             ) {

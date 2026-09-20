@@ -196,7 +196,9 @@ export default function SocialDashboard() {
         navigate(`/dashboard/social/chats/${queryChatType}/${queryChatId}`, { replace: true });
         return;
       }
-      navigate(`/dashboard/social/${queryTab}`, { replace: true });
+      searchParams.delete('tab');
+      const remainingSearch = searchParams.toString() ? `?${searchParams.toString()}` : '';
+      navigate(`/dashboard/social/${queryTab}${remainingSearch}`, { replace: true });
       return;
     }
 
