@@ -285,17 +285,6 @@ const PlaylistProgress = () => {
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             className="max-w-[1400px] mx-auto pb-6"
         >
-            {/* Top Navigation Row */}
-            <div className="mb-4">
-                <button
-                    onClick={() => navigate('/dashboard/library')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 border border-gray-200/70 dark:border-gray-700/60 shadow-xs text-xs font-black uppercase tracking-wider transition-all group cursor-pointer active:scale-95"
-                >
-                    <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" />
-                    <span>Back to My Learning</span>
-                </button>
-            </div>
-
             {/* ── YOUTUBE-STYLE 2-COLUMN LAYOUT ── */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
                 
@@ -337,6 +326,17 @@ const PlaylistProgress = () => {
                                         alt={playlist.name}
                                         className="w-full h-full object-cover"
                                     />
+                                    {/* Back icon button directly on the thumbnail */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate('/dashboard/library');
+                                        }}
+                                        title="Back to My Learning"
+                                        className="absolute top-2.5 left-2.5 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white flex items-center justify-center border border-white/20 shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                                    >
+                                        <ArrowLeft size={15} strokeWidth={2.5} />
+                                    </button>
                                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 transition-colors flex items-center justify-center">
                                         <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/95 text-gray-900 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
                                             <Play size={20} className="fill-gray-900 text-gray-900 ml-0.5 sm:size-6" />
