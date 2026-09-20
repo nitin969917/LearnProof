@@ -129,15 +129,15 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
 
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 sm:gap-6">
       {/* ── Grid (feed + sidebar) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
       {/* Feed Column */}
-      <div className="lg:col-span-8 flex flex-col gap-6">
+      <div className="lg:col-span-8 flex flex-col gap-3.5 sm:gap-4.5">
         {/* ── What's on your mind? Create Post Card ── */}
         <div 
           onClick={() => onOpenCreatePost && onOpenCreatePost(false)}
-          className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/80 dark:border-gray-700/80 p-3 sm:p-3.5 flex items-center gap-3 shadow-sm hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 transition-all cursor-pointer group"
+          className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/80 dark:border-gray-700/80 p-2.5 sm:p-3.5 flex items-center gap-3 shadow-xs hover:shadow-sm hover:border-orange-200 dark:hover:border-gray-650 transition-all cursor-pointer group"
         >
           <div className="shrink-0">
             <UserAvatar 
@@ -185,7 +185,7 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
         )}
 
         {/* Posts Feed */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3.5 sm:gap-4.5">
           {posts.length === 0 && loadingPosts ? (
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-550 dark:text-gray-400 flex flex-col items-center justify-center min-h-[200px]">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>

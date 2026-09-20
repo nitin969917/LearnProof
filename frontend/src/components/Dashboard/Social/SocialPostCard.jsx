@@ -296,9 +296,9 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all relative">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100/90 dark:border-gray-700/80 shadow-xs hover:shadow-md transition-all relative overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between p-3.5 sm:p-4 pb-2.5 sm:pb-3">
         <div 
           onClick={() => onViewProfile(post.author.id)}
           className="flex items-center gap-3 cursor-pointer"
@@ -306,12 +306,12 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
           <UserAvatar 
             src={post.author.profilePicture} 
             name={post.author.name} 
-            className="w-12 h-12 rounded-full" 
-            textClassName="text-lg"
+            className="w-10 h-10 sm:w-11 sm:h-11 rounded-full shrink-0" 
+            textClassName="text-base"
           />
           <div>
-            <h4 className="font-bold text-gray-900 dark:text-white hover:text-orange-500 transition-colors">{post.author.name}</h4>
-            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs">
+            <h4 className="font-bold text-gray-900 dark:text-white hover:text-orange-500 transition-colors text-sm sm:text-[15px]">{post.author.name}</h4>
+            <div className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 text-xs">
                <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                <span>•</span>
                <div className="flex items-center gap-1">
@@ -371,9 +371,9 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
       </div>
 
       {/* Content */}
-      <div className="mb-4">
+      <div>
         {isEditing ? (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 px-3.5 sm:px-4 pb-3">
             <textarea 
               value={editedContent}
               onChange={(e) => setEditedContent(e.target.value)}
@@ -406,17 +406,19 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
             </div>
           </div>
         ) : (
-          <p className="text-gray-800 dark:text-gray-200 text-sm md:text-base whitespace-pre-wrap break-words font-medium">
-            {renderContentWithHashtags(post.content, onTagClick)}
-          </p>
+          post.content && (
+            <p className="px-3.5 sm:px-4 pb-2.5 sm:pb-3 text-gray-900 dark:text-gray-100 text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap break-words font-normal">
+              {renderContentWithHashtags(post.content, onTagClick)}
+            </p>
+          )
         )}
         
         {post.image && (
-          <div className="mt-3 overflow-hidden rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 flex justify-center items-center">
+          <div className="w-full bg-black/5 dark:bg-black/35 flex justify-center items-center overflow-hidden border-t border-gray-100 dark:border-gray-700/60">
             <RenderableImage 
               src={post.image} 
               alt="Post content" 
-              className="w-full h-auto max-h-[600px] object-contain" 
+              className="w-full h-auto max-h-[600px] object-cover sm:object-contain" 
               loading="lazy"
             />
           </div>
@@ -424,7 +426,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-6 border-t border-gray-100 dark:border-gray-700 pt-3">
+      <div className="flex items-center gap-5 sm:gap-6 border-t border-gray-100 dark:border-gray-700/70 px-3.5 sm:px-4 py-2.5 sm:py-3">
         <div className="flex items-center gap-1.5 font-semibold text-xs md:text-sm">
           <button 
             type="button"
@@ -486,7 +488,7 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
 
       {/* Comments section */}
       {showComments && (
-        <div className="mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+        <div className="border-t border-gray-100 dark:border-gray-700/70 p-3.5 sm:p-4 bg-gray-50/40 dark:bg-gray-900/30">
           <form onSubmit={handleCommentSubmit} className="flex gap-2 mb-4">
             <input 
               type="text" 
