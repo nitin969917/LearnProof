@@ -240,11 +240,84 @@ export const useSocialFeedStore = create((set, get) => ({
     }
   },
 
+  syncLatestPosts: async (silent = true) => {
+    try {
+      const response = await socialApi.get('/posts/feed?limit=10&page=0');
+      const latestPosts = Array.isArray(response.data) ? response.data : [];
+      if (latestPosts.length === 0) return;
+
+      set((state) => {
+        const existingMap = new Map(state.posts.map(p => [p.id, p]));
+        const newIncoming = [];
+
+        for (const post of latestPosts) {
+          if (!existingMap.has(post.id)) {
+            newIncoming.push(post);
+          } else {
+            const existing = existingMap.get(post.id);
+            existingMap.set(post.id, {
+              ...existing,
+              ...post,
+              likes: post.likes || existing.likes,
+              _count: post._count || existing._count
+            });
+          }
+        }
+
+        if (newIncoming.length > 0) {
+          return { posts: [...newIncoming, ...state.posts] };
+        } else {
+          return { posts: state.posts.map(p => existingMap.get(p.id) || p) };
+        }
+      });
+    } catch (err) {
+      // Background sync quietly handles errors
+    }
+  },
+
   addPostLocally: (newPost) => {
+    if (!newPost || !newPost.id) return;
     const posts = get().posts;
-    // Prevent duplicate adds from websocket and HTTP post callback
-    if (posts.some(p => p.id === newPost.id)) return;
-    set({ posts: [newPost, ...posts] });
+    if (posts.some(p => p.id === newPost.id)) {
+      set({
+        posts: posts.map(p => p.id === newPost.id ? { ...p, ...newPost } : p)
+      });
+      return;
+    }
+    const formatted = {
+      ...newPost,
+      likes: Array.isArray(newPost.likes) ? newPost.likes : [],
+      comments: Array.isArray(newPost.comments) ? newPost.comments : [],
+      _count: {
+        likes: typeof newPost._count?.likes === 'number'
+          ? newPost._count.likes
+          : (Array.isArray(newPost.likes) ? newPost.likes.length : 0),
+        comments: typeof newPost._count?.comments === 'number'
+          ? newPost._count.comments
+          : (Array.isArray(newPost.comments) ? newPost.comments.length : 0)
+      }
+    };
+    set({ posts: [formatted, ...posts] });
+  },
+
+  handlePostUpdated: (updatedPost) => {
+    if (!updatedPost || !updatedPost.id) return;
+    set((state) => ({
+      posts: state.posts.map(p => {
+        if (p.id === updatedPost.id) {
+          return {
+            ...p,
+            ...updatedPost,
+            likes: updatedPost.likes || p.likes,
+            _count: {
+              ...p._count,
+              ...(updatedPost._count || {})
+            }
+          };
+        }
+        return p;
+      })
+    }));
   },
 
   likePost: async (postId, currentUserId) => {

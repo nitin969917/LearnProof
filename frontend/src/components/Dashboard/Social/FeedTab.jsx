@@ -14,6 +14,8 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
   const loadingPosts = useSocialFeedStore(state => state.loadingPosts);
   const hasMorePosts = useSocialFeedStore(state => state.hasMorePosts);
   
+  const syncLatestPosts = useSocialFeedStore(state => state.syncLatestPosts);
+  
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
 
   const loaderRef = useRef(null);
@@ -25,9 +27,33 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
   }, [postCreatedTrigger]);
 
   useEffect(() => {
-    // Silent background updates, cache-first display
-    fetchPosts();
+    // Immediate fresh load or background sync
+    if (posts.length === 0) {
+      fetchPosts(true, true);
+    } else {
+      syncLatestPosts();
+    }
     fetchFriends();
+
+    // Auto-sync when window gains focus or app returns to foreground
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        syncLatestPosts();
+      }
+    };
+    window.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+
+    // Live background polling heartbeat (every 25 seconds) to catch updates seamlessly
+    const interval = setInterval(() => {
+      syncLatestPosts();
+    }, 25000);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {

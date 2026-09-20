@@ -16,9 +16,14 @@ export const getSocialSocket = (userId) => {
       navigator.userAgent.includes('LearnProofApp')
     );
     const isLocalhost = !isNativePlatform && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    let backendUrl = isLocalhost
-      ? `http://${window.location.hostname}:8000`
-      : (import.meta.env.VITE_BACKEND_URL || `${window.location.protocol}//${window.location.host}`);
+    let backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+    if (typeof window !== 'undefined' && window.location.hostname.includes('learnproofai.com')) {
+      backendUrl = 'https://api.learnproofai.com';
+    } else if (isNativePlatform) {
+      backendUrl = 'https://api.learnproofai.com';
+    } else if (isLocalhost) {
+      backendUrl = `http://${window.location.hostname}:8000`;
+    }
 
     // Remove any trailing slash or /api suffix so Socket.io connects to root domain /socket.io
     backendUrl = backendUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');

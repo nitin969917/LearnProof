@@ -143,12 +143,12 @@ const createPost = async (req, res) => {
       const io = req.app.get('io');
 
       if (io) {
-        // Emit to the author themselves (e.g. across multiple tabs/devices)
-        io.to(authorId.toString()).emit('NEW_POST', post);
-
-        // Emit to friends based on visibility
-        let targetIds = [];
-        if (post.visibility === 'close_friends') {
+        if (post.visibility === 'public') {
+          // Public post: broadcast in real-time to all connected users across the platform
+          io.emit('NEW_POST', post);
+        } else if (post.visibility === 'close_friends') {
+          // Emit to author and close friends
+          io.to(authorId.toString()).emit('NEW_POST', post);
           const myCloseFriends = await datingPrisma.closeFriendRequest.findMany({
             where: {
               senderId: authorId,
@@ -156,15 +156,16 @@ const createPost = async (req, res) => {
             },
             select: { receiverId: true }
           });
-          targetIds = myCloseFriends.map(cf => cf.receiverId);
+          myCloseFriends.forEach(cf => {
+            io.to(cf.receiverId.toString()).emit('NEW_POST', post);
+          });
         } else {
-          // public or friends
-          targetIds = friendIds;
+          // friends only: emit to author and accepted friends
+          io.to(authorId.toString()).emit('NEW_POST', post);
+          friendIds.forEach(friendId => {
+            io.to(friendId.toString()).emit('NEW_POST', post);
+          });
         }
-
-        targetIds.forEach(friendId => {
-          io.to(friendId.toString()).emit('NEW_POST', post);
-        });
       }
     } catch (wsError) {
       console.error('Failed to broadcast new post via socket:', wsError);
@@ -357,9 +358,40 @@ const updatePost = async (req, res) => {
     const updatedPost = await datingPrisma.post.update({
       where: { id: parseInt(postId) },
       data: { content, visibility },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profilePicture: true,
+          },
+        },
+        likes: {
+          select: {
+            id: true,
+          },
+        },
+        _count: {
+          select: {
+            likes: true,
+            comments: true,
+          },
+        },
+      },
     });
 
     await invalidateFeedCache();
+
+    // Broadcast updated post to all connected clients
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('POST_UPDATED', updatedPost);
+      }
+    } catch (wsErr) {
+      console.error('Failed to emit post update socket:', wsErr);
+    }
+
     res.json(updatedPost);
   } catch (error) {
     console.error(error);
