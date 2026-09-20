@@ -4,7 +4,8 @@ import {
   Shield, Edit3, Save, UserPlus, UserCheck, Star, MessageSquare, 
   Linkedin, Sparkles, ArrowLeft, ChevronRight, Camera, Heart, 
   Settings, Plus, FileText, Lightbulb, Check, X, ExternalLink,
-  Users as UsersIcon, Share2, Compass, Award, Globe, Lock, Eye, EyeOff, Trash2
+  Users as UsersIcon, Share2, Compass, Award, Globe, Lock, Eye, EyeOff, Trash2,
+  MoreVertical, UserX, Ban
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import socialApi from '../../../api/socialApi.js';
@@ -110,6 +111,24 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const avatarInputRef = useRef(null);
   const modalAvatarInputRef = useRef(null);
   const mobileExpandedPanelRef = useRef(null);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const optionsMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (optionsMenuRef.current && !optionsMenuRef.current.contains(e.target)) {
+        setShowOptionsMenu(false);
+      }
+    };
+    if (showOptionsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showOptionsMenu]);
 
   const getSocialLink = (type, val) => {
     if (!val || val === 'Not Connected' || val === 'Not Set' || val === 'Private') return null;
@@ -443,7 +462,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           type: 'danger',
         });
         if (!confirmed) return;
-        setProfile(prev => ({ ...prev, isFriend: false, isMyCloseFriend: false }));
+        setProfile(prev => ({ ...prev, isFriend: false, isMyCloseFriend: false, isCloseFriend: false }));
         await socialApi.post('/social/remove-friendship', { targetUserId: profile.id });
       } else {
         setProfile(prev => ({ ...prev, hasPendingRequest: true, isRequestSender: true }));
@@ -453,6 +472,105 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     } catch (err) {
       console.error('Friend action failed', err);
       fetchProfile();
+    }
+  };
+
+  const handleToggleCloseFriend = async () => {
+    if (!profile?.id) return;
+    const isCurrentlyClose = Boolean(profile.isMyCloseFriend || profile.isCloseFriend);
+    const newStatus = !isCurrentlyClose;
+    
+    // Optimistic update
+    setProfile(prev => ({
+      ...prev,
+      isMyCloseFriend: newStatus,
+      isCloseFriend: newStatus
+    }));
+
+    useSocialFeedStore.setState(state => ({
+      friends: state.friends.map(f => Number(f.id) === Number(profile.id) ? { ...f, isCloseFriend: newStatus } : f),
+      closeFriends: newStatus
+        ? [...state.closeFriends.filter(f => Number(f.id) !== Number(profile.id)), { ...profile, isCloseFriend: true }]
+        : state.closeFriends.filter(f => Number(f.id) !== Number(profile.id))
+    }));
+
+    try {
+      const res = await socialApi.post('/social/toggle-close-friend', { friendId: profile.id });
+      const actualStatus = typeof res.data?.isCloseFriend === 'boolean' ? res.data.isCloseFriend : newStatus;
+      setProfile(prev => ({
+        ...prev,
+        isMyCloseFriend: actualStatus,
+        isCloseFriend: actualStatus
+      }));
+      toast.success(actualStatus ? `Added ${profile.name} to Close Friends` : `Removed ${profile.name} from Close Friends`);
+    } catch (err) {
+      console.error('Failed to toggle close friend:', err);
+      toast.error('Failed to update close friend status');
+      fetchProfile();
+    }
+  };
+
+  const handleRemoveFriendAction = async () => {
+    if (!profile?.id) return;
+    const confirmed = await confirm({
+      title: 'Remove Connection?',
+      message: `You'll remove ${profile.name} from your connections. They won't be notified.`,
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      type: 'danger',
+    });
+    if (!confirmed) return;
+
+    try {
+      setProfile(prev => ({
+        ...prev,
+        isFriend: false,
+        isMyCloseFriend: false,
+        isCloseFriend: false,
+        hasPendingRequest: false,
+        isRequestSender: false
+      }));
+      useSocialFeedStore.setState(state => ({
+        friends: state.friends.filter(f => Number(f.id) !== Number(profile.id)),
+        closeFriends: state.closeFriends.filter(f => Number(f.id) !== Number(profile.id))
+      }));
+      await socialApi.post('/social/remove-friendship', { targetUserId: profile.id });
+      toast.success(`Removed ${profile.name} from connections`);
+    } catch (err) {
+      console.error('Failed to remove connection:', err);
+      toast.error('Failed to remove connection');
+      fetchProfile();
+    }
+  };
+
+  const handleBlockUserAction = async () => {
+    if (!profile?.id) return;
+    const confirmed = await confirm({
+      title: `Block ${profile.name}?`,
+      message: `Are you sure you want to block ${profile.name}? They will be removed from your connections, and you will not see each other's posts, comments, or messages. You can unblock them anytime from Blocked Users.`,
+      confirmText: 'Block User',
+      cancelText: 'Cancel',
+      type: 'danger',
+    });
+    if (!confirmed) return;
+
+    const targetIdNum = Number(profile.id);
+    useSocialFeedStore.setState(state => ({
+      friends: state.friends.filter(f => Number(f.id) !== targetIdNum),
+      closeFriends: state.closeFriends.filter(f => Number(f.id) !== targetIdNum)
+    }));
+
+    try {
+      await socialApi.post('/social/block', { targetUserId: targetIdNum });
+      toast.success(`${profile.name} has been blocked.`);
+      if (onBackToFeed) {
+        onBackToFeed();
+      } else {
+        navigate(-1);
+      }
+    } catch (err) {
+      console.error('Failed to block user:', err);
+      toast.error('Failed to block user');
     }
   };
 
@@ -526,14 +644,115 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         )}
 
         {!isOwnProfile && (
-          <button
-            onClick={() => navigate(-1)}
-            className="absolute top-3 left-3 sm:top-4 sm:left-4 p-2 sm:p-2.5 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white rounded-xl border border-white/20 transition cursor-pointer z-10 flex items-center justify-center active:scale-95 shadow-sm"
-            title="Back"
-            aria-label="Back"
-          >
-            <ArrowLeft size={16} />
-          </button>
+          <>
+            <button
+              onClick={() => navigate(-1)}
+              className="absolute top-3 left-3 sm:top-4 sm:left-4 p-2 sm:p-2.5 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white rounded-xl border border-white/20 transition cursor-pointer z-10 flex items-center justify-center active:scale-95 shadow-sm"
+              title="Back"
+              aria-label="Back"
+            >
+              <ArrowLeft size={16} />
+            </button>
+
+            <div className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20" ref={optionsMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowOptionsMenu(prev => !prev)}
+                className="p-2 sm:p-2.5 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white rounded-xl border border-white/20 transition cursor-pointer flex items-center justify-center active:scale-95 shadow-sm"
+                title="More options"
+                aria-label="More options"
+              >
+                <MoreVertical size={16} />
+              </button>
+
+              <AnimatePresence>
+                {showOptionsMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-52 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-1.5 px-1.5 z-50 flex flex-col gap-0.5"
+                  >
+                    {/* View Profile */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 transition flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <Eye size={15} />
+                      <span>View Profile</span>
+                    </button>
+
+                    {/* Send Message */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        if (onSelectChatUser) {
+                          onSelectChatUser(profile);
+                        } else {
+                          navigate('/dashboard/social/messages');
+                        }
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 transition flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <MessageSquare size={15} />
+                      <span>Send Message</span>
+                    </button>
+
+                    {/* Add to / Remove Close Friends */}
+                    {profile?.isFriend && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowOptionsMenu(false);
+                          handleToggleCloseFriend();
+                        }}
+                        className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 transition flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <Star size={15} className={(profile?.isMyCloseFriend || profile?.isCloseFriend) ? 'fill-amber-400 text-amber-500' : ''} />
+                        <span>{(profile?.isMyCloseFriend || profile?.isCloseFriend) ? 'Remove Close Friend' : 'Add to Close Friends'}</span>
+                      </button>
+                    )}
+
+                    <div className="border-t border-gray-100 dark:border-gray-700 my-1" />
+
+                    {/* Remove Connection (if friend) */}
+                    {profile?.isFriend && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowOptionsMenu(false);
+                          handleRemoveFriendAction();
+                        }}
+                        className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <UserX size={15} />
+                        <span>Remove Connection</span>
+                      </button>
+                    )}
+
+                    {/* Block User */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOptionsMenu(false);
+                        handleBlockUserAction();
+                      }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition flex items-center gap-2.5 cursor-pointer"
+                    >
+                      <Ban size={15} />
+                      <span>Block User</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </>
         )}
       </div>
 
@@ -624,36 +843,34 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
             {/* Action Buttons for other users' profiles */}
             {!isOwnProfile && (
-              <div className="w-full mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-                <div className="flex items-center gap-2 w-full">
-                  <button
-                    onClick={handleFriendAction}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-2xl font-extrabold text-xs transition cursor-pointer active:scale-95 ${
-                      profile.isFriend
-                        ? 'border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100'
-                        : profile.hasPendingRequest
-                          ? 'border border-orange-200 bg-orange-50 text-orange-600'
-                          : 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm'
-                    }`}
-                  >
-                    {profile.isFriend ? (
-                      <><UserCheck size={14} /><span>Connected</span></>
-                    ) : profile.hasPendingRequest ? (
-                      <><Shield size={14} /><span>{profile.isRequestSender ? 'Request Sent' : 'Accept'}</span></>
-                    ) : (
-                      <><UserPlus size={14} /><span>Connect</span></>
-                    )}
-                  </button>
-                  {profile.isFriend && (
-                    <button
-                      onClick={() => onSelectChatUser && onSelectChatUser(profile)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs shadow-sm transition cursor-pointer active:scale-95"
-                    >
-                      <MessageSquare size={14} />
-                      <span>Message</span>
-                    </button>
+              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/80 flex items-center justify-center gap-2">
+                <button
+                  onClick={handleFriendAction}
+                  className={`inline-flex items-center justify-center gap-1.5 py-2 px-5 rounded-full font-bold text-xs transition cursor-pointer active:scale-95 shadow-xs hover:shadow-sm ${
+                    profile.isFriend
+                      ? 'border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      : profile.hasPendingRequest
+                        ? 'border border-orange-200 bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:border-orange-800 dark:text-orange-400'
+                        : 'bg-orange-500 hover:bg-orange-600 text-white'
+                  }`}
+                >
+                  {profile.isFriend ? (
+                    <><UserCheck size={14} /><span>Connected</span></>
+                  ) : profile.hasPendingRequest ? (
+                    <><Shield size={14} /><span>{profile.isRequestSender ? 'Request Sent' : 'Accept'}</span></>
+                  ) : (
+                    <><UserPlus size={14} /><span>Connect</span></>
                   )}
-                </div>
+                </button>
+                {profile.isFriend && (
+                  <button
+                    onClick={() => onSelectChatUser && onSelectChatUser(profile)}
+                    className="inline-flex items-center justify-center gap-1.5 py-2 px-5 rounded-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-xs hover:shadow-sm transition cursor-pointer active:scale-95"
+                  >
+                    <MessageSquare size={14} />
+                    <span>Message</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
