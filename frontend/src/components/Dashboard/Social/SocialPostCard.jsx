@@ -282,14 +282,57 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
     }
   };
 
-  const handleShare = () => {
+  const handleShare = async (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
     const shareUrl = `${window.location.origin}/dashboard/social?post=${post.id}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
+    const authorName = post.author?.name || 'LearnProof Community';
+    const shareTitle = `${authorName} on LearnProof`;
+    const shareText = post.content 
+      ? (post.content.length > 120 ? `${post.content.substring(0, 117)}...` : post.content)
+      : `Check out this post by ${authorName} on LearnProof`;
+
+    // 1. Try Capacitor Native Share if running in mobile app container
+    try {
+      if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform()) {
+        const { Share } = await import('@capacitor/share');
+        await Share.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+          dialogTitle: 'Share Post'
+        });
+        return;
+      }
+    } catch (err) {
+      if (err?.name === 'AbortError') return;
+      console.debug('Capacitor share error:', err);
+    }
+
+    // 2. Try Web Share API (native on iOS Safari, Android Chrome, macOS, Edge, etc.)
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl
+        });
+        return;
+      } catch (err) {
+        // User dismissed the share drawer or aborted
+        if (err?.name === 'AbortError') return;
+        console.debug('Web share error:', err);
+      }
+    }
+
+    // 3. Fallback for browsers that do not support native Web Share (e.g. desktop non-Safari)
+    try {
+      await navigator.clipboard.writeText(shareUrl);
       setIsShared(true);
+      toast.success('Post link copied to clipboard!');
       setTimeout(() => setIsShared(false), 2000);
-    }).catch(err => {
+    } catch (err) {
       console.error('Failed to copy share link', err);
-    });
+    }
   };
 
   if (isBlocked) {
