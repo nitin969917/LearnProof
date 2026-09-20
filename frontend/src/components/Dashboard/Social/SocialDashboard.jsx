@@ -708,24 +708,54 @@ export default function SocialDashboard() {
 
       {/* Create Post Modal Overlay */}
       {showCreatePostModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 w-full max-w-xl max-h-[90vh] overflow-y-auto shadow-2xl relative p-5 sm:p-6">
-            <button 
-              type="button"
-              onClick={() => {
-                setShowCreatePostModal(false);
-                setSelectedImage(null);
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              }}
-              className="absolute top-4 right-4 p-2 rounded-xl bg-gray-50 dark:bg-gray-900 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition cursor-pointer"
-            >
-              <X size={18} />
-            </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-3 sm:p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-750 w-full max-w-lg max-h-[92vh] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-150">
             
-            <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4">Create a New Post</h3>
+            {/* Modal Header */}
+            <div className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-750 flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white leading-tight">Create Post</h3>
+                <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500">Share knowledge, achievements or thoughts</p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  setShowCreatePostModal(false);
+                  setSelectedImage(null);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700/70 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-800 dark:hover:text-white transition cursor-pointer"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Author Identity & Audience Row */}
+            <div className="px-5 pt-3.5 pb-2 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <UserAvatar user={socialUser || user} size="md" />
+                <div className="min-w-0">
+                  <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 dark:text-white truncate">
+                    {socialUser?.name || user?.name || 'You'}
+                  </h4>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+                    {socialUser?.collegeName || user?.collegeName || 'Student'}
+                  </p>
+                </div>
+              </div>
+              
+              <PostVisibilitySelector
+                value={visibility}
+                onChange={setVisibility}
+                placement="bottom"
+                align="right"
+              />
+            </div>
             
-            <form onSubmit={handlePost} className="relative">
-              <div className="relative">
+            {/* Form Body */}
+            <form onSubmit={handlePost} className="flex-1 overflow-y-auto px-5 py-2 flex flex-col">
+              <div className="relative flex-1 min-h-[130px]">
                 <textarea 
                   ref={textareaRef}
                   placeholder="What's happening in the community? (Type # to add tags)" 
@@ -735,7 +765,7 @@ export default function SocialDashboard() {
                   onClick={(e) => detectHashtag(content, e.target.selectionStart)}
                   onKeyDown={handleKeyDownInTextarea}
                   rows={5}
-                  className="w-full bg-transparent text-gray-900 dark:text-white text-base outline-none resize-none border-b border-gray-100 dark:border-gray-700 pb-3 mb-3 focus:border-orange-500 transition-colors"
+                  className="w-full bg-transparent text-gray-900 dark:text-white text-sm sm:text-[15px] leading-relaxed outline-none resize-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   autoFocus
                 />
 
@@ -795,7 +825,7 @@ export default function SocialDashboard() {
 
               {/* Selected Image Preview with Remove Button */}
               {selectedImage && (
-                <div className="relative mb-4 rounded-2xl overflow-hidden border border-gray-200/80 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-center max-h-64">
+                <div className="relative my-3 rounded-2xl overflow-hidden border border-gray-200/80 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-center max-h-64 shadow-inner">
                   <img 
                     src={selectedImage} 
                     alt="Post preview" 
@@ -815,7 +845,8 @@ export default function SocialDashboard() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
+              {/* Bottom Action Bar */}
+              <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-750 flex items-center justify-between gap-2 shrink-0">
                 <div className="flex items-center gap-2">
                   <input 
                     type="file" 
@@ -828,48 +859,30 @@ export default function SocialDashboard() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={compressingImage}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-orange-50 hover:text-orange-600 dark:bg-gray-700 dark:hover:bg-gray-650 transition cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-600 dark:bg-gray-750 dark:hover:bg-gray-700 border border-transparent hover:border-emerald-200 dark:hover:border-emerald-900/40 transition cursor-pointer"
                   >
-                    <ImageIcon size={16} className="text-emerald-500" />
+                    <ImageIcon size={16} className="text-emerald-500 shrink-0" />
                     <span>{compressingImage ? 'Processing...' : selectedImage ? 'Change Photo' : 'Photo'}</span>
                   </button>
 
-                  {/* Quick # Hashtag Trigger button */}
                   <button
                     type="button"
                     onClick={triggerHashtag}
-                    className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-orange-50 hover:text-orange-600 dark:bg-gray-700 dark:hover:bg-gray-650 transition cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-orange-50 hover:text-orange-600 dark:bg-gray-750 dark:hover:bg-gray-700 border border-transparent hover:border-orange-200 dark:hover:border-orange-900/40 transition cursor-pointer"
                     title="Insert Hashtag"
                   >
-                    <Hash size={14} className="text-orange-500 stroke-[2.5]" />
+                    <Hash size={14} className="text-orange-500 stroke-[2.5] shrink-0" />
                     <span>Tag</span>
                   </button>
-
-                  <PostVisibilitySelector
-                    value={visibility}
-                    onChange={setVisibility}
-                    placement="top"
-                  />
                 </div>
                 
-                <div className="flex gap-2">
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setShowCreatePostModal(false);
-                      setSelectedImage(null);
-                      if (fileInputRef.current) fileInputRef.current.value = '';
-                    }}
-                    className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold text-xs transition cursor-pointer"
-                  >
-                    Cancel
-                  </button>
+                <div className="flex items-center gap-2">
                   <button 
                     type="submit" 
                     disabled={loadingPost || (!content.trim() && !selectedImage) || compressingImage}
-                    className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:hover:bg-orange-500 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-md shadow-orange-500/20 cursor-pointer"
+                    className="px-5 sm:px-6 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-40 disabled:hover:from-orange-500 disabled:hover:to-amber-500 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 transition shadow-md shadow-orange-500/25 cursor-pointer active:scale-95"
                   >
-                    <Send size={15} />
+                    <Send size={14} className="shrink-0" />
                     <span>{loadingPost ? 'Posting...' : 'Post'}</span>
                   </button>
                 </div>

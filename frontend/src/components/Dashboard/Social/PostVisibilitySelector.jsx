@@ -32,6 +32,7 @@ export default function PostVisibilitySelector({
   value = 'public',
   onChange,
   placement = 'top',
+  align = 'right',
   disabled = false,
   className = '',
 }) {
@@ -79,7 +80,7 @@ export default function PostVisibilitySelector({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-orange-50 hover:text-orange-600 dark:bg-gray-700 dark:hover:bg-gray-650 transition cursor-pointer border border-transparent focus:border-orange-500 focus:outline-none"
+        className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-gray-200/80 dark:bg-gray-750 dark:hover:bg-gray-700 border border-gray-200/60 dark:border-gray-700/60 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500/20 active:scale-95"
         title="Change post visibility"
         aria-haspopup="listbox"
         aria-expanded={isOpen}
@@ -98,8 +99,10 @@ export default function PostVisibilitySelector({
       {isOpen && (
         <div
           className={`absolute ${
-            placement === 'top' ? 'bottom-full mb-2.5' : 'top-full mt-2'
-          } left-0 sm:left-auto sm:right-auto w-64 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150`}
+            placement === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
+          } ${
+            align === 'left' ? 'left-0' : 'right-0'
+          } w-60 max-w-[calc(100vw-3rem)] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150`}
           role="listbox"
         >
           <div className="px-2.5 py-1.5 border-b border-gray-100 dark:border-gray-700/60 mb-1 flex items-center justify-between">
