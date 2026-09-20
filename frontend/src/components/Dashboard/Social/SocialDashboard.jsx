@@ -44,6 +44,11 @@ export default function SocialDashboard() {
   });
 
   const [selectedProfileId, setSelectedProfileId] = useState(() => {
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    if (pathSegments[1] === 'social' && pathSegments[2] === 'profile' && pathSegments[3]) {
+      const parsed = parseInt(pathSegments[3], 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
     const profileIdParam = params.get('profileId');

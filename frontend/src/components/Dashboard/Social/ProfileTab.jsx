@@ -182,6 +182,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   );
 
   useEffect(() => {
+    setPosts([]);
+    setProfile(null);
     fetchProfile();
     fetchUserPosts();
     if (isOwnProfile) {
@@ -194,7 +196,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const fetchUserPosts = async () => {
     setPostsLoading(true);
     try {
-      const authorQuery = isOwnProfile ? 'me' : (profile?.id || targetId);
+      const authorQuery = isOwnProfile ? 'me' : targetId;
       const response = await socialApi.get(`/posts/feed?authorId=${authorQuery}`);
       const postsData = Array.isArray(response.data) ? response.data : [];
       setPosts(postsData);

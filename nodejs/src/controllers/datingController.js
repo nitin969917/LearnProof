@@ -219,27 +219,46 @@ const getFeed = async (req, res) => {
     });
     const closeFriendIds = closeFriendRecords.map(cf => cf.senderId);
 
-    const whereClause = {
-      OR: [
-        // Author's own posts
-        { authorId: userId },
-        // Public posts
-        { visibility: 'public' },
-        // Friends posts (if author is a friend)
-        {
-          visibility: 'friends',
-          authorId: { in: friendIds }
-        },
-        // Close friends posts (if author is a close friend)
-        {
-          visibility: 'close_friends',
-          authorId: { in: closeFriendIds }
-        }
-      ]
-    };
-
+    let whereClause;
     if (targetAuthorId) {
-      whereClause.authorId = targetAuthorId;
+      if (targetAuthorId === userId) {
+        // Viewing own profile: see all own posts regardless of visibility
+        whereClause = { authorId: userId };
+      } else {
+        // Viewing another user's profile: strictly only their posts based on friendship level
+        const isFriend = friendIds.includes(targetAuthorId);
+        const isCloseFriend = closeFriendIds.includes(targetAuthorId);
+        let allowedVisibilities = ['public'];
+        if (isCloseFriend) {
+          allowedVisibilities = ['public', 'friends', 'close_friends'];
+        } else if (isFriend) {
+          allowedVisibilities = ['public', 'friends'];
+        }
+        whereClause = {
+          authorId: targetAuthorId,
+          visibility: { in: allowedVisibilities }
+        };
+      }
+    } else {
+      // General main feed: mix of own posts, public posts, and friends/close friends posts
+      whereClause = {
+        OR: [
+          // Author's own posts
+          { authorId: userId },
+          // Public posts
+          { visibility: 'public' },
+          // Friends posts (if author is a friend)
+          {
+            visibility: 'friends',
+            authorId: { in: friendIds }
+          },
+          // Close friends posts (if author is a close friend)
+          {
+            visibility: 'close_friends',
+            authorId: { in: closeFriendIds }
+          }
+        ]
+      };
     }
 
     // 2. Query posts based on visibility permissions
