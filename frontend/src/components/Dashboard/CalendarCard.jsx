@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
@@ -33,6 +33,23 @@ const CalendarCard = () => {
     const [streak, setStreak] = useState(0);
     const [loading, setLoading] = useState(true);
     const [activeDate, setActiveDate] = useState(null); // Tracks the clicked date string
+    const popoverRef = useRef(null);
+    const isClosingRef = useRef(false);
+
+    const handleClosePopover = (e) => {
+        if (e) {
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            if (e.nativeEvent && typeof e.nativeEvent.stopImmediatePropagation === 'function') {
+                e.nativeEvent.stopImmediatePropagation();
+            }
+        }
+        isClosingRef.current = true;
+        setActiveDate(null);
+        setTimeout(() => {
+            isClosingRef.current = false;
+        }, 300);
+    };
 
     // Simple calendar state for current month/year
     const today = new Date();
@@ -64,18 +81,22 @@ const CalendarCard = () => {
         if (token) fetchActivityData();
     }, [token]);
 
-    // Close popover when clicking anywhere else or pressing Escape
+    // Close popover when clicking anywhere outside or pressing Escape
     useEffect(() => {
-        const handleClickOutside = () => setActiveDate(null);
+        const handleClickOutside = (e) => {
+            if (isClosingRef.current) return;
+            if (popoverRef.current && popoverRef.current.contains(e.target)) {
+                return;
+            }
+            setActiveDate(null);
+        };
         const handleKeyDown = (e) => {
-            if (e.key === "Escape") setActiveDate(null);
+            if (e.key === "Escape") handleClosePopover(e);
         };
         document.addEventListener("click", handleClickOutside);
-        document.addEventListener("touchstart", handleClickOutside);
         document.addEventListener("keydown", handleKeyDown);
         return () => {
             document.removeEventListener("click", handleClickOutside);
-            document.removeEventListener("touchstart", handleClickOutside);
             document.removeEventListener("keydown", handleKeyDown);
         };
     }, []);
@@ -189,33 +210,55 @@ const CalendarCard = () => {
                                 className={`relative h-9 sm:h-10 flex items-center justify-center rounded-md text-xs sm:text-sm transition-colors cursor-pointer ${bgColor} ${isToday ? 'ring-2 ring-orange-500 ring-offset-1 font-bold' : ''}`}
                                 onClick={(e) => {
                                     e.stopPropagation(); // Prevent document click from closing it immediately
+                                    if (isClosingRef.current) return;
                                     setActiveDate(isActive ? null : dateStr); // Toggle
                                 }}
                             >
                                 {day}
 
                                 {isActive && (
-                                    <div
-                                        className="fixed left-4 right-4 top-1/2 -translate-y-1/2 sm:absolute sm:inset-auto sm:top-auto sm:bottom-full sm:left-1/2 sm:-translate-x-1/2 sm:mb-2 sm:w-72 bg-gray-900 text-white text-xs rounded-lg p-4 sm:p-3 shadow-2xl transition-all duration-200 z-[60] opacity-100 visible translate-y-0"
-                                        onClick={(e) => e.stopPropagation()} // Let user scroll/click inside without closing
-                                    >
-                                        {/* Mobile Backdrop - only visible when active on small screens */}
-                                        <div className="fixed inset-0 bg-black/40 -z-10 sm:hidden" onClick={() => setActiveDate(null)} />
-                                        <div className="font-semibold mb-2 text-orange-400 border-b border-gray-700 pb-1 flex justify-between items-center">
-                                            <span className="text-xs font-bold text-orange-400">{monthNames[currentMonth]} {day}, {currentYear}</span>
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveDate(null);
-                                                }}
-                                                className="text-gray-400 hover:text-white p-1 -mr-1 rounded-md hover:bg-gray-800 transition cursor-pointer active:scale-90"
-                                                title="Close details"
-                                                aria-label="Close"
-                                            >
-                                                <X size={15} />
-                                            </button>
-                                        </div>
+                                    <>
+                                        {/* Backdrop: intercepts any clicks outside the popover so no underlying dates receive click events */}
+                                        <div
+                                            className="fixed inset-0 z-40 bg-black/20 sm:bg-transparent cursor-default"
+                                            onClick={handleClosePopover}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleClosePopover(e);
+                                            }}
+                                            onTouchStart={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleClosePopover(e);
+                                            }}
+                                        />
+                                        <div
+                                            ref={popoverRef}
+                                            className="fixed left-4 right-4 top-1/2 -translate-y-1/2 sm:absolute sm:inset-auto sm:top-auto sm:bottom-full sm:left-1/2 sm:-translate-x-1/2 sm:mb-2 sm:w-72 bg-gray-900 text-white text-xs rounded-lg p-4 sm:p-3 shadow-2xl transition-all duration-200 z-[60] opacity-100 visible translate-y-0"
+                                            onClick={(e) => e.stopPropagation()} // Let user scroll/click inside without closing
+                                        >
+                                            <div className="font-semibold mb-2 text-orange-400 border-b border-gray-700 pb-1 flex justify-between items-center">
+                                                <span className="text-xs font-bold text-orange-400">{monthNames[currentMonth]} {day}, {currentYear}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleClosePopover}
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                    }}
+                                                    onTouchStart={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleClosePopover(e);
+                                                    }}
+                                                    className="text-gray-400 hover:text-white p-1 -mr-1 rounded-md hover:bg-gray-800 transition cursor-pointer active:scale-90"
+                                                    title="Close details"
+                                                    aria-label="Close"
+                                                >
+                                                    <X size={15} />
+                                                </button>
+                                            </div>
                                         <div className="flex items-center gap-1.5 text-xs text-gray-300 my-2 font-semibold">
                                             <span>⏱️ Screen Time:</span>
                                             <span className="text-orange-400 font-bold">{formatSeconds(getScreenTimeForDate(dateStr))}</span>
@@ -237,8 +280,9 @@ const CalendarCard = () => {
                                         )}
                                         <div className="absolute left-1/2 -bottom-1 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                                     </div>
-                                )}
-                            </div>
+                                </>
+                            )}
+                        </div>
                         );
                     })}
                 </div>
