@@ -20,9 +20,10 @@ export function getHeic2Any() {
 export function isNativeHeicSupported() {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent.toLowerCase();
-  const isSafari = ua.includes('safari') && !ua.includes('chrome') && !ua.includes('android') && !ua.includes('crios');
-  const isAppleDevice = /macintosh|mac os x|iphone|ipad|ipod/.test(ua);
-  return isSafari && isAppleDevice;
+  const isAppleMobile = /iphone|ipad|ipod/.test(ua);
+  if (isAppleMobile) return true; // All iOS browsers and WKWebViews (including Capacitor) use WebKit with native HEIC decoding
+  const isSafariMac = ua.includes('safari') && !ua.includes('chrome') && ua.includes('macintosh');
+  return isSafariMac;
 }
 
 /**

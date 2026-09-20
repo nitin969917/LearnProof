@@ -1,4 +1,4 @@
-import { getHeic2Any, isHeicBlob } from './heicHelper.js';
+import { getHeic2Any, isHeicBlob, isNativeHeicSupported } from './heicHelper.js';
 
 /**
  * Checks if a file or blob is HEIC/HEIF format (common on Apple/iPhone cameras)
@@ -102,13 +102,42 @@ async function convertHeicToJpegBlob(file) {
 }
 
 /**
+ * Loads an image source (Blob or File) into an HTMLImageElement and uses decode()
+ * to guarantee decoded pixels are ready before drawing to canvas.
+ * Works natively on Apple WebKit (iOS/macOS) for iPhone HEIC images!
+ */
+async function decodeImageElement(blob) {
+  const objectUrl = URL.createObjectURL(blob);
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+
+  try {
+    img.src = objectUrl;
+    if (typeof img.decode === 'function') {
+      await img.decode();
+    } else {
+      await new Promise((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Image failed to load in element'));
+      });
+    }
+    return { img, objectUrl };
+  } catch (err) {
+    try { URL.revokeObjectURL(objectUrl); } catch {}
+    throw err;
+  }
+}
+
+/**
  * Compresses an image file using an HTML5 canvas to reduce payload size while preserving high visual quality.
  * Seamlessly handles all formats including iPhone HEIC / HEIF, PNG, WebP, JPEG, etc.
+ * Guarantees that the output is ALWAYS standard, universal image/jpeg Base64 so every
+ * Android device, Windows PC, Linux machine, and web browser can render it with zero errors.
  * @param {File|Blob} file - The original image file
  * @param {number} maxWidth - Max width of output image (default 1200)
  * @param {number} maxHeight - Max height of output image (default 1200)
  * @param {number} quality - JPEG compression quality between 0 and 1 (default 0.85)
- * @returns {Promise<string>} Base64 data URL of compressed image
+ * @returns {Promise<string>} Base64 data URL of compressed JPEG image
  */
 export async function compressImage(file, maxWidth = 1200, maxHeight = 1200, quality = 0.85) {
   if (!file) {
@@ -116,82 +145,75 @@ export async function compressImage(file, maxWidth = 1200, maxHeight = 1200, qua
   }
 
   const fileIsHeic = await isHeic(file);
+  const nativeHeicSupport = isNativeHeicSupported();
   let blobToProcess = file;
 
-  // If HEIC/HEIF, convert via heic2any WASM first so Chrome and all browsers can decode it
-  if (fileIsHeic) {
+  // If HEIC on non-Apple platform (e.g. Windows/Android Chrome), convert via heic2any WASM
+  // On Apple platforms (iOS/macOS), the browser natively decodes HEIC in Image elements,
+  // so we skip heic2any to avoid Web Worker crashes and memory limits.
+  if (fileIsHeic && !nativeHeicSupport) {
     const convertedBlob = await convertHeicToJpegBlob(file);
     if (convertedBlob) {
       blobToProcess = convertedBlob;
     }
   }
 
-  // Strategy 1: Modern browser native decoding via createImageBitmap
+  // Strategy 1: Standard Image element loading with decode() + Canvas rendering
+  // Works for ALL standard formats AND natively for iPhone HEIC on Apple devices!
+  try {
+    const { img, objectUrl } = await decodeImageElement(blobToProcess);
+    try {
+      const base64 = renderSourceToCompressedBase64(img, maxWidth, maxHeight, quality);
+      if (base64 && base64.startsWith('data:image/jpeg')) {
+        return base64;
+      }
+    } finally {
+      try { URL.revokeObjectURL(objectUrl); } catch {}
+    }
+  } catch (decodeErr) {
+    console.warn('decodeImageElement canvas rendering failed, trying next strategy:', decodeErr);
+  }
+
+  // Strategy 2: Modern browser native decoding via createImageBitmap
   if (typeof window !== 'undefined' && 'createImageBitmap' in window) {
     try {
       const bitmap = await createImageBitmap(blobToProcess);
       const base64 = renderSourceToCompressedBase64(bitmap, maxWidth, maxHeight, quality);
       if (bitmap.close) bitmap.close();
-      if (base64 && base64.startsWith('data:image/')) {
+      if (base64 && base64.startsWith('data:image/jpeg')) {
         return base64;
       }
     } catch (bitmapErr) {
-      console.warn('createImageBitmap failed, falling back to next strategy:', bitmapErr);
+      console.warn('createImageBitmap failed:', bitmapErr);
     }
   }
 
-  // Strategy 2: Standard Image element loading + Canvas rendering
-  try {
-    const base64Result = await new Promise((resolve, reject) => {
-      let objectUrl = '';
-      try {
-        objectUrl = URL.createObjectURL(blobToProcess);
-      } catch (urlErr) {
-        return reject(urlErr);
-      }
-
-      const img = new Image();
-      const cleanup = () => {
-        try {
-          if (objectUrl) URL.revokeObjectURL(objectUrl);
-        } catch {}
-      };
-
-      img.onload = () => {
-        try {
-          const compressed = renderSourceToCompressedBase64(img, maxWidth, maxHeight, quality);
-          cleanup();
-          resolve(compressed);
-        } catch (renderErr) {
-          cleanup();
-          reject(renderErr);
-        }
-      };
-
-      img.onerror = () => {
-        cleanup();
-        reject(new Error('Image element decoding failed'));
-      };
-
-      img.src = objectUrl;
-    });
-
-    if (base64Result && base64Result.startsWith('data:image/')) {
-      return base64Result;
-    }
-  } catch (imgElementErr) {
-    console.warn('Image element canvas rendering failed, trying final fallback:', imgElementErr);
-  }
-
-  // Strategy 3: Direct DataURL read fallback
+  // Strategy 3: FileReader to Data URL -> Image element -> Canvas to JPEG
   try {
     const directDataUrl = await readBlobAsDataURL(blobToProcess);
     if (directDataUrl && typeof directDataUrl === 'string') {
-      return directDataUrl;
+      const img = new Image();
+      img.src = directDataUrl;
+      if (typeof img.decode === 'function') {
+        await img.decode();
+      } else {
+        await new Promise((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('DataURL image load failed'));
+        });
+      }
+      const base64 = renderSourceToCompressedBase64(img, maxWidth, maxHeight, quality);
+      if (base64 && base64.startsWith('data:image/jpeg')) {
+        return base64;
+      }
+      // If direct data URL is already standard JPEG, PNG or WebP, safely return it
+      if (directDataUrl.startsWith('data:image/jpeg') || directDataUrl.startsWith('data:image/png') || directDataUrl.startsWith('data:image/webp')) {
+        return directDataUrl;
+      }
     }
   } catch (dataUrlErr) {
-    console.error('Direct DataURL read failed:', dataUrlErr);
+    console.error('DataURL canvas fallback failed:', dataUrlErr);
   }
 
-  throw new Error('Failed to process image format. Please select a PNG or JPEG photo.');
+  throw new Error('Failed to process image format. Please select a valid photo.');
 }

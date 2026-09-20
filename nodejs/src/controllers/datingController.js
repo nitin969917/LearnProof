@@ -3,6 +3,7 @@ const { sendPushNotification } = require('../utils/pushNotifier');
 const livekitService = require('../services/livekit.service');
 const cacheService = require('../services/cache.service');
 const redis = require('../lib/redis');
+const { ensureUniversalImage } = require('../utils/imageUtils');
 
 const delayedDeletions = new Map();
 
@@ -108,6 +109,15 @@ const createPost = async (req, res) => {
     const missingTags = formattedTags.filter(t => !existingTags.has(t.toLowerCase()));
     if (missingTags.length > 0) {
       content = content ? `${content.trim()}\n\n${missingTags.join(' ')}` : missingTags.join(' ');
+    }
+  }
+
+  // Ensure iPhone HEIC images are converted to universal JPEG so all Android/browsers render them
+  if (image && typeof image === 'string') {
+    try {
+      image = await ensureUniversalImage(image);
+    } catch (imgErr) {
+      console.warn('Image transcoding warning in createPost:', imgErr.message);
     }
   }
 
@@ -694,7 +704,7 @@ const updateProfile = async (req, res) => {
 
     const pic = data.profilePicture !== undefined ? data.profilePicture : data.avatar;
     if (pic !== undefined) {
-      updateData.profilePicture = pic;
+      updateData.profilePicture = pic ? await ensureUniversalImage(pic) : null;
     }
 
     if (data.bio !== undefined) {
@@ -722,7 +732,9 @@ const updateProfile = async (req, res) => {
     if (data.snapchatVisibility !== undefined) updateData.snapchatVisibility = data.snapchatVisibility;
     if (data.linkedinUrl !== undefined) updateData.linkedinUrl = data.linkedinUrl;
     if (data.linkedinVisibility !== undefined) updateData.linkedinVisibility = data.linkedinVisibility;
-    if (data.coverImage !== undefined) updateData.coverImage = data.coverImage || null;
+    if (data.coverImage !== undefined) {
+      updateData.coverImage = data.coverImage ? await ensureUniversalImage(data.coverImage) : null;
+    }
 
     const updatedUser = await datingPrisma.user.update({
       where: { id: userId },
