@@ -90,6 +90,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const socialUser = useSocialFeedStore((state) => state.socialUser);
   const updateSocialUser = useSocialFeedStore((state) => state.updateSocialUser);
   const storeFriends = useSocialFeedStore((state) => state.friends);
+  const setSelectedTag = useSocialFeedStore((state) => state.setSelectedTag);
   const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
 
   const [profile, setProfile] = useState(null);
@@ -1260,6 +1261,10 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     onLike={fetchUserPosts}
                     currentUserId={effectiveCurrentUserId}
                     onViewProfile={onViewProfile}
+                    onTagClick={(tag) => {
+                      setSelectedTag(tag);
+                      navigate('/dashboard/social/feed');
+                    }}
                   />
                 ))
               ) : (

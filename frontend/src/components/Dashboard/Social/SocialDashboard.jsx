@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
-import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe, Compass, Bell } from 'lucide-react';
+import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe, Compass, Bell, Hash } from 'lucide-react';
 import { Link, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
@@ -86,9 +86,24 @@ export default function SocialDashboard() {
   const [compressingImage, setCompressingImage] = useState(false);
   const [visibility, setVisibility] = useState('public');
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [customTagInput, setCustomTagInput] = useState('');
+  const [showTagPicker, setShowTagPicker] = useState(true);
   const [showDevBanner, setShowDevBanner] = useState(true);
   const [hideHeader, setHideHeader] = useState(false);
   const fileInputRef = useRef(null);
+
+  const POPULAR_TAGS = [
+    '#LeetCodeDSA',
+    '#SystemDesign',
+    '#ReactNodeJS',
+    '#OperatingSystems',
+    '#DockerDeploy',
+    '#CampusHackathon',
+    '#WebDev',
+    '#Python',
+    '#CareerAdvice'
+  ];
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -219,16 +234,54 @@ export default function SocialDashboard() {
 
   const addPostLocally = useSocialFeedStore(state => state.addPostLocally);
 
+  const toggleTag = (tag) => {
+    const formatted = tag.startsWith('#') ? tag : `#${tag}`;
+    setSelectedTags(prev => 
+      prev.includes(formatted) 
+        ? prev.filter(t => t !== formatted)
+        : [...prev, formatted]
+    );
+  };
+
+  const handleAddCustomTag = (e) => {
+    if (e) e.preventDefault();
+    const trimmed = customTagInput.trim().replace(/^[#\s]+/, '').replace(/[^a-zA-Z0-9_]/g, '');
+    if (!trimmed) return;
+    const formatted = `#${trimmed}`;
+    if (!selectedTags.includes(formatted)) {
+      setSelectedTags(prev => [...prev, formatted]);
+    }
+    setCustomTagInput('');
+  };
+
+  const removeTag = (tag) => {
+    setSelectedTags(prev => prev.filter(t => t !== tag));
+  };
+
   const handlePost = async (e) => {
     e.preventDefault();
-    if (!content.trim() && !selectedImage) return;
+    if (!content.trim() && !selectedImage && selectedTags.length === 0) return;
     setLoadingPost(true);
 
     try {
-      const response = await socialApi.post('/posts', { content, image: selectedImage, visibility });
+      let finalContent = content.trim();
+      const existingTags = new Set((finalContent.match(/#[a-zA-Z0-9_]+/g) || []).map(t => t.toLowerCase()));
+      const missing = selectedTags.filter(t => !existingTags.has(t.toLowerCase()));
+      if (missing.length > 0) {
+        finalContent = finalContent ? `${finalContent}\n\n${missing.join(' ')}` : missing.join(' ');
+      }
+
+      const response = await socialApi.post('/posts', { 
+        content: finalContent, 
+        image: selectedImage, 
+        visibility,
+        tags: selectedTags
+      });
       addPostLocally(response.data);
       setContent('');
       setSelectedImage(null);
+      setSelectedTags([]);
+      setCustomTagInput('');
       if (fileInputRef.current) fileInputRef.current.value = '';
       setVisibility('public');
       setPostCreatedTrigger(prev => prev + 1);
@@ -560,6 +613,96 @@ export default function SocialDashboard() {
                   </button>
                 </div>
               )}
+
+              {/* Selected Tag Badges */}
+              {selectedTags.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mr-0.5">Tags:</span>
+                  {selectedTags.map(tag => (
+                    <span 
+                      key={tag} 
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800"
+                    >
+                      {tag}
+                      <button 
+                        type="button" 
+                        onClick={() => removeTag(tag)} 
+                        className="hover:text-orange-950 dark:hover:text-white cursor-pointer ml-0.5"
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Tag Picker & Topic Suggestions */}
+              <div className="mb-4 pt-2.5 border-t border-gray-100 dark:border-gray-750">
+                <div className="flex items-center justify-between mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowTagPicker(!showTagPicker)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 dark:text-orange-400 hover:text-orange-700 transition cursor-pointer"
+                  >
+                    <Hash size={13} className="stroke-[2.5]" />
+                    <span>{showTagPicker ? 'Hide Tags' : 'Add Topics / Tags'}</span>
+                  </button>
+                  <span className="text-[10px] text-gray-400">Helps students find your post</span>
+                </div>
+
+                {showTagPicker && (
+                  <div className="bg-gray-50/80 dark:bg-gray-900/40 rounded-2xl p-3 border border-gray-100 dark:border-gray-700/60 flex flex-col gap-2.5">
+                    {/* Suggested Tag Chips */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {POPULAR_TAGS.map(tag => {
+                        const isSelected = selectedTags.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => toggleTag(tag)}
+                            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                              isSelected
+                                ? 'bg-orange-500 text-white border-orange-500 shadow-xs'
+                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-orange-300'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Custom Tag Input */}
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">#</span>
+                        <input
+                          type="text"
+                          placeholder="Custom tag (e.g. MachineLearning, WebDev)..."
+                          value={customTagInput}
+                          onChange={(e) => setCustomTagInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddCustomTag();
+                            }
+                          }}
+                          className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-7 pr-3 py-1.5 text-xs text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:border-orange-500 font-medium"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddCustomTag}
+                        disabled={!customTagInput.trim()}
+                        className="px-3 py-1.5 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-orange-500 hover:text-white disabled:opacity-40 disabled:hover:bg-gray-200 disabled:hover:text-gray-400 text-xs font-bold transition cursor-pointer"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-2">

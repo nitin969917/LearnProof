@@ -22,6 +22,8 @@ export const useSocialFeedStore = create((set, get) => ({
   hasLoadedFriends: false,
   feedPage: 0,
   hasMorePosts: true,
+  selectedTag: null,
+  setSelectedTag: (tag) => set({ selectedTag: tag, feedPage: 0, hasMorePosts: true }),
   // Pending friend request badge count & list
   pendingFriendCount: 0,
   pendingRequests: [],
@@ -173,8 +175,13 @@ export const useSocialFeedStore = create((set, get) => ({
     }
   },
 
-  fetchPosts: async (force = false, isRefresh = false) => {
-    if (isRefresh) {
+  fetchPosts: async (force = false, isRefresh = false, overrideTag = undefined) => {
+    let activeTag = get().selectedTag;
+    if (overrideTag !== undefined) {
+      activeTag = overrideTag;
+      set({ selectedTag: overrideTag, feedPage: 0, hasMorePosts: true });
+      isRefresh = true;
+    } else if (isRefresh) {
       set({ feedPage: 0, hasMorePosts: true });
     }
     const currentPage = isRefresh ? 0 : get().feedPage;
@@ -188,7 +195,8 @@ export const useSocialFeedStore = create((set, get) => ({
     
     try {
       const limit = 10;
-      const response = await socialApi.get(`/posts/feed?limit=${limit}&page=${currentPage}`);
+      const tagParam = activeTag ? `&tag=${encodeURIComponent(activeTag)}` : '';
+      const response = await socialApi.get(`/posts/feed?limit=${limit}&page=${currentPage}${tagParam}`);
       const fetchedPosts = Array.isArray(response.data) ? response.data : [];
       
       set((state) => {
@@ -242,7 +250,9 @@ export const useSocialFeedStore = create((set, get) => ({
 
   syncLatestPosts: async (silent = true) => {
     try {
-      const response = await socialApi.get('/posts/feed?limit=10&page=0');
+      const activeTag = get().selectedTag;
+      const tagParam = activeTag ? `&tag=${encodeURIComponent(activeTag)}` : '';
+      const response = await socialApi.get(`/posts/feed?limit=10&page=0${tagParam}`);
       const latestPosts = Array.isArray(response.data) ? response.data : [];
       if (latestPosts.length === 0) return;
 

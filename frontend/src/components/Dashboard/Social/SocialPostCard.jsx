@@ -8,7 +8,30 @@ import UserAvatar from '../../Common/UserAvatar.jsx';
 import RenderableImage from '../../Common/RenderableImage.jsx';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 
-export default function SocialPostCard({ post, onLike, currentUserId, onViewProfile }) {
+const renderContentWithHashtags = (text, onTagClick) => {
+  if (!text) return null;
+  const parts = text.split(/(#[a-zA-Z0-9_]+)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('#') && part.length > 1) {
+      return (
+        <span
+          key={index}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onTagClick) onTagClick(part);
+          }}
+          className="inline-block text-orange-600 dark:text-orange-400 font-bold hover:underline cursor-pointer bg-orange-50/80 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/60 px-1.5 py-0.5 rounded-md transition-colors mr-1 my-0.5"
+          title={`Filter posts by ${part}`}
+        >
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+};
+
+export default function SocialPostCard({ post, onLike, currentUserId, onViewProfile, onTagClick }) {
   const isAuthor = currentUserId === post.authorId;
   const { confirm } = useModal();
 
@@ -383,7 +406,9 @@ export default function SocialPostCard({ post, onLike, currentUserId, onViewProf
             </div>
           </div>
         ) : (
-          <p className="text-gray-800 dark:text-gray-200 text-sm md:text-base whitespace-pre-wrap break-words font-medium">{post.content}</p>
+          <p className="text-gray-800 dark:text-gray-200 text-sm md:text-base whitespace-pre-wrap break-words font-medium">
+            {renderContentWithHashtags(post.content, onTagClick)}
+          </p>
         )}
         
         {post.image && (

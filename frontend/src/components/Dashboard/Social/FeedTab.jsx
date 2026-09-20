@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Image as ImageIcon, Users, UserPlus, MessageCircle, ChevronRight, Hash, TrendingUp, BookOpen, Check } from 'lucide-react';
+import { Sparkles, Image as ImageIcon, Users, UserPlus, MessageCircle, ChevronRight, Hash, TrendingUp, BookOpen, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
@@ -17,6 +17,8 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
   const hasMorePosts = useSocialFeedStore(state => state.hasMorePosts);
   
   const syncLatestPosts = useSocialFeedStore(state => state.syncLatestPosts);
+  const selectedTag = useSocialFeedStore(state => state.selectedTag);
+  const setSelectedTag = useSocialFeedStore(state => state.setSelectedTag);
   
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
 
@@ -24,6 +26,16 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
   const [suggestedPeers, setSuggestedPeers] = useState([]);
   const [sentRequests, setSentRequests] = useState(new Set());
   const [loadingSuggested, setLoadingSuggested] = useState(false);
+
+  const handleTagFilter = (tag) => {
+    if (selectedTag === tag) {
+      setSelectedTag(null);
+      fetchPosts(true, true, null);
+    } else {
+      setSelectedTag(tag);
+      fetchPosts(true, true, tag);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -150,6 +162,28 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
           </div>
         </div>
 
+        {/* ── Active Tag Filter Banner ── */}
+        {selectedTag && (
+          <div className="bg-orange-50/90 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-850 rounded-2xl p-3 sm:p-3.5 px-4 flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black text-sm">
+                #
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Showing posts tagged with</p>
+                <p className="text-sm font-extrabold text-orange-600 dark:text-orange-400">{selectedTag}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => handleTagFilter(selectedTag)}
+              className="text-xs font-bold text-gray-600 hover:text-orange-600 dark:text-gray-300 dark:hover:text-orange-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-orange-300 px-3 py-1.5 rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Clear filter</span>
+              <X size={13} />
+            </button>
+          </div>
+        )}
+
         {/* Posts Feed */}
         <div className="flex flex-col gap-6">
           {posts.length === 0 && loadingPosts ? (
@@ -160,8 +194,20 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
           ) : posts.length === 0 ? (
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-550 dark:text-gray-400">
                <Sparkles size={40} className="mx-auto mb-3 text-orange-400 opacity-60 animate-pulse" />
-               <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">Your feed is quiet</h3>
-               <p className="text-sm">Be the first to share a moment with the community!</p>
+               <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">
+                 {selectedTag ? `No posts found tagged with ${selectedTag}` : 'Your feed is quiet'}
+               </h3>
+               <p className="text-sm">
+                 {selectedTag ? 'Try exploring other tags or create a post with this tag!' : 'Be the first to share a moment with the community!'}
+               </p>
+               {selectedTag && (
+                 <button
+                   onClick={() => handleTagFilter(selectedTag)}
+                   className="mt-4 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                 >
+                   Clear Tag Filter
+                 </button>
+               )}
             </div>
           ) : (
             <>
@@ -172,6 +218,7 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
                   onLike={fetchPosts} 
                   currentUserId={currentUserId}
                   onViewProfile={onViewProfile}
+                  onTagClick={handleTagFilter}
                 />
               ))}
 
@@ -323,9 +370,19 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
 
         {/* 3. Trending Discussions & Topics */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5 shadow-xs">
-          <div className="flex items-center gap-2 mb-3">
-            <Sparkles size={17} className="text-amber-500" />
-            <h3 className="text-sm font-extrabold text-gray-900 dark:text-gray-100">Popular in Community</h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles size={17} className="text-amber-500" />
+              <h3 className="text-sm font-extrabold text-gray-900 dark:text-gray-100">Popular in Community</h3>
+            </div>
+            {selectedTag && (
+              <button 
+                onClick={() => handleTagFilter(selectedTag)}
+                className="text-[11px] font-bold text-orange-600 hover:underline cursor-pointer"
+              >
+                Clear
+              </button>
+            )}
           </div>
           <div className="flex flex-wrap gap-1.5">
             {[
@@ -335,15 +392,24 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
               { tag: '#OperatingSystems', desc: 'Core CS viva' },
               { tag: '#DockerDeploy', desc: 'DevOps & containers' },
               { tag: '#CampusHackathon', desc: 'Projects & demos' }
-            ].map(({ tag, desc }) => (
-              <span
-                key={tag}
-                title={desc}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50/70 dark:bg-gray-750 hover:bg-orange-100 dark:hover:bg-gray-700 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 border border-orange-100/70 dark:border-gray-700 transition-colors cursor-pointer select-none"
-              >
-                <span className="text-orange-500">{tag}</span>
-              </span>
-            ))}
+            ].map(({ tag, desc }) => {
+              const isSelected = selectedTag === tag;
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  title={desc}
+                  onClick={() => handleTagFilter(tag)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer select-none border ${
+                    isSelected
+                      ? 'bg-orange-500 text-white border-orange-500 shadow-sm ring-2 ring-orange-400/30'
+                      : 'bg-orange-50/70 dark:bg-gray-750 hover:bg-orange-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border-orange-100/70 dark:border-gray-700'
+                  }`}
+                >
+                  <span className={isSelected ? 'text-white' : 'text-orange-500'}>{tag}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 

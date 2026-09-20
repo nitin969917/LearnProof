@@ -94,13 +94,27 @@ const resolveUserId = async (param, defaultId = null) => {
 // ==========================================
 
 const createPost = async (req, res) => {
-  const { content, image, visibility } = req.body;
+  let { content, image, visibility, tags } = req.body;
   const authorId = req.user.id;
+
+  // Format and append tags cleanly if provided as an array
+  if (Array.isArray(tags) && tags.length > 0) {
+    const formattedTags = tags
+      .map(t => typeof t === 'string' ? t.trim() : '')
+      .filter(t => t.length > 0)
+      .map(t => t.startsWith('#') ? t : `#${t}`);
+
+    const existingTags = new Set(((content || '').match(/#[a-zA-Z0-9_]+/g) || []).map(t => t.toLowerCase()));
+    const missingTags = formattedTags.filter(t => !existingTags.has(t.toLowerCase()));
+    if (missingTags.length > 0) {
+      content = content ? `${content.trim()}\n\n${missingTags.join(' ')}` : missingTags.join(' ');
+    }
+  }
 
   try {
     const post = await datingPrisma.post.create({
       data: {
-        content,
+        content: content || '',
         image,
         visibility: visibility || 'public',
         authorId,
@@ -183,6 +197,7 @@ const getFeed = async (req, res) => {
   const userId = req.user.id;
   const limit = parseInt(req.query.limit) || 10;
   const page = parseInt(req.query.page) || 0;
+  const tag = req.query.tag ? req.query.tag.trim() : null;
 
   try {
     let targetAuthorId = null;
@@ -190,7 +205,7 @@ const getFeed = async (req, res) => {
       targetAuthorId = await resolveUserId(req.query.authorId, userId);
     }
 
-    const cacheKey = `user:feed:${userId}:${limit}:${page}:${targetAuthorId || 'all'}`;
+    const cacheKey = `user:feed:${userId}:${limit}:${page}:${targetAuthorId || 'all'}:${tag ? encodeURIComponent(tag) : 'all'}`;
     const cached = await cacheService.get(cacheKey);
     if (cached) {
       return res.json(cached);
@@ -257,6 +272,25 @@ const getFeed = async (req, res) => {
             visibility: 'close_friends',
             authorId: { in: closeFriendIds }
           }
+        ]
+      };
+    }
+
+    // Apply tag filter if requested (matches #tag or tag name)
+    if (tag) {
+      const cleanTag = tag.startsWith('#') ? tag : `#${tag}`;
+      const rawTag = tag.replace(/^#/, '');
+      const tagCondition = {
+        OR: [
+          { content: { contains: cleanTag, mode: 'insensitive' } },
+          { content: { contains: `#${rawTag}`, mode: 'insensitive' } },
+          { content: { contains: rawTag, mode: 'insensitive' } }
+        ]
+      };
+      whereClause = {
+        AND: [
+          whereClause,
+          tagCondition
         ]
       };
     }
