@@ -86,23 +86,34 @@ export default function SocialDashboard() {
   const [compressingImage, setCompressingImage] = useState(false);
   const [visibility, setVisibility] = useState('public');
   const [selectedImage, setSelectedImage] = useState(null);
-  const [selectedTags, setSelectedTags] = useState([]);
-  const [customTagInput, setCustomTagInput] = useState('');
-  const [showTagPicker, setShowTagPicker] = useState(true);
-  const [showDevBanner, setShowDevBanner] = useState(true);
-  const [hideHeader, setHideHeader] = useState(false);
   const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
 
-  const POPULAR_TAGS = [
-    '#LeetCodeDSA',
-    '#SystemDesign',
-    '#ReactNodeJS',
-    '#OperatingSystems',
-    '#DockerDeploy',
-    '#CampusHackathon',
-    '#WebDev',
-    '#Python',
-    '#CareerAdvice'
+  // Auto hashtag suggestions (LinkedIn / Instagram style)
+  const [hashtagQuery, setHashtagQuery] = useState(null);
+  const [hashtagMatchIndex, setHashtagMatchIndex] = useState(-1);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
+
+  const AVAILABLE_HASHTAGS = [
+    'LeetCodeDSA',
+    'SystemDesign',
+    'ReactNodeJS',
+    'OperatingSystems',
+    'DockerDeploy',
+    'CampusHackathon',
+    'WebDev',
+    'Python',
+    'CareerAdvice',
+    'MachineLearning',
+    'Algorithms',
+    'TypeScript',
+    'JavaScript',
+    'OpenSource',
+    'StudyTips',
+    'DataStructures',
+    'InterviewPrep',
+    'CloudComputing',
+    'CleanCode'
   ];
 
   useEffect(() => {
@@ -234,54 +245,105 @@ export default function SocialDashboard() {
 
   const addPostLocally = useSocialFeedStore(state => state.addPostLocally);
 
-  const toggleTag = (tag) => {
-    const formatted = tag.startsWith('#') ? tag : `#${tag}`;
-    setSelectedTags(prev => 
-      prev.includes(formatted) 
-        ? prev.filter(t => t !== formatted)
-        : [...prev, formatted]
-    );
-  };
-
-  const handleAddCustomTag = (e) => {
-    if (e) e.preventDefault();
-    const trimmed = customTagInput.trim().replace(/^[#\s]+/, '').replace(/[^a-zA-Z0-9_]/g, '');
-    if (!trimmed) return;
-    const formatted = `#${trimmed}`;
-    if (!selectedTags.includes(formatted)) {
-      setSelectedTags(prev => [...prev, formatted]);
+  // Detect when user types # in the content
+  const detectHashtag = (text, cursorPos) => {
+    const textBeforeCursor = text.slice(0, cursorPos);
+    const match = textBeforeCursor.match(/(?:^|\s)#([a-zA-Z0-9_]*)$/);
+    if (match) {
+      const query = match[1].toLowerCase();
+      const hashIndex = textBeforeCursor.lastIndexOf('#');
+      setHashtagQuery(query);
+      setHashtagMatchIndex(hashIndex);
+      setActiveSuggestionIndex(0);
+    } else {
+      setHashtagQuery(null);
+      setHashtagMatchIndex(-1);
     }
-    setCustomTagInput('');
   };
 
-  const removeTag = (tag) => {
-    setSelectedTags(prev => prev.filter(t => t !== tag));
+  const handleContentChange = (e) => {
+    const text = e.target.value;
+    setContent(text);
+    detectHashtag(text, e.target.selectionStart);
+  };
+
+  const insertHashtag = (tag) => {
+    if (hashtagMatchIndex === -1) return;
+    const beforeHash = content.slice(0, hashtagMatchIndex);
+    const cursorPos = textareaRef.current ? textareaRef.current.selectionStart : content.length;
+    const afterCursor = content.slice(cursorPos);
+    const newContent = `${beforeHash}#${tag} ${afterCursor}`;
+    setContent(newContent);
+    setHashtagQuery(null);
+    setHashtagMatchIndex(-1);
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const nextPos = beforeHash.length + tag.length + 2; // +1 for #, +1 for space
+        textareaRef.current.setSelectionRange(nextPos, nextPos);
+      }
+    }, 10);
+  };
+
+  const filteredHashtags = hashtagQuery !== null
+    ? AVAILABLE_HASHTAGS.filter(tag => tag.toLowerCase().includes(hashtagQuery))
+    : [];
+
+  const handleKeyDownInTextarea = (e) => {
+    if (hashtagQuery !== null && filteredHashtags.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveSuggestionIndex(prev => (prev + 1) % filteredHashtags.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveSuggestionIndex(prev => (prev - 1 + filteredHashtags.length) % filteredHashtags.length);
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        insertHashtag(filteredHashtags[activeSuggestionIndex]);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setHashtagQuery(null);
+      }
+    }
+  };
+
+  const triggerHashtag = () => {
+    if (!textareaRef.current) return;
+    textareaRef.current.focus();
+    const cursorPos = textareaRef.current.selectionStart || content.length;
+    const before = content.slice(0, cursorPos);
+    const after = content.slice(cursorPos);
+    const prefix = before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n') ? ' #' : '#';
+    const newContent = `${before}${prefix}${after}`;
+    setContent(newContent);
+    const nextPos = before.length + prefix.length;
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.setSelectionRange(nextPos, nextPos);
+        detectHashtag(newContent, nextPos);
+      }
+    }, 10);
   };
 
   const handlePost = async (e) => {
     e.preventDefault();
-    if (!content.trim() && !selectedImage && selectedTags.length === 0) return;
+    if (!content.trim() && !selectedImage) return;
     setLoadingPost(true);
 
     try {
-      let finalContent = content.trim();
-      const existingTags = new Set((finalContent.match(/#[a-zA-Z0-9_]+/g) || []).map(t => t.toLowerCase()));
-      const missing = selectedTags.filter(t => !existingTags.has(t.toLowerCase()));
-      if (missing.length > 0) {
-        finalContent = finalContent ? `${finalContent}\n\n${missing.join(' ')}` : missing.join(' ');
-      }
-
+      const extractedTags = (content.match(/#[a-zA-Z0-9_]+/g) || []);
       const response = await socialApi.post('/posts', { 
-        content: finalContent, 
+        content: content.trim(), 
         image: selectedImage, 
         visibility,
-        tags: selectedTags
+        tags: extractedTags
       });
       addPostLocally(response.data);
       setContent('');
       setSelectedImage(null);
-      setSelectedTags([]);
-      setCustomTagInput('');
+      setHashtagQuery(null);
+      setHashtagMatchIndex(-1);
       if (fileInputRef.current) fileInputRef.current.value = '';
       setVisibility('public');
       setPostCreatedTrigger(prev => prev + 1);
@@ -582,15 +644,60 @@ export default function SocialDashboard() {
             
             <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4">Create a New Post</h3>
             
-            <form onSubmit={handlePost}>
-              <textarea 
-                placeholder="What's happening in the community?" 
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={4}
-                className="w-full bg-transparent text-gray-900 dark:text-white text-base outline-none resize-none border-b border-gray-100 dark:border-gray-700 pb-3 mb-3 focus:border-orange-500 transition-colors"
-                autoFocus
-              />
+            <form onSubmit={handlePost} className="relative">
+              <div className="relative">
+                <textarea 
+                  ref={textareaRef}
+                  placeholder="What's happening in the community? (Type # to add tags)" 
+                  value={content}
+                  onChange={handleContentChange}
+                  onKeyUp={(e) => detectHashtag(content, e.target.selectionStart)}
+                  onClick={(e) => detectHashtag(content, e.target.selectionStart)}
+                  onKeyDown={handleKeyDownInTextarea}
+                  rows={5}
+                  className="w-full bg-transparent text-gray-900 dark:text-white text-base outline-none resize-none border-b border-gray-100 dark:border-gray-700 pb-3 mb-3 focus:border-orange-500 transition-colors"
+                  autoFocus
+                />
+
+                {/* Auto Hashtag Suggestions Popup (LinkedIn / Instagram style) */}
+                {hashtagQuery !== null && filteredHashtags.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full z-30 -mt-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden max-h-56 overflow-y-auto animate-in fade-in zoom-in-95">
+                    <div className="px-3.5 py-2 bg-gray-50/90 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-700/70 flex items-center justify-between text-[11px] font-bold text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
+                        <Hash size={13} className="stroke-[2.5]" />
+                        Suggested tags
+                      </span>
+                      <span className="text-[10px] text-gray-400 font-normal">Press Enter or Tab to select</span>
+                    </div>
+                    <div className="p-1 space-y-0.5">
+                      {filteredHashtags.slice(0, 8).map((tag, idx) => {
+                        const isFocused = idx === activeSuggestionIndex;
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => insertHashtag(tag)}
+                            onMouseEnter={() => setActiveSuggestionIndex(idx)}
+                            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer ${
+                              isFocused 
+                                ? 'bg-orange-500 text-white shadow-xs' 
+                                : 'hover:bg-orange-50/80 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                                isFocused ? 'bg-white/20 text-white' : 'bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400'
+                              }`}>#</span>
+                              <span>{tag}</span>
+                            </div>
+                            <span className={`text-[10px] font-medium ${isFocused ? 'text-white/80' : 'text-gray-400'}`}>Topic</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Selected Image Preview with Remove Button */}
               {selectedImage && (
@@ -614,97 +721,7 @@ export default function SocialDashboard() {
                 </div>
               )}
 
-              {/* Selected Tag Badges */}
-              {selectedTags.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 mb-3">
-                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mr-0.5">Tags:</span>
-                  {selectedTags.map(tag => (
-                    <span 
-                      key={tag} 
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800"
-                    >
-                      {tag}
-                      <button 
-                        type="button" 
-                        onClick={() => removeTag(tag)} 
-                        className="hover:text-orange-950 dark:hover:text-white cursor-pointer ml-0.5"
-                      >
-                        <X size={11} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Tag Picker & Topic Suggestions */}
-              <div className="mb-4 pt-2.5 border-t border-gray-100 dark:border-gray-750">
-                <div className="flex items-center justify-between mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowTagPicker(!showTagPicker)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-600 dark:text-orange-400 hover:text-orange-700 transition cursor-pointer"
-                  >
-                    <Hash size={13} className="stroke-[2.5]" />
-                    <span>{showTagPicker ? 'Hide Tags' : 'Add Topics / Tags'}</span>
-                  </button>
-                  <span className="text-[10px] text-gray-400">Helps students find your post</span>
-                </div>
-
-                {showTagPicker && (
-                  <div className="bg-gray-50/80 dark:bg-gray-900/40 rounded-2xl p-3 border border-gray-100 dark:border-gray-700/60 flex flex-col gap-2.5">
-                    {/* Suggested Tag Chips */}
-                    <div className="flex flex-wrap gap-1.5">
-                      {POPULAR_TAGS.map(tag => {
-                        const isSelected = selectedTags.includes(tag);
-                        return (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => toggleTag(tag)}
-                            className={`px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer border ${
-                              isSelected
-                                ? 'bg-orange-500 text-white border-orange-500 shadow-xs'
-                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-orange-300'
-                            }`}
-                          >
-                            {tag}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Custom Tag Input */}
-                    <div className="flex items-center gap-1.5 pt-0.5">
-                      <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">#</span>
-                        <input
-                          type="text"
-                          placeholder="Custom tag (e.g. MachineLearning, WebDev)..."
-                          value={customTagInput}
-                          onChange={(e) => setCustomTagInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddCustomTag();
-                            }
-                          }}
-                          className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-7 pr-3 py-1.5 text-xs text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:border-orange-500 font-medium"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleAddCustomTag}
-                        disabled={!customTagInput.trim()}
-                        className="px-3 py-1.5 rounded-xl bg-gray-200 dark:bg-gray-700 hover:bg-orange-500 hover:text-white disabled:opacity-40 disabled:hover:bg-gray-200 disabled:hover:text-gray-400 text-xs font-bold transition cursor-pointer"
-                      >
-                        + Add
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
                 <div className="flex items-center gap-2">
                   <input 
                     type="file" 
@@ -721,6 +738,17 @@ export default function SocialDashboard() {
                   >
                     <ImageIcon size={16} className="text-emerald-500" />
                     <span>{compressingImage ? 'Processing...' : selectedImage ? 'Change Photo' : 'Photo'}</span>
+                  </button>
+
+                  {/* Quick # Hashtag Trigger button */}
+                  <button
+                    type="button"
+                    onClick={triggerHashtag}
+                    className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-orange-50 hover:text-orange-600 dark:bg-gray-700 dark:hover:bg-gray-650 transition cursor-pointer"
+                    title="Insert Hashtag"
+                  >
+                    <Hash size={14} className="text-orange-500 stroke-[2.5]" />
+                    <span>Tag</span>
                   </button>
 
                   <select 
