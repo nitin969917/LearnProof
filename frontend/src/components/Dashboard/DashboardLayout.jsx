@@ -3,7 +3,7 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Menu, Plus, RefreshCw, X, Users } from "lucide-react";
+import { ArrowLeft, Menu, Plus, RefreshCw, X, Users, UserPlus, UserCheck } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import StudentProfileSetupModal from "../Common/StudentProfileSetupModal";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -71,6 +71,8 @@ class ErrorBoundary extends React.Component {
 }
 
 const DashboardLayout = () => {
+    const navigate = useNavigate();
+    const location = useLocation();
     const { user, isMatrixActive, matrixClient } = useAuth();
     const socialUser = useSocialFeedStore((state) => state.socialUser);
     const fetchSocialUser = useSocialFeedStore((state) => state.fetchSocialUser);
@@ -332,39 +334,150 @@ const DashboardLayout = () => {
         }
     }, [socialUser, isMatrixActive, matrixClient]);
 
-    // Listen for incoming friend requests and acceptances to update state and notify in real-time
+    // Listen for incoming friend requests and acceptances to update state and notify with dedicated notification cards
     useEffect(() => {
         if (!socialUser || !socialUser.id) return;
         const socket = getSocialSocket(socialUser.id);
+
         const handleFriendRequest = (data) => {
             useSocialFeedStore.getState().handleFriendRequestReceived(data);
-            if (data?.sender?.name) {
-                toast.success(`${data.sender.name} sent you a connection request!`, { id: `fr-${data.requestId || Date.now()}` });
-            }
+            if (!data?.sender) return;
+            const senderName = data.sender.name || 'Someone';
+            const senderAvatar = data.sender.profilePicture || null;
+            const senderCollege = data.sender.collegeName || data.sender.department || '';
+
+            toast.custom((t) => (
+                <div
+                    onClick={() => {
+                        toast.dismiss(t.id);
+                        navigate('/dashboard/social?tab=friends');
+                    }}
+                    className={`${
+                        t.visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-3 scale-95'
+                    } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-blue-200/80 dark:border-blue-900/60 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500/60 hover:shadow-blue-500/10 active:scale-98`}
+                    style={{ pointerEvents: 'auto' }}
+                >
+                    <div className="relative shrink-0">
+                        {senderAvatar ? (
+                            <img src={senderAvatar} alt={senderName} className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500/30" />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-xs">
+                                {senderName ? senderName[0].toUpperCase() : 'U'}
+                            </div>
+                        )}
+                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-blue-600 ring-2 ring-white dark:ring-gray-800 flex items-center justify-center text-white shadow-xs">
+                            <UserPlus size={9} strokeWidth={2.5} />
+                        </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                            <p className="text-xs font-black text-gray-900 dark:text-white truncate">
+                                {senderName}
+                            </p>
+                            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-wider">
+                                request
+                            </span>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5">
+                            {senderCollege ? `Wants to connect • ${senderCollege}` : 'Sent you a connection request!'}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toast.dismiss(t.id);
+                        }}
+                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
+                        title="Dismiss"
+                    >
+                        <X size={14} />
+                    </button>
+                </div>
+            ), {
+                id: `friend_req_${data.requestId || data.sender.id || Date.now()}`,
+                duration: 6000,
+                position: 'top-center'
+            });
         };
+
         const handleFriendAccepted = (data) => {
             useSocialFeedStore.getState().handleFriendRequestAccepted(data);
-            if (data?.friend?.name) {
-                toast.success(`${data.friend.name} accepted your connection request!`, { id: `fa-${data.userId || Date.now()}` });
-            }
+            if (!data?.friend?.name) return;
+            const friendName = data.friend.name;
+            const friendAvatar = data.friend.profilePicture || null;
+            const friendCollege = data.friend.collegeName || data.friend.department || '';
+
+            toast.custom((t) => (
+                <div
+                    onClick={() => {
+                        toast.dismiss(t.id);
+                        navigate('/dashboard/social?tab=friends');
+                    }}
+                    className={`${
+                        t.visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-3 scale-95'
+                    } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-emerald-200/80 dark:border-emerald-900/60 cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500/60 hover:shadow-emerald-500/10 active:scale-98`}
+                    style={{ pointerEvents: 'auto' }}
+                >
+                    <div className="relative shrink-0">
+                        {friendAvatar ? (
+                            <img src={friendAvatar} alt={friendName} className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-500/30" />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-600 text-white font-black flex items-center justify-center text-sm shadow-xs">
+                                {friendName ? friendName[0].toUpperCase() : 'U'}
+                            </div>
+                        )}
+                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-600 ring-2 ring-white dark:ring-gray-800 flex items-center justify-center text-white shadow-xs">
+                            <UserCheck size={9} strokeWidth={2.5} />
+                        </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                            <p className="text-xs font-black text-gray-900 dark:text-white truncate">
+                                {friendName}
+                            </p>
+                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-wider">
+                                connected
+                            </span>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5">
+                            {friendCollege ? `Connected • ${friendCollege}` : 'Accepted your connection request!'}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toast.dismiss(t.id);
+                        }}
+                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
+                        title="Dismiss"
+                    >
+                        <X size={14} />
+                    </button>
+                </div>
+            ), {
+                id: `friend_acc_${data.requestId || data.userId || Date.now()}`,
+                duration: 5000,
+                position: 'top-center'
+            });
         };
+
         socket.on('FRIEND_REQUEST_RECEIVED', handleFriendRequest);
         socket.on('FRIEND_REQUEST_ACCEPTED', handleFriendAccepted);
         return () => {
             socket.off('FRIEND_REQUEST_RECEIVED', handleFriendRequest);
             socket.off('FRIEND_REQUEST_ACCEPTED', handleFriendAccepted);
         };
-    }, [socialUser]);
+    }, [socialUser, navigate]);
 
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-    const navigate = useNavigate();
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
         const savedState = localStorage.getItem('sidebarExpanded');
         return savedState !== null ? savedState === 'true' : false;
     });
     const isMobile = window.innerWidth < 1024;
-    const location = useLocation();
 
     const locationPathRef = useRef(location.pathname);
     useEffect(() => {

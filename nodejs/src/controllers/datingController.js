@@ -939,7 +939,7 @@ const sendFriendRequest = async (req, res) => {
         },
         include: {
           sender: {
-            select: { id: true, name: true, profilePicture: true }
+            select: { id: true, name: true, profilePicture: true, collegeName: true, department: true }
           }
         }
       });
@@ -953,7 +953,7 @@ const sendFriendRequest = async (req, res) => {
         },
         include: {
           sender: {
-            select: { id: true, name: true, profilePicture: true }
+            select: { id: true, name: true, profilePicture: true, collegeName: true, department: true }
           }
         }
       });
@@ -967,13 +967,34 @@ const sendFriendRequest = async (req, res) => {
     try {
       const io = req.app.get('io');
       if (io) {
-        io.to(rId.toString()).emit('FRIEND_REQUEST_RECEIVED', {
+        const payload = {
           requestId: friendship.id,
           sender: friendship.sender,
-        });
+        };
+        io.to(rId.toString()).emit('FRIEND_REQUEST_RECEIVED', payload);
+        io.to(`user_${rId}`).emit('FRIEND_REQUEST_RECEIVED', payload);
       }
     } catch (wsErr) {
       console.error('Failed to emit FRIEND_REQUEST_RECEIVED:', wsErr);
+    }
+
+    // Send push notification to receiver
+    try {
+      sendPushNotification(
+        [rId],
+        `${req.user.name || 'Someone'} sent you a connection request!`,
+        friendship.sender?.collegeName
+          ? `${friendship.sender.collegeName} • Tap to view request`
+          : 'Tap to view and respond on LearnProof.',
+        {
+          type: 'FRIEND_REQUEST_RECEIVED',
+          requestId: friendship.id,
+          senderId: senderId,
+          url: '/dashboard/social?tab=friends'
+        }
+      );
+    } catch (pnErr) {
+      console.error('Failed to send friend request push notification:', pnErr);
     }
 
     res.json(friendship);
@@ -1010,8 +1031,7 @@ const acceptFriendRequest = async (req, res) => {
     try {
       const io = req.app.get('io');
       if (io) {
-        // Notify sender that receiver accepted
-        io.to(request.senderId.toString()).emit('FRIEND_REQUEST_ACCEPTED', {
+        const payloadForSender = {
           requestId: friendship.id,
           userId: userId,
           targetUserId: userId,
@@ -1022,19 +1042,42 @@ const acceptFriendRequest = async (req, res) => {
             collegeName: req.user.collegeName || '',
             department: req.user.department || ''
           }
-        });
-        // Notify receiver in case they have multiple tabs/windows open
-        io.to(request.receiverId.toString()).emit('FRIEND_REQUEST_ACCEPTED', {
+        };
+        // Notify sender that receiver accepted
+        io.to(request.senderId.toString()).emit('FRIEND_REQUEST_ACCEPTED', payloadForSender);
+        io.to(`user_${request.senderId}`).emit('FRIEND_REQUEST_ACCEPTED', payloadForSender);
+
+        const payloadForReceiver = {
           requestId: friendship.id,
           userId: request.senderId,
           targetUserId: request.senderId,
           friend: {
             id: request.senderId,
           }
-        });
+        };
+        // Notify receiver in case they have multiple tabs/windows open
+        io.to(request.receiverId.toString()).emit('FRIEND_REQUEST_ACCEPTED', payloadForReceiver);
+        io.to(`user_${request.receiverId}`).emit('FRIEND_REQUEST_ACCEPTED', payloadForReceiver);
       }
     } catch (wsErr) {
       console.error('Failed to emit FRIEND_REQUEST_ACCEPTED:', wsErr);
+    }
+
+    // Send push notification to the original sender
+    try {
+      sendPushNotification(
+        [request.senderId],
+        `${req.user.name || 'A user'} accepted your connection request!`,
+        'You are now connected on LearnProof. Tap to view their profile or chat.',
+        {
+          type: 'FRIEND_REQUEST_ACCEPTED',
+          requestId: friendship.id,
+          userId: userId,
+          url: '/dashboard/social?tab=friends'
+        }
+      );
+    } catch (pnErr) {
+      console.error('Failed to send friend accepted push notification:', pnErr);
     }
 
     res.json(friendship);
@@ -1073,7 +1116,7 @@ const acceptFriendship = async (req, res) => {
     try {
       const io = req.app.get('io');
       if (io) {
-        io.to(request.senderId.toString()).emit('FRIEND_REQUEST_ACCEPTED', {
+        const payloadForSender = {
           requestId: friendship.id,
           userId: userId,
           targetUserId: userId,
@@ -1084,18 +1127,40 @@ const acceptFriendship = async (req, res) => {
             collegeName: req.user.collegeName || '',
             department: req.user.department || ''
           }
-        });
-        io.to(request.receiverId.toString()).emit('FRIEND_REQUEST_ACCEPTED', {
+        };
+        io.to(request.senderId.toString()).emit('FRIEND_REQUEST_ACCEPTED', payloadForSender);
+        io.to(`user_${request.senderId}`).emit('FRIEND_REQUEST_ACCEPTED', payloadForSender);
+
+        const payloadForReceiver = {
           requestId: friendship.id,
           userId: request.senderId,
           targetUserId: request.senderId,
           friend: {
             id: request.senderId,
           }
-        });
+        };
+        io.to(request.receiverId.toString()).emit('FRIEND_REQUEST_ACCEPTED', payloadForReceiver);
+        io.to(`user_${request.receiverId}`).emit('FRIEND_REQUEST_ACCEPTED', payloadForReceiver);
       }
     } catch (wsErr) {
       console.error('Failed to emit FRIEND_REQUEST_ACCEPTED:', wsErr);
+    }
+
+    // Send push notification to the original sender
+    try {
+      sendPushNotification(
+        [request.senderId],
+        `${req.user.name || 'A user'} accepted your connection request!`,
+        'You are now connected on LearnProof. Tap to view their profile or chat.',
+        {
+          type: 'FRIEND_REQUEST_ACCEPTED',
+          requestId: friendship.id,
+          userId: userId,
+          url: '/dashboard/social?tab=friends'
+        }
+      );
+    } catch (pnErr) {
+      console.error('Failed to send friend accepted push notification:', pnErr);
     }
 
     res.json(friendship);
@@ -1146,9 +1211,9 @@ const removeFriendship = async (req, res) => {
     try {
       const io = req.app.get('io');
       if (io) {
-        io.to(resolvedTargetId.toString()).emit('FRIEND_REQUEST_REMOVED', {
-          userId: userId
-        });
+        const payload = { userId: userId };
+        io.to(resolvedTargetId.toString()).emit('FRIEND_REQUEST_REMOVED', payload);
+        io.to(`user_${resolvedTargetId}`).emit('FRIEND_REQUEST_REMOVED', payload);
       }
     } catch (wsErr) {
       console.error('Failed to emit FRIEND_REQUEST_REMOVED:', wsErr);
