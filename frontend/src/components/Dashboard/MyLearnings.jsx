@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-hot-toast";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Play, Library, Video, Search, Trash2, Plus, Clock, ChevronRight, Sparkles, BookOpen, ArrowLeft, CheckCircle, Compass } from 'lucide-react';
 import { useModal } from "../../context/ModalContext";
@@ -294,7 +294,7 @@ const MyLearnings = () => {
                                     <motion.div
                                         layoutId="activeTabLibrary"
                                         className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl shadow-md shadow-orange-500/25 -z-10"
-                                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                                        transition={{ type: "spring", stiffness: 450, damping: 35 }}
                                     />
                                 )}
                                 <Icon size={15} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
@@ -305,12 +305,14 @@ const MyLearnings = () => {
                 </div>
             </div>
 
-            <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-            >
+            <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 10, scale: 0.995 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.995 }}
+                    transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                >
                 {loading ? (
                     <div className="w-full flex items-center justify-center py-20 min-h-[40vh]">
                         <div className="flex flex-col items-center gap-4">
@@ -362,10 +364,12 @@ const MyLearnings = () => {
                                     videos.map((video, index) => (
                                         <motion.div
                                             key={video.vid}
-                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            initial={{ opacity: 0, scale: 0.98 }}
                                             animate={{ opacity: 1, scale: 1 }}
-                                            transition={{ delay: index * 0.05 }}
-                                            className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative"
+                                            transition={{ duration: 0.22, delay: Math.min(index * 0.02, 0.2) }}
+                                            whileHover={{ y: -3, scale: 1.008 }}
+                                            whileTap={{ scale: 0.985 }}
+                                            className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 transition-all duration-300 overflow-hidden flex flex-col relative"
                                         >
                                             {/* Delete Overlay */}
                                             <button
@@ -450,10 +454,12 @@ const MyLearnings = () => {
                                 return (
                                     <motion.div
                                         key={pl.pid}
-                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        initial={{ opacity: 0, scale: 0.98 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative"
+                                        transition={{ duration: 0.22, delay: Math.min(index * 0.02, 0.2) }}
+                                        whileHover={{ y: -3, scale: 1.008 }}
+                                        whileTap={{ scale: 0.985 }}
+                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 transition-all duration-300 overflow-hidden flex flex-col relative"
                                     >
                                         <button
                                             onClick={(e) => {
@@ -558,10 +564,12 @@ const MyLearnings = () => {
                                 return (
                                     <motion.div
                                         key={`roadmap-${pl.pid}`}
-                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        initial={{ opacity: 0, scale: 0.98 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col relative"
+                                        transition={{ duration: 0.22, delay: Math.min(index * 0.02, 0.2) }}
+                                        whileHover={{ y: -3, scale: 1.008 }}
+                                        whileTap={{ scale: 0.985 }}
+                                        className="group/card bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm hover:shadow-md hover:shadow-orange-500/5 hover:border-orange-400 dark:hover:border-orange-500/60 transition-all duration-300 overflow-hidden flex flex-col relative"
                                     >
                                         <div className="absolute top-3 right-3 z-20 pointer-events-none opacity-10 group-hover/card:opacity-20 group-hover/card:scale-125 transition-all duration-700">
                                             <Sparkles size={48} className="text-orange-500" />
@@ -638,7 +646,8 @@ const MyLearnings = () => {
                 )}
                     </>
                 )}
-            </motion.div>
+                </motion.div>
+            </AnimatePresence>
 
             {/* Pagination for Videos */}
             {activeTab === "videos" && (videoPagination.previous || videoPagination.next) && (

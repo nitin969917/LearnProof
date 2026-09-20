@@ -784,7 +784,7 @@ const Quiz = () => {
                 </div>
             </div>
 
-            <div className="space-y-8 relative z-10">
+            <div className="space-y-4 sm:space-y-5 relative z-10">
 
                 {/* ── Section 1: Completed Playlists ────────────────────── */}
                 <section className="space-y-3.5">
@@ -808,7 +808,7 @@ const Quiz = () => {
                             {/* Horizontal Scroll Container */}
                             <div
                                 ref={playlistScrollRef}
-                                className="flex overflow-x-auto gap-3.5 pb-4 px-3 sm:px-4 snap-x snap-mandatory hide-scrollbar"
+                                className="flex overflow-x-auto gap-3.5 pb-1 sm:pb-2 px-3 sm:px-4 snap-x snap-mandatory hide-scrollbar"
                             >
                                 {filteredPlaylists.map((pl, plIdx) => {
                                     // Soft color gradient mapping for subject card cards
@@ -904,7 +904,7 @@ const Quiz = () => {
                 </section>
 
                 {/* ── Section 2: Attempt History ────────────────────────── */}
-                <section className="space-y-3.5 pt-4">
+                <section className="space-y-3 sm:space-y-3.5">
                     <div className="flex items-center justify-between mb-2">
                         <h2 className="text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2">
                             <Clock className="w-4 h-4 text-orange-500" />

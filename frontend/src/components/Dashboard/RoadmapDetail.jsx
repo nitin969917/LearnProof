@@ -319,7 +319,23 @@ const RoadmapDetail = () => {
     const videosPerDay = Math.ceil(totalVideos / playlist.duration_goal);
 
     return (
-        <div className="max-w-[1400px] mx-auto pb-6">
+        <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="max-w-[1400px] mx-auto pb-6"
+        >
+            {/* Top Navigation Row */}
+            <div className="mb-4">
+                <button
+                    onClick={() => navigate('/dashboard/library')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 border border-gray-200/70 dark:border-gray-700/60 shadow-xs text-xs font-black uppercase tracking-wider transition-all group cursor-pointer active:scale-95"
+                >
+                    <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" />
+                    <span>Back to My Learning</span>
+                </button>
+            </div>
+
             {/* ── YOUTUBE-STYLE 2-COLUMN LAYOUT ── */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
                 
@@ -581,7 +597,8 @@ const RoadmapDetail = () => {
                                         key={`day-${dayPlan.day}`}
                                         initial={{ opacity: 0, y: 8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: dayIndex * 0.02 }}
+                                        transition={{ duration: 0.22, delay: Math.min(dayIndex * 0.02, 0.2) }}
+                                        whileHover={{ y: -1 }}
                                         className={`rounded-2xl border transition-all p-2.5 sm:p-3 space-y-2 ${
                                             isDayDone
                                                 ? 'bg-[#F4FAF6] dark:bg-emerald-950/15 border-emerald-200 dark:border-emerald-900/40'
@@ -635,7 +652,7 @@ const RoadmapDetail = () => {
                                                     <div
                                                         key={vid.vid}
                                                         onClick={() => navigate(`/classroom/${vid.vid}`)}
-                                                        className={`group flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                                                        className={`group flex items-center justify-between gap-2 p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer select-none active:scale-[0.98] ${
                                                             isVidCompleted
                                                                 ? 'bg-white/90 dark:bg-gray-800/90 border-emerald-100 dark:border-emerald-900/30 hover:border-emerald-300'
                                                                 : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-500/50 hover:shadow-xs'
@@ -704,7 +721,7 @@ const RoadmapDetail = () => {
                 </div>
 
             </div>
-        </div>
+        </motion.div>
     );
 };
 

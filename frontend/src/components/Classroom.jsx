@@ -2108,7 +2108,7 @@ const Classroom = () => {
               </div>
 
               {/* Progress Bar */}
-              <div className="flex items-center gap-4 mb-8">
+              <div className="flex items-center gap-4 mb-2 sm:mb-2.5">
                 <div className="flex-1 bg-gray-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
@@ -2126,7 +2126,7 @@ const Classroom = () => {
               <div
                 ref={tabsContainerRef}
                 id="classroom-tabs-bar"
-                className="sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md py-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-200 mt-2"
+                className="sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md py-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-200 mt-0.5 sm:mt-1"
               >
                 <div className="w-full grid grid-flow-col auto-cols-fr bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl p-1 sm:p-1.5 gap-0.5 sm:gap-1 border border-gray-200/70 dark:border-slate-700/60 shadow-xs">
                   {visibleClassroomTabs.map((tab) => {

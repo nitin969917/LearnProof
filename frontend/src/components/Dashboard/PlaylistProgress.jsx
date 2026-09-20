@@ -279,7 +279,23 @@ const PlaylistProgress = () => {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto pb-6">
+        <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="max-w-[1400px] mx-auto pb-6"
+        >
+            {/* Top Navigation Row */}
+            <div className="mb-4">
+                <button
+                    onClick={() => navigate('/dashboard/library')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 border border-gray-200/70 dark:border-gray-700/60 shadow-xs text-xs font-black uppercase tracking-wider transition-all group cursor-pointer active:scale-95"
+                >
+                    <ArrowLeft size={13} className="transition-transform group-hover:-translate-x-1" />
+                    <span>Back to My Learning</span>
+                </button>
+            </div>
+
             {/* ── YOUTUBE-STYLE 2-COLUMN LAYOUT ── */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
                 
@@ -513,7 +529,9 @@ const PlaylistProgress = () => {
                                         key={video.vid}
                                         initial={{ opacity: 0, y: 6 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: index * 0.015 }}
+                                        transition={{ duration: 0.2, delay: Math.min(index * 0.015, 0.2) }}
+                                        whileHover={{ x: 2 }}
+                                        whileTap={{ scale: 0.99 }}
                                         onClick={() => navigate(`/classroom/${video.vid}`)}
                                         className={`group flex items-center justify-between gap-2 sm:gap-4 p-1.5 sm:p-3 rounded-xl sm:rounded-2xl border transition-all cursor-pointer select-none ${
                                             isCompleted
@@ -642,7 +660,7 @@ const PlaylistProgress = () => {
                 </div>
 
             </div>
-        </div>
+        </motion.div>
     );
 };
 
