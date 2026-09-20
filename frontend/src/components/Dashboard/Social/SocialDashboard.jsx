@@ -86,6 +86,8 @@ export default function SocialDashboard() {
   const [compressingImage, setCompressingImage] = useState(false);
   const [visibility, setVisibility] = useState('public');
   const [selectedImage, setSelectedImage] = useState(null);
+  const [showDevBanner, setShowDevBanner] = useState(true);
+  const [hideHeader, setHideHeader] = useState(false);
   const fileInputRef = useRef(null);
   const textareaRef = useRef(null);
 
