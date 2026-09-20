@@ -211,11 +211,11 @@ const cleanMermaidChart = (chartText) => {
             trimmed === 'end') return;
 
         const cleanLine = trimmed.replace(/"[^"]*"/g, '');
-        // Match numbers that are not preceded by # or . and not followed by letters or .
-        const matches = cleanLine.matchAll(/(?<![\w#\.])\b(\d+)\b(?![\w\.])/g);
+        // Match numbers that are not preceded by # or . and not followed by letters or . (WebKit-safe)
+        const matches = cleanLine.matchAll(/(^|[^\w#\.])\b(\d+)\b(?![\w\.])/g);
         for (const m of matches) {
-            const num = m[1];
-            const index = m.index;
+            const num = m[2];
+            const index = m.index + (m[1] ? m[1].length : 0);
             const before = cleanLine.substring(0, index).trim();
             // Ignore style declarations or parameters
             if (before.endsWith(':') || before.endsWith('stroke-width') || before.endsWith('linkStyle') || before.endsWith('classDef')) {
@@ -235,7 +235,7 @@ const cleanMermaidChart = (chartText) => {
         const sortedOldIds = Object.keys(idMap).sort((a, b) => b.length - a.length);
         for (const oldId of sortedOldIds) {
             const newId = idMap[oldId];
-            line = line.replace(new RegExp(`(?<![\\w#\\.])\\b${oldId}\\b(?![\\w\\.])`, 'g'), newId);
+            line = line.replace(new RegExp(`(^|[^\\w#\\.])\\b${oldId}\\b(?![\\w\\.])`, 'g'), `$1${newId}`);
         }
         return line;
     };
@@ -270,8 +270,8 @@ const cleanMermaidChart = (chartText) => {
             return line;
         }
 
-        // Convert invalid '--' connectors to valid '---' (undirected links)
-        line = line.replace(/(?<!-)\s*--\s*(?![->|])/g, ' --- ');
+        // Convert invalid '--' connectors to valid '---' (undirected links) (WebKit-safe)
+        line = line.replace(/(^|[^-])\s*--\s*(?![- >|])/g, '$1 --- ');
 
         // Apply numeric ID renaming
         line = renameIds(line);

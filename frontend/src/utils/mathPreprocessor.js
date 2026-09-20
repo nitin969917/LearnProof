@@ -36,7 +36,7 @@ export const preprocessMath = (text) => {
   processed = processed
     .replace(/\x0crac\b/g, '\\frac')
     .replace(/\x0crac\{/g, '\\frac{')
-    .replace(/(?<![a-zA-Z\\])rac\{/g, '\\frac{')
+    .replace(/(^|[^a-zA-Z\\])rac\{/g, '$1\\frac{')
     .replace(/\x0c/g, '')
     .replace(/\x08eta\b/g, '\\beta')
     .replace(/\x08/g, '')
@@ -57,12 +57,14 @@ export const preprocessMath = (text) => {
   processed = processed.replace(/\\{2,}(?=[{}_^,;!|~])/g, '\\');
 
   // 4. Normalize LaTeX bracket delimiters \[...\] -> $$ and \(...\) -> $
-  // while preserving \left[ and \right]
-  processed = processed.replace(/(?<!\\left|\\right|[a-zA-Z])\\\[([\s\S]*?)\\\]/g, (match, content) => {
-    return `\n\n$$\n${content.trim()}\n$$\n\n`;
+  // while preserving \left[ and \right] (WebKit-safe skip-and-replace, avoiding variable-length lookbehind)
+  processed = processed.replace(/(\\left\\\[|\\right\\\[|[a-zA-Z]\\\[)|\\\[([\s\S]*?)\\\]/g, (match, skip, content) => {
+    if (skip) return skip;
+    return `\n\n$$\n${(content || '').trim()}\n$$\n\n`;
   });
-  processed = processed.replace(/(?<!\\left|\\right|[a-zA-Z])\\\(([\s\S]*?)\\\)/g, (match, content) => {
-    return `$${content.trim()}$`;
+  processed = processed.replace(/(\\left\\\(|\\right\\\(|[a-zA-Z]\\\(|\\\(begin|\\\(end)|\\\(([\s\S]*?)\\\)/g, (match, skip, content) => {
+    if (skip) return skip;
+    return `$${(content || '').trim()}$`;
   });
 
   // 5. CRITICAL FIX FOR UNINTENDED INDENTED CODE BLOCKS:
@@ -104,10 +106,11 @@ export const preprocessMath = (text) => {
     'array', 'align', 'align\\*', 'aligned', 'equation', 'equation\\*',
     'gather', 'gather\\*', 'gathered', 'cases', 'split'
   ].join('|');
-  const envRegex = new RegExp(`(?<!\\$)\\\\begin\\{(${environments})\\}([\\s\\S]*?)\\\\end\\{\\1\\}(?!\\$)`, 'g');
-  processed = processed.replace(envRegex, (match) => {
-    const cleanMatch = match.replace(/\$\s*\\(\w+)\s*\$/g, '\\$1');
-    return `\n\n$$\n${cleanMatch.trim()}\n$$\n\n`;
+  const envRegex = new RegExp(`(^|[^$])\\\\begin\\{(${environments})\\}([\\s\\S]*?)\\\\end\\{\\2\\}(?!\\$)`, 'g');
+  processed = processed.replace(envRegex, (match, prefix, env, content) => {
+    const inner = `\\begin{${env}}${content}\\end{${env}}`;
+    const cleanMatch = inner.replace(/\$\s*\\(\w+)\s*\$/g, '\\$1');
+    return `${prefix}\n\n$$\n${cleanMatch.trim()}\n$$\n\n`;
   });
 
   // 8. Split text into segments: math blocks ($$...$$ and $...$) and plain text blocks
@@ -119,7 +122,7 @@ export const preprocessMath = (text) => {
       let t = token;
 
       // Auto-wrap unwrapped \frac{...}{...} outside math delimiters
-      t = t.replace(/(?<!\$)\\frac\{([^{}]+)\}\{([^{}]+)\}(?!\$)/g, (m, g1, g2) => `$ \\frac{${g1}}{${g2}} $`);
+      t = t.replace(/(^|[^$])\\frac\{([^{}]+)\}\{([^{}]+)\}(?!\$)/g, (m, prefix, g1, g2) => `${prefix}$ \\frac{${g1}}{${g2}} $`);
 
       // Auto-wrap unwrapped standalone Greek letters and math symbols
       const symbolsToWrap = [
@@ -133,8 +136,8 @@ export const preprocessMath = (text) => {
         'infty', 'partial', 'nabla'
       ];
       symbolsToWrap.forEach(sym => {
-        const regex = new RegExp(`(?<![\\{^_\\\\])\\\\${sym}\\b(?![a-zA-Z0-9$])`, 'g');
-        t = t.replace(regex, (match) => `$${match}$`);
+        const regex = new RegExp(`(^|[^{^_\\\\])\\\\${sym}\\b(?![a-zA-Z0-9$])`, 'g');
+        t = t.replace(regex, (match, prefix) => `${prefix}$\\${sym}$`);
       });
 
       return t;
@@ -175,21 +178,22 @@ export const formatQuizMath = (text) => {
   processed = processed.replace(/\\{2,}(?=[a-zA-Z])/g, '\\');
   processed = processed.replace(/\\{2,}(?=[{}_^,;!|~])/g, '\\');
 
-  // 2. Normalize arrows and inequality symbols
+  // 2. Normalize arrows and inequality symbols (WebKit-safe regexes without lookbehind)
   processed = processed.replace(/<->|<=>|\\leftrightarrow/g, '\\iff ');
   processed = processed.replace(/->|-->|\\rightarrow/g, '\\to ');
   processed = processed.replace(/=>|==>|\\Rightarrow/g, '\\implies ');
-  processed = processed.replace(/(?<![a-zA-Z0-9])<=/g, '\\le ');
-  processed = processed.replace(/(?<![a-zA-Z0-9])>=/g, '\\ge ');
-  processed = processed.replace(/(?<![a-zA-Z0-9])!=/g, '\\neq ');
+  processed = processed.replace(/(^|[^a-zA-Z0-9])<=/g, '$1\\le ');
+  processed = processed.replace(/(^|[^a-zA-Z0-9])>=/g, '$1\\ge ');
+  processed = processed.replace(/(^|[^a-zA-Z0-9])!=/g, '$1\\neq ');
 
   // 3. Normalize Unicode Greek and Summation/Product operators
   processed = processed.replace(/(?:\\Sigma|Σ)(?=\s*[_^])/g, '\\sum');
   processed = processed.replace(/(?:\\Pi|Π)(?=\s*[_^])/g, '\\prod');
 
   // 4. Normalize LaTeX bracket delimiters \[...\] -> $$ and \(...\) -> $
-  processed = processed.replace(/(?<!\\left|\\right|[a-zA-Z])\\\[([\s\S]*?)\\\]/g, (m, c) => `$$${c.trim()}$$`);
-  processed = processed.replace(/(?<!\\left|\\right|[a-zA-Z])\\\(([\s\S]*?)\\\)/g, (m, c) => `$${c.trim()}$`);
+  // while preserving \left[ and \right] (WebKit-safe skip-and-replace)
+  processed = processed.replace(/(\\left\\\[|\\right\\\[|[a-zA-Z]\\\[)|\\\[([\s\S]*?)\\\]/g, (m, skip, c) => skip || `$$${(c || '').trim()}$$`);
+  processed = processed.replace(/(\\left\\\(|\\right\\\(|[a-zA-Z]\\\(|\\\(begin|\\\(end)|\\\(([\s\S]*?)\\\)/g, (m, skip, c) => skip || `$${(c || '').trim()}$`);
 
   // Math block protection table so subsequent regex passes NEVER touch inside already-wrapped math
   const mathBlocks = [];

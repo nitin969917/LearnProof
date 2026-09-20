@@ -12,7 +12,15 @@ import { formatQuizMath } from '../../utils/mathPreprocessor';
  * Renders LaTeX formulas, equations, and mathematical questions using KaTeX.
  */
 const QuizMathText = React.memo(({ text, className = '' }) => {
-  const formatted = useMemo(() => formatQuizMath(text), [text]);
+  const formatted = useMemo(() => {
+    if (!text || typeof text !== 'string') return '';
+    try {
+      return formatQuizMath(text);
+    } catch (err) {
+      console.warn('QuizMathText format error:', err);
+      return text;
+    }
+  }, [text]);
 
   if (!text) return null;
 

@@ -8,7 +8,8 @@ export const useQuizStore = create((set, get) => ({
   hasLoadedOnce: false,
 
   fetchQuizData: async (authToken, force = false) => {
-    if (!authToken) return;
+    const token = authToken || (typeof window !== 'undefined' ? localStorage.getItem("google_token") : null);
+    if (!token) return;
     
     const dataExists = get().playlists.length > 0 || get().history.length > 0;
     if (!dataExists || force) {
@@ -16,14 +17,21 @@ export const useQuizStore = create((set, get) => ({
     }
 
     try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+      const authHeader = {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      };
+
       const [quizListRes, historyRes] = await Promise.all([
-        axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-list/`, { idToken: authToken }),
-        axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/?idToken=${authToken}`)
+        axios.post(`${backendUrl}/api/quiz-list/`, { idToken: token }, authHeader),
+        axios.get(`${backendUrl}/api/quiz-history/?idToken=${token}`, authHeader)
       ]);
 
       set({
-        playlists: quizListRes.data.playlists || [],
-        history: (historyRes.data || []).filter(q => q.score !== null),
+        playlists: quizListRes.data?.playlists || [],
+        history: (historyRes.data || []).filter(q => q && q.score !== null),
         loading: false,
         hasLoadedOnce: true
       });

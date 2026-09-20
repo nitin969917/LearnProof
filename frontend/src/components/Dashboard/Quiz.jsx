@@ -11,8 +11,8 @@ import QuizMathText from '../Common/QuizMathText';
 
 const Quiz = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const [token] = useState(useAuth().token); // Use token from context
     const { token: authToken, user } = useAuth();
+    const effectiveToken = authToken || (typeof window !== 'undefined' ? localStorage.getItem("google_token") : null);
     const { confirm } = useModal();
 
     const playlists = useQuizStore(state => state.playlists);
@@ -22,6 +22,21 @@ const Quiz = () => {
     const addAttempt = useQuizStore(state => state.addAttempt);
     const deleteAttempt = useQuizStore(state => state.deleteAttempt);
     const setPlaylists = useQuizStore(state => state.setPlaylists);
+
+    // iOS WebKit-safe date formatting (prevents RangeError: Invalid time value on Safari)
+    const formatAttemptDate = (dateVal, options) => {
+        if (!dateVal) return '';
+        try {
+            const safeStr = typeof dateVal === 'string' && dateVal.includes(' ') && !dateVal.includes('T')
+                ? dateVal.replace(' ', 'T')
+                : dateVal;
+            const d = new Date(safeStr);
+            if (isNaN(d.getTime())) return '';
+            return d.toLocaleDateString(undefined, options);
+        } catch (_) {
+            return '';
+        }
+    };
 
     const [searchQuery, setSearchQuery] = useState("");
     const filteredPlaylists = playlists.filter(pl => pl.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -63,7 +78,7 @@ const Quiz = () => {
                     fullName: requestFullName,
                     userNotes: requestNotes
                 },
-                { headers: { Authorization: `Bearer ${authToken || token}` } }
+                { headers: { Authorization: `Bearer ${effectiveToken}` } }
             );
 
             toast.success(res.data?.message || "Certificate request submitted for admin review!");
@@ -100,10 +115,10 @@ const Quiz = () => {
     const attemptParam = searchParams.get("attempt");
 
     useEffect(() => {
-        if (authToken) {
-            fetchQuizData(authToken);
+        if (effectiveToken) {
+            fetchQuizData(effectiveToken);
         }
-    }, [authToken, fetchQuizData]);
+    }, [effectiveToken, fetchQuizData]);
 
     // Synchronize browser back/forward navigation with quiz attempt view
     useEffect(() => {
@@ -119,9 +134,11 @@ const Quiz = () => {
         if (found) {
             if (found.questions) {
                 setSelectedHistoryQuiz(found);
-            } else if (authToken) {
+            } else if (effectiveToken) {
                 setLoadingQuizDetails(targetId);
-                axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${targetId}?idToken=${authToken}`)
+                axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${targetId}?idToken=${effectiveToken}`, {
+                    headers: { Authorization: `Bearer ${effectiveToken}` }
+                })
                     .then(res => {
                         addAttempt(res.data);
                         setSelectedHistoryQuiz(res.data);
@@ -130,7 +147,7 @@ const Quiz = () => {
                     .finally(() => setLoadingQuizDetails(null));
             }
         }
-    }, [attemptParam, history, authToken]);
+    }, [attemptParam, history, effectiveToken]);
 
     useEffect(() => {
         if (!quizData) return;
@@ -152,9 +169,11 @@ const Quiz = () => {
     const handleStartQuiz = async (type, id) => {
         try {
             const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/start-quiz/`, {
-                idToken: authToken,
+                idToken: effectiveToken,
                 contentType: type,
                 contentId: id,
+            }, {
+                headers: { Authorization: `Bearer ${effectiveToken}` }
             });
             toast.dismiss();
             setQuizData(res.data.quiz);
@@ -181,9 +200,11 @@ const Quiz = () => {
         try {
             const answerList = quizData.questions.map((_, idx) => answers[idx] || "");
             const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/submit-quiz/`, {
-                idToken: authToken,
+                idToken: effectiveToken,
                 quizId: quizData.quiz_id,
                 answers: answerList,
+            }, {
+                headers: { Authorization: `Bearer ${effectiveToken}` }
             });
             setResult(res.data);
             toast.success("Quiz submitted!");
@@ -194,7 +215,9 @@ const Quiz = () => {
             }
 
             // Fetch target lists in background to update progress
-            axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-list/`, { idToken: authToken })
+            axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-list/`, { idToken: effectiveToken }, {
+                headers: { Authorization: `Bearer ${effectiveToken}` }
+            })
                 .then(listRes => {
                     setPlaylists(listRes.data.playlists || []);
                 })
@@ -217,7 +240,9 @@ const Quiz = () => {
 
         setLoadingQuizDetails(hist.id);
         try {
-            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${hist.id}?idToken=${authToken}`);
+            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${hist.id}?idToken=${effectiveToken}`, {
+                headers: { Authorization: `Bearer ${effectiveToken}` }
+            });
             const fullQuiz = res.data;
             addAttempt(fullQuiz);
             setSelectedHistoryQuiz(fullQuiz);
@@ -245,7 +270,9 @@ const Quiz = () => {
         if (!confirmed) return;
 
         try {
-            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${id}?idToken=${authToken}`);
+            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-history/${id}?idToken=${effectiveToken}`, {
+                headers: { Authorization: `Bearer ${effectiveToken}` }
+            });
             toast.success("Quiz attempt deleted successfully");
             deleteAttempt(id);
             if (selectedHistoryQuiz?.id === id) {
@@ -628,7 +655,7 @@ const Quiz = () => {
                             </h2>
                             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5 flex items-center gap-2 font-medium">
                                 <Clock size={12} />
-                                Attempted on {new Date(selectedHistoryQuiz.attempted_at).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                                Attempted on {formatAttemptDate(selectedHistoryQuiz.attempted_at, { month: 'long', day: 'numeric', year: 'numeric' })}
                             </p>
                         </div>
 
@@ -899,7 +926,7 @@ const Quiz = () => {
                                                 {hist.video ? hist.video.name : hist.playlist?.name}
                                             </p>
                                             <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 font-medium leading-none">
-                                                {new Date(hist.attempted_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                {formatAttemptDate(hist.attempted_at, { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </p>
                                         </div>
 
