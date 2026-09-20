@@ -441,6 +441,7 @@ export default function SocialDashboard() {
                 onSelectChatUser={startDirectChat} 
                 postCreatedTrigger={postCreatedTrigger}
                 onOpenCreatePost={openCreatePostModal}
+                onNavigateTab={handleTabChange}
               />
             </div>
             <div className={activeTab === 'discover' ? 'block' : 'hidden'}>

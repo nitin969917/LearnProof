@@ -1,11 +1,13 @@
-import { useEffect, useRef } from 'react';
-import { Sparkles, Image as ImageIcon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Sparkles, Image as ImageIcon, Users, UserPlus, MessageCircle, ChevronRight, Hash, TrendingUp, BookOpen, Check } from 'lucide-react';
+import toast from 'react-hot-toast';
+import socialApi from '../../../api/socialApi.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
 
-export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSelectChatUser, postCreatedTrigger, onOpenCreatePost }) {
+export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSelectChatUser, postCreatedTrigger, onOpenCreatePost, onNavigateTab }) {
   const posts = useSocialFeedStore(state => state.posts);
   const friends = useSocialFeedStore(state => state.friends);
   const closeFriends = useSocialFeedStore(state => state.closeFriends);
@@ -19,6 +21,40 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
   const onlineUserIds = useSocialStatusStore(state => state.onlineUserIds);
 
   const loaderRef = useRef(null);
+  const [suggestedPeers, setSuggestedPeers] = useState([]);
+  const [sentRequests, setSentRequests] = useState(new Set());
+  const [loadingSuggested, setLoadingSuggested] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSuggested = async () => {
+      setLoadingSuggested(true);
+      try {
+        const res = await socialApi.get('/users/suggested?limit=4');
+        if (isMounted) {
+          setSuggestedPeers(Array.isArray(res.data) ? res.data : []);
+        }
+      } catch (err) {
+        // Quiet background fetch
+      } finally {
+        if (isMounted) setLoadingSuggested(false);
+      }
+    };
+    fetchSuggested();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleSendFriendRequest = async (e, targetUserId) => {
+    e.stopPropagation();
+    if (sentRequests.has(targetUserId)) return;
+    try {
+      await socialApi.post('/social/friend-request', { receiverId: targetUserId });
+      setSentRequests(prev => new Set([...prev, targetUserId]));
+      toast.success("Connection request sent!");
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to send request");
+    }
+  };
 
   useEffect(() => {
     if (postCreatedTrigger > 0) {
@@ -157,89 +193,174 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
         </div>
       </div>
 
-      {/* ── Right Sidebar (desktop only) ── */}
-      <div className="hidden lg:flex lg:col-span-4 flex-col gap-6">
-         {/* Quick Friends List */}
-         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm">
-            <h3 className="text-base font-bold text-gray-800 dark:text-gray-100 mb-4">Your Friends</h3>
-            <div className="space-y-4">
-                 {friends.slice(0, 4).map(friend => {
-                   const isFriendOnline = onlineUserIds.some(id => id.toString() === friend.id.toString());
-                   return (
-                     <div key={friend.id} className="flex items-center justify-between gap-2">
-                        <div 
-                           onClick={() => onViewProfile(friend.id)}
-                           className="flex items-center gap-3 cursor-pointer min-w-0 flex-1"
-                        >
-                           <div className="relative flex-shrink-0">
-                              <UserAvatar src={friend.profilePicture} name={friend.name} className="w-10 h-10 rounded-full" />
-                              {isFriendOnline && (
-                                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-10"></div>
-                              )}
-                           </div>
-                           <div className="min-w-0">
-                              <p className="font-bold text-sm text-gray-800 dark:text-gray-100 truncate hover:text-orange-500 transition-colors">{friend.name}</p>
-                              <p className={`text-[10px] font-bold ${isFriendOnline ? 'text-green-500' : 'text-gray-400'}`}>
-                                 {isFriendOnline ? 'Online' : 'Offline'}
-                              </p>
-                           </div>
-                        </div>
-                        <button 
-                           onClick={() => onSelectChatUser(friend)} 
-                           className="px-3 py-1 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/40 border border-orange-100 dark:border-orange-900/30 text-xs font-bold rounded-full transition"
-                        >
-                          Chat
-                        </button>
-                     </div>
-                   );
-                })}
-                
-                {friends.length === 0 && (
-                  <div className="text-center py-4 text-gray-400 dark:text-gray-500">
-                    <p className="text-xs mb-2">No friends added yet.</p>
-                  </div>
-                )}
+      {/* ── Right Sidebar (desktop only, sticky so it stays visible on scroll) ── */}
+      <div className="hidden lg:flex lg:col-span-4 flex-col gap-4 sticky top-4 self-start max-h-[calc(100vh-2rem)] overflow-y-auto no-scrollbar pb-12">
+        
+        {/* 1. Your Friends / Study Connections */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5 shadow-xs">
+          <div className="flex items-center justify-between mb-3.5">
+            <div className="flex items-center gap-2">
+              <Users size={17} className="text-orange-500" />
+              <h3 className="text-sm font-extrabold text-gray-900 dark:text-gray-100">Your Friends</h3>
             </div>
-         </div>
+            {friends.length > 0 && (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400">
+                {friends.length} {friends.length === 1 ? 'friend' : 'friends'}
+              </span>
+            )}
+          </div>
 
-         {/* Close Friends Section */}
-         {closeFriends.length > 0 && (
-           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                 <Sparkles size={18} className="text-orange-500" />
-                 <h3 className="text-base font-bold text-gray-800 dark:text-gray-100">Close Friends</h3>
+          <div className="space-y-3">
+            {friends.slice(0, 5).map(friend => {
+              const isFriendOnline = onlineUserIds.some(id => id.toString() === friend.id.toString());
+              return (
+                <div key={friend.id} className="flex items-center justify-between gap-2 group">
+                  <div 
+                    onClick={() => onViewProfile(friend.id)}
+                    className="flex items-center gap-2.5 cursor-pointer min-w-0 flex-1"
+                  >
+                    <div className="relative shrink-0">
+                      <UserAvatar src={friend.profilePicture} name={friend.name} className="w-9 h-9 rounded-full" />
+                      {isFriendOnline && (
+                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-10 animate-pulse"></div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-xs text-gray-800 dark:text-gray-200 truncate group-hover:text-orange-500 transition-colors">
+                        {friend.name}
+                      </p>
+                      <p className={`text-[10px] font-semibold flex items-center gap-1 ${isFriendOnline ? 'text-green-500' : 'text-gray-400'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isFriendOnline ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}></span>
+                        {isFriendOnline ? 'Online' : 'Offline'}
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => onSelectChatUser(friend)} 
+                    className="px-3 py-1 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 dark:hover:text-white border border-orange-200 dark:border-orange-800/40 text-xs font-bold rounded-full transition-all cursor-pointer shrink-0"
+                  >
+                    Chat
+                  </button>
+                </div>
+              );
+            })}
+
+            {friends.length === 0 && (
+              <div className="text-center py-4 text-gray-400 dark:text-gray-500">
+                <p className="text-xs font-medium">No friends connected yet.</p>
+                <button
+                  onClick={() => onNavigateTab && onNavigateTab('discover')}
+                  className="mt-2 text-xs font-bold text-orange-500 hover:underline cursor-pointer"
+                >
+                  Discover peers →
+                </button>
               </div>
-              <div className="space-y-4">
-                  {closeFriends.slice(0, 4).map(friend => {
-                     const isFriendOnline = onlineUserIds.some(id => id.toString() === friend.id.toString());
-                     return (
-                       <div key={friend.id} className="flex items-center gap-3">
-                          <div 
-                             onClick={() => onViewProfile(friend.id)}
-                             className="relative flex-shrink-0 cursor-pointer"
-                          >
-                             <UserAvatar src={friend.profilePicture} name={friend.name} className="w-10 h-10 rounded-full" />
-                             {isFriendOnline && (
-                                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full z-10"></div>
-                             )}
-                          </div>
-                          <div className="min-w-0">
-                             <p 
-                               onClick={() => onViewProfile(friend.id)}
-                               className="font-bold text-sm text-gray-800 dark:text-gray-100 truncate cursor-pointer hover:text-orange-500"
-                             >
-                               {friend.name}
-                             </p>
-                             <p className={`text-[10px] font-bold ${isFriendOnline ? 'text-green-500' : 'text-gray-400'}`}>
-                                {isFriendOnline ? 'Online' : 'Offline'}
-                             </p>
-                          </div>
-                       </div>
-                     );
-                  })}
+            )}
+          </div>
+
+          {friends.length > 5 && (
+            <button
+              onClick={() => onNavigateTab && onNavigateTab('friends')}
+              className="mt-3.5 w-full py-1.5 text-center text-xs font-bold text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-xl transition-colors cursor-pointer"
+            >
+              View all {friends.length} connections →
+            </button>
+          )}
+        </div>
+
+        {/* 2. Suggested Peers Card (Students You May Know) */}
+        {suggestedPeers.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5 shadow-xs">
+            <div className="flex items-center justify-between mb-3.5">
+              <div className="flex items-center gap-2">
+                <UserPlus size={17} className="text-orange-500" />
+                <h3 className="text-sm font-extrabold text-gray-900 dark:text-gray-100">Suggested Peers</h3>
               </div>
-           </div>
-         )}
+              <button
+                onClick={() => onNavigateTab && onNavigateTab('discover')}
+                className="text-[11px] font-bold text-orange-500 hover:underline cursor-pointer"
+              >
+                See all
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {suggestedPeers.slice(0, 4).map(peer => {
+                const hasRequested = sentRequests.has(peer.id);
+                return (
+                  <div key={peer.id} className="flex items-center justify-between gap-2 group">
+                    <div 
+                      onClick={() => onViewProfile(peer.id)}
+                      className="flex items-center gap-2.5 cursor-pointer min-w-0 flex-1"
+                    >
+                      <UserAvatar src={peer.profilePicture} name={peer.name} className="w-8 h-8 rounded-full shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-bold text-xs text-gray-800 dark:text-gray-200 truncate group-hover:text-orange-500 transition-colors">
+                          {peer.name}
+                        </p>
+                        <p className="text-[10px] text-gray-400 truncate">
+                          {peer.department || peer.collegeName || 'Student Engineer'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => handleSendFriendRequest(e, peer.id)}
+                      disabled={hasRequested}
+                      className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all shrink-0 cursor-pointer ${
+                        hasRequested
+                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-default'
+                          : 'bg-orange-500 text-white hover:bg-orange-600 shadow-xs active:scale-95'
+                      }`}
+                    >
+                      {hasRequested ? 'Sent ✓' : '+ Connect'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 3. Trending Discussions & Topics */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5 shadow-xs">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={17} className="text-amber-500" />
+            <h3 className="text-sm font-extrabold text-gray-900 dark:text-gray-100">Popular in Community</h3>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { tag: '#LeetCodeDSA', desc: 'Algorithm strategies' },
+              { tag: '#SystemDesign', desc: 'Architecture notes' },
+              { tag: '#ReactNodeJS', desc: 'Full-stack tips' },
+              { tag: '#OperatingSystems', desc: 'Core CS viva' },
+              { tag: '#DockerDeploy', desc: 'DevOps & containers' },
+              { tag: '#CampusHackathon', desc: 'Projects & demos' }
+            ].map(({ tag, desc }) => (
+              <span
+                key={tag}
+                title={desc}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-50/70 dark:bg-gray-750 hover:bg-orange-100 dark:hover:bg-gray-700 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 border border-orange-100/70 dark:border-gray-700 transition-colors cursor-pointer select-none"
+              >
+                <span className="text-orange-500">{tag}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* 4. Minimal Community Info & Footer */}
+        <div className="px-2 text-[11px] text-gray-400 dark:text-gray-500 space-y-1.5">
+          <div className="flex flex-wrap gap-x-2.5 gap-y-1 font-medium">
+            <span className="hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer">About Social Hub</span>
+            <span>•</span>
+            <span className="hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer">Guidelines</span>
+            <span>•</span>
+            <span className="hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer">Safety</span>
+            <span>•</span>
+            <span className="hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer">Help</span>
+          </div>
+          <p className="text-[10px] text-gray-400">© 2026 LearnProof AI • Student Community</p>
+        </div>
+
       </div>
       </div>
     </div>
