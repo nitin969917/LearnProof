@@ -37,12 +37,8 @@ const CalendarCard = () => {
     const isClosingRef = useRef(false);
 
     const handleClosePopover = (e) => {
-        if (e) {
-            if (typeof e.preventDefault === 'function') e.preventDefault();
-            if (typeof e.stopPropagation === 'function') e.stopPropagation();
-            if (e.nativeEvent && typeof e.nativeEvent.stopImmediatePropagation === 'function') {
-                e.nativeEvent.stopImmediatePropagation();
-            }
+        if (e && typeof e.stopPropagation === 'function') {
+            e.stopPropagation();
         }
         isClosingRef.current = true;
         setActiveDate(null);
@@ -222,16 +218,6 @@ const CalendarCard = () => {
                                         <div
                                             className="fixed inset-0 z-40 bg-black/20 sm:bg-transparent cursor-default"
                                             onClick={handleClosePopover}
-                                            onMouseDown={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                handleClosePopover(e);
-                                            }}
-                                            onTouchStart={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                handleClosePopover(e);
-                                            }}
                                         />
                                         <div
                                             ref={popoverRef}
@@ -243,16 +229,7 @@ const CalendarCard = () => {
                                                 <button
                                                     type="button"
                                                     onClick={handleClosePopover}
-                                                    onMouseDown={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                    }}
-                                                    onTouchStart={(e) => {
-                                                        e.preventDefault();
-                                                        e.stopPropagation();
-                                                        handleClosePopover(e);
-                                                    }}
-                                                    className="text-gray-400 hover:text-white p-1 -mr-1 rounded-md hover:bg-gray-800 transition cursor-pointer active:scale-90"
+                                                    className="text-gray-400 hover:text-white p-1.5 -mr-1 rounded-md hover:bg-gray-800 transition cursor-pointer active:scale-90"
                                                     title="Close details"
                                                     aria-label="Close"
                                                 >
