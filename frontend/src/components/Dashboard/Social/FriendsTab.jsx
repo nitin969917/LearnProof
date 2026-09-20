@@ -300,7 +300,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
   }
 
   return (
-    <div className="w-full flex flex-col gap-4 sm:gap-6 font-sans">
+    <div className="w-full flex flex-col gap-3.5 sm:gap-6 font-sans">
       
       {/* ── Top Header Section (Desktop Banner + Page Title, hidden on mobile) ── */}
       <div className="hidden sm:flex sm:flex-row sm:items-center justify-between gap-4">
@@ -366,19 +366,19 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
       </div>
 
       {/* ── Mobile Segmented Control Pills (My Connections vs Pending Requests vs Blocked Users) ── */}
-      <div className="sm:hidden flex items-center bg-gray-100/90 dark:bg-gray-800/90 p-1 rounded-full border border-gray-200/80 dark:border-gray-700">
+      <div className="sm:hidden flex items-center bg-gray-100/90 dark:bg-gray-800/90 p-1 rounded-full border border-gray-200/80 dark:border-gray-700 shadow-2xs">
         <button
           type="button"
           onClick={() => setMobileTab('connections')}
-          className={`flex-1 py-2 px-2.5 rounded-full font-black text-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
+          className={`flex-1 py-2 px-2 rounded-full font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer outline-none focus:outline-none select-none ${
             mobileTab === 'connections'
-              ? 'bg-orange-500 text-white shadow-sm'
+              ? 'bg-orange-500 text-white shadow-xs'
               : 'text-gray-600 dark:text-gray-300 hover:text-orange-500'
           }`}
         >
           <span>Connections</span>
-          <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-            mobileTab === 'connections' ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none ${
+            mobileTab === 'connections' ? 'bg-white/25 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
           }`}>
             {filteredFriends.length}
           </span>
@@ -387,16 +387,24 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
         <button
           type="button"
           onClick={() => setMobileTab('pending')}
-          className={`flex-1 py-2 px-2.5 rounded-full font-black text-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
+          className={`flex-1 py-2 px-2 rounded-full font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer outline-none focus:outline-none select-none ${
             mobileTab === 'pending'
-              ? 'bg-orange-500 text-white shadow-sm'
+              ? 'bg-orange-500 text-white shadow-xs'
               : 'text-gray-600 dark:text-gray-300 hover:text-orange-500'
           }`}
         >
           <span>Pending</span>
-          {pendingRequests.length > 0 && (
-            <span className="w-4 h-4 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">
+          {pendingRequests.length > 0 ? (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none ${
+              mobileTab === 'pending' ? 'bg-white text-orange-600' : 'bg-rose-500 text-white'
+            }`}>
               {pendingRequests.length}
+            </span>
+          ) : (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none ${
+              mobileTab === 'pending' ? 'bg-white/25 text-white' : 'bg-gray-200/70 dark:bg-gray-700/70 text-gray-500 dark:text-gray-400'
+            }`}>
+              0
             </span>
           )}
         </button>
@@ -404,28 +412,34 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
         <button
           type="button"
           onClick={() => setMobileTab('blocked')}
-          className={`flex-1 py-2 px-2.5 rounded-full font-black text-xs transition-all flex items-center justify-center gap-1 cursor-pointer ${
+          className={`flex-1 py-2 px-2 rounded-full font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer outline-none focus:outline-none select-none ${
             mobileTab === 'blocked'
-              ? 'bg-orange-500 text-white shadow-sm'
+              ? 'bg-orange-500 text-white shadow-xs'
               : 'text-gray-600 dark:text-gray-300 hover:text-orange-500'
           }`}
         >
           <span>Blocked</span>
-          {blockedUsers.length > 0 && (
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-              mobileTab === 'blocked' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+          {blockedUsers.length > 0 ? (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none ${
+              mobileTab === 'blocked' ? 'bg-white text-orange-600' : 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
             }`}>
               {blockedUsers.length}
+            </span>
+          ) : (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none ${
+              mobileTab === 'blocked' ? 'bg-white/25 text-white' : 'bg-gray-200/70 dark:bg-gray-700/70 text-gray-500 dark:text-gray-400'
+            }`}>
+              0
             </span>
           )}
         </button>
       </div>
 
       {/* ── Main 2-Column Desktop Grid / Tabbed Mobile View ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-6 items-start">
         
         {/* ── LEFT COLUMN: Pending Requests & Blocked Users ── */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
+        <div className={`lg:col-span-5 flex-col gap-4 sm:gap-6 ${mobileTab === 'connections' ? 'hidden lg:flex' : 'flex'}`}>
           
           {/* Pending Requests Card */}
           <div className={`bg-white dark:bg-gray-800 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-2xs space-y-4 ${
