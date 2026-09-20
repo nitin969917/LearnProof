@@ -15,6 +15,7 @@ import { useSocialFeedStore } from "../../store/socialFeedStore.js";
 import { requestNotificationPermissionAndGetToken } from "../../utils/fcm.js";
 import UserAvatar from "../Common/UserAvatar.jsx";
 import toast from "react-hot-toast";
+import SwipeableNotificationToast from "../Common/SwipeableNotificationToast.jsx";
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -200,51 +201,16 @@ const DashboardLayout = () => {
                     } catch (_) {}
 
                     toast.custom((t) => (
-                        <div
-                            onClick={() => {
-                                toast.dismiss(t.id);
-                                navigate(`/dashboard/social/chats/direct/${senderStr}`);
-                            }}
-                            className={`${
-                                t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
-                            } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-orange-200/80 dark:border-gray-700/80 cursor-pointer hover:border-orange-400 dark:hover:border-orange-500/50 active:scale-98`}
-                            style={{ pointerEvents: 'auto' }}
-                        >
-                            <div className="relative shrink-0">
-                                {senderPic ? (
-                                    <img src={senderPic} alt={senderName} className="w-10 h-10 rounded-full object-cover ring-2 ring-orange-500/20" />
-                                ) : (
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FF5100] to-orange-400 text-white font-black flex items-center justify-center text-sm shadow-xs">
-                                        {senderName ? senderName[0].toUpperCase() : 'U'}
-                                    </div>
-                                )}
-                                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-gray-800" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between gap-1">
-                                    <p className="text-xs font-black text-gray-900 dark:text-white truncate">
-                                        {senderName}
-                                    </p>
-                                    <span className="text-[10px] text-[#FF5100] font-black uppercase tracking-wider">
-                                        now
-                                    </span>
-                                </div>
-                                <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5">
-                                    {displayContent}
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toast.dismiss(t.id);
-                                }}
-                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
-                                title="Dismiss"
-                            >
-                                <X size={14} />
-                            </button>
-                        </div>
+                        <SwipeableNotificationToast
+                            t={t}
+                            avatar={senderPic}
+                            fallbackInitial={senderName ? senderName[0].toUpperCase() : 'U'}
+                            avatarBadge={<span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-gray-800" />}
+                            title={senderName}
+                            body={displayContent}
+                            tag="now"
+                            onClick={() => navigate(`/dashboard/social/chats/direct/${senderStr}`)}
+                        />
                     ), {
                         duration: 4000,
                         position: 'top-center'
@@ -279,45 +245,20 @@ const DashboardLayout = () => {
                     } catch (_) {}
 
                     toast.custom((t) => (
-                        <div
-                            onClick={() => {
-                                toast.dismiss(t.id);
-                                navigate(`/dashboard/social/chats/group/${groupStr}`);
-                            }}
-                            className={`${
-                                t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
-                            } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-orange-200/80 dark:border-gray-700/80 cursor-pointer hover:border-orange-400 dark:hover:border-orange-500/50 active:scale-98`}
-                            style={{ pointerEvents: 'auto' }}
-                        >
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 text-white font-black flex items-center justify-center text-sm shadow-xs shrink-0">
-                                <Users size={18} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between gap-1">
-                                    <p className="text-xs font-black text-gray-900 dark:text-white truncate">
-                                        {groupName}
-                                    </p>
-                                    <span className="text-[10px] text-[#FF5100] font-black uppercase tracking-wider">
-                                        now
-                                    </span>
+                        <SwipeableNotificationToast
+                            t={t}
+                            avatar={
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 text-white font-black flex items-center justify-center text-sm shadow-xs shrink-0">
+                                    <Users size={18} />
                                 </div>
-                                <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5">
-                                    <span className="font-bold text-gray-800 dark:text-gray-200">{senderName}: </span>
-                                    {displayContent}
-                                </p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toast.dismiss(t.id);
-                                }}
-                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
-                                title="Dismiss"
-                            >
-                                <X size={14} />
-                            </button>
-                        </div>
+                            }
+                            title={groupName}
+                            body={<><span className="font-bold text-gray-800 dark:text-gray-200">{senderName}: </span>{displayContent}</>}
+                            tag="now"
+                            borderColor="border-purple-200/80 dark:border-purple-900/60"
+                            tagColor="text-purple-600 dark:text-purple-400"
+                            onClick={() => navigate(`/dashboard/social/chats/group/${groupStr}`)}
+                        />
                     ), {
                         duration: 4000,
                         position: 'top-center'
@@ -347,53 +288,23 @@ const DashboardLayout = () => {
             const senderCollege = data.sender.collegeName || data.sender.department || '';
 
             toast.custom((t) => (
-                <div
-                    onClick={() => {
-                        toast.dismiss(t.id);
-                        navigate('/dashboard/social?tab=friends&sub=pending');
-                    }}
-                    className={`${
-                        t.visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-3 scale-95'
-                    } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-blue-200/80 dark:border-blue-900/60 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500/60 hover:shadow-blue-500/10 active:scale-98`}
-                    style={{ pointerEvents: 'auto' }}
-                >
-                    <div className="relative shrink-0">
-                        {senderAvatar ? (
-                            <img src={senderAvatar} alt={senderName} className="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500/30" />
-                        ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-xs">
-                                {senderName ? senderName[0].toUpperCase() : 'U'}
-                            </div>
-                        )}
+                <SwipeableNotificationToast
+                    t={t}
+                    avatar={senderAvatar}
+                    fallbackInitial={senderName ? senderName[0].toUpperCase() : 'U'}
+                    fallbackGradient="from-blue-600 to-indigo-600"
+                    avatarBadge={
                         <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-blue-600 ring-2 ring-white dark:ring-gray-800 flex items-center justify-center text-white shadow-xs">
                             <UserPlus size={9} strokeWidth={2.5} />
                         </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                            <p className="text-xs font-black text-gray-900 dark:text-white truncate">
-                                {senderName}
-                            </p>
-                            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-wider">
-                                request
-                            </span>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5">
-                            {senderCollege ? `Wants to connect • ${senderCollege}` : 'Sent you a connection request!'}
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            toast.dismiss(t.id);
-                        }}
-                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
-                        title="Dismiss"
-                    >
-                        <X size={14} />
-                    </button>
-                </div>
+                    }
+                    title={senderName}
+                    body={senderCollege ? `Wants to connect • ${senderCollege}` : 'Sent you a connection request!'}
+                    tag="request"
+                    tagColor="text-blue-600 dark:text-blue-400"
+                    borderColor="border-blue-200/80 dark:border-blue-900/60"
+                    onClick={() => navigate('/dashboard/social?tab=friends&sub=pending')}
+                />
             ), {
                 id: `friend_req_${data.requestId || data.sender.id || Date.now()}`,
                 duration: 6000,
@@ -409,53 +320,23 @@ const DashboardLayout = () => {
             const friendCollege = data.friend.collegeName || data.friend.department || '';
 
             toast.custom((t) => (
-                <div
-                    onClick={() => {
-                        toast.dismiss(t.id);
-                        navigate('/dashboard/social?tab=friends');
-                    }}
-                    className={`${
-                        t.visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-3 scale-95'
-                    } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-emerald-200/80 dark:border-emerald-900/60 cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500/60 hover:shadow-emerald-500/10 active:scale-98`}
-                    style={{ pointerEvents: 'auto' }}
-                >
-                    <div className="relative shrink-0">
-                        {friendAvatar ? (
-                            <img src={friendAvatar} alt={friendName} className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-500/30" />
-                        ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-600 text-white font-black flex items-center justify-center text-sm shadow-xs">
-                                {friendName ? friendName[0].toUpperCase() : 'U'}
-                            </div>
-                        )}
+                <SwipeableNotificationToast
+                    t={t}
+                    avatar={friendAvatar}
+                    fallbackInitial={friendName ? friendName[0].toUpperCase() : 'U'}
+                    fallbackGradient="from-emerald-600 to-teal-600"
+                    avatarBadge={
                         <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-600 ring-2 ring-white dark:ring-gray-800 flex items-center justify-center text-white shadow-xs">
                             <UserCheck size={9} strokeWidth={2.5} />
                         </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                            <p className="text-xs font-black text-gray-900 dark:text-white truncate">
-                                {friendName}
-                            </p>
-                            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-wider">
-                                connected
-                            </span>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5">
-                            {friendCollege ? `Connected • ${friendCollege}` : 'Accepted your connection request!'}
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            toast.dismiss(t.id);
-                        }}
-                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
-                        title="Dismiss"
-                    >
-                        <X size={14} />
-                    </button>
-                </div>
+                    }
+                    title={friendName}
+                    body={friendCollege ? `Connected • ${friendCollege}` : 'Accepted your connection request!'}
+                    tag="connected"
+                    tagColor="text-emerald-600 dark:text-emerald-400"
+                    borderColor="border-emerald-200/80 dark:border-emerald-900/60"
+                    onClick={() => navigate('/dashboard/social?tab=friends')}
+                />
             ), {
                 id: `friend_acc_${data.requestId || data.userId || Date.now()}`,
                 duration: 5000,
@@ -519,51 +400,18 @@ const DashboardLayout = () => {
             }
 
             toast.custom((t) => (
-                <div
-                    onClick={() => {
-                        toast.dismiss(t.id);
-                        navigate(`/dashboard/live-rooms/${data.roomName}`);
-                    }}
-                    className={`${
-                        t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
-                    } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-orange-200/80 dark:border-gray-700/80 cursor-pointer hover:border-orange-400 dark:hover:border-orange-500/50 active:scale-98`}
-                    style={{ pointerEvents: 'auto' }}
-                >
-                    <div className="relative shrink-0">
-                        {creatorAvatar ? (
-                            <img src={creatorAvatar} alt={creatorName} className="w-10 h-10 rounded-full object-cover ring-2 ring-orange-500/20" />
-                        ) : (
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FF5100] to-orange-400 text-white font-black flex items-center justify-center text-sm shadow-xs">
-                                {creatorName ? creatorName[0].toUpperCase() : 'L'}
-                            </div>
-                        )}
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800 animate-pulse" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                            <p className="text-xs font-black text-gray-900 dark:text-white truncate">
-                                {title}
-                            </p>
-                            <span className="text-[10px] text-[#FF5100] font-black uppercase tracking-wider">
-                                now
-                            </span>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5">
-                            {displayContent}
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            toast.dismiss(t.id);
-                        }}
-                        className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
-                        title="Dismiss"
-                    >
-                        <X size={14} />
-                    </button>
-                </div>
+                <SwipeableNotificationToast
+                    t={t}
+                    avatar={creatorAvatar}
+                    fallbackInitial={creatorName ? creatorName[0].toUpperCase() : 'L'}
+                    avatarBadge={<span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800 animate-pulse" />}
+                    title={title}
+                    body={displayContent}
+                    tag="live"
+                    tagColor="text-red-500"
+                    borderColor="border-orange-200/80 dark:border-gray-700/80"
+                    onClick={() => navigate(`/dashboard/live-rooms/${data.roomName}`)}
+                />
             ), {
                 id: `live_room_event_${data.roomName}_${eventType}`,
                 duration: 5000,

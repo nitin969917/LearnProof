@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveRoomPipStore } from '../../../store/liveRoomPipStore';
 import { X, Maximize2, Mic, MicOff, Video, VideoOff } from 'lucide-react';
 import toast from 'react-hot-toast';
+import SwipeableNotificationToast from '../../Common/SwipeableNotificationToast';
 import { getSocialSocket } from '../../../utils/socialSocket';
 import {
   useParticipants,
@@ -253,52 +254,19 @@ export default function LiveRoomPipWindow() {
         const displayContent = chatItem.text || 'Sent a message';
 
         toast.custom((t) => (
-          <div
+          <SwipeableNotificationToast
+            t={t}
+            avatar={senderPic}
+            fallbackInitial={senderName ? senderName[0].toUpperCase() : 'U'}
+            avatarBadge={<span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-gray-800" />}
+            title={senderName}
+            body={displayContent}
+            tag="now"
             onClick={() => {
-              toast.dismiss(t.id);
               setShowPip(false);
               navigate(`/dashboard/live-rooms/${activeRoom.roomName}`);
             }}
-            className={`${
-              t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'
-            } transition-all duration-200 max-w-sm w-full bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl shadow-2xl rounded-2xl p-3 flex items-center gap-3 border border-orange-200/80 dark:border-gray-700/80 cursor-pointer hover:border-orange-400 dark:hover:border-orange-500/50 active:scale-98 z-50`}
-            style={{ pointerEvents: 'auto' }}
-          >
-            <div className="relative shrink-0">
-              {senderPic ? (
-                <img src={senderPic} alt={senderName} className="w-10 h-10 rounded-full object-cover ring-2 ring-orange-500/20" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#FF5100] to-orange-400 text-white font-black flex items-center justify-center text-sm shadow-xs">
-                  {senderName ? senderName[0].toUpperCase() : 'U'}
-                </div>
-              )}
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-gray-800" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-1">
-                <p className="text-xs font-black text-gray-900 dark:text-white truncate">
-                  {senderName}
-                </p>
-                <span className="text-[10px] text-[#FF5100] font-black uppercase tracking-wider">
-                  now
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium mt-0.5">
-                {displayContent}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toast.dismiss(t.id);
-              }}
-              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition shrink-0"
-              title="Dismiss"
-            >
-              <X size={14} />
-            </button>
-          </div>
+          />
         ), {
           id: `live_chat_pip_${chatItem.id || Date.now()}`,
           duration: 4000,
