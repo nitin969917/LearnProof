@@ -1006,17 +1006,30 @@ const acceptFriendRequest = async (req, res) => {
     await invalidateFriendshipsCache();
     await invalidateProfileCache();
 
-    // Notify sender via WebSocket so their connections list updates in real-time
+    // Notify both sender and receiver via WebSocket so their connections list & status update in real-time
     try {
       const io = req.app.get('io');
       if (io) {
+        // Notify sender that receiver accepted
         io.to(request.senderId.toString()).emit('FRIEND_REQUEST_ACCEPTED', {
           requestId: friendship.id,
           userId: userId,
+          targetUserId: userId,
           friend: {
             id: req.user.id,
             name: req.user.name,
-            profilePicture: req.user.profilePicture
+            profilePicture: req.user.profilePicture,
+            collegeName: req.user.collegeName || '',
+            department: req.user.department || ''
+          }
+        });
+        // Notify receiver in case they have multiple tabs/windows open
+        io.to(request.receiverId.toString()).emit('FRIEND_REQUEST_ACCEPTED', {
+          requestId: friendship.id,
+          userId: request.senderId,
+          targetUserId: request.senderId,
+          friend: {
+            id: request.senderId,
           }
         });
       }
@@ -1056,17 +1069,28 @@ const acceptFriendship = async (req, res) => {
     await invalidateFriendshipsCache();
     await invalidateProfileCache();
 
-    // Notify sender via WebSocket so their connections list updates in real-time
+    // Notify both sender and receiver via WebSocket so their connections list & status update in real-time
     try {
       const io = req.app.get('io');
       if (io) {
         io.to(request.senderId.toString()).emit('FRIEND_REQUEST_ACCEPTED', {
           requestId: friendship.id,
           userId: userId,
+          targetUserId: userId,
           friend: {
             id: req.user.id,
             name: req.user.name,
-            profilePicture: req.user.profilePicture
+            profilePicture: req.user.profilePicture,
+            collegeName: req.user.collegeName || '',
+            department: req.user.department || ''
+          }
+        });
+        io.to(request.receiverId.toString()).emit('FRIEND_REQUEST_ACCEPTED', {
+          requestId: friendship.id,
+          userId: request.senderId,
+          targetUserId: request.senderId,
+          friend: {
+            id: request.senderId,
           }
         });
       }

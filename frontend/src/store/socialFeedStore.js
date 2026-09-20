@@ -535,10 +535,10 @@ export const useSocialFeedStore = create((set, get) => ({
     });
   },
 
-  handleFriendRequestAccepted: ({ requestId, userId, friend }) => {
+  handleFriendRequestAccepted: ({ requestId, userId, targetUserId, friend }) => {
+    const targetId = Number(friend?.id || targetUserId || userId);
     set((state) => {
-      const targetId = Number(friend?.id || userId);
-      const nextPending = state.pendingRequests.filter(r => r.id !== requestId && Number(r.senderId) !== targetId);
+      const nextPending = state.pendingRequests.filter(r => r.id !== requestId && Number(r.senderId) !== targetId && Number(r.id) !== targetId);
       const alreadyFriend = state.friends.some(f => Number(f.id) === targetId);
       const newFriends = alreadyFriend ? state.friends : [...state.friends, friend || { id: targetId }];
       return {
@@ -547,6 +547,11 @@ export const useSocialFeedStore = create((set, get) => ({
         pendingFriendCount: nextPending.length
       };
     });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('social:friend_accepted', {
+        detail: { requestId, userId: targetId, targetUserId: targetId, friend }
+      }));
+    }
   },
 
   handleFriendRequestRemoved: ({ userId }) => {
@@ -556,5 +561,10 @@ export const useSocialFeedStore = create((set, get) => ({
       pendingRequests: state.pendingRequests.filter(r => Number(r.senderId) !== targetId && Number(r.id) !== targetId),
       pendingFriendCount: state.pendingRequests.filter(r => Number(r.senderId) !== targetId && Number(r.id) !== targetId).length
     }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('social:friend_removed', {
+        detail: { userId: targetId }
+      }));
+    }
   }
 }));

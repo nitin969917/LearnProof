@@ -253,6 +253,56 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     }
   };
 
+  // Automatically sync profile connection status with global friends store in real-time
+  useEffect(() => {
+    if (!profile?.id || isOwnProfile) return;
+    const isNowFriend = storeFriends.some(f => Number(f.id) === Number(profile.id));
+    if (isNowFriend) {
+      setProfile(prev => {
+        if (!prev) return prev;
+        if (prev.isFriend && !prev.hasPendingRequest) return prev;
+        return {
+          ...prev,
+          isFriend: true,
+          hasPendingRequest: false,
+          isRequestSender: false
+        };
+      });
+    }
+  }, [storeFriends, profile?.id, isOwnProfile]);
+
+  // Direct socket window event listener for instant zero-reload status change
+  useEffect(() => {
+    const handleAccepted = (e) => {
+      const targetId = Number(e.detail?.userId || e.detail?.targetUserId || e.detail?.friend?.id);
+      if (profile?.id && Number(profile.id) === targetId) {
+        setProfile(prev => prev ? ({
+          ...prev,
+          isFriend: true,
+          hasPendingRequest: false,
+          isRequestSender: false
+        }) : prev);
+      }
+    };
+    const handleRemoved = (e) => {
+      const targetId = Number(e.detail?.userId);
+      if (profile?.id && Number(profile.id) === targetId) {
+        setProfile(prev => prev ? ({
+          ...prev,
+          isFriend: false,
+          hasPendingRequest: false,
+          isRequestSender: false
+        }) : prev);
+      }
+    };
+    window.addEventListener('social:friend_accepted', handleAccepted);
+    window.addEventListener('social:friend_removed', handleRemoved);
+    return () => {
+      window.removeEventListener('social:friend_accepted', handleAccepted);
+      window.removeEventListener('social:friend_removed', handleRemoved);
+    };
+  }, [profile?.id]);
+
   const fetchFriends = async () => {
     setFriendsLoading(true);
     try {
@@ -449,9 +499,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         if (profile.isRequestSender) {
           setProfile(prev => ({ ...prev, hasPendingRequest: false, isRequestSender: false }));
           await socialApi.post('/social/remove-friendship', { targetUserId: profile.id });
+          useSocialFeedStore.getState().handleFriendRequestRemoved({ userId: profile.id });
         } else {
           setProfile(prev => ({ ...prev, hasPendingRequest: false, isRequestSender: false, isFriend: true }));
           await socialApi.post('/social/accept-friendship', { targetUserId: profile.id });
+          useSocialFeedStore.getState().handleFriendRequestAccepted({ userId: profile.id, friend: profile });
         }
       } else if (profile.isFriend) {
         const confirmed = await confirm({
@@ -464,11 +516,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         if (!confirmed) return;
         setProfile(prev => ({ ...prev, isFriend: false, isMyCloseFriend: false, isCloseFriend: false }));
         await socialApi.post('/social/remove-friendship', { targetUserId: profile.id });
+        useSocialFeedStore.getState().handleFriendRequestRemoved({ userId: profile.id });
       } else {
-        setProfile(prev => ({ ...prev, hasPendingRequest: true, isRequestSender: true }));
+        setProfile(prev => ({ ...prev, hasPendingRequest: true, isRequestSender: true, isFriend: false }));
         await socialApi.post('/social/friend-request', { receiverId: profile.id });
       }
-      fetchProfile();
     } catch (err) {
       console.error('Friend action failed', err);
       fetchProfile();

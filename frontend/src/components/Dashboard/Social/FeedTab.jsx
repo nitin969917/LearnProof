@@ -333,6 +333,7 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
 
             <div className="space-y-3">
               {suggestedPeers.slice(0, 4).map(peer => {
+                const isConnected = friends.some(f => Number(f.id) === Number(peer.id));
                 const hasRequested = sentRequests.has(peer.id);
                 return (
                   <div key={peer.id} className="flex items-center justify-between gap-2 group">
@@ -351,15 +352,17 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
                       </div>
                     </div>
                     <button
-                      onClick={(e) => handleSendFriendRequest(e, peer.id)}
-                      disabled={hasRequested}
+                      onClick={(e) => !isConnected && handleSendFriendRequest(e, peer.id)}
+                      disabled={hasRequested || isConnected}
                       className={`px-2.5 py-1 text-[11px] font-bold rounded-full transition-all shrink-0 cursor-pointer ${
-                        hasRequested
-                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-default'
-                          : 'bg-orange-500 text-white hover:bg-orange-600 shadow-xs active:scale-95'
+                        isConnected
+                          ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 cursor-default'
+                          : hasRequested
+                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-default'
+                            : 'bg-orange-500 text-white hover:bg-orange-600 shadow-xs active:scale-95'
                       }`}
                     >
-                      {hasRequested ? 'Sent ✓' : '+ Connect'}
+                      {isConnected ? 'Connected ✓' : hasRequested ? 'Sent ✓' : '+ Connect'}
                     </button>
                   </div>
                 );

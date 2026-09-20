@@ -4,9 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
+import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 
 export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
+  const storeFriends = useSocialFeedStore(state => state.friends);
   const [searchType, setSearchType] = useState('students'); // 'students' or 'groups'
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -156,20 +158,17 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   );
 
   const getFriendshipState = (student) => {
-    const isSent = sentRequests.includes(student.id);
-    if (isSent) {
-      return { isConnected: false, isPending: true, label: "Requested" };
-    }
-    
-    if (student.friendshipStatus === 'accepted') {
+    const isFriendInStore = storeFriends.some(f => Number(f.id) === Number(student.id));
+    if (isFriendInStore || student.friendshipStatus === 'accepted') {
       return { isConnected: true, isPending: false, label: "Connected" };
     }
-    
-    if (student.friendshipStatus === 'pending') {
+
+    const isSent = sentRequests.includes(student.id);
+    if (isSent || student.friendshipStatus === 'pending') {
       return { isConnected: false, isPending: true, label: "Requested" };
     }
     
-    return { isConnected: false, isPending: false, label: "Follow" };
+    return { isConnected: false, isPending: false, label: "Connect" };
   };
 
   const getGroupInitials = (name) => {
