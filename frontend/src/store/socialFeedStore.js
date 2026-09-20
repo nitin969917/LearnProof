@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import socialApi from '../api/socialApi.js';
 
+let inFlightFetchSocialUser = null;
+let inFlightFetchFriends = null;
+
 export const useSocialFeedStore = create((set, get) => ({
   posts: [],
   friends: [],
@@ -143,36 +146,43 @@ export const useSocialFeedStore = create((set, get) => ({
       });
     }
 
-    set({ loadingSocialUser: true });
-    try {
-      const response = await socialApi.get('/users/me');
-      if (response.data && response.data.id) {
-        set({ 
-          socialUser: response.data,
-          loadingSocialUser: false 
-        });
-        try {
-          localStorage.setItem('learnproof_social_user', JSON.stringify(response.data));
-        } catch (e) {}
-      } else {
+    if (inFlightFetchSocialUser) return inFlightFetchSocialUser;
+
+    inFlightFetchSocialUser = (async () => {
+      set({ loadingSocialUser: true });
+      try {
+        const response = await socialApi.get('/users/me');
+        if (response.data && response.data.id) {
+          set({ 
+            socialUser: response.data,
+            loadingSocialUser: false 
+          });
+          try {
+            localStorage.setItem('learnproof_social_user', JSON.stringify(response.data));
+          } catch (e) {}
+        } else {
+          set({ loadingSocialUser: false });
+        }
+      } catch (err) {
+        console.error('Failed to fetch social user', err);
+        if (!get().socialUser && authUser) {
+          set({
+            socialUser: {
+              id: authUser.id || authUser.uid,
+              name: authUser.name || 'Student',
+              email: authUser.email || '',
+              profilePicture: authUser.picture || '',
+              avatar: authUser.picture || ''
+            }
+          });
+        }
         set({ loadingSocialUser: false });
       }
-    } catch (err) {
-      console.error('Failed to fetch social user', err);
-      // Keep optimistic user if available
-      if (!get().socialUser && authUser) {
-        set({
-          socialUser: {
-            id: authUser.id || authUser.uid,
-            name: authUser.name || 'Student',
-            email: authUser.email || '',
-            profilePicture: authUser.picture || '',
-            avatar: authUser.picture || ''
-          }
-        });
-      }
-      set({ loadingSocialUser: false });
-    }
+    })().finally(() => {
+      inFlightFetchSocialUser = null;
+    });
+
+    return inFlightFetchSocialUser;
   },
 
   fetchPosts: async (force = false, isRefresh = false, overrideTag = undefined) => {
@@ -224,28 +234,36 @@ export const useSocialFeedStore = create((set, get) => ({
     if (!friendsExist || force) {
       set({ loadingFriends: true });
     }
+
+    if (inFlightFetchFriends && !force) return inFlightFetchFriends;
     
-    try {
-      const response = await socialApi.get('/social/friendships');
-      const rawFriends = Array.isArray(response.data?.friends) ? response.data.friends : [];
-      const rawPending = Array.isArray(response.data?.pending) ? response.data.pending : [];
-      // Enforce strict uniqueness by user ID (numeric comparison)
-      const allFriends = rawFriends.filter((f, idx, self) => 
-        self.findIndex(item => Number(item.id) === Number(f.id)) === idx
-      );
-      const close = allFriends.filter(f => f.isCloseFriend);
-      set({ 
-        friends: allFriends, 
-        closeFriends: close,
-        pendingRequests: rawPending,
-        pendingFriendCount: rawPending.length,
-        loadingFriends: false,
-        hasLoadedFriends: true
-      });
-    } catch (err) {
-      console.error('Failed to fetch friends', err);
-      set({ loadingFriends: false, hasLoadedFriends: true });
-    }
+    inFlightFetchFriends = (async () => {
+      try {
+        const response = await socialApi.get('/social/friendships');
+        const rawFriends = Array.isArray(response.data?.friends) ? response.data.friends : [];
+        const rawPending = Array.isArray(response.data?.pending) ? response.data.pending : [];
+        // Enforce strict uniqueness by user ID (numeric comparison)
+        const allFriends = rawFriends.filter((f, idx, self) => 
+          self.findIndex(item => Number(item.id) === Number(f.id)) === idx
+        );
+        const close = allFriends.filter(f => f.isCloseFriend);
+        set({ 
+          friends: allFriends, 
+          closeFriends: close,
+          pendingRequests: rawPending,
+          pendingFriendCount: rawPending.length,
+          loadingFriends: false,
+          hasLoadedFriends: true
+        });
+      } catch (err) {
+        console.error('Failed to fetch friends', err);
+        set({ loadingFriends: false, hasLoadedFriends: true });
+      }
+    })().finally(() => {
+      inFlightFetchFriends = null;
+    });
+
+    return inFlightFetchFriends;
   },
 
   syncLatestPosts: async (silent = true) => {
@@ -495,6 +513,48 @@ export const useSocialFeedStore = create((set, get) => ({
   handlePostDeleted: ({ postId }) => {
     set((state) => ({
       posts: state.posts.filter(post => post.id !== postId)
+    }));
+  },
+
+  handleFriendRequestReceived: (data) => {
+    if (!data) return;
+    const { requestId, sender } = data;
+    set((state) => {
+      const alreadyHas = state.pendingRequests.some(r => r.id === requestId || (sender && r.senderId === sender.id));
+      if (alreadyHas) return {};
+      const newRequest = {
+        id: requestId,
+        senderId: sender?.id,
+        sender: sender,
+        createdAt: new Date().toISOString()
+      };
+      return {
+        pendingRequests: [newRequest, ...state.pendingRequests],
+        pendingFriendCount: state.pendingFriendCount + 1
+      };
+    });
+  },
+
+  handleFriendRequestAccepted: ({ requestId, userId, friend }) => {
+    set((state) => {
+      const targetId = Number(friend?.id || userId);
+      const nextPending = state.pendingRequests.filter(r => r.id !== requestId && Number(r.senderId) !== targetId);
+      const alreadyFriend = state.friends.some(f => Number(f.id) === targetId);
+      const newFriends = alreadyFriend ? state.friends : [...state.friends, friend || { id: targetId }];
+      return {
+        friends: newFriends,
+        pendingRequests: nextPending,
+        pendingFriendCount: nextPending.length
+      };
+    });
+  },
+
+  handleFriendRequestRemoved: ({ userId }) => {
+    const targetId = Number(userId);
+    set((state) => ({
+      friends: state.friends.filter(f => Number(f.id) !== targetId),
+      pendingRequests: state.pendingRequests.filter(r => Number(r.senderId) !== targetId && Number(r.id) !== targetId),
+      pendingFriendCount: state.pendingRequests.filter(r => Number(r.senderId) !== targetId && Number(r.id) !== targetId).length
     }));
   }
 }));

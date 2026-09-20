@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { isLikelyHeicSource, isNativeHeicSupported, convertHeicSourceToJpeg } from '../../utils/heicHelper.js';
+import { isLikelyHeicSource, isNativeHeicSupported, convertHeicSourceToJpeg, resolveMediaUrl } from '../../utils/heicHelper.js';
 
 /**
  * RenderableImage
@@ -14,7 +14,8 @@ export default function RenderableImage({
   fallback = null,
   ...props
 }) {
-  const [displaySrc, setDisplaySrc] = useState(src);
+  const resolvedSrc = resolveMediaUrl(src);
+  const [displaySrc, setDisplaySrc] = useState(resolvedSrc);
   const [hasError, setHasError] = useState(false);
   const isConvertingRef = useRef(false);
 
@@ -22,37 +23,37 @@ export default function RenderableImage({
     setHasError(false);
     isConvertingRef.current = false;
 
-    if (!src) {
-      setDisplaySrc(src);
+    if (!resolvedSrc) {
+      setDisplaySrc(resolvedSrc);
       return;
     }
 
     let isMounted = true;
 
     // If source is known to be HEIC and browser lacks native decoding (Chrome, Android, etc.)
-    if (isLikelyHeicSource(src) && !isNativeHeicSupported()) {
+    if (isLikelyHeicSource(resolvedSrc) && !isNativeHeicSupported()) {
       isConvertingRef.current = true;
-      convertHeicSourceToJpeg(src)
+      convertHeicSourceToJpeg(resolvedSrc)
         .then((jpegUrl) => {
           if (isMounted) {
-            setDisplaySrc(jpegUrl || src);
+            setDisplaySrc(jpegUrl || resolvedSrc);
             isConvertingRef.current = false;
           }
         })
         .catch(() => {
           if (isMounted) {
-            setDisplaySrc(src);
+            setDisplaySrc(resolvedSrc);
             isConvertingRef.current = false;
           }
         });
     } else {
-      setDisplaySrc(src);
+      setDisplaySrc(resolvedSrc);
     }
 
     return () => {
       isMounted = false;
     };
-  }, [src]);
+  }, [resolvedSrc]);
 
   const handleError = async (e) => {
     if (src && displaySrc === src && !isConvertingRef.current) {

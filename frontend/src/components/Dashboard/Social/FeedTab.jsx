@@ -70,7 +70,7 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
 
   useEffect(() => {
     if (postCreatedTrigger > 0) {
-      fetchPosts(true, true);
+      syncLatestPosts();
     }
   }, [postCreatedTrigger]);
 

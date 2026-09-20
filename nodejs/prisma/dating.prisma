@@ -93,6 +93,8 @@ model Post {
   @@index([authorId])
   @@index([visibility])
   @@index([createdAt])
+  @@index([visibility, createdAt(sort: Desc)])
+  @@index([authorId, createdAt(sort: Desc)])
   @@map("social_posts")
 }
 
@@ -113,6 +115,8 @@ model Friendship {
   @@index([senderId])
   @@index([receiverId])
   @@index([status])
+  @@index([senderId, status])
+  @@index([receiverId, status])
   @@map("social_friendships")
 }
 

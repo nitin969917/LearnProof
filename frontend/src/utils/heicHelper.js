@@ -180,3 +180,27 @@ export async function convertHeicSourceToJpeg(src) {
     }
   }
 }
+
+/**
+ * Resolves static media URLs safely across browsers, Capacitor mobile apps, and local dev.
+ */
+export function resolveMediaUrl(src) {
+  if (!src || typeof src !== 'string') return src;
+  if (!src.startsWith('/media/')) return src;
+
+  if (typeof window !== 'undefined') {
+    const isCapacitor = Boolean(
+      window.Capacitor?.isNativePlatform?.() ||
+      navigator.userAgent.includes('LearnProofApp')
+    );
+    if (isCapacitor) {
+      return `https://api.learnproofai.com${src}`;
+    }
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isLocalhost) {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+      return `${backendUrl.replace(/\/+$/, '')}${src}`;
+    }
+  }
+  return src;
+}

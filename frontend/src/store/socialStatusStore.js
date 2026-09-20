@@ -28,6 +28,9 @@ export const useSocialStatusStore = create((set, get) => ({
     socket.off('POST_COMMENT_DELETED');
     socket.off('POST_DELETED');
     socket.off('POST_UPDATED');
+    socket.off('FRIEND_REQUEST_RECEIVED');
+    socket.off('FRIEND_REQUEST_ACCEPTED');
+    socket.off('FRIEND_REQUEST_REMOVED');
     
     socket.on('getOnlineUsers', (userIds) => {
       console.log('Received online users:', userIds);
@@ -74,6 +77,21 @@ export const useSocialStatusStore = create((set, get) => ({
     socket.on('POST_UPDATED', (post) => {
       console.log('Real-time post updated received:', post);
       useSocialFeedStore.getState().handlePostUpdated(post);
+    });
+
+    socket.on('FRIEND_REQUEST_RECEIVED', (data) => {
+      console.log('Real-time friend request received:', data);
+      useSocialFeedStore.getState().handleFriendRequestReceived(data);
+    });
+
+    socket.on('FRIEND_REQUEST_ACCEPTED', (data) => {
+      console.log('Real-time friend request accepted:', data);
+      useSocialFeedStore.getState().handleFriendRequestAccepted(data);
+    });
+
+    socket.on('FRIEND_REQUEST_REMOVED', (data) => {
+      console.log('Real-time friend request removed:', data);
+      useSocialFeedStore.getState().handleFriendRequestRemoved(data);
     });
 
     // Re-request the current online list

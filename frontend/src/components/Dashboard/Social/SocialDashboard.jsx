@@ -43,6 +43,18 @@ export default function SocialDashboard() {
     return 'feed';
   });
 
+  // Track tabs that have been visited at least once to avoid mounting all 5 tabs on startup
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set([activeTab]));
+
+  useEffect(() => {
+    setVisitedTabs(prev => {
+      if (prev.has(activeTab)) return prev;
+      const next = new Set(prev);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
+
   const [selectedProfileId, setSelectedProfileId] = useState(() => {
     const pathSegments = window.location.pathname.split('/').filter(Boolean);
     if (pathSegments[1] === 'social' && pathSegments[2] === 'profile' && pathSegments[3]) {
@@ -605,47 +617,57 @@ export default function SocialDashboard() {
 
           {/* Tab Panels */}
           <div className={`w-full ${(hideHeader || activeTab === 'chat') ? 'h-full' : ''}`}>
-            <div className={activeTab === 'feed' ? 'block' : 'hidden'}>
-              <FeedTab 
-                currentUserId={effectiveSocialUser?.id || user?.id} 
-                socialUser={effectiveSocialUser}
-                onViewProfile={viewUserProfile} 
-                onSelectChatUser={startDirectChat} 
-                postCreatedTrigger={postCreatedTrigger}
-                onOpenCreatePost={openCreatePostModal}
-                onNavigateTab={handleTabChange}
-              />
-            </div>
-            <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
-              <DiscoverTab 
-                onViewProfile={viewUserProfile} 
-                onSelectChatUser={startDirectChat}
-              />
-            </div>
-            <div className={activeTab === 'friends' ? 'block' : 'hidden'}>
-              <FriendsTab 
-                onViewProfile={viewUserProfile} 
-                onSelectChatUser={startDirectChat} 
-              />
-            </div>
-            <div className={activeTab === 'chat' ? 'h-full block' : 'hidden'}>
-              <ChatsTab 
-                currentUserId={effectiveSocialUser?.id || user?.id}
-                selectedContact={selectedChatContact}
-                onClearSelectedContact={() => setSelectedChatContact(null)}
-                onToggleHeader={setHideHeader}
-                onViewProfile={viewUserProfile}
-              />
-            </div>
-            <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
-              <ProfileTab 
-                currentUserId={effectiveSocialUser?.id || user?.id}
-                viewUserId={selectedProfileId}
-                onBackToFeed={() => handleTabChange('feed')}
-                onSelectChatUser={startDirectChat}
-                onViewProfile={viewUserProfile}
-              />
-            </div>
+            {visitedTabs.has('feed') && (
+              <div className={activeTab === 'feed' ? 'block' : 'hidden'}>
+                <FeedTab 
+                  currentUserId={effectiveSocialUser?.id || user?.id} 
+                  socialUser={effectiveSocialUser}
+                  onViewProfile={viewUserProfile} 
+                  onSelectChatUser={startDirectChat} 
+                  postCreatedTrigger={postCreatedTrigger}
+                  onOpenCreatePost={openCreatePostModal}
+                  onNavigateTab={handleTabChange}
+                />
+              </div>
+            )}
+            {visitedTabs.has('discover') && (
+              <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
+                <DiscoverTab 
+                  onViewProfile={viewUserProfile} 
+                  onSelectChatUser={startDirectChat}
+                />
+              </div>
+            )}
+            {visitedTabs.has('friends') && (
+              <div className={activeTab === 'friends' ? 'block' : 'hidden'}>
+                <FriendsTab 
+                  onViewProfile={viewUserProfile} 
+                  onSelectChatUser={startDirectChat} 
+                />
+              </div>
+            )}
+            {visitedTabs.has('chat') && (
+              <div className={activeTab === 'chat' ? 'h-full block' : 'hidden'}>
+                <ChatsTab 
+                  currentUserId={effectiveSocialUser?.id || user?.id}
+                  selectedContact={selectedChatContact}
+                  onClearSelectedContact={() => setSelectedChatContact(null)}
+                  onToggleHeader={setHideHeader}
+                  onViewProfile={viewUserProfile}
+                />
+              </div>
+            )}
+            {visitedTabs.has('profile') && (
+              <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
+                <ProfileTab 
+                  currentUserId={effectiveSocialUser?.id || user?.id}
+                  viewUserId={selectedProfileId}
+                  onBackToFeed={() => handleTabChange('feed')}
+                  onSelectChatUser={startDirectChat}
+                  onViewProfile={viewUserProfile}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

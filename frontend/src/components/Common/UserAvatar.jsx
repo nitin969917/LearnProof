@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { isLikelyHeicSource, isNativeHeicSupported, convertHeicSourceToJpeg } from '../../utils/heicHelper.js';
+import { isLikelyHeicSource, isNativeHeicSupported, convertHeicSourceToJpeg, resolveMediaUrl } from '../../utils/heicHelper.js';
 
 /**
  * UserAvatar
@@ -16,7 +16,8 @@ export default function UserAvatar({
   alt,
   loading = "eager"
 }) {
-  const [displaySrc, setDisplaySrc] = useState(src);
+  const resolvedSrc = resolveMediaUrl(src);
+  const [displaySrc, setDisplaySrc] = useState(resolvedSrc);
   const [imgError, setImgError] = useState(false);
   const convertingRef = useRef(false);
 
@@ -25,37 +26,37 @@ export default function UserAvatar({
     setImgError(false);
     convertingRef.current = false;
 
-    if (!src || src === '/default-avatar.png' || src === 'null' || src === 'undefined') {
-      setDisplaySrc(src);
+    if (!resolvedSrc || resolvedSrc === '/default-avatar.png' || resolvedSrc === 'null' || resolvedSrc === 'undefined') {
+      setDisplaySrc(resolvedSrc);
       return;
     }
 
     let isMounted = true;
 
     // Proactive conversion if known HEIC in non-Safari browsers
-    if (isLikelyHeicSource(src) && !isNativeHeicSupported()) {
+    if (isLikelyHeicSource(resolvedSrc) && !isNativeHeicSupported()) {
       convertingRef.current = true;
-      convertHeicSourceToJpeg(src)
+      convertHeicSourceToJpeg(resolvedSrc)
         .then((jpegUrl) => {
           if (isMounted) {
-            setDisplaySrc(jpegUrl || src);
+            setDisplaySrc(jpegUrl || resolvedSrc);
             convertingRef.current = false;
           }
         })
         .catch(() => {
           if (isMounted) {
-            setDisplaySrc(src);
+            setDisplaySrc(resolvedSrc);
             convertingRef.current = false;
           }
         });
     } else {
-      setDisplaySrc(src);
+      setDisplaySrc(resolvedSrc);
     }
 
     return () => {
       isMounted = false;
     };
-  }, [src]);
+  }, [resolvedSrc]);
 
   const handleImageError = async () => {
     // If image failed and hasn't been converted yet, check if it's a HEIC file Chrome couldn't decode

@@ -332,16 +332,27 @@ const DashboardLayout = () => {
         }
     }, [socialUser, isMatrixActive, matrixClient]);
 
-    // Listen for incoming friend requests to update Friends tab badge in real-time
+    // Listen for incoming friend requests and acceptances to update state and notify in real-time
     useEffect(() => {
         if (!socialUser || !socialUser.id) return;
         const socket = getSocialSocket(socialUser.id);
-        const handleFriendRequest = () => {
-            incrementPendingFriendCount();
+        const handleFriendRequest = (data) => {
+            useSocialFeedStore.getState().handleFriendRequestReceived(data);
+            if (data?.sender?.name) {
+                toast.success(`${data.sender.name} sent you a connection request!`, { id: `fr-${data.requestId || Date.now()}` });
+            }
+        };
+        const handleFriendAccepted = (data) => {
+            useSocialFeedStore.getState().handleFriendRequestAccepted(data);
+            if (data?.friend?.name) {
+                toast.success(`${data.friend.name} accepted your connection request!`, { id: `fa-${data.userId || Date.now()}` });
+            }
         };
         socket.on('FRIEND_REQUEST_RECEIVED', handleFriendRequest);
+        socket.on('FRIEND_REQUEST_ACCEPTED', handleFriendAccepted);
         return () => {
             socket.off('FRIEND_REQUEST_RECEIVED', handleFriendRequest);
+            socket.off('FRIEND_REQUEST_ACCEPTED', handleFriendAccepted);
         };
     }, [socialUser]);
 

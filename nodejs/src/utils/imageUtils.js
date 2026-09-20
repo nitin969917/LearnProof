@@ -119,8 +119,84 @@ async function ensureUniversalImage(imageInput, quality = 0.85) {
   }
 }
 
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+/**
+ * Saves a base64 Data URL or string as a static file in the media volume.
+ * Drops JSON payloads from ~3MB down to 10KB and offloads image delivery to Nginx with caching.
+ * If file saving fails or input is already a URL, it gracefully falls back without breaking.
+ * 
+ * @param {string} imageInput - Base64 Data URL, external URL, or existing media path
+ * @param {string} subfolder - Directory under media (e.g. 'social/posts', 'social/avatars')
+ * @returns {Promise<string>} Clean media URL (e.g. '/media/social/posts/169..._abc.jpg')
+ */
+async function saveBase64Image(imageInput, subfolder = 'social/posts') {
+  if (!imageInput || typeof imageInput !== 'string') {
+    return imageInput;
+  }
+
+  // Already a URL or relative path
+  if (imageInput.startsWith('http://') || imageInput.startsWith('https://') || imageInput.startsWith('/media/')) {
+    return imageInput;
+  }
+
+  // If not a data URL or raw base64, return as-is
+  if (!imageInput.startsWith('data:') && !imageInput.startsWith('/9j/')) {
+    return imageInput;
+  }
+
+  try {
+    // 1. Ensure any HEIC from iPhone is first converted to universal JPEG
+    const universalImage = await ensureUniversalImage(imageInput);
+
+    // 2. Determine extension
+    let ext = 'jpg';
+    let base64Data = universalImage;
+    if (universalImage.startsWith('data:')) {
+      const mimeMatch = universalImage.match(/^data:image\/([a-zA-Z0-9+]+);base64,/);
+      if (mimeMatch && mimeMatch[1]) {
+        const mime = mimeMatch[1].toLowerCase();
+        if (mime === 'png') ext = 'png';
+        else if (mime === 'webp') ext = 'webp';
+        else if (mime === 'gif') ext = 'gif';
+        else ext = 'jpg';
+      }
+      const commaIdx = universalImage.indexOf(',');
+      if (commaIdx !== -1) {
+        base64Data = universalImage.slice(commaIdx + 1);
+      }
+    }
+
+    // 3. Resolve destination directory
+    const cleanSub = subfolder.replace(/^\/+|\/+$/g, '');
+    const mediaRoot = process.env.MEDIA_DIR || path.resolve(__dirname, '../../media');
+    const targetDir = path.join(mediaRoot, cleanSub);
+
+    await fs.promises.mkdir(targetDir, { recursive: true });
+
+    // 4. Generate random unique filename
+    const rand = crypto.randomBytes(6).toString('hex');
+    const filename = `${Date.now()}_${rand}.${ext}`;
+    const filePath = path.join(targetDir, filename);
+
+    // 5. Write file asynchronously
+    const buffer = Buffer.from(base64Data, 'base64');
+    await fs.promises.writeFile(filePath, buffer);
+
+    const relativeUrl = `/media/${cleanSub}/${filename}`;
+    console.log(`[imageUtils] Saved static image to ${relativeUrl} (${(buffer.length / 1024).toFixed(1)} KB)`);
+    return relativeUrl;
+  } catch (err) {
+    console.error('[imageUtils] Failed to save base64 image as file, falling back to original:', err.message);
+    return imageInput;
+  }
+}
+
 module.exports = {
   isHeicBuffer,
   isHeicString,
   ensureUniversalImage,
+  saveBase64Image,
 };

@@ -3,7 +3,7 @@ const { sendPushNotification } = require('../utils/pushNotifier');
 const livekitService = require('../services/livekit.service');
 const cacheService = require('../services/cache.service');
 const redis = require('../lib/redis');
-const { ensureUniversalImage } = require('../utils/imageUtils');
+const { ensureUniversalImage, saveBase64Image } = require('../utils/imageUtils');
 
 const delayedDeletions = new Map();
 
@@ -112,12 +112,12 @@ const createPost = async (req, res) => {
     }
   }
 
-  // Ensure iPhone HEIC images are converted to universal JPEG so all Android/browsers render them
+  // Ensure image is transcoded and saved as high-speed static file in media volume
   if (image && typeof image === 'string') {
     try {
-      image = await ensureUniversalImage(image);
+      image = await saveBase64Image(image, 'social/posts');
     } catch (imgErr) {
-      console.warn('Image transcoding warning in createPost:', imgErr.message);
+      console.warn('Image processing warning in createPost:', imgErr.message);
     }
   }
 
@@ -452,8 +452,6 @@ const likePost = async (req, res) => {
 
     const newLikesCount = updatedPost?._count?.likes ?? (isLiked ? Math.max(0, post._count.likes - 1) : post._count.likes + 1);
 
-    await invalidateFeedCache();
-
     // Broadcast like update in real-time to all connected users
     try {
       const io = req.app.get('io');
@@ -704,7 +702,7 @@ const updateProfile = async (req, res) => {
 
     const pic = data.profilePicture !== undefined ? data.profilePicture : data.avatar;
     if (pic !== undefined) {
-      updateData.profilePicture = pic ? await ensureUniversalImage(pic) : null;
+      updateData.profilePicture = pic ? await saveBase64Image(pic, 'social/avatars') : null;
     }
 
     if (data.bio !== undefined) {
@@ -733,7 +731,7 @@ const updateProfile = async (req, res) => {
     if (data.linkedinUrl !== undefined) updateData.linkedinUrl = data.linkedinUrl;
     if (data.linkedinVisibility !== undefined) updateData.linkedinVisibility = data.linkedinVisibility;
     if (data.coverImage !== undefined) {
-      updateData.coverImage = data.coverImage ? await ensureUniversalImage(data.coverImage) : null;
+      updateData.coverImage = data.coverImage ? await saveBase64Image(data.coverImage, 'social/covers') : null;
     }
 
     const updatedUser = await datingPrisma.user.update({
@@ -1007,6 +1005,25 @@ const acceptFriendRequest = async (req, res) => {
     await invalidateRoomsCache();
     await invalidateFriendshipsCache();
     await invalidateProfileCache();
+
+    // Notify sender via WebSocket so their connections list updates in real-time
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(request.senderId.toString()).emit('FRIEND_REQUEST_ACCEPTED', {
+          requestId: friendship.id,
+          userId: userId,
+          friend: {
+            id: req.user.id,
+            name: req.user.name,
+            profilePicture: req.user.profilePicture
+          }
+        });
+      }
+    } catch (wsErr) {
+      console.error('Failed to emit FRIEND_REQUEST_ACCEPTED:', wsErr);
+    }
+
     res.json(friendship);
   } catch (error) {
     console.error(error);
@@ -1038,6 +1055,25 @@ const acceptFriendship = async (req, res) => {
     await invalidateRoomsCache();
     await invalidateFriendshipsCache();
     await invalidateProfileCache();
+
+    // Notify sender via WebSocket so their connections list updates in real-time
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(request.senderId.toString()).emit('FRIEND_REQUEST_ACCEPTED', {
+          requestId: friendship.id,
+          userId: userId,
+          friend: {
+            id: req.user.id,
+            name: req.user.name,
+            profilePicture: req.user.profilePicture
+          }
+        });
+      }
+    } catch (wsErr) {
+      console.error('Failed to emit FRIEND_REQUEST_ACCEPTED:', wsErr);
+    }
+
     res.json(friendship);
   } catch (error) {
     console.error(error);
@@ -1081,6 +1117,19 @@ const removeFriendship = async (req, res) => {
     await invalidateRoomsCache();
     await invalidateFriendshipsCache();
     await invalidateProfileCache();
+
+    // Notify target user via WebSocket so their friend list updates in real-time
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(resolvedTargetId.toString()).emit('FRIEND_REQUEST_REMOVED', {
+          userId: userId
+        });
+      }
+    } catch (wsErr) {
+      console.error('Failed to emit FRIEND_REQUEST_REMOVED:', wsErr);
+    }
+
     res.json({ message: 'Friendship removed' });
   } catch (error) {
     console.error(error);
