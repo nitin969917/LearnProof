@@ -312,13 +312,45 @@ export default function SocialDashboard() {
   };
 
   const insertHashtag = (tag) => {
-    if (hashtagMatchIndex === -1) return;
     const cleanTag = tag.replace(/^#/, '').trim();
-    const beforeHash = content.slice(0, hashtagMatchIndex);
-    const cursorPos = textareaRef.current ? textareaRef.current.selectionStart : content.length;
-    const afterCursor = content.slice(cursorPos);
-    const newContent = `${beforeHash}#${cleanTag} ${afterCursor}`;
-    setContent(newContent);
+    if (!cleanTag) return;
+
+    if (hashtagMatchIndex !== -1 && hashtagMatchIndex <= content.length) {
+      // Robustly replace the hashtag query word up to the next whitespace or string end
+      const restOfContent = content.slice(hashtagMatchIndex);
+      const spaceMatch = restOfContent.search(/\s/);
+      const endOfWordIndex = spaceMatch === -1 ? content.length : hashtagMatchIndex + spaceMatch;
+
+      const beforeHash = content.slice(0, hashtagMatchIndex);
+      const afterWord = content.slice(endOfWordIndex);
+      const trailingSpace = afterWord.startsWith(' ') ? '' : ' ';
+      const newContent = `${beforeHash}#${cleanTag}${trailingSpace}${afterWord}`;
+      setContent(newContent);
+      const nextPos = beforeHash.length + cleanTag.length + 1 + trailingSpace.length;
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.setSelectionRange(nextPos, nextPos);
+        }
+      }, 15);
+    } else {
+      // Insert at cursor position or append to content
+      const isFocused = textareaRef.current && document.activeElement === textareaRef.current;
+      const cursorPos = isFocused && textareaRef.current ? textareaRef.current.selectionStart : content.length;
+      const before = content.slice(0, cursorPos);
+      const after = content.slice(cursorPos);
+      const leadingSpace = before.length > 0 && !before.endsWith(' ') && !before.endsWith('\n') ? ' ' : '';
+      const trailingSpace = after.startsWith(' ') ? '' : ' ';
+      const newContent = `${before}${leadingSpace}#${cleanTag}${trailingSpace}${after}`;
+      setContent(newContent);
+      const nextPos = before.length + leadingSpace.length + cleanTag.length + 1 + trailingSpace.length;
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.setSelectionRange(nextPos, nextPos);
+        }
+      }, 15);
+    }
     setHashtagQuery(null);
     setHashtagMatchIndex(-1);
 
@@ -329,14 +361,6 @@ export default function SocialDashboard() {
       }
       return prev;
     });
-
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        const nextPos = beforeHash.length + cleanTag.length + 2; // +1 for #, +1 for space
-        textareaRef.current.setSelectionRange(nextPos, nextPos);
-      }
-    }, 10);
   };
 
   // Build suggestion list: matched community tags + option to create new tag if query doesn't match
@@ -384,12 +408,13 @@ export default function SocialDashboard() {
     const newContent = `${before}${prefix}${after}`;
     setContent(newContent);
     const nextPos = before.length + prefix.length;
+    setHashtagQuery('');
+    setHashtagMatchIndex(before.length + (prefix.startsWith(' ') ? 1 : 0));
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.setSelectionRange(nextPos, nextPos);
-        detectHashtag(newContent, nextPos);
       }
-    }, 10);
+    }, 15);
   };
 
   const handlePost = async (e) => {
@@ -758,8 +783,9 @@ export default function SocialDashboard() {
             </div>
             
             {/* Form Body */}
-            <form onSubmit={handlePost} className="flex-1 overflow-y-auto px-5 py-2 flex flex-col">
-              <div className="relative flex-1 min-h-[130px]">
+            <form onSubmit={handlePost} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {/* Scrollable Content Area */}
+              <div className="flex-1 overflow-y-auto px-5 py-3 flex flex-col min-h-[140px]">
                 <textarea 
                   ref={textareaRef}
                   placeholder="What's happening in the community? (Type # to add tags)" 
@@ -773,122 +799,147 @@ export default function SocialDashboard() {
                   autoFocus
                 />
 
-                {/* Auto Hashtag Suggestions Popup (LinkedIn / Instagram style) */}
-                {hashtagQuery !== null && suggestionItems.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full z-30 -mt-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden max-h-56 overflow-y-auto animate-in fade-in zoom-in-95">
-                    <div className="px-3.5 py-2 bg-gray-50/90 dark:bg-gray-800/80 border-b border-gray-100 dark:border-gray-700/70 flex items-center justify-between text-[11px] font-bold text-gray-500 dark:text-gray-400">
-                      <span className="flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
-                        <Hash size={13} className="stroke-[2.5]" />
-                        Suggested tags
-                      </span>
-                      <span className="text-[10px] text-gray-400 font-normal">Press Enter or Tab to select</span>
-                    </div>
-                    <div className="p-1 space-y-0.5">
-                      {suggestionItems.slice(0, 8).map((item, idx) => {
-                        const isFocused = idx === activeSuggestionIndex;
-                        return (
-                          <button
-                            key={`${item.name}-${item.isNew ? 'new' : 'existing'}`}
-                            type="button"
-                            onClick={() => insertHashtag(item.name)}
-                            onMouseEnter={() => setActiveSuggestionIndex(idx)}
-                            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-between cursor-pointer ${
-                              isFocused 
-                                ? 'bg-orange-500 text-white shadow-xs' 
-                                : 'hover:bg-orange-50/80 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${
-                                isFocused 
-                                  ? 'bg-white/20 text-white' 
-                                  : item.isNew 
-                                    ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400' 
-                                    : 'bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400'
-                              }`}>
-                                {item.isNew ? '+' : '#'}
-                              </span>
-                              <span className="truncate">{item.name}</span>
-                            </div>
-                            <span className={`text-[10px] font-medium shrink-0 ml-2 ${
-                              isFocused 
-                                ? 'text-white/80' 
-                                : item.isNew 
-                                  ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
-                                  : 'text-gray-400'
-                            }`}>
-                              {item.isNew ? 'Create new tag' : 'Topic'}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                {/* Selected Image Preview with Remove Button */}
+                {selectedImage && (
+                  <div className="relative my-3 rounded-2xl overflow-hidden border border-gray-200/80 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-center max-h-64 shadow-inner">
+                    <img 
+                      src={selectedImage} 
+                      alt="Post preview" 
+                      className="w-full h-auto max-h-64 object-contain" 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedImage(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-black text-white rounded-full transition shadow-md cursor-pointer"
+                      title="Remove image"
+                    >
+                      <X size={16} />
+                    </button>
                   </div>
                 )}
               </div>
 
-              {/* Selected Image Preview with Remove Button */}
-              {selectedImage && (
-                <div className="relative my-3 rounded-2xl overflow-hidden border border-gray-200/80 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex items-center justify-center max-h-64 shadow-inner">
-                  <img 
-                    src={selectedImage} 
-                    alt="Post preview" 
-                    className="w-full h-auto max-h-64 object-contain" 
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectedImage(null);
-                      if (fileInputRef.current) fileInputRef.current.value = '';
-                    }}
-                    className="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-black text-white rounded-full transition shadow-md cursor-pointer"
-                    title="Remove image"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              )}
+              {/* Docked Footer (LinkedIn-style Hashtag Bar & Action Bar) */}
+              <div className="shrink-0 px-5 pt-2.5 pb-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-750">
+                {/* LinkedIn-style Hashtag Bar */}
+                <div className="mb-3">
+                  {hashtagQuery !== null ? (
+                    /* Live Matching Hashtag Autocomplete Strip */
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between px-0.5">
+                        <span className="flex items-center gap-1.5 text-[11px] font-bold text-orange-600 dark:text-orange-400">
+                          <Hash size={12} className="stroke-[2.5]" />
+                          <span>Matching hashtags</span>
+                        </span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                          Tap or press Enter to add
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none no-scrollbar">
+                        {suggestionItems.length === 0 ? (
+                          <span className="text-xs text-gray-400 dark:text-gray-500 italic py-1">No matching tags</span>
+                        ) : (
+                          suggestionItems.map((item, idx) => {
+                            const isFocused = idx === activeSuggestionIndex;
+                            return (
+                              <button
+                                key={`${item.name}-${item.isNew ? 'new' : 'existing'}`}
+                                type="button"
+                                onClick={() => insertHashtag(item.name)}
+                                onMouseEnter={() => setActiveSuggestionIndex(idx)}
+                                className={`shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer active:scale-95 ${
+                                  isFocused
+                                    ? 'bg-orange-500 text-white shadow-xs'
+                                    : item.isNew
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 hover:bg-emerald-100'
+                                      : 'bg-gray-100 dark:bg-gray-750 text-gray-750 dark:text-gray-250 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-gray-700 border border-transparent hover:border-orange-200'
+                                }`}
+                              >
+                                <span className={isFocused ? 'text-white' : item.isNew ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-orange-500 font-bold'}>
+                                  {item.isNew ? '+' : '#'}
+                                </span>
+                                <span>{item.name}</span>
+                                {item.isNew && (
+                                  <span className="text-[10px] ml-0.5 opacity-80 font-medium">(create)</span>
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* LinkedIn-style Recommended Hashtags Pill Strip */
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none no-scrollbar">
+                      <button
+                        type="button"
+                        onClick={triggerHashtag}
+                        className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 hover:bg-orange-100 dark:hover:bg-orange-900/50 border border-orange-200/80 dark:border-orange-800/60 transition cursor-pointer active:scale-95"
+                        title="Add hashtag"
+                      >
+                        <Hash size={12} className="stroke-[2.5]" />
+                        <span>Add hashtag</span>
+                      </button>
 
-              {/* Bottom Action Bar */}
-              <div className="mt-auto pt-3 border-t border-gray-100 dark:border-gray-750 flex items-center justify-between gap-2 shrink-0">
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    accept="image/*,.heic,.heif,.HEIC,.HEIF" 
-                    className="hidden" 
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={compressingImage}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-600 dark:bg-gray-750 dark:hover:bg-gray-700 border border-transparent hover:border-emerald-200 dark:hover:border-emerald-900/40 transition cursor-pointer"
-                  >
-                    <ImageIcon size={16} className="text-emerald-500 shrink-0" />
-                    <span>{compressingImage ? 'Processing...' : selectedImage ? 'Change Photo' : 'Photo'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={triggerHashtag}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-orange-50 hover:text-orange-600 dark:bg-gray-750 dark:hover:bg-gray-700 border border-transparent hover:border-orange-200 dark:hover:border-orange-900/40 transition cursor-pointer"
-                    title="Insert Hashtag"
-                  >
-                    <Hash size={14} className="text-orange-500 stroke-[2.5] shrink-0" />
-                    <span>Tag</span>
-                  </button>
+                      {communityTags.slice(0, 10).map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => insertHashtag(tag)}
+                          className="shrink-0 flex items-center gap-0.5 px-2.5 py-1 rounded-full text-xs font-medium text-gray-650 dark:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-750 dark:hover:bg-gray-700 border border-transparent hover:border-gray-300 dark:hover:border-gray-600 transition cursor-pointer active:scale-95"
+                        >
+                          <span className="text-orange-500/80 dark:text-orange-400/80 text-[11px] font-bold">#</span>
+                          <span>{tag}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  <button 
-                    type="submit" 
-                    disabled={loadingPost || (!content.trim() && !selectedImage) || compressingImage}
-                    className="px-5 sm:px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-orange-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition shadow-md shadow-orange-500/25 cursor-pointer active:scale-95"
-                  >
-                    <Send size={14} className="shrink-0" />
-                    <span>{loadingPost ? 'Posting...' : 'Post'}</span>
-                  </button>
+
+                {/* Bottom Action Bar */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileChange} 
+                      accept="image/*,.heic,.heif,.HEIC,.HEIF" 
+                      className="hidden" 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={compressingImage}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-emerald-50 hover:text-emerald-600 dark:bg-gray-750 dark:hover:bg-gray-700 border border-transparent hover:border-emerald-200 dark:hover:border-emerald-900/40 transition cursor-pointer"
+                    >
+                      <ImageIcon size={16} className="text-emerald-500 shrink-0" />
+                      <span>{compressingImage ? 'Processing...' : selectedImage ? 'Change Photo' : 'Photo'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={triggerHashtag}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 hover:bg-orange-50 hover:text-orange-600 dark:bg-gray-750 dark:hover:bg-gray-700 border border-transparent hover:border-orange-200 dark:hover:border-orange-900/40 transition cursor-pointer"
+                      title="Insert Hashtag"
+                    >
+                      <Hash size={14} className="text-orange-500 stroke-[2.5] shrink-0" />
+                      <span>Tag</span>
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <button 
+                      type="submit" 
+                      disabled={loadingPost || (!content.trim() && !selectedImage) || compressingImage}
+                      className="px-5 sm:px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-orange-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition shadow-md shadow-orange-500/25 cursor-pointer active:scale-95"
+                    >
+                      <Send size={14} className="shrink-0" />
+                      <span>{loadingPost ? 'Posting...' : 'Post'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
