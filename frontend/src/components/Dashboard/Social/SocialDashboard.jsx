@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
+import { createPortal } from 'react-dom';
 import { Home, Search, Heart, Users, Users2, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe, Compass, Bell, Hash, Sparkles } from 'lucide-react';
 import { Link, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
@@ -709,16 +710,18 @@ export default function SocialDashboard() {
       )}
 
       {/* Create Post Modal Overlay */}
-      {showCreatePostModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md p-3 sm:p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-750 w-full max-w-lg max-h-[92vh] overflow-hidden shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      {showCreatePostModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center z-[999999] p-0 sm:p-4 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 border-t sm:border border-gray-100 dark:border-gray-700 rounded-t-3xl sm:rounded-3xl max-w-lg w-full shadow-2xl animate-scale-up max-h-[92vh] sm:max-h-[88vh] flex flex-col overflow-hidden">
             
+            {/* Mobile Sheet Drag Handle */}
+            <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto my-2.5 sm:hidden shrink-0" />
+
             {/* Modal Header */}
-            <div className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-750 flex items-center justify-between shrink-0">
-              <div>
-                <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white leading-tight">Create Post</h3>
-                <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500">Share knowledge, achievements or thoughts</p>
-              </div>
+            <div className="px-5 py-3.5 sm:py-4 border-b border-gray-100 dark:border-gray-700/80 flex items-center justify-between shrink-0 bg-white dark:bg-gray-800">
+              <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+                <span>Create Post</span>
+              </h2>
               <button 
                 type="button"
                 onClick={() => {
@@ -726,10 +729,10 @@ export default function SocialDashboard() {
                   setSelectedImage(null);
                   if (fileInputRef.current) fileInputRef.current.value = '';
                 }}
-                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-700/70 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-800 dark:hover:text-white transition cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer"
                 title="Close"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
@@ -881,7 +884,7 @@ export default function SocialDashboard() {
                   <button 
                     type="submit" 
                     disabled={loadingPost || (!content.trim() && !selectedImage) || compressingImage}
-                    className="px-5 sm:px-6 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-40 disabled:hover:from-orange-500 disabled:hover:to-amber-500 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 transition shadow-md shadow-orange-500/25 cursor-pointer active:scale-95"
+                    className="px-5 sm:px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-40 disabled:hover:bg-orange-500 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition shadow-md shadow-orange-500/25 cursor-pointer active:scale-95"
                   >
                     <Send size={14} className="shrink-0" />
                     <span>{loadingPost ? 'Posting...' : 'Post'}</span>
@@ -890,7 +893,8 @@ export default function SocialDashboard() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
