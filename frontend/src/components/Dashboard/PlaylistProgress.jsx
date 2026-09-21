@@ -381,7 +381,7 @@ const PlaylistProgress = () => {
                                         }}
                                         disabled={isDeleting}
                                         title="Delete Playlist"
-                                        className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-red-600/90 active:scale-95 backdrop-blur-md text-white flex items-center justify-center border border-white/20 shadow-md hover:scale-110 transition-all cursor-pointer disabled:opacity-50"
+                                        className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 z-20 w-8 h-8 rounded-full bg-red-600 hover:bg-red-700 active:scale-95 text-white flex items-center justify-center border border-red-400/40 shadow-lg shadow-red-950/40 hover:scale-110 transition-all cursor-pointer disabled:opacity-50"
                                     >
                                         <Trash2 size={15} strokeWidth={2.2} />
                                     </button>
