@@ -408,11 +408,10 @@ const LoginPage = () => {
                 const { SocialLogin } = await import('@capgo/capacitor-social-login');
                 const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
 
-                // Android: use custom scheme so CustomTabs can return to app without external browser
-                // iOS: use https redirect with ASWebAuthenticationSession
-                const redirectUri = platform === 'android'
-                    ? 'learnproofai://auth/linkedin/callback'
-                    : 'https://learnproofai.com/auth/linkedin/callback';
+                // Android: use HTTPS redirect with App Links (learnproofai.com is registered as App Link)
+                // LinkedIn only supports HTTPS redirect URLs - custom schemes are rejected
+                // Android App Links intercept https://learnproofai.com/auth/linkedin/callback and route to app
+                const redirectUri = 'https://learnproofai.com/auth/linkedin/callback';
 
                 await SocialLogin.initialize({
                     linkedin: {

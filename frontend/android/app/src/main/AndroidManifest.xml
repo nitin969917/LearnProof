@@ -22,12 +22,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- LinkedIn OAuth CustomTabs callback deep link -->
-            <intent-filter>
+            <!-- LinkedIn OAuth App Link: Android intercepts this URL and routes back to app -->
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="learnproofai" android:host="auth" />
+                <data
+                    android:scheme="https"
+                    android:host="learnproofai.com"
+                    android:pathPrefix="/auth/linkedin/callback" />
             </intent-filter>
 
         </activity>
