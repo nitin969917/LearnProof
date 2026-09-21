@@ -83,8 +83,10 @@
 
 /* Native App Visual Resets */
 html, body {
-    /* Prevent elastic scroll on the body but allow it on overflow containers */
+    /* Prevent vertical elastic scroll on the body but allow it on overflow containers */
     overscroll-behavior-y: none;
+    /* Explicitly allow horizontal overscroll for native iOS/Android swipe back gestures */
+    overscroll-behavior-x: auto;
     /* Prevent double-tap to zoom for faster button response */
     touch-action: manipulation;
     /* Prevent the blue/gray highlight box on mobile taps */
