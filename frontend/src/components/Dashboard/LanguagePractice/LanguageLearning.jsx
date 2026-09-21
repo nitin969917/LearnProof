@@ -91,6 +91,14 @@ const downloadIcs = (e, room) => {
   toast.success('Calendar reminder downloaded!');
 };
 
+const QUICK_TOPICS = [
+  { id: 'english', label: '🗣️ Spoken English Club', topic: 'English Speaking Practice', lang: 'English' },
+  { id: 'dsa', label: '💻 DSA & Coding Prep', topic: 'DSA & Algorithms Practice', lang: 'English' },
+  { id: 'study', label: '📚 Silent Co-Study', topic: 'Focused Study Room (Pomodoro)', lang: 'Other' },
+  { id: 'interview', label: '🎯 Mock Interviews', topic: 'Tech Mock Interview Prep', lang: 'English' },
+  { id: 'casual', label: '☕ Student Hangout', topic: 'Casual Student Hangout', lang: 'English' }
+];
+
 export default function LanguageLearning() {
   const outletContext = useOutletContext();
   const setHeaderAction = outletContext?.setHeaderAction;
@@ -214,11 +222,14 @@ export default function LanguageLearning() {
     }
   };
 
-  const openCreateModal = (mediaType = activeTab) => {
+  const openCreateModal = (mediaType = activeTab, presetTopic = '', presetLanguage = '') => {
+    const slugName = presetTopic
+      ? presetTopic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+      : '';
     setNewRoom({ 
-      roomName: '', 
-      topic: '', 
-      language: '', 
+      roomName: slugName ? `${slugName}-${Math.floor(100 + Math.random() * 900)}` : '', 
+      topic: presetTopic || '', 
+      language: presetLanguage || (presetTopic ? 'English' : ''), 
       mediaType, 
       visibility: 'public',
       isScheduled: false,
@@ -228,6 +239,15 @@ export default function LanguageLearning() {
     setFriendSearchQuery('');
     fetchFriends(true);
     setShowModal(true);
+  };
+
+  const openScheduleModal = (mediaType = activeTab, presetTopic = '') => {
+    openCreateModal(mediaType, presetTopic);
+    setNewRoom(prev => ({
+      ...prev,
+      isScheduled: true,
+      scheduledFor: getMinDateTime(30)
+    }));
   };
 
   const toggleFriendSelection = (friendId) => {
@@ -317,117 +337,143 @@ export default function LanguageLearning() {
       className="flex flex-col gap-4 w-full max-w-[1360px] mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 select-none sm:select-auto touch-pan-y"
     >
 
-      {/* ── Compact Header (Desktop only - mobile uses TopBar) ── */}
-      <div className="hidden lg:flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
-          <Globe size={18} />
+      {/* ── Compact Header (Desktop & Mobile) ── */}
+      <div className="flex items-center justify-between gap-3 pt-1 pb-1">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-md shadow-orange-500/20 shrink-0">
+            <Globe size={20} className="stroke-[2.5]" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-base sm:text-xl font-black text-gray-900 dark:text-white tracking-tight truncate">
+                Live Stages
+              </h1>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-300/40 dark:border-emerald-800/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>WebRTC</span>
+              </span>
+            </div>
+            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
+              {totalRoomsCount > 0 ? `${totalRoomsCount} active rooms online` : 'Real-time spoken practice & peer study'}
+            </p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight">Live Rooms</h1>
-          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">
-            {totalRoomsCount > 0 ? `${totalRoomsCount} active rooms` : "Connect with others in real-time"}
-          </p>
-        </div>
+
+        {/* Top-Right Quick Host Action */}
         <button
+          type="button"
           onClick={() => openCreateModal(activeTab)}
-          className="flex items-center gap-1.5 px-3 py-2 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer font-bold text-xs shrink-0"
+          className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-extrabold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition cursor-pointer shrink-0"
         >
-          <Plus size={14} />
-          <span>Create</span>
+          <Plus size={14} className="stroke-[3]" />
+          <span className="hidden xs:inline">New Room</span>
+          <span className="xs:hidden">Create</span>
         </button>
       </div>
 
-      {/* Tabs Selector + Mobile Create Action */}
-      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 gap-2">
-        <div className="flex flex-1 max-w-xs sm:max-w-md">
+      {/* ── Segmented Control & Filter Bar ── */}
+      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-2xl p-1.5 sm:p-2 border border-gray-200/70 dark:border-gray-700/70 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        {/* iOS-style Pill Segmented Control */}
+        <div className="flex items-center bg-gray-100/90 dark:bg-gray-900/90 p-1 rounded-xl w-full sm:w-auto">
           <button
+            type="button"
             onClick={() => {
               setActiveTab('audio');
               localStorage.setItem('languageRoomsTab', 'audio');
             }}
-            className={`relative flex-1 pb-2.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            className={`relative flex-1 sm:flex-initial px-4 sm:px-5 py-2 rounded-lg text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === 'audio'
-                ? 'text-orange-500'
-                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                ? 'text-orange-600 dark:text-orange-400'
+                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
             }`}
           >
-            <Mic size={14} />
-            <span>Audio ({audioRoomsCount})</span>
             {activeTab === 'audio' && (
-              <motion.div 
-                layoutId="activeTabUnderline"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full"
-                transition={{ type: "spring", stiffness: 500, damping: 35 }}
+              <motion.div
+                layoutId="activeRoomsSegmentPill"
+                className="absolute inset-0 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
             )}
+            <Mic size={14} className="relative z-10 stroke-[2.5]" />
+            <span className="relative z-10">Audio</span>
+            <span className={`relative z-10 px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              activeTab === 'audio'
+                ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
+                : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+            }`}>
+              {audioRoomsCount}
+            </span>
           </button>
+
           <button
+            type="button"
             onClick={() => {
               setActiveTab('video');
               localStorage.setItem('languageRoomsTab', 'video');
             }}
-            className={`relative flex-1 pb-2.5 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            className={`relative flex-1 sm:flex-initial px-4 sm:px-5 py-2 rounded-lg text-xs font-black flex items-center justify-center gap-2 transition-all cursor-pointer ${
               activeTab === 'video'
-                ? 'text-orange-500'
-                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                ? 'text-orange-600 dark:text-orange-400'
+                : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
             }`}
           >
-            <Video size={14} />
-            <span>Video ({videoRoomsCount})</span>
             {activeTab === 'video' && (
-              <motion.div 
-                layoutId="activeTabUnderline"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500 rounded-full"
-                transition={{ type: "spring", stiffness: 500, damping: 35 }}
+              <motion.div
+                layoutId="activeRoomsSegmentPill"
+                className="absolute inset-0 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
             )}
+            <Video size={14} className="relative z-10 stroke-[2.5]" />
+            <span className="relative z-10">Video</span>
+            <span className={`relative z-10 px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              activeTab === 'video'
+                ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
+                : 'bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+            }`}>
+              {videoRoomsCount}
+            </span>
           </button>
         </div>
 
-        {/* Mobile Create Room Button */}
-        <button
-          onClick={() => openCreateModal(activeTab)}
-          className="flex lg:hidden items-center gap-1 px-3 py-1.5 mb-1.5 text-white bg-orange-500 hover:bg-orange-600 rounded-xl transition-all shadow-md shadow-orange-500/15 active:scale-95 cursor-pointer font-bold text-xs shrink-0"
-        >
-          <Plus size={14} />
-          <span>New Room</span>
-        </button>
-      </div>
-
-      {/* Sub-filters: All / Live Now / Scheduled */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-        <button
-          onClick={() => setRoomFilter('all')}
-          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-            roomFilter === 'all'
-              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-sm'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setRoomFilter('live')}
-          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-            roomFilter === 'live'
-              ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/20'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Live Now</span>
-        </button>
-        <button
-          onClick={() => setRoomFilter('scheduled')}
-          className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-            roomFilter === 'scheduled'
-              ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/20'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          <Calendar size={12} />
-          <span>Scheduled</span>
-        </button>
+        {/* Sub-filters: All / Live Now / Scheduled */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <button
+            type="button"
+            onClick={() => setRoomFilter('all')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              roomFilter === 'all'
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-xs'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            All
+          </button>
+          <button
+            type="button"
+            onClick={() => setRoomFilter('live')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              roomFilter === 'live'
+                ? 'bg-emerald-500 text-white shadow-xs shadow-emerald-500/20'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Live Now</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setRoomFilter('scheduled')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              roomFilter === 'scheduled'
+                ? 'bg-amber-500 text-white shadow-xs shadow-amber-500/20'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            <Calendar size={12} className="text-amber-500" />
+            <span>Scheduled</span>
+          </button>
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
@@ -440,9 +486,9 @@ export default function LanguageLearning() {
           className="w-full"
         >
           {loading ? (
-            <div className="text-center py-12 text-gray-500">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent mx-auto mb-2"></div>
-              <span className="text-sm font-semibold">Loading live rooms...</span>
+            <div className="text-center py-16 text-gray-500">
+              <div className="animate-spin rounded-full h-9 w-9 border-2 border-orange-500 border-t-transparent mx-auto mb-3"></div>
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Loading live stages...</span>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3 sm:gap-6">
@@ -454,30 +500,102 @@ export default function LanguageLearning() {
                   if (roomFilter === 'scheduled') return !!isFutureScheduled;
                   return true;
                 }).length === 0 ? (
-                 <div className="col-span-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl text-center py-16 px-6 text-gray-500 dark:text-gray-400 shadow-sm relative overflow-hidden">
-                    {/* Decorative glow blob */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                    
-                    <div className="relative z-10 max-w-sm mx-auto">
-                        <div className="w-16 h-16 bg-orange-50 dark:bg-orange-950/30 rounded-2xl flex items-center justify-center text-orange-500 mx-auto mb-5 shadow-sm border border-orange-100/50 dark:border-orange-500/10">
-                            {activeTab === 'video' ? <Video size={32} className="animate-pulse" /> : <Mic size={32} className="animate-pulse" />}
+                  <div className="col-span-full bg-white dark:bg-gray-800/95 border border-gray-200/80 dark:border-gray-700/80 rounded-3xl p-6 sm:p-10 text-center shadow-xs relative overflow-hidden">
+                    {/* Ambient glowing background blobs */}
+                    <div className="absolute -top-24 -left-24 w-72 h-72 bg-orange-500/10 dark:bg-orange-500/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-amber-500/10 dark:bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                    <div className="relative z-10 max-w-lg mx-auto flex flex-col items-center">
+                      {/* Animated Stage Radar Icon */}
+                      <div className="relative mb-6 flex items-center justify-center">
+                        <div className="w-24 h-24 rounded-full bg-orange-500/10 dark:bg-orange-500/15 animate-ping absolute pointer-events-none opacity-40" />
+                        <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/25 relative z-10">
+                          {activeTab === 'video' ? (
+                            <Video size={36} className="stroke-[2.2]" />
+                          ) : (
+                            <Mic size={36} className="stroke-[2.2]" />
+                          )}
                         </div>
-                        <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">
-                          {roomFilter === 'scheduled' ? `No scheduled ${activeTab} rooms` : `No active ${activeTab} rooms`}
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
-                          {roomFilter === 'scheduled'
-                            ? `Schedule an upcoming ${activeTab} room session in advance so friends and attendees get notified!`
-                            : `Be the first to start a live ${activeTab} room session today to discuss, connect, or learn together!`}
-                        </p>
-                        <button 
+                        <span className="absolute -bottom-1 -right-1 bg-emerald-500 border-2 border-white dark:border-gray-800 text-white p-1 rounded-full shadow-xs">
+                          <Sparkles size={12} className="stroke-[2.5]" />
+                        </span>
+                      </div>
+
+                      <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">
+                        {roomFilter === 'scheduled'
+                          ? `No scheduled ${activeTab} rooms yet`
+                          : `No active ${activeTab} rooms right now`}
+                      </h3>
+
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed max-w-md">
+                        {roomFilter === 'scheduled'
+                          ? `Schedule a session in advance so other students and your friends receive push reminders when you go live!`
+                          : `Step on stage and connect with peers! Practice speaking a new language, solve DSA problems, or study live together.`}
+                      </p>
+
+                      {/* Quick-Start Topic Starters */}
+                      {roomFilter !== 'scheduled' && (
+                        <div className="w-full mb-7">
+                          <div className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2.5 flex items-center justify-center gap-1.5">
+                            <Sparkles size={12} className="text-orange-500" />
+                            <span>Quick-Start with Popular Topics</span>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            {QUICK_TOPICS.map((item) => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => openCreateModal(activeTab, item.topic, item.lang)}
+                                className="px-3 py-1.5 rounded-full text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100/90 dark:bg-gray-750 hover:bg-orange-50 hover:text-orange-600 dark:hover:bg-orange-950/40 dark:hover:text-orange-400 border border-gray-200/60 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-800 transition shadow-2xs active:scale-95 cursor-pointer"
+                              >
+                                {item.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Primary & Secondary CTAs */}
+                      <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+                        <button
                           onClick={() => openCreateModal(activeTab)}
-                          className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
+                          className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-sm shadow-md shadow-orange-500/25 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
                         >
-                          {roomFilter === 'scheduled' ? 'Schedule a Room' : 'Create a Room'}
+                          <Plus size={16} className="stroke-[3]" />
+                          <span>{roomFilter === 'scheduled' ? 'Schedule a Room' : `Start ${activeTab === 'video' ? 'Video' : 'Audio'} Room`}</span>
                         </button>
+
+                        {roomFilter !== 'scheduled' && (
+                          <button
+                            onClick={() => openScheduleModal(activeTab)}
+                            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-750 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold text-sm border border-gray-200 dark:border-gray-700 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                          >
+                            <Calendar size={15} className="text-amber-500" />
+                            <span>Schedule for Later</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Feature micro-perks */}
+                      <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-700/60 grid grid-cols-3 gap-2 sm:gap-4 w-full text-center">
+                        <div className="flex flex-col items-center">
+                          <span className="text-sm sm:text-base">⚡</span>
+                          <span className="text-[10px] sm:text-[11px] font-bold text-gray-600 dark:text-gray-300 mt-1">Zero Latency</span>
+                          <span className="text-[9px] text-gray-400 dark:text-gray-500 hidden sm:inline">WebRTC Voice/Video</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-sm sm:text-base">🔒</span>
+                          <span className="text-[10px] sm:text-[11px] font-bold text-gray-600 dark:text-gray-300 mt-1">Public or Private</span>
+                          <span className="text-[9px] text-gray-400 dark:text-gray-500 hidden sm:inline">Study alone or invite peers</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <span className="text-sm sm:text-base">📱</span>
+                          <span className="text-[10px] sm:text-[11px] font-bold text-gray-600 dark:text-gray-300 mt-1">Background PiP</span>
+                          <span className="text-[9px] text-gray-400 dark:text-gray-500 hidden sm:inline">Listen while browsing</span>
+                        </div>
+                      </div>
                     </div>
-                 </div>
+                  </div>
               ) : (
                 (Array.isArray(roomsList) ? roomsList : [])
                   .filter(r => (r.mediaType || 'audio') === activeTab)
