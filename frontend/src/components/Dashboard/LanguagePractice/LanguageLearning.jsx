@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Mic, Globe, Plus, Users, Search, GraduationCap, Video, PhoneOff, Trash2, X, Lock, UserCheck, Check, Star, Calendar, Clock, Sparkles, Bell, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -629,10 +630,10 @@ export default function LanguageLearning() {
       </AnimatePresence>
 
       {/* Create Room Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl animate-scale-up my-auto max-h-[92vh] flex flex-col">
-            <div className="flex items-center justify-between mb-3">
+      {showModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-end sm:items-center justify-center z-[999999] p-0 sm:p-4 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 border-t sm:border border-gray-100 dark:border-gray-700 rounded-t-3xl sm:rounded-3xl max-w-md w-full shadow-2xl animate-scale-up max-h-[92vh] sm:max-h-[88vh] flex flex-col overflow-hidden">
+            <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-700/80 shrink-0 bg-white dark:bg-gray-800">
               <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
                 <span>Create Live Room</span>
                 {newRoom.isScheduled && (
@@ -642,14 +643,16 @@ export default function LanguageLearning() {
                 )}
               </h2>
               <button 
+                type="button"
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateRoom} className="space-y-3.5 overflow-y-auto pr-1 flex-1">
+            <form onSubmit={handleCreateRoom} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5 overscroll-contain">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Room Name</label>
                 <input 
@@ -934,19 +937,22 @@ export default function LanguageLearning() {
                 />
               </div>
               
-              <div className="flex gap-2.5 pt-2">
+              </div>
+              
+              {/* Pinned Action Footer - Always visible above bottom bar and iOS safe areas */}
+              <div className="px-5 py-3.5 pb-[max(1rem,calc(env(safe-area-inset-bottom)+0.5rem))] sm:pb-3.5 border-t border-gray-100 dark:border-gray-700/80 bg-gray-50/90 dark:bg-gray-900/80 backdrop-blur-md shrink-0 flex gap-2.5">
                 <button 
                   type="button" 
                   disabled={creating}
                   onClick={() => setShowModal(false)} 
-                  className="flex-1 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 font-bold text-xs hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 font-bold text-xs hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={creating}
-                  className={`flex-1 px-4 py-2 text-white font-bold text-xs shadow transition rounded-xl cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2 ${
+                  className={`flex-1 px-4 py-2.5 text-white font-bold text-xs shadow-md transition rounded-xl cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2 ${
                     newRoom.isScheduled
                       ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/20'
                       : newRoom.visibility === 'private'
@@ -972,14 +978,15 @@ export default function LanguageLearning() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
 
 
       {/* Custom Confirmation Modal for ending room */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      {showConfirmModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl max-w-xs w-full p-6 shadow-2xl relative text-center animate-in zoom-in-95 duration-200">
             {/* Close button at top-right */}
             <button
@@ -1020,7 +1027,8 @@ export default function LanguageLearning() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
