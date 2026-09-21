@@ -234,7 +234,7 @@ const getNotificationTemplates = async (req, res) => {
         const templates = await prisma.notificationTemplate.findMany({
             orderBy: { hour: 'asc' }
         });
-        res.status(200).json({ success: true, data: templates });
+        res.status(200).json(templates);
     } catch (error) {
         console.error('Error fetching notification templates:', error);
         res.status(500).json({ error: 'Internal server error', details: error.message });

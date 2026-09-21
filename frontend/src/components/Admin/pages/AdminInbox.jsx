@@ -72,6 +72,15 @@ const AdminInbox = () => {
         }
     }, [token]);
 
+    const ensureArray = (val) => {
+        if (Array.isArray(val)) return val;
+        if (Array.isArray(val?.data)) return val.data;
+        if (Array.isArray(val?.templates)) return val.templates;
+        if (Array.isArray(val?.users)) return val.users;
+        if (Array.isArray(val?.messages)) return val.messages;
+        return [];
+    };
+
     const fetchData = async () => {
         try {
             const [usersRes, messagesRes, templatesRes] = await Promise.all([
@@ -83,11 +92,15 @@ const AdminInbox = () => {
                     params: { idToken: token }
                 })
             ]);
-            setUsers(usersRes.data || []);
-            setMessages(messagesRes.data || []);
-            setTemplates(templatesRes.data || []);
-            if (templatesRes.data?.length > 0 && !selectedTemplate) {
-                handleSelectTemplate(templatesRes.data[0]);
+            const rawUsers = ensureArray(usersRes?.data);
+            const rawMessages = ensureArray(messagesRes?.data);
+            const rawTemplates = ensureArray(templatesRes?.data);
+
+            setUsers(rawUsers);
+            setMessages(rawMessages);
+            setTemplates(rawTemplates);
+            if (rawTemplates.length > 0 && !selectedTemplate) {
+                handleSelectTemplate(rawTemplates[0]);
             }
         } catch (err) {
             toast.error("Failed to fetch communication data");
@@ -187,7 +200,7 @@ const AdminInbox = () => {
             const templatesRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/notification-templates`, {
                 params: { idToken: token }
             });
-            setTemplates(templatesRes.data);
+            setTemplates(ensureArray(templatesRes?.data));
         } catch (err) {
             toast.error(err.response?.data?.error || "Failed to update template");
         } finally {
@@ -250,14 +263,18 @@ const AdminInbox = () => {
         }
     };
 
-    const filteredUsers = users.filter(u => 
+    const templateList = ensureArray(templates);
+    const userList = ensureArray(users);
+    const messageList = ensureArray(messages);
+
+    const filteredUsers = userList.filter(u => 
         (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
         (u.email || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const selectedUserObj = users.find(u => u.uid === selectedUserUid);
+    const selectedUserObj = userList.find(u => u.uid === selectedUserUid);
 
-    const filteredMessages = messages
+    const filteredMessages = messageList
         .filter(m => m.senderId)
         .filter(m => {
             if (historyFilter === 'broadcast') return m.isBroadcast;
@@ -300,11 +317,11 @@ const AdminInbox = () => {
                 <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm text-xs font-bold text-slate-700 dark:text-slate-300">
                         <Users size={16} className="text-blue-500" />
-                        <span>{users.length} Learners</span>
+                        <span>{userList.length} Learners</span>
                     </div>
                     <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm text-xs font-bold text-slate-700 dark:text-slate-300">
                         <Bell size={16} className="text-orange-500" />
-                        <span>{templates.filter(t => t.enabled).length} Active Crons</span>
+                        <span>{templateList.filter(t => t.enabled).length} Active Crons</span>
                     </div>
                     <button
                         onClick={fetchData}
@@ -364,7 +381,7 @@ const AdminInbox = () => {
                     type="button"
                     onClick={() => { 
                         setActiveTab('schedule'); 
-                        if (templates.length > 0) handleSelectTemplate(templates[0]);
+                        if (templateList.length > 0) handleSelectTemplate(templateList[0]);
                     }}
                     className={`p-4 rounded-2xl border text-left transition-all duration-200 flex items-start gap-4 ${
                         activeTab === 'schedule'
@@ -435,7 +452,7 @@ const AdminInbox = () => {
                                         Select Target Cron Slot
                                     </label>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {templates.map(tpl => (
+                                        {templateList.map(tpl => (
                                             <button
                                                 key={tpl.type}
                                                 type="button"
@@ -512,7 +529,7 @@ const AdminInbox = () => {
                                             }`}
                                         >
                                             <Users size={14} />
-                                            <span>Broadcast to All ({users.length})</span>
+                                            <span>Broadcast to All ({userList.length})</span>
                                         </button>
                                         <button
                                             type="button"
@@ -663,12 +680,12 @@ const AdminInbox = () => {
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Automated push notifications sent every day to active learners</p>
                                 </div>
                                 <span className="text-xs font-bold text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-3 py-1 rounded-full border border-orange-200 dark:border-orange-900/30">
-                                    {templates.length} Slots Active
+                                    {templateList.length} Slots Active
                                 </span>
                             </div>
 
                             <div className="space-y-4">
-                                {templates.map(tpl => {
+                                {templateList.map(tpl => {
                                     const isEnabled = tpl.enabled;
                                     const isMorning = tpl.type === 'STREAK_KEEP_ALIVE';
 
