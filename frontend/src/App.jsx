@@ -82,6 +82,7 @@ const DownloadPage = lazyWithRetry(() => import('./components/Common/DownloadPag
 const AmbassadorLanding = lazyWithRetry(() => import('./components/Common/AmbassadorLanding'));
 const AmbassadorDashboard = lazyWithRetry(() => import('./components/Dashboard/AmbassadorDashboard'));
 const LinkedInCallback = lazyWithRetry(() => import('./components/Common/LinkedInCallback'));
+import IOSSwipeBackHandler from './components/Common/IOSSwipeBackHandler';
 
 const PageLoader = () => (
     <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white">
@@ -515,6 +516,7 @@ const App = () => {
             <ModalProvider>
                 <Router>
                     <NotificationDeepLinkHandler />
+                    <IOSSwipeBackHandler />
                     <GlobalLiveRoomManager>
                         <ColdStartGuard />
                         <OAuthRedirectHandler />
