@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     ArrowLeft, Clock, Play, CheckCircle, Sparkles, AlertCircle, 
-    Library, Trophy, BookOpen, BarChart2, ChevronRight, Loader2
+    Library, Trophy, BookOpen, BarChart2, ChevronRight, Loader2, Trash2
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import { useModal } from '../../context/ModalContext';
+import apiCache from '../../utils/apiCache';
 
 const formatDuration = (seconds) => {
     if (!seconds) return "0m";
@@ -57,6 +59,8 @@ const RoadmapDetail = () => {
     const { pid } = useParams();
     const navigate = useNavigate();
     const { token } = useAuth();
+    const { confirm } = useModal();
+    const [isDeleting, setIsDeleting] = useState(false);
     
     const [playlist, setPlaylist] = useState(() => {
         try {
@@ -213,6 +217,38 @@ const RoadmapDetail = () => {
         }
     };
 
+    const handleDeletePlaylist = async () => {
+        if (!token || !playlist || isDeleting) return;
+
+        const confirmed = await confirm({
+            title: "Delete Playlist",
+            message: `Are you sure you want to delete "${playlist.name}"? All videos in this playlist will also be removed.`,
+            confirmText: "Delete Playlist",
+            type: "danger"
+        });
+
+        if (!confirmed) return;
+
+        setIsDeleting(true);
+        try {
+            await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/delete-playlist/`, {
+                idToken: token,
+                playlistId: pid,
+            });
+            try {
+                sessionStorage.removeItem(`learnproof_pl_detail_${pid}`);
+            } catch (e) {}
+            apiCache.invalidate('learnings');
+            apiCache.invalidate('continue');
+            toast.success("Playlist deleted!");
+            navigate('/dashboard/library');
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to delete playlist");
+            setIsDeleting(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="h-screen flex items-center justify-center bg-gray-50/50 dark:bg-[#0B1120]">
@@ -320,10 +356,10 @@ const RoadmapDetail = () => {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-[1400px] mx-auto pb-6"
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="max-w-[1400px] mx-auto pb-6 transform-gpu"
         >
             {/* ── YOUTUBE-STYLE 2-COLUMN LAYOUT ── */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
@@ -332,15 +368,13 @@ const RoadmapDetail = () => {
                     LEFT COLUMN / HERO: YouTube Mastery Roadmap Hero Card
                    ══════════════════════════════════════════════ */}
                 <div className="lg:col-span-5 xl:col-span-4 space-y-3.5 sm:space-y-4">
-                    <motion.div
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
+                    <div
                         style={{
                             background: themeStyle.background,
                             borderColor: themeStyle.borderColor,
                             boxShadow: `0 12px 32px -8px ${themeStyle.glowColor}`
                         }}
-                        className="relative overflow-hidden rounded-3xl border p-4 sm:p-6 transition-all duration-700 shadow-md dark:bg-gray-800 dark:border-gray-700/60"
+                        className="relative overflow-hidden rounded-3xl border shadow-md dark:bg-gray-800 dark:border-gray-700/60 transform-gpu"
                     >
                         {/* Dynamic Ambient Thumbnail Glow Layer */}
                         {playlist.thumbnail && (
@@ -354,29 +388,43 @@ const RoadmapDetail = () => {
                             </div>
                         )}
 
-                        <div className="relative z-10 space-y-3.5 sm:space-y-4">
-                            {/* Prominent Playlist Video Thumbnail */}
+                        <div className="relative z-10">
+                            {/* Prominent Playlist Video Thumbnail - Flush edge-to-edge (no margins) */}
                             {playlist.thumbnail && (
                                 <div
                                     onClick={() => playlist.videos?.find(v => !v.is_completed) && navigate(`/classroom/${playlist.videos.find(v => !v.is_completed).vid}`)}
-                                    className="relative group cursor-pointer w-full aspect-video rounded-2xl overflow-hidden shadow-md border border-black/5 dark:border-white/10 transition-transform duration-300 hover:scale-[1.01]"
+                                    className="relative group cursor-pointer w-full aspect-video overflow-hidden border-b border-black/5 dark:border-white/10"
                                 >
                                     <img
                                         src={playlist.thumbnail}
                                         alt={playlist.name}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                     />
-                                    {/* Back icon button directly on the thumbnail */}
+                                    {/* Back icon button directly on the thumbnail (left side) */}
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             navigate('/dashboard/library');
                                         }}
                                         title="Back to My Learning"
-                                        className="absolute top-2.5 left-2.5 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white flex items-center justify-center border border-white/20 shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                                        className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-md text-white flex items-center justify-center border border-white/20 shadow-md hover:scale-110 active:scale-95 transition-all cursor-pointer"
                                     >
                                         <ArrowLeft size={15} strokeWidth={2.5} />
                                     </button>
+
+                                    {/* Delete icon button directly on the thumbnail (right side) */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeletePlaylist();
+                                        }}
+                                        disabled={isDeleting}
+                                        title="Delete Playlist"
+                                        className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-red-600/90 active:scale-95 backdrop-blur-md text-white flex items-center justify-center border border-white/20 shadow-md hover:scale-110 transition-all cursor-pointer disabled:opacity-50"
+                                    >
+                                        <Trash2 size={15} strokeWidth={2.2} />
+                                    </button>
+
                                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 transition-colors flex items-center justify-center">
                                         <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-white/95 text-gray-900 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
                                             <Play size={20} className="fill-gray-900 text-gray-900 ml-0.5 sm:size-6" />
@@ -388,6 +436,9 @@ const RoadmapDetail = () => {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Card Content with Padding */}
+                            <div className="p-4 sm:p-5 space-y-3.5 sm:space-y-4">
 
                             {/* Playlist Meta Header */}
                             <div className="space-y-2">
@@ -493,7 +544,8 @@ const RoadmapDetail = () => {
                                 )}
                             </AnimatePresence>
                         </div>
-                    </motion.div>
+                    </div>
+                </div>
 
                     {/* 4 Quick Stat Metric Tiles */}
                     <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-4 shadow-sm border border-gray-100 dark:border-gray-700/60 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2.5 sm:gap-3">
@@ -597,9 +649,9 @@ const RoadmapDetail = () => {
                                         key={`day-${dayPlan.day}`}
                                         initial={{ opacity: 0, y: 8 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.22, delay: Math.min(dayIndex * 0.02, 0.2) }}
+                                        transition={{ duration: 0.2, delay: Math.min(dayIndex * 0.015, 0.15), ease: "easeOut" }}
                                         whileHover={{ y: -1 }}
-                                        className={`rounded-2xl border transition-all p-2.5 sm:p-3 space-y-2 ${
+                                        className={`rounded-2xl border transition-[border-color,background-color] duration-150 transform-gpu p-2.5 sm:p-3 space-y-2 ${
                                             isDayDone
                                                 ? 'bg-[#F4FAF6] dark:bg-emerald-950/15 border-emerald-200 dark:border-emerald-900/40'
                                                 : 'bg-gray-50/60 dark:bg-gray-900/30 border-gray-100 dark:border-gray-800'
