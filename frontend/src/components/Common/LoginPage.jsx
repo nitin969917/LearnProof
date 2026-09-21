@@ -84,7 +84,7 @@ const LoginPage = () => {
                 lineColor: "bg-indigo-500"
             },
             {
-                title: "Auto Summaries",
+                title: "AI Summaries",
                 desc: "Auto PDF note extraction",
                 icon: <FileText size={18} className="text-emerald-500" />,
                 bgClass: "bg-gradient-to-b from-[#f2faf6]/80 to-white dark:from-[#152a22]/20 dark:to-gray-900 border border-[#e0f4ea] dark:border-[#1c3a2f]/40",
@@ -772,7 +772,7 @@ const LoginPage = () => {
                     </div>
 
                     {/* Swipeable Feature Carousel Card widget */}
-                    <div className="w-full relative overflow-hidden h-[140px] flex items-center justify-center z-10">
+                    <div className="w-full relative overflow-hidden h-[146px] flex items-center justify-center z-10">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeFeature}
@@ -798,19 +798,21 @@ const LoginPage = () => {
                                 {SLIDES[activeFeature].map((item, idx) => (
                                     <div 
                                         key={idx}
-                                        className={`flex-1 flex flex-col items-center text-center p-3 pt-4 pb-4 ${item.bgClass} rounded-[1.25rem] shadow-[0_4px_25px_rgba(0,0,0,0.015)] relative overflow-hidden transition-all duration-300 h-full min-w-0 font-sans`}
+                                        className={`flex-1 flex flex-col items-center text-center p-2.5 pt-3 pb-3 ${item.bgClass} rounded-[1.25rem] shadow-[0_4px_25px_rgba(0,0,0,0.015)] relative overflow-hidden transition-all duration-300 h-full min-w-0 font-sans justify-between`}
                                     >
-                                        {/* White rounded square icon bubble matching screenshot */}
-                                        <div className="w-11 h-11 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-3 shrink-0 shadow-[0_6px_16px_rgba(0,0,0,0.02)] border border-slate-100/35 dark:border-gray-700">
-                                            {item.icon}
+                                        <div className="flex flex-col items-center w-full">
+                                            {/* White rounded square icon bubble matching screenshot */}
+                                            <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-2 shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-slate-100/40 dark:border-gray-700">
+                                                {item.icon}
+                                            </div>
+                                            <h4 className="text-[10px] sm:text-[10.5px] font-bold text-[#0f172a] dark:text-white tracking-tight leading-tight text-center w-full px-0.5 font-sans min-h-[24px] flex items-center justify-center">
+                                                {item.title}
+                                            </h4>
+                                            <p className="text-[7.5px] sm:text-[8px] text-slate-500 dark:text-slate-400 font-medium leading-[1.25] tracking-tight text-center font-sans mt-0.5 px-0.5 line-clamp-2">
+                                                {item.desc}
+                                            </p>
                                         </div>
-                                        <h4 className="text-[10px] font-bold text-[#0f172a] dark:text-white tracking-tight leading-none text-center truncate w-full px-1 font-sans">
-                                            {item.title}
-                                        </h4>
-                                        <p className="text-[8px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed tracking-tight flex-1 text-center font-sans mt-1 px-0.5">
-                                            {item.desc}
-                                        </p>
-                                        <div className={`absolute bottom-2.5 w-5 h-[2px] ${item.lineColor} opacity-90 rounded-full`} />
+                                        <div className={`w-5 h-[2px] ${item.lineColor} opacity-90 rounded-full mt-1.5`} />
                                     </div>
                                 ))}
                             </motion.div>
@@ -846,7 +848,7 @@ const LoginPage = () => {
                             whileHover={{ scale: 1.01, y: -0.5 }}
                             whileTap={{ scale: 0.99 }}
                             onClick={handleManualGoogleLogin}
-                            className="w-full flex items-center justify-center gap-3 px-6 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-2xl shadow-[0_4px_25px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(249,115,22,0.08)] transition-all duration-300 font-bold text-gray-700 dark:text-gray-200 text-xs h-12 cursor-pointer border-slate-200/80"
+                            className="w-full flex items-center justify-center gap-3 px-6 bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 rounded-2xl shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_6px_20px_rgba(249,115,22,0.08)] hover:border-orange-200 transition-all duration-200 font-bold text-gray-700 dark:text-gray-200 text-xs h-12 cursor-pointer"
                         >
                             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5 shrink-0" />
                             <span>Continue with Google</span>
@@ -872,9 +874,9 @@ const LoginPage = () => {
                             whileHover={{ scale: 1.01, y: -0.5 }}
                             whileTap={{ scale: 0.99 }}
                             onClick={handleManualLinkedInLogin}
-                            className="w-full flex items-center justify-center gap-2.5 px-6 bg-[#0A66C2] text-white hover:bg-[#004182] border border-[#0A66C2] rounded-2xl shadow-[0_4px_25px_rgba(10,102,194,0.12)] transition-all duration-300 font-bold text-xs h-12 cursor-pointer"
+                            className="w-full flex items-center justify-center gap-3 px-6 bg-[#0A66C2] hover:bg-[#004182] text-white border border-[#0A66C2] rounded-2xl shadow-[0_3px_15px_rgba(10,102,194,0.18)] hover:shadow-[0_6px_22px_rgba(10,102,194,0.25)] transition-all duration-200 font-bold text-xs h-12 cursor-pointer"
                         >
-                            <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                            <svg className="w-4.5 h-4.5 fill-current shrink-0" viewBox="0 0 24 24">
                                 <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.62 1.62 0 1 0 0 3.24 1.62 1.62 0 0 0 0-3.24z"/>
                             </svg>
                             <span>Continue with LinkedIn</span>

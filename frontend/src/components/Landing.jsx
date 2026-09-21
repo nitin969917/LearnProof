@@ -496,6 +496,32 @@ const LandingPage = () => {
         window.location.assign(authUrl);
     };
 
+    const handleManualLinkedInLogin = (customTarget = "/dashboard") => {
+        setAuthRedirect(customTarget);
+        setIsLoggingIn(true);
+
+        const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
+        if (isCapacitorNative) {
+            navigate('/login');
+            return;
+        }
+
+        const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
+        const redirectUri = `${window.location.origin}/auth/linkedin/callback`;
+        const state = Math.random().toString(36).substring(2);
+        sessionStorage.setItem("linkedin_oauth_state", state);
+        sessionStorage.setItem("redirect_to", customTarget);
+
+        const authUrl = `https://www.linkedin.com/oauth/v2/authorization?` +
+            `response_type=code` +
+            `&client_id=${clientId}` +
+            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+            `&state=${state}` +
+            `&scope=${encodeURIComponent('openid profile email')}`;
+
+        window.location.assign(authUrl);
+    };
+
 
 
     const features = [
@@ -846,14 +872,23 @@ const LandingPage = () => {
                         initial={{ opacity: 0, y: 30 }}
                         animate={showContent ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.4, duration: 0.8 }}
-                        className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 flex-wrap mb-10"
+                        className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 flex-wrap mb-10"
                     >
                         <button 
                             onClick={handleManualGoogleLogin}
-                            className="flex items-center gap-2.5 px-4 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-gray-700 text-sm h-[40px] w-[230px] justify-center"
+                            className="flex items-center gap-2.5 px-4 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-gray-700 text-sm h-[42px] w-[215px] justify-center cursor-pointer"
                         >
                             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
                             <span className="whitespace-nowrap">Continue with Google</span>
+                        </button>
+                        <button 
+                            onClick={handleManualLinkedInLogin}
+                            className="flex items-center gap-2.5 px-4 bg-[#0A66C2] hover:bg-[#004182] text-white rounded-xl shadow-[0_4px_20px_rgba(10,102,194,0.18)] hover:shadow-[0_6px_22px_rgba(10,102,194,0.25)] transition-all duration-300 transform hover:-translate-y-0.5 border border-[#0A66C2] font-bold text-sm h-[42px] w-[215px] justify-center cursor-pointer"
+                        >
+                            <svg className="w-4.5 h-4.5 fill-current shrink-0" viewBox="0 0 24 24">
+                                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.62 1.62 0 1 0 0 3.24 1.62 1.62 0 0 0 0-3.24z"/>
+                            </svg>
+                            <span className="whitespace-nowrap">Continue with LinkedIn</span>
                         </button>
                         <a
                             href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
@@ -1398,13 +1433,24 @@ const LandingPage = () => {
                             Start your journey of transforming YouTube videos into verified certificates. Join {userCount !== null ? <span className="font-bold text-orange-600">{userCount.toLocaleString()}</span> : '...'} active learners today and showcase your dedication to learning.
                         </p>
                         <div className="flex flex-col items-center gap-4 mb-6">
-                            <button 
-                                onClick={handleManualGoogleLogin}
-                                className="inline-flex items-center gap-2.5 px-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-gray-700 text-sm h-[40px] justify-center"
-                            >
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
-                                <span>Continue with Google</span>
-                            </button>
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                                <button 
+                                    onClick={handleManualGoogleLogin}
+                                    className="inline-flex items-center gap-2.5 px-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-gray-700 text-sm h-[42px] justify-center min-w-[215px] cursor-pointer"
+                                >
+                                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
+                                    <span>Continue with Google</span>
+                                </button>
+                                <button 
+                                    onClick={handleManualLinkedInLogin}
+                                    className="inline-flex items-center gap-2.5 px-6 bg-[#0A66C2] hover:bg-[#004182] text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-[#0A66C2] font-bold text-sm h-[42px] justify-center min-w-[215px] cursor-pointer"
+                                >
+                                    <svg className="w-4.5 h-4.5 fill-current shrink-0" viewBox="0 0 24 24">
+                                        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.62 1.62 0 1 0 0 3.24 1.62 1.62 0 0 0 0-3.24z"/>
+                                    </svg>
+                                    <span>Continue with LinkedIn</span>
+                                </button>
+                            </div>
                             <a
                                 href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
                                 target="_blank"
