@@ -842,13 +842,13 @@ const LoginPage = () => {
                     </div>
 
                     {/* Auth Login Action Button */}
-                    <div className="w-full space-y-2.5 z-10 max-w-[270px]">
+                    <div className="w-full space-y-2 z-10 max-w-[255px] flex flex-col items-center">
                         {/* Continue with Google */}
                         <motion.button 
                             whileHover={{ scale: 1.01, y: -0.5 }}
                             whileTap={{ scale: 0.99 }}
                             onClick={handleManualGoogleLogin}
-                            className="w-full flex items-center justify-center gap-2.5 px-4 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow hover:border-slate-300 transition-all duration-200 font-semibold text-slate-700 dark:text-slate-200 text-[13px] h-[40px] cursor-pointer"
+                            className="w-full flex items-center justify-center gap-2 px-3 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow hover:border-slate-300 transition-all duration-200 font-medium text-slate-700 dark:text-slate-200 text-xs h-[38px] cursor-pointer"
                         >
                             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4 shrink-0" />
                             <span>Continue with Google</span>
@@ -860,7 +860,7 @@ const LoginPage = () => {
                                 whileHover={{ scale: 1.01, y: -0.5 }}
                                 whileTap={{ scale: 0.99 }}
                                 onClick={handleManualAppleLogin}
-                                className="w-full flex items-center justify-center gap-2.5 px-4 bg-black text-white hover:bg-zinc-900 border border-black rounded-xl shadow-sm transition-all duration-200 font-semibold text-[13px] h-[40px] cursor-pointer"
+                                className="w-full flex items-center justify-center gap-2 px-3 bg-black text-white hover:bg-zinc-900 border border-black rounded-lg shadow-sm transition-all duration-200 font-medium text-xs h-[38px] cursor-pointer"
                             >
                                 <svg className="w-3.5 h-3.5 fill-current mb-0.5 shrink-0" viewBox="0 0 170 170">
                                     <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.67-7.81-11.96-14.31-5.77-8.8-10.34-18.73-13.72-29.79-3.37-11.06-5.06-21.84-5.06-32.34 0-14.35 3.59-26.06 10.77-35.12 7.18-9.06 16.2-13.67 27.06-13.84 4.58 0 9.77 1.25 15.57 3.75 5.8 2.5 9.78 3.84 11.96 4.02 1.96-.28 5.99-1.68 12.09-4.22 6.1-2.54 11.39-3.71 15.86-3.51 11.85.62 21.6 4.87 29.25 12.75-10.45 6.32-15.58 14.99-15.38 26.01.2 8.78 3.59 16.27 10.18 22.47 6.59 6.2 14.54 9.68 23.85 10.45-2.07 6.1-4.68 12.51-7.83 19.23zM119.22 31.84c0-7.39 2.65-14.18 7.95-20.37 5.3-6.19 11.75-9.97 19.35-11.34.2 1.34.3 2.55.3 3.63 0 7.39-2.65 14.18-7.95 20.37-5.3 6.19-11.75 9.97-19.35 11.34-.2-1.34-.3-2.55-.3-3.63z"/>
@@ -874,7 +874,7 @@ const LoginPage = () => {
                             whileHover={{ scale: 1.01, y: -0.5 }}
                             whileTap={{ scale: 0.99 }}
                             onClick={handleManualLinkedInLogin}
-                            className="w-full flex items-center justify-center gap-2.5 px-4 bg-[#0A66C2] hover:bg-[#004182] text-white border border-[#0A66C2] rounded-xl shadow-sm hover:shadow transition-all duration-200 font-semibold text-[13px] h-[40px] cursor-pointer"
+                            className="w-full flex items-center justify-center gap-2 px-3 bg-[#0A66C2] hover:bg-[#004182] text-white border border-[#0A66C2] rounded-lg shadow-sm hover:shadow transition-all duration-200 font-medium text-xs h-[38px] cursor-pointer"
                         >
                             <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
                                 <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.62 1.62 0 1 0 0 3.24 1.62 1.62 0 0 0 0-3.24z"/>
