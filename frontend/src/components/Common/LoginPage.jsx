@@ -402,80 +402,83 @@ const LoginPage = () => {
 
         const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
 
-        // 1. Mobile In-App Sheet via Capacitor Social Login
+        // 1. Native In-App Browser flow (iOS SFSafariViewController / Android ChromeCustomTabs)
+        //    Uses @capacitor/browser + appUrlOpen to receive token via custom scheme
         if (isCapacitorNative) {
             try {
-                const { SocialLogin } = await import('@capgo/capacitor-social-login');
+                const { Browser } = await import('@capacitor/browser');
+                const { App } = await import('@capacitor/app');
                 const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
 
-                // Android: use HTTPS redirect with App Links (learnproofai.com is registered as App Link)
-                // LinkedIn only supports HTTPS redirect URLs - custom schemes are rejected
-                // Android App Links intercept https://learnproofai.com/auth/linkedin/callback and route to app
+                // State ends with '_native' so LinkedInCallback knows to redirect
+                // back via learnproofai:// custom scheme instead of postMessage
+                const state = `${Math.random().toString(36).substring(2)}_native`;
+                sessionStorage.setItem('linkedin_oauth_state', state);
+                sessionStorage.setItem('redirect_to', resolvePostAuthRedirect());
+
                 const redirectUri = 'https://learnproofai.com/auth/linkedin/callback';
+                const authUrl = `https://www.linkedin.com/oauth/v2/authorization?` +
+                    `response_type=code` +
+                    `&client_id=${clientId}` +
+                    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+                    `&state=${state}` +
+                    `&scope=${encodeURIComponent('openid profile email')}`;
 
-                await SocialLogin.initialize({
-                    linkedin: {
-                        clientId,
-                        redirectUrl: redirectUri,
-                    }
-                });
-
-                const res = await SocialLogin.login({
-                    provider: 'linkedin',
-                    options: {
-                        scopes: ['openid', 'profile', 'email'],
-                        // Android: Use Chrome Custom Tabs (stays in-app, NOT external browser)
-                        ...(platform === 'android' ? { androidUseCustomTabs: true } : {})
-                    }
-                });
-
-                console.log('[Capacitor LinkedIn] SocialLogin response:', JSON.stringify(res));
-
-                // LinkedIn via SocialLogin returns OAuth2LoginResponse
-                // resourceData contains the userinfo; accessToken.token is the bearer token
-                const linkedinResult = res?.result;
-                const accessToken = linkedinResult?.accessToken?.token || linkedinResult?.accessToken;
-                const authorizationCode = linkedinResult?.authorizationCode || linkedinResult?.code;
-
-                if (accessToken || authorizationCode) {
-                    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
-                    const authRes = await axios.post(`${backendUrl}/api/auth/linkedin`, {
-                        accessToken: typeof accessToken === 'string' ? accessToken : undefined,
-                        code: typeof authorizationCode === 'string' ? authorizationCode : undefined,
-                        redirectUri,
-                    });
-
-                    if (authRes.data && authRes.data.token) {
-                        login({ credential: authRes.data.token });
-                        if (authRes.data.isNewUser) {
-                            sessionStorage.setItem('prompt_student_profile', 'true');
-                        }
-                        toast.success('Welcome to LearnProof AI!');
-                        setIsAuthenticating(false);
-                        sessionStorage.removeItem('is_authenticating');
-                        navigate(resolvePostAuthRedirect(), { replace: true });
-                        return;
-                    }
-                }
-
-                // If we got resourceData but no accessToken to send, tell the user
-                console.warn('[Capacitor LinkedIn] No usable token/code in response:', linkedinResult);
-            } catch (nativeErr) {
-                console.warn('[Capacitor LinkedIn] Native login failed:', nativeErr);
-                const errStr = nativeErr?.message || (typeof nativeErr === 'object' ? JSON.stringify(nativeErr) : String(nativeErr));
-                if (
-                    errStr.includes('canceled') || errStr.includes('cancelled') ||
-                    errStr.includes('1001') || errStr.includes('CANCELED') ||
-                    errStr.includes('USER_CANCELLED') || errStr.includes('dismiss')
-                ) {
+                // Listen for the custom scheme deep link BEFORE opening the browser
+                let urlListener = null;
+                const cleanupAndReset = () => {
+                    if (urlListener) { urlListener.remove(); urlListener = null; }
                     setIsAuthenticating(false);
                     sessionStorage.removeItem('is_authenticating');
-                    return;
-                }
-                // For plugin-not-implemented or other errors on Android, fall through to web popup
-                console.warn('[Capacitor LinkedIn] Falling back to web popup flow');
+                };
+
+                urlListener = await App.addListener('appUrlOpen', async (event) => {
+                    try {
+                        if (!event.url.startsWith('learnproofai://auth/linkedin')) return;
+
+                        // Close the in-app browser
+                        try { await Browser.close(); } catch (_) {}
+
+                        const parsed = new URL(event.url.replace('learnproofai://', 'https://x.x/'));
+                        const token = parsed.searchParams.get('token');
+                        const isNewUser = parsed.searchParams.get('isNewUser') === '1';
+                        const error = parsed.searchParams.get('error');
+
+                        if (error) {
+                            cleanupAndReset();
+                            if (!error.includes('cancel') && !error.includes('Cancel')) {
+                                toast.error(error);
+                            }
+                            return;
+                        }
+
+                        if (token) {
+                            login({ credential: token });
+                            if (isNewUser) sessionStorage.setItem('prompt_student_profile', 'true');
+                            toast.success('Welcome to LearnProof AI!');
+                            cleanupAndReset();
+                            navigate(resolvePostAuthRedirect(), { replace: true });
+                        } else {
+                            cleanupAndReset();
+                            toast.error('LinkedIn login failed. Please try again.');
+                        }
+                    } catch (deepLinkErr) {
+                        console.error('[LinkedIn Native] Error handling deep link:', deepLinkErr);
+                        cleanupAndReset();
+                    }
+                });
+
+                // Open LinkedIn auth in SFSafariViewController (iOS) / Chrome Custom Tab (Android)
+                await Browser.open({ url: authUrl, presentationStyle: 'popover' });
+                return; // Wait for appUrlOpen callback — do NOT fall through to popup flow
+            } catch (nativeErr) {
+                console.warn('[Capacitor LinkedIn] Browser open failed, falling back to popup:', nativeErr);
+                setIsAuthenticating(false);
+                sessionStorage.removeItem('is_authenticating');
+                // Fall through to web popup
             }
         }
+
 
         // 2. Web Popup Flow (Desktop & Mobile Browser) - Seamless popup dialog without navigating away
         const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';

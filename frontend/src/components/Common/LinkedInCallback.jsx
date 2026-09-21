@@ -17,8 +17,21 @@ const LinkedInCallback = () => {
         if (hasProcessedRef.current) return;
         hasProcessedRef.current = true;
 
-        const isPopup = typeof window !== 'undefined' && (!!window.opener || window.name === 'LinkedInSignIn');
+        const urlParams = new URLSearchParams(window.location.search);
+        const stateParam = urlParams.get('state') || '';
+        // Native apps add '_native' suffix to state to detect the context
+        const isNativeApp = stateParam.endsWith('_native');
+        const isPopup = !isNativeApp && typeof window !== 'undefined' && (!!window.opener || window.name === 'LinkedInSignIn');
 
+        // For native apps: redirect back to app via custom scheme
+        const redirectToNativeApp = (token, isNewUser) => {
+            const scheme = `learnproofai://auth/linkedin?token=${encodeURIComponent(token)}&isNewUser=${isNewUser ? '1' : '0'}`;
+            window.location.href = scheme;
+        };
+
+        const redirectNativeError = (errMsg) => {
+            window.location.href = `learnproofai://auth/linkedin?error=${encodeURIComponent(errMsg)}`;
+        };
         const notifyOpenerAndClose = (data) => {
             // 1. Deliver via window.opener postMessage
             try {
@@ -57,6 +70,11 @@ const LinkedInCallback = () => {
 
             if (error) {
                 console.warn('[LinkedIn Callback] Auth error or cancellation:', error, errorDescription);
+                if (isNativeApp) {
+                    setStatusMessage('Authentication cancelled. Returning to app...');
+                    redirectNativeError(errorDescription || 'LinkedIn login was cancelled.');
+                    return;
+                }
                 if (isPopup) {
                     setStatusMessage("Authentication cancelled. Closing...");
                     notifyOpenerAndClose({
@@ -74,6 +92,10 @@ const LinkedInCallback = () => {
 
             if (!code) {
                 console.warn('[LinkedIn Callback] No authorization code found in URL');
+                if (isNativeApp) {
+                    redirectNativeError('No authorization code found.');
+                    return;
+                }
                 if (isPopup) {
                     notifyOpenerAndClose({
                         type: 'LINKEDIN_AUTH_ERROR',
@@ -96,6 +118,12 @@ const LinkedInCallback = () => {
                 });
 
                 if (res.data && res.data.token) {
+                    if (isNativeApp) {
+                        setStatusMessage('Authenticated! Returning to LearnProof AI...');
+                        redirectToNativeApp(res.data.token, res.data.isNewUser);
+                        return;
+                    }
+
                     if (isPopup) {
                         setStatusMessage("Authenticated successfully! Returning to LearnProof AI...");
                         notifyOpenerAndClose({
@@ -117,7 +145,6 @@ const LinkedInCallback = () => {
                     const redirectTo = resolvePostAuthRedirect();
                     navigate(redirectTo, { replace: true });
 
-                    // Background push notification setup
                     setTimeout(() => {
                         requestNotificationPermissionAndGetToken().catch(err => {
                             console.warn("Background notification setup:", err);
@@ -129,6 +156,11 @@ const LinkedInCallback = () => {
             } catch (err) {
                 console.error('[LinkedIn Callback] Processing failed:', err);
                 const errMsg = err.response?.data?.details || err.response?.data?.error || err.message || "Failed to sign in with LinkedIn.";
+                if (isNativeApp) {
+                    setStatusMessage('Authentication failed. Returning to app...');
+                    redirectNativeError(errMsg);
+                    return;
+                }
                 if (isPopup) {
                     setStatusMessage("Authentication failed. Closing...");
                     notifyOpenerAndClose({

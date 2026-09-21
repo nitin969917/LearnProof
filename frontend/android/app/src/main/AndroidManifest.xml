@@ -33,6 +33,15 @@
                     android:pathPrefix="/auth/linkedin/callback" />
             </intent-filter>
 
+            <!-- Custom scheme: LinkedInCallback redirects here after auth -->
+            <!-- learnproofai://auth/linkedin?token=JWT -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="learnproofai" android:host="auth" />
+            </intent-filter>
+
         </activity>
 
         <provider
