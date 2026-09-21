@@ -251,14 +251,14 @@ const DashboardHome = () => {
             {/* Left column (Flexible) */}
             <div className="flex-1 min-w-0 space-y-4">
                 {/* 1. GREETING BANNER CARD */}
-                <div className="bg-gradient-to-br from-[#FFF5F2] to-[#FFF9F6] dark:from-gray-800 dark:to-gray-900 rounded-2xl border border-orange-200/80 dark:border-gray-700 shadow-xs relative overflow-hidden transition-all duration-200 flex flex-row items-end justify-between min-h-[110px]">
+                <div className="bg-gradient-to-br from-[#FFF5F2] to-[#FFF9F6] dark:from-gray-800 dark:to-gray-900 rounded-2xl border border-orange-200 dark:border-gray-700 shadow-sm relative overflow-hidden transition-all duration-200 flex flex-row items-end justify-between min-h-[110px]">
                     <div className="flex-1 space-y-1 text-left min-w-0 p-4 sm:p-5 self-center">
-                        <span className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-slate-400">Welcome back,</span>
-                        <h1 className="text-base sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
-                            {user?.name || "Learner"} <span className="text-orange-500">👋</span>
+                        <span className="text-xs sm:text-sm font-bold text-gray-500/80 dark:text-slate-400">Welcome back,</span>
+                        <h1 className="text-base sm:text-2xl font-black text-orange-500 leading-tight">
+                            {user?.name || "Learner"}! 👋
                         </h1>
-                        <p className="text-[11px] sm:text-xs text-gray-500 dark:text-slate-400 font-medium leading-snug max-w-[220px] sm:max-w-xl">
-                            Pick up where you left off or join a live study room.
+                        <p className="text-[11px] sm:text-xs text-gray-500/80 dark:text-slate-400 font-semibold leading-snug max-w-[200px] sm:max-w-xl">
+                            Select a path to continue your learning journey or interact with other students.
                         </p>
                     </div>
                     <div className="w-[110px] sm:w-[150px] shrink-0 self-end">
@@ -271,29 +271,32 @@ const DashboardHome = () => {
                 </div>
                 {/* 2. SERVICES/FEATURES GRID - DESKTOP VIEW ONLY */}
                 <div className="hidden lg:grid grid-cols-4 gap-4">
-                    {/* Your Library Card */}
+                    {/* Learning Hub Card */}
                     <div
                         onClick={() => navigate((playlists.length === 0 && videos.length === 0) ? '/dashboard/explore' : '/dashboard/library')}
-                        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/70 dark:border-gray-700/80 p-5 flex flex-col justify-between shadow-2xs hover:border-orange-500/40 hover:shadow-xs transition-all group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
                     >
                         <div>
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
-                                    <BookOpen size={18} />
+                                <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-950/40 text-red-500 flex items-center justify-center shrink-0">
+                                    <svg viewBox="0 0 24 24" className="w-4 h-4 text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.522 3.5 12 3.5 12 3.5s-7.522 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.029 0 12 0 12s0 3.971.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.478 20.5 12 20.5 12 20.5s7.522 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.971 24 12 24 12s0-3.971-.502-5.837z" />
+                                        <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="white" />
+                                    </svg>
                                 </div>
-                                <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
-                                    Your Library
+                                <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                                    Learning Hub
                                 </h3>
                             </div>
-                            <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mt-3 leading-snug line-clamp-2 min-h-[32px]">
-                                Playlists, video notes, and learning roadmaps.
+                            <p className="text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-3 leading-snug line-clamp-2 min-h-[32px]">
+                                Learn from YouTube videos, study AI notes, and view roadmaps.
                             </p>
                         </div>
                         <div className="flex items-center justify-between mt-4">
-                            <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2.5 py-1 rounded-full border border-orange-200/50 dark:border-orange-800/40">
-                                {playlists.length + videos.length > 0 ? `${playlists.length + videos.length} Courses` : "Explore"}
+                            <span className="text-[10px] font-black text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-3 py-1 rounded-full">
+                                {playlists.length + videos.length > 0 ? `${playlists.length + videos.length} Courses` : "21 Courses"}
                             </span>
-                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform shrink-0">
                                 <ArrowRight size={12} />
                             </div>
                         </div>
@@ -302,54 +305,54 @@ const DashboardHome = () => {
                     {/* Live Rooms Card */}
                     <div
                         onClick={() => navigate('/dashboard/live-rooms')}
-                        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/70 dark:border-gray-700/80 p-5 flex flex-col justify-between shadow-2xs hover:border-orange-500/40 hover:shadow-xs transition-all group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
                     >
                         <div>
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
-                                    <Radio size={18} />
+                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0">
+                                    <Radio size={16} />
                                 </div>
-                                <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
-                                    Live Study Rooms
+                                <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                                    Live Rooms
                                 </h3>
                             </div>
-                            <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mt-3 leading-snug line-clamp-2 min-h-[32px]">
-                                Study together with audio, video & screen sharing.
+                            <p className="text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-3 leading-snug line-clamp-2 min-h-[32px]">
+                                Join audio/video study rooms and interact with others in real-time.
                             </p>
                         </div>
                         <div className="flex items-center justify-between mt-4">
-                            <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2.5 py-1 rounded-full border border-orange-200/50 dark:border-orange-800/40">
-                                Join Room
+                            <span className="text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-3 py-1 rounded-full">
+                                Interact
                             </span>
-                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform shrink-0">
                                 <ArrowRight size={12} />
                             </div>
                         </div>
                     </div>
 
-                    {/* Community & Peers Card */}
+                    {/* Social Hub Card */}
                     <div
                         onClick={() => navigate('/dashboard/social')}
-                        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/70 dark:border-gray-700/80 p-5 flex flex-col justify-between shadow-2xs hover:border-orange-500/40 hover:shadow-xs transition-all group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
                     >
                         <div>
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
-                                    <Users2 size={18} />
+                                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-[#1f2c24] text-emerald-500 flex items-center justify-center shrink-0">
+                                    <Users2 size={16} />
                                 </div>
-                                <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
-                                    Community & Peers
+                                <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                                    Social Hub
                                 </h3>
                             </div>
-                            <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mt-3 leading-snug line-clamp-2 min-h-[32px]">
-                                Connect with classmates, message, and share updates.
+                            <p className="text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-3 leading-snug line-clamp-2 min-h-[32px]">
+                                Interact with study partners, send messages, and share updates.
                             </p>
                         </div>
                         <div className="flex items-center justify-between mt-4">
-                            <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2.5 py-1 rounded-full border border-orange-200/50 dark:border-orange-800/40">
-                                {totalUnreadCount > 0 ? `${totalUnreadCount} Unread` : "Discussions"}
+                            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full">
+                                Connect
                             </span>
-                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
                                 <ArrowRight size={12} />
                             </div>
                         </div>
@@ -358,26 +361,26 @@ const DashboardHome = () => {
                     {/* Ask My Notes Card */}
                     <div
                         onClick={() => navigate('/dashboard/ask-my-notes')}
-                        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/70 dark:border-gray-700/80 p-5 flex flex-col justify-between shadow-2xs hover:border-orange-500/40 hover:shadow-xs transition-all group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
                     >
                         <div>
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
-                                    <FileText size={18} />
+                                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
+                                    <FileText size={16} />
                                 </div>
-                                <h3 className="text-sm font-bold text-gray-900 dark:text-white leading-tight">
+                                <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
                                     Ask My Notes
                                 </h3>
                             </div>
-                            <p className="text-xs text-gray-500 dark:text-slate-400 font-medium mt-3 leading-snug line-clamp-2 min-h-[32px]">
-                                Chat with your PDFs, lecture slides, and notes.
+                            <p className="text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-3 leading-snug line-clamp-2 min-h-[32px]">
+                                Chat with your PDFs, slides, and notes using LearnProof AI.
                             </p>
                         </div>
                         <div className="flex items-center justify-between mt-4 flex-row">
-                            <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2.5 py-1 rounded-full border border-orange-200/50 dark:border-orange-800/40">
-                                AI Notes
+                            <span className="text-[10px] font-black text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-3 py-1 rounded-full">
+                                Chat
                             </span>
-                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform shrink-0">
                                 <ArrowRight size={12} />
                             </div>
                         </div>
@@ -408,30 +411,30 @@ const DashboardHome = () => {
 
                         {/* Learning Hub & Live Rooms in a 2-Column Grid */}
                         <div className="grid grid-cols-2 gap-4">
-                            {/* Your Library Card */}
+                            {/* Learning Hub Card */}
                             <div
                                 onClick={() => navigate((playlists.length === 0 && videos.length === 0) ? '/dashboard/explore' : '/dashboard/library')}
-                                className="bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 p-4 rounded-2xl flex flex-col justify-between shadow-2xs active:scale-[0.98] transition-all group cursor-pointer"
+                                className="bg-gradient-to-b from-[#FFFDFB] to-[#FFF9F5] dark:from-gray-800 dark:to-gray-900 border border-orange-100/50 dark:border-gray-700 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
                             >
                                 <div>
                                     <div className="flex items-center gap-2.5 mb-2">
-                                        <div className="w-9 h-9 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
-                                            <BookOpen size={18} />
+                                        <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
+                                            <GraduationCap size={22} />
                                         </div>
-                                        <h3 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white leading-tight">
-                                            Your Library
+                                        <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">
+                                            Learning Hub
                                         </h3>
                                     </div>
-                                    <p className="text-[11px] text-gray-500 dark:text-slate-400 font-medium leading-snug line-clamp-2 min-h-[32px]">
-                                        Playlists, video notes & roadmaps.
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold leading-snug line-clamp-3 min-h-[48px]">
+                                        Learn from YouTube videos, study notes, and roadmap.
                                     </p>
                                 </div>
-                                <div className="flex items-center justify-between mt-3">
-                                    <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded-full border border-orange-200/50 dark:border-orange-800/40">
-                                        {playlists.length + videos.length > 0 ? `${playlists.length + videos.length} Courses` : "Explore"}
+                                <div className="flex items-center justify-between mt-4">
+                                    <span className="text-xs font-black text-orange-600 dark:text-orange-400 bg-orange-50/60 dark:bg-orange-950/40 px-2 py-0.5 rounded-full">
+                                        {playlists.length + videos.length > 0 ? `${playlists.length + videos.length} Courses` : "8 Courses"}
                                     </span>
-                                    <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
-                                        <ArrowRight size={10} />
+                                    <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-md shrink-0">
+                                        <ArrowRight size={12} />
                                     </div>
                                 </div>
                             </div>
@@ -439,60 +442,60 @@ const DashboardHome = () => {
                             {/* Live Rooms Card */}
                             <div
                                 onClick={() => navigate('/dashboard/live-rooms')}
-                                className="bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 p-4 rounded-2xl flex flex-col justify-between shadow-2xs active:scale-[0.98] transition-all group cursor-pointer"
+                                className="bg-gradient-to-b from-[#F9FBFF] to-[#F1F6FF] dark:from-gray-800 dark:to-gray-900 border border-blue-100/50 dark:border-gray-700 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer"
                             >
                                 <div>
                                     <div className="flex items-center gap-2.5 mb-2">
-                                        <div className="w-9 h-9 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
-                                            <Radio size={18} />
+                                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0">
+                                            <Radio size={22} />
                                         </div>
-                                        <h3 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white leading-tight">
+                                        <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">
                                             Live Rooms
                                         </h3>
                                     </div>
-                                    <p className="text-[11px] text-gray-500 dark:text-slate-400 font-medium leading-snug line-clamp-2 min-h-[32px]">
-                                        Study together with audio & video.
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold leading-snug line-clamp-3 min-h-[48px]">
+                                        Join audio/video study rooms and interact with others in real-time.
                                     </p>
                                 </div>
-                                <div className="flex items-center justify-between mt-3">
-                                    <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded-full border border-orange-200/50 dark:border-orange-800/40">
-                                        Join
+                                <div className="flex items-center justify-between mt-4">
+                                    <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
+                                        Join Now
                                     </span>
-                                    <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs shrink-0">
-                                        <ArrowRight size={10} />
+                                    <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-md shrink-0">
+                                        <ArrowRight size={12} />
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Community & Study Partners Group */}
+                    {/* Connect & Collaborate Group */}
                     <div className="space-y-2.5">
-                        {/* Header */}
+                        {/* Header: Connect & Collaborate */}
                         <div className="flex items-center gap-2">
-                            <div className="p-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-500">
-                                <Users2 size={16} />
+                            <div className="p-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500">
+                                <Users2 size={18} />
                             </div>
-                            <h2 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-                                Community & Peers
+                            <h2 className="text-sm sm:text-base font-black text-gray-955 dark:text-white uppercase tracking-wider">
+                                Connect & Collaborate
                             </h2>
                         </div>
 
-                        {/* Community Card */}
+                        {/* Social Hub Horizontal Card */}
                         <div
                             onClick={() => navigate('/dashboard/social')}
-                            className="bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700/80 p-3.5 rounded-2xl flex flex-row items-center justify-between gap-3 shadow-2xs active:scale-[0.98] transition-all group cursor-pointer"
+                            className="bg-gradient-to-r from-[#F4FBF7] to-[#EBF9F1] dark:from-gray-800/40 dark:to-gray-900 border border-emerald-100/50 dark:border-gray-700 p-4 rounded-2xl flex flex-row items-center justify-between gap-4 shadow-sm active:scale-98 transition-all group cursor-pointer"
                         >
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-11 h-11 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
-                                    <Users2 size={20} />
+                                <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-[#1f2c24] text-emerald-500 flex items-center justify-center shrink-0">
+                                    <Users2 size={26} />
                                 </div>
                                 <div className="min-w-0">
-                                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white leading-tight">
-                                        Classmates & Discussions
+                                    <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">
+                                        Social Hub
                                     </h3>
-                                    <p className="text-[11px] text-gray-500 dark:text-slate-400 font-medium mt-0.5 leading-snug line-clamp-1">
-                                        Connect with peers, message & share notes.
+                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold mt-1 leading-snug line-clamp-2">
+                                        Interact with study partners, send messages, and share updates.
                                     </p>
                                 </div>
                             </div>
@@ -501,9 +504,9 @@ const DashboardHome = () => {
                                     e.stopPropagation();
                                     navigate('/dashboard/social');
                                 }}
-                                className="px-3 py-1.5 bg-orange-500 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1 cursor-pointer shrink-0 active:scale-95 transition-transform"
+                                className="px-4 py-2 bg-emerald-500 text-white text-xs font-black rounded-full shadow-md flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-transform"
                             >
-                                Open <ArrowRight size={10} />
+                                Connect <ArrowRight size={10} />
                             </button>
                         </div>
                     </div>

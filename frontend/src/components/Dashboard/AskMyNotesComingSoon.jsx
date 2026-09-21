@@ -35,12 +35,13 @@ const AskMyNotesComingSoon = () => {
                 {/* Main Heading */}
                 <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight mb-4">
                     Ask My Notes <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-500">Coming Soon</span>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-500">Is Coming Soon!</span>
                 </h1>
 
                 {/* Description */}
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-md mx-auto mb-8">
-                    Upload lecture slides, textbooks, and handwritten notes to get instant explanations, key formula sheets, and study quizzes.
+                    We are putting the final polish on this feature to deliver an exceptional study experience. 
+                    Soon, you will be able to upload files and chat with LearnProof AI to supercharge your learning!
                 </p>
 
                 {/* Coming Features Checklist */}

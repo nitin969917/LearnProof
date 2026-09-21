@@ -237,8 +237,8 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
               })}
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 py-8">
-                  <MessageCircle size={32} className="mb-2 opacity-30 text-orange-400" />
-                  <p className="text-xs font-medium">No messages yet. Send a note or say hi to start chatting.</p>
+                  <MessageCircle size={32} className="mb-2 opacity-30" />
+                  <p className="text-xs">No messages yet. Say hello!</p>
                 </div>
               )}
               <div ref={messagesEndRef} />
@@ -251,7 +251,7 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={selectedUser?.name ? `Message ${selectedUser.name}...` : "Type a message..."}
+                placeholder="Type a message..."
                 className="flex-1 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm transition"
               />
               <button
@@ -270,9 +270,9 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 p-6">
-            <MessageCircle size={36} className="mb-2.5 opacity-40 text-orange-400" />
-            <h3 className="font-bold text-sm text-gray-800 dark:text-gray-200 mb-1">Select a chat</h3>
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400">Choose a conversation from the left or message a classmate.</p>
+            <MessageCircle size={40} className="mb-3 opacity-30 text-orange-400" />
+            <h3 className="font-bold text-sm mb-1">Select a Conversation</h3>
+            <p className="text-xs text-center">Pick a connection from the list to start chatting.</p>
           </div>
         )}
       </div>
