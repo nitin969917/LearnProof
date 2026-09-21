@@ -471,6 +471,104 @@ const handleLinkedInLogin = async (req, res) => {
     }
 };
 
+// GET /api/auth/linkedin/callback
+// Used by native iOS (ASWebAuthenticationSession) and Android (Chrome Custom Tabs)
+// LinkedIn redirects here after user approves, server exchanges code → JWT,
+// then redirects to learnproofai:// custom scheme which ASWebAuthenticationSession intercepts
+const handleLinkedInNativeCallback = async (req, res) => {
+    const { code, error, error_description } = req.query;
+
+    if (error) {
+        console.warn('[LinkedIn Native Callback] OAuth error:', error, error_description);
+        const errorUrl = `learnproofai://auth/linkedin?error=${encodeURIComponent(error_description || error)}`;
+        return res.redirect(errorUrl);
+    }
+
+    if (!code) {
+        return res.redirect('learnproofai://auth/linkedin?error=' + encodeURIComponent('No authorization code'));
+    }
+
+    try {
+        const clientId = process.env.LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
+        const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
+
+        if (!clientSecret) {
+            return res.redirect('learnproofai://auth/linkedin?error=' + encodeURIComponent('Server configuration error'));
+        }
+
+        // Exchange code → LinkedIn access token
+        const redirectUri = `${process.env.API_BASE_URL || 'https://api.learnproofai.com'}/api/auth/linkedin/callback`;
+        const params = new URLSearchParams();
+        params.append('grant_type', 'authorization_code');
+        params.append('code', code);
+        params.append('client_id', clientId);
+        params.append('client_secret', clientSecret);
+        params.append('redirect_uri', redirectUri);
+
+        const tokenResponse = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', params.toString(), {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+
+        const access_token = tokenResponse.data?.access_token;
+        if (!access_token) {
+            return res.redirect('learnproofai://auth/linkedin?error=' + encodeURIComponent('Failed to get access token'));
+        }
+
+        // Get user profile
+        const userInfoResponse = await axios.get('https://api.linkedin.com/v2/userinfo', {
+            headers: { 'Authorization': `Bearer ${access_token}` }
+        });
+
+        const userInfo = userInfoResponse.data;
+        const linkedinSub = userInfo.sub;
+        const uid = `linkedin_${linkedinSub}`;
+        const userEmail = userInfo.email ? userInfo.email.toLowerCase() : `${linkedinSub}@linkedin.user`;
+        const displayName = userInfo.name || [userInfo.given_name, userInfo.family_name].filter(Boolean).join(' ') || 'LinkedIn User';
+        const pictureUrl = userInfo.picture || '';
+
+        // Find or create user
+        let user = await prisma.userProfile.findUnique({ where: { uid } });
+        if (!user && userEmail) user = await prisma.userProfile.findUnique({ where: { email: userEmail } });
+
+        let isNewUser = false;
+        if (!user) {
+            isNewUser = true;
+            user = await prisma.userProfile.create({
+                data: { uid, email: userEmail, name: displayName, profile_pic: pictureUrl }
+            });
+        } else if (!user.profile_pic && pictureUrl) {
+            user = await prisma.userProfile.update({ where: { id: user.id }, data: { profile_pic: pictureUrl } });
+        }
+
+        // Sync to social DB
+        try {
+            const datingPrisma = require('../utils/datingPrisma');
+            const existingSocial = await datingPrisma.user.findFirst({ where: { OR: [{ email: userEmail }, { googleId: uid }] } });
+            if (!existingSocial) {
+                await datingPrisma.user.create({ data: { name: displayName, email: userEmail, googleId: uid, profilePicture: pictureUrl } });
+            }
+        } catch (e) {}
+
+        // Generate JWT
+        const token = jwt.sign(
+            { uid: user.uid, email: user.email, name: user.name, picture: user.profile_pic || '', id: user.id },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+
+        // Cache profile
+        await cacheService.set(`user:profile:${uid}`, user, 3600);
+
+        // Redirect back to native app via custom scheme
+        const successUrl = `learnproofai://auth/linkedin?token=${encodeURIComponent(token)}&isNewUser=${isNewUser ? '1' : '0'}`;
+        return res.redirect(successUrl);
+
+    } catch (err) {
+        console.error('[LinkedIn Native Callback] Error:', err.response?.data || err.message);
+        return res.redirect('learnproofai://auth/linkedin?error=' + encodeURIComponent('Authentication failed'));
+    }
+};
+
 module.exports = {
     loginOrRegister,
     getProfile,
@@ -479,5 +577,7 @@ module.exports = {
     handleAppleLogin,
     handleDemoReviewerLogin,
     handleLinkedInLogin,
+    handleLinkedInNativeCallback,
     deleteAccount
 };
+

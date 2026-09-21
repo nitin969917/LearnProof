@@ -402,80 +402,73 @@ const LoginPage = () => {
 
         const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
 
-        // 1. Native In-App Browser flow (iOS SFSafariViewController / Android ChromeCustomTabs)
-        //    Uses @capacitor/browser + appUrlOpen to receive token via custom scheme
+        // 1. Native In-App Browser flow — ASWebAuthenticationSession (iOS) / Chrome Custom Tab (Android)
+        //    Uses SocialLogin.openSecureWindow() which correctly intercepts learnproofai:// on iOS
+        //    The backend at api.learnproofai.com/api/auth/linkedin/callback does the code exchange
+        //    and server-side redirects to learnproofai://auth/linkedin?token=JWT
         if (isCapacitorNative) {
             try {
-                const { Browser } = await import('@capacitor/browser');
-                const { App } = await import('@capacitor/app');
+                const { SocialLogin } = await import('@capgo/capacitor-social-login');
                 const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
+                const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
 
-                // State ends with '_native' so LinkedInCallback knows to redirect
-                // back via learnproofai:// custom scheme instead of postMessage
-                const state = `${Math.random().toString(36).substring(2)}_native`;
-                sessionStorage.setItem('linkedin_oauth_state', state);
-                sessionStorage.setItem('redirect_to', resolvePostAuthRedirect());
+                // Backend callback URL — server exchanges code and redirects to learnproofai://
+                const redirectUri = `${backendUrl}/api/auth/linkedin/callback`;
 
-                const redirectUri = 'https://learnproofai.com/auth/linkedin/callback';
                 const authUrl = `https://www.linkedin.com/oauth/v2/authorization?` +
                     `response_type=code` +
                     `&client_id=${clientId}` +
                     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-                    `&state=${state}` +
+                    `&state=${Math.random().toString(36).substring(2)}` +
                     `&scope=${encodeURIComponent('openid profile email')}`;
 
-                // Listen for the custom scheme deep link BEFORE opening the browser
-                let urlListener = null;
-                const cleanupAndReset = () => {
-                    if (urlListener) { urlListener.remove(); urlListener = null; }
-                    setIsAuthenticating(false);
-                    sessionStorage.removeItem('is_authenticating');
-                };
-
-                urlListener = await App.addListener('appUrlOpen', async (event) => {
-                    try {
-                        if (!event.url.startsWith('learnproofai://auth/linkedin')) return;
-
-                        // Close the in-app browser
-                        try { await Browser.close(); } catch (_) {}
-
-                        const parsed = new URL(event.url.replace('learnproofai://', 'https://x.x/'));
-                        const token = parsed.searchParams.get('token');
-                        const isNewUser = parsed.searchParams.get('isNewUser') === '1';
-                        const error = parsed.searchParams.get('error');
-
-                        if (error) {
-                            cleanupAndReset();
-                            if (!error.includes('cancel') && !error.includes('Cancel')) {
-                                toast.error(error);
-                            }
-                            return;
-                        }
-
-                        if (token) {
-                            login({ credential: token });
-                            if (isNewUser) sessionStorage.setItem('prompt_student_profile', 'true');
-                            toast.success('Welcome to LearnProof AI!');
-                            cleanupAndReset();
-                            navigate(resolvePostAuthRedirect(), { replace: true });
-                        } else {
-                            cleanupAndReset();
-                            toast.error('LinkedIn login failed. Please try again.');
-                        }
-                    } catch (deepLinkErr) {
-                        console.error('[LinkedIn Native] Error handling deep link:', deepLinkErr);
-                        cleanupAndReset();
-                    }
+                // openSecureWindow uses ASWebAuthenticationSession on iOS — correctly intercepts
+                // custom URL scheme redirects. On Android uses Chrome Custom Tabs + onNewIntent.
+                const result = await SocialLogin.openSecureWindow({
+                    authEndpoint: authUrl,
+                    redirectUri: 'learnproofai://auth/linkedin'
                 });
 
-                // Open LinkedIn auth in SFSafariViewController (iOS) / Chrome Custom Tab (Android)
-                await Browser.open({ url: authUrl, presentationStyle: 'popover' });
-                return; // Wait for appUrlOpen callback — do NOT fall through to popup flow
+                // result.redirectedUri = 'learnproofai://auth/linkedin?token=JWT&isNewUser=0'
+                const parsed = new URL(result.redirectedUri.replace('learnproofai://', 'https://x.x/'));
+                const token = parsed.searchParams.get('token');
+                const isNewUser = parsed.searchParams.get('isNewUser') === '1';
+                const error = parsed.searchParams.get('error');
+
+                if (error) {
+                    if (!error.toLowerCase().includes('cancel')) toast.error(error);
+                    setIsAuthenticating(false);
+                    sessionStorage.removeItem('is_authenticating');
+                    return;
+                }
+
+                if (token) {
+                    login({ credential: token });
+                    if (isNewUser) sessionStorage.setItem('prompt_student_profile', 'true');
+                    toast.success('Welcome to LearnProof AI!');
+                    setIsAuthenticating(false);
+                    sessionStorage.removeItem('is_authenticating');
+                    navigate(resolvePostAuthRedirect(), { replace: true });
+                    return;
+                }
+
+                throw new Error('No token in callback URL');
             } catch (nativeErr) {
-                console.warn('[Capacitor LinkedIn] Browser open failed, falling back to popup:', nativeErr);
+                console.warn('[LinkedIn Native] openSecureWindow error:', nativeErr);
+                const errStr = nativeErr?.message || String(nativeErr);
+                if (
+                    errStr.includes('cancel') || errStr.includes('Cancel') ||
+                    errStr.includes('dismiss') || errStr.includes('1001') ||
+                    errStr.includes('USER_CANCELLED')
+                ) {
+                    setIsAuthenticating(false);
+                    sessionStorage.removeItem('is_authenticating');
+                    return;
+                }
+                // Fall through to web popup on unexpected errors
+                console.warn('[LinkedIn Native] Falling back to web popup flow');
                 setIsAuthenticating(false);
                 sessionStorage.removeItem('is_authenticating');
-                // Fall through to web popup
             }
         }
 
