@@ -1,0 +1,46 @@
+{
+  "appId": "com.learnproof.learn_proof_twa",
+  "appName": "LearnProof AI",
+  "webDir": "dist",
+  "server": {
+    "url": "https://learnproofai.com",
+    "cleartext": false,
+    "androidScheme": "https",
+    "allowNavigation": [
+      "learnproofai.com",
+      "*.learnproofai.com",
+      "accounts.google.com",
+      "appleid.apple.com",
+      "www.linkedin.com",
+      "linkedin.com"
+    ]
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "launchAutoHide": true,
+      "backgroundColor": "#FFFFFF",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#FFFFFF",
+      "overlaysWebView": false
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"],
+      "iconColor": "#F97316"
+    },
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "CapacitorCookies": {
+      "enabled": true
+    },
+    "GoogleAuth": {
+      "scopes": ["profile", "email"],
+      "serverClientId": "549492309059-crnp91q3v5ej09givjr6b10re7189ks9.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": true
+    }
+  }
+}

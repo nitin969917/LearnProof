@@ -402,12 +402,17 @@ const LoginPage = () => {
 
         const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
 
-        // 1. Mobile In-App Sheet via Capacitor Social Login (ASWebAuthenticationSession / CustomTabs)
+        // 1. Mobile In-App Sheet via Capacitor Social Login
         if (isCapacitorNative) {
             try {
                 const { SocialLogin } = await import('@capgo/capacitor-social-login');
                 const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
-                const redirectUri = 'https://learnproofai.com/auth/linkedin/callback';
+
+                // Android: use custom scheme so CustomTabs can return to app without external browser
+                // iOS: use https redirect with ASWebAuthenticationSession
+                const redirectUri = platform === 'android'
+                    ? 'learnproofai://auth/linkedin/callback'
+                    : 'https://learnproofai.com/auth/linkedin/callback';
 
                 await SocialLogin.initialize({
                     linkedin: {
@@ -419,20 +424,26 @@ const LoginPage = () => {
                 const res = await SocialLogin.login({
                     provider: 'linkedin',
                     options: {
-                        scopes: ['openid', 'profile', 'email']
+                        scopes: ['openid', 'profile', 'email'],
+                        // Android: Use Chrome Custom Tabs (stays in-app, NOT external browser)
+                        ...(platform === 'android' ? { androidUseCustomTabs: true } : {})
                     }
                 });
 
-                console.log("[Capacitor LinkedIn] SocialLogin response:", res);
-                const accessToken = res?.result?.accessToken?.token || res?.result?.accessToken;
-                const authorizationCode = res?.result?.authorizationCode || res?.result?.code;
+                console.log('[Capacitor LinkedIn] SocialLogin response:', JSON.stringify(res));
+
+                // LinkedIn via SocialLogin returns OAuth2LoginResponse
+                // resourceData contains the userinfo; accessToken.token is the bearer token
+                const linkedinResult = res?.result;
+                const accessToken = linkedinResult?.accessToken?.token || linkedinResult?.accessToken;
+                const authorizationCode = linkedinResult?.authorizationCode || linkedinResult?.code;
 
                 if (accessToken || authorizationCode) {
                     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
                     const authRes = await axios.post(`${backendUrl}/api/auth/linkedin`, {
                         accessToken: typeof accessToken === 'string' ? accessToken : undefined,
-                        code: authorizationCode || undefined,
-                        redirectUri
+                        code: typeof authorizationCode === 'string' ? authorizationCode : undefined,
+                        redirectUri,
                     });
 
                     if (authRes.data && authRes.data.token) {
@@ -440,21 +451,30 @@ const LoginPage = () => {
                         if (authRes.data.isNewUser) {
                             sessionStorage.setItem('prompt_student_profile', 'true');
                         }
-                        toast.success("Welcome to LearnProof AI!");
+                        toast.success('Welcome to LearnProof AI!');
                         setIsAuthenticating(false);
-                        sessionStorage.removeItem("is_authenticating");
+                        sessionStorage.removeItem('is_authenticating');
                         navigate(resolvePostAuthRedirect(), { replace: true });
                         return;
                     }
                 }
+
+                // If we got resourceData but no accessToken to send, tell the user
+                console.warn('[Capacitor LinkedIn] No usable token/code in response:', linkedinResult);
             } catch (nativeErr) {
-                console.warn("[Capacitor LinkedIn] Native login failed, trying popup/browser:", nativeErr);
+                console.warn('[Capacitor LinkedIn] Native login failed:', nativeErr);
                 const errStr = nativeErr?.message || (typeof nativeErr === 'object' ? JSON.stringify(nativeErr) : String(nativeErr));
-                if (errStr.includes('canceled') || errStr.includes('1001') || errStr.includes('CANCELED') || errStr.includes('USER_CANCELLED')) {
+                if (
+                    errStr.includes('canceled') || errStr.includes('cancelled') ||
+                    errStr.includes('1001') || errStr.includes('CANCELED') ||
+                    errStr.includes('USER_CANCELLED') || errStr.includes('dismiss')
+                ) {
                     setIsAuthenticating(false);
-                    sessionStorage.removeItem("is_authenticating");
+                    sessionStorage.removeItem('is_authenticating');
                     return;
                 }
+                // For plugin-not-implemented or other errors on Android, fall through to web popup
+                console.warn('[Capacitor LinkedIn] Falling back to web popup flow');
             }
         }
 
