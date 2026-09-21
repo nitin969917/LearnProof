@@ -220,6 +220,19 @@ io.on('connection', (socket) => {
       if (isNewOnline === 1) {
         io.emit('userStatus', { userId: userIdStr, online: true });
       }
+
+      // Auto-join all group rooms this user belongs to for real-time notifications & badges
+      try {
+        const userGroups = await datingPrisma.groupMember.findMany({
+          where: { userId: parseInt(userIdStr) },
+          select: { groupId: true }
+        });
+        userGroups.forEach(gm => {
+          socket.join(`group-${gm.groupId}`);
+        });
+      } catch (groupErr) {
+        console.error('[Socket.io] Error auto-joining user group rooms:', groupErr.message);
+      }
     } catch (err) {
       console.error('[Socket.io] Error in join handler:', err);
     }
@@ -416,9 +429,10 @@ io.on('connection', (socket) => {
           data: { content: updatedContent }
         });
         
-        // Broadcast to group room
+        // Broadcast to group room with groupId
         io.to(`group-${message.groupId}`).emit('messageReactionUpdated', {
           messageId,
+          groupId: message.groupId,
           isGroup: true,
           reactions: contentData.reactions
         });
@@ -448,12 +462,17 @@ io.on('connection', (socket) => {
   socket.on('joinGroup', (groupId) => {
     if (!groupId) return;
     socket.join(`group-${groupId}`);
-    console.log(`Social Socket ${socket.id} joined group room: group-${groupId}`);
+  });
+
+  socket.on('leaveGroup', (groupId) => {
+    if (!groupId) return;
+    socket.leave(`group-${groupId}`);
   });
 
   socket.on('sendGroupMessage', (message) => {
     if (!message || !message.groupId) return;
-    io.to(`group-${message.groupId}`).emit('receiveGroupMessage', message);
+    // Broadcast to everyone else in this group room except sender
+    socket.to(`group-${message.groupId}`).emit('receiveGroupMessage', message);
   });
 
   socket.on('deleteMessage', (data) => {
@@ -463,7 +482,10 @@ io.on('connection', (socket) => {
 
   socket.on('deleteGroupMessage', (data) => {
     if (!data || !data.messageId || !data.groupId) return;
-    io.to(`group-${data.groupId}`).emit('groupMessageDeleted', { messageId: data.messageId });
+    io.to(`group-${data.groupId}`).emit('groupMessageDeleted', { 
+      messageId: parseInt(data.messageId), 
+      groupId: parseInt(data.groupId) 
+    });
   });
 
   socket.on('disconnect', async () => {

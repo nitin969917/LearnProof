@@ -5,6 +5,7 @@ import { getSocialSocket } from '../utils/socialSocket.js';
 export const useSocialMessageStore = create((set, get) => ({
   totalUnreadCount: 0,
   unreadByContact: {},
+  unreadByGroup: {},
   activeChatUserId: null,
   activeChatGroupId: null,
 
@@ -40,6 +41,10 @@ export const useSocialMessageStore = create((set, get) => ({
       }
     } catch (_) {}
 
+    if (groupIdStr) {
+      get().clearGroupUnread(groupIdStr);
+    }
+
     set({ 
       activeChatGroupId: groupIdStr,
       activeChatUserId: null 
@@ -74,11 +79,11 @@ export const useSocialMessageStore = create((set, get) => ({
   fetchUnreadCounts: async () => {
     try {
       const response = await socialApi.get('/messages/unread-counts');
-      console.log('Fetched unread counts:', response.data);
       const byContact = response.data || {};
-      const total = Object.values(byContact).reduce((sum, val) => sum + val, 0);
+      const directTotal = Object.values(byContact).reduce((sum, val) => sum + val, 0);
+      const groupTotal = Object.values(get().unreadByGroup || {}).reduce((sum, val) => sum + val, 0);
       set({ 
-        totalUnreadCount: total, 
+        totalUnreadCount: directTotal + groupTotal, 
         unreadByContact: byContact 
       });
     } catch (err) {
@@ -89,7 +94,6 @@ export const useSocialMessageStore = create((set, get) => ({
   incrementUnread: (senderId) => {
     if (!senderId) return;
     const senderIdStr = senderId.toString();
-    console.log('Incrementing unread for:', senderIdStr);
     set((state) => {
       const newByContact = { ...state.unreadByContact };
       newByContact[senderIdStr] = (newByContact[senderIdStr] || 0) + 1;
@@ -114,6 +118,37 @@ export const useSocialMessageStore = create((set, get) => ({
       return {
         totalUnreadCount: Math.max(0, state.totalUnreadCount - contactUnread),
         unreadByContact: newByContact
+      };
+    });
+  },
+
+  incrementGroupUnread: (groupId) => {
+    if (!groupId) return;
+    const groupIdStr = groupId.toString();
+    set((state) => {
+      const newByGroup = { ...state.unreadByGroup };
+      newByGroup[groupIdStr] = (newByGroup[groupIdStr] || 0) + 1;
+      return {
+        totalUnreadCount: state.totalUnreadCount + 1,
+        unreadByGroup: newByGroup
+      };
+    });
+  },
+
+  clearGroupUnread: (groupId) => {
+    if (!groupId) return;
+    const groupIdStr = groupId.toString();
+    set((state) => {
+      const groupUnread = state.unreadByGroup[groupIdStr] || state.unreadByGroup[groupId] || 0;
+      if (groupUnread === 0) return state;
+
+      const newByGroup = { ...state.unreadByGroup };
+      delete newByGroup[groupIdStr];
+      delete newByGroup[groupId];
+
+      return {
+        totalUnreadCount: Math.max(0, state.totalUnreadCount - groupUnread),
+        unreadByGroup: newByGroup
       };
     });
   }

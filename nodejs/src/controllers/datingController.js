@@ -2981,6 +2981,22 @@ const sendGroupMessage = async (req, res) => {
       },
     });
 
+    const messagePayload = {
+      ...message,
+      groupId: parseInt(groupId),
+      groupName: group?.name || 'Group',
+      group: group ? { id: group.id, name: group.name } : undefined,
+    };
+
+    // Emit real-time socket event to group room directly from server
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group-${groupId}`).emit('receiveGroupMessage', messagePayload);
+    }
+
+    // Invalidate group cache so getGroups has fresh lastMessage immediately
+    invalidateGroupsCache().catch(() => {});
+
     // Send push notifications to group members (non-blocking)
     datingPrisma.groupMember.findMany({
       where: { groupId: parseInt(groupId), userId: { not: senderId } },
@@ -3006,7 +3022,7 @@ const sendGroupMessage = async (req, res) => {
       console.error('Error sending group message push notification:', pushErr.message);
     });
 
-    res.status(201).json(message);
+    res.status(201).json(messagePayload);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to send group message' });
@@ -3484,6 +3500,16 @@ const deleteGroupMessage = async (req, res) => {
       where: { id: parseInt(messageId) },
       data: { isDeleted: true, content: 'This message was deleted' }
     });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group-${groupId}`).emit('groupMessageDeleted', {
+        messageId: parseInt(messageId),
+        groupId: parseInt(groupId)
+      });
+    }
+
+    invalidateGroupsCache().catch(() => {});
 
     res.json(updated);
   } catch (error) {

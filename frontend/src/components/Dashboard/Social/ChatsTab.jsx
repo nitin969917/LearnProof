@@ -70,6 +70,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const onlineUserIds = useSocialStatusStore((state) => state.onlineUserIds);
   const unreadByContact = useSocialMessageStore((state) => state.unreadByContact);
   const clearUnreadForContact = useSocialMessageStore((state) => state.clearUnreadForContact);
+  const unreadByGroup = useSocialMessageStore((state) => state.unreadByGroup);
+  const incrementGroupUnread = useSocialMessageStore((state) => state.incrementGroupUnread);
+  const clearGroupUnread = useSocialMessageStore((state) => state.clearGroupUnread);
   const setActiveChatUser = useSocialMessageStore((state) => state.setActiveChatUser);
   const setActiveChatGroup = useSocialMessageStore((state) => state.setActiveChatGroup);
   const clearActiveChat = useSocialMessageStore((state) => state.clearActiveChat);
@@ -281,6 +284,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   }
   const messagesEndRef = useRef(null);
   const selectedChatRef = useRef(null);
+  const chatLoadSeq = useRef(0);
   const longPressTimer = useRef(null);
   const inputRef = useRef(null);
 
@@ -429,7 +433,11 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       }
     };
 
-    const handleReactionUpdated = ({ messageId, reactions }) => {
+    const handleReactionUpdated = ({ messageId, groupId, reactions }) => {
+      const active = selectedChatRef.current;
+      if (groupId && active && (active.type !== 'group' || String(active.id) !== String(groupId))) {
+        return;
+      }
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id === messageId) {
@@ -493,12 +501,17 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     };
 
     const handleGroupMessage = (msg) => {
+      if (!msg || !msg.groupId) return;
       const active = selectedChatRef.current;
-      if (active && active.type === 'group' && msg.groupId === active.id) {
+      const isCurrentGroup = active && active.type === 'group' && String(msg.groupId) === String(active.id);
+
+      if (isCurrentGroup) {
         setMessages((prev) => {
-          if (prev.some((m) => m.id === msg.id)) return prev;
+          if (prev.some((m) => String(m.id) === String(msg.id))) return prev;
           return [...prev, msg];
         });
+      } else {
+        incrementGroupUnread(msg.groupId);
       }
 
       setLastMessages((prev) => ({
@@ -526,14 +539,17 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       });
     };
 
-    const handleGroupMessageDeleted = ({ messageId }) => {
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === messageId
-            ? { ...msg, isDeleted: true, content: 'This message was deleted' }
-            : msg
-        )
-      );
+    const handleGroupMessageDeleted = ({ messageId, groupId }) => {
+      const active = selectedChatRef.current;
+      if (active && active.type === 'group' && (!groupId || String(groupId) === String(active.id))) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, isDeleted: true, content: 'This message was deleted' }
+              : msg
+          )
+        );
+      }
       setLastMessages((prev) => {
         const updated = { ...prev };
         for (const key in updated) {
@@ -642,6 +658,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       return;
     }
 
+    // Immediately clear stale messages when switching to any new chat
+    setMessages([]);
+    const loadSeq = ++chatLoadSeq.current;
+
     const loadChatHistory = async () => {
       if (isMatrixActive) {
         if (selectedChat.type === 'direct') {
@@ -649,6 +669,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           clearUnreadForContact(selectedChat.id);
           try {
             const roomId = await getOrCreateMatrixRoom(selectedChat.id);
+            if (loadSeq !== chatLoadSeq.current) return;
             if (roomId) {
               selectedChat.matrixRoomId = roomId;
               const room = matrixClient.getRoom(roomId);
@@ -662,7 +683,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
             }
           } catch (e) {
             console.error("Failed to load Matrix chat history:", e);
-            setMessages([]);
+            if (loadSeq === chatLoadSeq.current) setMessages([]);
           }
         }
         return;
@@ -674,22 +695,25 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         socketRef.current?.emit('readReceipt', { senderId: selectedChat.id });
         try {
           const response = await socialApi.get(`/messages/${selectedChat.id}`);
+          if (loadSeq !== chatLoadSeq.current) return;
           setMessages(Array.isArray(response.data) ? response.data : []);
         } catch (err) {
           console.error(err);
-          setMessages([]);
+          if (loadSeq === chatLoadSeq.current) setMessages([]);
         }
       } else if (selectedChat.type === 'group') {
         setActiveChatGroup(selectedChat.id);
+        clearGroupUnread(selectedChat.id);
         try {
           if (socketRef.current) {
             socketRef.current.emit('joinGroup', selectedChat.id);
           }
           const response = await socialApi.get(`/groups/${selectedChat.id}/messages`);
+          if (loadSeq !== chatLoadSeq.current) return;
           setMessages(Array.isArray(response.data) ? response.data : []);
         } catch (err) {
           console.error(err);
-          setMessages([]);
+          if (loadSeq === chatLoadSeq.current) setMessages([]);
         }
       }
     };
@@ -767,11 +791,24 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         [`direct-${selectedChat.id}`]: newMessage
       }));
     } else if (selectedChat.type === 'group') {
+      const targetGroupId = selectedChat.id;
       try {
+        const replySenderName = replyingTo ? (
+          replyingTo.sender?.name || 
+          (replyingTo.senderId === currentUserId ? 'You' : (contacts.find(c => String(c.id) === String(replyingTo.senderId))?.name || 'Member'))
+        ) : '';
         const groupContent = replyingTo
-          ? JSON.stringify({ text: textToSend, replyTo: { id: replyingTo.id, senderId: replyingTo.senderId, text: parseMessageContent(replyingTo).text } })
+          ? JSON.stringify({ 
+              text: textToSend, 
+              replyTo: { 
+                id: replyingTo.id, 
+                senderId: replyingTo.senderId, 
+                senderName: replySenderName,
+                text: parseMessageContent(replyingTo).text 
+              } 
+            })
           : textToSend;
-        const response = await socialApi.post(`/groups/${selectedChat.id}/messages`, {
+        const response = await socialApi.post(`/groups/${targetGroupId}/messages`, {
           content: groupContent,
         });
         const savedMessage = response.data;
@@ -780,13 +817,20 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           socketRef.current.emit('sendGroupMessage', savedMessage);
         }
 
-        setMessages((prev) => [...prev, savedMessage]);
+        // Only append to active messages if the user is STILL in this group!
+        if (selectedChatRef.current && selectedChatRef.current.type === 'group' && String(selectedChatRef.current.id) === String(targetGroupId)) {
+          setMessages((prev) => {
+            if (prev.some(m => String(m.id) === String(savedMessage.id))) return prev;
+            return [...prev, savedMessage];
+          });
+        }
         setLastMessages((prev) => ({
           ...prev,
-          [`group-${selectedChat.id}`]: savedMessage
+          [`group-${targetGroupId}`]: savedMessage
         }));
       } catch (err) {
         console.error(err);
+        toast.error(err.response?.data?.error || 'Failed to send message');
       }
     }
     if (socketRef.current && selectedChat && selectedChat.type === 'direct') {
@@ -967,7 +1011,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       activeConversations.push({
         ...group,
         type: 'group',
-        unreadCount: 0,
+        unreadCount: unreadByGroup[group.id] || unreadByGroup[String(group.id)] || 0,
         lastMessage: lastMessages[`group-${group.id}`] || null
       });
     });
@@ -1164,7 +1208,11 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           {isTyping ? (
                             <span className="text-emerald-500 font-semibold animate-pulse">typing...</span>
                           ) : lastMsg ? (
-                            (lastMsg.senderId === currentUserId ? 'You: ' : '') + (parseMessageContent(lastMsg).text || 'Message')
+                            (lastMsg.senderId === currentUserId 
+                              ? 'You: ' 
+                              : (chat.type === 'group' && lastMsg.sender?.name 
+                                  ? `${lastMsg.sender.name.split(' ')[0]}: ` 
+                                  : '')) + (parseMessageContent(lastMsg).text || 'Message')
                           ) : (
                             chat.type === 'group' ? 'Tap to open group' : 'Tap to start chatting'
                           )}
@@ -1274,7 +1322,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                         )
                       ) : (
                         <span className="text-gray-400 font-medium truncate">
-                          {selectedChat.description || 'Tap for group info'}
+                          {selectedChat.memberCount ? `${selectedChat.memberCount} members` : ''}
+                          {selectedChat.description ? (selectedChat.memberCount ? ` • ${selectedChat.description}` : selectedChat.description) : (!selectedChat.memberCount ? 'Tap for group info' : '')}
                         </span>
                       )}
                     </div>
@@ -1453,7 +1502,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                                   isMine ? 'border-[#FF5722] bg-white/60 dark:bg-black/20' : 'border-[#FF5722] bg-orange-50 dark:bg-orange-950/20'
                                 }`}>
                                   <p className="text-[9px] font-bold text-[#FF5722] mb-0.5">
-                                    {parsed.replyTo.senderId === currentUserId ? 'You' : contacts.find(c => c.id?.toString() === parsed.replyTo.senderId?.toString())?.name || 'User'}
+                                    {parsed.replyTo.senderId === currentUserId 
+                                      ? 'You' 
+                                      : (parsed.replyTo.senderName || contacts.find(c => c.id?.toString() === parsed.replyTo.senderId?.toString())?.name || 'Member')}
                                   </p>
                                   <p className="text-[10px] text-gray-600 dark:text-gray-300 truncate font-medium">
                                     {parsed.replyTo.text || 'Message'}
@@ -1538,7 +1589,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     <div className="mx-1 mb-2 p-2.5 bg-[#FFF7F2] dark:bg-orange-950/20 border-l-3 border-[#FF5722] rounded-xl flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-[10px] font-bold text-[#FF5722] mb-0.5">
-                          Replying to {replyingTo.senderId === currentUserId ? 'yourself' : contacts.find(c => c.id?.toString() === replyingTo.senderId?.toString())?.name || 'User'}
+                          Replying to {replyingTo.senderId === currentUserId ? 'yourself' : (replyingTo.sender?.name || contacts.find(c => c.id?.toString() === replyingTo.senderId?.toString())?.name || 'Member')}
                         </p>
                         <p className="text-xs text-gray-600 dark:text-gray-300 truncate font-medium">
                           {parseMessageContent(replyingTo).text || 'Message'}
