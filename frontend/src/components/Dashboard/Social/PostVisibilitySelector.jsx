@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Globe, Users, Star, Check, ChevronDown } from 'lucide-react';
+import { Globe, Users2, Star, Check, ChevronDown } from 'lucide-react';
 
 export const VISIBILITY_OPTIONS = [
   {
@@ -14,7 +14,7 @@ export const VISIBILITY_OPTIONS = [
     id: 'friends',
     label: 'Friends',
     description: 'Only your connections can see',
-    icon: Users,
+    icon: Users2,
     iconColor: 'text-emerald-500 dark:text-emerald-400',
     bgColor: 'bg-emerald-50 dark:bg-emerald-950/60',
   },

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Users, Clock, UserCheck, Check, X, Star, MessageSquare, 
+  Users2, Clock, UserCheck, Check, X, Star, MessageCircle, 
   UserX, Search, Compass, ChevronRight, ChevronLeft, MoreVertical, 
   ArrowRight, User, GraduationCap, SlidersHorizontal, Eye, Ban, ShieldAlert
 } from 'lucide-react';
@@ -360,7 +360,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
         >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-sm shadow-orange-500/25 shrink-0">
-              <Users size={19} className="stroke-[2.2]" />
+              <Users2 size={19} className="stroke-[2.2]" />
             </div>
             <div>
               <h3 className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
@@ -388,7 +388,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-sm shadow-orange-500/25 shrink-0">
-            <Users size={19} className="stroke-[2.2]" />
+            <Users2 size={19} className="stroke-[2.2]" />
           </div>
           <div className="min-w-0">
             <h3 className="font-bold text-sm text-gray-900 dark:text-white leading-tight">Grow Your Network</h3>
@@ -822,7 +822,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                         className="p-2 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/40 rounded-xl transition active:scale-90 cursor-pointer"
                         title="Send Message"
                       >
-                        <MessageSquare size={18} />
+                        <MessageCircle size={18} />
                       </button>
 
                       {/* 3 Dots Menu */}
@@ -864,7 +864,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
                                 }}
                                 className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 transition flex items-center gap-2 cursor-pointer"
                               >
-                                <MessageSquare size={14} />
+                                <MessageCircle size={14} />
                                 <span>Send Message</span>
                               </button>
 

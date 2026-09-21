@@ -156,52 +156,56 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                             end
                                             title={!isExpanded ? item.name : undefined}
                                             onClick={() => onClose && onClose()}
-                                            className={({ isActive }) =>
-                                                `relative flex ${
-                                                    isExpanded 
-                                                        ? 'flex-row items-center px-3 py-2 gap-3 rounded-xl' 
-                                                        : 'flex-col items-center justify-center py-2 px-1 mb-1 rounded-xl'
-                                                } transition-all duration-300 ${isActive
-                                                    ? isExpanded
-                                                        ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-semibold'
-                                                        : 'text-orange-600 dark:text-orange-400'
-                                                    : isExpanded
-                                                        ? 'text-gray-700 dark:text-gray-300 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-500/5 dark:hover:bg-orange-500/10'
-                                                        : 'text-gray-550 dark:text-gray-400 hover:text-orange-500 dark:hover:text-orange-400'
-                                                }`
-                                            }
-                                        >
-                                            {({ isActive }) => (
-                                                <motion.div
-                                                    whileTap={{ scale: 0.92 }}
-                                                    className={`flex ${
-                                                        isExpanded ? 'flex-row items-center gap-3' : 'flex-col items-center justify-center'
-                                                    } w-full h-full relative`}
-                                                >
-                                                    <div className={`flex-shrink-0 relative transition-all duration-300 z-10 ${isActive && !isExpanded ? 'scale-105 text-orange-600 dark:text-orange-400' : ''}`}>
-                                                        {React.cloneElement(item.icon, {
-                                                            size: isExpanded ? 20 : 24,
-                                                            strokeWidth: isActive ? 2.5 : 2,
-                                                            className: isActive && !isExpanded ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''
-                                                        })}
-                                                        {item.name === 'Social Hub' && totalSocialCount > 0 && (
-                                                            <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[8px] font-extrabold rounded-full w-4 h-4 flex items-center justify-center border border-white dark:border-gray-800 z-20 animate-pulse">
-                                                                {totalSocialCount > 99 ? '99+' : totalSocialCount}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    {isExpanded ? (
-                                                        <span className={`text-base text-left transition-all whitespace-nowrap ${isActive ? 'font-bold' : 'font-medium'}`}>
-                                                            {item.name}
-                                                        </span>
-                                                    ) : (
-                                                        <span className={`text-[9px] font-bold mt-1 tracking-wide leading-none text-center transition-all duration-300 ${isActive ? 'text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-500 dark:text-gray-450'}`}>
-                                                            {item.name}
-                                                        </span>
-                                                    )}
-                                                </motion.div>
-                                            )}
-                                        </NavLink>
+                                             className={({ isActive }) =>
+                                                 `group relative flex ${
+                                                     isExpanded 
+                                                         ? 'flex-row items-center px-2.5 py-2 gap-3 rounded-xl' 
+                                                         : 'flex-col items-center justify-center py-2 px-1 mb-1 rounded-xl'
+                                                 } transition-all duration-200 ${isActive
+                                                     ? isExpanded
+                                                         ? 'bg-orange-500/10 dark:bg-orange-500/15 text-orange-600 dark:text-orange-400 font-bold'
+                                                         : 'text-orange-600 dark:text-orange-400 font-bold'
+                                                     : isExpanded
+                                                         ? 'text-gray-750 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-500/5 dark:hover:bg-orange-500/10'
+                                                         : 'text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400'
+                                                 }`
+                                             }
+                                         >
+                                             {({ isActive }) => (
+                                                 <motion.div
+                                                     whileTap={{ scale: 0.94 }}
+                                                     className={`flex ${
+                                                         isExpanded ? 'flex-row items-center gap-3' : 'flex-col items-center justify-center'
+                                                     } w-full h-full relative`}
+                                                 >
+                                                     <div className={`relative flex items-center justify-center shrink-0 transition-all duration-200 ${
+                                                         isExpanded
+                                                             ? `w-8 h-8 rounded-lg ${isActive ? 'bg-orange-500 text-white shadow-xs shadow-orange-500/30' : 'bg-gray-100/80 dark:bg-gray-700/60 text-gray-500 dark:text-gray-400 group-hover:bg-orange-50 dark:group-hover:bg-gray-700 group-hover:text-orange-600'}`
+                                                             : `w-10 h-10 rounded-xl ${isActive ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30 scale-105' : 'bg-gray-100/60 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 group-hover:bg-orange-50 dark:group-hover:bg-gray-700 group-hover:text-orange-600'}`
+                                                     }`}>
+                                                         {React.cloneElement(item.icon, {
+                                                             size: isExpanded ? 16 : 19,
+                                                             strokeWidth: isActive ? 2.2 : 1.75,
+                                                             className: 'transition-transform'
+                                                         })}
+                                                         {item.name === 'Social Hub' && totalSocialCount > 0 && (
+                                                             <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-[8px] font-black rounded-full min-w-[15px] h-[15px] px-0.5 flex items-center justify-center border-2 border-white dark:border-gray-800 z-20 shadow-xs">
+                                                                 {totalSocialCount > 99 ? '99+' : totalSocialCount}
+                                                             </span>
+                                                         )}
+                                                     </div>
+                                                     {isExpanded ? (
+                                                         <span className={`text-[13.5px] text-left transition-colors whitespace-nowrap ${isActive ? 'font-bold text-orange-600 dark:text-orange-400' : 'font-medium'}`}>
+                                                             {item.name}
+                                                         </span>
+                                                     ) : (
+                                                         <span className={`text-[9px] font-bold mt-1 tracking-tight leading-none text-center transition-all duration-200 ${isActive ? 'text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                             {item.name}
+                                                         </span>
+                                                     )}
+                                                 </motion.div>
+                                             )}
+                                         </NavLink>
                                     )
                                 ))}
                             </div>

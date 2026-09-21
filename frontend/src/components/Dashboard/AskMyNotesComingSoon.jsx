@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, BrainCircuit, MessageSquare, FileText, ArrowLeft, Hourglass } from 'lucide-react';
+import { Sparkles, BrainCircuit, MessageCircle, FileText, ArrowLeft, Hourglass } from 'lucide-react';
 
 const AskMyNotesComingSoon = () => {
     const navigate = useNavigate();
@@ -61,7 +61,7 @@ const AskMyNotesComingSoon = () => {
 
                         <div className="flex items-start gap-3">
                             <div className="w-6 h-6 rounded-lg bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0 mt-0.5">
-                                <MessageSquare size={14} />
+                                <MessageCircle size={14} />
                             </div>
                             <div>
                                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">AI Personalization</h4>

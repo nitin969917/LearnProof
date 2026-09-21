@@ -76,8 +76,8 @@ const BottomNav = () => {
     };
 
     return (
-        <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[390px] xs:w-[440px] sm:w-[520px] md:w-[600px] max-w-[95vw] z-50 lg:hidden bg-white/70 dark:bg-gray-950/70 backdrop-blur-2xl border border-white/30 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.6)] transition-all duration-300">
-            <div className="flex items-stretch justify-around h-16 px-3.5 relative">
+        <nav className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 w-[390px] xs:w-[440px] sm:w-[520px] md:w-[600px] max-w-[95vw] z-50 lg:hidden bg-white/75 dark:bg-gray-950/80 backdrop-blur-2xl border border-black/5 dark:border-white/10 rounded-full shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.7)] transition-all duration-300">
+            <div className="flex items-stretch justify-around h-16 px-2.5 relative">
                 {navItems.map((item) => {
                     const isActive = checkActive(item.path);
                     return (
@@ -85,16 +85,23 @@ const BottomNav = () => {
                             key={item.name}
                             to={item.path}
                             onClick={(e) => handleItemClick(e, item)}
-                            className="relative flex flex-col items-center justify-center flex-1 h-full py-2 text-gray-400 dark:text-gray-500 no-underline touch-manipulation select-none outline-none border-none focus:outline-none focus:ring-0 focus:ring-transparent focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-transparent active:outline-none"
+                            className="relative flex flex-col items-center justify-center flex-1 h-full py-1.5 no-underline touch-manipulation select-none outline-none border-none focus:outline-none focus:ring-0 focus-visible:outline-none active:outline-none group"
                         >
+                            {isActive && (
+                                <motion.div
+                                    layoutId="bottomNavPill"
+                                    className="absolute inset-y-1.5 inset-x-1 bg-orange-500/10 dark:bg-orange-500/15 rounded-full z-0"
+                                    transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                                />
+                            )}
                             <motion.div
                                 whileTap={{ scale: 0.88 }}
-                                className="flex flex-col items-center justify-center w-full h-full relative outline-none border-none focus:outline-none focus:ring-0 focus-visible:outline-none cursor-pointer"
+                                className="flex flex-col items-center justify-center w-full h-full relative z-10 cursor-pointer"
                             >
-                                <div className={`transition-all duration-300 z-10 flex flex-col items-center justify-center ${isActive ? 'scale-105 text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-400 dark:text-gray-500 hover:text-orange-500 dark:hover:text-orange-400'}`}>
+                                <div className={`transition-all duration-200 flex flex-col items-center justify-center ${isActive ? 'scale-105 text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'}`}>
                                     {item.name === 'Profile' ? (
                                         (socialUser?.profilePicture || socialUser?.avatar) ? (
-                                            <div className={`w-[22px] h-[22px] rounded-full overflow-hidden border transition-all ${isActive ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-gray-300 dark:border-gray-600'}`}>
+                                            <div className={`w-[22px] h-[22px] rounded-full overflow-hidden border transition-all ${isActive ? 'border-orange-500 ring-2 ring-orange-500/30' : 'border-gray-300 dark:border-gray-600'}`}>
                                                 <UserAvatar 
                                                     src={socialUser?.profilePicture || socialUser?.avatar} 
                                                     name={socialUser?.name} 
@@ -104,22 +111,22 @@ const BottomNav = () => {
                                             </div>
                                         ) : (
                                             <User 
-                                                size={22} 
-                                                strokeWidth={isActive ? 2.5 : 2} 
-                                                className={isActive ? 'fill-orange-500/15 drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
+                                                size={21} 
+                                                strokeWidth={isActive ? 2.2 : 1.75} 
+                                                className={isActive ? 'fill-orange-500/20' : ''}
                                             />
                                         )
                                     ) : (
                                         <item.icon 
-                                            size={22} 
-                                            strokeWidth={isActive ? 2.5 : 2} 
-                                            className={isActive ? 'fill-orange-500/15 drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
+                                            size={21} 
+                                            strokeWidth={isActive ? 2.2 : 1.75} 
+                                            className={isActive ? 'fill-orange-500/20' : ''}
                                         />
                                     )}
-                                    <span className="text-[10px] font-bold mt-1 tracking-wide leading-none">{item.name}</span>
+                                    <span className="text-[10px] font-bold mt-1 tracking-tight leading-none">{item.name}</span>
                                 </div>
                                 {item.badge && (
-                                    <span className="absolute top-0.5 right-2 text-[9px] font-black rounded-full min-w-[15px] h-[15px] px-1 flex items-center justify-center bg-orange-500 text-white shadow-md z-20">
+                                    <span className="absolute top-0 right-2 text-[9px] font-black rounded-full min-w-[15px] h-[15px] px-1 flex items-center justify-center bg-orange-500 text-white shadow-sm ring-2 ring-white dark:ring-gray-950 z-20">
                                         {item.badge > 99 ? '99+' : item.badge}
                                     </span>
                                 )}

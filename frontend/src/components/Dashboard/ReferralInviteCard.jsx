@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-import { Share2, Copy, Check, Users, Sparkles, Gift } from 'lucide-react';
+import { Share2, Copy, Check, Users2, Sparkles, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function ReferralInviteCard({ compact = false }) {
@@ -143,7 +143,7 @@ export default function ReferralInviteCard({ compact = false }) {
 
                     {/* Joined Count Pill */}
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40 font-bold text-[10px] sm:text-[11px] shrink-0">
-                        <Users size={12} />
+                        <Users2 size={12} />
                         <span>{referralData.signupCount || 0} Joined</span>
                     </div>
                 </div>

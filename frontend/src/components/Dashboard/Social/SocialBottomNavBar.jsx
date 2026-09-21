@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { Home, Search, Users, MessageSquare, User, Globe, MessageCircle } from 'lucide-react';
+import { Home, Compass, Users2, MessageCircle, User, Radio, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
@@ -20,10 +20,10 @@ export default function SocialBottomNavBar() {
 
   const tabs = [
     { id: 'home',     icon: Home,         label: 'Home',    mobileOnly: true },
-    { id: 'feed',     icon: MessageCircle,label: 'Feed' },
-    { id: 'discover', icon: Search,       label: 'Discover' },
-    { id: 'friends',  icon: Users,        label: 'Friends', badge: pendingFriendCount > 0 ? pendingFriendCount : null },
-    { id: 'chat',     icon: MessageSquare,label: 'Chats',   badge: totalUnreadCount > 0 ? totalUnreadCount : null },
+    { id: 'feed',     icon: Sparkles,     label: 'Feed' },
+    { id: 'discover', icon: Compass,      label: 'Discover' },
+    { id: 'friends',  icon: Users2,       label: 'Friends', badge: pendingFriendCount > 0 ? pendingFriendCount : null },
+    { id: 'chat',     icon: MessageCircle,label: 'Chats',   badge: totalUnreadCount > 0 ? totalUnreadCount : null },
     { id: 'profile',  icon: User,         label: 'Profile', desktopOnly: true },
   ];
 
@@ -122,7 +122,7 @@ export default function SocialBottomNavBar() {
                     className="flex flex-col items-center justify-center w-full h-full relative"
                   >
                     <div className={`transition-all duration-300 flex flex-col items-center justify-center ${isLiveRoomsActive() ? 'scale-110 text-orange-600 dark:text-orange-400 drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : 'text-gray-400 dark:text-gray-550 hover:text-orange-500 dark:hover:text-orange-400'}`}>
-                      <Globe size={22} strokeWidth={isLiveRoomsActive() ? 2.5 : 2} />
+                      <Radio size={22} strokeWidth={isLiveRoomsActive() ? 2.5 : 2} />
                       <span className="text-[9.5px] font-bold mt-1 tracking-wide leading-none">Rooms</span>
                     </div>
                     <span className="sr-only">Live Rooms</span>

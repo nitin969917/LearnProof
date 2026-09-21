@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Mic, Globe, Plus, Users, Search, GraduationCap, Video, PhoneOff, Trash2, X, Lock, UserCheck, Check, Star, Calendar, Clock, Sparkles, Bell, Play } from 'lucide-react';
+import { Mic, Globe, Plus, Users2, Search, GraduationCap, Video, PhoneOff, Trash2, X, Lock, UserCheck, Check, Star, Calendar, Clock, Sparkles, Bell, Play } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import socialApi from '../../../api/socialApi.js';
 import { useAuth } from '../../../context/AuthContext.jsx';
@@ -519,7 +519,7 @@ export default function LanguageLearning() {
                               </span>
                             ) : room.isFriendsOnly ? (
                               <span className="bg-orange-500/10 text-orange-500 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shrink-0" title="Friends Only Room">
-                                <Users size={9} className="shrink-0" />
+                                <Users2 size={10} className="shrink-0" />
                                 <span className="text-[9px] font-extrabold uppercase tracking-wide">Friends</span>
                               </span>
                             ) : null}
@@ -742,7 +742,7 @@ export default function LanguageLearning() {
                         : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
-                    <Users size={13} />
+                    <Users2 size={13} />
                     <span>Friends Only</span>
                   </button>
                   <button

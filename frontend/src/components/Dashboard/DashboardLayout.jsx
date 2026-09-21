@@ -3,7 +3,7 @@ import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, Menu, Plus, RefreshCw, X, Users, UserPlus, UserCheck } from "lucide-react";
+import { ArrowLeft, Menu, Plus, RefreshCw, X, Users2, UserPlus, UserCheck } from "lucide-react";
 import ProfileModal from "./ProfileModal";
 import StudentProfileSetupModal from "../Common/StudentProfileSetupModal";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -249,7 +249,7 @@ const DashboardLayout = () => {
                             t={t}
                             avatar={
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 text-white font-black flex items-center justify-center text-sm shadow-xs shrink-0">
-                                    <Users size={18} />
+                                    <Users2 size={18} />
                                 </div>
                             }
                             title={groupName}

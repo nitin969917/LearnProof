@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Youtube, Search, Menu, Bell, GraduationCap, Compass, BrainCircuit, FileText, Radio, Plus, Home, Users, Users2, MessageSquare, X } from 'lucide-react';
+import { Youtube, Search, Menu, Bell, GraduationCap, Compass, BrainCircuit, FileText, Radio, Plus, Home, Users, Users2, MessageCircle, X } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -62,7 +62,7 @@ const TopBar = ({ onMenuClick }) => {
         { name: 'Feed', icon: Home, path: '/dashboard/social/feed' },
         { name: 'Discover', icon: Compass, path: '/dashboard/social/discover' },
         { name: 'Friends', icon: Users2, path: '/dashboard/social/friends', badge: pendingFriendCount > 0 ? pendingFriendCount : null },
-        { name: 'Chats', icon: MessageSquare, path: '/dashboard/social/chats', badge: totalUnreadCount > 0 ? totalUnreadCount : null },
+        { name: 'Chats', icon: MessageCircle, path: '/dashboard/social/chats', badge: totalUnreadCount > 0 ? totalUnreadCount : null },
     ];
 
     const checkSocialSubActive = (path) => {

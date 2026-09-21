@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Users, Lock, Unlock, Plus, Copy, Check, MessageSquare, ArrowLeft, Send, LogOut, Search } from 'lucide-react';
+import { Users2, Lock, Unlock, Plus, Copy, Check, MessageCircle, ArrowLeft, Send, LogOut, Search } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
 import { useModal } from '../../../context/ModalContext';
@@ -209,7 +209,7 @@ export default function GroupsTab({ currentUserId }) {
         <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3">
           <div className="flex justify-between items-center">
             <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Users size={18} className="text-orange-500" />
+              <Users2 size={18} className="text-orange-500" />
               <span>Groups</span>
             </h2>
             <button
@@ -356,7 +356,7 @@ export default function GroupsTab({ currentUserId }) {
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-8">
                   <div className="w-14 h-14 bg-orange-50 dark:bg-orange-950/30 text-orange-500 rounded-2xl flex items-center justify-center mb-3 shadow-sm border border-orange-100/50 dark:border-orange-900/20">
-                    <MessageSquare size={24} />
+                    <MessageCircle size={24} />
                   </div>
                   <h4 className="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1">Welcome to {activeGroup.name}!</h4>
                   <p className="text-xs text-gray-400 dark:text-gray-500 max-w-xs leading-relaxed">This is the start of the discussion history for this group. Say hello to get started!</p>
@@ -419,7 +419,7 @@ export default function GroupsTab({ currentUserId }) {
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500 dark:text-gray-500 p-8 text-center bg-gray-50/20 dark:bg-gray-900/40">
-            <MessageSquare size={36} className="text-orange-400 opacity-60 mb-2 animate-pulse" />
+            <MessageCircle size={36} className="text-orange-400 opacity-60 mb-2 animate-pulse" />
             <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm">Select a Conversation</h3>
             <p className="text-xs max-w-xs mt-1">Pick a discussion group from the left sidebar to start chatting.</p>
           </div>

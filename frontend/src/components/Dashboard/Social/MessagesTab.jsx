@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, ArrowLeft } from 'lucide-react';
+import { Send, MessageCircle, ArrowLeft } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
@@ -237,7 +237,7 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
               })}
               {messages.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 py-8">
-                  <MessageSquare size={32} className="mb-2 opacity-30" />
+                  <MessageCircle size={32} className="mb-2 opacity-30" />
                   <p className="text-xs">No messages yet. Say hello!</p>
                 </div>
               )}
@@ -270,7 +270,7 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 p-6">
-            <MessageSquare size={40} className="mb-3 opacity-30 text-orange-400" />
+            <MessageCircle size={40} className="mb-3 opacity-30 text-orange-400" />
             <h3 className="font-bold text-sm mb-1">Select a Conversation</h3>
             <p className="text-xs text-center">Pick a connection from the list to start chatting.</p>
           </div>

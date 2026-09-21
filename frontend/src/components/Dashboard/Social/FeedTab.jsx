@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Image as ImageIcon, Users, UserPlus, MessageCircle, ChevronRight, Hash, TrendingUp, BookOpen, Check, X } from 'lucide-react';
+import { Sparkles, Image as ImageIcon, Users2, UserPlus, MessageCircle, ChevronRight, Hash, TrendingUp, BookOpen, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import socialApi from '../../../api/socialApi.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
@@ -247,7 +247,7 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-5 shadow-xs">
           <div className="flex items-center justify-between mb-3.5">
             <div className="flex items-center gap-2">
-              <Users size={17} className="text-orange-500" />
+              <Users2 size={17} className="text-orange-500" />
               <h3 className="text-sm font-extrabold text-gray-900 dark:text-gray-100">Your Friends</h3>
             </div>
             {friends.length > 0 && (

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Gift, Users, Share2, Copy, Check, MoreVertical, ChevronRight, Lock, Unlock, MessageSquareMore, UserPlus, UserCheck, Sparkles, Compass } from 'lucide-react';
+import { Search, Gift, Users2, Share2, Copy, Check, MoreVertical, ChevronRight, Lock, Unlock, MessageSquareMore, UserPlus, UserCheck, Sparkles, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import socialApi from '../../../api/socialApi.js';
@@ -296,7 +296,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
               }`}
             >
-              <Users size={14} />
+              <Users2 size={14} />
               <span>People</span>
             </button>
             <button

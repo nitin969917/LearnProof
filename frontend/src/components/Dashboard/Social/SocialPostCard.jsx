@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users, Star, Trash2, Edit3, X, Check, Flag, UserX, AlertCircle, Bookmark } from 'lucide-react';
+import { Heart, MessageCircle, Share2, MoreHorizontal, Globe, Users2, Star, Trash2, Edit3, X, Check, Flag, UserX, AlertCircle, Bookmark } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import socialApi from '../../../api/socialApi.js';
@@ -394,7 +394,7 @@ export default function SocialPostCard({ post, onLike, onSave, currentUserId, on
                <span>•</span>
                <div className="flex items-center gap-1">
                   {post.visibility === 'public' && <Globe size={12} />}
-                  {post.visibility === 'friends' && <Users size={12} />}
+                  {post.visibility === 'friends' && <Users2 size={12} />}
                   {post.visibility === 'close_friends' && <Star size={12} className="text-amber-500" fill="currentColor" />}
                   <span className="capitalize">{post.visibility?.replace('_', ' ')}</span>
                </div>

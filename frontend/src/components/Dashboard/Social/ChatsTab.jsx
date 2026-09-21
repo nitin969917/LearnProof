@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Search, Lock, Unlock, Plus, Copy, Check, MessageSquare, 
+  Search, Lock, Unlock, Plus, Copy, Check, MessageCircle, 
   ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, X, Trash2, CornerUpLeft,
-  Phone, Video as VideoIcon, Play, SquarePen, Users, MessageSquareMore
+  Phone, Video as VideoIcon, Play, SquarePen, Users2, MessageSquareMore
 } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
@@ -1513,7 +1513,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                 {messages.length === 0 && (
                   <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-transparent">
                     <div className="w-14 h-14 bg-white dark:bg-gray-800 border border-orange-100 dark:border-gray-700 rounded-2xl flex items-center justify-center text-[#FF5722] mb-3 shadow-sm">
-                      <MessageSquare size={24} />
+                      <MessageCircle size={24} />
                     </div>
                     <h4 className="font-bold text-gray-800 dark:text-gray-200 text-sm mb-1">
                       Start your conversation with {selectedChat.name || 'this contact'}
@@ -1734,7 +1734,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           /* Empty Chat Area Placeholder */
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-transparent">
             <div className="w-16 h-16 rounded-3xl bg-[#FFF7F2] text-[#FF5722] flex items-center justify-center mb-4 border border-orange-100 shadow-xs">
-              <MessageSquare size={28} />
+              <MessageCircle size={28} />
             </div>
             <h3 className="text-base font-bold text-gray-800 dark:text-gray-200">Start Messaging</h3>
             <p className="text-xs text-gray-400 max-w-xs mt-1 leading-relaxed font-normal">
