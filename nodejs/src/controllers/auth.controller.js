@@ -472,49 +472,23 @@ const handleLinkedInLogin = async (req, res) => {
 };
 
 // GET /api/auth/linkedin/callback
-// Native iOS/Android OAuth callback — exchanges code, stores JWT in Redis,
-// shows a pretty completion page. App polls /api/auth/linkedin/session/:id for the JWT.
+// Native iOS/Android OAuth callback — exchanges code, stores JWT in Redis (for backup polling),
+// and redirects to learnproofai://auth/linkedin custom scheme.
+// This causes Chrome Custom Tabs / SFSafariViewController to close automatically and deliver the token to the app.
 const handleLinkedInNativeCallback = async (req, res) => {
     const { code, error, error_description, state } = req.query;
 
-    const sendCompletionPage = (success, message) => {
-        const color = success ? '#f97316' : '#ef4444';
-        const icon = success ? '✅' : '❌';
-        res.send(`<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LearnProof AI</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: #fff8f0; display: flex; align-items: center; justify-content: center;
-    min-height: 100vh; padding: 24px; }
-  .card { background: white; border-radius: 24px; padding: 40px 32px;
-    text-align: center; box-shadow: 0 20px 60px rgba(249,115,22,0.12); max-width: 360px; width: 100%; }
-  .icon { font-size: 56px; margin-bottom: 16px; }
-  .title { font-size: 20px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
-  .msg { font-size: 14px; color: #6b7280; line-height: 1.5; }
-  .brand { color: ${color}; font-weight: 600; }
-</style>
-</head><body>
-<div class="card">
-  <div class="icon">${icon}</div>
-  <div class="title"><span class="brand">LearnProof AI</span></div>
-  <p class="msg">${message}</p>
-</div>
-</body></html>`);
-    };
-
     if (error || !code) {
-        if (state) await cacheService.set(`linkedin_session:${state}`, { error: error_description || error || 'Login cancelled' }, 300);
-        return sendCompletionPage(false, 'LinkedIn login was cancelled or failed.<br>You can close this window and try again.');
+        const errorMsg = error_description || error || 'Login cancelled';
+        if (state) await cacheService.set(`linkedin_session:${state}`, { error: errorMsg }, 300);
+        return res.redirect(302, `learnproofai://auth/linkedin?error=${encodeURIComponent(errorMsg)}`);
     }
 
     try {
         const clientId = process.env.LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
         const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
         if (!clientSecret) {
-            return sendCompletionPage(false, 'Server configuration error. Please try again later.');
+            return res.redirect(302, `learnproofai://auth/linkedin?error=${encodeURIComponent('Server configuration error')}`);
         }
 
         const redirectUri = `${process.env.API_BASE_URL || 'https://api.learnproofai.com'}/api/auth/linkedin/callback`;
@@ -532,7 +506,7 @@ const handleLinkedInNativeCallback = async (req, res) => {
         const access_token = tokenResponse.data?.access_token;
         if (!access_token) {
             if (state) await cacheService.set(`linkedin_session:${state}`, { error: 'Failed to get access token' }, 300);
-            return sendCompletionPage(false, 'Failed to connect with LinkedIn. Please close this window and try again.');
+            return res.redirect(302, `learnproofai://auth/linkedin?error=${encodeURIComponent('Failed to get access token')}`);
         }
 
         const userInfoResponse = await axios.get('https://api.linkedin.com/v2/userinfo', {
@@ -575,17 +549,20 @@ const handleLinkedInNativeCallback = async (req, res) => {
 
         await cacheService.set(`user:profile:${uid}`, user, 3600);
 
-        // Store JWT in Redis keyed by OAuth state — app polls for this
+        // Store JWT in Redis keyed by OAuth state — app can also poll as backup
         if (state) {
             await cacheService.set(`linkedin_session:${state}`, { token, isNewUser }, 300);
         }
 
-        return sendCompletionPage(true, 'Authenticated successfully!<br>Returning to <strong>LearnProof AI</strong>...<br><br><small style="color:#9ca3af">You can close this window.</small>');
+        // Redirect back to app via custom scheme - automatically closes in-app browser tab on both iOS and Android
+        const deepLink = `learnproofai://auth/linkedin?token=${encodeURIComponent(token)}&isNewUser=${isNewUser ? '1' : '0'}`;
+        console.log('[LinkedIn Native Callback] Success, redirecting to deep link');
+        return res.redirect(302, deepLink);
 
     } catch (err) {
         console.error('[LinkedIn Native Callback] Error:', err.response?.data || err.message);
         if (state) await cacheService.set(`linkedin_session:${state}`, { error: 'Authentication failed' }, 300);
-        return sendCompletionPage(false, 'Authentication failed. Please close this window and try again.');
+        return res.redirect(302, `learnproofai://auth/linkedin?error=${encodeURIComponent('Authentication failed')}`);
     }
 };
 

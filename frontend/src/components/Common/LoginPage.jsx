@@ -402,17 +402,17 @@ const LoginPage = () => {
 
         const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
 
-        // 1. Native In-App Browser flow — works on both iOS and Android, no URL scheme needed
-        //    Opens SFSafariViewController (iOS) / Chrome Custom Tab (Android) via @capacitor/browser
-        //    Backend stores JWT in Redis keyed by sessionId (= OAuth state)
-        //    App polls /api/auth/linkedin/session/:sessionId every 2s until token arrives
+        // 1. Native In-App Browser flow (iOS SFSafariViewController & Android Chrome Custom Tabs)
+        //    Opens browser to LinkedIn OAuth; server exchanges code -> JWT and 302 redirects to learnproofai://auth/linkedin
+        //    The OS intercepts learnproofai://, automatically closing the browser sheet and waking the app via appUrlOpen.
+        //    As a resilient backup, polling runs concurrently.
         if (isCapacitorNative) {
             try {
                 const { Browser } = await import('@capacitor/browser');
+                const { App } = await import('@capacitor/app');
                 const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
                 const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
 
-                // sessionId is used as OAuth state — backend stores JWT under this key
                 const sessionId = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
                 const redirectUri = `${backendUrl}/api/auth/linkedin/callback`;
 
@@ -423,57 +423,104 @@ const LoginPage = () => {
                     `&state=${sessionId}` +
                     `&scope=${encodeURIComponent('openid profile email')}`;
 
-                // Open in-app browser — shows LinkedIn login
-                await Browser.open({ url: authUrl, presentationStyle: 'popover' });
-
-                // Poll every 2s for up to 3 minutes
-                let attempts = 0;
-                const maxAttempts = 90;
+                let appUrlListener = null;
+                let browserFinishedListener = null;
                 let pollTimer = null;
-                let browserClosed = false;
+                let isHandled = false;
 
                 const cleanup = async () => {
                     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-                    if (!browserClosed) {
-                        browserClosed = true;
-                        try { await Browser.close(); } catch (_) {}
+                    if (appUrlListener) {
+                        try { await appUrlListener.remove(); } catch (_) {}
+                        appUrlListener = null;
                     }
+                    if (browserFinishedListener) {
+                        try { await browserFinishedListener.remove(); } catch (_) {}
+                        browserFinishedListener = null;
+                    }
+                    try { await Browser.close(); } catch (_) {}
                 };
 
+                const finishAuth = async (token, isNewUser) => {
+                    if (isHandled) return;
+                    isHandled = true;
+                    await cleanup();
+
+                    login({ credential: token });
+                    if (isNewUser) sessionStorage.setItem('prompt_student_profile', 'true');
+                    toast.success('Welcome to LearnProof AI!');
+                    setIsAuthenticating(false);
+                    sessionStorage.removeItem('is_authenticating');
+                    navigate(resolvePostAuthRedirect(), { replace: true });
+                };
+
+                const failAuth = async (errMsg) => {
+                    if (isHandled) return;
+                    isHandled = true;
+                    await cleanup();
+
+                    if (errMsg && !errMsg.toLowerCase().includes('cancel')) {
+                        toast.error(errMsg);
+                    }
+                    setIsAuthenticating(false);
+                    sessionStorage.removeItem('is_authenticating');
+                };
+
+                // 1. Listen for custom scheme redirect (learnproofai://auth/linkedin)
+                appUrlListener = await App.addListener('appUrlOpen', async (event) => {
+                    console.log('[LinkedIn Native] appUrlOpen received:', event?.url);
+                    if (!event?.url || !event.url.startsWith('learnproofai://auth/linkedin')) return;
+
+                    try {
+                        const urlObj = new URL(event.url.replace('learnproofai://', 'https://learnproofai.com/'));
+                        const token = urlObj.searchParams.get('token');
+                        const isNewUser = urlObj.searchParams.get('isNewUser') === '1';
+                        const error = urlObj.searchParams.get('error');
+
+                        if (error) {
+                            await failAuth(error);
+                        } else if (token) {
+                            await finishAuth(token, isNewUser);
+                        }
+                    } catch (e) {
+                        console.error('[LinkedIn Native] Error parsing deep link URL:', e);
+                    }
+                });
+
+                // 2. Listen for user closing the browser sheet
+                browserFinishedListener = await Browser.addListener('browserFinished', async () => {
+                    console.log('[LinkedIn Native] Browser dismissed by user');
+                    setTimeout(async () => {
+                        if (!isHandled) {
+                            await failAuth('Login cancelled');
+                        }
+                    }, 600);
+                });
+
+                // 3. Resilient fallback polling every 1.5s in case OS deep link is delayed
+                let attempts = 0;
                 pollTimer = setInterval(async () => {
+                    if (isHandled) return;
                     attempts++;
-                    if (attempts > maxAttempts) {
-                        await cleanup();
-                        setIsAuthenticating(false);
-                        sessionStorage.removeItem('is_authenticating');
-                        toast.error('LinkedIn login timed out. Please try again.');
+                    if (attempts > 80) {
+                        await failAuth('LinkedIn login timed out. Please try again.');
                         return;
                     }
                     try {
                         const pollRes = await axios.get(`${backendUrl}/api/auth/linkedin/session/${sessionId}`);
-                        if (pollRes.status === 200 && pollRes.data.token) {
-                            await cleanup();
-                            login({ credential: pollRes.data.token });
-                            if (pollRes.data.isNewUser) sessionStorage.setItem('prompt_student_profile', 'true');
-                            toast.success('Welcome to LearnProof AI!');
-                            setIsAuthenticating(false);
-                            sessionStorage.removeItem('is_authenticating');
-                            navigate(resolvePostAuthRedirect(), { replace: true });
+                        if (pollRes.status === 200 && pollRes.data?.token) {
+                            await finishAuth(pollRes.data.token, pollRes.data.isNewUser);
                         }
                     } catch (pollErr) {
                         if (pollErr.response?.status === 400) {
-                            // Auth failed — error stored in session
-                            await cleanup();
-                            const errMsg = pollErr.response?.data?.error || 'LinkedIn login failed';
-                            if (!errMsg.toLowerCase().includes('cancel')) toast.error(errMsg);
-                            setIsAuthenticating(false);
-                            sessionStorage.removeItem('is_authenticating');
+                            await failAuth(pollErr.response?.data?.error || 'LinkedIn login failed');
                         }
-                        // 202 = still pending, continue polling
                     }
-                }, 2000);
+                }, 1500);
 
-                return; // Wait for poll — do NOT fall through to web popup
+                // Open in-app browser sheet
+                await Browser.open({ url: authUrl, presentationStyle: 'popover' });
+                return; // Wait for appUrlOpen / poll — do NOT fall through to web popup
             } catch (nativeErr) {
                 console.warn('[LinkedIn Native] Browser open failed:', nativeErr);
                 setIsAuthenticating(false);
