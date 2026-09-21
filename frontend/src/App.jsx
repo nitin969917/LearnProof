@@ -205,6 +205,26 @@ const OAuthRedirectHandler = () => {
 
     React.useEffect(() => {
         if (isProcessed.current) return;
+
+        // 1. Check for LinkedIn OAuth deep link token in search params (?token=...)
+        const searchParams = new URLSearchParams(window.location.search);
+        const searchToken = searchParams.get('token');
+        if (searchToken && (window.location.pathname.includes('/auth/linkedin') || searchParams.get('isNewUser') !== null || window.location.search.includes('isNewUser='))) {
+            isProcessed.current = true;
+            const isNewUser = searchParams.get('isNewUser') === '1';
+            window.history.replaceState(null, '', window.location.pathname);
+            login({ credential: searchToken });
+            if (isNewUser) {
+                sessionStorage.setItem('prompt_student_profile', 'true');
+            }
+            toast.success("Welcome to LearnProof AI!");
+            const targetRedirect = resolvePostAuthRedirect();
+            const finalTarget = (targetRedirect && targetRedirect.startsWith('/')) ? targetRedirect : "/dashboard";
+            navigate(finalTarget, { replace: true });
+            return;
+        }
+
+        // 2. Check for Google / ID token in hash
         const hash = window.location.hash;
         if (hash && (hash.includes('id_token=') || hash.includes('credential='))) {
             isProcessed.current = true;
@@ -392,14 +412,18 @@ const NotificationDeepLinkHandler = () => {
         if (Capacitor.isNativePlatform()) {
             CapApp.addListener('appUrlOpen', (event) => {
                 try {
-                    const url = new URL(event.url);
+                    let rawUrl = event?.url || '';
+                    if (rawUrl.startsWith('learnproofai://')) {
+                        rawUrl = rawUrl.replace('learnproofai://', 'https://learnproofai.com/');
+                    }
+                    const url = new URL(rawUrl);
                     const pathWithSearch = url.pathname + url.search;
                     console.log('[Notification Deep-Link] appUrlOpen event:', pathWithSearch);
                     if (pathWithSearch) {
                         safeNavigate(pathWithSearch);
                     }
                 } catch (e) {
-                    console.warn('[Notification Deep-Link] Failed to parse appUrlOpen url:', event.url);
+                    console.warn('[Notification Deep-Link] Failed to parse appUrlOpen url:', event?.url);
                 }
             }).then(h => {
                 appUrlHandle = h;
@@ -533,6 +557,7 @@ const App = () => {
                                 <Route path='/delete-account' element={<DeleteAccount />} />
                                 <Route path='/login' element={<LoginPage />} />
                                 <Route path='/auth/linkedin/callback' element={<LinkedInCallback />} />
+                                <Route path='/auth/linkedin' element={<LinkedInCallback />} />
                                 <Route path='/download' element={<DownloadPage />} />
                                 <Route path='/ambassador' element={<AmbassadorLanding />} />
                                 <Route path='/referrals' element={<AmbassadorLanding />} />

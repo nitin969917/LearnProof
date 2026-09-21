@@ -18,6 +18,18 @@ const LinkedInCallback = () => {
         hasProcessedRef.current = true;
 
         const urlParams = new URLSearchParams(window.location.search);
+        const directToken = urlParams.get('token');
+        if (directToken) {
+            login({ credential: directToken });
+            if (urlParams.get('isNewUser') === '1') {
+                sessionStorage.setItem('prompt_student_profile', 'true');
+            }
+            toast.success("Welcome to LearnProof AI!");
+            const redirectTo = resolvePostAuthRedirect() || '/dashboard';
+            navigate(redirectTo, { replace: true });
+            return;
+        }
+
         const stateParam = urlParams.get('state') || '';
         // Native apps add '_native' suffix to state to detect the context
         const isNativeApp = stateParam.endsWith('_native');

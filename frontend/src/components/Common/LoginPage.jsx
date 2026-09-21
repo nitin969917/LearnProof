@@ -492,17 +492,24 @@ const LoginPage = () => {
                     console.log('[LinkedIn Native] Browser dismissed by user');
                     setTimeout(async () => {
                         if (!isHandled) {
+                            const existingToken = localStorage.getItem('google_token');
+                            if (existingToken) {
+                                isHandled = true;
+                                await cleanup();
+                                navigate(resolvePostAuthRedirect() || '/dashboard', { replace: true });
+                                return;
+                            }
                             await failAuth('Login cancelled');
                         }
-                    }, 600);
+                    }, 2500);
                 });
 
-                // 3. Resilient fallback polling every 1.5s in case OS deep link is delayed
+                // 3. Resilient fallback polling every 1s in case OS deep link is delayed
                 let attempts = 0;
                 pollTimer = setInterval(async () => {
                     if (isHandled) return;
                     attempts++;
-                    if (attempts > 80) {
+                    if (attempts > 90) {
                         await failAuth('LinkedIn login timed out. Please try again.');
                         return;
                     }
@@ -516,7 +523,7 @@ const LoginPage = () => {
                             await failAuth(pollErr.response?.data?.error || 'LinkedIn login failed');
                         }
                     }
-                }, 1500);
+                }, 1000);
 
                 // Open in-app browser sheet
                 await Browser.open({ url: authUrl, presentationStyle: 'popover' });
