@@ -43,7 +43,10 @@ const AdminSupportList = () => {
     const fetchTickets = async () => {
         try {
             const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/support/admin/tickets?idToken=${token}`);
-            setTickets(res.data);
+            const ticketList = Array.isArray(res.data)
+                ? res.data
+                : (Array.isArray(res.data?.tickets) ? res.data.tickets : []);
+            setTickets(ticketList);
         } catch (err) {
             console.error(err);
             toast.error("Failed to load support tickets");
@@ -58,20 +61,27 @@ const AdminSupportList = () => {
 
     useEffect(() => {
         let interval;
-        if (selectedTicket && token) {
-            interval = setInterval(async () => {
-                const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/support/tickets/${selectedTicket.id}?idToken=${token}`);
-                setSelectedTicket(res.data);
-            }, 5000);
+        if (token) {
+            interval = setInterval(fetchTickets, 30000);
         }
         return () => clearInterval(interval);
-    }, [selectedTicket, token]);
+    }, [token]);
 
-    const handleRespond = async (e) => {
+    const handleSelectTicket = async (ticket) => {
+        setSelectedTicket(ticket);
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/support/tickets/${ticket.id}?idToken=${token}`);
+            setSelectedTicket(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleSendResponse = async (e) => {
         e.preventDefault();
-        if (!token || !selectedTicket || !responseMessage) return;
+        if (!responseMessage.trim() || !selectedTicket) return;
+
         setIsSubmitting(true);
-        
         try {
             await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/support/tickets/${selectedTicket.id}/respond`, {
                 idToken: token,
@@ -92,6 +102,8 @@ const AdminSupportList = () => {
             setIsSubmitting(false);
         }
     };
+
+    const handleRespond = handleSendResponse;
 
     const updateStatus = async (id, status) => {
         try {
@@ -129,10 +141,14 @@ const AdminSupportList = () => {
         });
     };
 
-    const filteredTickets = tickets.filter(t => {
-        const matchesSearch = t.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                             t.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                             t.user.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const ticketList = Array.isArray(tickets) ? tickets : [];
+    const filteredTickets = ticketList.filter(t => {
+        if (!t) return false;
+        const q = (searchQuery || '').toLowerCase();
+        const matchesSearch = !q ||
+            (t.subject && t.subject.toLowerCase().includes(q)) || 
+            (t.user?.email && t.user.email.toLowerCase().includes(q)) ||
+            (t.user?.name && t.user.name.toLowerCase().includes(q));
         const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
         return matchesSearch && matchesStatus;
     });

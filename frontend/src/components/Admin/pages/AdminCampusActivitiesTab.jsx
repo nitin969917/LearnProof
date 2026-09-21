@@ -121,7 +121,7 @@ export default function AdminCampusActivitiesTab({ token }) {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                            {activities.map((act) => (
+                            {(Array.isArray(activities) ? activities : []).map((act) => (
                                 <tr key={act.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition">
                                     <td className="py-3 px-4 font-mono font-bold text-orange-600">
                                         {act.referralCode}

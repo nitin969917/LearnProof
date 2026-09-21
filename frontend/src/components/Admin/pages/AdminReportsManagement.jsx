@@ -55,7 +55,10 @@ const AdminReportsManagement = () => {
             });
 
             if (res.data) {
-                setReports(res.data.reports || []);
+                const reportList = Array.isArray(res.data?.reports)
+                    ? res.data.reports
+                    : (Array.isArray(res.data) ? res.data : []);
+                setReports(reportList);
                 setCounts(res.data.counts || { total: 0, pending: 0, resolved: 0, dismissed: 0 });
             }
         } catch (err) {
@@ -145,17 +148,19 @@ const AdminReportsManagement = () => {
     };
 
     // Filter reports based on search query
-    const filteredReports = reports.filter(r => {
+    const reportList = Array.isArray(reports) ? reports : [];
+    const filteredReports = reportList.filter(r => {
+        if (!r) return false;
         if (!searchQuery.trim()) return true;
         const q = searchQuery.toLowerCase();
         return (
-            String(r.id).includes(q) ||
-            r.reason?.toLowerCase().includes(q) ||
-            r.details?.toLowerCase().includes(q) ||
-            r.reporterEmail?.toLowerCase().includes(q) ||
-            r.targetContent?.content?.toLowerCase().includes(q) ||
-            r.targetContent?.author?.name?.toLowerCase().includes(q) ||
-            r.targetContent?.author?.email?.toLowerCase().includes(q)
+            String(r.id || '').includes(q) ||
+            (r.reason && r.reason.toLowerCase().includes(q)) ||
+            (r.details && r.details.toLowerCase().includes(q)) ||
+            (r.reporterEmail && r.reporterEmail.toLowerCase().includes(q)) ||
+            (r.targetContent?.content && r.targetContent.content.toLowerCase().includes(q)) ||
+            (r.targetContent?.author?.name && r.targetContent.author.name.toLowerCase().includes(q)) ||
+            (r.targetContent?.author?.email && r.targetContent.author.email.toLowerCase().includes(q))
         );
     });
 

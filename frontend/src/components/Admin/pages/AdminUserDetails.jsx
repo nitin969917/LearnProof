@@ -155,17 +155,18 @@ const AdminUserDetails = () => {
                         <div className="flex items-center justify-between mb-4">
                             <h4 className="font-bold text-slate-800 dark:text-white">Enrolled Content</h4>
                             <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                                <span className="flex items-center gap-1"><ListVideo size={14} className="text-blue-500" /> {user.playlists?.length || 0} Playlists</span>
-                                <span className="flex items-center gap-1"><Video size={14} className="text-purple-500" /> {(user.playlists?.reduce((acc, p) => acc + p.videos.length, 0) || 0) + (user.videos?.length || 0)} Videos</span>
+                                <span className="flex items-center gap-1"><ListVideo size={14} className="text-blue-500" /> {(user.playlists || []).length} Playlists</span>
+                                <span className="flex items-center gap-1"><Video size={14} className="text-purple-500" /> {((user.playlists || []).reduce((acc, p) => acc + (p.videos || []).length, 0)) + ((user.videos || []).length)} Videos</span>
                             </div>
                         </div>
 
                         <div className="space-y-4">
                             {/* Playlists */}
-                            {user.playlists && user.playlists.length > 0 && (
+                            {Array.isArray(user.playlists) && user.playlists.length > 0 && (
                                 <div className="space-y-3">
                                     {user.playlists.map(playlist => {
                                         const isExpanded = expandedPlaylists.has(playlist.id);
+                                        const playlistVideos = Array.isArray(playlist.videos) ? playlist.videos : [];
                                         return (
                                             <div key={playlist.id} className="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
                                                 <button
@@ -179,7 +180,7 @@ const AdminUserDetails = () => {
                                                         <div className="min-w-0">
                                                             <h4 className="font-bold text-slate-800 dark:text-white text-sm truncate">{playlist.name}</h4>
                                                             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-450 mt-0.5">
-                                                                <span className="font-medium">{playlist.videos.length} Videos</span>
+                                                                <span className="font-medium">{playlistVideos.length} Videos</span>
                                                                 <span>•</span>
                                                                 <span>{new Date(playlist.imported_at).toLocaleDateString()}</span>
                                                             </div>
@@ -192,9 +193,9 @@ const AdminUserDetails = () => {
 
                                                 {isExpanded && (
                                                     <div className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                                                        {playlist.videos.length > 0 ? (
+                                                        {playlistVideos.length > 0 ? (
                                                             <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                                                                {playlist.videos.map(video => (
+                                                                {playlistVideos.map(video => (
                                                                     <div key={video.id} className="p-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors flex items-start gap-4">
                                                                         <div className="relative shrink-0 w-24 h-14 rounded-lg overflow-hidden bg-slate-800 shadow-sm hidden sm:block">
                                                                             <img src={`https://img.youtube.com/vi/${video.vid}/mqdefault.jpg`} alt="thumbnail" className="w-full h-full object-cover opacity-90" />
@@ -226,9 +227,9 @@ const AdminUserDetails = () => {
                             )}
 
                             {/* Standalone Videos */}
-                            {user.videos && user.videos.length > 0 && (
+                            {Array.isArray(user.videos) && user.videos.length > 0 && (
                                 <div>
-                                    {user.playlists && user.playlists.length > 0 && <h5 className="px-2 mb-2 text-xs font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Standalone Videos</h5>}
+                                    {Array.isArray(user.playlists) && user.playlists.length > 0 && <h5 className="px-2 mb-2 text-xs font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Standalone Videos</h5>}
                                     <div className="space-y-3">
                                         {user.videos.map(video => (
                                             <div key={video.id} className="p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-slate-250 bg-slate-50/50 dark:bg-slate-950/30 transition-colors flex items-start gap-4">
@@ -265,7 +266,7 @@ const AdminUserDetails = () => {
                             <h4 className="font-bold text-slate-800 dark:text-white">Recent Activity Log</h4>
                         </div>
                         <div className="max-h-96 overflow-y-auto p-2">
-                            {user.activities && user.activities.length > 0 ? (
+                            {Array.isArray(user.activities) && user.activities.length > 0 ? (
                                 <div className="space-y-1 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-slate-800 before:to-transparent">
                                     {user.activities.map((activity, index) => (
                                         <div key={activity.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">

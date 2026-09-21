@@ -19,7 +19,10 @@ const AdminUsersList = () => {
             const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/users`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setUsers(response.data.users);
+            const userList = Array.isArray(response.data?.users)
+                ? response.data.users
+                : (Array.isArray(response.data) ? response.data : []);
+            setUsers(userList);
         } catch (err) {
             console.error("Failed to fetch users", err);
             toast.error("Failed to load users list");
@@ -46,7 +49,7 @@ const AdminUsersList = () => {
             await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/api/admin/users/${userId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setUsers(users.filter(u => u.id !== userId));
+            setUsers(prev => (Array.isArray(prev) ? prev : []).filter(u => u.id !== userId));
             toast.success("User deleted successfully");
         } catch (err) {
             console.error("Failed to delete user", err);
@@ -54,7 +57,8 @@ const AdminUsersList = () => {
         }
     };
 
-    const filteredUsers = users.filter(u =>
+    const userList = Array.isArray(users) ? users : [];
+    const filteredUsers = userList.filter(u =>
         (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase()))
     );

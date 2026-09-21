@@ -102,12 +102,12 @@ const AdminDashboardHome = () => {
             const headers = { Authorization: `Bearer ${token}` };
             const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/stats`, { headers });
             
-            setStats(res.data.stats);
-            setActiveUsers(res.data.activeUsers);
-            setDeviceStats(res.data.deviceStats);
-            setAcquisition(res.data.acquisition);
-            setTopLearners(res.data.topLearners || []);
-            setRecentActivity(res.data.recentActivity || []);
+            setStats(res.data?.stats || {});
+            setActiveUsers(res.data?.activeUsers || 0);
+            setDeviceStats(res.data?.deviceStats || {});
+            setAcquisition(res.data?.acquisition || {});
+            setTopLearners(Array.isArray(res.data?.topLearners) ? res.data.topLearners : []);
+            setRecentActivity(Array.isArray(res.data?.recentActivity) ? res.data.recentActivity : []);
         } catch (err) {
             console.error("Failed to fetch dashboard stats", err);
             toast.error("Failed to load dashboard metrics");
@@ -118,8 +118,8 @@ const AdminDashboardHome = () => {
         try {
             const headers = { Authorization: `Bearer ${token}` };
             const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/analytics?range=${range}`, { headers });
-            setChartData(res.data.growthChart || []);
-            setHourlyData(res.data.hourlyDistribution || []);
+            setChartData(Array.isArray(res.data?.growthChart) ? res.data.growthChart : []);
+            setHourlyData(Array.isArray(res.data?.hourlyDistribution) ? res.data.hourlyDistribution : []);
         } catch (err) {
             console.error("Failed to fetch analytics timeline", err);
         }
@@ -802,9 +802,9 @@ const AdminDashboardHome = () => {
                         </span>
                     </div>
 
-                    {recentActivity && recentActivity.filter(a => a && a.user && (a.activity_type || '').trim().length > 0).length > 0 ? (
+                    {(Array.isArray(recentActivity) ? recentActivity : []).filter(a => a && a.user && (a.activity_type || '').trim().length > 0).length > 0 ? (
                         <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 custom-scrollbar pb-3">
-                            {recentActivity
+                            {(Array.isArray(recentActivity) ? recentActivity : [])
                                 .filter(act => act && act.user && (act.activity_type || '').trim().length > 0)
                                 .map((act) => {
                                     const rawText = act.activity_type || '';

@@ -121,9 +121,19 @@ const AdminReferrals = () => {
             ]);
 
             setStats(statsRes.data);
-            setCodes(codesRes.data.codes || []);
-            setGroups(groupsRes.data.groups || []);
-            setColleges(collegesRes.data.colleges || []);
+            const rawCodes = Array.isArray(codesRes.data?.codes)
+                ? codesRes.data.codes
+                : (Array.isArray(codesRes.data) ? codesRes.data : []);
+            const rawGroups = Array.isArray(groupsRes.data?.groups)
+                ? groupsRes.data.groups
+                : (Array.isArray(groupsRes.data) ? groupsRes.data : []);
+            const rawColleges = Array.isArray(collegesRes.data?.colleges)
+                ? collegesRes.data.colleges
+                : (Array.isArray(collegesRes.data) ? collegesRes.data : []);
+
+            setCodes(rawCodes);
+            setGroups(rawGroups);
+            setColleges(rawColleges);
         } catch (err) {
             console.error('Failed to load referral admin data:', err);
             toast.error('Failed to load referral analytics');
@@ -415,11 +425,13 @@ const AdminReferrals = () => {
 
     // Filter codes
     const filteredCodes = useMemo(() => {
-        return codes.filter(item => {
+        const safeCodes = Array.isArray(codes) ? codes : [];
+        return safeCodes.filter(item => {
+            if (!item) return false;
             const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
-            const searchLower = searchQuery.toLowerCase();
+            const searchLower = (searchQuery || '').toLowerCase();
             const matchesSearch = !searchQuery ||
-                item.code.toLowerCase().includes(searchLower) ||
+                (item.code && item.code.toLowerCase().includes(searchLower)) ||
                 (item.title && item.title.toLowerCase().includes(searchLower)) ||
                 (item.creatorName && item.creatorName.toLowerCase().includes(searchLower)) ||
                 (item.targetCollege && item.targetCollege.toLowerCase().includes(searchLower));
@@ -430,10 +442,12 @@ const AdminReferrals = () => {
 
     // Filter groups
     const filteredGroups = useMemo(() => {
-        return groups.filter(g => {
-            const q = groupSearchQuery.toLowerCase();
+        const safeGroups = Array.isArray(groups) ? groups : [];
+        return safeGroups.filter(g => {
+            if (!g) return false;
+            const q = (groupSearchQuery || '').toLowerCase();
             return !q ||
-                g.name.toLowerCase().includes(q) ||
+                (g.name && g.name.toLowerCase().includes(q)) ||
                 (g.college && g.college.toLowerCase().includes(q)) ||
                 (g.description && g.description.toLowerCase().includes(q));
         });
@@ -441,10 +455,12 @@ const AdminReferrals = () => {
 
     // Available ambassadors for selection in create/edit group modal
     const pickerAmbassadors = useMemo(() => {
-        return codes.filter(item => {
-            const q = ambassadorPickerSearch.toLowerCase();
+        const safeCodes = Array.isArray(codes) ? codes : [];
+        return safeCodes.filter(item => {
+            if (!item) return false;
+            const q = (ambassadorPickerSearch || '').toLowerCase();
             if (!q) return true;
-            return item.code.toLowerCase().includes(q) ||
+            return (item.code && item.code.toLowerCase().includes(q)) ||
                 (item.creatorName && item.creatorName.toLowerCase().includes(q)) ||
                 (item.targetCollege && item.targetCollege.toLowerCase().includes(q));
         });
@@ -452,13 +468,15 @@ const AdminReferrals = () => {
 
     // Aggregated group KPI calculations
     const groupMetrics = useMemo(() => {
-        const totalGroups = groups.length;
-        const totalMembers = groups.reduce((acc, g) => acc + (g.membersCount || 0), 0);
-        const topGroup = groups.length > 0
-            ? [...groups].sort((a, b) => b.totalSignups - a.totalSignups)[0]
+        const safeGroups = Array.isArray(groups) ? groups : [];
+        const safeColleges = Array.isArray(colleges) ? colleges : [];
+        const totalGroups = safeGroups.length;
+        const totalMembers = safeGroups.reduce((acc, g) => acc + (g.membersCount || 0), 0);
+        const topGroup = safeGroups.length > 0
+            ? [...safeGroups].sort((a, b) => (b.totalSignups || 0) - (a.totalSignups || 0))[0]
             : null;
-        const topCollege = colleges.length > 0
-            ? colleges[0]
+        const topCollege = safeColleges.length > 0
+            ? [...safeColleges].sort((a, b) => (b.totalSignups || 0) - (a.totalSignups || 0))[0]
             : null;
 
         return {

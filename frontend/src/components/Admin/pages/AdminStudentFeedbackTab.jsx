@@ -90,7 +90,7 @@ export default function AdminStudentFeedbackTab({ token }) {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {feedbackList.map((fb) => (
+                    {(Array.isArray(feedbackList) ? feedbackList : []).map((fb) => (
                         <div
                             key={fb.id}
                             className="p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xs flex flex-col justify-between space-y-3"

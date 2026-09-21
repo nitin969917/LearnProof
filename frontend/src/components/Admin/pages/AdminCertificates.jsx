@@ -121,12 +121,22 @@ const AdminCertificates = () => {
             ]);
 
             setStats(statsRes.data);
-            setRequests(requestsRes.data || []);
-            setIssuedCerts(issuedRes.data || []);
-            setTemplates(templatesRes.data || []);
+            const reqList = Array.isArray(requestsRes.data)
+                ? requestsRes.data
+                : (Array.isArray(requestsRes.data?.requests) ? requestsRes.data.requests : []);
+            const certList = Array.isArray(issuedRes.data)
+                ? issuedRes.data
+                : (Array.isArray(issuedRes.data?.certificates) ? issuedRes.data.certificates : []);
+            const tplList = Array.isArray(templatesRes.data)
+                ? templatesRes.data
+                : (Array.isArray(templatesRes.data?.templates) ? templatesRes.data.templates : []);
 
-            if (templatesRes.data?.length > 0 && !previewTemplate) {
-                const defaultT = templatesRes.data.find(t => t.isDefault) || templatesRes.data[0];
+            setRequests(reqList);
+            setIssuedCerts(certList);
+            setTemplates(tplList);
+
+            if (tplList.length > 0 && !previewTemplate) {
+                const defaultT = tplList.find(t => t.isDefault) || tplList[0];
                 setPreviewTemplate(defaultT);
             }
         } catch (err) {
@@ -144,29 +154,33 @@ const AdminCertificates = () => {
 
     // Filtered Requests
     const filteredRequests = useMemo(() => {
-        return requests.filter(req => {
+        const safeReqs = Array.isArray(requests) ? requests : [];
+        return safeReqs.filter(req => {
+            if (!req) return false;
             const matchStatus = requestFilter === 'ALL' || req.status === requestFilter;
-            const searchLower = requestSearch.toLowerCase();
+            const searchLower = (requestSearch || '').toLowerCase();
             const matchSearch =
                 !requestSearch ||
-                req.fullName?.toLowerCase().includes(searchLower) ||
-                req.user?.name?.toLowerCase().includes(searchLower) ||
-                req.user?.email?.toLowerCase().includes(searchLower) ||
-                req.playlist?.name?.toLowerCase().includes(searchLower);
+                (req.fullName && req.fullName.toLowerCase().includes(searchLower)) ||
+                (req.user?.name && req.user.name.toLowerCase().includes(searchLower)) ||
+                (req.user?.email && req.user.email.toLowerCase().includes(searchLower)) ||
+                (req.playlist?.name && req.playlist.name.toLowerCase().includes(searchLower));
             return matchStatus && matchSearch;
         });
     }, [requests, requestFilter, requestSearch]);
 
     // Filtered Issued Certificates
     const filteredIssuedCerts = useMemo(() => {
-        return issuedCerts.filter(cert => {
-            const searchLower = issuedSearch.toLowerCase();
+        const safeCerts = Array.isArray(issuedCerts) ? issuedCerts : [];
+        return safeCerts.filter(cert => {
+            if (!cert) return false;
+            const searchLower = (issuedSearch || '').toLowerCase();
             return (
                 !issuedSearch ||
-                cert.certificate_id?.toLowerCase().includes(searchLower) ||
-                cert.user?.name?.toLowerCase().includes(searchLower) ||
-                cert.user?.email?.toLowerCase().includes(searchLower) ||
-                cert.playlist?.name?.toLowerCase().includes(searchLower)
+                (cert.certificate_id && cert.certificate_id.toLowerCase().includes(searchLower)) ||
+                (cert.user?.name && cert.user.name.toLowerCase().includes(searchLower)) ||
+                (cert.user?.email && cert.user.email.toLowerCase().includes(searchLower)) ||
+                (cert.playlist?.name && cert.playlist.name.toLowerCase().includes(searchLower))
             );
         });
     }, [issuedCerts, issuedSearch]);

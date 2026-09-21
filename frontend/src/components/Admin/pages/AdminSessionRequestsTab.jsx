@@ -90,7 +90,7 @@ export default function AdminSessionRequestsTab({ token }) {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {sessions.map((sess) => (
+                    {(Array.isArray(sessions) ? sessions : []).map((sess) => (
                         <div
                             key={sess.id}
                             className="p-5 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-xs flex flex-col justify-between space-y-4"

@@ -18,7 +18,10 @@ const AdminContentList = () => {
             const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/content`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setUsersData(response.data.usersWithContent);
+            const contentList = Array.isArray(response.data?.usersWithContent)
+                ? response.data.usersWithContent
+                : (Array.isArray(response.data) ? response.data : []);
+            setUsersData(contentList);
         } catch (err) {
             console.error("Failed to fetch content", err);
             toast.error("Failed to load content list");
@@ -45,12 +48,12 @@ const AdminContentList = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
             // Update local state by stripping the video from whichever user/playlist holds it
-            setUsersData(prev => prev.map(u => ({
+            setUsersData(prev => (Array.isArray(prev) ? prev : []).map(u => ({
                 ...u,
-                videos: u.videos.filter(v => v.id !== videoId),
-                playlists: u.playlists.map(p => ({
+                videos: (Array.isArray(u.videos) ? u.videos : []).filter(v => v.id !== videoId),
+                playlists: (Array.isArray(u.playlists) ? u.playlists : []).map(p => ({
                     ...p,
-                    videos: p.videos.filter(v => v.id !== videoId)
+                    videos: (Array.isArray(p.videos) ? p.videos : []).filter(v => v.id !== videoId)
                 }))
             })));
             toast.success("Video deleted successfully");
@@ -69,7 +72,8 @@ const AdminContentList = () => {
         });
     };
 
-    const filteredUsers = usersData.filter(u =>
+    const userList = Array.isArray(usersData) ? usersData : [];
+    const filteredUsers = userList.filter(u =>
         (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase()))
     );

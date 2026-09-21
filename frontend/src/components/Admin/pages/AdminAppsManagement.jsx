@@ -18,7 +18,10 @@ const AdminAppsManagement = () => {
             setLoading(true);
             const headers = { Authorization: `Bearer ${token}` };
             const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/admin/apps`, { headers });
-            setApps(res.data.apps);
+            const appList = Array.isArray(res.data?.apps)
+                ? res.data.apps
+                : (Array.isArray(res.data) ? res.data : []);
+            setApps(appList);
         } catch (err) {
             console.error("Failed to load app releases list", err);
             toast.error("Failed to retrieve application file status.");
@@ -130,7 +133,7 @@ const AdminAppsManagement = () => {
 
             {/* Platform Management Cards */}
             <div className="grid md:grid-cols-2 gap-8">
-                {apps.map((app) => {
+                {(Array.isArray(apps) ? apps : []).map((app) => {
                     const isMac = app.platform === 'macos';
                     const uploadState = uploadingState[app.platform];
                     return (
