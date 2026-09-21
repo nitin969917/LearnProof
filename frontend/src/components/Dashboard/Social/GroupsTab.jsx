@@ -403,7 +403,7 @@ export default function GroupsTab({ currentUserId }) {
             <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-100 dark:border-gray-700 flex gap-2 bg-white dark:bg-gray-800">
               <input
                 type="text"
-                placeholder="Type your message here..."
+                placeholder={activeGroup ? `Message #${activeGroup.name}...` : "Message group..."}
                 value={messageText}
                 onChange={(e) => setMessageText(e.target.value)}
                 className="flex-1 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm transition"
@@ -419,9 +419,9 @@ export default function GroupsTab({ currentUserId }) {
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500 dark:text-gray-500 p-8 text-center bg-gray-50/20 dark:bg-gray-900/40">
-            <MessageCircle size={36} className="text-orange-400 opacity-60 mb-2 animate-pulse" />
-            <h3 className="font-bold text-gray-800 dark:text-gray-200 text-sm">Select a Conversation</h3>
-            <p className="text-xs max-w-xs mt-1">Pick a discussion group from the left sidebar to start chatting.</p>
+            <MessageCircle size={36} className="text-orange-400 opacity-60 mb-2" />
+            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm">Select a study group</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mt-1">Choose a group on the left or create one to start the discussion.</p>
           </div>
         )}
       </div>

@@ -345,11 +345,11 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
       {/* ── Top Header Section (Desktop Banner + Page Title, hidden on mobile) ── */}
       <div className="hidden sm:flex sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
-            Friends
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+            Study Network
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-medium mt-0.5">
-            Connect, collaborate and grow with fellow learners.
+            Connect with classmates, share notes, and study together.
           </p>
         </div>
 
@@ -364,10 +364,10 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
             </div>
             <div>
               <h3 className="font-bold text-xs sm:text-sm text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
-                Build Your Learning Network
+                Find Study Partners
               </h3>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium">
-                Find and connect with people from your college, courses or areas of interest.
+                Connect with classmates studying the same subjects or courses.
               </p>
             </div>
           </div>
@@ -375,7 +375,7 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
             type="button"
             className="px-3.5 py-1.5 border border-orange-500 text-orange-600 dark:text-orange-400 group-hover:bg-orange-500 group-hover:text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer shadow-2xs"
           >
-            <span>Explore Community</span>
+            <span>Discover Peers</span>
             <ArrowRight size={13} />
           </button>
         </div>
@@ -391,9 +391,9 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
             <Users2 size={19} className="stroke-[2.2]" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-bold text-sm text-gray-900 dark:text-white leading-tight">Grow Your Network</h3>
+            <h3 className="font-bold text-sm text-gray-900 dark:text-white leading-tight">Find Study Partners</h3>
             <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium truncate mt-0.5">
-              Connect with fellow learners, share ideas & collaborate
+              Connect with classmates & study groups
             </p>
           </div>
         </div>
@@ -960,23 +960,23 @@ export default function FriendsTab({ onViewProfile, onSelectChatUser }) {
 
               {/* Empty Connections State */}
               {friends.length === 0 && (
-                <div className="py-16 text-center text-gray-400 dark:text-gray-500 border-2 border-dashed border-gray-200/80 dark:border-gray-700 rounded-3xl p-6 space-y-3">
-                  <div className="w-14 h-14 rounded-3xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mx-auto shadow-2xs">
+                <div className="py-16 text-center text-gray-400 dark:text-gray-500 border border-gray-200/80 dark:border-gray-700/80 bg-white dark:bg-gray-800 rounded-3xl p-6 space-y-3 shadow-2xs">
+                  <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mx-auto shadow-2xs">
                     <UserCheck size={28} />
                   </div>
-                  <h3 className="font-black text-base text-gray-900 dark:text-white">
-                    No Connections Yet
+                  <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                    No connections yet
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
-                    Build your study group and connect with classmates from your university, subjects, and live study rooms!
+                    Connect with classmates from your courses and live rooms to study together.
                   </p>
                   <button
                     type="button"
                     onClick={() => navigate('/dashboard/social/discover')}
-                    className="mt-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-extrabold text-xs transition shadow-md shadow-orange-500/20 active:scale-95 cursor-pointer inline-flex items-center gap-2"
+                    className="mt-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-xs transition shadow-xs active:scale-95 cursor-pointer inline-flex items-center gap-2"
                   >
                     <Compass size={15} />
-                    <span>Explore Community</span>
+                    <span>Find Classmates</span>
                   </button>
                 </div>
               )}

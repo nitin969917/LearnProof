@@ -148,7 +148,7 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
             />
           </div>
           <div className="flex-1 text-sm text-gray-400 dark:text-gray-500 font-medium select-none truncate">
-            What's on your mind?
+            Share a note, question, or study update...
           </div>
           <div 
             onClick={(e) => {
@@ -166,12 +166,12 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
         {selectedTag && (
           <div className="bg-orange-50/90 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-850 rounded-2xl p-3 sm:p-3.5 px-4 flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center font-black text-sm">
+              <div className="w-8 h-8 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 flex items-center justify-center font-bold text-sm">
                 #
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Showing posts tagged with</p>
-                <p className="text-sm font-extrabold text-orange-600 dark:text-orange-400">{selectedTag}</p>
+                <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400">Filtering by tag</p>
+                <p className="text-sm font-bold text-orange-600 dark:text-orange-400">#{selectedTag}</p>
               </div>
             </div>
             <button
@@ -187,18 +187,18 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
         {/* Posts Feed */}
         <div className="flex flex-col gap-3.5 sm:gap-4.5">
           {posts.length === 0 && loadingPosts ? (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-550 dark:text-gray-400 flex flex-col items-center justify-center min-h-[200px]">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-500 dark:text-gray-400 flex flex-col items-center justify-center min-h-[200px]">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-              <p className="text-sm text-gray-550 dark:text-gray-400 mt-3 font-medium">Loading feed...</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 font-medium">Loading posts...</p>
             </div>
           ) : posts.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center text-gray-550 dark:text-gray-400">
-               <Sparkles size={40} className="mx-auto mb-3 text-orange-400 opacity-60 animate-pulse" />
-               <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1">
-                 {selectedTag ? `No posts found tagged with ${selectedTag}` : 'Your feed is quiet'}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/70 dark:border-gray-700 p-10 text-center text-gray-500 dark:text-gray-400 shadow-2xs">
+               <Sparkles size={36} className="mx-auto mb-3 text-orange-400 opacity-70" />
+               <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1">
+                 {selectedTag ? `No posts found tagged with #${selectedTag}` : 'Nothing posted yet'}
                </h3>
-               <p className="text-sm">
-                 {selectedTag ? 'Try exploring other tags or create a post with this tag!' : 'Be the first to share a moment with the community!'}
+               <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                 {selectedTag ? 'Try exploring other tags or create a post with this tag.' : 'Share a note, ask a question, or post your latest study milestone.'}
                </p>
                {selectedTag && (
                  <button
@@ -226,13 +226,13 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
               {hasMorePosts && (
                 <div ref={loaderRef} className="py-6 text-center flex flex-col items-center justify-center">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-bold">Loading more posts...</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">Loading more posts...</p>
                 </div>
               )}
 
               {!hasMorePosts && (
-                <div className="py-8 text-center text-xs font-black text-gray-400 select-none">
-                  You've caught up! No more posts to load.
+                <div className="py-8 text-center text-xs font-semibold text-gray-400 dark:text-gray-500 select-none">
+                  You're all caught up
                 </div>
               )}
             </>
@@ -294,12 +294,12 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
 
             {friends.length === 0 && (
               <div className="text-center py-4 text-gray-400 dark:text-gray-500">
-                <p className="text-xs font-medium">No friends connected yet.</p>
+                <p className="text-xs font-medium">No connections yet.</p>
                 <button
                   onClick={() => onNavigateTab && onNavigateTab('discover')}
                   className="mt-2 text-xs font-bold text-orange-500 hover:underline cursor-pointer"
                 >
-                  Discover peers →
+                  Find classmates →
                 </button>
               </div>
             )}
