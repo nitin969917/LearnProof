@@ -402,73 +402,83 @@ const LoginPage = () => {
 
         const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
 
-        // 1. Native In-App Browser flow — ASWebAuthenticationSession (iOS) / Chrome Custom Tab (Android)
-        //    Uses SocialLogin.openSecureWindow() which correctly intercepts learnproofai:// on iOS
-        //    The backend at api.learnproofai.com/api/auth/linkedin/callback does the code exchange
-        //    and server-side redirects to learnproofai://auth/linkedin?token=JWT
+        // 1. Native In-App Browser flow — works on both iOS and Android, no URL scheme needed
+        //    Opens SFSafariViewController (iOS) / Chrome Custom Tab (Android) via @capacitor/browser
+        //    Backend stores JWT in Redis keyed by sessionId (= OAuth state)
+        //    App polls /api/auth/linkedin/session/:sessionId every 2s until token arrives
         if (isCapacitorNative) {
             try {
-                const { SocialLogin } = await import('@capgo/capacitor-social-login');
+                const { Browser } = await import('@capacitor/browser');
                 const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
                 const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
 
-                // Backend callback URL — server exchanges code and redirects to learnproofai://
+                // sessionId is used as OAuth state — backend stores JWT under this key
+                const sessionId = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
                 const redirectUri = `${backendUrl}/api/auth/linkedin/callback`;
 
                 const authUrl = `https://www.linkedin.com/oauth/v2/authorization?` +
                     `response_type=code` +
                     `&client_id=${clientId}` +
                     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
-                    `&state=${Math.random().toString(36).substring(2)}` +
+                    `&state=${sessionId}` +
                     `&scope=${encodeURIComponent('openid profile email')}`;
 
-                // openSecureWindow uses ASWebAuthenticationSession on iOS — correctly intercepts
-                // custom URL scheme redirects. On Android uses Chrome Custom Tabs + onNewIntent.
-                const result = await SocialLogin.openSecureWindow({
-                    authEndpoint: authUrl,
-                    redirectUri: 'learnproofai://auth/linkedin'
-                });
+                // Open in-app browser — shows LinkedIn login
+                await Browser.open({ url: authUrl, presentationStyle: 'popover' });
 
-                // result.redirectedUri = 'learnproofai://auth/linkedin?token=JWT&isNewUser=0'
-                const parsed = new URL(result.redirectedUri.replace('learnproofai://', 'https://x.x/'));
-                const token = parsed.searchParams.get('token');
-                const isNewUser = parsed.searchParams.get('isNewUser') === '1';
-                const error = parsed.searchParams.get('error');
+                // Poll every 2s for up to 3 minutes
+                let attempts = 0;
+                const maxAttempts = 90;
+                let pollTimer = null;
+                let browserClosed = false;
 
-                if (error) {
-                    if (!error.toLowerCase().includes('cancel')) toast.error(error);
-                    setIsAuthenticating(false);
-                    sessionStorage.removeItem('is_authenticating');
-                    return;
-                }
+                const cleanup = async () => {
+                    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+                    if (!browserClosed) {
+                        browserClosed = true;
+                        try { await Browser.close(); } catch (_) {}
+                    }
+                };
 
-                if (token) {
-                    login({ credential: token });
-                    if (isNewUser) sessionStorage.setItem('prompt_student_profile', 'true');
-                    toast.success('Welcome to LearnProof AI!');
-                    setIsAuthenticating(false);
-                    sessionStorage.removeItem('is_authenticating');
-                    navigate(resolvePostAuthRedirect(), { replace: true });
-                    return;
-                }
+                pollTimer = setInterval(async () => {
+                    attempts++;
+                    if (attempts > maxAttempts) {
+                        await cleanup();
+                        setIsAuthenticating(false);
+                        sessionStorage.removeItem('is_authenticating');
+                        toast.error('LinkedIn login timed out. Please try again.');
+                        return;
+                    }
+                    try {
+                        const pollRes = await axios.get(`${backendUrl}/api/auth/linkedin/session/${sessionId}`);
+                        if (pollRes.status === 200 && pollRes.data.token) {
+                            await cleanup();
+                            login({ credential: pollRes.data.token });
+                            if (pollRes.data.isNewUser) sessionStorage.setItem('prompt_student_profile', 'true');
+                            toast.success('Welcome to LearnProof AI!');
+                            setIsAuthenticating(false);
+                            sessionStorage.removeItem('is_authenticating');
+                            navigate(resolvePostAuthRedirect(), { replace: true });
+                        }
+                    } catch (pollErr) {
+                        if (pollErr.response?.status === 400) {
+                            // Auth failed — error stored in session
+                            await cleanup();
+                            const errMsg = pollErr.response?.data?.error || 'LinkedIn login failed';
+                            if (!errMsg.toLowerCase().includes('cancel')) toast.error(errMsg);
+                            setIsAuthenticating(false);
+                            sessionStorage.removeItem('is_authenticating');
+                        }
+                        // 202 = still pending, continue polling
+                    }
+                }, 2000);
 
-                throw new Error('No token in callback URL');
+                return; // Wait for poll — do NOT fall through to web popup
             } catch (nativeErr) {
-                console.warn('[LinkedIn Native] openSecureWindow error:', nativeErr);
-                const errStr = nativeErr?.message || String(nativeErr);
-                if (
-                    errStr.includes('cancel') || errStr.includes('Cancel') ||
-                    errStr.includes('dismiss') || errStr.includes('1001') ||
-                    errStr.includes('USER_CANCELLED')
-                ) {
-                    setIsAuthenticating(false);
-                    sessionStorage.removeItem('is_authenticating');
-                    return;
-                }
-                // Fall through to web popup on unexpected errors
-                console.warn('[LinkedIn Native] Falling back to web popup flow');
+                console.warn('[LinkedIn Native] Browser open failed:', nativeErr);
                 setIsAuthenticating(false);
                 sessionStorage.removeItem('is_authenticating');
+                // Fall through to web popup
             }
         }
 

@@ -55,8 +55,10 @@ router.post('/auth/apple-login', authController.handleAppleLogin);
 router.post('/auth/demo-login', authController.handleDemoReviewerLogin);
 router.post('/auth/linkedin', authController.handleLinkedInLogin);
 router.post('/auth/linkedin-login', authController.handleLinkedInLogin);
-// GET: native iOS/Android OAuth callback — server exchanges code and redirects to learnproofai:// scheme
+// GET: native iOS/Android OAuth callback — server exchanges code, stores JWT in Redis, shows completion page
 router.get('/auth/linkedin/callback', authController.handleLinkedInNativeCallback);
+// GET: app polls every 2s to retrieve JWT after user completes LinkedIn auth in browser
+router.get('/auth/linkedin/session/:sessionId', authController.pollLinkedInSession);
 router.post('/profile/', authMiddleware, authController.getProfile);
 router.delete('/profile', authMiddleware, authController.deleteAccount);
 router.post('/delete-account', authMiddleware, authController.deleteAccount);
