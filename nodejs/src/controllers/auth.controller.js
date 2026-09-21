@@ -319,36 +319,40 @@ const deleteAccount = async (req, res) => {
  */
 const handleLinkedInLogin = async (req, res) => {
     try {
-        const { code, redirectUri } = req.body;
-        if (!code) {
-            return res.status(400).json({ error: 'Missing LinkedIn authorization code' });
+        const { code, redirectUri, accessToken } = req.body;
+        if (!code && !accessToken) {
+            return res.status(400).json({ error: 'Missing LinkedIn authorization code or access token' });
         }
 
-        const clientId = process.env.LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
-        const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
-        if (!clientSecret) {
-            console.error('[LinkedIn Auth] Missing LINKEDIN_CLIENT_SECRET in environment');
-            return res.status(500).json({ error: 'LinkedIn authentication is not properly configured on server' });
-        }
-        const targetRedirectUri = redirectUri || process.env.LINKEDIN_REDIRECT_URI || 'https://learnproofai.com/auth/linkedin/callback';
+        let access_token = accessToken;
 
-        // 1. Exchange authorization code for LinkedIn access token
-        const params = new URLSearchParams();
-        params.append('grant_type', 'authorization_code');
-        params.append('code', code);
-        params.append('client_id', clientId);
-        params.append('client_secret', clientSecret);
-        params.append('redirect_uri', targetRedirectUri);
-
-        const tokenResponse = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', params.toString(), {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            }
-        });
-
-        const { access_token } = tokenResponse.data;
         if (!access_token) {
-            return res.status(400).json({ error: 'Failed to retrieve access token from LinkedIn' });
+            const clientId = process.env.LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
+            const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
+            if (!clientSecret) {
+                console.error('[LinkedIn Auth] Missing LINKEDIN_CLIENT_SECRET in environment');
+                return res.status(500).json({ error: 'LinkedIn authentication is not properly configured on server' });
+            }
+            const targetRedirectUri = redirectUri || process.env.LINKEDIN_REDIRECT_URI || 'https://learnproofai.com/auth/linkedin/callback';
+
+            // 1. Exchange authorization code for LinkedIn access token
+            const params = new URLSearchParams();
+            params.append('grant_type', 'authorization_code');
+            params.append('code', code);
+            params.append('client_id', clientId);
+            params.append('client_secret', clientSecret);
+            params.append('redirect_uri', targetRedirectUri);
+
+            const tokenResponse = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', params.toString(), {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            });
+
+            access_token = tokenResponse.data?.access_token;
+            if (!access_token) {
+                return res.status(400).json({ error: 'Failed to retrieve access token from LinkedIn' });
+            }
         }
 
         // 2. Fetch User Profile Info via OpenID Connect UserInfo endpoint

@@ -17,6 +17,38 @@ const LinkedInCallback = () => {
         if (hasProcessedRef.current) return;
         hasProcessedRef.current = true;
 
+        const isPopup = typeof window !== 'undefined' && (!!window.opener || window.name === 'LinkedInSignIn');
+
+        const notifyOpenerAndClose = (data) => {
+            // 1. Deliver via window.opener postMessage
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.postMessage(data, window.location.origin);
+                }
+            } catch (e) {
+                console.warn('[LinkedIn Callback] postMessage failed:', e);
+            }
+
+            // 2. Deliver via BroadcastChannel (COOP-resilient fallback)
+            try {
+                const channel = new BroadcastChannel('linkedin_auth_channel');
+                channel.postMessage(data);
+                channel.close();
+            } catch (e) {}
+
+            // 3. Deliver via localStorage (storage event fallback)
+            try {
+                localStorage.setItem('linkedin_auth_result', JSON.stringify({ ...data, _ts: Date.now() }));
+            } catch (e) {}
+
+            // 4. Gracefully close the popup
+            setTimeout(() => {
+                try {
+                    window.close();
+                } catch (e) {}
+            }, 250);
+        };
+
         const processLinkedInAuth = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const code = urlParams.get('code');
@@ -25,6 +57,14 @@ const LinkedInCallback = () => {
 
             if (error) {
                 console.warn('[LinkedIn Callback] Auth error or cancellation:', error, errorDescription);
+                if (isPopup) {
+                    setStatusMessage("Authentication cancelled. Closing...");
+                    notifyOpenerAndClose({
+                        type: 'LINKEDIN_AUTH_ERROR',
+                        error: errorDescription || "LinkedIn login was cancelled."
+                    });
+                    return;
+                }
                 if (error !== 'user_cancelled_login' && error !== 'user_cancelled_authorize') {
                     toast.error(errorDescription || "LinkedIn login was cancelled.");
                 }
@@ -34,6 +74,13 @@ const LinkedInCallback = () => {
 
             if (!code) {
                 console.warn('[LinkedIn Callback] No authorization code found in URL');
+                if (isPopup) {
+                    notifyOpenerAndClose({
+                        type: 'LINKEDIN_AUTH_ERROR',
+                        error: "No authorization code found in URL."
+                    });
+                    return;
+                }
                 navigate('/login', { replace: true });
                 return;
             }
@@ -49,11 +96,20 @@ const LinkedInCallback = () => {
                 });
 
                 if (res.data && res.data.token) {
-                    // Log in via AuthContext
+                    if (isPopup) {
+                        setStatusMessage("Authenticated successfully! Returning to LearnProof AI...");
+                        notifyOpenerAndClose({
+                            type: 'LINKEDIN_AUTH_SUCCESS',
+                            token: res.data.token,
+                            isNewUser: res.data.isNewUser
+                        });
+                        return;
+                    }
+
+                    // Fallback for full page redirects
                     login({ credential: res.data.token });
                     toast.success("Welcome to LearnProof AI!");
 
-                    // If user is brand new or college is empty, flag for student profile prompt
                     if (res.data.isNewUser) {
                         sessionStorage.setItem('prompt_student_profile', 'true');
                     }
@@ -73,6 +129,14 @@ const LinkedInCallback = () => {
             } catch (err) {
                 console.error('[LinkedIn Callback] Processing failed:', err);
                 const errMsg = err.response?.data?.details || err.response?.data?.error || err.message || "Failed to sign in with LinkedIn.";
+                if (isPopup) {
+                    setStatusMessage("Authentication failed. Closing...");
+                    notifyOpenerAndClose({
+                        type: 'LINKEDIN_AUTH_ERROR',
+                        error: errMsg
+                    });
+                    return;
+                }
                 toast.error(errMsg);
                 navigate('/login', { replace: true });
             }

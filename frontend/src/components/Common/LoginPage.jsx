@@ -110,6 +110,7 @@ const LoginPage = () => {
         sessionStorage.removeItem("is_authenticating");
         return false;
     });
+    const [authStatusMessage, setAuthStatusMessage] = useState("Securing your session, please wait...");
 
     useEffect(() => {
         // Expose native Google login callback for the Flutter wrapper
@@ -394,9 +395,70 @@ const LoginPage = () => {
         }
     };
 
-    const handleManualLinkedInLogin = () => {
+    const handleManualLinkedInLogin = async () => {
         setIsAuthenticating(true);
+        setAuthStatusMessage("Connecting with LinkedIn...");
         sessionStorage.setItem("is_authenticating", "true");
+
+        const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
+
+        // 1. Mobile In-App Sheet via Capacitor Social Login (ASWebAuthenticationSession / CustomTabs)
+        if (isCapacitorNative) {
+            try {
+                const { SocialLogin } = await import('@capgo/capacitor-social-login');
+                const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
+                const redirectUri = 'https://learnproofai.com/auth/linkedin/callback';
+
+                await SocialLogin.initialize({
+                    linkedin: {
+                        clientId,
+                        redirectUrl: redirectUri,
+                    }
+                });
+
+                const res = await SocialLogin.login({
+                    provider: 'linkedin',
+                    options: {
+                        scopes: ['openid', 'profile', 'email']
+                    }
+                });
+
+                console.log("[Capacitor LinkedIn] SocialLogin response:", res);
+                const accessToken = res?.result?.accessToken?.token || res?.result?.accessToken;
+                const authorizationCode = res?.result?.authorizationCode || res?.result?.code;
+
+                if (accessToken || authorizationCode) {
+                    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+                    const authRes = await axios.post(`${backendUrl}/api/auth/linkedin`, {
+                        accessToken: typeof accessToken === 'string' ? accessToken : undefined,
+                        code: authorizationCode || undefined,
+                        redirectUri
+                    });
+
+                    if (authRes.data && authRes.data.token) {
+                        login({ credential: authRes.data.token });
+                        if (authRes.data.isNewUser) {
+                            sessionStorage.setItem('prompt_student_profile', 'true');
+                        }
+                        toast.success("Welcome to LearnProof AI!");
+                        setIsAuthenticating(false);
+                        sessionStorage.removeItem("is_authenticating");
+                        navigate(resolvePostAuthRedirect(), { replace: true });
+                        return;
+                    }
+                }
+            } catch (nativeErr) {
+                console.warn("[Capacitor LinkedIn] Native login failed, trying popup/browser:", nativeErr);
+                const errStr = nativeErr?.message || (typeof nativeErr === 'object' ? JSON.stringify(nativeErr) : String(nativeErr));
+                if (errStr.includes('canceled') || errStr.includes('1001') || errStr.includes('CANCELED') || errStr.includes('USER_CANCELLED')) {
+                    setIsAuthenticating(false);
+                    sessionStorage.removeItem("is_authenticating");
+                    return;
+                }
+            }
+        }
+
+        // 2. Web Popup Flow (Desktop & Mobile Browser) - Seamless popup dialog without navigating away
         const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
         const redirectUri = `${window.location.origin}/auth/linkedin/callback`;
         const state = Math.random().toString(36).substring(2);
@@ -411,7 +473,129 @@ const LoginPage = () => {
             `&state=${state}` +
             `&scope=${encodeURIComponent('openid profile email')}`;
 
-        window.location.assign(authUrl);
+        const width = 520;
+        const height = 650;
+        const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
+        const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+
+        let popup = null;
+        try {
+            popup = window.open(
+                authUrl,
+                'LinkedInSignIn',
+                `width=${width},height=${height},left=${left},top=${top},status=0,toolbar=0,menubar=0,location=0,resizable=yes,scrollbars=yes`
+            );
+        } catch (e) {
+            console.warn("Popup window open failed:", e);
+        }
+
+        // Fallback: If popup is blocked by the browser, use regular redirect
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            window.location.assign(authUrl);
+            return;
+        }
+
+        try {
+            if (popup.focus) popup.focus();
+        } catch (_) {}
+
+        let cleanupDone = false;
+        let checkClosedInterval = null;
+        let broadcastChannel = null;
+
+        const cleanup = () => {
+            if (cleanupDone) return;
+            cleanupDone = true;
+            if (checkClosedInterval) clearInterval(checkClosedInterval);
+            window.removeEventListener('message', handleMessage);
+            window.removeEventListener('storage', handleStorage);
+            if (broadcastChannel) {
+                try { broadcastChannel.close(); } catch (_) {}
+            }
+            try { localStorage.removeItem('linkedin_auth_result'); } catch (_) {}
+        };
+
+        const handleSuccess = (data) => {
+            cleanup();
+            if (popup && !popup.closed) {
+                try { popup.close(); } catch (_) {}
+            }
+            if (data.token) {
+                login({ credential: data.token });
+                if (data.isNewUser) {
+                    sessionStorage.setItem('prompt_student_profile', 'true');
+                }
+                toast.success("Welcome to LearnProof AI!");
+                setIsAuthenticating(false);
+                sessionStorage.removeItem("is_authenticating");
+                navigate(resolvePostAuthRedirect(), { replace: true });
+            } else {
+                setIsAuthenticating(false);
+                sessionStorage.removeItem("is_authenticating");
+                toast.error("LinkedIn login failed: missing token.");
+            }
+        };
+
+        const handleError = (errorMsg) => {
+            cleanup();
+            if (popup && !popup.closed) {
+                try { popup.close(); } catch (_) {}
+            }
+            setIsAuthenticating(false);
+            sessionStorage.removeItem("is_authenticating");
+            if (errorMsg && !errorMsg.includes('cancelled') && !errorMsg.includes('closed')) {
+                toast.error(errorMsg);
+            }
+        };
+
+        const handleMessage = (event) => {
+            if (event.origin !== window.location.origin) return;
+            if (event.data?.type === 'LINKEDIN_AUTH_SUCCESS') {
+                handleSuccess(event.data);
+            } else if (event.data?.type === 'LINKEDIN_AUTH_ERROR') {
+                handleError(event.data?.error);
+            }
+        };
+
+        const handleStorage = (event) => {
+            if (event.key === 'linkedin_auth_result' && event.newValue) {
+                try {
+                    const parsed = JSON.parse(event.newValue);
+                    if (parsed.type === 'LINKEDIN_AUTH_SUCCESS') {
+                        handleSuccess(parsed);
+                    } else if (parsed.type === 'LINKEDIN_AUTH_ERROR') {
+                        handleError(parsed.error);
+                    }
+                } catch (_) {}
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        window.addEventListener('storage', handleStorage);
+
+        try {
+            broadcastChannel = new BroadcastChannel('linkedin_auth_channel');
+            broadcastChannel.onmessage = (event) => {
+                if (event.data?.type === 'LINKEDIN_AUTH_SUCCESS') {
+                    handleSuccess(event.data);
+                } else if (event.data?.type === 'LINKEDIN_AUTH_ERROR') {
+                    handleError(event.data?.error);
+                }
+            };
+        } catch (_) {}
+
+        checkClosedInterval = setInterval(() => {
+            if (popup && popup.closed) {
+                clearInterval(checkClosedInterval);
+                setTimeout(() => {
+                    if (!cleanupDone) {
+                        cleanup();
+                        setIsAuthenticating(false);
+                        sessionStorage.removeItem("is_authenticating");
+                    }
+                }, 600);
+            }
+        }, 500);
     };
 
     if (loading || isAuthenticating) {
@@ -422,7 +606,7 @@ const LoginPage = () => {
                 <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-orange-200 via-red-100 to-transparent rounded-full blur-[100px] opacity-60 z-0 pointer-events-none -translate-y-1/2 translate-x-1/3" />
                 <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-amber-200 to-transparent rounded-full blur-[80px] opacity-40 z-0 pointer-events-none -translate-x-1/3" />
 
-                <div className="relative z-10 flex flex-col items-center gap-6 bg-white/70 backdrop-blur-xl border border-orange-200/80 rounded-[2rem] p-8 sm:p-10 shadow-[0_20px_50px_rgba(249,115,22,0.06)] max-w-sm w-full mx-4">
+                <div className="relative z-10 flex flex-col items-center gap-6 bg-white/70 backdrop-blur-xl border border-orange-200/80 rounded-[2rem] p-8 sm:p-10 shadow-[0_20px_50px_rgba(249,115,22,0.06)] max-w-sm w-full mx-4 text-center">
                     {/* Pulsing Logo */}
                     <motion.div 
                         animate={{ scale: [1, 1.05, 1] }}
@@ -433,10 +617,22 @@ const LoginPage = () => {
                     </motion.div>
                     <div className="text-center space-y-1.5">
                         <h2 className="text-lg font-black text-gray-900 tracking-tight uppercase">LearnProof AI</h2>
-                        <p className="text-xs text-gray-500 font-semibold">Securing your session, please wait...</p>
+                        <p className="text-xs text-gray-500 font-semibold">{authStatusMessage}</p>
                     </div>
                     {/* Spinner */}
                     <div className="w-8 h-8 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mt-2" />
+                    
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsAuthenticating(false);
+                            sessionStorage.removeItem("is_authenticating");
+                            setAuthStatusMessage("Securing your session, please wait...");
+                        }}
+                        className="text-[11px] font-medium text-gray-400 hover:text-gray-600 underline mt-2 transition-colors cursor-pointer"
+                    >
+                        Cancel
+                    </button>
                 </div>
             </div>
         );
