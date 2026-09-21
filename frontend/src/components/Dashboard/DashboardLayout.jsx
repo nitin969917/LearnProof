@@ -358,7 +358,7 @@ const DashboardLayout = () => {
         const savedState = localStorage.getItem('sidebarExpanded');
         return savedState !== null ? savedState === 'true' : false;
     });
-    const isMobile = window.innerWidth < 1024;
+    const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
 
     const locationPathRef = useRef(location.pathname);
     useEffect(() => {
