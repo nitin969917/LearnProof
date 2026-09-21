@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Users, Globe, User } from 'lucide-react';
+import { Home, GraduationCap, Users2, Radio, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useSocialMessageStore } from '../../store/socialMessageStore';
 import { useSocialFeedStore } from '../../store/socialFeedStore';
@@ -24,9 +24,9 @@ const BottomNav = () => {
     // 5 Constant Sections: Home, Learn, Social, Rooms, Profile
     const navItems = [
         { name: 'Home', icon: Home, path: '/dashboard' },
-        { name: 'Learn', icon: BookOpen, path: '/dashboard/library' },
-        { name: 'Social', icon: Users, path: '/dashboard/social/feed', badge: totalSocialCount > 0 ? totalSocialCount : null },
-        { name: 'Rooms', icon: Globe, path: '/dashboard/live-rooms' },
+        { name: 'Learn', icon: GraduationCap, path: '/dashboard/library' },
+        { name: 'Social', icon: Users2, path: '/dashboard/social/feed', badge: totalSocialCount > 0 ? totalSocialCount : null },
+        { name: 'Rooms', icon: Radio, path: '/dashboard/live-rooms' },
         { name: 'Profile', icon: User, path: '/dashboard/social/profile' },
     ];
 
@@ -106,14 +106,14 @@ const BottomNav = () => {
                                             <User 
                                                 size={22} 
                                                 strokeWidth={isActive ? 2.5 : 2} 
-                                                className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
+                                                className={isActive ? 'fill-orange-500/15 drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
                                             />
                                         )
                                     ) : (
                                         <item.icon 
                                             size={22} 
                                             strokeWidth={isActive ? 2.5 : 2} 
-                                            className={isActive ? 'drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
+                                            className={isActive ? 'fill-orange-500/15 drop-shadow-[0_0_8px_rgba(249,115,22,0.3)]' : ''}
                                         />
                                     )}
                                     <span className="text-[10px] font-bold mt-1 tracking-wide leading-none">{item.name}</span>

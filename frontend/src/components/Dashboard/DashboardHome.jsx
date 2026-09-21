@@ -9,12 +9,15 @@ import {
     GraduationCap, 
     Video, 
     Users, 
+    Users2,
     Library, 
     Share2, 
     ArrowRight, 
     ChevronLeft, 
     ChevronRight,
-    MessageSquare
+    FileText,
+    Radio,
+    Sparkles
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRef } from "react";
@@ -307,8 +310,8 @@ const DashboardHome = () => {
                     >
                         <div>
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-555 flex items-center justify-center shrink-0">
-                                    <Video size={16} />
+                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0">
+                                    <Radio size={16} />
                                 </div>
                                 <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
                                     Live Rooms
@@ -336,7 +339,7 @@ const DashboardHome = () => {
                         <div>
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-[#1f2c24] text-emerald-500 flex items-center justify-center shrink-0">
-                                    <Users size={16} />
+                                    <Users2 size={16} />
                                 </div>
                                 <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
                                     Social Hub
@@ -364,7 +367,7 @@ const DashboardHome = () => {
                         <div>
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
-                                    <MessageSquare size={16} />
+                                    <FileText size={16} />
                                 </div>
                                 <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
                                     Ask My Notes
@@ -445,7 +448,7 @@ const DashboardHome = () => {
                                 <div>
                                     <div className="flex items-center gap-2.5 mb-2">
                                         <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0">
-                                            <Video size={22} />
+                                            <Radio size={22} />
                                         </div>
                                         <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">
                                             Live Rooms
@@ -472,7 +475,7 @@ const DashboardHome = () => {
                         {/* Header: Connect & Collaborate */}
                         <div className="flex items-center gap-2">
                             <div className="p-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500">
-                                <Users size={18} />
+                                <Users2 size={18} />
                             </div>
                             <h2 className="text-sm sm:text-base font-black text-gray-955 dark:text-white uppercase tracking-wider">
                                 Connect & Collaborate
@@ -486,7 +489,7 @@ const DashboardHome = () => {
                         >
                             <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-[#1f2c24] text-emerald-500 flex items-center justify-center shrink-0">
-                                    <Users size={26} />
+                                    <Users2 size={26} />
                                 </div>
                                 <div className="min-w-0">
                                     <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">

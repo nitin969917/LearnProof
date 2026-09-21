@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Award, LogOut, Quote, Search, Moon, Sun, X, MessageSquare, HelpCircle, Menu, Users, Globe, Gift, Crown } from 'lucide-react';
+import { Home, GraduationCap, Trophy, LogOut, BrainCircuit, Compass, Moon, Sun, X, FileText, HelpCircle, Menu, Users2, Radio, Gift, Crown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useModal } from '../../context/ModalContext';
 import { useSocialMessageStore } from '../../store/socialMessageStore';
@@ -51,18 +51,18 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
         {
             title: 'Learning Hub',
             items: [
-                { name: 'My Learnings', icon: <BookOpen size={20} />, path: '/dashboard/library' },
-                { name: 'Discover', icon: <Search size={20} />, path: '/dashboard/explore' },
-                { name: 'Quiz', icon: <Quote size={20} />, path: '/dashboard/quiz' },
-                { name: 'Ask My Notes', icon: <MessageSquare size={20} />, path: '/dashboard/ask-my-notes' },
-                { name: 'Certificates', icon: <Award size={20} />, path: '/dashboard/certificates' },
+                { name: 'My Learnings', icon: <GraduationCap size={20} />, path: '/dashboard/library' },
+                { name: 'Discover', icon: <Compass size={20} />, path: '/dashboard/explore' },
+                { name: 'Quiz', icon: <BrainCircuit size={20} />, path: '/dashboard/quiz' },
+                { name: 'Ask My Notes', icon: <FileText size={20} />, path: '/dashboard/ask-my-notes' },
+                { name: 'Certificates', icon: <Trophy size={20} />, path: '/dashboard/certificates' },
             ]
         },
         {
             title: 'Social & Community',
             items: [
-                { name: 'Live Rooms', icon: <Globe size={20} />, path: '/dashboard/live-rooms' },
-                { name: 'Social Hub', icon: <Users size={20} />, path: '/dashboard/social' },
+                { name: 'Live Rooms', icon: <Radio size={20} />, path: '/dashboard/live-rooms' },
+                { name: 'Social Hub', icon: <Users2 size={20} />, path: '/dashboard/social' },
             ]
         },
         {

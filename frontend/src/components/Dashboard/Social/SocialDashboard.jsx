@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
-import { Home, Search, Heart, Users, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe, Compass, Bell, Hash } from 'lucide-react';
+import { Home, Search, Heart, Users, Users2, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe, Compass, Bell, Hash, Sparkles } from 'lucide-react';
 import { Link, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
@@ -524,10 +524,10 @@ export default function SocialDashboard() {
   };
 
   const socialSubTabs = [
-    { id: 'feed', name: 'Feed', icon: Home },
+    { id: 'feed', name: 'Feed', icon: Sparkles },
     { id: 'discover', name: 'Discover', icon: Compass },
-    { id: 'friends', name: 'Friends', icon: Users, badge: pendingFriendCount > 0 ? pendingFriendCount : null },
-    { id: 'chat', name: 'Chats', icon: MessageSquare, badge: totalUnreadCount > 0 ? totalUnreadCount : null },
+    { id: 'friends', name: 'Friends', icon: Users2, badge: pendingFriendCount > 0 ? pendingFriendCount : null },
+    { id: 'chat', name: 'Chats', icon: MessageCircle, badge: totalUnreadCount > 0 ? totalUnreadCount : null },
   ];
 
   const [syncTimedOut, setSyncTimedOut] = useState(false);

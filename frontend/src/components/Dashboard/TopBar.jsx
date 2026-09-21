@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Youtube, Search, Menu, Bell, BookOpen, Compass, HelpCircle, MessageSquare, Globe, Plus, Home, Users, X } from 'lucide-react';
+import { Youtube, Search, Menu, Bell, GraduationCap, Compass, BrainCircuit, FileText, Radio, Plus, Home, Users2, X } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -40,10 +40,10 @@ const TopBar = ({ onMenuClick }) => {
     const isGoalsPage = location.pathname.startsWith('/dashboard/goals');
 
     const learnSubTabs = [
-        { name: 'My Learning', icon: BookOpen, path: '/dashboard/library' },
+        { name: 'My Learning', icon: GraduationCap, path: '/dashboard/library' },
         { name: 'Discover', icon: Compass, path: '/dashboard/explore' },
-        { name: 'Quiz', icon: HelpCircle, path: '/dashboard/quiz' },
-        { name: 'Ask My Notes', icon: MessageSquare, path: '/dashboard/ask-my-notes' },
+        { name: 'Quiz', icon: BrainCircuit, path: '/dashboard/quiz' },
+        { name: 'Ask My Notes', icon: FileText, path: '/dashboard/ask-my-notes' },
     ];
 
     const checkLearnSubActive = (path) => {
