@@ -10,7 +10,7 @@ import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useModal } from '../../../context/ModalContext';
 import { useAuth } from '../../../context/AuthContext';
 import toast from 'react-hot-toast';
