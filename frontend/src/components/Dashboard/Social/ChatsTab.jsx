@@ -153,9 +153,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const [inviteSearch, setInviteSearch] = useState('');
   const [directChatSearch, setDirectChatSearch] = useState('');
   const [activeMemberMenuId, setActiveMemberMenuId] = useState(null);
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [editDescriptionValue, setEditDescriptionValue] = useState('');
-  const [savingDescription, setSavingDescription] = useState(false);
+  const [showGroupMenu, setShowGroupMenu] = useState(false);
+  const groupMenuRef = useRef(null);
+  const [showEditGroupModal, setShowEditGroupModal] = useState(false);
+  const [editGroupName, setEditGroupName] = useState('');
+  const [editGroupDescription, setEditGroupDescription] = useState('');
+  const [editGroupFocusField, setEditGroupFocusField] = useState('name');
+  const [savingGroupInfo, setSavingGroupInfo] = useState(false);
 
   const getLocalIdFromMatrixUserId = (matrixUserId) => {
     if (!matrixUserId) return null;
@@ -238,24 +242,47 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     }
   };
 
-  const handleSaveDescription = async () => {
+  const handleSaveGroupInfo = async (e) => {
+    e?.preventDefault();
     if (!selectedChat?.id) return;
-    setSavingDescription(true);
+    if (!editGroupName.trim()) {
+      toast.error('Group name cannot be empty');
+      return;
+    }
+
+    setSavingGroupInfo(true);
     try {
       const res = await socialApi.put(`/groups/${selectedChat.id}/settings`, {
-        description: editDescriptionValue.trim()
+        name: editGroupName.trim(),
+        description: editGroupDescription.trim()
       });
-      const updatedDesc = res.data.description;
-      setGroupDetails(prev => prev ? ({ ...prev, description: updatedDesc }) : prev);
-      setGroups(prev => prev.map(g => g.id === selectedChat.id ? { ...g, description: updatedDesc } : g));
-      setSelectedChat(prev => prev ? ({ ...prev, description: updatedDesc }) : prev);
-      setIsEditingDescription(false);
-      toast.success('Group description updated!');
+
+      const updated = res.data;
+      setGroupDetails(prev => prev ? ({
+        ...prev,
+        name: updated.name,
+        description: updated.description
+      }) : prev);
+
+      setGroups(prev => prev.map(g => g.id === selectedChat.id ? {
+        ...g,
+        name: updated.name,
+        description: updated.description
+      } : g));
+
+      setSelectedChat(prev => prev ? ({
+        ...prev,
+        name: updated.name,
+        description: updated.description
+      }) : prev);
+
+      setShowEditGroupModal(false);
+      toast.success('Group information updated!');
     } catch (err) {
-      console.error('Failed to update group description:', err);
-      toast.error(err.response?.data?.error || 'Failed to update description');
+      console.error('Failed to update group information:', err);
+      toast.error(err.response?.data?.error || 'Failed to update group information');
     } finally {
-      setSavingDescription(false);
+      setSavingGroupInfo(false);
     }
   };
 
@@ -357,7 +384,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     } else {
       setGroupDetails(null);
       setShowGroupDetails(false);
-      setIsEditingDescription(false);
+      setShowGroupMenu(false);
     }
   }, [selectedChat]);
 
@@ -365,9 +392,23 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     if (selectedChat && selectedChat.type === 'group' && showGroupDetails) {
       fetchGroupDetails(selectedChat.id);
     } else {
-      setIsEditingDescription(false);
+      setShowGroupMenu(false);
     }
   }, [showGroupDetails]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (groupMenuRef.current && !groupMenuRef.current.contains(e.target)) {
+        setShowGroupMenu(false);
+      }
+    };
+    if (showGroupMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showGroupMenu]);
 
   const socketRef = useRef(null);
   if (currentUserId && !socketRef.current) {
@@ -1794,12 +1835,123 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               <div className="w-full md:w-[320px] lg:w-[360px] shrink-0 h-full bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex flex-col z-20 absolute md:static inset-y-0 right-0 shadow-xl md:shadow-none animate-in slide-in-from-right duration-300">
                 <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0">
                   <h3 className="font-bold text-gray-900 dark:text-white text-base">Group Info</h3>
-                  <button 
-                    onClick={() => setShowGroupDetails(false)}
-                    className="p-1.5 rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
-                  >
-                    <X size={18} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {/* 3-Dot Group Options Menu */}
+                    <div className="relative" ref={groupMenuRef}>
+                      <button 
+                        type="button"
+                        onClick={() => setShowGroupMenu(prev => !prev)}
+                        className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
+                        title="Group Options"
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+
+                      <AnimatePresence>
+                        {showGroupMenu && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute right-0 top-9 w-52 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-2xl py-1.5 z-50 overflow-hidden"
+                          >
+                            {(groupDetails?.isGroupAdmin || groupDetails?.isMainAdmin) && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowGroupMenu(false);
+                                    setEditGroupName(groupDetails.name || '');
+                                    setEditGroupDescription(groupDetails.description || '');
+                                    setEditGroupFocusField('name');
+                                    setShowEditGroupModal(true);
+                                  }}
+                                  className="w-full text-left px-3.5 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 flex items-center gap-2.5 transition cursor-pointer"
+                                >
+                                  <SquarePen size={14} className="text-[#FF5722]" />
+                                  <span>Edit Name</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowGroupMenu(false);
+                                    setEditGroupName(groupDetails.name || '');
+                                    setEditGroupDescription(groupDetails.description || '');
+                                    setEditGroupFocusField('description');
+                                    setShowEditGroupModal(true);
+                                  }}
+                                  className="w-full text-left px-3.5 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 flex items-center gap-2.5 transition cursor-pointer"
+                                >
+                                  <Edit2 size={14} className="text-[#FF5722]" />
+                                  <span>Edit Description</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowGroupMenu(false);
+                                    handleToggleOnlyAdminsPost(!groupDetails.onlyAdminsCanPost);
+                                  }}
+                                  className="w-full text-left px-3.5 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 flex items-center justify-between gap-2.5 transition cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-2.5">
+                                    <ShieldCheck size={14} className="text-blue-500" />
+                                    <span>Only Admins Post</span>
+                                  </div>
+                                  <span className={`text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase ${
+                                    groupDetails.onlyAdminsCanPost 
+                                      ? 'bg-orange-100 dark:bg-orange-950/40 text-[#FF5722]' 
+                                      : 'bg-gray-100 dark:bg-gray-700 text-gray-400'
+                                  }`}>
+                                    {groupDetails.onlyAdminsCanPost ? 'ON' : 'OFF'}
+                                  </span>
+                                </button>
+
+                                <div className="h-px bg-gray-100 dark:bg-gray-700/60 my-1"></div>
+                              </>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowGroupMenu(false);
+                                handleLeaveGroup(selectedChat.id);
+                              }}
+                              className="w-full text-left px-3.5 py-2.5 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 flex items-center gap-2.5 transition cursor-pointer"
+                            >
+                              <LogOut size={14} className="text-amber-500" />
+                              <span>Leave Group</span>
+                            </button>
+
+                            {(groupDetails?.isCreator || groupDetails?.isMainAdmin) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowGroupMenu(false);
+                                  handleDeleteGroup(selectedChat.id);
+                                }}
+                                className="w-full text-left px-3.5 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2.5 transition cursor-pointer"
+                              >
+                                <Trash2 size={14} className="text-red-500" />
+                                <span>Delete Group</span>
+                              </button>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    <button 
+                      type="button"
+                      onClick={() => setShowGroupDetails(false)}
+                      className="p-1.5 rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer"
+                      title="Close"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
                 </div>
 
                 {loadingGroupDetails ? (
@@ -1837,77 +1989,12 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
                     {/* Description */}
                     <div className="bg-gray-50 dark:bg-gray-800/60 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/60">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Description</span>
-                        {(groupDetails.isGroupAdmin || groupDetails.isMainAdmin) && !isEditingDescription && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditDescriptionValue(groupDetails.description || '');
-                              setIsEditingDescription(true);
-                            }}
-                            className="flex items-center gap-1 text-[10px] text-[#FF5722] hover:text-orange-600 font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950/30 transition cursor-pointer"
-                          >
-                            <Edit2 size={11} />
-                            <span>Edit</span>
-                          </button>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Description</span>
+                      <p className="text-xs text-gray-700 dark:text-gray-300 font-normal leading-relaxed whitespace-pre-wrap">
+                        {groupDetails.description || (
+                          <span className="text-gray-400 italic">No description provided.</span>
                         )}
-                      </div>
-
-                      {isEditingDescription ? (
-                        <div className="space-y-2 mt-1">
-                          <textarea
-                            value={editDescriptionValue}
-                            onChange={(e) => setEditDescriptionValue(e.target.value)}
-                            placeholder="Add or update group description..."
-                            maxLength={500}
-                            rows={3}
-                            className="w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 leading-relaxed font-medium resize-none"
-                            autoFocus
-                          />
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-gray-400 font-medium">
-                              {editDescriptionValue.length}/500
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setIsEditingDescription(false);
-                                  setEditDescriptionValue('');
-                                }}
-                                disabled={savingDescription}
-                                className="px-2.5 py-1 text-xs font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer disabled:opacity-50"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                type="button"
-                                onClick={handleSaveDescription}
-                                disabled={savingDescription}
-                                className="px-3 py-1 bg-[#FF5722] hover:bg-[#F4511E] text-white text-xs font-bold rounded-lg shadow-xs transition cursor-pointer disabled:opacity-50 flex items-center gap-1"
-                              >
-                                {savingDescription ? (
-                                  <>
-                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    <span>Saving...</span>
-                                  </>
-                                ) : (
-                                  <span>Save</span>
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-700 dark:text-gray-300 font-normal leading-relaxed whitespace-pre-wrap">
-                          {groupDetails.description ? (
-                            groupDetails.description
-                          ) : (
-                            <span className="text-gray-400 italic">No description provided.</span>
-                          )}
-                        </p>
-                      )}
+                      </p>
                     </div>
 
                     {/* Group Settings */}
@@ -2112,7 +2199,105 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
       {/* ── MODALS ── */}
 
-      {/* ── MODALS ── */}
+      {/* Edit Group Info Modal */}
+      <AnimatePresence>
+        {showEditGroupModal && (
+          <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowEditGroupModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ type: "spring", duration: 0.25, bounce: 0.08 }}
+              className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-md w-full p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
+                  <SquarePen size={18} className="text-[#FF5722]" />
+                  <span>Edit Group Information</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowEditGroupModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition p-1 rounded-full cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveGroupInfo} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                    Group Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editGroupName}
+                    onChange={(e) => setEditGroupName(e.target.value)}
+                    maxLength={60}
+                    placeholder="Enter group name..."
+                    autoFocus={editGroupFocusField === 'name'}
+                    className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">
+                      Description
+                    </label>
+                    <span className="text-[10px] text-gray-400 font-medium">
+                      {editGroupDescription.length}/500
+                    </span>
+                  </div>
+                  <textarea
+                    value={editGroupDescription}
+                    onChange={(e) => setEditGroupDescription(e.target.value)}
+                    maxLength={500}
+                    rows={4}
+                    placeholder="Tell members what this group is about..."
+                    autoFocus={editGroupFocusField === 'description'}
+                    className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl p-3 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-xs sm:text-sm font-medium resize-none leading-relaxed"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditGroupModal(false)}
+                    className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingGroupInfo}
+                    className="flex-1 px-4 py-2.5 bg-[#FF5722] hover:bg-[#F4511E] text-white font-bold text-sm rounded-2xl shadow-md transition cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {savingGroupInfo ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>Save Changes</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Create Group Modal (Standalone) */}
       <AnimatePresence>
