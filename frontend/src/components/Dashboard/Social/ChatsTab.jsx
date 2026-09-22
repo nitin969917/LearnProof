@@ -134,6 +134,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [showJoinGroupModal, setShowJoinGroupModal] = useState(null);
   const [showNewDirectChatModal, setShowNewDirectChatModal] = useState(false);
+  const [newChatModalMode, setNewChatModalMode] = useState('direct'); // 'direct' | 'group'
   const [newGroupData, setNewGroupData] = useState({ name: '', description: '', isPrivate: false, entryKey: '' });
   const [joinKey, setJoinKey] = useState('');
   const [copiedKey, setCopiedKey] = useState(false);
@@ -1041,6 +1042,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
       const created = response.data;
       setShowCreateGroupModal(false);
+      setShowNewDirectChatModal(false);
+      setNewChatModalMode('direct');
       setNewGroupData({ name: '', description: '', isPrivate: false, entryKey: '' });
       await fetchData();
       navigate(`/dashboard/social/chats/group/${created.id}`);
@@ -1189,7 +1192,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setShowNewDirectChatModal(true)}
+                onClick={() => {
+                  setShowNewDirectChatModal(true);
+                  setNewChatModalMode('direct');
+                }}
                 title="New Chat"
                 className="w-10 h-10 rounded-2xl bg-[#FF5722] hover:bg-[#F4511E] text-white flex items-center justify-center transition-all cursor-pointer shadow-sm shadow-orange-500/20 active:scale-95 shrink-0"
               >
@@ -1226,7 +1232,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
             {/* Mobile-only Compose Button */}
             <button
               type="button"
-              onClick={() => setShowNewDirectChatModal(true)}
+              onClick={() => {
+                setShowNewDirectChatModal(true);
+                setNewChatModalMode('direct');
+              }}
               title="New Chat"
               className="md:hidden w-9 h-9 rounded-xl bg-[#FF5722] hover:bg-[#F4511E] text-white flex items-center justify-center transition-all cursor-pointer shadow-sm shadow-orange-500/20 active:scale-95 shrink-0"
             >
@@ -2008,17 +2017,38 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
       {/* ── MODALS ── */}
 
-      {/* Create Group Modal */}
+      {/* ── MODALS ── */}
+
+      {/* Create Group Modal (Standalone) */}
       <AnimatePresence>
         {showCreateGroupModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[1000] p-4">
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowCreateGroupModal(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
+            />
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-md w-full p-6 shadow-2xl"
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ type: "spring", duration: 0.25, bounce: 0.08 }}
+              className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-md w-full p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg font-black text-gray-900 dark:text-white mb-4">Create Discussion Group</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-black text-gray-900 dark:text-white">Create Discussion Group</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateGroupModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition p-1 rounded-full cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
               <form onSubmit={handleCreateGroup} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Group Name</label>
@@ -2049,7 +2079,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 dark:text-gray-300">
                       <input
                         type="radio"
-                        name="privacy"
+                        name="standalone-privacy"
                         checked={!newGroupData.isPrivate}
                         onChange={() => setNewGroupData({ ...newGroupData, isPrivate: false })}
                         className="accent-[#FF5722]"
@@ -2059,7 +2089,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 dark:text-gray-300">
                       <input
                         type="radio"
-                        name="privacy"
+                        name="standalone-privacy"
                         checked={newGroupData.isPrivate}
                         onChange={() => setNewGroupData({ ...newGroupData, isPrivate: true })}
                         className="accent-[#FF5722]"
@@ -2123,17 +2153,42 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       {/* Join Private Group Modal */}
       <AnimatePresence>
         {showJoinGroupModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[1000] p-4">
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => {
+                setShowJoinGroupModal(null);
+                setJoinKey('');
+              }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
+            />
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-sm w-full p-6 shadow-2xl"
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ type: "spring", duration: 0.25, bounce: 0.08 }}
+              className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-sm w-full p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-                <Lock size={18} className="text-red-500" />
-                <span>Join Private Group</span>
-              </h3>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
+                  <Lock size={18} className="text-red-500" />
+                  <span>Join Private Group</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowJoinGroupModal(null);
+                    setJoinKey('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition p-1 rounded-full cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
               <p className="text-xs text-gray-400 mb-4 leading-relaxed font-medium">
                 The group <strong className="text-gray-700 dark:text-gray-200">"{showJoinGroupModal.name}"</strong> is private. Please enter the Entry Key to join.
               </p>
@@ -2177,96 +2232,249 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         )}
       </AnimatePresence>
 
-      {/* Start Direct Chat Modal */}
+      {/* Start Direct Chat / Create Group Modal */}
       <AnimatePresence>
         {showNewDirectChatModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[1000] p-4">
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => {
+                setShowNewDirectChatModal(false);
+                setDirectChatSearch('');
+                setNewChatModalMode('direct');
+              }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
+            />
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-sm w-full p-5 shadow-2xl"
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ type: "spring", duration: 0.25, bounce: 0.08 }}
+              className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-sm w-full p-5 shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-base font-bold text-gray-900 dark:text-white">Start a Conversation</h3>
-                <button 
-                  onClick={() => {
-                    setShowNewDirectChatModal(false);
-                    setDirectChatSearch('');
-                  }}
-                  className="text-xs text-gray-400 hover:text-gray-600 font-bold cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
-
-              {/* Group Create option */}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowNewDirectChatModal(false);
-                  setShowCreateGroupModal(true);
-                }}
-                className="w-full mb-3 p-2.5 bg-orange-50 dark:bg-orange-950/30 text-[#FF5722] rounded-2xl flex items-center justify-center gap-2 font-bold text-xs hover:bg-orange-100 dark:hover:bg-orange-950/50 transition cursor-pointer"
-              >
-                <Plus size={14} />
-                <span>Create New Group</span>
-              </button>
-
-              {contacts.length > 0 && (
-                <div className="relative mb-3 shrink-0">
-                  <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
-                  <input
-                    type="text"
-                    placeholder="Search friends..."
-                    value={directChatSearch}
-                    onChange={(e) => setDirectChatSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-orange-500/25 transition text-gray-950 dark:text-white placeholder-gray-400 font-medium"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-                {contacts.length === 0 ? (
-                  <p className="text-xs text-center text-gray-400 py-6 font-medium leading-relaxed">
-                    You don't have any friends added yet.<br />Add friends from the Discover tab.
-                  </p>
-                ) : (() => {
-                  const filtered = contacts.filter(friend =>
-                    friend.name.toLowerCase().includes(directChatSearch.toLowerCase())
-                  );
-                  if (filtered.length === 0) {
-                    return (
-                      <p className="text-xs text-center text-gray-400 py-6 font-medium leading-relaxed">
-                        No friends match your search.
-                      </p>
-                    );
-                  }
-                  return filtered.map(friend => (
-                    <div
-                      key={friend.id}
-                      onClick={() => {
-                        navigate(`/dashboard/social/chats/direct/${friend.id}`);
-                        setShowNewDirectChatModal(false);
-                        setDirectChatSearch('');
-                      }}
-                      className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition border border-transparent"
-                    >
-                      <UserAvatar 
-                        src={friend.profilePicture} 
-                        name={friend.name} 
-                        className="w-9 h-9 rounded-full shrink-0" 
-                      />
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{friend.name}</h4>
-                        <p className="text-[10px] text-gray-400 font-medium mt-0.5">
-                          {onlineUserIds.some(id => id.toString() === friend.id.toString()) ? 'Online' : 'Offline'}
-                        </p>
-                      </div>
+              <AnimatePresence mode="wait" initial={false}>
+                {newChatModalMode === 'direct' ? (
+                  <motion.div
+                    key="direct"
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -16 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                  >
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white">Start a Conversation</h3>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setShowNewDirectChatModal(false);
+                          setDirectChatSearch('');
+                        }}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition p-1 rounded-full cursor-pointer"
+                      >
+                        <X size={18} />
+                      </button>
                     </div>
-                  ));
-                })()}
-              </div>
+
+                    {/* Group Create option */}
+                    <button
+                      type="button"
+                      onClick={() => setNewChatModalMode('group')}
+                      className="w-full mb-3 p-2.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/30 dark:hover:bg-orange-950/50 text-[#FF5722] rounded-2xl flex items-center justify-center gap-2 font-bold text-xs transition active:scale-98 cursor-pointer"
+                    >
+                      <Plus size={15} />
+                      <span>Create New Group</span>
+                    </button>
+
+                    {contacts.length > 0 && (
+                      <div className="relative mb-3 shrink-0">
+                        <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
+                        <input
+                          type="text"
+                          placeholder="Search friends..."
+                          value={directChatSearch}
+                          onChange={(e) => setDirectChatSearch(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-orange-500/25 transition text-gray-950 dark:text-white placeholder-gray-400 font-medium"
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5 max-h-[300px] overflow-y-auto pr-1">
+                      {contacts.length === 0 ? (
+                        <p className="text-xs text-center text-gray-400 py-6 font-medium leading-relaxed">
+                          You don't have any friends added yet.<br />Add friends from the Discover tab.
+                        </p>
+                      ) : (() => {
+                        const filtered = contacts.filter(friend =>
+                          friend.name.toLowerCase().includes(directChatSearch.toLowerCase())
+                        );
+                        if (filtered.length === 0) {
+                          return (
+                            <p className="text-xs text-center text-gray-400 py-6 font-medium leading-relaxed">
+                              No friends match your search.
+                            </p>
+                          );
+                        }
+                        return filtered.map(friend => (
+                          <div
+                            key={friend.id}
+                            onClick={() => {
+                              navigate(`/dashboard/social/chats/direct/${friend.id}`);
+                              setShowNewDirectChatModal(false);
+                              setDirectChatSearch('');
+                            }}
+                            className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition border border-transparent"
+                          >
+                            <UserAvatar 
+                              src={friend.profilePicture} 
+                              name={friend.name} 
+                              className="w-9 h-9 rounded-full shrink-0" 
+                            />
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{friend.name}</h4>
+                              <p className="text-[10px] text-gray-400 font-medium mt-0.5">
+                                {onlineUserIds.some(id => id.toString() === friend.id.toString()) ? 'Online' : 'Offline'}
+                              </p>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="group"
+                    initial={{ opacity: 0, x: 16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 16 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setNewChatModalMode('direct')}
+                          className="p-1 -ml-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer"
+                          title="Back to friends"
+                        >
+                          <ArrowLeft size={18} />
+                        </button>
+                        <h3 className="text-base font-black text-gray-900 dark:text-white">Create Discussion Group</h3>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setShowNewDirectChatModal(false);
+                          setNewChatModalMode('direct');
+                        }}
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition p-1 rounded-full cursor-pointer"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleCreateGroup} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Group Name</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Science Study Group"
+                          value={newGroupData.name}
+                          onChange={(e) => setNewGroupData({ ...newGroupData, name: e.target.value })}
+                          className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Description (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Discussion about physics and chemistry"
+                          value={newGroupData.description}
+                          onChange={(e) => setNewGroupData({ ...newGroupData, description: e.target.value })}
+                          className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Privacy Type</label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 dark:text-gray-300">
+                            <input
+                              type="radio"
+                              name="modal-group-privacy"
+                              checked={!newGroupData.isPrivate}
+                              onChange={() => setNewGroupData({ ...newGroupData, isPrivate: false })}
+                              className="accent-[#FF5722]"
+                            />
+                            <Unlock size={14} className="text-emerald-500" /> Public
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 dark:text-gray-300">
+                            <input
+                              type="radio"
+                              name="modal-group-privacy"
+                              checked={newGroupData.isPrivate}
+                              onChange={() => setNewGroupData({ ...newGroupData, isPrivate: true })}
+                              className="accent-[#FF5722]"
+                            />
+                            <Lock size={14} className="text-red-500" /> Private
+                          </label>
+                        </div>
+                      </div>
+
+                      {newGroupData.isPrivate && (
+                        <div>
+                          <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Entry Key</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. PHY101"
+                              value={newGroupData.entryKey}
+                              onChange={(e) => setNewGroupData({ ...newGroupData, entryKey: e.target.value })}
+                              className="flex-1 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-sm font-mono font-bold tracking-wider"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                                let key = '';
+                                for (let i = 0; i < 6; i++) {
+                                  key += chars.charAt(Math.floor(Math.random() * chars.length));
+                                }
+                                setNewGroupData({ ...newGroupData, entryKey: key });
+                              }}
+                              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-2xl transition cursor-pointer"
+                            >
+                              Generate
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setNewChatModalMode('direct')}
+                          className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-700 dark:text-gray-300 font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="submit"
+                          className="flex-1 px-4 py-2.5 bg-[#FF5722] hover:bg-[#F4511E] text-white font-bold text-sm rounded-2xl shadow-md transition cursor-pointer"
+                        >
+                          Create & Join
+                        </button>
+                      </div>
+                    </form>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </div>
         )}
@@ -2275,23 +2483,37 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       {/* Add Member Modal */}
       <AnimatePresence>
         {showAddMemberModal && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[1100] p-4">
+          <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => {
+                setShowAddMemberModal(false);
+                setInviteSearch('');
+              }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs cursor-pointer"
+            />
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-sm w-full p-5 shadow-2xl flex flex-col max-h-[80vh]"
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ type: "spring", duration: 0.25, bounce: 0.08 }}
+              className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-3xl max-w-sm w-full p-5 shadow-2xl flex flex-col max-h-[80vh]"
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-base font-bold text-gray-900 dark:text-white">Add Member</h3>
                 <button 
+                  type="button"
                   onClick={() => {
                     setShowAddMemberModal(false);
                     setInviteSearch('');
                   }}
-                  className="text-xs text-gray-400 hover:text-gray-600 font-bold cursor-pointer"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition p-1 rounded-full cursor-pointer"
                 >
-                  Close
+                  <X size={18} />
                 </button>
               </div>
 
