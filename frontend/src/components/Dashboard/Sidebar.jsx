@@ -93,15 +93,15 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                 ? 'h-full w-full bg-white dark:bg-gray-800 border-r border-orange-100 dark:border-gray-700' 
                 : 'h-[calc(100vh-2rem)] w-[70px] bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-[2.2rem] shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] my-4 mx-[10px]'
         }`}>
-            <div className={`flex-1 overflow-y-auto py-4 ${isExpanded ? 'px-3 sm:px-4 space-y-8' : 'px-1.5 space-y-5 scrollbar-none'}`}>
-                <div className={`flex items-center ${isExpanded ? 'justify-between' : 'justify-center'} px-2 mb-2`}>
+            <div className={`flex-1 overflow-y-auto ${isExpanded ? 'py-4 px-3 sm:px-4 space-y-8' : 'py-2 px-1 space-y-2 scrollbar-none'}`}>
+                <div className={`flex items-center ${isExpanded ? 'justify-between px-2 mb-2' : 'justify-center px-1 mb-1'}`}>
                     {/* Desktop Menu Toggle (Replaces Logo) */}
                     <button
                         onClick={onMenuClick}
-                        className="hidden lg:flex p-2 rounded-xl text-gray-500 hover:bg-orange-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                        className={`hidden lg:flex ${isExpanded ? 'p-2' : 'p-1.5'} rounded-xl text-gray-500 hover:bg-orange-50 dark:hover:bg-gray-700 transition cursor-pointer`}
                         aria-label="Toggle Sidebar"
                     >
-                        <Menu size={24} className="text-gray-700 dark:text-gray-300" />
+                        <Menu size={isExpanded ? 24 : 20} className="text-gray-700 dark:text-gray-300" />
                     </button>
  
                     {/* Mobile Close Button */}
@@ -115,15 +115,15 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                 </div>
  
                 {/* Navigation */}
-                <nav className="flex flex-col space-y-6">
+                <nav className={isExpanded ? "flex flex-col space-y-6" : "flex flex-col space-y-1"}>
                     {navSections.map((section) => (
-                        <div key={section.title} className="flex flex-col space-y-1">
+                        <div key={section.title} className={isExpanded ? "flex flex-col space-y-1" : "flex flex-col space-y-1"}>
                             {isExpanded && (
                                 <div className="text-[9px] font-black text-orange-600/70 dark:text-orange-400/80 uppercase tracking-widest px-3 mb-1.5 select-none">
                                     {section.title}
                                 </div>
                             )}
-                            <div className="flex flex-col space-y-1 lg:space-y-1.5">
+                            <div className={isExpanded ? "flex flex-col space-y-1 lg:space-y-1.5" : "flex flex-col space-y-1"}>
                                 {section.items.map((item) => (
                                     item.isExternal ? (
                                         <a
@@ -131,12 +131,12 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                             href={item.path}
                                             title={!isExpanded ? item.name : undefined}
                                             className={`flex ${
-                                                isExpanded ? 'flex-row items-center px-4 py-2 gap-3' : 'flex-col items-center justify-center py-2 px-1 mb-1'
+                                                isExpanded ? 'flex-row items-center px-4 py-2 gap-3' : 'flex-col items-center justify-center py-1.5 px-1'
                                             } rounded-lg transition-all text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700`}
                                         >
                                             <div className="flex-shrink-0">
                                                 {React.cloneElement(item.icon, {
-                                                    size: isExpanded ? 20 : 24
+                                                    size: isExpanded ? 20 : 18
                                                 })}
                                             </div>
                                             {isExpanded ? (
@@ -144,7 +144,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                                     {item.name}
                                                 </span>
                                             ) : (
-                                                <span className="text-[9px] font-bold mt-1 tracking-wide leading-none text-center text-gray-500 dark:text-gray-400">
+                                                <span className="text-[8.5px] font-bold mt-0.5 tracking-wide leading-none text-center text-gray-500 dark:text-gray-400">
                                                     {item.name}
                                                 </span>
                                             )}
@@ -160,7 +160,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                                  `group relative flex ${
                                                      isExpanded 
                                                          ? 'flex-row items-center px-2.5 py-2 gap-3 rounded-xl' 
-                                                         : 'flex-col items-center justify-center py-2 px-1 mb-1 rounded-xl'
+                                                         : 'flex-col items-center justify-center py-1.5 px-1 rounded-xl'
                                                  } transition-all duration-200 ${isActive
                                                      ? isExpanded
                                                          ? 'bg-orange-500/10 dark:bg-orange-500/15 text-orange-600 dark:text-orange-400 font-bold'
@@ -181,10 +181,10 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                                      <div className={`relative flex items-center justify-center shrink-0 transition-all duration-200 ${
                                                          isExpanded
                                                              ? `w-8 h-8 rounded-lg ${isActive ? 'bg-orange-500 text-white shadow-xs shadow-orange-500/30' : 'bg-gray-100/80 dark:bg-gray-700/60 text-gray-500 dark:text-gray-400 group-hover:bg-orange-50 dark:group-hover:bg-gray-700 group-hover:text-orange-600'}`
-                                                             : `w-10 h-10 rounded-xl ${isActive ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30 scale-105' : 'bg-gray-100/60 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 group-hover:bg-orange-50 dark:group-hover:bg-gray-700 group-hover:text-orange-600'}`
+                                                             : `w-9 h-9 rounded-xl ${isActive ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30 scale-105' : 'bg-gray-100/60 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 group-hover:bg-orange-50 dark:group-hover:bg-gray-700 group-hover:text-orange-600'}`
                                                      }`}>
                                                          {React.cloneElement(item.icon, {
-                                                             size: isExpanded ? 16 : 19,
+                                                             size: isExpanded ? 16 : 18,
                                                              strokeWidth: isActive ? 2.2 : 1.75,
                                                              className: 'transition-transform'
                                                          })}
@@ -199,7 +199,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                                              {item.name}
                                                          </span>
                                                      ) : (
-                                                         <span className={`text-[9px] font-bold mt-1 tracking-tight leading-none text-center transition-all duration-200 ${isActive ? 'text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                         <span className={`text-[8.5px] font-bold mt-0.5 tracking-tight leading-none text-center transition-all duration-200 ${isActive ? 'text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-500 dark:text-gray-400'}`}>
                                                              {item.name}
                                                          </span>
                                                      )}
@@ -215,17 +215,17 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
             </div>
  
             {/* Bottom Section: Profile & Actions */}
-            <div className={`py-4 ${isExpanded ? 'px-3 sm:px-4' : 'px-1'} space-y-4 border-t border-orange-100 dark:border-gray-700 flex flex-col`}>
+            <div className={`${isExpanded ? 'py-4 px-3 sm:px-4 space-y-4 border-t border-orange-100 dark:border-gray-700' : 'py-2 px-1 space-y-2 border-t border-orange-100/60 dark:border-gray-800'} flex flex-col`}>
                 {user && (
                     <div
                         onClick={onProfileClick}
-                        className={`flex items-center ${isExpanded ? 'gap-3 px-4 py-3 border border-orange-100 dark:border-gray-700 bg-orange-50 dark:bg-gray-800' : 'justify-center'} rounded-xl cursor-pointer hover:bg-orange-100 dark:hover:bg-gray-700 hover:shadow-sm transition-all`}
+                        className={`flex items-center ${isExpanded ? 'gap-3 px-4 py-3 border border-orange-100 dark:border-gray-700 bg-orange-50 dark:bg-gray-800' : 'justify-center py-1'} rounded-xl cursor-pointer hover:bg-orange-100 dark:hover:bg-gray-700 hover:shadow-sm transition-all`}
                     >
                         <UserAvatar 
                             src={socialUser?.profilePicture || socialUser?.avatar || user.picture} 
                             name={socialUser?.name || user.name} 
-                            className="w-10 h-10 rounded-full shadow-sm" 
-                            textClassName="text-sm font-bold"
+                            className={isExpanded ? "w-10 h-10 rounded-full shadow-sm" : "w-8 h-8 rounded-full shadow-xs"} 
+                            textClassName={isExpanded ? "text-sm font-bold" : "text-xs font-bold"}
                         />
                         {isExpanded && (
                             <div className="overflow-hidden">
@@ -236,23 +236,23 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                     </div>
                 )}
  
-                <div className={`flex ${isExpanded ? 'flex-row items-center gap-3' : 'flex-col gap-2.5 items-center'}`}>
+                <div className={`flex ${isExpanded ? 'flex-row items-center gap-3' : 'flex-col gap-1 items-center'}`}>
                     <button
                         onClick={handleLogout}
-                        className={`flex items-center justify-center ${isExpanded ? 'flex-1 gap-2 px-3 py-2.5 border border-transparent hover:border-red-100 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20' : 'p-2 text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/20'} rounded-xl transition-all font-medium cursor-pointer`}
+                        className={`flex items-center justify-center ${isExpanded ? 'flex-1 gap-2 px-3 py-2.5 border border-transparent hover:border-red-100 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20' : 'p-1.5 text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/20'} rounded-xl transition-all font-medium cursor-pointer`}
                         title="Logout"
                     >
-                        <LogOut size={isExpanded ? 20 : 24} />
+                        <LogOut size={isExpanded ? 20 : 18} />
                         {isExpanded && <span className="text-sm whitespace-nowrap">Logout</span>}
                     </button>
  
                     <button
                         onClick={toggleTheme}
-                        className={`flex items-center justify-center ${isExpanded ? 'px-3 py-2.5 border border-gray-200 dark:border-gray-700' : 'p-2 hover:bg-gray-500/10'} rounded-xl text-gray-755 dark:text-gray-300 transition-all cursor-pointer`}
+                        className={`flex items-center justify-center ${isExpanded ? 'px-3 py-2.5 border border-gray-200 dark:border-gray-700' : 'p-1.5 hover:bg-gray-500/10'} rounded-xl text-gray-755 dark:text-gray-300 transition-all cursor-pointer`}
                         title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                         aria-label="Toggle Dark Mode"
                     >
-                        {isDarkMode ? <Sun size={isExpanded ? 20 : 24} className="text-amber-500" /> : <Moon size={isExpanded ? 20 : 24} className="text-indigo-600" />}
+                        {isDarkMode ? <Sun size={isExpanded ? 20 : 18} className="text-amber-500" /> : <Moon size={isExpanded ? 20 : 18} className="text-indigo-600" />}
                     </button>
                 </div>
             </div>
