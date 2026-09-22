@@ -150,6 +150,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const [friendsToInvite, setFriendsToInvite] = useState([]);
   const [inviteSearch, setInviteSearch] = useState('');
   const [directChatSearch, setDirectChatSearch] = useState('');
+  const [activeMemberMenuId, setActiveMemberMenuId] = useState(null);
 
   const getLocalIdFromMatrixUserId = (matrixUserId) => {
     if (!matrixUserId) return null;
@@ -1847,12 +1848,14 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           const isCreator = member.userId === groupDetails.creatorId;
                           const isCoAdmin = member.role === 'admin';
                           const isMe = member.userId === currentUserId;
-                          const canManageMembers = (groupDetails.creatorId === currentUserId) || groupDetails.isMainAdmin;
+                          const amICreatorOrMainAdmin = (groupDetails.creatorId === currentUserId) || groupDetails.isMainAdmin;
+                          const amICoAdmin = (groupDetails.isGroupAdmin || groupDetails.userRole === 'admin') && !amICreatorOrMainAdmin;
+                          const canManageThisMember = (amICreatorOrMainAdmin && !isCreator && !isMe) || (amICoAdmin && !isCreator && !isCoAdmin && !isMe);
                           const u = member.user;
                           if (!u) return null;
                           
                           return (
-                            <div key={member.id} className="flex items-center justify-between gap-2 p-2 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
+                            <div key={member.id} className="relative flex items-center justify-between gap-2 p-2 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
                               <div 
                                 onClick={() => {
                                   setShowGroupDetails(false);
@@ -1888,29 +1891,77 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                                 </div>
                               </div>
 
-                              {/* Member Management Actions (for Creator or Main Admin) */}
-                              {canManageMembers && !isCreator && !isMe && (
-                                <div className="flex items-center gap-1">
+                              {/* 3-Dot Options Menu Button & Floating Dropdown */}
+                              {canManageThisMember && (
+                                <div className="relative shrink-0">
                                   <button
-                                    onClick={() => handleToggleAdminRole(u.id, member.role, u.name)}
-                                    title={isCoAdmin ? "Dismiss as Admin" : "Promote to Admin"}
-                                    className="text-[10px] font-bold text-gray-500 hover:text-emerald-600 px-2 py-1 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/25 transition cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveMemberMenuId(activeMemberMenuId === member.id ? null : member.id);
+                                    }}
+                                    className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 rounded-xl transition cursor-pointer"
+                                    title="Member options"
                                   >
-                                    {isCoAdmin ? "Demote" : "Make Admin"}
+                                    <MoreVertical size={16} />
                                   </button>
-                                  <button
-                                    onClick={() => handleTransferOwnership(u.id, u.name)}
-                                    title="Transfer Group Ownership"
-                                    className="text-[10px] font-bold text-amber-600 hover:text-amber-700 px-2 py-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/25 transition cursor-pointer"
-                                  >
-                                    Transfer
-                                  </button>
-                                  <button
-                                    onClick={() => handleRemoveMember(u.id)}
-                                    className="text-[10px] font-bold text-red-500 hover:text-white hover:bg-red-500 bg-red-50 dark:bg-red-950/25 px-2 py-1 rounded-lg transition cursor-pointer"
-                                  >
-                                    Remove
-                                  </button>
+
+                                  {activeMemberMenuId === member.id && (
+                                    <>
+                                      {/* Invisible clickaway backdrop */}
+                                      <div 
+                                        className="fixed inset-0 z-40" 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveMemberMenuId(null);
+                                        }} 
+                                      />
+
+                                      {/* Dropdown Menu Popup */}
+                                      <div 
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="absolute right-0 top-8 z-50 w-44 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-1.5 text-xs animate-in fade-in zoom-in-95 duration-100 select-none"
+                                      >
+                                        {amICreatorOrMainAdmin && (
+                                          <>
+                                            <button
+                                              onClick={() => {
+                                                setActiveMemberMenuId(null);
+                                                handleToggleAdminRole(u.id, member.role, u.name);
+                                              }}
+                                              className="w-full flex items-center gap-2 px-3 py-2 text-left font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition cursor-pointer"
+                                            >
+                                              <ShieldCheck size={14} className={isCoAdmin ? "text-amber-500" : "text-emerald-500"} />
+                                              <span>{isCoAdmin ? "Demote to Member" : "Make Admin"}</span>
+                                            </button>
+
+                                            <button
+                                              onClick={() => {
+                                                setActiveMemberMenuId(null);
+                                                handleTransferOwnership(u.id, u.name);
+                                              }}
+                                              className="w-full flex items-center gap-2 px-3 py-2 text-left font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition cursor-pointer"
+                                            >
+                                              <Crown size={14} />
+                                              <span>Transfer Ownership</span>
+                                            </button>
+
+                                            <div className="h-px bg-gray-100 dark:bg-gray-700 my-1" />
+                                          </>
+                                        )}
+
+                                        <button
+                                          onClick={() => {
+                                            setActiveMemberMenuId(null);
+                                            handleRemoveMember(u.id);
+                                          }}
+                                          className="w-full flex items-center gap-2 px-3 py-2 text-left font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/25 transition cursor-pointer"
+                                        >
+                                          <Trash2 size={14} />
+                                          <span>Remove from Group</span>
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
                               )}
                             </div>
