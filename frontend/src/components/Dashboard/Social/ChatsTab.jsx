@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Search, Lock, Unlock, Plus, Copy, Check, MessageCircle, 
   ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, X, Trash2, CornerUpLeft,
-  Phone, Video as VideoIcon, Play, SquarePen, Users2, MessageSquareMore, ShieldCheck, Crown, ShieldAlert
+  Phone, Video as VideoIcon, Play, SquarePen, Users2, MessageSquareMore, ShieldCheck, Crown, ShieldAlert,
+  Edit2
 } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
@@ -152,6 +153,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const [inviteSearch, setInviteSearch] = useState('');
   const [directChatSearch, setDirectChatSearch] = useState('');
   const [activeMemberMenuId, setActiveMemberMenuId] = useState(null);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editDescriptionValue, setEditDescriptionValue] = useState('');
+  const [savingDescription, setSavingDescription] = useState(false);
 
   const getLocalIdFromMatrixUserId = (matrixUserId) => {
     if (!matrixUserId) return null;
@@ -231,6 +235,27 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     } catch (err) {
       console.error('Failed to update group settings:', err);
       toast.error('Failed to update group settings');
+    }
+  };
+
+  const handleSaveDescription = async () => {
+    if (!selectedChat?.id) return;
+    setSavingDescription(true);
+    try {
+      const res = await socialApi.put(`/groups/${selectedChat.id}/settings`, {
+        description: editDescriptionValue.trim()
+      });
+      const updatedDesc = res.data.description;
+      setGroupDetails(prev => prev ? ({ ...prev, description: updatedDesc }) : prev);
+      setGroups(prev => prev.map(g => g.id === selectedChat.id ? { ...g, description: updatedDesc } : g));
+      setSelectedChat(prev => prev ? ({ ...prev, description: updatedDesc }) : prev);
+      setIsEditingDescription(false);
+      toast.success('Group description updated!');
+    } catch (err) {
+      console.error('Failed to update group description:', err);
+      toast.error(err.response?.data?.error || 'Failed to update description');
+    } finally {
+      setSavingDescription(false);
     }
   };
 
@@ -332,12 +357,15 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     } else {
       setGroupDetails(null);
       setShowGroupDetails(false);
+      setIsEditingDescription(false);
     }
   }, [selectedChat]);
 
   useEffect(() => {
     if (selectedChat && selectedChat.type === 'group' && showGroupDetails) {
       fetchGroupDetails(selectedChat.id);
+    } else {
+      setIsEditingDescription(false);
     }
   }, [showGroupDetails]);
 
@@ -1809,10 +1837,77 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
                     {/* Description */}
                     <div className="bg-gray-50 dark:bg-gray-800/60 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/60">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Description</span>
-                      <p className="text-xs text-gray-700 dark:text-gray-300 font-normal leading-relaxed whitespace-pre-wrap">
-                        {groupDetails.description || 'No description provided.'}
-                      </p>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Description</span>
+                        {(groupDetails.isGroupAdmin || groupDetails.isMainAdmin) && !isEditingDescription && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditDescriptionValue(groupDetails.description || '');
+                              setIsEditingDescription(true);
+                            }}
+                            className="flex items-center gap-1 text-[10px] text-[#FF5722] hover:text-orange-600 font-bold uppercase tracking-wider px-2 py-0.5 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-950/30 transition cursor-pointer"
+                          >
+                            <Edit2 size={11} />
+                            <span>Edit</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {isEditingDescription ? (
+                        <div className="space-y-2 mt-1">
+                          <textarea
+                            value={editDescriptionValue}
+                            onChange={(e) => setEditDescriptionValue(e.target.value)}
+                            placeholder="Add or update group description..."
+                            maxLength={500}
+                            rows={3}
+                            className="w-full bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 leading-relaxed font-medium resize-none"
+                            autoFocus
+                          />
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-gray-400 font-medium">
+                              {editDescriptionValue.length}/500
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsEditingDescription(false);
+                                  setEditDescriptionValue('');
+                                }}
+                                disabled={savingDescription}
+                                className="px-2.5 py-1 text-xs font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer disabled:opacity-50"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleSaveDescription}
+                                disabled={savingDescription}
+                                className="px-3 py-1 bg-[#FF5722] hover:bg-[#F4511E] text-white text-xs font-bold rounded-lg shadow-xs transition cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                              >
+                                {savingDescription ? (
+                                  <>
+                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Saving...</span>
+                                  </>
+                                ) : (
+                                  <span>Save</span>
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-700 dark:text-gray-300 font-normal leading-relaxed whitespace-pre-wrap">
+                          {groupDetails.description ? (
+                            groupDetails.description
+                          ) : (
+                            <span className="text-gray-400 italic">No description provided.</span>
+                          )}
+                        </p>
+                      )}
                     </div>
 
                     {/* Group Settings */}
