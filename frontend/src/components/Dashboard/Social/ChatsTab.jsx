@@ -1997,26 +1997,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       </p>
                     </div>
 
-                    {/* Group Settings */}
-                    <div className="bg-gray-50 dark:bg-gray-800/60 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/60 space-y-3">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Group Settings</span>
-                      
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Only Admins Can Post</p>
-                          <p className="text-[10px] text-gray-400 font-normal mt-0.5">
-                            Restrict posting to group creator & admins.
-                          </p>
-                        </div>
-                        <input 
-                          type="checkbox"
-                          checked={groupDetails.onlyAdminsCanPost}
-                          disabled={!groupDetails.isGroupAdmin && !groupDetails.isMainAdmin}
-                          onChange={(e) => handleToggleOnlyAdminsPost(e.target.checked)}
-                          className="w-4 h-4 accent-[#FF5722] cursor-pointer disabled:cursor-not-allowed"
-                        />
-                      </div>
-                    </div>
+
 
                     {/* Members List */}
                     <div className="space-y-3">
@@ -2161,21 +2142,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       </div>
                     </div>
 
-                    {/* Danger Zone: Delete Group (Group Creator or Main Admin) */}
-                    {(groupDetails.creatorId === currentUserId || groupDetails.isMainAdmin) && (
-                      <div className="pt-3 border-t border-gray-100 dark:border-gray-800/80 space-y-1.5">
-                        <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider block">Danger Zone</span>
-                        <button
-                          onClick={() => handleDeleteGroup(groupDetails.id)}
-                          className="w-full flex items-center justify-center gap-2 text-xs font-bold text-red-600 hover:text-white hover:bg-red-600 bg-red-50 dark:bg-red-950/25 border border-red-200 dark:border-red-900/30 p-2.5 rounded-xl transition cursor-pointer shadow-xs"
-                        >
-                          <Trash2 size={15} /> Delete Group
-                        </button>
-                        <p className="text-[10px] text-gray-400 text-center leading-relaxed">
-                          Permanently deletes this group, all chat messages, and member data.
-                        </p>
-                      </div>
-                    )}
+
                   </div>
                 ) : (
                   <div className="p-8 text-center text-gray-400 text-xs font-semibold">Failed to load group info.</div>
