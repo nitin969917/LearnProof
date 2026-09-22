@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Users2, Lock, Unlock, Plus, Copy, Check, MessageCircle, ArrowLeft, Send, LogOut, Search } from 'lucide-react';
+import { Users2, Lock, Unlock, Plus, Copy, Check, MessageCircle, ArrowLeft, Send, LogOut, Search, Trash2, ShieldAlert } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
 import { useModal } from '../../../context/ModalContext';
 import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
+import toast from 'react-hot-toast';
 
 export default function GroupsTab({ currentUserId }) {
   const { confirm } = useModal();
@@ -48,6 +49,24 @@ export default function GroupsTab({ currentUserId }) {
 
     if (socketRef.current) {
       socketRef.current.on('receiveGroupMessage', handleReceiveGroupMessage);
+      socketRef.current.on('groupDeleted', (data) => {
+        fetchGroups(true);
+        if (data.groupId === activeGroupId) {
+          toast.error(`Group "${data.groupName || 'Discussion'}" was deleted by ${data.deletedBy || 'Admin'}`);
+          setActiveGroupId(null);
+        }
+      });
+      socketRef.current.on('groupLockStatusChanged', (data) => {
+        fetchGroups(true);
+        if (data.groupId === activeGroupId) {
+          setActiveGroup(prev => prev ? { ...prev, isLocked: data.isLocked } : prev);
+          if (data.isLocked) {
+            toast.error(data.message || 'This group has been locked by platform administrators.');
+          } else {
+            toast.success(data.message || 'This group has been unlocked by platform administrators.');
+          }
+        }
+      });
     }
     return () => {
       if (socketRef.current) {
@@ -78,14 +97,6 @@ export default function GroupsTab({ currentUserId }) {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const fetchGroupsLocal = async () => {
-    try {
-      await fetchGroups(true); // force refresh from backend
-    } catch (err) {
-      console.error('Failed to fetch groups', err);
-    }
   };
 
   const fetchMessages = async (groupId) => {
@@ -133,9 +144,10 @@ export default function GroupsTab({ currentUserId }) {
       setGroupJoined(group.id, true); // optimistic update in store
       setActiveGroupId(group.id);
       fetchGroups(true); // sync from server
+      toast.success(`Joined ${group.name}!`);
     } catch (err) {
       console.error('Error joining group', err);
-      alert(err.response?.data?.error || 'Failed to join group');
+      toast.error(err.response?.data?.error || 'Failed to join group');
     }
   };
 
@@ -154,8 +166,31 @@ export default function GroupsTab({ currentUserId }) {
       }
       setGroupJoined(groupId, false); // optimistic update in store
       fetchGroups(true); // sync from server
+      toast.success('Left group successfully');
     } catch (err) {
       console.error('Error leaving group', err);
+      toast.error(err.response?.data?.error || 'Failed to leave group');
+    }
+  };
+
+  const handleDeleteGroup = async (groupId, groupName) => {
+    const confirmed = await confirm({
+      title: "Delete Group?",
+      message: `Are you sure you want to permanently delete "${groupName}"? All discussion messages and member data will be deleted. This cannot be undone.`,
+      confirmText: "Delete Group",
+      type: "danger"
+    });
+    if (!confirmed) return;
+    try {
+      await socialApi.delete(`/groups/${groupId}`);
+      if (activeGroupId === groupId) {
+        setActiveGroupId(null);
+      }
+      fetchGroups(true);
+      toast.success("Group deleted successfully");
+    } catch (err) {
+      console.error('Error deleting group', err);
+      toast.error(err.response?.data?.error || 'Failed to delete group');
     }
   };
 
@@ -178,6 +213,7 @@ export default function GroupsTab({ currentUserId }) {
       setMessageText('');
     } catch (err) {
       console.error('Error sending group message', err);
+      toast.error(err.response?.data?.error || 'Failed to send message');
     }
   };
 
@@ -344,10 +380,19 @@ export default function GroupsTab({ currentUserId }) {
                 <button
                   onClick={() => handleLeaveGroup(activeGroup.id)}
                   title="Leave Group"
-                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all"
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer"
                 >
                   <LogOut size={18} />
                 </button>
+                {(activeGroup.creatorId === currentUserId || activeGroup.isGroupAdmin) && (
+                  <button
+                    onClick={() => handleDeleteGroup(activeGroup.id, activeGroup.name)}
+                    title="Delete Group"
+                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/25 rounded-xl transition-all cursor-pointer"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -400,22 +445,34 @@ export default function GroupsTab({ currentUserId }) {
             </div>
 
             {/* Input Footer */}
-            <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-100 dark:border-gray-700 flex gap-2 bg-white dark:bg-gray-800">
-              <input
-                type="text"
-                placeholder="Type your message here..."
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                className="flex-1 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm transition"
-              />
-              <button
-                type="submit"
-                disabled={!messageText.trim()}
-                className="p-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow shadow-orange-500/20 transition disabled:opacity-50 flex items-center justify-center"
-              >
-                <Send size={18} />
-              </button>
-            </form>
+            {activeGroup?.isLocked ? (
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border-t border-amber-200 dark:border-amber-800/40 text-center flex items-center justify-center gap-2 text-amber-700 dark:text-amber-300 text-xs font-semibold">
+                <Lock size={15} />
+                This discussion group has been locked by platform administrators. New messages are disabled.
+              </div>
+            ) : (activeGroup?.onlyAdminsCanPost && !activeGroup?.isGroupAdmin && activeGroup?.creatorId !== currentUserId) ? (
+              <div className="p-4 bg-gray-100 dark:bg-gray-800/80 border-t border-gray-200 dark:border-gray-700 text-center flex items-center justify-center gap-2 text-gray-500 dark:text-gray-400 text-xs font-semibold">
+                <Lock size={15} />
+                Only group admins can send messages in this group.
+              </div>
+            ) : (
+              <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-100 dark:border-gray-700 flex gap-2 bg-white dark:bg-gray-800">
+                <input
+                  type="text"
+                  placeholder="Type your message here..."
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  className="flex-1 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm transition"
+                />
+                <button
+                  type="submit"
+                  disabled={!messageText.trim()}
+                  className="p-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow shadow-orange-500/20 transition disabled:opacity-50 flex items-center justify-center cursor-pointer"
+                >
+                  <Send size={18} />
+                </button>
+              </form>
+            )}
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500 dark:text-gray-500 p-8 text-center bg-gray-50/20 dark:bg-gray-900/40">

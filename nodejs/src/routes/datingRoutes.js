@@ -43,6 +43,9 @@ const {
   updateGroupSettings,
   addGroupMember,
   removeGroupMember,
+  deleteGroup,
+  transferGroupOwnership,
+  updateMemberRole,
   getComments,
   createComment,
   deleteComment,
@@ -131,6 +134,9 @@ router.get('/groups/:groupId', datingAuth, getGroupDetails);
 router.put('/groups/:groupId/settings', datingAuth, updateGroupSettings);
 router.post('/groups/:groupId/members', datingAuth, addGroupMember);
 router.delete('/groups/:groupId/members/:userId', datingAuth, removeGroupMember);
+router.put('/groups/:groupId/members/:userId/role', datingAuth, updateMemberRole);
+router.post('/groups/:groupId/transfer-ownership', datingAuth, transferGroupOwnership);
+router.delete('/groups/:groupId', datingAuth, deleteGroup);
 router.delete('/groups/:groupId/messages/:messageId', datingAuth, deleteGroupMessage);
 
 // Message delete routes

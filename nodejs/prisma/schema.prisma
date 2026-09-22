@@ -687,6 +687,7 @@ model Group {
   entryKey           String?
   createdAt          DateTime       @default(now())
   onlyAdminsCanPost  Boolean        @default(false)
+  isLocked           Boolean        @default(false)
   
   creatorId          Int
   creator            User           @relation(fields: [creatorId], references: [id])
@@ -700,6 +701,7 @@ model Group {
 model GroupMember {
   id        Int      @id @default(autoincrement())
   joinedAt  DateTime @default(now())
+  role      String   @default("member")
   
   groupId   Int
   group     Group    @relation(fields: [groupId], references: [id])

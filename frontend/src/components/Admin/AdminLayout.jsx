@@ -43,6 +43,7 @@ const AdminLayout = () => {
     // Mapping path to title
     const getPageTitle = () => {
         if (location.pathname.includes('/reports')) return 'Content Moderation & Reports';
+        if (location.pathname.includes('/groups')) return 'Groups & Communities';
         if (location.pathname.includes('/certificates')) return 'Certificate Management';
         if (location.pathname.includes('/referrals')) return 'Referrals & Ambassadors';
         if (location.pathname.includes('/users')) return 'Manage Users';

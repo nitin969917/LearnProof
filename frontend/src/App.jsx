@@ -71,6 +71,7 @@ const AdminAppsManagement = lazyWithRetry(() => import('./components/Admin/pages
 const AdminReferrals = lazyWithRetry(() => import('./components/Admin/pages/AdminReferrals'));
 const AdminCertificates = lazyWithRetry(() => import('./components/Admin/pages/AdminCertificates'));
 const AdminReportsManagement = lazyWithRetry(() => import('./components/Admin/pages/AdminReportsManagement'));
+const AdminGroupsManagement = lazyWithRetry(() => import('./components/Admin/pages/AdminGroupsManagement'));
 
 const VerifyCertificate = lazyWithRetry(() => import('./components/Common/VerifyCertificate'));
 const Support = lazyWithRetry(() => import('./components/Common/SupportPage'));
@@ -114,7 +115,9 @@ const ColdStartGuard = () => {
             localStorage.removeItem('learnproof_last_route');
             sessionStorage.removeItem('learnproof_session_active');
             sessionStorage.removeItem('learnproof_last_route');
-        } catch (e) {}
+        } catch {
+            // ignore storage errors
+        }
 
         const isNativeApp = (
             Capacitor.isNativePlatform() || 
@@ -252,7 +255,7 @@ const OAuthRedirectHandler = () => {
 // Keeps active rooms connected across ALL sections of the application
 // (Dashboard, Library, Classroom, Notes, Quizzes, etc.) with floating Google Meet-style PiP.
 const GlobalLiveRoomManager = ({ children }) => {
-    const { activeRoom, clearActiveRoom, showPip, setShowPip, participantEndedData, clearSummaryModals, isExplicitlyLeft } = useLiveRoomPipStore();
+    const { activeRoom, showPip, participantEndedData, clearSummaryModals, isExplicitlyLeft } = useLiveRoomPipStore();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -341,7 +344,9 @@ const NotificationDeepLinkHandler = () => {
             try {
                 const u = new URL(path);
                 path = u.pathname + u.search + u.hash;
-            } catch (_) {}
+            } catch {
+                // ignore URL parse errors
+            }
         }
         if (path && path !== location.pathname) {
             console.log('[Notification Deep-Link] Navigating to target route:', path);
@@ -422,7 +427,7 @@ const NotificationDeepLinkHandler = () => {
                     if (pathWithSearch) {
                         safeNavigate(pathWithSearch);
                     }
-                } catch (e) {
+                } catch {
                     console.warn('[Notification Deep-Link] Failed to parse appUrlOpen url:', event?.url);
                 }
             }).then(h => {
@@ -635,6 +640,7 @@ const App = () => {
                                 >
                                      <Route path='dashboard' element={<AdminDashboardHome />} />
                                      <Route path='reports' element={<AdminReportsManagement />} />
+                                     <Route path='groups' element={<AdminGroupsManagement />} />
                                      <Route path='certificates' element={<AdminCertificates />} />
                                      <Route path='referrals' element={<AdminReferrals />} />
                                      <Route path='users' element={<AdminUsersList />} />

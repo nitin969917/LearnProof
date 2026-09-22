@@ -155,6 +155,14 @@ router.post('/admin/reports/:id/action', authMiddleware, isAdminMiddleware, admi
 router.delete('/admin/reports/:id', authMiddleware, isAdminMiddleware, adminController.deleteReport);
 router.delete('/admin/social/posts/:id', authMiddleware, isAdminMiddleware, adminController.deleteSocialPost);
 
+// Admin Community & Group Management
+router.get('/admin/groups', authMiddleware, isAdminMiddleware, adminController.getAdminGroups);
+router.get('/admin/groups/:groupId/messages', authMiddleware, isAdminMiddleware, adminController.getAdminGroupMessages);
+router.put('/admin/groups/:groupId/lock', authMiddleware, isAdminMiddleware, adminController.toggleAdminGroupLock);
+router.delete('/admin/groups/:groupId', authMiddleware, isAdminMiddleware, adminController.adminDeleteGroup);
+router.delete('/admin/groups/:groupId/members/:userId', authMiddleware, isAdminMiddleware, adminController.adminRemoveGroupMember);
+router.put('/admin/groups/:groupId/transfer', authMiddleware, isAdminMiddleware, adminController.adminTransferGroupOwnership);
+
 // Messages & Inbox
 router.post('/messages/send/', authMiddleware, isAdminMiddleware, messageController.sendMessage);
 router.post('/messages/inbox/', authMiddleware, messageController.getMessages);

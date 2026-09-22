@@ -230,12 +230,14 @@ exports.Prisma.GroupScalarFieldEnum = {
   entryKey: 'entryKey',
   createdAt: 'createdAt',
   onlyAdminsCanPost: 'onlyAdminsCanPost',
+  isLocked: 'isLocked',
   creatorId: 'creatorId'
 };
 
 exports.Prisma.GroupMemberScalarFieldEnum = {
   id: 'id',
   joinedAt: 'joinedAt',
+  role: 'role',
   groupId: 'groupId',
   userId: 'userId'
 };

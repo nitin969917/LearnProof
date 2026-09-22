@@ -12047,6 +12047,7 @@ export namespace Prisma {
     entryKey: string | null
     createdAt: Date | null
     onlyAdminsCanPost: boolean | null
+    isLocked: boolean | null
     creatorId: number | null
   }
 
@@ -12058,6 +12059,7 @@ export namespace Prisma {
     entryKey: string | null
     createdAt: Date | null
     onlyAdminsCanPost: boolean | null
+    isLocked: boolean | null
     creatorId: number | null
   }
 
@@ -12069,6 +12071,7 @@ export namespace Prisma {
     entryKey: number
     createdAt: number
     onlyAdminsCanPost: number
+    isLocked: number
     creatorId: number
     _all: number
   }
@@ -12092,6 +12095,7 @@ export namespace Prisma {
     entryKey?: true
     createdAt?: true
     onlyAdminsCanPost?: true
+    isLocked?: true
     creatorId?: true
   }
 
@@ -12103,6 +12107,7 @@ export namespace Prisma {
     entryKey?: true
     createdAt?: true
     onlyAdminsCanPost?: true
+    isLocked?: true
     creatorId?: true
   }
 
@@ -12114,6 +12119,7 @@ export namespace Prisma {
     entryKey?: true
     createdAt?: true
     onlyAdminsCanPost?: true
+    isLocked?: true
     creatorId?: true
     _all?: true
   }
@@ -12212,6 +12218,7 @@ export namespace Prisma {
     entryKey: string | null
     createdAt: Date
     onlyAdminsCanPost: boolean
+    isLocked: boolean
     creatorId: number
     _count: GroupCountAggregateOutputType | null
     _avg: GroupAvgAggregateOutputType | null
@@ -12242,6 +12249,7 @@ export namespace Prisma {
     entryKey?: boolean
     createdAt?: boolean
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
     members?: boolean | Group$membersArgs<ExtArgs>
@@ -12257,6 +12265,7 @@ export namespace Prisma {
     entryKey?: boolean
     createdAt?: boolean
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["group"]>
@@ -12269,6 +12278,7 @@ export namespace Prisma {
     entryKey?: boolean
     createdAt?: boolean
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     creatorId?: boolean
     creator?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["group"]>
@@ -12281,10 +12291,11 @@ export namespace Prisma {
     entryKey?: boolean
     createdAt?: boolean
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     creatorId?: boolean
   }
 
-  export type GroupOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "isPrivate" | "entryKey" | "createdAt" | "onlyAdminsCanPost" | "creatorId", ExtArgs["result"]["group"]>
+  export type GroupOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "isPrivate" | "entryKey" | "createdAt" | "onlyAdminsCanPost" | "isLocked" | "creatorId", ExtArgs["result"]["group"]>
   export type GroupInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     creator?: boolean | UserDefaultArgs<ExtArgs>
     members?: boolean | Group$membersArgs<ExtArgs>
@@ -12313,6 +12324,7 @@ export namespace Prisma {
       entryKey: string | null
       createdAt: Date
       onlyAdminsCanPost: boolean
+      isLocked: boolean
       creatorId: number
     }, ExtArgs["result"]["group"]>
     composites: {}
@@ -12747,6 +12759,7 @@ export namespace Prisma {
     readonly entryKey: FieldRef<"Group", 'String'>
     readonly createdAt: FieldRef<"Group", 'DateTime'>
     readonly onlyAdminsCanPost: FieldRef<"Group", 'Boolean'>
+    readonly isLocked: FieldRef<"Group", 'Boolean'>
     readonly creatorId: FieldRef<"Group", 'Int'>
   }
     
@@ -13237,6 +13250,7 @@ export namespace Prisma {
   export type GroupMemberMinAggregateOutputType = {
     id: number | null
     joinedAt: Date | null
+    role: string | null
     groupId: number | null
     userId: number | null
   }
@@ -13244,6 +13258,7 @@ export namespace Prisma {
   export type GroupMemberMaxAggregateOutputType = {
     id: number | null
     joinedAt: Date | null
+    role: string | null
     groupId: number | null
     userId: number | null
   }
@@ -13251,6 +13266,7 @@ export namespace Prisma {
   export type GroupMemberCountAggregateOutputType = {
     id: number
     joinedAt: number
+    role: number
     groupId: number
     userId: number
     _all: number
@@ -13272,6 +13288,7 @@ export namespace Prisma {
   export type GroupMemberMinAggregateInputType = {
     id?: true
     joinedAt?: true
+    role?: true
     groupId?: true
     userId?: true
   }
@@ -13279,6 +13296,7 @@ export namespace Prisma {
   export type GroupMemberMaxAggregateInputType = {
     id?: true
     joinedAt?: true
+    role?: true
     groupId?: true
     userId?: true
   }
@@ -13286,6 +13304,7 @@ export namespace Prisma {
   export type GroupMemberCountAggregateInputType = {
     id?: true
     joinedAt?: true
+    role?: true
     groupId?: true
     userId?: true
     _all?: true
@@ -13380,6 +13399,7 @@ export namespace Prisma {
   export type GroupMemberGroupByOutputType = {
     id: number
     joinedAt: Date
+    role: string
     groupId: number
     userId: number
     _count: GroupMemberCountAggregateOutputType | null
@@ -13406,6 +13426,7 @@ export namespace Prisma {
   export type GroupMemberSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     joinedAt?: boolean
+    role?: boolean
     groupId?: boolean
     userId?: boolean
     group?: boolean | GroupDefaultArgs<ExtArgs>
@@ -13415,6 +13436,7 @@ export namespace Prisma {
   export type GroupMemberSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     joinedAt?: boolean
+    role?: boolean
     groupId?: boolean
     userId?: boolean
     group?: boolean | GroupDefaultArgs<ExtArgs>
@@ -13424,6 +13446,7 @@ export namespace Prisma {
   export type GroupMemberSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     joinedAt?: boolean
+    role?: boolean
     groupId?: boolean
     userId?: boolean
     group?: boolean | GroupDefaultArgs<ExtArgs>
@@ -13433,11 +13456,12 @@ export namespace Prisma {
   export type GroupMemberSelectScalar = {
     id?: boolean
     joinedAt?: boolean
+    role?: boolean
     groupId?: boolean
     userId?: boolean
   }
 
-  export type GroupMemberOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "joinedAt" | "groupId" | "userId", ExtArgs["result"]["groupMember"]>
+  export type GroupMemberOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "joinedAt" | "role" | "groupId" | "userId", ExtArgs["result"]["groupMember"]>
   export type GroupMemberInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     group?: boolean | GroupDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -13460,6 +13484,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: number
       joinedAt: Date
+      role: string
       groupId: number
       userId: number
     }, ExtArgs["result"]["groupMember"]>
@@ -13889,6 +13914,7 @@ export namespace Prisma {
   interface GroupMemberFieldRefs {
     readonly id: FieldRef<"GroupMember", 'Int'>
     readonly joinedAt: FieldRef<"GroupMember", 'DateTime'>
+    readonly role: FieldRef<"GroupMember", 'String'>
     readonly groupId: FieldRef<"GroupMember", 'Int'>
     readonly userId: FieldRef<"GroupMember", 'Int'>
   }
@@ -16668,6 +16694,7 @@ export namespace Prisma {
     entryKey: 'entryKey',
     createdAt: 'createdAt',
     onlyAdminsCanPost: 'onlyAdminsCanPost',
+    isLocked: 'isLocked',
     creatorId: 'creatorId'
   };
 
@@ -16677,6 +16704,7 @@ export namespace Prisma {
   export const GroupMemberScalarFieldEnum: {
     id: 'id',
     joinedAt: 'joinedAt',
+    role: 'role',
     groupId: 'groupId',
     userId: 'userId'
   };
@@ -17531,6 +17559,7 @@ export namespace Prisma {
     entryKey?: StringNullableFilter<"Group"> | string | null
     createdAt?: DateTimeFilter<"Group"> | Date | string
     onlyAdminsCanPost?: BoolFilter<"Group"> | boolean
+    isLocked?: BoolFilter<"Group"> | boolean
     creatorId?: IntFilter<"Group"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
     members?: GroupMemberListRelationFilter
@@ -17545,6 +17574,7 @@ export namespace Prisma {
     entryKey?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     onlyAdminsCanPost?: SortOrder
+    isLocked?: SortOrder
     creatorId?: SortOrder
     creator?: UserOrderByWithRelationInput
     members?: GroupMemberOrderByRelationAggregateInput
@@ -17562,6 +17592,7 @@ export namespace Prisma {
     entryKey?: StringNullableFilter<"Group"> | string | null
     createdAt?: DateTimeFilter<"Group"> | Date | string
     onlyAdminsCanPost?: BoolFilter<"Group"> | boolean
+    isLocked?: BoolFilter<"Group"> | boolean
     creatorId?: IntFilter<"Group"> | number
     creator?: XOR<UserScalarRelationFilter, UserWhereInput>
     members?: GroupMemberListRelationFilter
@@ -17576,6 +17607,7 @@ export namespace Prisma {
     entryKey?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     onlyAdminsCanPost?: SortOrder
+    isLocked?: SortOrder
     creatorId?: SortOrder
     _count?: GroupCountOrderByAggregateInput
     _avg?: GroupAvgOrderByAggregateInput
@@ -17595,6 +17627,7 @@ export namespace Prisma {
     entryKey?: StringNullableWithAggregatesFilter<"Group"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Group"> | Date | string
     onlyAdminsCanPost?: BoolWithAggregatesFilter<"Group"> | boolean
+    isLocked?: BoolWithAggregatesFilter<"Group"> | boolean
     creatorId?: IntWithAggregatesFilter<"Group"> | number
   }
 
@@ -17604,6 +17637,7 @@ export namespace Prisma {
     NOT?: GroupMemberWhereInput | GroupMemberWhereInput[]
     id?: IntFilter<"GroupMember"> | number
     joinedAt?: DateTimeFilter<"GroupMember"> | Date | string
+    role?: StringFilter<"GroupMember"> | string
     groupId?: IntFilter<"GroupMember"> | number
     userId?: IntFilter<"GroupMember"> | number
     group?: XOR<GroupScalarRelationFilter, GroupWhereInput>
@@ -17613,6 +17647,7 @@ export namespace Prisma {
   export type GroupMemberOrderByWithRelationInput = {
     id?: SortOrder
     joinedAt?: SortOrder
+    role?: SortOrder
     groupId?: SortOrder
     userId?: SortOrder
     group?: GroupOrderByWithRelationInput
@@ -17626,6 +17661,7 @@ export namespace Prisma {
     OR?: GroupMemberWhereInput[]
     NOT?: GroupMemberWhereInput | GroupMemberWhereInput[]
     joinedAt?: DateTimeFilter<"GroupMember"> | Date | string
+    role?: StringFilter<"GroupMember"> | string
     groupId?: IntFilter<"GroupMember"> | number
     userId?: IntFilter<"GroupMember"> | number
     group?: XOR<GroupScalarRelationFilter, GroupWhereInput>
@@ -17635,6 +17671,7 @@ export namespace Prisma {
   export type GroupMemberOrderByWithAggregationInput = {
     id?: SortOrder
     joinedAt?: SortOrder
+    role?: SortOrder
     groupId?: SortOrder
     userId?: SortOrder
     _count?: GroupMemberCountOrderByAggregateInput
@@ -17650,6 +17687,7 @@ export namespace Prisma {
     NOT?: GroupMemberScalarWhereWithAggregatesInput | GroupMemberScalarWhereWithAggregatesInput[]
     id?: IntWithAggregatesFilter<"GroupMember"> | number
     joinedAt?: DateTimeWithAggregatesFilter<"GroupMember"> | Date | string
+    role?: StringWithAggregatesFilter<"GroupMember"> | string
     groupId?: IntWithAggregatesFilter<"GroupMember"> | number
     userId?: IntWithAggregatesFilter<"GroupMember"> | number
   }
@@ -18537,6 +18575,7 @@ export namespace Prisma {
     entryKey?: string | null
     createdAt?: Date | string
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     creator: UserCreateNestedOneWithoutCreatedGroupsInput
     members?: GroupMemberCreateNestedManyWithoutGroupInput
     messages?: GroupMessageCreateNestedManyWithoutGroupInput
@@ -18550,6 +18589,7 @@ export namespace Prisma {
     entryKey?: string | null
     createdAt?: Date | string
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     creatorId: number
     members?: GroupMemberUncheckedCreateNestedManyWithoutGroupInput
     messages?: GroupMessageUncheckedCreateNestedManyWithoutGroupInput
@@ -18562,6 +18602,7 @@ export namespace Prisma {
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
+    isLocked?: BoolFieldUpdateOperationsInput | boolean
     creator?: UserUpdateOneRequiredWithoutCreatedGroupsNestedInput
     members?: GroupMemberUpdateManyWithoutGroupNestedInput
     messages?: GroupMessageUpdateManyWithoutGroupNestedInput
@@ -18575,6 +18616,7 @@ export namespace Prisma {
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
+    isLocked?: BoolFieldUpdateOperationsInput | boolean
     creatorId?: IntFieldUpdateOperationsInput | number
     members?: GroupMemberUncheckedUpdateManyWithoutGroupNestedInput
     messages?: GroupMessageUncheckedUpdateManyWithoutGroupNestedInput
@@ -18588,6 +18630,7 @@ export namespace Prisma {
     entryKey?: string | null
     createdAt?: Date | string
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     creatorId: number
   }
 
@@ -18598,6 +18641,7 @@ export namespace Prisma {
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
+    isLocked?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type GroupUncheckedUpdateManyInput = {
@@ -18608,11 +18652,13 @@ export namespace Prisma {
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
+    isLocked?: BoolFieldUpdateOperationsInput | boolean
     creatorId?: IntFieldUpdateOperationsInput | number
   }
 
   export type GroupMemberCreateInput = {
     joinedAt?: Date | string
+    role?: string
     group: GroupCreateNestedOneWithoutMembersInput
     user: UserCreateNestedOneWithoutGroupMembersInput
   }
@@ -18620,12 +18666,14 @@ export namespace Prisma {
   export type GroupMemberUncheckedCreateInput = {
     id?: number
     joinedAt?: Date | string
+    role?: string
     groupId: number
     userId: number
   }
 
   export type GroupMemberUpdateInput = {
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    role?: StringFieldUpdateOperationsInput | string
     group?: GroupUpdateOneRequiredWithoutMembersNestedInput
     user?: UserUpdateOneRequiredWithoutGroupMembersNestedInput
   }
@@ -18633,6 +18681,7 @@ export namespace Prisma {
   export type GroupMemberUncheckedUpdateInput = {
     id?: IntFieldUpdateOperationsInput | number
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    role?: StringFieldUpdateOperationsInput | string
     groupId?: IntFieldUpdateOperationsInput | number
     userId?: IntFieldUpdateOperationsInput | number
   }
@@ -18640,17 +18689,20 @@ export namespace Prisma {
   export type GroupMemberCreateManyInput = {
     id?: number
     joinedAt?: Date | string
+    role?: string
     groupId: number
     userId: number
   }
 
   export type GroupMemberUpdateManyMutationInput = {
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    role?: StringFieldUpdateOperationsInput | string
   }
 
   export type GroupMemberUncheckedUpdateManyInput = {
     id?: IntFieldUpdateOperationsInput | number
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    role?: StringFieldUpdateOperationsInput | string
     groupId?: IntFieldUpdateOperationsInput | number
     userId?: IntFieldUpdateOperationsInput | number
   }
@@ -19464,6 +19516,7 @@ export namespace Prisma {
     entryKey?: SortOrder
     createdAt?: SortOrder
     onlyAdminsCanPost?: SortOrder
+    isLocked?: SortOrder
     creatorId?: SortOrder
   }
 
@@ -19480,6 +19533,7 @@ export namespace Prisma {
     entryKey?: SortOrder
     createdAt?: SortOrder
     onlyAdminsCanPost?: SortOrder
+    isLocked?: SortOrder
     creatorId?: SortOrder
   }
 
@@ -19491,6 +19545,7 @@ export namespace Prisma {
     entryKey?: SortOrder
     createdAt?: SortOrder
     onlyAdminsCanPost?: SortOrder
+    isLocked?: SortOrder
     creatorId?: SortOrder
   }
 
@@ -19512,6 +19567,7 @@ export namespace Prisma {
   export type GroupMemberCountOrderByAggregateInput = {
     id?: SortOrder
     joinedAt?: SortOrder
+    role?: SortOrder
     groupId?: SortOrder
     userId?: SortOrder
   }
@@ -19525,6 +19581,7 @@ export namespace Prisma {
   export type GroupMemberMaxOrderByAggregateInput = {
     id?: SortOrder
     joinedAt?: SortOrder
+    role?: SortOrder
     groupId?: SortOrder
     userId?: SortOrder
   }
@@ -19532,6 +19589,7 @@ export namespace Prisma {
   export type GroupMemberMinOrderByAggregateInput = {
     id?: SortOrder
     joinedAt?: SortOrder
+    role?: SortOrder
     groupId?: SortOrder
     userId?: SortOrder
   }
@@ -21399,6 +21457,7 @@ export namespace Prisma {
     entryKey?: string | null
     createdAt?: Date | string
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     members?: GroupMemberCreateNestedManyWithoutGroupInput
     messages?: GroupMessageCreateNestedManyWithoutGroupInput
   }
@@ -21411,6 +21470,7 @@ export namespace Prisma {
     entryKey?: string | null
     createdAt?: Date | string
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     members?: GroupMemberUncheckedCreateNestedManyWithoutGroupInput
     messages?: GroupMessageUncheckedCreateNestedManyWithoutGroupInput
   }
@@ -21427,12 +21487,14 @@ export namespace Prisma {
 
   export type GroupMemberCreateWithoutUserInput = {
     joinedAt?: Date | string
+    role?: string
     group: GroupCreateNestedOneWithoutMembersInput
   }
 
   export type GroupMemberUncheckedCreateWithoutUserInput = {
     id?: number
     joinedAt?: Date | string
+    role?: string
     groupId: number
   }
 
@@ -21841,6 +21903,7 @@ export namespace Prisma {
     entryKey?: StringNullableFilter<"Group"> | string | null
     createdAt?: DateTimeFilter<"Group"> | Date | string
     onlyAdminsCanPost?: BoolFilter<"Group"> | boolean
+    isLocked?: BoolFilter<"Group"> | boolean
     creatorId?: IntFilter<"Group"> | number
   }
 
@@ -21866,6 +21929,7 @@ export namespace Prisma {
     NOT?: GroupMemberScalarWhereInput | GroupMemberScalarWhereInput[]
     id?: IntFilter<"GroupMember"> | number
     joinedAt?: DateTimeFilter<"GroupMember"> | Date | string
+    role?: StringFilter<"GroupMember"> | string
     groupId?: IntFilter<"GroupMember"> | number
     userId?: IntFilter<"GroupMember"> | number
   }
@@ -24575,12 +24639,14 @@ export namespace Prisma {
 
   export type GroupMemberCreateWithoutGroupInput = {
     joinedAt?: Date | string
+    role?: string
     user: UserCreateNestedOneWithoutGroupMembersInput
   }
 
   export type GroupMemberUncheckedCreateWithoutGroupInput = {
     id?: number
     joinedAt?: Date | string
+    role?: string
     userId: number
   }
 
@@ -24760,6 +24826,7 @@ export namespace Prisma {
     entryKey?: string | null
     createdAt?: Date | string
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     creator: UserCreateNestedOneWithoutCreatedGroupsInput
     messages?: GroupMessageCreateNestedManyWithoutGroupInput
   }
@@ -24772,6 +24839,7 @@ export namespace Prisma {
     entryKey?: string | null
     createdAt?: Date | string
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     creatorId: number
     messages?: GroupMessageUncheckedCreateNestedManyWithoutGroupInput
   }
@@ -24895,6 +24963,7 @@ export namespace Prisma {
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
+    isLocked?: BoolFieldUpdateOperationsInput | boolean
     creator?: UserUpdateOneRequiredWithoutCreatedGroupsNestedInput
     messages?: GroupMessageUpdateManyWithoutGroupNestedInput
   }
@@ -24907,6 +24976,7 @@ export namespace Prisma {
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
+    isLocked?: BoolFieldUpdateOperationsInput | boolean
     creatorId?: IntFieldUpdateOperationsInput | number
     messages?: GroupMessageUncheckedUpdateManyWithoutGroupNestedInput
   }
@@ -25020,6 +25090,7 @@ export namespace Prisma {
     entryKey?: string | null
     createdAt?: Date | string
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     creator: UserCreateNestedOneWithoutCreatedGroupsInput
     members?: GroupMemberCreateNestedManyWithoutGroupInput
   }
@@ -25032,6 +25103,7 @@ export namespace Prisma {
     entryKey?: string | null
     createdAt?: Date | string
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
     creatorId: number
     members?: GroupMemberUncheckedCreateNestedManyWithoutGroupInput
   }
@@ -25155,6 +25227,7 @@ export namespace Prisma {
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
+    isLocked?: BoolFieldUpdateOperationsInput | boolean
     creator?: UserUpdateOneRequiredWithoutCreatedGroupsNestedInput
     members?: GroupMemberUpdateManyWithoutGroupNestedInput
   }
@@ -25167,6 +25240,7 @@ export namespace Prisma {
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
+    isLocked?: BoolFieldUpdateOperationsInput | boolean
     creatorId?: IntFieldUpdateOperationsInput | number
     members?: GroupMemberUncheckedUpdateManyWithoutGroupNestedInput
   }
@@ -25774,11 +25848,13 @@ export namespace Prisma {
     entryKey?: string | null
     createdAt?: Date | string
     onlyAdminsCanPost?: boolean
+    isLocked?: boolean
   }
 
   export type GroupMemberCreateManyUserInput = {
     id?: number
     joinedAt?: Date | string
+    role?: string
     groupId: number
   }
 
@@ -26161,6 +26237,7 @@ export namespace Prisma {
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
+    isLocked?: BoolFieldUpdateOperationsInput | boolean
     members?: GroupMemberUpdateManyWithoutGroupNestedInput
     messages?: GroupMessageUpdateManyWithoutGroupNestedInput
   }
@@ -26173,6 +26250,7 @@ export namespace Prisma {
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
+    isLocked?: BoolFieldUpdateOperationsInput | boolean
     members?: GroupMemberUncheckedUpdateManyWithoutGroupNestedInput
     messages?: GroupMessageUncheckedUpdateManyWithoutGroupNestedInput
   }
@@ -26185,22 +26263,26 @@ export namespace Prisma {
     entryKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     onlyAdminsCanPost?: BoolFieldUpdateOperationsInput | boolean
+    isLocked?: BoolFieldUpdateOperationsInput | boolean
   }
 
   export type GroupMemberUpdateWithoutUserInput = {
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    role?: StringFieldUpdateOperationsInput | string
     group?: GroupUpdateOneRequiredWithoutMembersNestedInput
   }
 
   export type GroupMemberUncheckedUpdateWithoutUserInput = {
     id?: IntFieldUpdateOperationsInput | number
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    role?: StringFieldUpdateOperationsInput | string
     groupId?: IntFieldUpdateOperationsInput | number
   }
 
   export type GroupMemberUncheckedUpdateManyWithoutUserInput = {
     id?: IntFieldUpdateOperationsInput | number
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    role?: StringFieldUpdateOperationsInput | string
     groupId?: IntFieldUpdateOperationsInput | number
   }
 
@@ -26535,6 +26617,7 @@ export namespace Prisma {
   export type GroupMemberCreateManyGroupInput = {
     id?: number
     joinedAt?: Date | string
+    role?: string
     userId: number
   }
 
@@ -26548,18 +26631,21 @@ export namespace Prisma {
 
   export type GroupMemberUpdateWithoutGroupInput = {
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    role?: StringFieldUpdateOperationsInput | string
     user?: UserUpdateOneRequiredWithoutGroupMembersNestedInput
   }
 
   export type GroupMemberUncheckedUpdateWithoutGroupInput = {
     id?: IntFieldUpdateOperationsInput | number
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    role?: StringFieldUpdateOperationsInput | string
     userId?: IntFieldUpdateOperationsInput | number
   }
 
   export type GroupMemberUncheckedUpdateManyWithoutGroupInput = {
     id?: IntFieldUpdateOperationsInput | number
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    role?: StringFieldUpdateOperationsInput | string
     userId?: IntFieldUpdateOperationsInput | number
   }
 

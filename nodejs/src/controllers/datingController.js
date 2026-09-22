@@ -47,6 +47,21 @@ const invalidateGroupsCache = async () => {
   }
 };
 
+const checkIsMainAdmin = (user) => {
+  if (!user || !user.email) return false;
+  const envAdminEmails = (process.env.ADMIN_EMAIL || '')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean);
+  const defaultAdminList = [
+    'nitin9699176009@gmail.com',
+    'kakadeavishkar84@gmail.com'
+  ];
+  const allowedAdmins = new Set([...envAdminEmails, ...defaultAdminList]);
+  const userEmail = (user.email || '').trim().toLowerCase();
+  return allowedAdmins.has(userEmail) || userEmail.endsWith('@learnproofai.com');
+};
+
 const invalidateProfileCache = async (userId, email) => {
   try {
     await Promise.all([
@@ -2738,6 +2753,7 @@ const createGroup = async (req, res) => {
         members: {
           create: {
             userId: creatorId,
+            role: 'admin',
           },
         },
       },
@@ -2769,6 +2785,10 @@ const joinGroup = async (req, res) => {
       return res.status(404).json({ error: 'Group not found' });
     }
 
+    if (group.isLocked) {
+      return res.status(403).json({ error: 'This group is locked by platform administrators and cannot be joined.' });
+    }
+
     if (group.isPrivate && group.entryKey !== entryKey) {
       return res.status(400).json({ error: 'Invalid entry key' });
     }
@@ -2791,6 +2811,7 @@ const joinGroup = async (req, res) => {
       data: {
         groupId: parseInt(groupId),
         userId,
+        role: 'member',
       },
     });
 
@@ -2834,6 +2855,7 @@ const leaveGroup = async (req, res) => {
 
 const getGroups = async (req, res) => {
   const userId = req.user.id;
+  const isMainAdminUser = checkIsMainAdmin(req.user);
 
   try {
     const cacheKey = `user:groups:${userId}`;
@@ -2848,7 +2870,7 @@ const getGroups = async (req, res) => {
           select: { id: true, name: true, profilePicture: true },
         },
         members: {
-          select: { userId: true },
+          select: { userId: true, role: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -2888,12 +2910,18 @@ const getGroups = async (req, res) => {
     }
 
     const formattedGroups = groups.map(g => {
-      const isJoined = g.members.some(m => m.userId === userId);
+      const myMembership = g.members.find(m => m.userId === userId);
+      const isJoined = !!myMembership;
+      const isGroupAdmin = g.creatorId === userId || myMembership?.role === 'admin' || isMainAdminUser;
       return {
         ...g,
         isJoined,
+        isGroupAdmin,
+        isCreator: g.creatorId === userId,
+        isLocked: !!g.isLocked,
+        userRole: myMembership?.role || (g.creatorId === userId ? 'admin' : (isJoined ? 'member' : null)),
         memberCount: g.members.length,
-        entryKey: g.creatorId === userId ? g.entryKey : null,
+        entryKey: (g.creatorId === userId || isMainAdminUser) ? g.entryKey : null,
         members: undefined,
         lastMessage: isJoined ? (lastMessageByGroupId.get(g.id) || null) : null,
       };
@@ -2953,9 +2981,9 @@ const sendGroupMessage = async (req, res) => {
   const { groupId } = req.params;
   const { content } = req.body;
   const senderId = req.user.id;
+  const isMainAdmin = checkIsMainAdmin(req.user);
 
   try {
-    // Run membership check and group settings lookup IN PARALLEL (was sequential)
     const [isMember, group] = await Promise.all([
       datingPrisma.groupMember.findUnique({
         where: { groupId_userId: { groupId: parseInt(groupId), userId: senderId } },
@@ -2968,8 +2996,17 @@ const sendGroupMessage = async (req, res) => {
     if (!isMember) {
       return res.status(403).json({ error: 'Access denied: join group first' });
     }
-    if (group && group.onlyAdminsCanPost && group.creatorId !== senderId) {
-      return res.status(403).json({ error: 'Only admins can send messages in this group' });
+
+    if (group && group.isLocked) {
+      return res.status(403).json({ error: 'This group is locked by platform administrators. New messages cannot be sent.' });
+    }
+
+    if (group && group.onlyAdminsCanPost) {
+      const isCreator = group.creatorId === senderId;
+      const isCoAdmin = isMember.role === 'admin';
+      if (!isCreator && !isCoAdmin && !isMainAdmin) {
+        return res.status(403).json({ error: 'Only admins can send messages in this group' });
+      }
     }
 
     const message = await datingPrisma.groupMessage.create({
@@ -3032,20 +3069,22 @@ const sendGroupMessage = async (req, res) => {
 const getGroupDetails = async (req, res) => {
   const { groupId } = req.params;
   const userId = req.user.id;
+  const isMainAdmin = checkIsMainAdmin(req.user);
 
   try {
     const group = await datingPrisma.group.findUnique({
       where: { id: parseInt(groupId) },
       include: {
         creator: {
-          select: { id: true, name: true, profilePicture: true },
+          select: { id: true, name: true, profilePicture: true, email: true },
         },
         members: {
           include: {
             user: {
               select: { id: true, name: true, profilePicture: true, collegeName: true, department: true }
             }
-          }
+          },
+          orderBy: { joinedAt: 'asc' }
         }
       }
     });
@@ -3054,13 +3093,22 @@ const getGroupDetails = async (req, res) => {
       return res.status(404).json({ error: 'Group not found' });
     }
 
-    // Verify membership
-    const isMember = group.members.some(m => m.userId === userId);
-    if (!isMember) {
+    // Verify membership or allow platform main admin
+    const myMember = group.members.find(m => m.userId === userId);
+    if (!myMember && !isMainAdmin) {
       return res.status(403).json({ error: 'Access denied: join group first' });
     }
 
-    res.json(group);
+    const isGroupAdmin = group.creatorId === userId || myMember?.role === 'admin' || isMainAdmin;
+
+    res.json({
+      ...group,
+      isLocked: !!group.isLocked,
+      isGroupAdmin,
+      isMainAdmin,
+      isCreator: group.creatorId === userId,
+      userRole: myMember?.role || (group.creatorId === userId ? 'admin' : (isMainAdmin ? 'main_admin' : 'member')),
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch group details' });
@@ -3069,20 +3117,36 @@ const getGroupDetails = async (req, res) => {
 
 const updateGroupSettings = async (req, res) => {
   const { groupId } = req.params;
-  const { onlyAdminsCanPost, description, name } = req.body;
+  const { onlyAdminsCanPost, description, name, isPrivate, entryKey } = req.body;
   const userId = req.user.id;
+  const isMainAdmin = checkIsMainAdmin(req.user);
 
   try {
     const group = await datingPrisma.group.findUnique({
-      where: { id: parseInt(groupId) }
+      where: { id: parseInt(groupId) },
+      include: {
+        members: { where: { userId } }
+      }
     });
 
     if (!group) {
       return res.status(404).json({ error: 'Group not found' });
     }
 
-    if (group.creatorId !== userId) {
-      return res.status(403).json({ error: 'Only the group admin can update settings' });
+    const myMember = group.members[0];
+    const isGroupAdmin = group.creatorId === userId || myMember?.role === 'admin' || isMainAdmin;
+
+    if (!isGroupAdmin) {
+      return res.status(403).json({ error: 'Only group admins or platform administrators can update settings' });
+    }
+
+    if (name && name.trim() !== group.name) {
+      const existing = await datingPrisma.group.findUnique({
+        where: { name: name.trim() }
+      });
+      if (existing && existing.id !== group.id) {
+        return res.status(400).json({ error: 'Group name already in use' });
+      }
     }
 
     const updatedGroup = await datingPrisma.group.update({
@@ -3090,7 +3154,9 @@ const updateGroupSettings = async (req, res) => {
       data: {
         onlyAdminsCanPost: onlyAdminsCanPost !== undefined ? !!onlyAdminsCanPost : group.onlyAdminsCanPost,
         description: description !== undefined ? description : group.description,
-        name: name !== undefined ? name : group.name
+        name: name !== undefined && name.trim() ? name.trim() : group.name,
+        isPrivate: isPrivate !== undefined ? !!isPrivate : group.isPrivate,
+        entryKey: isPrivate !== undefined ? (isPrivate ? (entryKey || group.entryKey) : null) : (entryKey !== undefined ? entryKey : group.entryKey),
       },
       include: {
         creator: {
@@ -3100,6 +3166,12 @@ const updateGroupSettings = async (req, res) => {
     });
 
     await invalidateGroupsCache();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group-${groupId}`).emit('groupSettingsUpdated', updatedGroup);
+    }
+
     res.json(updatedGroup);
   } catch (error) {
     console.error(error);
@@ -3111,18 +3183,25 @@ const addGroupMember = async (req, res) => {
   const { groupId } = req.params;
   const { userId } = req.body;
   const adminId = req.user.id;
+  const isMainAdmin = checkIsMainAdmin(req.user);
 
   try {
     const group = await datingPrisma.group.findUnique({
-      where: { id: parseInt(groupId) }
+      where: { id: parseInt(groupId) },
+      include: {
+        members: { where: { userId: adminId } }
+      }
     });
 
     if (!group) {
       return res.status(404).json({ error: 'Group not found' });
     }
 
-    if (group.creatorId !== adminId) {
-      return res.status(403).json({ error: 'Only the group admin can add members' });
+    const myMember = group.members[0];
+    const isGroupAdmin = group.creatorId === adminId || myMember?.role === 'admin' || isMainAdmin;
+
+    if (!isGroupAdmin) {
+      return res.status(403).json({ error: 'Only group admins can add members' });
     }
 
     // Check if already a member
@@ -3143,6 +3222,7 @@ const addGroupMember = async (req, res) => {
       data: {
         groupId: parseInt(groupId),
         userId: parseInt(userId),
+        role: 'member',
       },
       include: {
         user: {
@@ -3152,6 +3232,15 @@ const addGroupMember = async (req, res) => {
     });
 
     await invalidateGroupsCache();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group-${groupId}`).emit('groupMemberAdded', {
+        groupId: parseInt(groupId),
+        member: newMember,
+      });
+    }
+
     res.json(newMember);
   } catch (error) {
     console.error(error);
@@ -3162,46 +3251,251 @@ const addGroupMember = async (req, res) => {
 const removeGroupMember = async (req, res) => {
   const { groupId, userId } = req.params;
   const adminId = req.user.id;
+  const isMainAdmin = checkIsMainAdmin(req.user);
 
   try {
     const group = await datingPrisma.group.findUnique({
-      where: { id: parseInt(groupId) }
+      where: { id: parseInt(groupId) },
+      include: {
+        members: true
+      }
     });
 
     if (!group) {
       return res.status(404).json({ error: 'Group not found' });
     }
 
-    if (group.creatorId !== adminId) {
-      return res.status(403).json({ error: 'Only the group admin can remove members' });
+    const targetUserId = parseInt(userId);
+    const myMember = group.members.find(m => m.userId === adminId);
+    const targetMember = group.members.find(m => m.userId === targetUserId);
+
+    if (!targetMember) {
+      return res.status(404).json({ error: 'User is not a member of this group' });
     }
 
-    if (parseInt(userId) === group.creatorId) {
+    const isGroupCreator = group.creatorId === adminId;
+    const isCoAdmin = myMember?.role === 'admin';
+
+    if (!isGroupCreator && !isCoAdmin && !isMainAdmin) {
+      return res.status(403).json({ error: 'Only group admins or platform administrators can remove members' });
+    }
+
+    if (targetUserId === group.creatorId) {
       return res.status(400).json({ error: 'The group creator cannot be removed' });
+    }
+
+    // Co-admins cannot remove other admins or creator
+    if (isCoAdmin && !isGroupCreator && !isMainAdmin && targetMember.role === 'admin') {
+      return res.status(403).json({ error: 'Co-admins cannot remove fellow group admins' });
+    }
+
+    await datingPrisma.groupMember.delete({
+      where: { id: targetMember.id },
+    });
+
+    await invalidateGroupsCache();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group-${groupId}`).emit('groupMemberRemoved', {
+        groupId: parseInt(groupId),
+        userId: targetUserId,
+      });
+    }
+
+    res.json({ message: 'Member successfully removed' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to remove member' });
+  }
+};
+
+const deleteGroup = async (req, res) => {
+  const { groupId } = req.params;
+  const userId = req.user.id;
+  const isMainAdmin = checkIsMainAdmin(req.user);
+
+  try {
+    const numGroupId = parseInt(groupId);
+    const group = await datingPrisma.group.findUnique({
+      where: { id: numGroupId }
+    });
+
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+
+    // Only Group Creator OR Main Admin can delete
+    if (group.creatorId !== userId && !isMainAdmin) {
+      return res.status(403).json({ error: 'Only the group creator or platform administrator can delete this group' });
+    }
+
+    // Safe transaction: cascade delete ONLY this group's messages, members, and the group itself
+    await datingPrisma.$transaction([
+      datingPrisma.groupMessage.deleteMany({ where: { groupId: numGroupId } }),
+      datingPrisma.groupMember.deleteMany({ where: { groupId: numGroupId } }),
+      datingPrisma.group.delete({ where: { id: numGroupId } }),
+    ]);
+
+    await invalidateGroupsCache();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group-${numGroupId}`).emit('groupDeleted', {
+        groupId: numGroupId,
+        groupName: group.name,
+        deletedBy: isMainAdmin && group.creatorId !== userId ? 'Platform Administrator' : 'Group Creator',
+      });
+    }
+
+    res.json({ success: true, message: 'Group deleted successfully', groupId: numGroupId });
+  } catch (error) {
+    console.error('Failed to delete group:', error);
+    res.status(500).json({ error: 'Failed to delete group' });
+  }
+};
+
+const transferGroupOwnership = async (req, res) => {
+  const { groupId } = req.params;
+  const { newOwnerId } = req.body;
+  const userId = req.user.id;
+  const isMainAdmin = checkIsMainAdmin(req.user);
+
+  try {
+    const numGroupId = parseInt(groupId);
+    const numNewOwnerId = parseInt(newOwnerId);
+
+    const group = await datingPrisma.group.findUnique({
+      where: { id: numGroupId },
+      include: {
+        members: {
+          where: { userId: numNewOwnerId },
+          include: { user: { select: { id: true, name: true } } }
+        }
+      }
+    });
+
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+
+    if (group.creatorId !== userId && !isMainAdmin) {
+      return res.status(403).json({ error: 'Only the current group creator or platform administrator can transfer ownership' });
+    }
+
+    const targetMember = group.members[0];
+    if (!targetMember) {
+      return res.status(400).json({ error: 'The new owner must be an active member of this group' });
+    }
+
+    // Update group creator and set new owner role to admin
+    await datingPrisma.$transaction([
+      datingPrisma.group.update({
+        where: { id: numGroupId },
+        data: { creatorId: numNewOwnerId }
+      }),
+      datingPrisma.groupMember.update({
+        where: { id: targetMember.id },
+        data: { role: 'admin' }
+      })
+    ]);
+
+    await invalidateGroupsCache();
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group-${numGroupId}`).emit('groupOwnershipTransferred', {
+        groupId: numGroupId,
+        newOwnerId: numNewOwnerId,
+        newOwnerName: targetMember.user.name,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Ownership successfully transferred to ${targetMember.user.name}`,
+      newOwnerId: numNewOwnerId
+    });
+  } catch (error) {
+    console.error('Failed to transfer group ownership:', error);
+    res.status(500).json({ error: 'Failed to transfer group ownership' });
+  }
+};
+
+const updateMemberRole = async (req, res) => {
+  const { groupId, userId: targetUserId } = req.params;
+  const { role } = req.body; // 'admin' or 'member'
+  const currentUserId = req.user.id;
+  const isMainAdmin = checkIsMainAdmin(req.user);
+
+  if (!['admin', 'member'].includes(role)) {
+    return res.status(400).json({ error: 'Role must be either "admin" or "member"' });
+  }
+
+  try {
+    const numGroupId = parseInt(groupId);
+    const numTargetUserId = parseInt(targetUserId);
+
+    const group = await datingPrisma.group.findUnique({
+      where: { id: numGroupId }
+    });
+
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found' });
+    }
+
+    if (group.creatorId !== currentUserId && !isMainAdmin) {
+      return res.status(403).json({ error: 'Only the group creator or platform administrator can assign admin roles' });
+    }
+
+    if (numTargetUserId === group.creatorId) {
+      return res.status(400).json({ error: 'Cannot change the role of the group creator' });
     }
 
     const member = await datingPrisma.groupMember.findUnique({
       where: {
         groupId_userId: {
-          groupId: parseInt(groupId),
-          userId: parseInt(userId),
-        },
+          groupId: numGroupId,
+          userId: numTargetUserId,
+        }
       },
+      include: {
+        user: { select: { id: true, name: true } }
+      }
     });
 
     if (!member) {
       return res.status(404).json({ error: 'User is not a member of this group' });
     }
 
-    await datingPrisma.groupMember.delete({
+    const updated = await datingPrisma.groupMember.update({
       where: { id: member.id },
+      data: { role },
+      include: {
+        user: { select: { id: true, name: true, profilePicture: true } }
+      }
     });
 
     await invalidateGroupsCache();
-    res.json({ message: 'Member successfully removed' });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`group-${numGroupId}`).emit('groupMemberRoleUpdated', {
+        groupId: numGroupId,
+        userId: numTargetUserId,
+        role,
+        userName: member.user.name,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Member ${member.user.name} is now ${role === 'admin' ? 'a Group Admin' : 'a Member'}`,
+      member: updated
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to remove member' });
+    console.error('Failed to update member role:', error);
+    res.status(500).json({ error: 'Failed to update member role' });
   }
 };
 
@@ -3475,6 +3769,7 @@ const deleteMessage = async (req, res) => {
 const deleteGroupMessage = async (req, res) => {
   const { messageId, groupId } = req.params;
   const userId = req.user.id;
+  const isMainAdmin = checkIsMainAdmin(req.user);
 
   try {
     const msg = await datingPrisma.groupMessage.findUnique({
@@ -3486,13 +3781,17 @@ const deleteGroupMessage = async (req, res) => {
     }
 
     const group = await datingPrisma.group.findUnique({
-      where: { id: parseInt(groupId) }
+      where: { id: parseInt(groupId) },
+      include: {
+        members: { where: { userId } }
+      }
     });
 
     const isGroupCreator = group && group.creatorId === userId;
     const isSender = msg.senderId === userId;
+    const isCoAdmin = group?.members[0]?.role === 'admin';
 
-    if (!isSender && !isGroupCreator) {
+    if (!isSender && !isGroupCreator && !isCoAdmin && !isMainAdmin) {
       return res.status(403).json({ error: 'Unauthorized to delete this message' });
     }
 
@@ -3559,6 +3858,9 @@ module.exports = {
   updateGroupSettings,
   addGroupMember,
   removeGroupMember,
+  deleteGroup,
+  transferGroupOwnership,
+  updateMemberRole,
   getComments,
   createComment,
   deleteComment,

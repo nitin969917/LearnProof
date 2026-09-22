@@ -50,6 +50,14 @@ const datingPrisma = new PrismaClient({
     await datingPrisma.$executeRawUnsafe(`
       CREATE INDEX IF NOT EXISTS "idx_social_reports_target" ON "social_reports"("targetType", "targetId");
     `);
+    await datingPrisma.$executeRawUnsafe(`
+      ALTER TABLE "social_groups" 
+      ADD COLUMN IF NOT EXISTS "isLocked" BOOLEAN NOT NULL DEFAULT false;
+    `);
+    await datingPrisma.$executeRawUnsafe(`
+      ALTER TABLE "social_group_members" 
+      ADD COLUMN IF NOT EXISTS "role" VARCHAR(50) NOT NULL DEFAULT 'member';
+    `);
   } catch (err) {
     // Ignore if not supported by current dialect or already exists
   }

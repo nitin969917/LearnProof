@@ -852,6 +852,332 @@ const deleteSocialPost = async (req, res) => {
     }
 };
 
+/**
+ * Main Admin: Get all groups across the platform with metrics, search, and filter
+ */
+const getAdminGroups = async (req, res) => {
+    try {
+        const { search = '', privacy = 'all', status = 'all', page = 1, limit = 50 } = req.query;
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
+        const skip = (pageNum - 1) * limitNum;
+
+        // Build where filter
+        const where = {};
+        if (search && search.trim()) {
+            const s = search.trim();
+            where.OR = [
+                { name: { contains: s, mode: 'insensitive' } },
+                { description: { contains: s, mode: 'insensitive' } },
+                { creator: { name: { contains: s, mode: 'insensitive' } } },
+                { creator: { email: { contains: s, mode: 'insensitive' } } },
+            ];
+        }
+        if (privacy === 'public') where.isPrivate = false;
+        if (privacy === 'private') where.isPrivate = true;
+        if (status === 'locked') where.isLocked = true;
+        if (status === 'active') where.isLocked = false;
+
+        const [groups, totalMatching, totalGroupsAll, totalMessagesAll, totalMembershipsAll, lockedGroupsCount] = await Promise.all([
+            datingPrisma.group.findMany({
+                where,
+                include: {
+                    creator: {
+                        select: { id: true, name: true, email: true, profilePicture: true }
+                    },
+                    members: {
+                        select: { id: true, userId: true, role: true, joinedAt: true, user: { select: { id: true, name: true, email: true, profilePicture: true } } }
+                    },
+                    _count: {
+                        select: { messages: true, members: true }
+                    }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limitNum,
+            }),
+            datingPrisma.group.count({ where }),
+            datingPrisma.group.count(),
+            datingPrisma.groupMessage.count(),
+            datingPrisma.groupMember.count(),
+            datingPrisma.group.count({ where: { isLocked: true } }),
+        ]);
+
+        const formattedGroups = groups.map(g => ({
+            id: g.id,
+            name: g.name,
+            description: g.description,
+            isPrivate: g.isPrivate,
+            entryKey: g.entryKey,
+            onlyAdminsCanPost: g.onlyAdminsCanPost,
+            isLocked: !!g.isLocked,
+            createdAt: g.createdAt,
+            creator: g.creator,
+            memberCount: g._count.members,
+            messageCount: g._count.messages,
+            members: g.members.map(m => ({
+                id: m.id,
+                userId: m.userId,
+                role: m.role || 'member',
+                joinedAt: m.joinedAt,
+                user: m.user
+            }))
+        }));
+
+        res.json({
+            groups: formattedGroups,
+            pagination: {
+                total: totalMatching,
+                page: pageNum,
+                limit: limitNum,
+                pages: Math.ceil(totalMatching / limitNum) || 1,
+            },
+            metrics: {
+                totalGroups: totalGroupsAll,
+                totalMessages: totalMessagesAll,
+                totalMemberships: totalMembershipsAll,
+                lockedGroups: lockedGroupsCount,
+            }
+        });
+    } catch (err) {
+        console.error('getAdminGroups error:', err);
+        res.status(500).json({ error: 'Failed to fetch groups', details: err.message });
+    }
+};
+
+/**
+ * Main Admin: Audit chat history / messages of any group
+ */
+const getAdminGroupMessages = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const page = parseInt(req.query.page) || 0;
+        const limit = parseInt(req.query.limit) || 100;
+
+        const messages = await datingPrisma.groupMessage.findMany({
+            where: { groupId: parseInt(groupId) },
+            include: {
+                sender: {
+                    select: { id: true, name: true, email: true, profilePicture: true }
+                }
+            },
+            orderBy: { createdAt: 'desc' },
+            take: limit,
+            skip: page * limit,
+        });
+
+        res.json(messages.reverse());
+    } catch (err) {
+        console.error('getAdminGroupMessages error:', err);
+        res.status(500).json({ error: 'Failed to fetch group messages', details: err.message });
+    }
+};
+
+/**
+ * Main Admin: Freeze / Lock or Unlock group
+ */
+const toggleAdminGroupLock = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const { isLocked } = req.body;
+        const numGroupId = parseInt(groupId);
+
+        const group = await datingPrisma.group.findUnique({
+            where: { id: numGroupId }
+        });
+
+        if (!group) {
+            return res.status(404).json({ error: 'Group not found' });
+        }
+
+        const updated = await datingPrisma.group.update({
+            where: { id: numGroupId },
+            data: { isLocked: !!isLocked }
+        });
+
+        // Invalidate cache
+        await cacheService.delByPattern('user:groups:*');
+
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`group-${numGroupId}`).emit('groupLockStatusChanged', {
+                groupId: numGroupId,
+                isLocked: !!isLocked,
+                message: isLocked 
+                    ? 'This group has been locked by platform administrators. Messaging is temporarily disabled.'
+                    : 'This group has been unlocked by platform administrators.'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Group successfully ${isLocked ? 'locked/frozen' : 'unlocked'}`,
+            group: updated
+        });
+    } catch (err) {
+        console.error('toggleAdminGroupLock error:', err);
+        res.status(500).json({ error: 'Failed to update lock status', details: err.message });
+    }
+};
+
+/**
+ * Main Admin: Force delete ANY group
+ */
+const adminDeleteGroup = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const { reason = 'Terms of Service violation or administrative cleanup' } = req.body || {};
+        const numGroupId = parseInt(groupId);
+
+        const group = await datingPrisma.group.findUnique({
+            where: { id: numGroupId }
+        });
+
+        if (!group) {
+            return res.status(404).json({ error: 'Group not found' });
+        }
+
+        // Safe cascade transaction targeting ONLY this group
+        await datingPrisma.$transaction([
+            datingPrisma.groupMessage.deleteMany({ where: { groupId: numGroupId } }),
+            datingPrisma.groupMember.deleteMany({ where: { groupId: numGroupId } }),
+            datingPrisma.group.delete({ where: { id: numGroupId } }),
+        ]);
+
+        await cacheService.delByPattern('user:groups:*');
+
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`group-${numGroupId}`).emit('groupDeleted', {
+                groupId: numGroupId,
+                groupName: group.name,
+                deletedBy: 'Platform Administrator',
+                reason
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Group "${group.name}" permanently deleted by platform administrator.`,
+            groupId: numGroupId
+        });
+    } catch (err) {
+        console.error('adminDeleteGroup error:', err);
+        res.status(500).json({ error: 'Failed to delete group', details: err.message });
+    }
+};
+
+/**
+ * Main Admin: Force remove a member from any group
+ */
+const adminRemoveGroupMember = async (req, res) => {
+    try {
+        const { groupId, userId } = req.params;
+        const numGroupId = parseInt(groupId);
+        const numUserId = parseInt(userId);
+
+        const member = await datingPrisma.groupMember.findUnique({
+            where: {
+                groupId_userId: {
+                    groupId: numGroupId,
+                    userId: numUserId
+                }
+            },
+            include: { user: { select: { name: true } } }
+        });
+
+        if (!member) {
+            return res.status(404).json({ error: 'User is not a member of this group' });
+        }
+
+        await datingPrisma.groupMember.delete({
+            where: { id: member.id }
+        });
+
+        await cacheService.delByPattern('user:groups:*');
+
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`group-${numGroupId}`).emit('groupMemberRemoved', {
+                groupId: numGroupId,
+                userId: numUserId,
+                removedBy: 'Platform Administrator'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Member ${member.user?.name || numUserId} removed from group by platform administrator.`
+        });
+    } catch (err) {
+        console.error('adminRemoveGroupMember error:', err);
+        res.status(500).json({ error: 'Failed to remove member', details: err.message });
+    }
+};
+
+/**
+ * Main Admin: Reassign group creator / transfer ownership
+ */
+const adminTransferGroupOwnership = async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        const { newOwnerId } = req.body;
+        const numGroupId = parseInt(groupId);
+        const numNewOwnerId = parseInt(newOwnerId);
+
+        const group = await datingPrisma.group.findUnique({
+            where: { id: numGroupId },
+            include: {
+                members: {
+                    where: { userId: numNewOwnerId },
+                    include: { user: { select: { id: true, name: true } } }
+                }
+            }
+        });
+
+        if (!group) {
+            return res.status(404).json({ error: 'Group not found' });
+        }
+
+        const targetMember = group.members[0];
+        if (!targetMember) {
+            return res.status(400).json({ error: 'The new owner must be an active member of this group' });
+        }
+
+        await datingPrisma.$transaction([
+            datingPrisma.group.update({
+                where: { id: numGroupId },
+                data: { creatorId: numNewOwnerId }
+            }),
+            datingPrisma.groupMember.update({
+                where: { id: targetMember.id },
+                data: { role: 'admin' }
+            })
+        ]);
+
+        await cacheService.delByPattern('user:groups:*');
+
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`group-${numGroupId}`).emit('groupOwnershipTransferred', {
+                groupId: numGroupId,
+                newOwnerId: numNewOwnerId,
+                newOwnerName: targetMember.user.name,
+                transferredBy: 'Platform Administrator'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Group ownership reassigned to ${targetMember.user.name} by platform administrator.`,
+            newOwnerId: numNewOwnerId
+        });
+    } catch (err) {
+        console.error('adminTransferGroupOwnership error:', err);
+        res.status(500).json({ error: 'Failed to reassign group owner', details: err.message });
+    }
+};
+
 module.exports = {
     getDashboardStats,
     getUsers,
@@ -865,5 +1191,11 @@ module.exports = {
     getReportedContent,
     handleReportAction,
     deleteReport,
-    deleteSocialPost
+    deleteSocialPost,
+    getAdminGroups,
+    getAdminGroupMessages,
+    toggleAdminGroupLock,
+    adminDeleteGroup,
+    adminRemoveGroupMember,
+    adminTransferGroupOwnership
 };

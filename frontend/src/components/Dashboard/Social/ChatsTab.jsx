@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Search, Lock, Unlock, Plus, Copy, Check, MessageCircle, 
   ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, X, Trash2, CornerUpLeft,
-  Phone, Video as VideoIcon, Play, SquarePen, Users2, MessageSquareMore
+  Phone, Video as VideoIcon, Play, SquarePen, Users2, MessageSquareMore, ShieldCheck, Crown, ShieldAlert
 } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
@@ -10,7 +10,7 @@ import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useModal } from '../../../context/ModalContext';
 import { useAuth } from '../../../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -78,10 +78,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const clearActiveChat = useSocialMessageStore((state) => state.clearActiveChat);
 
   // Use shared Zustand stores for instant loading
-  const storeFriends = useSocialFeedStore(state => state.friends);
   const fetchStoreFriends = useSocialFeedStore(state => state.fetchFriends);
   const hasLoadedFriends = useSocialFeedStore(state => state.hasLoadedFriends);
-  const storeGroups = useSocialGroupsStore(state => state.groups);
   const fetchStoreGroups = useSocialGroupsStore(state => state.fetchGroups);
   const hasLoadedGroups = useSocialGroupsStore(state => state.hasLoadedGroups);
 
@@ -110,7 +108,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       if (data && typeof data === 'object' && ('text' in data || 'replyTo' in data || 'reactions' in data || 'type' in data)) {
         return data;
       }
-    } catch (e) {}
+    } catch {
+      // fallback to plain content
+    }
     return {
       text: msg.content,
       isVoiceNote: msg.isVoiceNote,
@@ -260,6 +260,67 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     } catch (err) {
       console.error('Failed to remove member:', err);
       toast.error(err.response?.data?.error || 'Failed to remove member');
+    }
+  };
+
+  const handleDeleteGroup = async (groupId) => {
+    const confirmed = await confirm({
+      title: "Delete Group?",
+      message: "Are you sure you want to permanently delete this group? All discussion messages and member data will be deleted. This cannot be undone.",
+      confirmText: "Delete Permanently",
+      type: "danger"
+    });
+    if (!confirmed) return;
+    try {
+      await socialApi.delete(`/groups/${groupId}`);
+      setShowGroupDetails(false);
+      setSelectedChat(null);
+      fetchStoreGroups(true).then(() => fetchData());
+      toast.success("Group deleted successfully");
+      navigate('/dashboard/social/chats');
+    } catch (err) {
+      console.error('Failed to delete group:', err);
+      toast.error(err.response?.data?.error || 'Failed to delete group');
+    }
+  };
+
+  const handleTransferOwnership = async (newOwnerId, newOwnerName) => {
+    const confirmed = await confirm({
+      title: "Transfer Group Ownership?",
+      message: `Are you sure you want to transfer ownership of this group to ${newOwnerName}? You will still remain a group admin.`,
+      confirmText: "Transfer Ownership",
+      type: "warning"
+    });
+    if (!confirmed) return;
+    try {
+      await socialApi.post(`/groups/${selectedChat.id}/transfer-ownership`, { newOwnerId });
+      toast.success(`Ownership transferred to ${newOwnerName}`);
+      await fetchGroupDetails(selectedChat.id);
+      fetchStoreGroups(true).then(() => fetchData());
+    } catch (err) {
+      console.error('Failed to transfer ownership:', err);
+      toast.error(err.response?.data?.error || 'Failed to transfer ownership');
+    }
+  };
+
+  const handleToggleAdminRole = async (targetUserId, currentRole, targetUserName) => {
+    const newRole = currentRole === 'admin' ? 'member' : 'admin';
+    const confirmed = await confirm({
+      title: newRole === 'admin' ? "Promote to Admin?" : "Dismiss as Admin?",
+      message: newRole === 'admin' 
+        ? `Promote ${targetUserName} to Group Admin? They will be able to manage group settings, post in restricted mode, and moderate messages.`
+        : `Demote ${targetUserName} back to regular Member?`,
+      confirmText: newRole === 'admin' ? "Make Admin" : "Demote",
+      type: newRole === 'admin' ? "info" : "warning"
+    });
+    if (!confirmed) return;
+    try {
+      await socialApi.put(`/groups/${selectedChat.id}/members/${targetUserId}/role`, { role: newRole });
+      toast.success(`${targetUserName} is now ${newRole === 'admin' ? 'a Group Admin' : 'a Member'}`);
+      await fetchGroupDetails(selectedChat.id);
+    } catch (err) {
+      console.error('Failed to update member role:', err);
+      toast.error(err.response?.data?.error || 'Failed to update member role');
     }
   };
 
@@ -445,7 +506,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
             try {
               parsed = JSON.parse(msg.content);
               if (typeof parsed !== 'object' || parsed === null) parsed = { text: msg.content };
-            } catch (e) {
+            } catch {
               parsed = { text: msg.content };
             }
             parsed.reactions = reactions;
@@ -561,12 +622,49 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       });
     };
 
+    const handleGroupDeletedSocket = (data) => {
+      fetchStoreGroups(true).then(() => fetchData());
+      if (selectedChatRef.current?.id === data?.groupId) {
+        toast.error(`Group "${data?.groupName || 'Discussion'}" was deleted by ${data?.deletedBy || 'Admin'}`);
+        setSelectedChat(null);
+        setShowGroupDetails(false);
+        navigate('/dashboard/social/chats');
+      }
+    };
+
+    const handleGroupLockStatusSocket = (data) => {
+      if (selectedChatRef.current?.id === data?.groupId) {
+        setSelectedChat(prev => prev ? { ...prev, isLocked: data.isLocked } : prev);
+        setGroupDetails(prev => prev ? { ...prev, isLocked: data.isLocked } : prev);
+        if (data.isLocked) {
+          toast.error(data.message || 'This group has been locked by platform administrators.');
+        } else {
+          toast.success(data.message || 'This group has been unlocked by platform administrators.');
+        }
+      }
+      fetchStoreGroups(true).then(() => fetchData());
+    };
+
+    const handleGroupUpdatedSocket = (data) => {
+      if (selectedChatRef.current?.id === data?.groupId || selectedChatRef.current?.id === data?.id) {
+        fetchGroupDetails(selectedChatRef.current.id);
+      }
+      fetchStoreGroups(true).then(() => fetchData());
+    };
+
     socketRef.current.on('receiveMessage', handleDirectMessage);
     socketRef.current.on('messageSent', handleMessageSent);
     socketRef.current.on('messageError', handleMessageError);
     socketRef.current.on('receiveGroupMessage', handleGroupMessage);
     socketRef.current.on('messageDeleted', handleMessageDeleted);
     socketRef.current.on('groupMessageDeleted', handleGroupMessageDeleted);
+    socketRef.current.on('groupDeleted', handleGroupDeletedSocket);
+    socketRef.current.on('groupLockStatusChanged', handleGroupLockStatusSocket);
+    socketRef.current.on('groupOwnershipTransferred', handleGroupUpdatedSocket);
+    socketRef.current.on('groupMemberRoleUpdated', handleGroupUpdatedSocket);
+    socketRef.current.on('groupMemberRemoved', handleGroupUpdatedSocket);
+    socketRef.current.on('groupMemberAdded', handleGroupUpdatedSocket);
+    socketRef.current.on('groupSettingsUpdated', handleGroupUpdatedSocket);
 
     return () => {
       socketRef.current?.off('userTyping', handleUserTyping);
@@ -578,6 +676,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       socketRef.current?.off('receiveGroupMessage', handleGroupMessage);
       socketRef.current?.off('messageDeleted', handleMessageDeleted);
       socketRef.current?.off('groupMessageDeleted', handleGroupMessageDeleted);
+      socketRef.current?.off('groupDeleted', handleGroupDeletedSocket);
+      socketRef.current?.off('groupLockStatusChanged', handleGroupLockStatusSocket);
+      socketRef.current?.off('groupOwnershipTransferred', handleGroupUpdatedSocket);
+      socketRef.current?.off('groupMemberRoleUpdated', handleGroupUpdatedSocket);
+      socketRef.current?.off('groupMemberRemoved', handleGroupUpdatedSocket);
+      socketRef.current?.off('groupMemberAdded', handleGroupUpdatedSocket);
+      socketRef.current?.off('groupSettingsUpdated', handleGroupUpdatedSocket);
     };
   }, [currentUserId, isMatrixActive]);
 
@@ -1578,9 +1683,15 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               </div>
 
               {/* Bottom Input Bar */}
-              {selectedChat.type === 'group' && selectedChat.onlyAdminsCanPost && selectedChat.creatorId !== currentUserId ? (
-                <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 text-center text-xs font-bold text-gray-400 select-none">
-                  Only admins can send messages in this group
+              {selectedChat.type === 'group' && selectedChat.isLocked ? (
+                <div className="p-4 border-t border-amber-200/60 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/30 text-center text-xs font-semibold text-amber-700 dark:text-amber-400 select-none flex items-center justify-center gap-2">
+                  <Lock size={15} className="text-amber-600 dark:text-amber-400" />
+                  <span>This group has been locked by platform administrators. Messaging is temporarily disabled.</span>
+                </div>
+              ) : selectedChat.type === 'group' && selectedChat.onlyAdminsCanPost && !selectedChat.isGroupAdmin && selectedChat.creatorId !== currentUserId ? (
+                <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 text-center text-xs font-bold text-gray-400 select-none flex items-center justify-center gap-2">
+                  <ShieldAlert size={15} />
+                  <span>Only group admins can send messages in this group</span>
                 </div>
               ) : (
                 <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 z-10 p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
@@ -1618,31 +1729,20 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                         onChange={(e) => {
                           setInputText(e.target.value);
                           if (socketRef.current && selectedChat && selectedChat.type === 'direct') {
-                            socketRef.current.emit('typing', { targetId: selectedChat.id, isTyping: e.target.value.length > 0 });
+                            socketRef.current.emit('typing', {
+                              receiverId: selectedChat.id,
+                              isTyping: e.target.value.length > 0
+                            });
                           }
                         }}
-                        placeholder="Type a message..."
-                        className="flex-1 bg-transparent text-gray-900 dark:text-white border-none py-2 text-xs sm:text-sm font-medium focus:outline-none placeholder-gray-400"
+                        placeholder={selectedChat.type === 'group' && selectedChat.onlyAdminsCanPost ? "Post as group admin..." : "Type a message..."}
+                        className="w-full bg-transparent border-none outline-none text-xs sm:text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400 py-1"
                       />
                     </div>
-
-                    {/* Circular Orange Send Button */}
                     <button
                       type="submit"
-                      tabIndex={-1}
                       disabled={!inputText.trim()}
-                      onMouseDown={(e) => {
-                        // Prevent button click from blurring input on desktop/web
-                        e.preventDefault();
-                      }}
-                      onTouchEnd={() => {
-                        // Keep focus active during touch interaction on mobile
-                        if (inputText.trim()) {
-                          inputRef.current?.focus();
-                        }
-                      }}
-                      className="w-11 h-11 rounded-full bg-[#FF5722] hover:bg-[#F4511E] disabled:opacity-40 disabled:hover:bg-[#FF5722] text-white flex items-center justify-center transition-all shadow-md shadow-orange-500/25 active:scale-95 cursor-pointer shrink-0"
-                      title="Send message"
+                      className="w-10 h-10 rounded-full bg-[#FF5722] text-white flex items-center justify-center hover:bg-[#F4511E] disabled:opacity-40 disabled:hover:bg-[#FF5722] transition-all shadow-md shadow-orange-500/20 cursor-pointer disabled:cursor-not-allowed shrink-0"
                     >
                       <Send size={18} className="translate-x-0.5" />
                     </button>
@@ -1653,7 +1753,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
             {/* Group Details Sliding Panel */}
             {showGroupDetails && (
-              <div className="w-full md:w-[320px] lg:w-[350px] shrink-0 h-full bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex flex-col z-20 absolute md:static inset-y-0 right-0 shadow-xl md:shadow-none animate-in slide-in-from-right duration-300">
+              <div className="w-full md:w-[320px] lg:w-[360px] shrink-0 h-full bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex flex-col z-20 absolute md:static inset-y-0 right-0 shadow-xl md:shadow-none animate-in slide-in-from-right duration-300">
                 <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0">
                   <h3 className="font-bold text-gray-900 dark:text-white text-base">Group Info</h3>
                   <button 
@@ -1671,6 +1771,16 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   </div>
                 ) : groupDetails ? (
                   <div className="flex-1 overflow-y-auto p-4 space-y-5">
+                    {/* Locked Status Banner */}
+                    {groupDetails.isLocked && (
+                      <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-2xl flex items-center gap-2.5 text-amber-700 dark:text-amber-400">
+                        <Lock size={16} className="shrink-0 text-amber-500" />
+                        <p className="text-xs font-semibold leading-snug">
+                          Frozen by Platform Administrator. Messaging is currently disabled.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Main Info */}
                     <div className="flex flex-col items-center text-center gap-3 select-none">
                       <div className="w-20 h-20 rounded-full flex items-center justify-center font-bold text-2xl text-white bg-gradient-to-tr from-teal-500 to-emerald-500 shadow-sm">
@@ -1679,6 +1789,11 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       <div>
                         <h4 className="font-bold text-gray-900 dark:text-white text-base">{groupDetails.name}</h4>
                         <p className="text-xs text-gray-400 mt-0.5">Created on {new Date(groupDetails.createdAt).toLocaleDateString()}</p>
+                        {groupDetails.creator && (
+                          <p className="text-[11px] text-gray-500 mt-0.5">
+                            Created by <span className="font-semibold text-gray-700 dark:text-gray-300">{groupDetails.creator.name}</span>
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -1698,13 +1813,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-gray-800 dark:text-gray-200">Only Admins Can Post</p>
                           <p className="text-[10px] text-gray-400 font-normal mt-0.5">
-                            Restrict posting to the group creator.
+                            Restrict posting to group creator & admins.
                           </p>
                         </div>
                         <input 
                           type="checkbox"
                           checked={groupDetails.onlyAdminsCanPost}
-                          disabled={groupDetails.creatorId !== currentUserId}
+                          disabled={!groupDetails.isGroupAdmin && !groupDetails.isMainAdmin}
                           onChange={(e) => handleToggleOnlyAdminsPost(e.target.checked)}
                           className="w-4 h-4 accent-[#FF5722] cursor-pointer disabled:cursor-not-allowed"
                         />
@@ -1717,7 +1832,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                           Members ({groupDetails.members.length})
                         </span>
-                        {groupDetails.creatorId === currentUserId && (
+                        {(groupDetails.isGroupAdmin || groupDetails.isMainAdmin) && (
                           <button
                             onClick={() => setShowAddMemberModal(true)}
                             className="flex items-center gap-1 text-[10px] text-[#FF5722] hover:text-orange-600 font-bold uppercase tracking-wider bg-orange-50 dark:bg-orange-950/20 px-2.5 py-1.5 rounded-xl transition cursor-pointer"
@@ -1729,13 +1844,15 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
                       <div className="space-y-2">
                         {groupDetails.members.map((member) => {
-                          const isMemberAdmin = member.userId === groupDetails.creatorId;
+                          const isCreator = member.userId === groupDetails.creatorId;
+                          const isCoAdmin = member.role === 'admin';
                           const isMe = member.userId === currentUserId;
+                          const canManageMembers = (groupDetails.creatorId === currentUserId) || groupDetails.isMainAdmin;
                           const u = member.user;
                           if (!u) return null;
                           
                           return (
-                            <div key={member.id} className="flex items-center justify-between gap-3 p-1.5 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
+                            <div key={member.id} className="flex items-center justify-between gap-2 p-2 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800/40 transition">
                               <div 
                                 onClick={() => {
                                   setShowGroupDetails(false);
@@ -1753,27 +1870,70 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                                   <span className="text-xs font-bold text-gray-800 dark:text-gray-200 truncate block">
                                     {u.name} {isMe && <span className="text-[#FF5722] font-semibold">(You)</span>}
                                   </span>
-                                  {isMemberAdmin && (
-                                    <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase bg-emerald-50 dark:bg-emerald-950/20 px-1 rounded mt-0.5 inline-block">
-                                      Admin
-                                    </span>
-                                  )}
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    {isCreator ? (
+                                      <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold uppercase bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                                        <Crown size={9} /> Creator
+                                      </span>
+                                    ) : isCoAdmin ? (
+                                      <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase bg-emerald-50 dark:bg-emerald-950/20 px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                                        <ShieldCheck size={9} /> Admin
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] text-gray-400 font-medium">
+                                        Member
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
 
-                              {groupDetails.creatorId === currentUserId && !isMemberAdmin && (
-                                <button
-                                  onClick={() => handleRemoveMember(u.id)}
-                                  className="text-[10px] font-bold text-red-500 hover:text-white hover:bg-red-500 bg-red-50 dark:bg-red-950/25 px-2.5 py-1.5 rounded-xl transition cursor-pointer"
-                                >
-                                  Remove
-                                </button>
+                              {/* Member Management Actions (for Creator or Main Admin) */}
+                              {canManageMembers && !isCreator && !isMe && (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => handleToggleAdminRole(u.id, member.role, u.name)}
+                                    title={isCoAdmin ? "Dismiss as Admin" : "Promote to Admin"}
+                                    className="text-[10px] font-bold text-gray-500 hover:text-emerald-600 px-2 py-1 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/25 transition cursor-pointer"
+                                  >
+                                    {isCoAdmin ? "Demote" : "Make Admin"}
+                                  </button>
+                                  <button
+                                    onClick={() => handleTransferOwnership(u.id, u.name)}
+                                    title="Transfer Group Ownership"
+                                    className="text-[10px] font-bold text-amber-600 hover:text-amber-700 px-2 py-1 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/25 transition cursor-pointer"
+                                  >
+                                    Transfer
+                                  </button>
+                                  <button
+                                    onClick={() => handleRemoveMember(u.id)}
+                                    className="text-[10px] font-bold text-red-500 hover:text-white hover:bg-red-500 bg-red-50 dark:bg-red-950/25 px-2 py-1 rounded-lg transition cursor-pointer"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
                               )}
                             </div>
                           );
                         })}
                       </div>
                     </div>
+
+                    {/* Danger Zone: Delete Group (Group Creator or Main Admin) */}
+                    {(groupDetails.creatorId === currentUserId || groupDetails.isMainAdmin) && (
+                      <div className="pt-3 border-t border-gray-100 dark:border-gray-800/80 space-y-1.5">
+                        <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider block">Danger Zone</span>
+                        <button
+                          onClick={() => handleDeleteGroup(groupDetails.id)}
+                          className="w-full flex items-center justify-center gap-2 text-xs font-bold text-red-600 hover:text-white hover:bg-red-600 bg-red-50 dark:bg-red-950/25 border border-red-200 dark:border-red-900/30 p-2.5 rounded-xl transition cursor-pointer shadow-xs"
+                        >
+                          <Trash2 size={15} /> Delete Group
+                        </button>
+                        <p className="text-[10px] text-gray-400 text-center leading-relaxed">
+                          Permanently deletes this group, all chat messages, and member data.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="p-8 text-center text-gray-400 text-xs font-semibold">Failed to load group info.</div>
