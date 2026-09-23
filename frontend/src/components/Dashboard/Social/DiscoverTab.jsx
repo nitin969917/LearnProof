@@ -379,13 +379,12 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
 
               {/* Loading state */}
               {loading || loadingSuggested ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                    <div key={n} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-3.5 sm:p-4 animate-pulse flex flex-col items-center gap-2.5">
+                    <div key={n} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-2.5 sm:p-3 animate-pulse flex flex-col items-center gap-2">
                       <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                      <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-1/2"></div>
-                      <div className="h-8 bg-gray-100 dark:bg-gray-700 rounded-xl w-full mt-1.5"></div>
+                      <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mt-1"></div>
+                      <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded-full w-20 mt-1"></div>
                     </div>
                   ))}
                 </div>
@@ -395,16 +394,15 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
                     {(isUserSearching ? results : displayedSuggestedUsers).map((student) => {
                       const fState = getFriendshipState(student);
-                      const subtitle = [student.department, student.collegeName].filter(Boolean).join(' • ') || student.bio || '';
 
                       return (
                         <div
                           key={student.id}
                           onClick={() => onViewProfile && onViewProfile(student.id)}
-                          className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/80 p-3 sm:p-3.5 shadow-2xs hover:shadow-md hover:border-orange-200 dark:hover:border-gray-600 transition-all duration-200 cursor-pointer flex flex-col items-center text-center relative group"
+                          className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/80 p-2.5 sm:p-3 shadow-2xs hover:shadow-md hover:border-orange-200 dark:hover:border-gray-600 transition-all duration-200 cursor-pointer flex flex-col items-center text-center relative group"
                         >
                           {/* Quick Options Button */}
                           <div className="absolute top-2 right-2">
@@ -421,12 +419,12 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
                             </button>
                           </div>
 
-                          {/* Centered Avatar */}
-                          <div className="relative mt-0.5 mb-2">
+                          {/* Centered Avatar - Preserved prominent size */}
+                          <div className="relative mt-0.5 mb-1.5">
                             <UserAvatar
                               src={student.profilePicture}
                               name={student.name}
-                              className="w-13 h-13 sm:w-15 sm:h-15 rounded-full border-2 border-orange-100/70 dark:border-gray-700 shadow-xs object-cover"
+                              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-orange-100/70 dark:border-gray-700 shadow-xs object-cover"
                               textClassName="text-base sm:text-lg font-black"
                             />
                           </div>
@@ -436,38 +434,33 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
                             {student.name}
                           </h4>
 
-                          {/* Subtitle / Department / College */}
-                          <p className="text-gray-400 dark:text-gray-500 text-[11px] leading-tight mt-1 truncate w-full px-1 font-medium min-h-[16px]">
-                            {subtitle || 'Student'}
-                          </p>
-
-                          {/* Connect Action Button */}
-                          <div className="w-full mt-3">
+                          {/* Small Compact Button */}
+                          <div className="w-full flex justify-center mt-2">
                             {fState.isConnected ? (
                               <button
                                 type="button"
                                 disabled
-                                className="w-full py-1.5 px-2.5 rounded-xl bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 border border-green-200/80 dark:border-green-800 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 cursor-default shadow-2xs"
+                                className="py-1 px-3 rounded-full bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 border border-green-200/80 dark:border-green-800 text-[11px] font-bold flex items-center justify-center gap-1 cursor-default shadow-2xs"
                               >
-                                <UserCheck size={13} />
+                                <UserCheck size={12} />
                                 <span>Connected</span>
                               </button>
                             ) : fState.isPending ? (
                               <button
                                 type="button"
                                 disabled
-                                className="w-full py-1.5 px-2.5 rounded-xl bg-gray-100 dark:bg-gray-750 text-gray-500 dark:text-gray-400 border border-gray-200/80 dark:border-gray-700 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 cursor-default shadow-2xs"
+                                className="py-1 px-3 rounded-full bg-gray-100 dark:bg-gray-750 text-gray-500 dark:text-gray-400 border border-gray-200/80 dark:border-gray-700 text-[11px] font-bold flex items-center justify-center gap-1 cursor-default shadow-2xs"
                               >
-                                <Check size={13} />
+                                <Check size={12} />
                                 <span>Requested</span>
                               </button>
                             ) : (
                               <button
                                 type="button"
                                 onClick={(e) => handleConnect(e, student.id)}
-                                className="w-full py-1.5 px-2.5 rounded-xl bg-[#FF5722] hover:bg-[#F4511E] text-white text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer shadow-xs shadow-orange-500/20"
+                                className="py-1 px-3.5 rounded-full bg-[#FF5722] hover:bg-[#F4511E] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer shadow-xs shadow-orange-500/20"
                               >
-                                <UserPlus size={13} />
+                                <UserPlus size={12} />
                                 <span>Connect</span>
                               </button>
                             )}
