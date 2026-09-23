@@ -4,6 +4,7 @@ import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
 import { useSocialStatusStore } from '../../../store/socialStatusStore.js';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 
 export default function MessagesTab({ currentUserId, selectedContact, onClearSelectedContact }) {
   const [messages, setMessages] = useState([]);
@@ -159,7 +160,7 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
                 }`}
               >
                 <div className="relative flex-shrink-0">
-                  <img src={contact.profilePicture || '/default-avatar.png'} alt={contact.name} className="w-10 h-10 rounded-full object-cover bg-gray-200" />
+                  <UserAvatar src={contact.profilePicture} name={contact.name} className="w-10 h-10 rounded-full object-cover" />
                   {isContactOnline && (
                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
                   )}
@@ -199,7 +200,7 @@ export default function MessagesTab({ currentUserId, selectedContact, onClearSel
               >
                 <ArrowLeft size={20} />
               </button>
-              <img src={selectedUser.profilePicture || '/default-avatar.png'} alt={selectedUser.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+              <UserAvatar src={selectedUser.profilePicture} name={selectedUser.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
               <div className="min-w-0">
                 <h3 className="font-bold text-gray-900 dark:text-white text-sm truncate">{selectedUser.name}</h3>
                 <p className={`text-[10px] font-bold ${isSelectedUserOnline ? 'text-green-500' : 'text-gray-400'}`}>

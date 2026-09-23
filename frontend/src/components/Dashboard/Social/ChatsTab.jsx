@@ -103,6 +103,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const [lastMessages, setLastMessages] = useState({});
 
   const [replyingTo, setReplyingTo] = useState(null);
+  const [forwardingMessage, setForwardingMessage] = useState(null);
+  const [forwardSearch, setForwardSearch] = useState('');
+  const [forwardSendingId, setForwardSendingId] = useState(null);
   const [swipeState, setSwipeState] = useState({});
   const SWIPE_THRESHOLD = 60;
 
@@ -1401,11 +1404,77 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   };
 
   const handleForwardMessage = (msg) => {
-    const txt = parseMessageContent(msg).text || msg.content;
-    setInputText(txt);
+    setForwardingMessage(msg);
     setActiveMenuMessage(null);
-    toast.success('Message copied to input box');
-    setTimeout(() => inputRef.current?.focus(), 60);
+    setShowAllReactions(false);
+    setForwardSearch('');
+  };
+
+  const handleSendForward = async (target, targetType) => {
+    if (!forwardingMessage || !target) return;
+    const txtToForward = parseMessageContent(forwardingMessage).text || forwardingMessage.content;
+    if (!txtToForward || !txtToForward.trim()) {
+      toast.error('No message text to forward');
+      return;
+    }
+
+    setForwardSendingId(`${targetType}-${target.id}`);
+
+    try {
+      if (targetType === 'direct') {
+        const newMessage = {
+          senderId: currentUserId,
+          receiverId: target.id,
+          content: txtToForward,
+          createdAt: new Date().toISOString(),
+        };
+
+        // Emit via socket
+        socketRef.current?.emit('sendMessage', {
+          receiverId: target.id.toString(),
+          message: newMessage,
+        });
+
+        // If currently in this chat, append to messages
+        if (selectedChatRef.current && selectedChatRef.current.type === 'direct' && String(selectedChatRef.current.id) === String(target.id)) {
+          setMessages((prev) => [...prev, newMessage]);
+        }
+        appendCachedMessage(`direct-${target.id}`, newMessage);
+        setLastMessages((prev) => ({
+          ...prev,
+          [`direct-${target.id}`]: newMessage
+        }));
+
+        toast.success(`Forwarded to ${target.name}!`);
+      } else if (targetType === 'group') {
+        const targetGroupId = target.id;
+        const response = await socialApi.post(`/groups/${targetGroupId}/messages`, {
+          content: txtToForward,
+        });
+        const savedMessage = response.data;
+
+        if (selectedChatRef.current && selectedChatRef.current.type === 'group' && String(selectedChatRef.current.id) === String(targetGroupId)) {
+          setMessages((prev) => {
+            if (prev.some(m => String(m.id) === String(savedMessage.id))) return prev;
+            return [...prev, savedMessage];
+          });
+        }
+        appendCachedMessage(`group-${targetGroupId}`, savedMessage);
+        setLastMessages((prev) => ({
+          ...prev,
+          [`group-${targetGroupId}`]: savedMessage
+        }));
+
+        toast.success(`Forwarded to ${target.name}!`);
+      }
+
+      setForwardingMessage(null);
+    } catch (err) {
+      console.error('Failed to forward message:', err);
+      toast.error(err.response?.data?.error || 'Failed to forward message');
+    } finally {
+      setForwardSendingId(null);
+    }
   };
 
   const handleCreateGroup = async (e) => {
@@ -1512,6 +1581,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
   const filteredConversations = activeConversations.filter(chat =>
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredForwardContacts = contacts.filter((c) =>
+    (c.name || '').toLowerCase().includes(forwardSearch.toLowerCase())
+  );
+  const filteredForwardGroups = groups.filter((g) =>
+    (g.name || '').toLowerCase().includes(forwardSearch.toLowerCase())
   );
 
 
@@ -3447,6 +3523,155 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     <CheckCheck size={14} /> Delivered
                   </span>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* WhatsApp-Style Forward Message Modal */}
+      <AnimatePresence>
+        {forwardingMessage && (
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[2600]"
+            onClick={() => setForwardingMessage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl p-5 w-full max-w-sm sm:max-w-md shadow-2xl border border-gray-100 dark:border-gray-700 flex flex-col max-h-[85vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400">
+                    <Forward size={18} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 dark:text-white text-base">Forward message</h4>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium">Select a friend or group</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setForwardingMessage(null)} 
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Message Snippet Preview */}
+              <div className="my-3 p-3 bg-gray-50 dark:bg-gray-900/60 rounded-2xl border border-gray-100 dark:border-gray-800 shrink-0">
+                <div className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <CornerUpLeft size={10} /> Forwarding
+                </div>
+                <p className="text-xs text-gray-700 dark:text-gray-300 font-medium line-clamp-2 italic break-words">
+                  "{parseMessageContent(forwardingMessage).text || forwardingMessage.content}"
+                </p>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative mb-3 shrink-0">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search contacts or groups..."
+                  value={forwardSearch}
+                  onChange={(e) => setForwardSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-gray-100 dark:bg-gray-700/60 text-gray-900 dark:text-white rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                />
+              </div>
+
+              {/* List of Contacts and Groups */}
+              <div className="overflow-y-auto flex-1 space-y-4 pr-1 custom-scrollbar">
+                {/* Contacts / Friends */}
+                {filteredForwardContacts.length > 0 && (
+                  <div>
+                    <h5 className="text-[10px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5 px-1">
+                      Friends ({filteredForwardContacts.length})
+                    </h5>
+                    <div className="space-y-1">
+                      {filteredForwardContacts.map((c) => {
+                        const isSending = forwardSendingId === `direct-${c.id}`;
+                        const isOnline = onlineUserIds.includes(Number(c.id));
+                        return (
+                          <div 
+                            key={`contact-${c.id}`}
+                            className="flex items-center justify-between p-2 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition group"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="relative shrink-0">
+                                <UserAvatar src={c.profilePicture} name={c.name} className="w-9 h-9 rounded-full object-cover" />
+                                {isOnline && (
+                                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-gray-800" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{c.name}</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{c.collegeName || (isOnline ? 'Online' : 'Offline')}</p>
+                              </div>
+                            </div>
+                            <button
+                              disabled={isSending}
+                              onClick={() => handleSendForward(c, 'direct')}
+                              className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer disabled:opacity-50 shrink-0 ml-2"
+                            >
+                              <Send size={12} />
+                              <span>{isSending ? 'Sending...' : 'Send'}</span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Groups */}
+                {filteredForwardGroups.length > 0 && (
+                  <div>
+                    <h5 className="text-[10px] font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5 px-1">
+                      Groups ({filteredForwardGroups.length})
+                    </h5>
+                    <div className="space-y-1">
+                      {filteredForwardGroups.map((g) => {
+                        const isSending = forwardSendingId === `group-${g.id}`;
+                        return (
+                          <div 
+                            key={`group-${g.id}`}
+                            className="flex items-center justify-between p-2 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition group"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-black text-xs flex items-center justify-center shrink-0">
+                                {g.name?.[0]?.toUpperCase() || 'G'}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-gray-900 dark:text-white truncate">{g.name}</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{g.isPrivate ? 'Private group' : 'Public group'}</p>
+                              </div>
+                            </div>
+                            <button
+                              disabled={isSending}
+                              onClick={() => handleSendForward(g, 'group')}
+                              className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer disabled:opacity-50 shrink-0 ml-2"
+                            >
+                              <Send size={12} />
+                              <span>{isSending ? 'Sending...' : 'Send'}</span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {filteredForwardContacts.length === 0 && filteredForwardGroups.length === 0 && (
+                  <div className="py-8 text-center text-gray-400 text-xs">
+                    No contacts or groups found matching "{forwardSearch}"
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

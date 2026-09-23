@@ -5,6 +5,7 @@ import { getSocialSocket } from '../../../utils/socialSocket.js';
 import { useModal } from '../../../context/ModalContext';
 import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
 import toast from 'react-hot-toast';
+import UserAvatar from '../../Common/UserAvatar.jsx';
 
 export default function GroupsTab({ currentUserId }) {
   const { confirm } = useModal();
@@ -411,10 +412,10 @@ export default function GroupsTab({ currentUserId }) {
                   return (
                     <div key={msg.id} className={`flex items-start gap-2.5 ${isOwn ? 'justify-end' : ''}`}>
                       {!isOwn && (
-                        <img
-                          src={msg.sender?.profilePicture || '/default-avatar.png'}
-                          alt={msg.sender?.name}
-                          className="w-8 h-8 rounded-full object-cover flex-shrink-0 bg-gray-100 mt-0.5"
+                        <UserAvatar
+                          src={msg.sender?.profilePicture}
+                          name={msg.sender?.name}
+                          className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-0.5"
                         />
                       )}
                       <div className={`flex flex-col max-w-[80%] md:max-w-[70%] ${isOwn ? 'items-end' : 'items-start'}`}>

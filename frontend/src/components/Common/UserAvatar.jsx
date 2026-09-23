@@ -17,7 +17,8 @@ export default function UserAvatar({
   alt,
   loading = "eager"
 }) {
-  const effectiveSrc = src || user?.profilePicture || user?.avatar || user?.picture || user?.profile_pic || user?.photoURL;
+  const rawSrc = src || user?.profilePicture || user?.avatar || user?.picture || user?.profile_pic || user?.photoURL;
+  const effectiveSrc = typeof rawSrc === 'string' && rawSrc.startsWith('//') ? `https:${rawSrc}` : rawSrc;
   const effectiveName = name !== 'User' ? name : (user?.name || user?.username || name);
   const resolvedSrc = resolveMediaUrl(effectiveSrc);
   const [displaySrc, setDisplaySrc] = useState(resolvedSrc);
@@ -29,7 +30,7 @@ export default function UserAvatar({
     setImgError(false);
     convertingRef.current = false;
 
-    if (!resolvedSrc || resolvedSrc === '/default-avatar.png' || resolvedSrc === 'null' || resolvedSrc === 'undefined') {
+    if (!resolvedSrc || resolvedSrc === '/default-avatar.png' || resolvedSrc === 'null' || resolvedSrc === 'undefined' || resolvedSrc === '/') {
       setDisplaySrc(resolvedSrc);
       return;
     }
@@ -81,7 +82,7 @@ export default function UserAvatar({
   };
 
   const initial = effectiveName?.[0]?.toUpperCase() || 'U';
-  const isInvalidSrc = !resolvedSrc || resolvedSrc === '/default-avatar.png' || resolvedSrc === 'null' || resolvedSrc === 'undefined';
+  const isInvalidSrc = !resolvedSrc || resolvedSrc === '/default-avatar.png' || resolvedSrc === 'null' || resolvedSrc === 'undefined' || resolvedSrc === '/' || resolvedSrc.trim() === '';
 
   if (isInvalidSrc || imgError) {
     const colors = [

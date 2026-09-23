@@ -182,21 +182,50 @@ export async function convertHeicSourceToJpeg(src) {
 }
 
 /**
- * Resolves static media URLs safely across browsers, Capacitor mobile apps, and local dev.
+ * Resolves static media URLs safely across browsers, Capacitor mobile apps, and production hosts.
  */
 export function resolveMediaUrl(src) {
   if (!src || typeof src !== 'string') return src;
-  if (!src.startsWith('/media/')) return src;
+  
+  // Clean up whitespace or accidental wrapping quotes
+  let url = src.trim().replace(/^['"]|['"]$/g, '');
+  if (!url || url === 'null' || url === 'undefined') return '';
 
+  // Data URLs and Blobs should be returned directly
+  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+
+  let backendUrl = 'https://api.learnproofai.com';
   if (typeof window !== 'undefined') {
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     if (isLocalhost) {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
-      return `${backendUrl.replace(/\/+$/, '')}${src}`;
+      backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+    } else {
+      backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
     }
-    // Production web, mobile web, or Capacitor app: always point /media to backend API server
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
-    return `${backendUrl.replace(/\/+$/, '')}${src}`;
   }
-  return src;
+  backendUrl = backendUrl.replace(/\/+$/, '');
+
+  // Normalize localhost / local IP URLs in production database records
+  if (url.includes('localhost:8000') || url.includes('127.0.0.1:8000') || url.includes('80.225.218.46:8000')) {
+    return url.replace(/https?:\/\/(localhost|127\.0\.0\.1|80\.225\.218\.46):8000/, backendUrl);
+  }
+
+  // If pointing to /media on apex domain (which returns HTML for SPA), redirect to backendUrl
+  if (url.startsWith('https://learnproofai.com/media/') || url.startsWith('http://learnproofai.com/media/')) {
+    return url.replace(/https?:\/\/learnproofai\.com\/media\//, `${backendUrl}/media/`);
+  }
+
+  // Relative /media or media path
+  if (url.startsWith('/media/') || url.startsWith('media/')) {
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    return `${backendUrl}${cleanPath}`;
+  }
+
+  // Relative /uploads or uploads path
+  if (url.startsWith('/uploads/') || url.startsWith('uploads/')) {
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    return `${backendUrl}${cleanPath}`;
+  }
+
+  return url;
 }

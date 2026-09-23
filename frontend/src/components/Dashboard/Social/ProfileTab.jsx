@@ -28,8 +28,9 @@ const VISIBILITY_OPTIONS = [
   { value: 'private', label: 'Private', icon: Lock, desc: 'Only you can see' },
 ];
 
-function CompactVisibilityDropdown({ value = 'public', onChange, label, disabled = false, align = 'right' }) {
+function CompactVisibilityDropdown({ value = 'public', onChange, label, disabled = false, align = 'right', dropUp }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -48,6 +49,21 @@ function CompactVisibilityDropdown({ value = 'public', onChange, label, disabled
     };
   }, [isOpen]);
 
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    if (!isOpen && dropdownRef.current) {
+      if (typeof dropUp === 'boolean') {
+        setOpenUpward(dropUp);
+      } else {
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        // Dropdown menu height is ~200px. If less than 230px space below, pop upwards
+        setOpenUpward(spaceBelow < 230);
+      }
+    }
+    setIsOpen(!isOpen);
+  };
+
   const currentOpt = VISIBILITY_OPTIONS.find((o) => o.value === value) || VISIBILITY_OPTIONS[0];
   const CurrentIcon = currentOpt.icon;
 
@@ -64,10 +80,7 @@ function CompactVisibilityDropdown({ value = 'public', onChange, label, disabled
       <button
         type="button"
         disabled={disabled}
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(!isOpen);
-        }}
+        onClick={handleToggle}
         title={`Visibility: ${currentOpt.label} (${currentOpt.desc}) - Click to change`}
         className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1 rounded-xl text-[11px] sm:text-xs font-bold border transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 ${
           colorStyles[currentOpt.value] || colorStyles.public
@@ -81,11 +94,13 @@ function CompactVisibilityDropdown({ value = 'public', onChange, label, disabled
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            initial={{ opacity: 0, scale: 0.95, y: openUpward ? 6 : -6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            exit={{ opacity: 0, scale: 0.95, y: openUpward ? 6 : -6 }}
             transition={{ duration: 0.15 }}
-            className={`absolute z-50 mt-1.5 w-52 sm:w-56 p-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl backdrop-blur-md top-full ${
+            className={`absolute z-[120] w-52 sm:w-56 p-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl backdrop-blur-md ${
+              openUpward ? 'bottom-full mb-2' : 'top-full mt-2'
+            } ${
               align === 'right' ? 'right-0' : 'left-0'
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -2344,7 +2359,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             </div>
 
             {/* Scrollable Form Body */}
-            <form id="edit-profile-form" onSubmit={handleSave} className="px-4 py-4 sm:px-6 sm:py-5 overflow-y-auto space-y-5 flex-1 custom-scrollbar text-left pb-8">
+            <form id="edit-profile-form" onSubmit={handleSave} className="px-4 py-4 sm:px-6 sm:py-5 overflow-y-auto space-y-5 flex-1 custom-scrollbar text-left pb-32">
               {/* Profile Photo Upload inside Edit Modal */}
               <div className="p-3 sm:p-4 bg-gradient-to-r from-orange-50/60 via-amber-50/30 to-transparent dark:from-gray-900/90 dark:to-gray-900/40 rounded-2xl border border-orange-100/80 dark:border-gray-700/80 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
@@ -2668,10 +2683,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               onClick={(e) => e.stopPropagation()}
               className="relative flex flex-col items-center max-w-[90vw] max-h-[85vh] cursor-default"
             >
-              <img
+              <UserAvatar
                 src={profile.profilePicture || profile.avatar}
-                alt={profile.name}
-                className="max-w-full max-h-[75vh] w-auto h-auto rounded-3xl object-contain shadow-2xl border border-white/15"
+                name={profile.name}
+                className="max-w-[85vw] max-h-[70vh] w-72 h-72 sm:w-88 sm:h-88 rounded-3xl object-contain shadow-2xl border border-white/20"
+                textClassName="text-6xl sm:text-7xl font-extrabold"
               />
               <div className="mt-3 text-center">
                 <h4 className="text-white font-black text-base drop-shadow-md">{profile.name}</h4>
