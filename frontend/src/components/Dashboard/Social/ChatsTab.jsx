@@ -281,7 +281,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       }) : prev);
 
       setShowEditGroupModal(false);
-      toast.success('Group information updated!');
     } catch (err) {
       console.error('Failed to update group information:', err);
       toast.error(err.response?.data?.error || 'Failed to update group information');
@@ -296,7 +295,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         userId: friendId
       });
       await fetchGroupDetails(selectedChat.id);
-      toast.success('Member added!');
     } catch (err) {
       console.error('Failed to add member:', err);
       toast.error(err.response?.data?.error || 'Failed to add member');
@@ -314,7 +312,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     try {
       await socialApi.delete(`/groups/${selectedChat.id}/members/${memberId}`);
       await fetchGroupDetails(selectedChat.id);
-      toast.success('Member removed');
     } catch (err) {
       console.error('Failed to remove member:', err);
       toast.error(err.response?.data?.error || 'Failed to remove member');
@@ -374,7 +371,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     if (!confirmed) return;
     try {
       await socialApi.put(`/groups/${selectedChat.id}/members/${targetUserId}/role`, { role: newRole });
-      toast.success(`${targetUserName} is now ${newRole === 'admin' ? 'a Group Admin' : 'a Member'}`);
       await fetchGroupDetails(selectedChat.id);
     } catch (err) {
       console.error('Failed to update member role:', err);
@@ -1326,7 +1322,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       setJoinKey('');
       await fetchData();
       navigate(`/dashboard/social/chats/group/${group.id}`);
-      toast.success('Joined group!');
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.error || 'Failed to join group');
@@ -1345,7 +1340,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       await socialApi.post('/groups/leave', { groupId });
       navigate('/dashboard/social/chats');
       await fetchData();
-      toast.success('Left group');
     } catch (err) {
       console.error(err);
     }

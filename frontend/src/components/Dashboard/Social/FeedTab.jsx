@@ -62,7 +62,6 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
     try {
       await socialApi.post('/social/friend-request', { receiverId: targetUserId });
       setSentRequests(prev => new Set([...prev, targetUserId]));
-      toast.success("Connection request sent!");
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to send request");
     }

@@ -144,7 +144,6 @@ export default function GroupsTab({ currentUserId }) {
       setGroupJoined(group.id, true); // optimistic update in store
       setActiveGroupId(group.id);
       fetchGroups(true); // sync from server
-      toast.success(`Joined ${group.name}!`);
     } catch (err) {
       console.error('Error joining group', err);
       toast.error(err.response?.data?.error || 'Failed to join group');
@@ -166,7 +165,6 @@ export default function GroupsTab({ currentUserId }) {
       }
       setGroupJoined(groupId, false); // optimistic update in store
       fetchGroups(true); // sync from server
-      toast.success('Left group successfully');
     } catch (err) {
       console.error('Error leaving group', err);
       toast.error(err.response?.data?.error || 'Failed to leave group');

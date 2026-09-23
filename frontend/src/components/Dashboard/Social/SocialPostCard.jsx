@@ -381,7 +381,6 @@ export default function SocialPostCard({ post, onLike, onSave, currentUserId, on
     try {
       await navigator.clipboard.writeText(shareUrl);
       setIsShared(true);
-      toast.success('Post link copied to clipboard!');
       setTimeout(() => setIsShared(false), 2000);
     } catch (err) {
       console.error('Failed to copy share link', err);

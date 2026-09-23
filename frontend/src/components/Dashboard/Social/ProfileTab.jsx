@@ -811,7 +811,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       return;
     }
 
-    const toastId = toast.loading('Processing & updating profile photo...');
     try {
       // Compress avatar with high-quality preservation (~50-80KB, 600x600)
       const compressedBase64 = await compressImage(file, 600, 600, 0.88);
@@ -842,12 +841,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           profilePicture: updatedPic,
         });
       }
-
-      toast.dismiss(toastId);
-      toast.success('Profile picture updated successfully!');
     } catch (err) {
       console.error('Failed to update avatar:', err);
-      toast.dismiss(toastId);
       toast.error(err.message || 'Failed to update profile picture');
     }
   };
@@ -867,7 +862,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       return;
     }
 
-    const toastId = toast.loading('Processing & uploading cover photo...');
     try {
       // Compress cover image preserving crisp widescreen quality (~150-250KB, 1600x650)
       const compressedBase64 = await compressImage(file, 1600, 650, 0.85);
@@ -888,12 +882,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       if (updateSocialUser) {
         updateSocialUser({ coverImage: updatedCover });
       }
-
-      toast.dismiss(toastId);
-      toast.success('Cover photo updated and visible to everyone!');
     } catch (err) {
       console.error('Failed to update cover photo:', err);
-      toast.dismiss(toastId);
       toast.error(err?.response?.data?.error || 'Failed to update cover photo');
       fetchProfile();
     } finally {
@@ -904,7 +894,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
   const handleSave = async (e) => {
     e?.preventDefault?.();
-    const toastId = toast.loading('Saving profile...');
     try {
       const response = await socialApi.put('/users/profile', formData);
       setProfile(response.data);
@@ -929,12 +918,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           picture: response.data.profilePicture || response.data.avatar
         });
       }
-
-      toast.dismiss(toastId);
-      toast.success('Profile updated successfully!');
     } catch (err) {
       console.error('Failed to update profile', err);
-      toast.dismiss(toastId);
       toast.error('Failed to update profile.');
     }
   };
@@ -949,7 +934,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
     try {
       await socialApi.put('/users/profile', updatedData);
-      toast.success(`Updated visibility to ${newVisibility}!`, { id: `vis-${fieldName}`, duration: 2000 });
     } catch (err) {
       console.error('Failed to update visibility', err);
       toast.error('Failed to update visibility');
@@ -1020,7 +1004,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         isMyCloseFriend: actualStatus,
         isCloseFriend: actualStatus
       }));
-      toast.success(actualStatus ? `Added ${profile.name} to Close Friends` : `Removed ${profile.name} from Close Friends`);
     } catch (err) {
       console.error('Failed to toggle close friend:', err);
       toast.error('Failed to update close friend status');
@@ -1053,7 +1036,6 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         closeFriends: state.closeFriends.filter(f => Number(f.id) !== Number(profile.id))
       }));
       await socialApi.post('/social/remove-friendship', { targetUserId: profile.id });
-      toast.success(`Removed ${profile.name} from connections`);
     } catch (err) {
       console.error('Failed to remove connection:', err);
       toast.error('Failed to remove connection');

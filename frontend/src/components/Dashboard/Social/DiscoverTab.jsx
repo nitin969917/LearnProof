@@ -75,7 +75,6 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
     if (!code) return;
     navigator.clipboard.writeText(code);
     setCopied(true);
-    toast.success('Referral code copied to clipboard!');
     setTimeout(() => setCopied(false), 2500);
   };
 
@@ -104,7 +103,6 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
 
     // Fallback: Copy link & open WhatsApp
     navigator.clipboard.writeText(shareUrl || code);
-    toast.success('Referral link copied!');
     const text = encodeURIComponent(`Hey! Join me on LearnProof AI to learn from any YouTube playlist with AI notes, quizzes, and live study rooms: ${shareUrl || code}`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
@@ -129,7 +127,6 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
     try {
       await socialApi.post('/social/friend-request', { receiverId: studentId });
       setSentRequests(prev => [...prev, studentId]);
-      toast.success('Friend request sent!');
     } catch (err) {
       console.error('Failed to send friend request:', err);
       toast.error(err.response?.data?.error || 'Failed to send request');
@@ -144,7 +141,6 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
       });
       setShowJoinGroupModal(null);
       setJoinKey('');
-      toast.success('Joined group!');
       await fetchStoreGroups(true);
     } catch (err) {
       console.error(err);

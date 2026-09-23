@@ -39,7 +39,6 @@ const StudentProfileSetupModal = () => {
                 department: formData.department.trim(),
                 yearOfStudy: formData.yearOfStudy
             });
-            toast.success('College profile saved!');
             handleClose();
         } catch (err) {
             console.error('Failed to update student profile:', err);
