@@ -87,9 +87,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const fetchStoreGroups = useSocialGroupsStore(state => state.fetchGroups);
   const hasLoadedGroups = useSocialGroupsStore(state => state.hasLoadedGroups);
 
-  const [contacts, setContacts] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(!hasLoadedFriends || !hasLoadedGroups);
+  const [contacts, setContacts] = useState(() => useSocialFeedStore.getState().friends || []);
+  const [groups, setGroups] = useState(() => useSocialGroupsStore.getState().groups || []);
+  const [loading, setLoading] = useState(() => {
+    const friendsCount = (useSocialFeedStore.getState().friends || []).length;
+    const groupsCount = (useSocialGroupsStore.getState().groups || []).length;
+    return friendsCount === 0 && groupsCount === 0;
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'direct', 'groups'
 
@@ -99,8 +103,49 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const [loadingChatHistory, setLoadingChatHistory] = useState(false);
   const [inputText, setInputText] = useState('');
   
-  // Last message previews
-  const [lastMessages, setLastMessages] = useState({});
+  // Last message previews - pre-populated instantly from cached stores
+  const [lastMessages, setLastMessages] = useState(() => {
+    const initial = {};
+    const friends = useSocialFeedStore.getState().friends || [];
+    const grps = useSocialGroupsStore.getState().groups || [];
+    friends.forEach(f => { if (f.lastMessage) initial[`direct-${f.id}`] = f.lastMessage; });
+    grps.forEach(g => { if (g.lastMessage) initial[`group-${g.id}`] = g.lastMessage; });
+    return initial;
+  });
+
+  // Subscribe to live store updates so groups and friends render immediately at 0ms
+  useEffect(() => {
+    const unsubG = useSocialGroupsStore.subscribe((state) => {
+      if (Array.isArray(state.groups)) {
+        setGroups(state.groups);
+        setLastMessages(prev => {
+          const next = { ...prev };
+          state.groups.forEach(g => {
+            if (g.lastMessage) next[`group-${g.id}`] = g.lastMessage;
+          });
+          return next;
+        });
+      }
+    });
+
+    const unsubF = useSocialFeedStore.subscribe((state) => {
+      if (Array.isArray(state.friends)) {
+        setContacts(state.friends);
+        setLastMessages(prev => {
+          const next = { ...prev };
+          state.friends.forEach(f => {
+            if (f.lastMessage) next[`direct-${f.id}`] = f.lastMessage;
+          });
+          return next;
+        });
+      }
+    });
+
+    return () => {
+      unsubG();
+      unsubF();
+    };
+  }, []);
 
   const [replyingTo, setReplyingTo] = useState(null);
   const [forwardingMessage, setForwardingMessage] = useState(null);
@@ -456,27 +501,25 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   }, [onToggleHeader]);
 
   const fetchData = async () => {
-    const cachedFriends = useSocialFeedStore.getState().friends;
-    const cachedGroups = useSocialGroupsStore.getState().groups;
+    const cachedFriends = useSocialFeedStore.getState().friends || [];
+    const cachedGroups = useSocialGroupsStore.getState().groups || [];
 
     if (cachedFriends.length > 0 || cachedGroups.length > 0) {
-      const friendsList = cachedFriends;
-      const groupsList = cachedGroups;
-      setContacts(friendsList);
-      setGroups(groupsList);
+      setContacts(cachedFriends);
+      setGroups(cachedGroups);
 
       const initialLastMsgs = {};
-      friendsList.forEach(friend => {
+      cachedFriends.forEach(friend => {
         if (friend.lastMessage) {
           initialLastMsgs[`direct-${friend.id}`] = friend.lastMessage;
         }
       });
-      groupsList.forEach(group => {
+      cachedGroups.forEach(group => {
         if (group.lastMessage) {
           initialLastMsgs[`group-${group.id}`] = group.lastMessage;
         }
       });
-      setLastMessages(initialLastMsgs);
+      setLastMessages(prev => ({ ...prev, ...initialLastMsgs }));
       setLoading(false);
 
       const prefetchTop = (friends, grps) => {
@@ -506,19 +549,28 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         });
       };
 
-      prefetchTop(friendsList, groupsList);
+      prefetchTop(cachedFriends, cachedGroups);
 
-      Promise.all([fetchStoreFriends(), fetchStoreGroups()]).then(() => {
-        const freshFriends = useSocialFeedStore.getState().friends;
-        const freshGroups = useSocialGroupsStore.getState().groups;
+      // Revalidate independently so groups and friends don't block each other
+      fetchStoreFriends().then(() => {
+        const freshFriends = useSocialFeedStore.getState().friends || [];
         setContacts(freshFriends);
+        setLastMessages(prev => {
+          const next = { ...prev };
+          freshFriends.forEach(f => { if (f.lastMessage) next[`direct-${f.id}`] = f.lastMessage; });
+          return next;
+        });
+      }).catch(() => {});
+
+      fetchStoreGroups().then(() => {
+        const freshGroups = useSocialGroupsStore.getState().groups || [];
         setGroups(freshGroups);
-        const updatedMsgs = {};
-        freshFriends.forEach(f => { if (f.lastMessage) updatedMsgs[`direct-${f.id}`] = f.lastMessage; });
-        freshGroups.forEach(g => { if (g.lastMessage) updatedMsgs[`group-${g.id}`] = g.lastMessage; });
-        setLastMessages(updatedMsgs);
-        prefetchTop(freshFriends, freshGroups);
-      });
+        setLastMessages(prev => {
+          const next = { ...prev };
+          freshGroups.forEach(g => { if (g.lastMessage) next[`group-${g.id}`] = g.lastMessage; });
+          return next;
+        });
+      }).catch(() => {});
     } else {
       try {
         setLoading(true);

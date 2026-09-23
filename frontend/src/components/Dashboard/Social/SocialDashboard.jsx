@@ -13,6 +13,7 @@ import SocialPostCard from './SocialPostCard.jsx';
 import PostVisibilitySelector from './PostVisibilitySelector.jsx';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
+import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 import { motion } from 'framer-motion';
 import { compressImage } from '../../../utils/imageCompressor.js';
@@ -27,6 +28,14 @@ export default function SocialDashboard() {
   const fetchSocialUser = useSocialFeedStore((state) => state.fetchSocialUser);
   const pendingFriendCount = useSocialFeedStore((state) => state.pendingFriendCount);
   const clearPendingFriendCount = useSocialFeedStore((state) => state.clearPendingFriendCount);
+  const fetchFriends = useSocialFeedStore((state) => state.fetchFriends);
+  const fetchGroups = useSocialGroupsStore((state) => state.fetchGroups);
+
+  // Pre-warm groups and friends immediately on social section entry so chats open with 0ms delay
+  useEffect(() => {
+    fetchFriends();
+    fetchGroups();
+  }, [fetchFriends, fetchGroups]);
 
   // Initialize state variables strictly from URL pathname/search
   const [activeTab, setActiveTab] = useState(() => {

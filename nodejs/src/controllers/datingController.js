@@ -2928,7 +2928,7 @@ const getGroups = async (req, res) => {
       };
     });
 
-    await cacheService.set(cacheKey, formattedGroups, 10); // Cache for 10 seconds
+    await cacheService.set(cacheKey, formattedGroups, 120); // Cache for 2 minutes (invalidated on any message/membership change)
 
     res.json(formattedGroups);
   } catch (error) {
