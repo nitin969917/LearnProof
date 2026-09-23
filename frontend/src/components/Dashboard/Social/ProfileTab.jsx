@@ -30,7 +30,7 @@ function VisibilityPill({ value = 'public', onChange, label, disabled = false })
   return (
     <div className="flex flex-col gap-1">
       {label && <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</span>}
-      <div className="inline-flex bg-gray-100 dark:bg-gray-800 p-0.5 rounded-xl border border-gray-200/80 dark:border-gray-700/80 text-[11px]">
+      <div className="inline-flex bg-gray-100/90 dark:bg-gray-800 p-0.5 rounded-xl border border-gray-200/80 dark:border-gray-700/80 text-[10px] sm:text-[11px] shrink-0">
         {VISIBILITY_OPTIONS.map((opt) => {
           const isSelected = (value || 'public') === opt.value;
           const Icon = opt.icon;
@@ -41,13 +41,13 @@ function VisibilityPill({ value = 'public', onChange, label, disabled = false })
               disabled={disabled}
               onClick={() => onChange && onChange(opt.value)}
               title={opt.desc}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg font-bold transition-all cursor-pointer ${
                 isSelected
                   ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-xs scale-100'
                   : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
               }`}
             >
-              <Icon size={12} className={isSelected ? 'text-orange-500' : 'text-gray-400'} />
+              <Icon size={11} className={isSelected ? 'text-orange-500' : 'text-gray-400'} />
               <span>{opt.label}</span>
             </button>
           );
@@ -2113,44 +2113,75 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
 
       {/* ── Edit Profile Modal with Full Visibility & Photo Upload Controls ── */}
       {isEditing && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 pb-24 sm:pb-6 overflow-y-auto">
-          <div className="relative bg-white dark:bg-gray-800 rounded-3xl max-w-2xl w-full flex flex-col max-h-[85vh] sm:max-h-[90vh] shadow-2xl border border-orange-100 dark:border-gray-700 overflow-hidden my-auto">
+        <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 overflow-hidden">
+          {/* Backdrop Click */}
+          <div 
+            className="absolute inset-0" 
+            onClick={() => setIsEditing(false)} 
+          />
+
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative bg-white dark:bg-gray-800 w-full sm:max-w-xl flex flex-col h-[94vh] sm:h-auto sm:max-h-[88vh] rounded-t-[28px] sm:rounded-3xl shadow-2xl border-t sm:border border-orange-100/80 dark:border-gray-700/80 overflow-hidden z-10 animate-fade-in"
+          >
+            {/* Mobile Sheet Handle Bar */}
+            <div className="pt-2.5 pb-1 flex justify-center sm:hidden shrink-0">
+              <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+            </div>
+
             {/* Sticky Modal Header */}
-            <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 shrink-0">
-              <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white flex items-center gap-2">
-                <Edit3 className="text-orange-500" size={20} />
-                <span>Edit Profile & Privacy</span>
-              </h3>
+            <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100 dark:border-gray-700/80 flex items-center justify-between bg-white dark:bg-gray-800 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center border border-orange-100 dark:border-orange-900/30">
+                  <Edit3 size={17} />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">
+                    Edit Profile & Privacy
+                  </h3>
+                  <p className="text-[11px] text-gray-400 font-medium">
+                    Customize your details and visibility
+                  </p>
+                </div>
+              </div>
               <button
+                type="button"
                 onClick={() => setIsEditing(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer"
+                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700/60 transition cursor-pointer"
+                title="Close"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
             {/* Scrollable Form Body */}
-            <form id="edit-profile-form" onSubmit={handleSave} className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar text-left">
+            <form id="edit-profile-form" onSubmit={handleSave} className="px-4 py-4 sm:px-6 sm:py-5 overflow-y-auto space-y-5 flex-1 custom-scrollbar text-left pb-8">
               {/* Profile Photo Upload inside Edit Modal */}
-              <div className="p-4 bg-orange-50/40 dark:bg-gray-900 rounded-2xl border border-orange-100/70 dark:border-gray-700/80 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5 min-w-0">
-                  <UserAvatar
-                    src={formData.profilePicture || profile.profilePicture || profile.avatar}
-                    name={formData.name || profile.name}
-                    className="w-14 h-14 rounded-full border-2 border-orange-300 shadow-sm shrink-0 object-cover"
-                    textClassName="text-xl font-bold"
-                  />
-                  <div>
-                    <h5 className="text-xs font-black text-gray-900 dark:text-white">Profile Photo</h5>
+              <div className="p-3.5 sm:p-4 bg-gradient-to-r from-orange-50/60 via-amber-50/30 to-transparent dark:from-gray-900/90 dark:to-gray-900/40 rounded-2xl border border-orange-100/80 dark:border-gray-700/80 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative shrink-0">
+                    <UserAvatar
+                      src={formData.profilePicture || profile.profilePicture || profile.avatar}
+                      name={formData.name || profile.name}
+                      className="w-13 h-13 sm:w-14 sm:h-14 rounded-full border-2 border-orange-300 dark:border-orange-500/50 shadow-sm object-cover"
+                      textClassName="text-lg sm:text-xl font-bold"
+                    />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs">
+                      <Camera size={11} />
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <h5 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white truncate">Profile Photo</h5>
+                    <p className="text-[10px] text-gray-400 mt-0.5">JPG, PNG or HEIC format</p>
                   </div>
                 </div>
 
                 <label
                   htmlFor="modal-avatar-upload-trigger"
-                  className="px-3 py-1.5 sm:px-3.5 sm:py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  className="px-3 py-2 sm:px-4 sm:py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer shrink-0"
                 >
                   <Camera size={14} />
-                  <span>Upload Photo</span>
+                  <span>Change Photo</span>
                   <input
                     id="modal-avatar-upload-trigger"
                     type="file"
@@ -2163,48 +2194,54 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               </div>
 
               {/* Basic Academic Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-3.5">
+                <h4 className="text-[11px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-wider">
+                  Basic Information
+                </h4>
+
                 <div>
-                  <label className="block text-xs font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                    Display Name *
+                  <label className="block text-[11px] font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                    Display Name <span className="text-orange-500">*</span>
                   </label>
                   <input
                     type="text"
                     required
                     value={formData.name || ''}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
+                    className="w-full px-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                    College / University
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Stanford University"
-                    value={formData.collegeName || ''}
-                    onChange={(e) => setFormData({ ...formData, collegeName: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                      College / University
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Stanford University"
+                      value={formData.collegeName || ''}
+                      onChange={(e) => setFormData({ ...formData, collegeName: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                      Major / Department
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Computer Science"
+                      value={formData.department || ''}
+                      onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+                    />
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                    Major / Department
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Computer Science"
-                    value={formData.department || ''}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                  <label className="block text-[11px] font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                     Year of Study
                   </label>
                   <input
@@ -2212,42 +2249,41 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     placeholder="e.g. 3rd Year"
                     value={formData.yearOfStudy || ''}
                     onChange={(e) => setFormData({ ...formData, yearOfStudy: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
+                    className="w-full px-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                    Bio / Quote
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="Share a short bio about your passions or goals..."
+                    value={formData.bio || ''}
+                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 resize-none transition"
                   />
                 </div>
               </div>
 
-              {/* Bio Field */}
-              <div>
-                <label className="block text-xs font-extrabold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
-                  Bio / Quote
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Share a short bio about your passions or goals..."
-                  value={formData.bio || ''}
-                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-orange-500 resize-none"
-                />
-              </div>
-
               {/* Contact & Social Links with Per-Field Visibility Switches */}
-              <div className="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-4">
+              <div className="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3.5">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-black uppercase text-orange-600 tracking-wider">
-                    Contact & Social Visibility
+                  <h4 className="text-[11px] font-black uppercase text-orange-600 dark:text-orange-400 tracking-wider">
+                    Contact & Privacy Settings
                   </h4>
-                  <span className="text-[10px] text-gray-400 font-semibold">
-                    Control audience for each detail
+                  <span className="text-[10px] text-gray-400 font-medium">
+                    Per-field visibility
                   </span>
                 </div>
 
-                <div className="space-y-3.5">
+                <div className="space-y-3">
                   {/* Phone Number with Visibility */}
-                  <div className="p-3.5 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-700 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <label className="text-xs font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                        <Phone size={14} className="text-orange-500" />
+                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
+                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
+                        <Phone size={14} className="text-orange-500 shrink-0" />
                         <span>Phone Number</span>
                       </label>
                       <VisibilityPill
@@ -2260,15 +2296,15 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       placeholder="+91 XXXXX XXXXX"
                       value={formData.phoneNumber || ''}
                       onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
                     />
                   </div>
 
                   {/* Email Visibility */}
-                  <div className="p-3.5 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-700 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <label className="text-xs font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                        <Mail size={14} className="text-orange-500" />
+                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
+                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
+                        <Mail size={14} className="text-orange-500 shrink-0" />
                         <span>Email Address</span>
                       </label>
                       <VisibilityPill
@@ -2276,16 +2312,16 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                         onChange={(val) => setFormData({ ...formData, emailVisibility: val })}
                       />
                     </div>
-                    <div className="px-3 py-2 bg-gray-100 dark:bg-gray-800/60 rounded-xl text-xs text-gray-600 dark:text-gray-300 font-medium">
+                    <div className="px-3 py-2 bg-gray-100/80 dark:bg-gray-800/60 rounded-xl text-xs text-gray-600 dark:text-gray-300 font-medium">
                       {profile.email || 'Your account email'}
                     </div>
                   </div>
 
                   {/* WhatsApp with Visibility */}
-                  <div className="p-3.5 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-700 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <label className="text-xs font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                        <MessageSquare size={14} className="text-emerald-500" />
+                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
+                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
+                        <MessageSquare size={14} className="text-emerald-500 shrink-0" />
                         <span>WhatsApp Number</span>
                       </label>
                       <VisibilityPill
@@ -2298,15 +2334,15 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       placeholder="+91 XXXXX XXXXX"
                       value={formData.whatsappNumber || ''}
                       onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
                     />
                   </div>
 
                   {/* Instagram Handle with Visibility */}
-                  <div className="p-3.5 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-700 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <label className="text-xs font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                        <Instagram size={14} className="text-pink-500" />
+                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
+                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
+                        <Instagram size={14} className="text-pink-500 shrink-0" />
                         <span>Instagram Handle</span>
                       </label>
                       <VisibilityPill
@@ -2319,15 +2355,15 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       placeholder="@username"
                       value={formData.instagramHandle || ''}
                       onChange={(e) => setFormData({ ...formData, instagramHandle: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
                     />
                   </div>
 
                   {/* LinkedIn URL with Visibility */}
-                  <div className="p-3.5 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-700 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <label className="text-xs font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                        <Linkedin size={14} className="text-blue-600" />
+                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
+                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
+                        <Linkedin size={14} className="text-blue-600 shrink-0" />
                         <span>LinkedIn Profile URL</span>
                       </label>
                       <VisibilityPill
@@ -2340,15 +2376,15 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       placeholder="https://linkedin.com/in/username"
                       value={formData.linkedinUrl || ''}
                       onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
                     />
                   </div>
 
                   {/* Facebook URL with Visibility */}
-                  <div className="p-3.5 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-700 space-y-2">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <label className="text-xs font-extrabold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                        <Facebook size={14} className="text-indigo-600" />
+                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
+                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
+                        <Facebook size={14} className="text-indigo-600 shrink-0" />
                         <span>Facebook Profile URL</span>
                       </label>
                       <VisibilityPill
@@ -2361,7 +2397,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       placeholder="https://facebook.com/username"
                       value={formData.facebookUrl || ''}
                       onChange={(e) => setFormData({ ...formData, facebookUrl: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
                     />
                   </div>
                 </div>
@@ -2369,18 +2405,18 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             </form>
 
             {/* Sticky Modal Footer - Always Visible Above Mobile Nav */}
-            <div className="p-3.5 sm:p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md flex items-center justify-end gap-3 shrink-0">
+            <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-gray-100 dark:border-gray-700/80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md flex items-center justify-between sm:justify-end gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-200/60 dark:hover:bg-gray-700 rounded-xl transition cursor-pointer"
+                className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition cursor-pointer text-center"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 form="edit-profile-form"
-                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 active:scale-95 transition cursor-pointer flex items-center gap-1.5"
+                className="flex-2 sm:flex-initial px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <Save size={15} />
                 <span>Save Profile</span>
