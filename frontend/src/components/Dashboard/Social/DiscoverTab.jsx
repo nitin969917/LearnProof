@@ -379,93 +379,101 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
 
               {/* Loading state */}
               {loading || loadingSuggested ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                    <div key={n} className="bg-white dark:bg-gray-800 rounded-2xl border-0 p-2.5 sm:p-3 shadow-xs animate-pulse flex items-center gap-2.5">
-                      <div className="w-13 h-13 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0"></div>
-                      <div className="flex-1 space-y-1.5 min-w-0">
-                        <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                        <div className="h-5 bg-gray-100 dark:bg-gray-700 rounded-full w-16"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
+                  {[1, 2, 3, 4, 5, 6].map((n) => (
+                    <div key={n} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100/80 dark:border-gray-700/60 p-3 sm:p-3.5 shadow-2xs animate-pulse flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0"></div>
+                        <div className="flex-1 space-y-1.5 min-w-0">
+                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/5"></div>
+                          <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-3/5"></div>
+                        </div>
                       </div>
+                      <div className="w-20 h-7 bg-gray-100 dark:bg-gray-700 rounded-full shrink-0"></div>
                     </div>
                   ))}
                 </div>
               ) : isUserSearching && results.length === 0 ? (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border-0 p-8 text-center text-gray-400 text-xs shadow-xs">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100/80 dark:border-gray-700 p-8 text-center text-gray-400 text-xs shadow-2xs">
                   No users found for "{query}". Try a different name, major, or college.
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
                     {(isUserSearching ? results : displayedSuggestedUsers).map((student) => {
                       const fState = getFriendshipState(student);
+                      const subtitle = [student.department, student.collegeName].filter(Boolean).join(' • ');
 
                       return (
                         <div
                           key={student.id}
                           onClick={() => onViewProfile && onViewProfile(student.id)}
-                          className="bg-white dark:bg-gray-800 rounded-2xl p-2.5 sm:p-3 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex items-center gap-2.5 sm:gap-3 relative group overflow-hidden border-0"
+                          className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-3.5 shadow-2xs hover:shadow-xs border border-gray-100/80 dark:border-gray-700/60 transition-all duration-200 cursor-pointer flex items-center justify-between gap-3 group"
                         >
-                          {/* Picture at one side (Left) */}
-                          <div className="shrink-0 relative">
-                            <UserAvatar
-                              src={student.profilePicture}
-                              name={student.name}
-                              className="w-12 h-12 sm:w-13 sm:h-13 rounded-full object-cover shadow-2xs"
-                              textClassName="text-sm sm:text-base font-black"
-                            />
-                          </div>
+                          {/* Left: Avatar + Full Name info */}
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="shrink-0 relative">
+                              <UserAvatar
+                                src={student.profilePicture}
+                                name={student.name}
+                                className="w-12 h-12 rounded-full object-cover shadow-2xs ring-2 ring-orange-50/80 dark:ring-gray-700"
+                                textClassName="text-sm sm:text-base font-black"
+                              />
+                            </div>
 
-                          {/* Name and Connect button at other side (Right) */}
-                          <div className="min-w-0 flex-1 flex flex-col justify-center items-start pr-2">
-                            <h4 className="font-extrabold text-gray-900 dark:text-white text-xs sm:text-[13px] group-hover:text-[#FF5722] transition-colors truncate w-full">
-                              {student.name}
-                            </h4>
-
-                            <div className="mt-1.5 flex items-center">
-                              {fState.isConnected ? (
-                                <button
-                                  type="button"
-                                  disabled
-                                  className="py-1 px-2.5 rounded-full bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 border border-green-200/80 dark:border-green-800 text-[10px] sm:text-[10.5px] font-bold flex items-center gap-1 cursor-default shadow-2xs"
-                                >
-                                  <UserCheck size={11} />
-                                  <span>Connected</span>
-                                </button>
-                              ) : fState.isPending ? (
-                                <button
-                                  type="button"
-                                  disabled
-                                  className="py-1 px-2.5 rounded-full bg-gray-100 dark:bg-gray-750 text-gray-500 dark:text-gray-400 border border-gray-200/80 dark:border-gray-700 text-[10px] sm:text-[10.5px] font-bold flex items-center gap-1 cursor-default shadow-2xs"
-                                >
-                                  <Check size={11} />
-                                  <span>Requested</span>
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleConnect(e, student.id)}
-                                  className="py-1 px-3 rounded-full bg-[#FF5722] hover:bg-[#F4511E] text-white text-[10px] sm:text-[10.5px] font-bold flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs shadow-orange-500/20"
-                                >
-                                  <UserPlus size={11} />
-                                  <span>Connect</span>
-                                </button>
-                              )}
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-extrabold text-gray-900 dark:text-white text-xs sm:text-sm group-hover:text-[#FF5722] transition-colors truncate">
+                                {student.name}
+                              </h4>
+                              {subtitle ? (
+                                <p className="text-[11px] sm:text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5 font-medium">
+                                  {subtitle}
+                                </p>
+                              ) : null}
                             </div>
                           </div>
 
-                          {/* Quick Options Button */}
-                          <div className="absolute top-1.5 right-1.5">
+                          {/* Right: Connect Action + 3-dots Menu */}
+                          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                            {fState.isConnected ? (
+                              <button
+                                type="button"
+                                disabled
+                                className="py-1.5 px-3 rounded-full bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 border border-green-200/80 dark:border-green-800 text-xs font-bold flex items-center gap-1.5 cursor-default shadow-2xs"
+                              >
+                                <UserCheck size={13} />
+                                <span>Connected</span>
+                              </button>
+                            ) : fState.isPending ? (
+                              <button
+                                type="button"
+                                disabled
+                                className="py-1.5 px-3 rounded-full bg-gray-100 dark:bg-gray-750 text-gray-500 dark:text-gray-400 border border-gray-200/80 dark:border-gray-700 text-xs font-bold flex items-center gap-1.5 cursor-default shadow-2xs"
+                              >
+                                <Check size={13} />
+                                <span>Requested</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => handleConnect(e, student.id)}
+                                className="py-1.5 px-3.5 rounded-full bg-[#FF5722] hover:bg-[#F4511E] text-white text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs shadow-orange-500/20"
+                              >
+                                <UserPlus size={13} />
+                                <span>Connect</span>
+                              </button>
+                            )}
+
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onViewProfile && onViewProfile(student.id);
                               }}
-                              className="p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-750 transition cursor-pointer"
+                              className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-full transition cursor-pointer"
                               title="View Profile"
                             >
-                              <MoreVertical size={13} />
+                              <MoreVertical size={16} />
                             </button>
                           </div>
                         </div>
