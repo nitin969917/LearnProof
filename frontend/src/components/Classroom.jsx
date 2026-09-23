@@ -26,6 +26,8 @@ import {
   Bot,
   Copy,
   Plus,
+  Minus,
+  Zap,
   Download,
   Share2,
   Layers,
@@ -512,19 +514,57 @@ const Classroom = () => {
   const speedMenuRef = useRef(null);
   const isSwitchingVideoRef = useRef(false);
 
+  const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4];
+
+  // Helper to reliably enforce speed on YouTube player & DOM video elements across video switches & seeks
+  const enforcePlaybackSpeed = (targetPlayer, targetSpeed) => {
+    if (!targetPlayer) return;
+    const speed = typeof targetSpeed === 'number' && !isNaN(targetSpeed) ? targetSpeed : 1;
+    const clampedApiSpeed = Math.min(speed, 2);
+
+    const apply = () => {
+      try {
+        if (typeof targetPlayer.setPlaybackRate === 'function') {
+          const current = typeof targetPlayer.getPlaybackRate === 'function' ? targetPlayer.getPlaybackRate() : null;
+          if (current !== clampedApiSpeed) {
+            targetPlayer.setPlaybackRate(clampedApiSpeed);
+          }
+        }
+      } catch (_) {}
+      try {
+        document.querySelectorAll('video').forEach((v) => {
+          v.playbackRate = speed;
+          v.defaultPlaybackRate = speed;
+        });
+      } catch (_) {}
+    };
+
+    apply();
+    // Multi-pass enforcement to overcome YouTube buffer/seek rate resets
+    [100, 300, 600, 1000, 1600, 2400, 3500].forEach((delay) => {
+      setTimeout(apply, delay);
+    });
+  };
+
   const applyPlaybackSpeed = (rate, playerInstance = player) => {
     const targetPlayer = playerInstance || player;
     setPlaybackSpeed(rate);
     try {
       localStorage.setItem('learnproof_playback_speed', rate.toString());
     } catch (_) {}
-    if (targetPlayer && typeof targetPlayer.setPlaybackRate === 'function') {
-      try {
-        targetPlayer.setPlaybackRate(rate);
-      } catch (err) {
-        console.error('Failed to set playback rate:', err);
-      }
+    enforcePlaybackSpeed(targetPlayer, rate);
+  };
+
+  const handleStepSpeed = (delta) => {
+    const currentIndex = SPEED_OPTIONS.indexOf(playbackSpeed);
+    let newIndex;
+    if (currentIndex === -1) {
+      newIndex = SPEED_OPTIONS.findIndex(s => s >= playbackSpeed);
+      if (newIndex === -1) newIndex = SPEED_OPTIONS.length - 1;
+    } else {
+      newIndex = Math.max(0, Math.min(SPEED_OPTIONS.length - 1, currentIndex + delta));
     }
+    applyPlaybackSpeed(SPEED_OPTIONS[newIndex]);
   };
 
   useEffect(() => {
@@ -1886,21 +1926,12 @@ const Classroom = () => {
         }
       }
 
-      // Auto-restore playback speed
+      // Auto-restore & lock playback speed across video changes
       const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-      if (savedSpeed && savedSpeed !== 1) {
-        try {
-          event.target.setPlaybackRate(savedSpeed);
-        } catch (_) {}
-        setTimeout(() => {
-          try {
-            event.target.setPlaybackRate(savedSpeed);
-          } catch (_) {}
-          isSwitchingVideoRef.current = false;
-        }, 350);
-      } else {
+      enforcePlaybackSpeed(event.target, savedSpeed);
+      setTimeout(() => {
         isSwitchingVideoRef.current = false;
-      }
+      }, 2500);
     } else if (event.data === 2) {
       // PAUSED - keep poster hidden
       setIsVideoPlaying(true);
@@ -1980,57 +2011,124 @@ const Classroom = () => {
                 <button
                   type="button"
                   onClick={() => setShowSpeedMenu(prev => !prev)}
-                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gray-50 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-slate-700/80 border border-gray-200/80 dark:border-slate-700 rounded-xl text-xs font-black text-gray-700 dark:text-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 border rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95 ${
+                    playbackSpeed !== 1
+                      ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800 text-orange-600 dark:text-orange-400'
+                      : 'bg-gray-50 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-slate-700/80 border-gray-200/80 dark:border-slate-700 text-gray-700 dark:text-slate-200'
+                  }`}
                   title="Playback Speed"
                 >
-                  <Gauge size={13} className="text-orange-500 shrink-0" />
+                  <Gauge size={13} className={playbackSpeed !== 1 ? 'text-orange-500 shrink-0' : 'text-gray-400 shrink-0'} />
                   <span className="font-mono">{playbackSpeed}x</span>
+                  {playbackSpeed > 2 && (
+                    <Zap size={11} className="text-amber-500 fill-amber-500 -ml-0.5 shrink-0" />
+                  )}
                   <ChevronDown size={11} className={`text-gray-400 transition-transform duration-200 ${showSpeedMenu ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown Menu */}
                 {showSpeedMenu && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
-                      Playback Speed
+                  <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-100 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl p-3 sm:p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                          <Gauge size={14} />
+                        </div>
+                        <div>
+                          <div className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-wider">Playback Speed</div>
+                          <div className="text-[10px] text-gray-400 dark:text-slate-500">Locked across all lessons</div>
+                        </div>
+                      </div>
+                      <div className="px-2 py-0.5 rounded-full bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-mono text-xs font-black">
+                        {playbackSpeed}x
+                      </div>
                     </div>
-                    <div className="space-y-0.5">
-                      {[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((rate) => {
+
+                    {/* Stepper Quick Adjuster */}
+                    <div className="flex items-center justify-between gap-2 py-2.5">
+                      <button
+                        type="button"
+                        onClick={() => handleStepSpeed(-1)}
+                        disabled={playbackSpeed <= SPEED_OPTIONS[0]}
+                        className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                        title="Slower (-0.25x)"
+                      >
+                        <Minus size={13} />
+                      </button>
+
+                      <div className="flex-1 flex items-center justify-center gap-1.5 py-1 px-3 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-100 dark:border-slate-700/60">
+                        <span className="text-[11px] font-bold text-gray-400 dark:text-slate-500">Speed:</span>
+                        <span className="text-xs font-mono font-black text-gray-900 dark:text-white">{playbackSpeed}x</span>
+                        {playbackSpeed === 1 && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">(Normal)</span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleStepSpeed(1)}
+                        disabled={playbackSpeed >= SPEED_OPTIONS[SPEED_OPTIONS.length - 1]}
+                        className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                        title="Faster (+0.25x)"
+                      >
+                        <Plus size={13} />
+                      </button>
+                    </div>
+
+                    {/* Preset Grid */}
+                    <div className="grid grid-cols-4 gap-1.5 pb-2.5">
+                      {SPEED_OPTIONS.map((rate) => {
                         const isCurrent = playbackSpeed === rate;
+                        const isUltra = rate > 2;
                         return (
                           <button
                             key={rate}
                             type="button"
-                            onClick={() => {
-                              applyPlaybackSpeed(rate);
-                              setShowSpeedMenu(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            onClick={() => applyPlaybackSpeed(rate)}
+                            className={`relative py-1.5 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                               isCurrent
-                                ? 'bg-orange-500 text-white shadow-xs'
-                                : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+                                ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/30 scale-[1.02]'
+                                : 'bg-gray-50 dark:bg-slate-800/80 hover:bg-orange-50 dark:hover:bg-slate-700/80 text-gray-700 dark:text-slate-300 border border-gray-200/60 dark:border-slate-700/60'
                             }`}
                           >
-                            <span>{rate === 1 ? '1x (Normal)' : `${rate}x`}</span>
-                            {isCurrent && <Check size={12} className="stroke-[3]" />}
+                            <div className="flex items-center gap-0.5">
+                              <span className="font-mono leading-none">{rate}x</span>
+                              {isUltra && (
+                                <Zap size={8} className={isCurrent ? 'text-amber-200 fill-amber-200' : 'text-amber-500 fill-amber-500'} />
+                              )}
+                            </div>
+                            {rate === 1 && (
+                              <span className={`text-[8px] uppercase tracking-tighter leading-none ${isCurrent ? 'text-white/90' : 'text-gray-400 dark:text-slate-500'}`}>
+                                Norm
+                              </span>
+                            )}
                           </button>
                         );
                       })}
                     </div>
 
-                    <div className="my-1.5 border-t border-gray-100 dark:border-slate-800" />
+                    {/* Footer Controls */}
+                    <div className="pt-2 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => applyPlaybackSpeed(1)}
+                        className="text-[11px] font-bold text-gray-500 dark:text-slate-400 hover:text-orange-500 transition cursor-pointer"
+                      >
+                        Reset to 1x
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowSpeedMenu(false);
-                        setShowBeyondSpeedModal(true);
-                      }}
-                      className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/40 transition cursor-pointer"
-                    >
-                      <Sparkles size={12} />
-                      <span>Play &gt; 2x speed?</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSpeedMenu(false);
+                          setShowBeyondSpeedModal(true);
+                        }}
+                        className="flex items-center gap-1 text-[11px] font-black text-orange-600 dark:text-orange-400 hover:underline cursor-pointer"
+                      >
+                        <Sparkles size={11} />
+                        <span>How 2.5x–4x works</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2109,21 +2207,27 @@ const Classroom = () => {
                   } catch (_) { }
                   // Auto-restore playback speed
                   const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-                  if (savedSpeed && savedSpeed !== 1) {
-                    try {
-                      e.target.setPlaybackRate(savedSpeed);
-                    } catch (_) { }
-                  }
+                  enforcePlaybackSpeed(e.target, savedSpeed);
                 }, 150);
               }}
               onStateChange={handlePlayerStateChange}
               onPlaybackRateChange={(e) => {
                 const newRate = e.data;
-                console.log("Playback speed changed to:", newRate);
-                if (!isSwitchingVideoRef.current) {
-                  setPlaybackSpeed(newRate);
-                  localStorage.setItem('learnproof_playback_speed', newRate.toString());
+                const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+                console.log("Playback speed event:", newRate, "expected savedSpeed:", savedSpeed, "switching:", isSwitchingVideoRef.current);
+
+                // If YouTube automatically reset to 1 on video load/seek while user selected a different speed,
+                // or if we are actively switching videos, or if user selected >2x and player emitted 2x:
+                // re-enforce savedSpeed instead of accepting the reset!
+                if (isSwitchingVideoRef.current || (newRate === 1 && savedSpeed !== 1) || (savedSpeed > 2 && newRate === 2)) {
+                  enforcePlaybackSpeed(e.target, savedSpeed);
+                  return;
                 }
+
+                setPlaybackSpeed(newRate);
+                try {
+                  localStorage.setItem('learnproof_playback_speed', newRate.toString());
+                } catch (_) {}
               }}
               onEnd={() => {
                 if (nextVideo) {
@@ -3877,8 +3981,8 @@ const Classroom = () => {
                   <Gauge size={20} />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-gray-900 dark:text-white">Playing Beyond 2x Speed</h3>
-                  <p className="text-xs text-gray-400">2.25x, 2.5x, 3x, 4x Playback</p>
+                  <h3 className="text-base font-black text-gray-900 dark:text-white">Playing Up to 4x Speed</h3>
+                  <p className="text-xs text-gray-400">2.5x, 3x, 3.5x, 4x Playback Guide</p>
                 </div>
               </div>
               <button
@@ -3892,26 +3996,34 @@ const Classroom = () => {
 
             <div className="space-y-3 text-xs leading-relaxed text-gray-600 dark:text-slate-300">
               <p>
-                YouTube's embedded player strictly caps built-in speed at <strong className="text-gray-900 dark:text-white">2.0x</strong> via the official YouTube IFrame API.
+                YouTube's embedded player natively supports speeds up to <strong className="text-gray-900 dark:text-white">2.0x</strong> via the IFrame API. When you select 2.5x to 4x, LearnProof automatically configures the player at maximum speed and synchronizes audio/video.
               </p>
               
               <div className="bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-800/40 rounded-2xl p-3.5 space-y-2">
                 <div className="font-bold text-orange-700 dark:text-orange-300 flex items-center gap-1.5">
-                  <Sparkles size={14} /> Recommended Approach (Desktop / Laptop):
+                  <Sparkles size={14} /> Instant 3x &amp; 4x Overrides:
                 </div>
                 <p>
-                  Install the free <strong className="text-orange-900 dark:text-orange-200">"Video Speed Controller"</strong> extension for Chrome, Brave, Edge, or Firefox.
-                </p>
-                <p className="text-[11px] text-orange-600 dark:text-orange-400">
-                  Once installed, simply press <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded border border-orange-200 dark:border-orange-800 font-mono font-bold text-gray-800 dark:text-slate-200">D</kbd> while watching to speed up to 2.5x, 3x, or any custom speed!
+                  For unconstrained speeds (up to 4x or beyond), install the free <strong className="text-orange-900 dark:text-orange-200">"Video Speed Controller"</strong> extension (Chrome, Brave, Edge, Firefox). Press <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded border border-orange-200 dark:border-orange-800 font-mono font-bold text-gray-800 dark:text-slate-200">D</kbd> to speed up to any custom rate!
                 </p>
               </div>
 
-              <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-3 space-y-1">
-                <div className="font-bold text-gray-800 dark:text-slate-200">Watch Directly on YouTube:</div>
+              <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-3 space-y-2">
+                <div className="font-bold text-gray-800 dark:text-slate-200">Developer / Console 1-Click Code:</div>
                 <p className="text-[11px] text-gray-500 dark:text-slate-400">
-                  You can also click the YouTube logo above the video to open it in YouTube where high-speed tools and native shortcuts apply.
+                  You can also paste this one-liner into your browser console (F12) to force true 4x:
                 </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText("document.querySelectorAll('video').forEach(v => { v.playbackRate = 4; v.defaultPlaybackRate = 4; });");
+                    toast.success("Snippet copied! Paste into Console (F12) for true 4x.");
+                  }}
+                  className="w-full py-2 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-slate-200 rounded-xl font-mono text-[10px] font-bold flex items-center justify-between border border-gray-200 dark:border-slate-700 transition cursor-pointer"
+                >
+                  <span className="truncate">document.querySelectorAll('video').forEach(...)</span>
+                  <Copy size={13} className="text-orange-500 shrink-0 ml-1.5" />
+                </button>
               </div>
             </div>
 
