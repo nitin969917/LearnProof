@@ -109,7 +109,7 @@ async function convertHeicToJpegBlob(file) {
 async function decodeImageElement(blob) {
   const objectUrl = URL.createObjectURL(blob);
   const img = new Image();
-  img.crossOrigin = 'anonymous';
+  // Do NOT set img.crossOrigin on blob: URLs because WebKit/Safari throws SecurityError when reading canvas toDataURL
 
   try {
     img.src = objectUrl;

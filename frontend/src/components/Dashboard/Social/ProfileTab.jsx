@@ -18,6 +18,7 @@ import SocialPostCard from './SocialPostCard.jsx';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { compressImage } from '../../../utils/imageCompressor.js';
+import { resolveMediaUrl } from '../../../utils/heicHelper.js';
 
 const VISIBILITY_OPTIONS = [
   { value: 'public', label: 'Public', icon: Globe, desc: 'Anyone can see' },
@@ -896,7 +897,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         {/* Cover image wrapper with overflow-hidden to clip corners without cutting off dropdowns */}
         <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
           <img
-            src={profile?.coverImage || PLATFORM_COVER_IMAGE}
+            src={resolveMediaUrl(profile?.coverImage) || PLATFORM_COVER_IMAGE}
             alt={`${profile?.name || 'User'}'s Cover`}
             className={`w-full h-full object-cover transition duration-300 ${
               profile?.coverImage ? 'object-center' : 'object-[82%_center] sm:object-center'

@@ -63,10 +63,10 @@ export default function UserAvatar({
 
   const handleImageError = async () => {
     // If image failed and hasn't been converted yet, check if it's a HEIC file Chrome couldn't decode
-    if (src && displaySrc === src && !convertingRef.current) {
+    if (resolvedSrc && displaySrc === resolvedSrc && !convertingRef.current) {
       convertingRef.current = true;
       try {
-        const converted = await convertHeicSourceToJpeg(src);
+        const converted = await convertHeicSourceToJpeg(resolvedSrc);
         if (converted) {
           setDisplaySrc(converted);
           convertingRef.current = false;
@@ -80,8 +80,8 @@ export default function UserAvatar({
     setImgError(true);
   };
 
-  const initial = name?.[0]?.toUpperCase() || 'U';
-  const isInvalidSrc = !src || src === '/default-avatar.png' || src === 'null' || src === 'undefined';
+  const initial = effectiveName?.[0]?.toUpperCase() || 'U';
+  const isInvalidSrc = !resolvedSrc || resolvedSrc === '/default-avatar.png' || resolvedSrc === 'null' || resolvedSrc === 'undefined';
 
   if (isInvalidSrc || imgError) {
     const colors = [

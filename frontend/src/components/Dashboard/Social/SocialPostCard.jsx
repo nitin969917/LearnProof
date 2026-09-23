@@ -33,7 +33,13 @@ const renderContentWithHashtags = (text, onTagClick) => {
 };
 
 export default function SocialPostCard({ post, onLike, onSave, currentUserId, onViewProfile, onTagClick }) {
-  const isAuthor = currentUserId === post.authorId;
+  const isAuthor = Boolean(
+    currentUserId && (
+      String(currentUserId) === String(post.authorId) ||
+      String(currentUserId) === String(post.author?.id) ||
+      String(currentUserId) === String(post.userId)
+    )
+  );
   const { confirm } = useModal();
 
   const likePost = useSocialFeedStore(state => state.likePost);
@@ -374,7 +380,7 @@ export default function SocialPostCard({ post, onLike, onSave, currentUserId, on
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100/90 dark:border-gray-700/80 shadow-xs hover:shadow-md transition-all relative overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100/90 dark:border-gray-700/80 shadow-xs hover:shadow-md transition-all relative">
       {/* Header */}
       <div className="flex items-center justify-between p-3.5 sm:p-4 pb-2.5 sm:pb-3">
         <div 
@@ -411,7 +417,7 @@ export default function SocialPostCard({ post, onLike, onSave, currentUserId, on
             <MoreHorizontal size={20} />
           </button>
           {showMenu && (
-            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-20 min-w-[160px] p-1.5 flex flex-col gap-1">
+            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-50 min-w-[160px] p-1.5 flex flex-col gap-1">
               <button 
                 onClick={handleSave}
                 className="flex items-center gap-2 w-full text-left px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 dark:hover:text-orange-400 transition font-medium cursor-pointer"
