@@ -623,6 +623,7 @@ export default function SocialDashboard() {
                 <DiscoverTab 
                   onViewProfile={viewUserProfile} 
                   onSelectChatUser={startDirectChat}
+                  isActive={activeTab === 'discover'}
                 />
               </div>
             )}

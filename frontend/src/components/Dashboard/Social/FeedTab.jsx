@@ -24,7 +24,8 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
 
   const loaderRef = useRef(null);
   const [suggestedPeers, setSuggestedPeers] = useState([]);
-  const [sentRequests, setSentRequests] = useState(new Set());
+  const storeSentRequests = useSocialFeedStore(state => state.sentRequestUserIds);
+  const addSentRequest = useSocialFeedStore(state => state.addSentRequest);
   const [loadingSuggested, setLoadingSuggested] = useState(false);
 
   const handleTagFilter = (tag) => {
@@ -58,10 +59,10 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
 
   const handleSendFriendRequest = async (e, targetUserId) => {
     e.stopPropagation();
-    if (sentRequests.has(targetUserId)) return;
+    if (storeSentRequests.some(id => Number(id) === Number(targetUserId))) return;
     try {
       await socialApi.post('/social/friend-request', { receiverId: targetUserId });
-      setSentRequests(prev => new Set([...prev, targetUserId]));
+      addSentRequest(targetUserId);
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to send request");
     }
@@ -333,7 +334,7 @@ export default function FeedTab({ currentUserId, socialUser, onViewProfile, onSe
             <div className="space-y-3">
               {suggestedPeers.slice(0, 4).map(peer => {
                 const isConnected = friends.some(f => Number(f.id) === Number(peer.id));
-                const hasRequested = sentRequests.has(peer.id);
+                const hasRequested = storeSentRequests.some(id => Number(id) === Number(peer.id)) || peer.friendshipStatus === 'pending';
                 return (
                   <div key={peer.id} className="flex items-center justify-between gap-2 group">
                     <div 

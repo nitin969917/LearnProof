@@ -30,6 +30,33 @@ export const useSocialFeedStore = create((set, get) => ({
   // Pending friend request badge count & list
   pendingFriendCount: 0,
   pendingRequests: [],
+  // Outgoing pending friend request user IDs (global across discover, feed, profile)
+  sentRequestUserIds: [],
+  addSentRequest: (userId) => {
+    const targetId = Number(userId);
+    if (!targetId) return;
+    set((state) => {
+      if (state.sentRequestUserIds.some(id => Number(id) === targetId)) return {};
+      return { sentRequestUserIds: [...state.sentRequestUserIds, targetId] };
+    });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('social:friend_request_sent', {
+        detail: { userId: targetId }
+      }));
+    }
+  },
+  removeSentRequest: (userId) => {
+    const targetId = Number(userId);
+    if (!targetId) return;
+    set((state) => ({
+      sentRequestUserIds: state.sentRequestUserIds.filter(id => Number(id) !== targetId)
+    }));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('social:friend_request_cancelled', {
+        detail: { userId: targetId }
+      }));
+    }
+  },
 
   // Live / Active language rooms tracking for notification indicators (only friends' rooms)
   activeRoomsCount: 0,
@@ -242,19 +269,21 @@ export const useSocialFeedStore = create((set, get) => ({
         const response = await socialApi.get('/social/friendships');
         const rawFriends = Array.isArray(response.data?.friends) ? response.data.friends : [];
         const rawPending = Array.isArray(response.data?.pending) ? response.data.pending : [];
+        const rawOutgoing = Array.isArray(response.data?.outgoing) ? response.data.outgoing.map(Number) : [];
         // Enforce strict uniqueness by user ID (numeric comparison)
         const allFriends = rawFriends.filter((f, idx, self) => 
           self.findIndex(item => Number(item.id) === Number(f.id)) === idx
         );
         const close = allFriends.filter(f => f.isCloseFriend);
-        set({ 
+        set((state) => ({ 
           friends: allFriends, 
           closeFriends: close,
           pendingRequests: rawPending,
           pendingFriendCount: rawPending.length,
+          sentRequestUserIds: Array.from(new Set([...(state.sentRequestUserIds || []), ...rawOutgoing])),
           loadingFriends: false,
           hasLoadedFriends: true
-        });
+        }));
       } catch (err) {
         console.error('Failed to fetch friends', err);
         set({ loadingFriends: false, hasLoadedFriends: true });
@@ -631,7 +660,8 @@ export const useSocialFeedStore = create((set, get) => ({
       return {
         friends: newFriends,
         pendingRequests: nextPending,
-        pendingFriendCount: nextPending.length
+        pendingFriendCount: nextPending.length,
+        sentRequestUserIds: state.sentRequestUserIds.filter(id => Number(id) !== targetId)
       };
     });
     if (typeof window !== 'undefined') {
@@ -645,6 +675,7 @@ export const useSocialFeedStore = create((set, get) => ({
     const targetId = Number(userId);
     set((state) => ({
       friends: state.friends.filter(f => Number(f.id) !== targetId),
+      sentRequestUserIds: state.sentRequestUserIds.filter(id => Number(id) !== targetId),
       pendingRequests: state.pendingRequests.filter(r => Number(r.senderId) !== targetId && Number(r.id) !== targetId),
       pendingFriendCount: state.pendingRequests.filter(r => Number(r.senderId) !== targetId && Number(r.id) !== targetId).length
     }));

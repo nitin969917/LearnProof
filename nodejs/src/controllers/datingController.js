@@ -1765,7 +1765,11 @@ const getFriendships = async (req, res) => {
       });
     const pending = Array.from(pendingMap.values());
 
-    const result = { friends, pending };
+    const outgoing = friendships
+      .filter(f => f.status === 'pending' && Number(f.senderId) === Number(userId) && !blockedUserIds.has(Number(f.receiverId)))
+      .map(f => Number(f.receiverId));
+
+    const result = { friends, pending, outgoing };
     await cacheService.set(cacheKey, result, 30); // Cache for 30 seconds
 
     res.json(result);

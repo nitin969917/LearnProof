@@ -950,10 +950,12 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           setProfile(prev => ({ ...prev, hasPendingRequest: false, isRequestSender: false }));
           await socialApi.post('/social/remove-friendship', { targetUserId: profile.id });
           useSocialFeedStore.getState().handleFriendRequestRemoved({ userId: profile.id });
+          useSocialFeedStore.getState().removeSentRequest(profile.id);
         } else {
           setProfile(prev => ({ ...prev, hasPendingRequest: false, isRequestSender: false, isFriend: true }));
           await socialApi.post('/social/accept-friendship', { targetUserId: profile.id });
           useSocialFeedStore.getState().handleFriendRequestAccepted({ userId: profile.id, friend: profile });
+          useSocialFeedStore.getState().removeSentRequest(profile.id);
         }
       } else if (profile.isFriend) {
         const confirmed = await confirm({
@@ -967,9 +969,11 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         setProfile(prev => ({ ...prev, isFriend: false, isMyCloseFriend: false, isCloseFriend: false }));
         await socialApi.post('/social/remove-friendship', { targetUserId: profile.id });
         useSocialFeedStore.getState().handleFriendRequestRemoved({ userId: profile.id });
+        useSocialFeedStore.getState().removeSentRequest(profile.id);
       } else {
         setProfile(prev => ({ ...prev, hasPendingRequest: true, isRequestSender: true, isFriend: false }));
         await socialApi.post('/social/friend-request', { receiverId: profile.id });
+        useSocialFeedStore.getState().addSentRequest(profile.id);
       }
     } catch (err) {
       console.error('Friend action failed', err);
@@ -1035,6 +1039,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
         friends: state.friends.filter(f => Number(f.id) !== Number(profile.id)),
         closeFriends: state.closeFriends.filter(f => Number(f.id) !== Number(profile.id))
       }));
+      useSocialFeedStore.getState().removeSentRequest(profile.id);
       await socialApi.post('/social/remove-friendship', { targetUserId: profile.id });
     } catch (err) {
       console.error('Failed to remove connection:', err);
@@ -1059,6 +1064,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       friends: state.friends.filter(f => Number(f.id) !== targetIdNum),
       closeFriends: state.closeFriends.filter(f => Number(f.id) !== targetIdNum)
     }));
+    useSocialFeedStore.getState().removeSentRequest(targetIdNum);
 
     try {
       await socialApi.post('/social/block', { targetUserId: targetIdNum });

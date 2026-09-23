@@ -7,13 +7,14 @@ import { useSocialGroupsStore } from '../../../store/useSocialGroupsStore.js';
 import { useSocialFeedStore } from '../../../store/socialFeedStore.js';
 import UserAvatar from '../../Common/UserAvatar.jsx';
 
-export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
+export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive }) {
   const storeFriends = useSocialFeedStore(state => state.friends);
+  const storeSentRequests = useSocialFeedStore(state => state.sentRequestUserIds);
+  const addSentRequest = useSocialFeedStore(state => state.addSentRequest);
   const [searchType, setSearchType] = useState('students'); // 'students' or 'groups'
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [sentRequests, setSentRequests] = useState([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [loadingSuggested, setLoadingSuggested] = useState(false);
@@ -33,35 +34,42 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
   const [showJoinGroupModal, setShowJoinGroupModal] = useState(null);
   const [joinKey, setJoinKey] = useState('');
 
+  const fetchSuggested = async (showLoader = false) => {
+    if (showLoader) setLoadingSuggested(true);
+    try {
+      const response = await socialApi.get('/users/suggested?limit=24');
+      setSuggestedUsers(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      console.error('Failed to fetch suggested users:', err);
+    } finally {
+      if (showLoader) setLoadingSuggested(false);
+    }
+  };
+
+  const fetchReferralCode = async () => {
+    try {
+      const res = await socialApi.get('/referrals/my-code');
+      if (res.data?.success) {
+        setReferralData(res.data);
+      }
+    } catch (err) {
+      console.debug('Failed to fetch personal referral code:', err?.message);
+    }
+  };
+
   // Fetch suggested users, groups & referral info on mount
   useEffect(() => {
-    const fetchSuggested = async () => {
-      setLoadingSuggested(true);
-      try {
-        const response = await socialApi.get('/users/suggested?limit=24');
-        setSuggestedUsers(Array.isArray(response.data) ? response.data : []);
-      } catch (err) {
-        console.error('Failed to fetch suggested users:', err);
-      } finally {
-        setLoadingSuggested(false);
-      }
-    };
-
-    const fetchReferralCode = async () => {
-      try {
-        const res = await socialApi.get('/referrals/my-code');
-        if (res.data?.success) {
-          setReferralData(res.data);
-        }
-      } catch (err) {
-        console.debug('Failed to fetch personal referral code:', err?.message);
-      }
-    };
-
-    fetchSuggested();
+    fetchSuggested(true);
     fetchReferralCode();
     fetchStoreGroups();
   }, []);
+
+  // Soft background sync when returning to discover tab
+  useEffect(() => {
+    if (isActive) {
+      fetchSuggested(false);
+    }
+  }, [isActive]);
 
   const getShareUrl = () => {
     if (!referralData?.referralCode) return '';
@@ -126,7 +134,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
     e.stopPropagation();
     try {
       await socialApi.post('/social/friend-request', { receiverId: studentId });
-      setSentRequests(prev => [...prev, studentId]);
+      addSentRequest(studentId);
     } catch (err) {
       console.error('Failed to send friend request:', err);
       toast.error(err.response?.data?.error || 'Failed to send request');
@@ -159,7 +167,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser }) {
       return { isConnected: true, isPending: false, label: "Connected" };
     }
 
-    const isSent = sentRequests.includes(student.id);
+    const isSent = storeSentRequests.some(id => Number(id) === Number(student.id));
     if (isSent || student.friendshipStatus === 'pending') {
       return { isConnected: false, isPending: true, label: "Requested" };
     }
