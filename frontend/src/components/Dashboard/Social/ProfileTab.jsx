@@ -216,18 +216,18 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     setSavedPosts([]);
     setProfile(null);
     fetchProfile();
-    fetchUserPosts();
+    fetchUserPosts(true);
     if (isOwnProfile) {
       fetchFriends();
       fetchActivityCounts();
-      fetchLikedPosts();
+      fetchLikedPosts(true);
     } else {
       setActiveTab('posts');
     }
   }, [viewUserId, isOwnProfile]);
 
-  const fetchUserPosts = async () => {
-    setPostsLoading(true);
+  const fetchUserPosts = async (showLoading = false) => {
+    if (showLoading) setPostsLoading(true);
     try {
       const authorQuery = isOwnProfile ? 'me' : targetId;
       const response = await socialApi.get(`/posts/feed?authorId=${authorQuery}`);
@@ -235,9 +235,9 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       setPosts(postsData);
     } catch (err) {
       console.error('Failed to fetch user posts', err);
-      setPosts([]);
+      if (showLoading) setPosts([]);
     } finally {
-      setPostsLoading(false);
+      if (showLoading) setPostsLoading(false);
     }
   };
 
@@ -253,8 +253,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
     }
   };
 
-  const fetchLikedPosts = async () => {
-    setLikedPostsLoading(true);
+  const fetchLikedPosts = async (showLoading = false) => {
+    if (showLoading) setLikedPostsLoading(true);
     try {
       const response = await socialApi.get('/posts/activity/liked');
       const postsData = Array.isArray(response.data) ? response.data : [];
@@ -266,14 +266,14 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       }));
     } catch (err) {
       console.error('Failed to fetch liked posts', err);
-      setLikedPosts([]);
+      if (showLoading) setLikedPosts([]);
     } finally {
-      setLikedPostsLoading(false);
+      if (showLoading) setLikedPostsLoading(false);
     }
   };
 
-  const fetchCommentedPosts = async () => {
-    setCommentedPostsLoading(true);
+  const fetchCommentedPosts = async (showLoading = false) => {
+    if (showLoading) setCommentedPostsLoading(true);
     try {
       const response = await socialApi.get('/posts/activity/commented');
       const postsData = Array.isArray(response.data) ? response.data : [];
@@ -285,14 +285,14 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       }));
     } catch (err) {
       console.error('Failed to fetch commented posts', err);
-      setCommentedPosts([]);
+      if (showLoading) setCommentedPosts([]);
     } finally {
-      setCommentedPostsLoading(false);
+      if (showLoading) setCommentedPostsLoading(false);
     }
   };
 
-  const fetchSavedPosts = async () => {
-    setSavedPostsLoading(true);
+  const fetchSavedPosts = async (showLoading = false) => {
+    if (showLoading) setSavedPostsLoading(true);
     try {
       const response = await socialApi.get('/posts/activity/saved');
       const postsData = Array.isArray(response.data) ? response.data : [];
@@ -304,17 +304,55 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       }));
     } catch (err) {
       console.error('Failed to fetch saved posts', err);
-      setSavedPosts([]);
+      if (showLoading) setSavedPosts([]);
     } finally {
-      setSavedPostsLoading(false);
+      if (showLoading) setSavedPostsLoading(false);
     }
   };
 
   const fetchActivityData = (subTab = activitySubTab) => {
     fetchActivityCounts();
-    if (subTab === 'liked') fetchLikedPosts();
-    else if (subTab === 'commented') fetchCommentedPosts();
-    else if (subTab === 'saved') fetchSavedPosts();
+    if (subTab === 'liked') fetchLikedPosts(likedPosts.length === 0);
+    else if (subTab === 'commented') fetchCommentedPosts(commentedPosts.length === 0);
+    else if (subTab === 'saved') fetchSavedPosts(savedPosts.length === 0);
+  };
+
+  const handlePostLike = (postId) => {
+    const updatePostList = (list) =>
+      list.map((p) => {
+        if (p.id === postId) {
+          const liked = p.likes?.some((l) => String(l.id) === String(effectiveCurrentUserId));
+          const nextLiked = !liked;
+          const updatedLikes = nextLiked
+            ? [...(p.likes || []), { id: effectiveCurrentUserId }]
+            : (p.likes || []).filter((l) => String(l.id) !== String(effectiveCurrentUserId));
+          const currentCount = p._count?.likes ?? 0;
+          return {
+            ...p,
+            likes: updatedLikes,
+            _count: {
+              ...p._count,
+              likes: nextLiked ? currentCount + 1 : Math.max(0, currentCount - 1),
+            },
+          };
+        }
+        return p;
+      });
+
+    setPosts(updatePostList);
+    setLikedPosts(updatePostList);
+
+    if (isOwnProfile) {
+      fetchLikedPosts(false);
+      fetchActivityCounts();
+    }
+  };
+
+  const handlePostSave = (postId) => {
+    if (isOwnProfile) {
+      fetchSavedPosts(false);
+      fetchActivityCounts();
+    }
   };
 
   // Real-time synchronization for likes, saves, comments and post events
@@ -354,7 +392,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           if (!data.isLiked) {
             setLikedPosts((prev) => prev.filter((p) => p.id !== data.postId));
           } else {
-            fetchLikedPosts();
+            fetchLikedPosts(false);
           }
           fetchActivityCounts();
         } else {
@@ -408,7 +446,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
           if (!data.isSaved) {
             setSavedPosts((prev) => prev.filter((p) => p.id !== data.postId));
           } else {
-            fetchSavedPosts();
+            fetchSavedPosts(false);
           }
           fetchActivityCounts();
         }
@@ -419,7 +457,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       const data = e.detail;
       if (isOwnProfile) {
         if (data?.comment?.authorId === effectiveCurrentUserId) {
-          fetchCommentedPosts();
+          fetchCommentedPosts(false);
           fetchActivityCounts();
         }
       }
@@ -1775,7 +1813,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                   <SocialPostCard
                     key={post.id}
                     post={post}
-                    onLike={fetchUserPosts}
+                    onLike={handlePostLike}
+                    onSave={handlePostSave}
                     currentUserId={effectiveCurrentUserId}
                     onViewProfile={onViewProfile}
                     onTagClick={(tag) => {
@@ -1924,13 +1963,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     <SocialPostCard
                       key={post.id}
                       post={post}
-                      onLike={() => {
-                        fetchLikedPosts();
-                        fetchUserPosts();
-                      }}
-                      onSave={() => {
-                        fetchSavedPosts();
-                      }}
+                      onLike={handlePostLike}
+                      onSave={handlePostSave}
                       currentUserId={effectiveCurrentUserId}
                       onViewProfile={onViewProfile}
                       onTagClick={(tag) => {
@@ -1961,13 +1995,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     <SocialPostCard
                       key={post.id}
                       post={post}
-                      onLike={() => {
-                        fetchLikedPosts();
-                        fetchUserPosts();
-                      }}
-                      onSave={() => {
-                        fetchSavedPosts();
-                      }}
+                      onLike={handlePostLike}
+                      onSave={handlePostSave}
                       currentUserId={effectiveCurrentUserId}
                       onViewProfile={onViewProfile}
                       onTagClick={(tag) => {
@@ -1998,13 +2027,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                     <SocialPostCard
                       key={post.id}
                       post={post}
-                      onLike={() => {
-                        fetchLikedPosts();
-                        fetchUserPosts();
-                      }}
-                      onSave={() => {
-                        fetchSavedPosts();
-                      }}
+                      onLike={handlePostLike}
+                      onSave={handlePostSave}
                       currentUserId={effectiveCurrentUserId}
                       onViewProfile={onViewProfile}
                       onTagClick={(tag) => {

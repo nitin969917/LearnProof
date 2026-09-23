@@ -132,7 +132,9 @@ export default function SocialPostCard({ post, onLike, onSave, currentUserId, on
     };
   }, [post.id]);
 
-  const handleLike = async () => {
+  const handleLike = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    if (e?.stopPropagation) e.stopPropagation();
     try {
       await likePost(post.id, currentUserId);
       if (onLike) onLike(post.id);
