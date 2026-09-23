@@ -2076,9 +2076,19 @@ const Classroom = () => {
                   <ChevronDown size={11} className={`text-gray-400 transition-transform duration-200 ${showSpeedMenu ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Dropdown Menu */}
+                {/* Click-Outside Global Backdrop (Closes immediately when tapping anywhere else) */}
                 {showSpeedMenu && (
-                  <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-100 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl p-3 sm:p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div
+                    className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px] animate-in fade-in duration-150"
+                    onClick={() => setShowSpeedMenu(false)}
+                    onTouchStart={() => setShowSpeedMenu(false)}
+                  />
+                )}
+
+                {/* Dropdown Menu - Sleek Mobile Slider & Desktop Card */}
+                {showSpeedMenu && (
+                  <div className="fixed top-16 left-3 right-3 sm:absolute sm:top-full sm:left-auto sm:right-0 sm:w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl p-3.5 sm:p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    {/* Header */}
                     <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 dark:border-slate-800">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center">
@@ -2086,83 +2096,95 @@ const Classroom = () => {
                         </div>
                         <div>
                           <div className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-wider">Playback Speed</div>
-                          <div className="text-[10px] text-gray-400 dark:text-slate-500">Locked across all lessons</div>
+                          <div className="text-[10px] text-gray-400 dark:text-slate-500">Persists across all lessons</div>
                         </div>
                       </div>
-                      <div className="px-2 py-0.5 rounded-full bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-mono text-xs font-black">
-                        {playbackSpeed}x
+                      <div className="flex items-center gap-2">
+                        <div className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-mono text-xs font-black shadow-xs">
+                          {playbackSpeed}x
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowSpeedMenu(false)}
+                          className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
                     </div>
 
-                    {/* Stepper Quick Adjuster */}
-                    <div className="flex items-center justify-between gap-2 py-2.5">
-                      <button
-                        type="button"
-                        onClick={() => handleStepSpeed(-1)}
-                        disabled={playbackSpeed <= SPEED_OPTIONS[0]}
-                        className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                        title="Slower (-0.25x)"
-                      >
-                        <Minus size={13} />
-                      </button>
+                    {/* Interactive Slider & Steppers */}
+                    <div className="py-3 space-y-2">
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => handleStepSpeed(-1)}
+                          disabled={playbackSpeed <= SPEED_OPTIONS[0]}
+                          className="w-8 h-8 shrink-0 flex items-center justify-center rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                          title="Slower (-0.25x)"
+                        >
+                          <Minus size={14} />
+                        </button>
 
-                      <div className="flex-1 flex items-center justify-center gap-1.5 py-1 px-3 bg-gray-50 dark:bg-slate-800/80 rounded-xl border border-gray-100 dark:border-slate-700/60">
-                        <span className="text-[11px] font-bold text-gray-400 dark:text-slate-500">Speed:</span>
-                        <span className="text-xs font-mono font-black text-gray-900 dark:text-white">{playbackSpeed}x</span>
-                        {playbackSpeed === 1 && (
-                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">(Normal)</span>
-                        )}
+                        <div className="flex-1 relative flex items-center">
+                          <input
+                            type="range"
+                            min="0.5"
+                            max="4"
+                            step="0.25"
+                            value={playbackSpeed}
+                            onChange={(e) => applyPlaybackSpeed(parseFloat(e.target.value))}
+                            className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleStepSpeed(1)}
+                          disabled={playbackSpeed >= SPEED_OPTIONS[SPEED_OPTIONS.length - 1]}
+                          className="w-8 h-8 shrink-0 flex items-center justify-center rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                          title="Faster (+0.25x)"
+                        >
+                          <Plus size={14} />
+                        </button>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleStepSpeed(1)}
-                        disabled={playbackSpeed >= SPEED_OPTIONS[SPEED_OPTIONS.length - 1]}
-                        className="p-1.5 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-slate-700 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                        title="Faster (+0.25x)"
-                      >
-                        <Plus size={13} />
-                      </button>
+                      {/* Slider Min / Max Labels */}
+                      <div className="flex justify-between text-[10px] font-bold font-mono text-gray-400 dark:text-slate-500 px-9">
+                        <span>0.5x</span>
+                        <span className={playbackSpeed === 1 ? 'text-orange-500 font-black' : ''}>1.0x</span>
+                        <span className={playbackSpeed === 2 ? 'text-orange-500 font-black' : ''}>2.0x</span>
+                        <span>4.0x</span>
+                      </div>
                     </div>
 
-                    {/* Preset Grid */}
-                    <div className="grid grid-cols-4 gap-1.5 pb-2.5">
-                      {SPEED_OPTIONS.map((rate) => {
+                    {/* Quick Snap Preset Chips */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none py-1">
+                      {[0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4].map((rate) => {
                         const isCurrent = playbackSpeed === rate;
-                        const isUltra = rate > 2;
                         return (
                           <button
                             key={rate}
                             type="button"
                             onClick={() => applyPlaybackSpeed(rate)}
-                            className={`relative py-1.5 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                            className={`shrink-0 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                               isCurrent
-                                ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-sm shadow-orange-500/30 scale-[1.02]'
-                                : 'bg-gray-50 dark:bg-slate-800/80 hover:bg-orange-50 dark:hover:bg-slate-700/80 text-gray-700 dark:text-slate-300 border border-gray-200/60 dark:border-slate-700/60'
+                                ? 'bg-orange-500 text-white shadow-xs scale-105'
+                                : 'bg-gray-50 dark:bg-slate-800/80 hover:bg-orange-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border border-gray-200/60 dark:border-slate-700/60'
                             }`}
                           >
-                            <div className="flex items-center gap-0.5">
-                              <span className="font-mono leading-none">{rate}x</span>
-                              {isUltra && (
-                                <Zap size={8} className={isCurrent ? 'text-amber-200 fill-amber-200' : 'text-amber-500 fill-amber-500'} />
-                              )}
-                            </div>
-                            {rate === 1 && (
-                              <span className={`text-[8px] uppercase tracking-tighter leading-none ${isCurrent ? 'text-white/90' : 'text-gray-400 dark:text-slate-500'}`}>
-                                Norm
-                              </span>
-                            )}
+                            <span className="font-mono">{rate === 1 ? '1x' : `${rate}x`}</span>
                           </button>
                         );
                       })}
                     </div>
 
                     {/* Footer Controls */}
-                    <div className="pt-2 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+                    <div className="pt-2 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
                       <button
                         type="button"
                         onClick={() => applyPlaybackSpeed(1)}
-                        className="text-[11px] font-bold text-gray-500 dark:text-slate-400 hover:text-orange-500 transition cursor-pointer"
+                        className="font-bold text-gray-500 dark:text-slate-400 hover:text-orange-500 transition cursor-pointer"
                       >
                         Reset to 1x
                       </button>
@@ -2173,7 +2195,7 @@ const Classroom = () => {
                           setShowSpeedMenu(false);
                           setShowBeyondSpeedModal(true);
                         }}
-                        className="flex items-center gap-1 text-[11px] font-black text-orange-600 dark:text-orange-400 hover:underline cursor-pointer"
+                        className="flex items-center gap-1 font-black text-orange-600 dark:text-orange-400 hover:underline cursor-pointer"
                       >
                         <Sparkles size={11} />
                         <span>How 2.5x–4x works</span>
