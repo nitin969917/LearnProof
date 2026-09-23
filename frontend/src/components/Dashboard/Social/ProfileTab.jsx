@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   User, Mail, GraduationCap, MapPin, Phone, Instagram, Facebook, 
   Shield, Edit3, Save, UserPlus, UserCheck, Star, MessageSquare, 
@@ -305,6 +306,18 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const mobileExpandedPanelRef = useRef(null);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const optionsMenuRef = useRef(null);
+
+  // Lock body scroll when Edit Profile modal is open to avoid background interaction
+  useEffect(() => {
+    if (isEditing) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isEditing]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -2298,8 +2311,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
       </div>
 
       {/* ── Edit Profile Modal with Full Visibility & Photo Upload Controls ── */}
-      {isEditing && (
-        <div className="fixed inset-0 z-[120] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 overflow-hidden">
+      {isEditing && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-4 overflow-hidden">
           {/* Backdrop Click */}
           <div 
             className="absolute inset-0" 
@@ -2615,25 +2628,26 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             </form>
 
             {/* Sticky Modal Footer - Always Visible Above Mobile Nav */}
-            <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-gray-100 dark:border-gray-700/80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md flex items-center justify-between sm:justify-end gap-3 shrink-0">
+            <div className="px-4 py-2.5 sm:px-6 sm:py-3 pb-[calc(0.6rem+env(safe-area-inset-bottom,0px))] border-t border-gray-100 dark:border-gray-700/80 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md flex items-center justify-end gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="flex-1 sm:flex-initial px-4 py-2.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition cursor-pointer text-center"
+                className="px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-700 transition cursor-pointer text-center"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 form="edit-profile-form"
-                className="flex-2 sm:flex-initial px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5"
+                className="px-4 py-1.5 sm:px-5 sm:py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-xs shadow-orange-500/20 active:scale-95 transition cursor-pointer flex items-center justify-center gap-1.5"
               >
-                <Save size={15} />
-                <span>Save Profile</span>
+                <Save size={13} />
+                <span>Save</span>
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Avatar Lightbox Preview Modal (Clean view without extra background) ── */}
