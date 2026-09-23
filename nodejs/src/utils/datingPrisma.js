@@ -58,6 +58,23 @@ const datingPrisma = new PrismaClient({
       ALTER TABLE "social_group_members" 
       ADD COLUMN IF NOT EXISTS "role" VARCHAR(50) NOT NULL DEFAULT 'member';
     `);
+    // Performance indexes for instant chat history lookups (WhatsApp/Telegram style queries)
+    await datingPrisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "idx_social_messages_pair_created" 
+      ON "social_messages" ("senderId", "receiverId", "createdAt" DESC);
+    `);
+    await datingPrisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "idx_social_messages_rev_pair_created" 
+      ON "social_messages" ("receiverId", "senderId", "createdAt" DESC);
+    `);
+    await datingPrisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "idx_social_messages_unread_pair" 
+      ON "social_messages" ("receiverId", "senderId", "isRead");
+    `);
+    await datingPrisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "idx_social_group_messages_group_created" 
+      ON "social_group_messages" ("groupId", "createdAt" DESC);
+    `);
   } catch (err) {
     // Ignore if not supported by current dialect or already exists
   }

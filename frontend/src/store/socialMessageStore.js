@@ -2,12 +2,94 @@ import { create } from 'zustand';
 import socialApi from '../api/socialApi.js';
 import { getSocialSocket } from '../utils/socialSocket.js';
 
+const CACHE_STORAGE_KEY = 'lp_chat_conversations_v1';
+const MAX_MESSAGES_PER_CHAT = 50;
+const MAX_CHATS_IN_STORAGE = 30;
+
+const loadInitialCache = () => {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(CACHE_STORAGE_KEY) : null;
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed !== null ? parsed : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+const saveCacheToStorage = (cache) => {
+  try {
+    if (typeof window === 'undefined') return;
+    const trimmed = {};
+    const keys = Object.keys(cache).slice(0, MAX_CHATS_IN_STORAGE);
+    for (const key of keys) {
+      trimmed[key] = (cache[key] || []).slice(-MAX_MESSAGES_PER_CHAT);
+    }
+    localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(trimmed));
+  } catch (e) {
+    // Fail silently on storage quota or private browsing mode
+  }
+};
+
 export const useSocialMessageStore = create((set, get) => ({
   totalUnreadCount: 0,
   unreadByContact: {},
   unreadByGroup: {},
   activeChatUserId: null,
   activeChatGroupId: null,
+  conversationsCache: loadInitialCache(),
+
+  getCachedMessages: (chatKey) => {
+    if (!chatKey) return [];
+    return get().conversationsCache[chatKey] || [];
+  },
+
+  setCachedMessages: (chatKey, messages) => {
+    if (!chatKey || !Array.isArray(messages)) return;
+    set((state) => {
+      const nextCache = {
+        ...state.conversationsCache,
+        [chatKey]: messages.slice(-MAX_MESSAGES_PER_CHAT)
+      };
+      saveCacheToStorage(nextCache);
+      return { conversationsCache: nextCache };
+    });
+  },
+
+  appendCachedMessage: (chatKey, message) => {
+    if (!chatKey || !message) return;
+    set((state) => {
+      const existing = state.conversationsCache[chatKey] || [];
+      // Deduplicate by id if exists, or replace temporary message
+      const msgIdStr = message.id ? String(message.id) : null;
+      let nextList;
+      if (msgIdStr && existing.some(m => String(m.id) === msgIdStr)) {
+        nextList = existing.map(m => String(m.id) === msgIdStr ? { ...m, ...message } : m);
+      } else {
+        nextList = [...existing, message].slice(-MAX_MESSAGES_PER_CHAT);
+      }
+      const nextCache = {
+        ...state.conversationsCache,
+        [chatKey]: nextList
+      };
+      saveCacheToStorage(nextCache);
+      return { conversationsCache: nextCache };
+    });
+  },
+
+  updateCachedMessage: (chatKey, messageId, updates) => {
+    if (!chatKey || !messageId) return;
+    set((state) => {
+      const existing = state.conversationsCache[chatKey] || [];
+      const nextList = existing.map(m => String(m.id) === String(messageId) ? { ...m, ...updates } : m);
+      const nextCache = {
+        ...state.conversationsCache,
+        [chatKey]: nextList
+      };
+      saveCacheToStorage(nextCache);
+      return { conversationsCache: nextCache };
+    });
+  },
 
   setActiveChatUser: (userId) => {
     const userIdStr = userId ? userId.toString() : null;

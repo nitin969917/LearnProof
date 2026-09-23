@@ -138,6 +138,9 @@ model Message {
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt])
+  @@index([senderId, receiverId, createdAt(sort: Desc)])
+  @@index([receiverId, senderId, createdAt(sort: Desc)])
+  @@index([receiverId, senderId, isRead])
   @@map("social_messages")
 }
 
@@ -255,6 +258,7 @@ model GroupMessage {
   senderId  Int
   sender    User     @relation(fields: [senderId], references: [id])
 
+  @@index([groupId, createdAt(sort: Desc)])
   @@map("social_group_messages")
 }
 

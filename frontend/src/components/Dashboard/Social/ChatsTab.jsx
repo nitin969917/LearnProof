@@ -77,6 +77,9 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const setActiveChatUser = useSocialMessageStore((state) => state.setActiveChatUser);
   const setActiveChatGroup = useSocialMessageStore((state) => state.setActiveChatGroup);
   const clearActiveChat = useSocialMessageStore((state) => state.clearActiveChat);
+  const getCachedMessages = useSocialMessageStore((state) => state.getCachedMessages);
+  const setCachedMessages = useSocialMessageStore((state) => state.setCachedMessages);
+  const appendCachedMessage = useSocialMessageStore((state) => state.appendCachedMessage);
 
   // Use shared Zustand stores for instant loading
   const fetchStoreFriends = useSocialFeedStore(state => state.fetchFriends);
@@ -93,6 +96,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   // Selected chat
   const [selectedChat, setSelectedChat] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [loadingChatHistory, setLoadingChatHistory] = useState(false);
   const [inputText, setInputText] = useState('');
   
   // Last message previews
@@ -459,6 +463,35 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       setLastMessages(initialLastMsgs);
       setLoading(false);
 
+      const prefetchTop = (friends, grps) => {
+        const topF = (friends || []).filter(f => f.lastMessage).slice(0, 4);
+        const topG = (grps || []).filter(g => g.lastMessage).slice(0, 3);
+        topF.forEach(f => {
+          const key = `direct-${f.id}`;
+          const existing = getCachedMessages(key);
+          if (!existing || existing.length === 0) {
+            socialApi.get(`/messages/${f.id}`).then(res => {
+              if (Array.isArray(res.data) && res.data.length > 0) {
+                setCachedMessages(key, res.data);
+              }
+            }).catch(() => {});
+          }
+        });
+        topG.forEach(g => {
+          const key = `group-${g.id}`;
+          const existing = getCachedMessages(key);
+          if (!existing || existing.length === 0) {
+            socialApi.get(`/groups/${g.id}/messages`).then(res => {
+              if (Array.isArray(res.data) && res.data.length > 0) {
+                setCachedMessages(key, res.data);
+              }
+            }).catch(() => {});
+          }
+        });
+      };
+
+      prefetchTop(friendsList, groupsList);
+
       Promise.all([fetchStoreFriends(), fetchStoreGroups()]).then(() => {
         const freshFriends = useSocialFeedStore.getState().friends;
         const freshGroups = useSocialGroupsStore.getState().groups;
@@ -468,6 +501,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         freshFriends.forEach(f => { if (f.lastMessage) updatedMsgs[`direct-${f.id}`] = f.lastMessage; });
         freshGroups.forEach(g => { if (g.lastMessage) updatedMsgs[`group-${g.id}`] = g.lastMessage; });
         setLastMessages(updatedMsgs);
+        prefetchTop(freshFriends, freshGroups);
       });
     } else {
       try {
@@ -485,6 +519,26 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           if (group.lastMessage) initialLastMsgs[`group-${group.id}`] = group.lastMessage;
         });
         setLastMessages(initialLastMsgs);
+        
+        // Prefetch top recent conversations
+        const topF = (friendsList || []).filter(f => f.lastMessage).slice(0, 4);
+        const topG = (groupsList || []).filter(g => g.lastMessage).slice(0, 3);
+        topF.forEach(f => {
+          const key = `direct-${f.id}`;
+          socialApi.get(`/messages/${f.id}`).then(res => {
+            if (Array.isArray(res.data) && res.data.length > 0) {
+              setCachedMessages(key, res.data);
+            }
+          }).catch(() => {});
+        });
+        topG.forEach(g => {
+          const key = `group-${g.id}`;
+          socialApi.get(`/groups/${g.id}/messages`).then(res => {
+            if (Array.isArray(res.data) && res.data.length > 0) {
+              setCachedMessages(key, res.data);
+            }
+          }).catch(() => {});
+        });
       } catch (err) {
         console.error('Failed to fetch chat data:', err);
       } finally {
@@ -603,6 +657,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         socketRef.current?.emit('readReceipt', { senderId: message.senderId });
       }
 
+      appendCachedMessage(`direct-${message.senderId}`, message);
+
       setLastMessages((prev) => ({
         ...prev,
         [`direct-${message.senderId}`]: message
@@ -616,9 +672,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         const lastOptimisticIdx = updated.map((m) => m.id).lastIndexOf(undefined);
         if (lastOptimisticIdx !== -1) {
           updated[lastOptimisticIdx] = savedMessage;
+        } else if (!updated.some(m => m.id === savedMessage.id)) {
+          updated.push(savedMessage);
         }
         return updated;
       });
+
+      appendCachedMessage(`direct-${savedMessage.receiverId}`, savedMessage);
 
       setLastMessages((prev) => ({
         ...prev,
@@ -645,6 +705,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       } else {
         incrementGroupUnread(msg.groupId);
       }
+
+      appendCachedMessage(`group-${msg.groupId}`, msg);
 
       setLastMessages((prev) => ({
         ...prev,
@@ -831,11 +893,22 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     if (!selectedChat) {
       clearActiveChat();
       setMessages([]);
+      setLoadingChatHistory(false);
       return;
     }
 
-    // Immediately clear stale messages when switching to any new chat
-    setMessages([]);
+    const chatKey = selectedChat.type === 'direct' ? `direct-${selectedChat.id}` : `group-${selectedChat.id}`;
+    const cached = getCachedMessages(chatKey);
+
+    // Instant 0ms load if cached conversation exists (WhatsApp / Telegram style)
+    if (cached && cached.length > 0) {
+      setMessages(cached);
+      setLoadingChatHistory(false);
+    } else {
+      setMessages([]);
+      setLoadingChatHistory(true);
+    }
+
     const loadSeq = ++chatLoadSeq.current;
 
     const loadChatHistory = async () => {
@@ -852,14 +925,18 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               if (room) {
                 const events = room.getLiveTimeline().getEvents()
                   .filter(e => e.getType() === "m.room.message");
-                setMessages(events.map(formatMatrixEvent));
-              } else {
+                const matrixMsgs = events.map(formatMatrixEvent);
+                setMessages(matrixMsgs);
+                setCachedMessages(chatKey, matrixMsgs);
+              } else if (!cached || cached.length === 0) {
                 setMessages([]);
               }
             }
           } catch (e) {
             console.error("Failed to load Matrix chat history:", e);
-            if (loadSeq === chatLoadSeq.current) setMessages([]);
+            if (loadSeq === chatLoadSeq.current && (!cached || cached.length === 0)) setMessages([]);
+          } finally {
+            if (loadSeq === chatLoadSeq.current) setLoadingChatHistory(false);
           }
         }
         return;
@@ -872,10 +949,14 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         try {
           const response = await socialApi.get(`/messages/${selectedChat.id}`);
           if (loadSeq !== chatLoadSeq.current) return;
-          setMessages(Array.isArray(response.data) ? response.data : []);
+          const fresh = Array.isArray(response.data) ? response.data : [];
+          setMessages(fresh);
+          setCachedMessages(chatKey, fresh);
         } catch (err) {
           console.error(err);
-          if (loadSeq === chatLoadSeq.current) setMessages([]);
+          if (loadSeq === chatLoadSeq.current && (!cached || cached.length === 0)) setMessages([]);
+        } finally {
+          if (loadSeq === chatLoadSeq.current) setLoadingChatHistory(false);
         }
       } else if (selectedChat.type === 'group') {
         setActiveChatGroup(selectedChat.id);
@@ -886,10 +967,14 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           }
           const response = await socialApi.get(`/groups/${selectedChat.id}/messages`);
           if (loadSeq !== chatLoadSeq.current) return;
-          setMessages(Array.isArray(response.data) ? response.data : []);
+          const fresh = Array.isArray(response.data) ? response.data : [];
+          setMessages(fresh);
+          setCachedMessages(chatKey, fresh);
         } catch (err) {
           console.error(err);
-          if (loadSeq === chatLoadSeq.current) setMessages([]);
+          if (loadSeq === chatLoadSeq.current && (!cached || cached.length === 0)) setMessages([]);
+        } finally {
+          if (loadSeq === chatLoadSeq.current) setLoadingChatHistory(false);
         }
       }
     };
@@ -962,28 +1047,48 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       });
 
       setMessages((prev) => [...prev, newMessage]);
+      appendCachedMessage(`direct-${selectedChat.id}`, newMessage);
       setLastMessages((prev) => ({
         ...prev,
         [`direct-${selectedChat.id}`]: newMessage
       }));
     } else if (selectedChat.type === 'group') {
       const targetGroupId = selectedChat.id;
+      const replySenderName = replyingTo ? (
+        replyingTo.sender?.name || 
+        (replyingTo.senderId === currentUserId ? 'You' : (contacts.find(c => String(c.id) === String(replyingTo.senderId))?.name || 'Member'))
+      ) : '';
+      const groupContent = replyingTo
+        ? JSON.stringify({ 
+            text: textToSend, 
+            replyTo: { 
+              id: replyingTo.id, 
+              senderId: replyingTo.senderId, 
+              senderName: replySenderName,
+              text: parseMessageContent(replyingTo).text 
+            } 
+          })
+        : textToSend;
+
+      const tempId = `temp-grp-${Date.now()}`;
+      const optimisticMessage = {
+        id: tempId,
+        groupId: targetGroupId,
+        senderId: currentUserId,
+        sender: { id: currentUserId, name: user?.name, avatar: user?.avatar },
+        content: groupContent,
+        createdAt: new Date().toISOString(),
+        isOptimistic: true,
+      };
+
+      // Optimistic append immediately (WhatsApp/Telegram style)
+      setMessages((prev) => [...prev, optimisticMessage]);
+      setLastMessages((prev) => ({
+        ...prev,
+        [`group-${targetGroupId}`]: optimisticMessage
+      }));
+
       try {
-        const replySenderName = replyingTo ? (
-          replyingTo.sender?.name || 
-          (replyingTo.senderId === currentUserId ? 'You' : (contacts.find(c => String(c.id) === String(replyingTo.senderId))?.name || 'Member'))
-        ) : '';
-        const groupContent = replyingTo
-          ? JSON.stringify({ 
-              text: textToSend, 
-              replyTo: { 
-                id: replyingTo.id, 
-                senderId: replyingTo.senderId, 
-                senderName: replySenderName,
-                text: parseMessageContent(replyingTo).text 
-              } 
-            })
-          : textToSend;
         const response = await socialApi.post(`/groups/${targetGroupId}/messages`, {
           content: groupContent,
         });
@@ -993,18 +1098,17 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           socketRef.current.emit('sendGroupMessage', savedMessage);
         }
 
-        // Only append to active messages if the user is STILL in this group!
+        // Replace optimistic message with confirmed server message
         if (selectedChatRef.current && selectedChatRef.current.type === 'group' && String(selectedChatRef.current.id) === String(targetGroupId)) {
-          setMessages((prev) => {
-            if (prev.some(m => String(m.id) === String(savedMessage.id))) return prev;
-            return [...prev, savedMessage];
-          });
+          setMessages((prev) => prev.map(m => m.id === tempId ? savedMessage : m));
         }
+        appendCachedMessage(`group-${targetGroupId}`, savedMessage);
         setLastMessages((prev) => ({
           ...prev,
           [`group-${targetGroupId}`]: savedMessage
         }));
       } catch (err) {
+        setMessages((prev) => prev.filter(m => m.id !== tempId));
         console.error(err);
         toast.error(err.response?.data?.error || 'Failed to send message');
       }
@@ -1745,7 +1849,18 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   );
                 })}
 
-                {messages.length === 0 && (
+                {loadingChatHistory && messages.length === 0 && (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-transparent">
+                    <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-gray-800 flex items-center justify-center text-[#FF5722] mb-3 animate-pulse">
+                      <MessageCircle size={22} className="animate-spin" />
+                    </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 font-medium">
+                      Loading messages...
+                    </p>
+                  </div>
+                )}
+
+                {!loadingChatHistory && messages.length === 0 && (
                   <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-transparent">
                     <div className="w-14 h-14 bg-white dark:bg-gray-800 border border-orange-100 dark:border-gray-700 rounded-2xl flex items-center justify-center text-[#FF5722] mb-3 shadow-sm">
                       <MessageCircle size={24} />
