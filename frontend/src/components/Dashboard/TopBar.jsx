@@ -106,8 +106,7 @@ const TopBar = ({ onMenuClick }) => {
             if (response.data.success) {
                 setImportData(response.data.data);
                 setIsMobileImportOpen(false);
-                const count = response.data.data?.video_count || response.data.data?.videos?.length;
-                toast.success(count ? `Loaded ${count} videos! Ready to save.` : "Ready to save!", { id: toastId });
+                toast.dismiss(toastId);
             } else {
                 toast.error("Something went wrong!", { id: toastId });
             }

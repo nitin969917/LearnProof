@@ -1142,7 +1142,6 @@ const AskMyNotes = () => {
             });
             setActiveNote(res.data.note);
             setNotes(notes.map(n => n.id === activeNote.id ? res.data.note : n));
-            toast.success('Title updated');
         } catch (err) {
             console.error('Failed to update title:', err);
         }
@@ -1400,7 +1399,6 @@ const AskMyNotes = () => {
     };
 
     const handleCardRating = (rating) => {
-        toast.success(`Card rated ${rating}. Interval updated!`);
         setIsFlipped(false);
         if (currentCardIdx < flashcards.length - 1) {
             setCurrentCardIdx(currentCardIdx + 1);

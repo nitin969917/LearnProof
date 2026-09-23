@@ -584,7 +584,6 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       setSelectedDevice(deviceId);
       if (room.switchActiveDevice) {
         await room.switchActiveDevice('videoinput', deviceId);
-        toast.success('Camera switched successfully!');
       } else {
         toast.error('Device switching not supported by the room context.');
       }

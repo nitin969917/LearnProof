@@ -159,7 +159,6 @@ const AdminDashboardHome = () => {
             fetchAnalyticsTimeline(selectedRange)
         ]);
         setRefreshing(false);
-        toast.success("Metrics refreshed with latest telemetry");
     };
 
     if (loading) {

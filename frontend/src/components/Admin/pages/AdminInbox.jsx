@@ -121,7 +121,6 @@ const AdminInbox = () => {
     const applyPreset = (preset) => {
         setSubject(preset.subject);
         setMessage(preset.message);
-        toast.success(`Applied template: "${preset.title}"`);
     };
 
     const handleSendMessage = async (e) => {

@@ -117,7 +117,6 @@ const CodeEditorBlock = ({ className, children, code, language }) => {
     e.stopPropagation();
     navigator.clipboard.writeText(rawCode);
     setCopied(true);
-    toast.success('Code copied to clipboard!');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -753,7 +752,6 @@ const Classroom = () => {
   const handleStartNewChat = () => {
     updateAiMessages([]);
     setAiChatInput('');
-    toast.success('Started a new conversation!');
   };
 
   const handleSendAiQuestion = async (customQuestion) => {
@@ -801,7 +799,6 @@ const Classroom = () => {
   const handleCopyText = (text, idx) => {
     navigator.clipboard.writeText(text);
     setCopiedIndex(idx);
-    toast.success('Copied to clipboard!');
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
@@ -1130,7 +1127,6 @@ const Classroom = () => {
     if (!content) return;
     navigator.clipboard.writeText(content);
     setCopiedChapter(true);
-    toast.success("Topic notes copied to clipboard!");
     setTimeout(() => setCopiedChapter(false), 2000);
   };
 
@@ -1505,7 +1501,6 @@ const Classroom = () => {
       if (typeof player.playVideo === 'function') {
         player.playVideo();
       }
-      toast.success(`Jumped to ${timeStr}`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -1567,8 +1562,6 @@ const Classroom = () => {
       }
       setNewNoteFiles([]); // Clear pending uploads
       setDeletedFileIds([]); // Clear pending deletions
-
-      toast.success("Note saved successfully");
     } catch (err) {
       toast.error("Failed to save note");
     } finally {
@@ -1602,7 +1595,6 @@ const Classroom = () => {
 
       setNewComment("");
       setReplyTo(null);
-      toast.success("Comment posted");
     } catch (err) {
       toast.error("Failed to post comment");
     } finally {
@@ -1636,7 +1628,6 @@ const Classroom = () => {
       };
 
       setComments(removeNode(comments));
-      toast.success("Comment deleted");
     } catch (err) {
       toast.error("Failed to delete comment");
     }
@@ -1826,19 +1817,17 @@ const Classroom = () => {
   const markAsCompleted = async () => {
     if (!video) return;
     setMarking(true);
-    const loader = toast.loading("Marking as completed...");
     try {
       await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/mark-completed/`, {
         idToken: token,
         videoId: video.vid,
       });
-      toast.success("Marked as completed", { id: loader });
       setVideo({ ...video, watch_progress: 100, is_completed: true });
       setLiveProgress(100);
       updatePlaylistVideoState(video.vid, { watch_progress: 100, is_completed: true });
     } catch (err) {
       console.error(err);
-      toast.error("Failed to mark as completed", { id: loader });
+      toast.error("Failed to mark as completed");
     } finally {
       setMarking(false);
     }
@@ -1847,19 +1836,17 @@ const Classroom = () => {
   const unmarkAsCompleted = async () => {
     if (!video) return;
     setMarking(true);
-    const loader = toast.loading("Unmarking as completed...");
     try {
       await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/unmark-completed/`, {
         idToken: token,
         videoId: video.vid,
       });
-      toast.success("Unmarked", { id: loader });
       setVideo({ ...video, watch_progress: 0, is_completed: false });
       setLiveProgress(0);
       updatePlaylistVideoState(video.vid, { watch_progress: 0, is_completed: false });
     } catch (err) {
       console.error(err);
-      toast.error("Failed to unmark", { id: loader });
+      toast.error("Failed to unmark");
     } finally {
       setMarking(false);
     }

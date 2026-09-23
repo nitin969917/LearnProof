@@ -206,7 +206,7 @@ const YouTubeExplorer = () => {
             });
             if (res.data.results) {
                 setRecommendations(res.data.results);
-                toast.success("Found 6 playlists!", { id: toastId });
+                toast.dismiss(toastId);
             } else {
                 toast.error("No playlists found.", { id: toastId });
             }
@@ -229,7 +229,7 @@ const YouTubeExplorer = () => {
 
             if (response.data.success) {
                 setImportData(response.data.data);
-                toast.success("Ready to import", { id: toastId });
+                toast.dismiss(toastId);
             } else {
                 toast.error("Something went wrong!", { id: toastId });
             }

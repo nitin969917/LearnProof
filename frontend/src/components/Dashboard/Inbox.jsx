@@ -292,7 +292,6 @@ const Inbox = () => {
                     messageId: m.id
                 })
             ));
-            toast.success('All announcements marked as read');
         } catch (err) {
             console.error('Error marking all read:', err);
         }
