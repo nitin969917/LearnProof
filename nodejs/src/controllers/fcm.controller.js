@@ -12,22 +12,31 @@ const convertApnsToFcmToken = async (apnsToken) => {
         const accessToken = tokenObj.access_token;
         if (!accessToken) return apnsToken;
 
-        const bundleId = 'com.learnproof.learn_proof_twa';
-        const response = await axios.post('https://iid.googleapis.com/iid/v1:batchImport', {
-            application: bundleId,
-            sandbox: false,
-            apns_tokens: [apnsToken]
-        }, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
+        const bundleId = 'com.learnproof.learnProof';
+        
+        // Try production (TestFlight/App Store) first, then fallback to sandbox (Xcode direct run)
+        for (const isSandbox of [false, true]) {
+            try {
+                const response = await axios.post('https://iid.googleapis.com/iid/v1:batchImport', {
+                    application: bundleId,
+                    sandbox: isSandbox,
+                    apns_tokens: [apnsToken]
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'access_token_auth': 'true',
+                        'Content-Type': 'application/json'
+                    }
+                });
 
-        if (response.data && response.data.results && response.data.results[0]?.status === 'OK') {
-            const registrationToken = response.data.results[0].registration_token;
-            console.log(`[APNs Converter] Converted APNs token ${apnsToken.substring(0, 10)}... to FCM token ${registrationToken.substring(0, 15)}...`);
-            return registrationToken;
+                if (response.data && response.data.results && response.data.results[0]?.status === 'OK') {
+                    const registrationToken = response.data.results[0].registration_token;
+                    console.log(`[APNs Converter] Converted APNs token ${apnsToken.substring(0, 10)}... (sandbox: ${isSandbox}) to FCM token ${registrationToken.substring(0, 15)}...`);
+                    return registrationToken;
+                }
+            } catch (importErr) {
+                console.warn(`[APNs Converter] Attempt with sandbox=${isSandbox} failed:`, importErr.response?.data || importErr.message);
+            }
         }
     } catch (err) {
         console.warn('[APNs Converter] Could not convert APNs token to FCM token:', err.response?.data || err.message);

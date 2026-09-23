@@ -73,6 +73,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>com.googleusercontent.apps.549492309059-d76jp40st8qmfrdgpfrdqvftc2qndqnv</string>
 				<string>com.googleusercontent.apps.549492309059-6k98pip4c51rdsh69cls1s7ti2s8ci8n</string>
 			</array>
 		</dict>
