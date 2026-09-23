@@ -1075,6 +1075,14 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     if (!selectedChat) return;
     if (!inputText.trim()) return;
 
+    if (selectedChat.type === 'direct') {
+      const isFriend = contacts.some(c => Number(c.id) === Number(selectedChat.id));
+      if (!isFriend) {
+        toast.error("You can only message connected friends.");
+        return;
+      }
+    }
+
     // Immediately keep input focused so keyboard stays open on mobile
     inputRef.current?.focus();
 
@@ -1932,6 +1940,29 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                 <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 text-center text-xs font-bold text-gray-400 select-none flex items-center justify-center gap-2">
                   <ShieldAlert size={15} />
                   <span>Only group admins can send messages in this group</span>
+                </div>
+              ) : selectedChat.type === 'direct' && !contacts.some(c => Number(c.id) === Number(selectedChat.id)) ? (
+                <div className="border-t border-gray-100 dark:border-gray-800 bg-[#FFF7F2] dark:bg-gray-850 p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left select-none">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-orange-100 dark:bg-orange-950/50 text-[#FF5722] flex items-center justify-center shrink-0">
+                      <UserPlus size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-[13px] font-bold text-gray-900 dark:text-white truncate">
+                        Connect to Message
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                        You and {selectedChat.name || 'this student'} must be connected friends before messaging.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onViewProfile && onViewProfile(selectedChat.id)}
+                    className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer shrink-0"
+                  >
+                    View Profile to Connect
+                  </button>
                 </div>
               ) : (
                 <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 z-10 p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">

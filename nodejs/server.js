@@ -281,10 +281,48 @@ io.on('connection', (socket) => {
   socket.on('sendMessage', async (data) => {
     const { receiverId, message } = data;
     try {
+      const senderId = Number(message?.senderId || socket.userId);
+      const targetReceiverId = parseInt(receiverId, 10);
+
+      if (!senderId || !targetReceiverId) {
+        socket.emit('messageError', { error: 'Invalid message payload' });
+        return;
+      }
+
+      // Enforce: Users must be accepted friends before sending direct messages
+      const friendship = await datingPrisma.friendship.findFirst({
+        where: {
+          OR: [
+            { senderId: senderId, receiverId: targetReceiverId, status: 'accepted' },
+            { senderId: targetReceiverId, receiverId: senderId, status: 'accepted' }
+          ]
+        }
+      });
+
+      if (!friendship) {
+        socket.emit('messageError', { error: 'You can only message connected friends.' });
+        return;
+      }
+
+      // Check if either user has blocked the other
+      const isBlocked = await datingPrisma.blockedUser.findFirst({
+        where: {
+          OR: [
+            { userId: senderId, blockedUserId: targetReceiverId },
+            { userId: targetReceiverId, blockedUserId: senderId }
+          ]
+        }
+      });
+
+      if (isBlocked) {
+        socket.emit('messageError', { error: 'Cannot send message to this user.' });
+        return;
+      }
+
       const savedMessage = await datingPrisma.message.create({
         data: {
-          senderId: message.senderId,
-          receiverId: parseInt(receiverId),
+          senderId: senderId,
+          receiverId: targetReceiverId,
           content: message.content,
         },
         include: {

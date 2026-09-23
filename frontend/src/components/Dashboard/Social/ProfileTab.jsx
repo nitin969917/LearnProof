@@ -1198,22 +1198,24 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       <span>View Profile</span>
                     </button>
 
-                    {/* Send Message */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowOptionsMenu(false);
-                        if (onSelectChatUser) {
-                          onSelectChatUser(profile);
-                        } else {
-                          navigate('/dashboard/social/messages');
-                        }
-                      }}
-                      className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 dark:hover:text-orange-400 transition flex items-center gap-3 cursor-pointer outline-none focus:outline-none"
-                    >
-                      <MessageSquare size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
-                      <span>Send Message</span>
-                    </button>
+                    {/* Send Message (Only for connected friends) */}
+                    {profile?.isFriend && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowOptionsMenu(false);
+                          if (onSelectChatUser) {
+                            onSelectChatUser(profile);
+                          } else {
+                            navigate('/dashboard/social/messages');
+                          }
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 rounded-xl text-xs sm:text-[13px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-orange-50 dark:hover:bg-gray-700 hover:text-orange-600 dark:hover:text-orange-400 transition flex items-center gap-3 cursor-pointer outline-none focus:outline-none"
+                      >
+                        <MessageSquare size={16} className="text-gray-500 dark:text-gray-400 shrink-0" />
+                        <span>Send Message</span>
+                      </button>
+                    )}
 
                     {/* Add to / Remove Close Friends */}
                     {profile?.isFriend && (
