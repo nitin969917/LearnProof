@@ -1157,7 +1157,9 @@ const searchUsers = async (req, res) => {
 
 const getSuggestedUsers = async (req, res) => {
   const userId = req.user.id;
-  const limit = parseInt(req.query.limit) || 8;
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 12));
+  const page = Math.max(0, parseInt(req.query.page) || 0);
+  const skip = page * limit;
 
   try {
     // 1. Get existing accepted friendships to avoid suggesting already connected friends
@@ -1174,9 +1176,24 @@ const getSuggestedUsers = async (req, res) => {
       .filter(f => f.status === 'accepted')
       .map(f => f.senderId === userId ? f.receiverId : f.senderId);
 
-    const excludeIds = [userId, ...connectedUserIds];
+    // Also get blocked users to avoid suggesting blocked accounts
+    let blockedUserIds = [];
+    try {
+      const blockedRecords = await datingPrisma.blockedUser.findMany({
+        where: {
+          OR: [
+            { userId: Number(userId) },
+            { blockedUserId: Number(userId) }
+          ]
+        },
+        select: { userId: true, blockedUserId: true }
+      });
+      blockedUserIds = blockedRecords.map(b => Number(b.userId) === Number(userId) ? Number(b.blockedUserId) : Number(b.userId));
+    } catch (bErr) {}
 
-    // 2. Fetch suggested users excluding self and connected friends
+    const excludeIds = Array.from(new Set([userId, ...connectedUserIds, ...blockedUserIds]));
+
+    // 2. Fetch suggested users with pagination excluding self, friends, and blocked users
     let suggested = await datingPrisma.user.findMany({
       where: {
         id: { notIn: excludeIds }
@@ -1190,36 +1207,12 @@ const getSuggestedUsers = async (req, res) => {
         bio: true,
         createdAt: true,
       },
+      skip: skip,
       take: limit,
       orderBy: {
         createdAt: 'desc'
       }
     });
-
-    // Fallback: If not enough users, include other users excluding only self
-    if (suggested.length < limit) {
-      const remaining = limit - suggested.length;
-      const alreadyFetchedIds = [userId, ...suggested.map(u => u.id)];
-      const fallbackUsers = await datingPrisma.user.findMany({
-        where: {
-          id: { notIn: alreadyFetchedIds }
-        },
-        select: {
-          id: true,
-          name: true,
-          profilePicture: true,
-          collegeName: true,
-          department: true,
-          bio: true,
-          createdAt: true,
-        },
-        take: remaining,
-        orderBy: {
-          createdAt: 'desc'
-        }
-      });
-      suggested = [...suggested, ...fallbackUsers];
-    }
 
     // 3. Attach friendship status for each user
     const suggestedIds = suggested.map(u => u.id);

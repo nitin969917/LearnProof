@@ -19,6 +19,9 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [loadingSuggested, setLoadingSuggested] = useState(false);
   const [viewAllSuggested, setViewAllSuggested] = useState(false);
+  const [suggestedPage, setSuggestedPage] = useState(0);
+  const [hasMoreSuggested, setHasMoreSuggested] = useState(true);
+  const [loadingMoreSuggested, setLoadingMoreSuggested] = useState(false);
   const searchInputRef = useRef(null);
 
   // Referral code state
@@ -34,15 +37,47 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
   const [showJoinGroupModal, setShowJoinGroupModal] = useState(null);
   const [joinKey, setJoinKey] = useState('');
 
-  const fetchSuggested = async (showLoader = false) => {
+  const fetchSuggested = async (showLoader = false, resetPage = true) => {
     if (showLoader) setLoadingSuggested(true);
     try {
-      const response = await socialApi.get('/users/suggested?limit=24');
-      setSuggestedUsers(Array.isArray(response.data) ? response.data : []);
+      const response = await socialApi.get('/users/suggested?page=0&limit=16');
+      const data = Array.isArray(response.data) ? response.data : [];
+      setSuggestedUsers(data);
+      if (resetPage) {
+        setSuggestedPage(0);
+        setHasMoreSuggested(data.length >= 16);
+      }
     } catch (err) {
       console.error('Failed to fetch suggested users:', err);
     } finally {
       if (showLoader) setLoadingSuggested(false);
+    }
+  };
+
+  const handleLoadMoreSuggested = async () => {
+    if (loadingMoreSuggested || !hasMoreSuggested) return;
+    setLoadingMoreSuggested(true);
+    const nextPage = suggestedPage + 1;
+    try {
+      const response = await socialApi.get(`/users/suggested?page=${nextPage}&limit=12`);
+      const newUsers = Array.isArray(response.data) ? response.data : [];
+      if (newUsers.length === 0) {
+        setHasMoreSuggested(false);
+      } else {
+        setSuggestedUsers(prev => {
+          const existingIds = new Set(prev.map(u => u.id));
+          const uniqueNew = newUsers.filter(u => !existingIds.has(u.id));
+          return [...prev, ...uniqueNew];
+        });
+        setSuggestedPage(nextPage);
+        if (newUsers.length < 12) {
+          setHasMoreSuggested(false);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load more suggested users:', err);
+    } finally {
+      setLoadingMoreSuggested(false);
     }
   };
 
@@ -180,7 +215,7 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
   };
 
   const isUserSearching = hasSearched && query.trim().length > 0;
-  const displayedSuggestedUsers = viewAllSuggested ? suggestedUsers : suggestedUsers.slice(0, 10);
+  const displayedSuggestedUsers = viewAllSuggested ? suggestedUsers : suggestedUsers.slice(0, 8);
 
   const renderReferralCard = () => (
     <div className="bg-[#FFF7F2] dark:bg-gray-800/90 rounded-2xl border border-orange-100/70 dark:border-gray-700 p-4 sm:p-4.5 flex flex-col gap-3.5 shadow-xs">
@@ -344,14 +379,13 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
 
               {/* Loading state */}
               {loading || loadingSuggested ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
-                  {[1, 2, 3, 4].map((n) => (
-                    <div key={n} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-3.5 px-4 animate-pulse flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
-                        <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-1/2"></div>
-                      </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+                    <div key={n} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-3.5 sm:p-4 animate-pulse flex flex-col items-center gap-2.5">
+                      <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                      <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded w-1/2"></div>
+                      <div className="h-8 bg-gray-100 dark:bg-gray-700 rounded-xl w-full mt-1.5"></div>
                     </div>
                   ))}
                 </div>
@@ -360,84 +394,143 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
                   No users found for "{query}". Try a different name, major, or college.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2.5">
-                  {(isUserSearching ? results : displayedSuggestedUsers).map((student) => {
-                    const fState = getFriendshipState(student);
-                    const subtitle = [student.department, student.collegeName].filter(Boolean).join(' • ') || student.bio || '';
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+                    {(isUserSearching ? results : displayedSuggestedUsers).map((student) => {
+                      const fState = getFriendshipState(student);
+                      const subtitle = [student.department, student.collegeName].filter(Boolean).join(' • ') || student.bio || '';
 
-                    return (
-                      <div
-                        key={student.id}
-                        onClick={() => onViewProfile && onViewProfile(student.id)}
-                        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-3 px-3.5 shadow-xs hover:shadow-sm hover:border-orange-200 dark:hover:border-gray-650 transition-all cursor-pointer flex items-center justify-between gap-3 group"
-                      >
-                        {/* Avatar */}
-                        <UserAvatar
-                          src={student.profilePicture}
-                          name={student.name}
-                          className="w-12 h-12 rounded-full shrink-0"
-                          textClassName="text-base font-bold"
-                        />
+                      return (
+                        <div
+                          key={student.id}
+                          onClick={() => onViewProfile && onViewProfile(student.id)}
+                          className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/80 p-3 sm:p-3.5 shadow-2xs hover:shadow-md hover:border-orange-200 dark:hover:border-gray-600 transition-all duration-200 cursor-pointer flex flex-col items-center text-center relative group"
+                        >
+                          {/* Quick Options Button */}
+                          <div className="absolute top-2 right-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onViewProfile && onViewProfile(student.id);
+                              }}
+                              className="p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-750 transition cursor-pointer"
+                              title="View Profile"
+                            >
+                              <MoreVertical size={14} />
+                            </button>
+                          </div>
 
-                        {/* Name & Subtitle */}
-                        <div className="min-w-0 flex-1">
-                          <h4 className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm group-hover:text-[#FF5722] transition-colors truncate">
+                          {/* Centered Avatar */}
+                          <div className="relative mt-0.5 mb-2">
+                            <UserAvatar
+                              src={student.profilePicture}
+                              name={student.name}
+                              className="w-13 h-13 sm:w-15 sm:h-15 rounded-full border-2 border-orange-100/70 dark:border-gray-700 shadow-xs object-cover"
+                              textClassName="text-base sm:text-lg font-black"
+                            />
+                          </div>
+
+                          {/* Name */}
+                          <h4 className="font-extrabold text-gray-900 dark:text-white text-xs sm:text-sm group-hover:text-[#FF5722] transition-colors truncate w-full px-1">
                             {student.name}
                           </h4>
-                          {subtitle ? (
-                            <p className="text-gray-400 dark:text-gray-500 text-xs font-normal mt-0.5 truncate max-w-[150px] sm:max-w-xs">
-                              {subtitle}
-                            </p>
-                          ) : null}
-                        </div>
 
-                        {/* Right Actions: Icon-Only Follow/Connect Button */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {fState.isConnected ? (
+                          {/* Subtitle / Department / College */}
+                          <p className="text-gray-400 dark:text-gray-500 text-[11px] leading-tight mt-1 truncate w-full px-1 font-medium min-h-[16px]">
+                            {subtitle || 'Student'}
+                          </p>
+
+                          {/* Connect Action Button */}
+                          <div className="w-full mt-3">
+                            {fState.isConnected ? (
+                              <button
+                                type="button"
+                                disabled
+                                className="w-full py-1.5 px-2.5 rounded-xl bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 border border-green-200/80 dark:border-green-800 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 cursor-default shadow-2xs"
+                              >
+                                <UserCheck size={13} />
+                                <span>Connected</span>
+                              </button>
+                            ) : fState.isPending ? (
+                              <button
+                                type="button"
+                                disabled
+                                className="w-full py-1.5 px-2.5 rounded-xl bg-gray-100 dark:bg-gray-750 text-gray-500 dark:text-gray-400 border border-gray-200/80 dark:border-gray-700 text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 cursor-default shadow-2xs"
+                              >
+                                <Check size={13} />
+                                <span>Requested</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => handleConnect(e, student.id)}
+                                className="w-full py-1.5 px-2.5 rounded-xl bg-[#FF5722] hover:bg-[#F4511E] text-white text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer shadow-xs shadow-orange-500/20"
+                              >
+                                <UserPlus size={13} />
+                                <span>Connect</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Pagination / Load More for Suggested Users */}
+                  {!isUserSearching && (
+                    <div className="mt-3 flex flex-col items-center justify-center gap-2">
+                      {!viewAllSuggested && suggestedUsers.length > 8 ? (
+                        <button
+                          type="button"
+                          onClick={() => setViewAllSuggested(true)}
+                          className="px-6 py-2.5 rounded-full bg-white dark:bg-gray-800 border border-orange-200 dark:border-gray-700 hover:border-orange-500 hover:text-[#FF5722] text-xs font-bold text-gray-800 dark:text-gray-200 shadow-2xs hover:shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                        >
+                          <span>View All Suggested ({suggestedUsers.length}+)</span>
+                          <ChevronRight size={14} className="text-[#FF5722]" />
+                        </button>
+                      ) : viewAllSuggested ? (
+                        <>
+                          {hasMoreSuggested ? (
                             <button
                               type="button"
-                              disabled
-                              className="w-9 h-9 rounded-full bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 flex items-center justify-center cursor-default"
-                              title="Connected"
+                              onClick={handleLoadMoreSuggested}
+                              disabled={loadingMoreSuggested}
+                              className="px-6 py-2.5 rounded-full bg-white dark:bg-gray-800 border border-orange-200 dark:border-gray-700 hover:border-orange-500 hover:text-[#FF5722] text-xs font-bold text-gray-800 dark:text-gray-200 shadow-2xs hover:shadow-xs transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                             >
-                              <UserCheck size={16} />
-                            </button>
-                          ) : fState.isPending ? (
-                            <button
-                              type="button"
-                              disabled
-                              className="w-9 h-9 rounded-full border border-gray-200 dark:border-gray-700 text-gray-400 flex items-center justify-center cursor-default"
-                              title="Requested"
-                            >
-                              <Check size={16} />
+                              {loadingMoreSuggested ? (
+                                <>
+                                  <div className="w-3.5 h-3.5 border-2 border-[#FF5722] border-t-transparent rounded-full animate-spin" />
+                                  <span>Loading more students...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles size={14} className="text-[#FF5722]" />
+                                  <span>Show More Suggested Users</span>
+                                </>
+                              )}
                             </button>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={(e) => handleConnect(e, student.id)}
-                              className="w-9 h-9 rounded-full border border-[#FF5722] text-[#FF5722] hover:bg-[#FF5722] hover:text-white flex items-center justify-center transition active:scale-95 cursor-pointer shadow-xs"
-                              title="Follow / Connect"
-                            >
-                              <UserPlus size={16} />
-                            </button>
+                            <p className="text-center text-xs text-gray-400 py-1 font-medium">
+                              You've explored all suggested students 🎉
+                            </p>
                           )}
 
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onViewProfile && onViewProfile(student.id);
+                            onClick={() => {
+                              setViewAllSuggested(false);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
                             }}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition cursor-pointer"
-                            title="View profile"
+                            className="text-xs font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition cursor-pointer py-1"
                           >
-                            <MoreVertical size={18} />
+                            Show Less
                           </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        </>
+                      ) : null}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
