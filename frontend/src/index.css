@@ -634,5 +634,11 @@ html, body {
   }
 }
 
-
-
+/* Prevent unwanted iOS / Mobile WebKit text selection callouts and blue pins during chat long-press */
+.chat-bubble-selectable,
+.whatsapp-menu-container {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-user-drag: none !important;
+}

@@ -3,7 +3,7 @@ import {
   Search, Lock, Unlock, Plus, Copy, Check, MessageCircle, 
   ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, X, Trash2, CornerUpLeft,
   Phone, Video as VideoIcon, Play, SquarePen, Users2, MessageSquareMore, ShieldCheck, Crown, ShieldAlert,
-  Edit2
+  Edit2, Star, Forward, Pin, Info
 } from 'lucide-react';
 import socialApi from '../../../api/socialApi.js';
 import { getSocialSocket } from '../../../utils/socialSocket.js';
@@ -144,9 +144,20 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const [joinKey, setJoinKey] = useState('');
   const [copiedKey, setCopiedKey] = useState(false);
 
-  // Message Actions & Long-Press Options
+  // Message Actions & WhatsApp-style Context Menu
   const [activeMenuMessage, setActiveMenuMessage] = useState(null);
   const [showCopyToast, setShowCopyToast] = useState(false);
+  const [showAllReactions, setShowAllReactions] = useState(false);
+  const [infoMessage, setInfoMessage] = useState(null);
+  const [starredMessageIds, setStarredMessageIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`lp_starred_messages_${currentUserId}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch (_) {
+      return {};
+    }
+  });
+  const [pinnedMessage, setPinnedMessage] = useState(null);
 
   // Group Details & Member Management states
   const [showGroupDetails, setShowGroupDetails] = useState(false);
@@ -1074,6 +1085,20 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   }, [selectedChat, isMatrixActive]);
 
   useEffect(() => {
+    if (!selectedChat) {
+      setPinnedMessage(null);
+      return;
+    }
+    try {
+      const chatKey = `${selectedChat.type}-${selectedChat.id}`;
+      const saved = localStorage.getItem(`lp_pinned_${chatKey}`);
+      setPinnedMessage(saved ? JSON.parse(saved) : null);
+    } catch (_) {
+      setPinnedMessage(null);
+    }
+  }, [selectedChat]);
+
+  useEffect(() => {
     if (!messages || messages.length === 0) return;
     if (isInitialScrollRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
@@ -1287,28 +1312,100 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     }
   };
 
+  const touchStartPos = useRef({ x: 0, y: 0 });
+
   const handleStartPress = (e, msg) => {
+    if (!msg || msg.isDeleted) return;
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
+    if (e.touches && e.touches[0]) {
+      touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    // Clear any native text selection immediately
+    if (window.getSelection) {
+      window.getSelection().removeAllRanges();
+    }
     longPressTimer.current = setTimeout(() => {
-      setActiveMenuMessage(msg);
-      if (navigator.vibrate) {
-        navigator.vibrate(40);
+      if (window.getSelection) {
+        window.getSelection().removeAllRanges();
       }
-    }, 500);
+      if (document.activeElement && document.activeElement.blur) {
+        document.activeElement.blur();
+      }
+      setActiveMenuMessage(msg);
+      setShowAllReactions(false);
+      if (navigator.vibrate) {
+        navigator.vibrate(35);
+      }
+    }, 380);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!longPressTimer.current) return;
+    if (e.touches && e.touches[0]) {
+      const diffX = Math.abs(e.touches[0].clientX - touchStartPos.current.x);
+      const diffY = Math.abs(e.touches[0].clientY - touchStartPos.current.y);
+      if (diffX > 8 || diffY > 8) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+    }
   };
 
   const handleEndPress = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
   };
 
   const handleCancelPress = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
+  };
+
+  const handleToggleStar = (msg) => {
+    if (!msg?.id) return;
+    setStarredMessageIds((prev) => {
+      const isStarred = !prev[msg.id];
+      const next = { ...prev, [msg.id]: isStarred };
+      try {
+        localStorage.setItem(`lp_starred_messages_${currentUserId}`, JSON.stringify(next));
+      } catch (_) {}
+      toast.success(isStarred ? 'Message starred ⭐' : 'Message unstarred');
+      return next;
+    });
+    setActiveMenuMessage(null);
+  };
+
+  const handleTogglePin = (msg) => {
+    if (!msg || !selectedChat) return;
+    const chatKey = `${selectedChat.type}-${selectedChat.id}`;
+    setPinnedMessage((prev) => {
+      const next = prev?.id === msg.id ? null : msg;
+      try {
+        if (next) {
+          localStorage.setItem(`lp_pinned_${chatKey}`, JSON.stringify(next));
+          toast.success('Message pinned 📌');
+        } else {
+          localStorage.removeItem(`lp_pinned_${chatKey}`);
+          toast.success('Message unpinned');
+        }
+      } catch (_) {}
+      return next;
+    });
+    setActiveMenuMessage(null);
+  };
+
+  const handleForwardMessage = (msg) => {
+    const txt = parseMessageContent(msg).text || msg.content;
+    setInputText(txt);
+    setActiveMenuMessage(null);
+    toast.success('Message copied to input box');
+    setTimeout(() => inputRef.current?.focus(), 60);
   };
 
   const handleCreateGroup = async (e) => {
@@ -1733,6 +1830,40 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                 </div>
               </div>
 
+              {/* WhatsApp-Style Pinned Message Banner */}
+              {pinnedMessage && (
+                <div className="bg-amber-50/95 dark:bg-amber-950/60 border-b border-amber-200/60 dark:border-amber-900/60 px-3.5 py-1.5 flex items-center justify-between gap-2 text-xs z-10 shrink-0">
+                  <div 
+                    className="flex items-center gap-2 min-w-0 cursor-pointer flex-1"
+                    onClick={() => {
+                      const el = document.getElementById(`msg-${pinnedMessage.id}`);
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el.classList.add('ring-2', 'ring-amber-400');
+                        setTimeout(() => el.classList.remove('ring-2', 'ring-amber-400'), 1500);
+                      } else {
+                        toast(parseMessageContent(pinnedMessage).text || pinnedMessage.content, { icon: '📌' });
+                      }
+                    }}
+                  >
+                    <Pin size={13} className="text-amber-600 dark:text-amber-400 shrink-0 fill-amber-500/20" />
+                    <div className="min-w-0 truncate">
+                      <span className="font-bold text-amber-700 dark:text-amber-300 mr-1.5">Pinned Message:</span>
+                      <span className="text-gray-700 dark:text-gray-300 font-medium">
+                        {parseMessageContent(pinnedMessage).text || pinnedMessage.content}
+                      </span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleTogglePin(pinnedMessage)} 
+                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full cursor-pointer shrink-0"
+                    title="Unpin message"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
+
               {/* Chat Message Stream Area */}
               <div 
                 onClick={() => {
@@ -1840,19 +1971,29 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
                             {/* Message bubble */}
                             <div
-                              className={`rounded-2xl px-4 py-2.5 shadow-xs text-sm relative select-none cursor-pointer transition-transform duration-100 ${
+                              id={`msg-${msg.id}`}
+                              className={`chat-bubble-selectable rounded-2xl px-4 py-2.5 shadow-xs text-sm relative select-none cursor-pointer transition-transform duration-100 ${
                                 isMine
                                   ? 'bg-[#FFEADB] text-gray-900 dark:bg-orange-950/70 dark:text-orange-50 rounded-tr-xs border border-orange-200/50 dark:border-orange-800/40'
                                   : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-xs border border-gray-100/90 dark:border-gray-700/80'
                               }`}
+                              style={{
+                                WebkitTouchCallout: 'none',
+                                WebkitUserSelect: 'none',
+                                userSelect: 'none',
+                                touchAction: 'manipulation',
+                              }}
                               onMouseDown={(e) => !msg.isDeleted && handleStartPress(e, msg)}
                               onMouseUp={handleEndPress}
                               onMouseLeave={handleCancelPress}
                               onTouchStart={(e) => !msg.isDeleted && handleStartPress(e, msg)}
                               onTouchEnd={handleEndPress}
-                              onTouchMove={handleCancelPress}
+                              onTouchMove={handleTouchMove}
                               onContextMenu={(e) => {
-                                if (!msg.isDeleted) { e.preventDefault(); setActiveMenuMessage(msg); }
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (window.getSelection) window.getSelection().removeAllRanges();
+                                if (!msg.isDeleted) { setActiveMenuMessage(msg); }
                               }}
                               title={!msg.isDeleted ? 'Long press for options' : undefined}
                             >
@@ -1883,10 +2024,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                                 </p>
                               )}
 
-                              {/* Timestamp & read receipts */}
+                              {/* Timestamp, star & read receipts */}
                               <div className={`flex items-center gap-1 justify-end mt-1 text-[9px] font-medium ${
                                 isMine ? 'text-[#FF5722]/80 dark:text-orange-300/80' : 'text-gray-400 dark:text-gray-500'
                               }`}>
+                                {starredMessageIds[msg.id] && (
+                                  <Star size={9} className="text-amber-500 fill-amber-500 shrink-0" />
+                                )}
                                 <span>{formattedTime}</span>
                                 {isMine && !msg.isDeleted && (
                                   <CheckCheck size={13} className="text-[#FF5722]" />
@@ -3025,36 +3169,28 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         )}
       </AnimatePresence>
 
-      {/* Message Options Action Drawer */}
+      {/* WhatsApp-Style Message Context Menu */}
       <AnimatePresence>
         {activeMenuMessage && (
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end md:items-center justify-center z-[2000]"
-            onClick={() => setActiveMenuMessage(null)}
+            className="fixed inset-0 bg-black/65 backdrop-blur-sm flex flex-col items-center justify-end sm:justify-center p-3 sm:p-6 z-[2500] select-none"
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+            onClick={() => {
+              setActiveMenuMessage(null);
+              setShowAllReactions(false);
+            }}
           >
             <motion.div 
-              initial={{ y: '100%', opacity: 0.5 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '100%', opacity: 0.5 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="bg-white dark:bg-gray-800 w-full md:w-[380px] rounded-t-3xl md:rounded-3xl p-5 shadow-2xl border border-gray-100 dark:border-gray-700 md:mb-0"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 380 }}
+              className="w-full max-w-sm flex flex-col items-center gap-2.5 pb-2 sm:pb-0"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full mx-auto mb-4 md:hidden"></div>
-              
-              <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 select-none">
-                Message Options
-              </h5>
-              
-              <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 mb-4 max-h-24 overflow-y-auto">
-                <p className="text-xs text-gray-600 dark:text-gray-300 font-medium break-words whitespace-pre-wrap leading-relaxed">
-                  {parseMessageContent(activeMenuMessage).text || activeMenuMessage.content}
-                </p>
-              </div>
-
-              {/* Quick Emoji Reactions */}
+              {/* 1. WhatsApp Floating Reaction Pill */}
               {!activeMenuMessage.isDeleted && (
-                <div className="flex justify-around items-center bg-gray-50 dark:bg-gray-900 rounded-2xl py-2 px-3 mb-3">
+                <div className="bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-full px-3 py-1.5 shadow-2xl border border-gray-200/60 dark:border-gray-700/60 flex items-center gap-2 transition-all">
                   {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => {
                     const reactions = parseMessageContent(activeMenuMessage).reactions || {};
                     const users = reactions[emoji];
@@ -3065,29 +3201,110 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                         onClick={() => {
                           handleToggleReaction(activeMenuMessage.id, emoji);
                           setActiveMenuMessage(null);
+                          setShowAllReactions(false);
                         }}
-                        className={`text-2xl active:scale-75 transition-transform cursor-pointer rounded-full p-1 ${reacted ? 'bg-orange-100 dark:bg-orange-950/40' : 'hover:bg-gray-200 dark:hover:bg-gray-700/40'}`}
+                        className={`text-2xl active:scale-125 hover:scale-115 transition-transform cursor-pointer rounded-full p-1 ${
+                          reacted ? 'bg-orange-100 dark:bg-orange-950/60 scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                        }`}
                         title={emoji}
                       >
                         {emoji}
                       </button>
                     );
                   })}
+                  <button
+                    onClick={() => setShowAllReactions(!showAllReactions)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer text-sm font-bold"
+                    title="More reactions"
+                  >
+                    <Plus size={16} />
+                  </button>
                 </div>
               )}
 
-              <div className="space-y-2">
+              {/* Extended Reaction Picker Tray */}
+              <AnimatePresence>
+                {showAllReactions && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                    className="bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-2xl p-2.5 shadow-2xl border border-gray-200/60 dark:border-gray-700/60 flex flex-wrap justify-center gap-2 max-w-[280px]"
+                  >
+                    {['🔥', '🎉', '👏', '💯', '🤔', '🤝', '💡', '🚀', '😍', '🤩', '🙌', '✨'].map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => {
+                          handleToggleReaction(activeMenuMessage.id, emoji);
+                          setActiveMenuMessage(null);
+                          setShowAllReactions(false);
+                        }}
+                        className="text-2xl hover:scale-125 active:scale-95 transition-transform p-1 cursor-pointer"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* 2. Elevated Real Message Bubble Preview (WhatsApp Style) */}
+              <div 
+                className={`w-full rounded-2xl px-4 py-3 shadow-xl border text-sm max-h-36 overflow-y-auto ${
+                  activeMenuMessage.senderId === currentUserId
+                    ? 'bg-[#FFEADB] text-gray-900 dark:bg-orange-950/90 dark:text-orange-50 border-orange-200/60 dark:border-orange-800/60'
+                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-100 dark:border-gray-700'
+                }`}
+              >
+                {/* Reply quote preview if any */}
+                {parseMessageContent(activeMenuMessage).replyTo && (
+                  <div className="mb-1.5 pl-2 py-0.5 rounded border-l-2 border-[#FF5722] bg-black/5 dark:bg-white/5 text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                    {parseMessageContent(activeMenuMessage).replyTo.text || 'Replied message'}
+                  </div>
+                )}
+                <p className="break-words font-normal leading-relaxed whitespace-pre-wrap text-xs sm:text-sm">
+                  {parseMessageContent(activeMenuMessage).text || activeMenuMessage.content}
+                </p>
+                <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-gray-400 dark:text-gray-500 font-medium">
+                  {starredMessageIds[activeMenuMessage.id] && (
+                    <Star size={9} className="text-amber-500 fill-amber-500 shrink-0" />
+                  )}
+                  <span>{formatConversationTime(activeMenuMessage.createdAt)}</span>
+                </div>
+              </div>
+
+              {/* 3. WhatsApp Rounded Context Menu Options */}
+              <div className="w-full bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/60 dark:border-gray-700/60 overflow-hidden divide-y divide-gray-100 dark:divide-gray-800/80">
                 {/* Reply */}
                 {!activeMenuMessage.isDeleted && (
                   <button
                     onClick={() => {
                       setReplyingTo(activeMenuMessage);
                       setActiveMenuMessage(null);
+                      setShowAllReactions(false);
+                      setTimeout(() => inputRef.current?.focus(), 50);
                     }}
-                    className="w-full text-left py-2.5 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition font-bold text-sm flex items-center gap-3 cursor-pointer"
+                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
                   >
-                    <CornerUpLeft size={16} className="text-[#FF5722]" />
                     <span>Reply</span>
+                    <CornerUpLeft size={17} className="text-[#FF5722]" />
+                  </button>
+                )}
+
+                {/* Star / Unstar Message (WhatsApp feature) */}
+                {!activeMenuMessage.isDeleted && activeMenuMessage.id && (
+                  <button
+                    onClick={() => {
+                      handleToggleStar(activeMenuMessage);
+                      setShowAllReactions(false);
+                    }}
+                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
+                  >
+                    <span>{starredMessageIds[activeMenuMessage.id] ? 'Unstar' : 'Star'}</span>
+                    <Star 
+                      size={17} 
+                      className={starredMessageIds[activeMenuMessage.id] ? "text-amber-500 fill-amber-500" : "text-gray-400"} 
+                    />
                   </button>
                 )}
 
@@ -3098,13 +3315,57 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       const txt = parseMessageContent(activeMenuMessage).text || activeMenuMessage.content;
                       navigator.clipboard.writeText(txt);
                       setActiveMenuMessage(null);
+                      setShowAllReactions(false);
                       setShowCopyToast(true);
                       setTimeout(() => setShowCopyToast(false), 2000);
                     }}
-                    className="w-full text-left py-2.5 px-4 rounded-xl text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition font-bold text-sm flex items-center gap-3 cursor-pointer"
+                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
                   >
-                    <Copy size={16} className="text-gray-400" />
-                    <span>Copy Text</span>
+                    <span>Copy</span>
+                    <Copy size={17} className="text-gray-400" />
+                  </button>
+                )}
+
+                {/* Forward Message (WhatsApp feature) */}
+                {!activeMenuMessage.isDeleted && (
+                  <button
+                    onClick={() => {
+                      handleForwardMessage(activeMenuMessage);
+                      setShowAllReactions(false);
+                    }}
+                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
+                  >
+                    <span>Forward</span>
+                    <Forward size={17} className="text-blue-500" />
+                  </button>
+                )}
+
+                {/* Pin Message (WhatsApp feature) */}
+                {!activeMenuMessage.isDeleted && activeMenuMessage.id && (
+                  <button
+                    onClick={() => {
+                      handleTogglePin(activeMenuMessage);
+                      setShowAllReactions(false);
+                    }}
+                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
+                  >
+                    <span>{pinnedMessage?.id === activeMenuMessage.id ? 'Unpin' : 'Pin'}</span>
+                    <Pin size={17} className={pinnedMessage?.id === activeMenuMessage.id ? "text-[#FF5722] fill-[#FF5722]" : "text-gray-400"} />
+                  </button>
+                )}
+
+                {/* Info (WhatsApp feature) */}
+                {!activeMenuMessage.isDeleted && (
+                  <button
+                    onClick={() => {
+                      setInfoMessage(activeMenuMessage);
+                      setActiveMenuMessage(null);
+                      setShowAllReactions(false);
+                    }}
+                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
+                  >
+                    <span>Info</span>
+                    <Info size={17} className="text-emerald-500" />
                   </button>
                 )}
 
@@ -3117,22 +3378,75 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     onClick={() => {
                       const msgToDelete = activeMenuMessage;
                       setActiveMenuMessage(null);
+                      setShowAllReactions(false);
                       handleDeleteMessage(msgToDelete);
                     }}
-                    className="w-full text-left py-2.5 px-4 rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition font-bold text-sm flex items-center gap-3 cursor-pointer"
+                    className="w-full text-left py-3 px-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 active:bg-red-100/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
                   >
-                    <Trash2 size={16} className="text-red-500" />
-                    <span>Delete Message</span>
+                    <span>Delete</span>
+                    <Trash2 size={17} className="text-red-500" />
                   </button>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
-                {/* Cancel */}
-                <button
-                  onClick={() => setActiveMenuMessage(null)}
-                  className="w-full text-center py-2.5 px-4 rounded-xl text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-bold text-sm cursor-pointer mt-1"
+      {/* WhatsApp-Style Message Info Dialog */}
+      <AnimatePresence>
+        {infoMessage && (
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-[2600]"
+            onClick={() => setInfoMessage(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="bg-white dark:bg-gray-800 rounded-3xl p-5 w-full max-w-xs shadow-2xl border border-gray-100 dark:border-gray-700 space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700">
+                <h4 className="font-bold text-gray-900 dark:text-white text-sm flex items-center gap-2">
+                  <Info size={16} className="text-[#FF5722]" /> Message Info
+                </h4>
+                <button 
+                  onClick={() => setInfoMessage(null)} 
+                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full cursor-pointer"
                 >
-                  Cancel
+                  <X size={16} />
                 </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="bg-gray-50 dark:bg-gray-900/60 p-3 rounded-2xl border border-gray-100 dark:border-gray-800">
+                  <p className="font-medium text-gray-800 dark:text-gray-200 break-words leading-relaxed">
+                    {parseMessageContent(infoMessage).text || infoMessage.content}
+                  </p>
+                </div>
+
+                <div className="flex justify-between items-center py-1 border-b border-gray-50 dark:border-gray-700/50">
+                  <span className="text-gray-500 dark:text-gray-400">Sent</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    {infoMessage.createdAt ? new Date(infoMessage.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Just now'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-1 border-b border-gray-50 dark:border-gray-700/50">
+                  <span className="text-gray-500 dark:text-gray-400">Sender</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    {infoMessage.senderId === currentUserId ? 'You' : (infoMessage.sender?.name || 'Friend')}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-gray-500 dark:text-gray-400">Status</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCheck size={14} /> Delivered
+                  </span>
+                </div>
               </div>
             </motion.div>
           </div>
