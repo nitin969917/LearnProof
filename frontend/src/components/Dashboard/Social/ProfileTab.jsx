@@ -23,6 +23,7 @@ import { resolveMediaUrl } from '../../../utils/heicHelper.js';
 const VISIBILITY_OPTIONS = [
   { value: 'public', label: 'Public', icon: Globe, desc: 'Anyone can see' },
   { value: 'friends', label: 'Friends', icon: UsersIcon, desc: 'Only connections can see' },
+  { value: 'close_friends', label: 'Close Friends', icon: Star, desc: 'Only close friends can see' },
   { value: 'private', label: 'Private', icon: Lock, desc: 'Only you can see' },
 ];
 
@@ -52,6 +53,7 @@ function CompactVisibilityDropdown({ value = 'public', onChange, label, disabled
   const colorStyles = {
     public: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60 dark:hover:bg-emerald-900/60',
     friends: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60 dark:hover:bg-blue-900/60',
+    close_friends: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60 dark:hover:bg-amber-900/60',
     private: 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60 dark:hover:bg-rose-900/60',
   };
 
@@ -70,7 +72,7 @@ function CompactVisibilityDropdown({ value = 'public', onChange, label, disabled
           colorStyles[currentOpt.value] || colorStyles.public
         }`}
       >
-        <CurrentIcon size={12} className="shrink-0" />
+        <CurrentIcon size={12} className={`shrink-0 ${currentOpt.value === 'close_friends' ? 'fill-amber-500 text-amber-500' : ''}`} />
         <span className="capitalize">{currentOpt.label}</span>
         <ChevronDown size={11} className={`transition-transform duration-200 opacity-60 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
@@ -115,10 +117,12 @@ function CompactVisibilityDropdown({ value = 'public', onChange, label, disabled
                             ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
                             : opt.value === 'friends'
                             ? 'bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400'
+                            : opt.value === 'close_friends'
+                            ? 'bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400'
                             : 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
                         }`}
                       >
-                        <OptIcon size={12} />
+                        <OptIcon size={12} className={opt.value === 'close_friends' ? 'fill-amber-500 text-amber-500' : ''} />
                       </div>
                       <div className="min-w-0">
                         <div className="text-xs font-bold leading-tight">{opt.label}</div>
@@ -234,6 +238,14 @@ function VisibilityBadge({ visibility = 'public' }) {
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/40">
         <Lock size={10} />
         <span>Private</span>
+      </span>
+    );
+  }
+  if (v === 'close_friends') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/40">
+        <Star size={10} className="fill-amber-500 text-amber-500" />
+        <span>Close Friends</span>
       </span>
     );
   }
@@ -1681,6 +1693,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                         { key: 'whatsappVisibility', label: 'WhatsApp', current: profile.whatsappVisibility || 'public' },
                         { key: 'instagramVisibility', label: 'Instagram', current: profile.instagramVisibility || 'public' },
                         { key: 'linkedinVisibility', label: 'LinkedIn', current: profile.linkedinVisibility || 'public' },
+                        { key: 'facebookVisibility', label: 'Facebook', current: profile.facebookVisibility || 'public' },
                       ].map((item) => (
                         <div key={item.key} className="bg-orange-50/40 dark:bg-gray-900 p-2.5 rounded-xl border border-orange-100/60 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{item.label}</span>
@@ -1872,6 +1885,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                       { key: 'whatsappVisibility', label: 'WhatsApp', current: profile.whatsappVisibility || 'public' },
                       { key: 'instagramVisibility', label: 'Instagram', current: profile.instagramVisibility || 'public' },
                       { key: 'linkedinVisibility', label: 'LinkedIn', current: profile.linkedinVisibility || 'public' },
+                      { key: 'facebookVisibility', label: 'Facebook', current: profile.facebookVisibility || 'public' },
                     ].map((item) => (
                       <div key={item.key} className="bg-orange-50/40 dark:bg-gray-900 p-2 rounded-xl border border-orange-100/60 dark:border-gray-800 flex items-center justify-between gap-2">
                         <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{item.label}</span>
