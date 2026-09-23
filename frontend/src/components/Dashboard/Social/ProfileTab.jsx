@@ -2486,8 +2486,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                   </button>
                 </div>
 
-                {/* Compact Icon Selector Bar: Only icons, click to see detailed */}
-                <div className="grid grid-cols-6 gap-1.5 sm:gap-2 p-1.5 bg-gray-50/80 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70">
+                {/* Responsive Channel Selector Bar: 3 columns on mobile (2 clean rows), 6 columns on desktop */}
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2 p-1.5 bg-gray-50/80 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70">
                   {CONTACT_FIELDS_CONFIG.map((field) => {
                     const Icon = field.icon;
                     const isSelected = activeContactTab === field.id && !showAllContacts;
@@ -2503,22 +2503,22 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                           if (showAllContacts) setShowAllContacts(false);
                         }}
                         title={`${field.label} (${isFilled ? 'Configured' : 'Empty'})`}
-                        className={`relative flex flex-col items-center justify-center p-2 rounded-xl transition-all cursor-pointer ${
+                        className={`relative flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl transition-all cursor-pointer min-w-0 ${
                           isSelected
-                            ? 'bg-white dark:bg-gray-800 shadow-sm border border-orange-500/60 scale-102 ring-2 ring-orange-500/20'
-                            : 'hover:bg-white/60 dark:hover:bg-gray-800/40 text-gray-500 dark:text-gray-400'
+                            ? 'bg-white dark:bg-gray-800 shadow-sm border border-orange-500/60 ring-2 ring-orange-500/20 scale-[1.02]'
+                            : 'hover:bg-white/60 dark:hover:bg-gray-800/40 text-gray-500 dark:text-gray-400 border border-transparent'
                         }`}
                       >
-                        <div className={`p-1.5 rounded-lg ${isSelected ? field.bg : 'bg-transparent'}`}>
-                          <Icon size={16} className={isSelected ? field.color : 'text-gray-500 dark:text-gray-400'} />
+                        <div className={`p-1 rounded-lg shrink-0 ${isSelected ? field.bg : 'bg-transparent'}`}>
+                          <Icon size={14} className={isSelected ? field.color : 'text-gray-500 dark:text-gray-400'} />
                         </div>
-                        <span className={`text-[10px] font-bold mt-0.5 truncate max-w-full ${
-                          isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-400'
+                        <span className={`text-[11px] sm:text-xs font-bold whitespace-nowrap ${
+                          isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'
                         }`}>
                           {field.shortLabel}
                         </span>
                         {isFilled && (
-                          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-gray-800" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 ml-0.5" />
                         )}
                       </button>
                     );
