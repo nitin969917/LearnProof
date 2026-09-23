@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   User, Mail, GraduationCap, MapPin, Phone, Instagram, Facebook, 
   Shield, Edit3, Save, UserPlus, UserCheck, Star, MessageSquare, 
-  Linkedin, Sparkles, ArrowLeft, ChevronRight, Camera, Heart, 
+  Linkedin, Sparkles, ArrowLeft, ChevronRight, ChevronDown, Camera, Heart, 
   Settings, Plus, FileText, Lightbulb, Check, X, ExternalLink,
   Users as UsersIcon, Share2, Compass, Award, Globe, Lock, Eye, EyeOff, Trash2,
   MoreVertical, UserX, Ban, Activity, Bookmark, MessageCircle
@@ -26,36 +26,206 @@ const VISIBILITY_OPTIONS = [
   { value: 'private', label: 'Private', icon: Lock, desc: 'Only you can see' },
 ];
 
-function VisibilityPill({ value = 'public', onChange, label, disabled = false }) {
+function CompactVisibilityDropdown({ value = 'public', onChange, label, disabled = false, align = 'right' }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+      document.addEventListener('touchstart', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [isOpen]);
+
+  const currentOpt = VISIBILITY_OPTIONS.find((o) => o.value === value) || VISIBILITY_OPTIONS[0];
+  const CurrentIcon = currentOpt.icon;
+
+  const colorStyles = {
+    public: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60 dark:hover:bg-emerald-900/60',
+    friends: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60 dark:hover:bg-blue-900/60',
+    private: 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60 dark:hover:bg-rose-900/60',
+  };
+
   return (
-    <div className="flex flex-col gap-1">
-      {label && <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{label}</span>}
-      <div className="inline-flex bg-gray-100/90 dark:bg-gray-800 p-0.5 rounded-xl border border-gray-200/80 dark:border-gray-700/80 text-[10px] sm:text-[11px] shrink-0">
-        {VISIBILITY_OPTIONS.map((opt) => {
-          const isSelected = (value || 'public') === opt.value;
-          const Icon = opt.icon;
-          return (
-            <button
-              type="button"
-              key={opt.value}
-              disabled={disabled}
-              onClick={() => onChange && onChange(opt.value)}
-              title={opt.desc}
-              className={`flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                isSelected
-                  ? 'bg-white dark:bg-gray-700 text-orange-600 dark:text-orange-400 shadow-xs scale-100'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              <Icon size={11} className={isSelected ? 'text-orange-500' : 'text-gray-400'} />
-              <span>{opt.label}</span>
-            </button>
-          );
-        })}
-      </div>
+    <div className="relative inline-flex items-center" ref={dropdownRef}>
+      {label && <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mr-1.5">{label}</span>}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        title={`Visibility: ${currentOpt.label} (${currentOpt.desc}) - Click to change`}
+        className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1 rounded-xl text-[11px] sm:text-xs font-bold border transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0 ${
+          colorStyles[currentOpt.value] || colorStyles.public
+        }`}
+      >
+        <CurrentIcon size={12} className="shrink-0" />
+        <span className="capitalize">{currentOpt.label}</span>
+        <ChevronDown size={11} className={`transition-transform duration-200 opacity-60 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className={`absolute z-50 mt-1.5 w-52 sm:w-56 p-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl backdrop-blur-md top-full ${
+              align === 'right' ? 'right-0' : 'left-0'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-2 py-1 text-[10px] font-extrabold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+              Select Privacy
+            </div>
+            <div className="space-y-1">
+              {VISIBILITY_OPTIONS.map((opt) => {
+                const isSelected = (value || 'public') === opt.value;
+                const OptIcon = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onChange && onChange(opt.value);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition cursor-pointer ${
+                      isSelected
+                        ? 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-bold'
+                        : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/60 font-medium'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className={`p-1.5 rounded-lg shrink-0 ${
+                          opt.value === 'public'
+                            ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400'
+                            : opt.value === 'friends'
+                            ? 'bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400'
+                            : 'bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400'
+                        }`}
+                      >
+                        <OptIcon size={12} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold leading-tight">{opt.label}</div>
+                        <div className="text-[10px] text-gray-400 dark:text-gray-400 leading-tight truncate">
+                          {opt.desc}
+                        </div>
+                      </div>
+                    </div>
+                    {isSelected && <Check size={13} className="text-orange-600 dark:text-orange-400 shrink-0 ml-1" />}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+// Kept for backwards compatibility and clean compact rendering across the file
+const VisibilityPill = CompactVisibilityDropdown;
+
+const CONTACT_FIELDS_CONFIG = [
+  {
+    id: 'phone',
+    label: 'Phone Number',
+    shortLabel: 'Phone',
+    icon: Phone,
+    color: 'text-orange-500',
+    bg: 'bg-orange-100 dark:bg-orange-950/50',
+    placeholder: '+91 XXXXX XXXXX',
+    type: 'tel',
+    valueKey: 'phoneNumber',
+    visKey: 'phoneVisibility',
+    helper: 'Only shown according to your privacy choice',
+    isEmail: false,
+  },
+  {
+    id: 'email',
+    label: 'Email Address',
+    shortLabel: 'Email',
+    icon: Mail,
+    color: 'text-amber-500',
+    bg: 'bg-amber-100 dark:bg-amber-950/50',
+    valueKey: null,
+    visKey: 'emailVisibility',
+    helper: 'Account login email address',
+    isEmail: true,
+  },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp Number',
+    shortLabel: 'WhatsApp',
+    icon: MessageSquare,
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-100 dark:bg-emerald-950/50',
+    placeholder: '+91 XXXXX XXXXX',
+    type: 'tel',
+    valueKey: 'whatsappNumber',
+    visKey: 'whatsappVisibility',
+    helper: 'Direct WhatsApp link on your profile',
+    isEmail: false,
+  },
+  {
+    id: 'instagram',
+    label: 'Instagram Handle',
+    shortLabel: 'Instagram',
+    icon: Instagram,
+    color: 'text-pink-500',
+    bg: 'bg-pink-100 dark:bg-pink-950/50',
+    placeholder: '@username',
+    type: 'text',
+    valueKey: 'instagramHandle',
+    visKey: 'instagramVisibility',
+    helper: 'Instagram username or handle',
+    isEmail: false,
+  },
+  {
+    id: 'linkedin',
+    label: 'LinkedIn Profile URL',
+    shortLabel: 'LinkedIn',
+    icon: Linkedin,
+    color: 'text-blue-600',
+    bg: 'bg-blue-100 dark:bg-blue-950/50',
+    placeholder: 'https://linkedin.com/in/username',
+    type: 'url',
+    valueKey: 'linkedinUrl',
+    visKey: 'linkedinVisibility',
+    helper: 'Full LinkedIn profile URL',
+    isEmail: false,
+  },
+  {
+    id: 'facebook',
+    label: 'Facebook Profile URL',
+    shortLabel: 'Facebook',
+    icon: Facebook,
+    color: 'text-indigo-600',
+    bg: 'bg-indigo-100 dark:bg-indigo-950/50',
+    placeholder: 'https://facebook.com/username',
+    type: 'url',
+    valueKey: 'facebookUrl',
+    visKey: 'facebookVisibility',
+    helper: 'Full Facebook profile URL',
+    isEmail: false,
+  },
+];
 
 function VisibilityBadge({ visibility = 'public' }) {
   const v = visibility || 'public';
@@ -111,6 +281,8 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
+  const [activeContactTab, setActiveContactTab] = useState('phone');
+  const [showAllContacts, setShowAllContacts] = useState(false);
   const [expandedSection, setExpandedSection] = useState(null); // 'academics', 'contact', 'social', 'settings'
   const [activeTab, setActiveTab] = useState('posts'); // 'posts', 'activity', 'friends'
   const [showAvatarPreview, setShowAvatarPreview] = useState(false);
@@ -2267,140 +2439,164 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
                 </div>
               </div>
 
-              {/* Contact & Social Links with Per-Field Visibility Switches */}
-              <div className="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3.5">
+              {/* Contact & Social Links with Compact Icon Navigation */}
+              <div className="pt-3.5 border-t border-gray-100 dark:border-gray-700 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-[11px] font-black uppercase text-orange-600 dark:text-orange-400 tracking-wider">
-                    Contact & Privacy Settings
-                  </h4>
-                  <span className="text-[10px] text-gray-400 font-medium">
-                    Per-field visibility
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="text-[11px] font-black uppercase text-orange-600 dark:text-orange-400 tracking-wider">
+                      Contact & Privacy
+                    </h4>
+                    <span className="text-[10px] text-gray-400 font-medium">
+                      ({CONTACT_FIELDS_CONFIG.length} channels)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAllContacts(!showAllContacts)}
+                    className="text-[10px] font-bold text-orange-600 dark:text-orange-400 hover:underline cursor-pointer"
+                  >
+                    {showAllContacts ? 'Compact View' : 'Show All'}
+                  </button>
                 </div>
 
-                <div className="space-y-3">
-                  {/* Phone Number with Visibility */}
-                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
-                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
-                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
-                        <Phone size={14} className="text-orange-500 shrink-0" />
-                        <span>Phone Number</span>
-                      </label>
-                      <VisibilityPill
-                        value={formData.phoneVisibility || 'public'}
-                        onChange={(val) => setFormData({ ...formData, phoneVisibility: val })}
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="+91 XXXXX XXXXX"
-                      value={formData.phoneNumber || ''}
-                      onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
-                    />
-                  </div>
+                {/* Compact Icon Selector Bar: Only icons, click to see detailed */}
+                <div className="grid grid-cols-6 gap-1.5 sm:gap-2 p-1.5 bg-gray-50/80 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70">
+                  {CONTACT_FIELDS_CONFIG.map((field) => {
+                    const Icon = field.icon;
+                    const isSelected = activeContactTab === field.id && !showAllContacts;
+                    const val = field.isEmail ? profile?.email : formData[field.valueKey];
+                    const isFilled = !!(val && String(val).trim());
 
-                  {/* Email Visibility */}
-                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
-                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
-                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
-                        <Mail size={14} className="text-orange-500 shrink-0" />
-                        <span>Email Address</span>
-                      </label>
-                      <VisibilityPill
-                        value={formData.emailVisibility || 'private'}
-                        onChange={(val) => setFormData({ ...formData, emailVisibility: val })}
-                      />
-                    </div>
-                    <div className="px-3 py-2 bg-gray-100/80 dark:bg-gray-800/60 rounded-xl text-xs text-gray-600 dark:text-gray-300 font-medium">
-                      {profile.email || 'Your account email'}
-                    </div>
-                  </div>
-
-                  {/* WhatsApp with Visibility */}
-                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
-                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
-                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
-                        <MessageSquare size={14} className="text-emerald-500 shrink-0" />
-                        <span>WhatsApp Number</span>
-                      </label>
-                      <VisibilityPill
-                        value={formData.whatsappVisibility || 'public'}
-                        onChange={(val) => setFormData({ ...formData, whatsappVisibility: val })}
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="+91 XXXXX XXXXX"
-                      value={formData.whatsappNumber || ''}
-                      onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
-                    />
-                  </div>
-
-                  {/* Instagram Handle with Visibility */}
-                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
-                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
-                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
-                        <Instagram size={14} className="text-pink-500 shrink-0" />
-                        <span>Instagram Handle</span>
-                      </label>
-                      <VisibilityPill
-                        value={formData.instagramVisibility || 'public'}
-                        onChange={(val) => setFormData({ ...formData, instagramVisibility: val })}
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="@username"
-                      value={formData.instagramHandle || ''}
-                      onChange={(e) => setFormData({ ...formData, instagramHandle: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
-                    />
-                  </div>
-
-                  {/* LinkedIn URL with Visibility */}
-                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
-                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
-                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
-                        <Linkedin size={14} className="text-blue-600 shrink-0" />
-                        <span>LinkedIn Profile URL</span>
-                      </label>
-                      <VisibilityPill
-                        value={formData.linkedinVisibility || 'public'}
-                        onChange={(val) => setFormData({ ...formData, linkedinVisibility: val })}
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="https://linkedin.com/in/username"
-                      value={formData.linkedinUrl || ''}
-                      onChange={(e) => setFormData({ ...formData, linkedinUrl: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
-                    />
-                  </div>
-
-                  {/* Facebook URL with Visibility */}
-                  <div className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2">
-                    <div className="flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
-                      <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5 shrink-0">
-                        <Facebook size={14} className="text-indigo-600 shrink-0" />
-                        <span>Facebook Profile URL</span>
-                      </label>
-                      <VisibilityPill
-                        value={formData.facebookVisibility || 'public'}
-                        onChange={(val) => setFormData({ ...formData, facebookVisibility: val })}
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="https://facebook.com/username"
-                      value={formData.facebookUrl || ''}
-                      onChange={(e) => setFormData({ ...formData, facebookUrl: e.target.value })}
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:border-orange-500"
-                    />
-                  </div>
+                    return (
+                      <button
+                        key={field.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveContactTab(field.id);
+                          if (showAllContacts) setShowAllContacts(false);
+                        }}
+                        title={`${field.label} (${isFilled ? 'Configured' : 'Empty'})`}
+                        className={`relative flex flex-col items-center justify-center p-2 rounded-xl transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-white dark:bg-gray-800 shadow-sm border border-orange-500/60 scale-102 ring-2 ring-orange-500/20'
+                            : 'hover:bg-white/60 dark:hover:bg-gray-800/40 text-gray-500 dark:text-gray-400'
+                        }`}
+                      >
+                        <div className={`p-1.5 rounded-lg ${isSelected ? field.bg : 'bg-transparent'}`}>
+                          <Icon size={16} className={isSelected ? field.color : 'text-gray-500 dark:text-gray-400'} />
+                        </div>
+                        <span className={`text-[10px] font-bold mt-0.5 truncate max-w-full ${
+                          isSelected ? 'text-gray-900 dark:text-white' : 'text-gray-400'
+                        }`}>
+                          {field.shortLabel}
+                        </span>
+                        {isFilled && (
+                          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-gray-800" />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {/* If Compact Mode: Show the Active Contact's Detail Card */}
+                {!showAllContacts ? (
+                  (() => {
+                    const activeField = CONTACT_FIELDS_CONFIG.find((f) => f.id === activeContactTab) || CONTACT_FIELDS_CONFIG[0];
+                    const ActiveIcon = activeField.icon;
+                    const activeVis = formData[activeField.visKey] || (activeField.isEmail ? 'private' : 'public');
+
+                    return (
+                      <motion.div
+                        key={activeField.id}
+                        initial={{ opacity: 0, y: 3 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="p-3 sm:p-3.5 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                            <div className={`p-1.5 rounded-lg ${activeField.bg}`}>
+                              <ActiveIcon size={14} className={activeField.color} />
+                            </div>
+                            <span>{activeField.label}</span>
+                          </label>
+                          <CompactVisibilityDropdown
+                            value={activeVis}
+                            onChange={(val) => setFormData({ ...formData, [activeField.visKey]: val })}
+                          />
+                        </div>
+
+                        {activeField.isEmail ? (
+                          <div className="px-3 py-2 bg-gray-100/90 dark:bg-gray-800/80 rounded-xl text-xs sm:text-sm text-gray-600 dark:text-gray-300 font-semibold border border-gray-200/50 dark:border-gray-700/50">
+                            {profile?.email || 'Your account email'}
+                          </div>
+                        ) : (
+                          <input
+                            type={activeField.type}
+                            placeholder={activeField.placeholder}
+                            value={formData[activeField.valueKey] || ''}
+                            onChange={(e) => setFormData({ ...formData, [activeField.valueKey]: e.target.value })}
+                            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+                          />
+                        )}
+
+                        <div className="flex items-center justify-between text-[10px] text-gray-400 dark:text-gray-500">
+                          <span>{activeField.helper}</span>
+                          <div className="flex items-center gap-1">
+                            {CONTACT_FIELDS_CONFIG.map((f) => (
+                              <button
+                                key={f.id}
+                                type="button"
+                                onClick={() => setActiveContactTab(f.id)}
+                                className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                                  f.id === activeContactTab ? 'bg-orange-500 w-3.5' : 'bg-gray-300 dark:bg-gray-700 w-1.5'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })()
+                ) : (
+                  /* If Show All is clicked: Clean stacked cards with the new compact dropdowns */
+                  <div className="space-y-2.5">
+                    {CONTACT_FIELDS_CONFIG.map((field) => {
+                      const Icon = field.icon;
+                      const currentVis = formData[field.visKey] || (field.isEmail ? 'private' : 'public');
+                      return (
+                        <div
+                          key={field.id}
+                          className="p-3 bg-gray-50/70 dark:bg-gray-900/60 rounded-2xl border border-gray-200/70 dark:border-gray-700/70 space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                              <Icon size={14} className={field.color} />
+                              <span>{field.label}</span>
+                            </label>
+                            <CompactVisibilityDropdown
+                              value={currentVis}
+                              onChange={(val) => setFormData({ ...formData, [field.visKey]: val })}
+                            />
+                          </div>
+                          {field.isEmail ? (
+                            <div className="px-3 py-2 bg-gray-100/90 dark:bg-gray-800/80 rounded-xl text-xs text-gray-600 dark:text-gray-300 font-semibold">
+                              {profile?.email || 'Your account email'}
+                            </div>
+                          ) : (
+                            <input
+                              type={field.type}
+                              placeholder={field.placeholder}
+                              value={formData[field.valueKey] || ''}
+                              onChange={(e) => setFormData({ ...formData, [field.valueKey]: e.target.value })}
+                              className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </form>
 
