@@ -3249,7 +3249,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       <AnimatePresence>
         {activeMenuMessage && (
           <div 
-            className="fixed inset-0 bg-black/65 backdrop-blur-sm flex flex-col items-center justify-end sm:justify-center p-3 sm:p-6 z-[2500] select-none"
+            className="fixed inset-0 bg-black/55 backdrop-blur-xs flex flex-col items-center justify-center p-4 z-[2500] select-none"
             style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
             onClick={() => {
               setActiveMenuMessage(null);
@@ -3257,16 +3257,16 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
             }}
           >
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.92, opacity: 0, y: 12 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ type: 'spring', damping: 26, stiffness: 380 }}
-              className="w-full max-w-sm flex flex-col items-center gap-2.5 pb-2 sm:pb-0"
+              exit={{ scale: 0.92, opacity: 0, y: 12 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 400 }}
+              className="w-full max-w-[240px] sm:max-w-[260px] flex flex-col items-center gap-1.5"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* 1. WhatsApp Floating Reaction Pill */}
+              {/* 1. Sleek Floating Reaction Pill */}
               {!activeMenuMessage.isDeleted && (
-                <div className="bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-full px-3 py-1.5 shadow-2xl border border-gray-200/60 dark:border-gray-700/60 flex items-center gap-2 transition-all">
+                <div className="bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-full px-2 py-1 shadow-lg border border-gray-200/60 dark:border-gray-700/60 flex items-center gap-1 transition-all">
                   {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => {
                     const reactions = parseMessageContent(activeMenuMessage).reactions || {};
                     const users = reactions[emoji];
@@ -3279,7 +3279,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           setActiveMenuMessage(null);
                           setShowAllReactions(false);
                         }}
-                        className={`text-2xl active:scale-125 hover:scale-115 transition-transform cursor-pointer rounded-full p-1 ${
+                        className={`text-lg sm:text-xl active:scale-125 hover:scale-115 transition-transform cursor-pointer rounded-full p-0.5 leading-none ${
                           reacted ? 'bg-orange-100 dark:bg-orange-950/60 scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
                         title={emoji}
@@ -3290,10 +3290,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   })}
                   <button
                     onClick={() => setShowAllReactions(!showAllReactions)}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer text-sm font-bold"
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer text-xs font-bold shrink-0 ml-0.5"
                     title="More reactions"
                   >
-                    <Plus size={16} />
+                    <Plus size={12} />
                   </button>
                 </div>
               )}
@@ -3302,10 +3302,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               <AnimatePresence>
                 {showAllReactions && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: -10 }}
+                    initial={{ opacity: 0, scale: 0.9, y: -6 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: -10 }}
-                    className="bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-2xl p-2.5 shadow-2xl border border-gray-200/60 dark:border-gray-700/60 flex flex-wrap justify-center gap-2 max-w-[280px]"
+                    exit={{ opacity: 0, scale: 0.9, y: -6 }}
+                    className="bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-2xl p-2 shadow-xl border border-gray-200/60 dark:border-gray-700/60 flex flex-wrap justify-center gap-1.5 max-w-[220px]"
                   >
                     {['🔥', '🎉', '👏', '💯', '🤔', '🤝', '💡', '🚀', '😍', '🤩', '🙌', '✨'].map((emoji) => (
                       <button
@@ -3315,7 +3315,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           setActiveMenuMessage(null);
                           setShowAllReactions(false);
                         }}
-                        className="text-2xl hover:scale-125 active:scale-95 transition-transform p-1 cursor-pointer"
+                        className="text-lg hover:scale-125 active:scale-95 transition-transform p-0.5 cursor-pointer leading-none"
                       >
                         {emoji}
                       </button>
@@ -3324,33 +3324,32 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                 )}
               </AnimatePresence>
 
-              {/* 2. Elevated Real Message Bubble Preview (WhatsApp Style) */}
+              {/* 2. Compact Message Bubble Preview */}
               <div 
-                className={`w-full rounded-2xl px-4 py-3 shadow-xl border text-sm max-h-36 overflow-y-auto ${
+                className={`w-full rounded-2xl px-3 py-2 shadow-md border text-xs max-h-24 overflow-y-auto ${
                   activeMenuMessage.senderId === currentUserId
                     ? 'bg-[#FFEADB] text-gray-900 dark:bg-orange-950/90 dark:text-orange-50 border-orange-200/60 dark:border-orange-800/60'
                     : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-100 dark:border-gray-700'
                 }`}
               >
-                {/* Reply quote preview if any */}
                 {parseMessageContent(activeMenuMessage).replyTo && (
-                  <div className="mb-1.5 pl-2 py-0.5 rounded border-l-2 border-[#FF5722] bg-black/5 dark:bg-white/5 text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                  <div className="mb-1 pl-1.5 py-0.5 rounded border-l-2 border-[#FF5722] bg-black/5 dark:bg-white/5 text-[9px] text-gray-500 dark:text-gray-400 truncate">
                     {parseMessageContent(activeMenuMessage).replyTo.text || 'Replied message'}
                   </div>
                 )}
-                <p className="break-words font-normal leading-relaxed whitespace-pre-wrap text-xs sm:text-sm">
+                <p className="break-words font-normal leading-snug whitespace-pre-wrap text-[11px] sm:text-xs">
                   {parseMessageContent(activeMenuMessage).text || activeMenuMessage.content}
                 </p>
-                <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-gray-400 dark:text-gray-500 font-medium">
+                <div className="flex items-center justify-end gap-1 mt-0.5 text-[8.5px] text-gray-400 dark:text-gray-500 font-medium">
                   {starredMessageIds[activeMenuMessage.id] && (
-                    <Star size={9} className="text-amber-500 fill-amber-500 shrink-0" />
+                    <Star size={8} className="text-amber-500 fill-amber-500 shrink-0" />
                   )}
                   <span>{formatConversationTime(activeMenuMessage.createdAt)}</span>
                 </div>
               </div>
 
-              {/* 3. WhatsApp Rounded Context Menu Options */}
-              <div className="w-full bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/60 dark:border-gray-700/60 overflow-hidden divide-y divide-gray-100 dark:divide-gray-800/80">
+              {/* 3. Compact Native iOS/WhatsApp Action Menu */}
+              <div className="w-full bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/60 dark:border-gray-700/60 overflow-hidden divide-y divide-gray-100 dark:divide-gray-800/60">
                 {/* Reply */}
                 {!activeMenuMessage.isDeleted && (
                   <button
@@ -3360,25 +3359,25 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setShowAllReactions(false);
                       setTimeout(() => inputRef.current?.focus(), 50);
                     }}
-                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
                   >
                     <span>Reply</span>
-                    <CornerUpLeft size={17} className="text-[#FF5722]" />
+                    <CornerUpLeft size={14} className="text-[#FF5722]" />
                   </button>
                 )}
 
-                {/* Star / Unstar Message (WhatsApp feature) */}
+                {/* Star / Unstar Message */}
                 {!activeMenuMessage.isDeleted && activeMenuMessage.id && (
                   <button
                     onClick={() => {
                       handleToggleStar(activeMenuMessage);
                       setShowAllReactions(false);
                     }}
-                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
                   >
                     <span>{starredMessageIds[activeMenuMessage.id] ? 'Unstar' : 'Star'}</span>
                     <Star 
-                      size={17} 
+                      size={14} 
                       className={starredMessageIds[activeMenuMessage.id] ? "text-amber-500 fill-amber-500" : "text-gray-400"} 
                     />
                   </button>
@@ -3395,42 +3394,42 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setShowCopyToast(true);
                       setTimeout(() => setShowCopyToast(false), 2000);
                     }}
-                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
                   >
                     <span>Copy</span>
-                    <Copy size={17} className="text-gray-400" />
+                    <Copy size={14} className="text-gray-400" />
                   </button>
                 )}
 
-                {/* Forward Message (WhatsApp feature) */}
+                {/* Forward Message */}
                 {!activeMenuMessage.isDeleted && (
                   <button
                     onClick={() => {
                       handleForwardMessage(activeMenuMessage);
                       setShowAllReactions(false);
                     }}
-                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
                   >
                     <span>Forward</span>
-                    <Forward size={17} className="text-blue-500" />
+                    <Forward size={14} className="text-blue-500" />
                   </button>
                 )}
 
-                {/* Pin Message (WhatsApp feature) */}
+                {/* Pin Message */}
                 {!activeMenuMessage.isDeleted && activeMenuMessage.id && (
                   <button
                     onClick={() => {
                       handleTogglePin(activeMenuMessage);
                       setShowAllReactions(false);
                     }}
-                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
                   >
                     <span>{pinnedMessage?.id === activeMenuMessage.id ? 'Unpin' : 'Pin'}</span>
-                    <Pin size={17} className={pinnedMessage?.id === activeMenuMessage.id ? "text-[#FF5722] fill-[#FF5722]" : "text-gray-400"} />
+                    <Pin size={14} className={pinnedMessage?.id === activeMenuMessage.id ? "text-[#FF5722] fill-[#FF5722]" : "text-gray-400"} />
                   </button>
                 )}
 
-                {/* Info (WhatsApp feature) */}
+                {/* Info */}
                 {!activeMenuMessage.isDeleted && (
                   <button
                     onClick={() => {
@@ -3438,10 +3437,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setActiveMenuMessage(null);
                       setShowAllReactions(false);
                     }}
-                    className="w-full text-left py-3 px-4 text-gray-800 dark:text-gray-200 hover:bg-gray-100/70 dark:hover:bg-gray-800/70 active:bg-gray-200/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
                   >
                     <span>Info</span>
-                    <Info size={17} className="text-emerald-500" />
+                    <Info size={14} className="text-emerald-500" />
                   </button>
                 )}
 
@@ -3457,10 +3456,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setShowAllReactions(false);
                       handleDeleteMessage(msgToDelete);
                     }}
-                    className="w-full text-left py-3 px-4 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 active:bg-red-100/60 transition font-semibold text-sm flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 active:bg-red-100/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
                   >
                     <span>Delete</span>
-                    <Trash2 size={17} className="text-red-500" />
+                    <Trash2 size={14} className="text-red-500" />
                   </button>
                 )}
               </div>
