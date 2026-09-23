@@ -421,6 +421,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   const messagesEndRef = useRef(null);
   const selectedChatRef = useRef(null);
   const chatLoadSeq = useRef(0);
+  const isInitialScrollRef = useRef(true);
   const longPressTimer = useRef(null);
   const inputRef = useRef(null);
 
@@ -890,6 +891,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   }, [location.pathname, contacts, groups]);
 
   useEffect(() => {
+    isInitialScrollRef.current = true;
     if (!selectedChat) {
       clearActiveChat();
       setMessages([]);
@@ -983,7 +985,13 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   }, [selectedChat, isMatrixActive]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!messages || messages.length === 0) return;
+    if (isInitialScrollRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      isInitialScrollRef.current = false;
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   const handleSendMessage = async (e) => {
