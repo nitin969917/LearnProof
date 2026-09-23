@@ -513,6 +513,7 @@ const Classroom = () => {
   const [showBeyondSpeedModal, setShowBeyondSpeedModal] = useState(false);
   const speedMenuRef = useRef(null);
   const isSwitchingVideoRef = useRef(false);
+  const lastPlaybackCheckRef = useRef(null);
 
   const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4];
 
@@ -525,10 +526,11 @@ const Classroom = () => {
     const apply = () => {
       try {
         if (typeof targetPlayer.setPlaybackRate === 'function') {
-          const current = typeof targetPlayer.getPlaybackRate === 'function' ? targetPlayer.getPlaybackRate() : null;
-          if (current !== clampedApiSpeed) {
-            targetPlayer.setPlaybackRate(clampedApiSpeed);
+          // If non-1 speed, toggle 1 then target so YouTube's internal state machine detects a genuine change
+          if (clampedApiSpeed !== 1) {
+            targetPlayer.setPlaybackRate(1);
           }
+          targetPlayer.setPlaybackRate(clampedApiSpeed);
         }
       } catch (_) {}
       try {
@@ -540,8 +542,8 @@ const Classroom = () => {
     };
 
     apply();
-    // Multi-pass enforcement to overcome YouTube buffer/seek rate resets
-    [100, 300, 600, 1000, 1600, 2400, 3500].forEach((delay) => {
+    // Multi-pass enforcement with nudge to overcome YouTube buffer/seek rate resets
+    [150, 450, 900, 1600, 2500].forEach((delay) => {
       setTimeout(apply, delay);
     });
   };
@@ -583,6 +585,8 @@ const Classroom = () => {
 
   useEffect(() => {
     isSwitchingVideoRef.current = true;
+    lastPlaybackCheckRef.current = null;
+    setHasSeeked(false);
   }, [videoId]);
 
   // Track continuous progress to avoid spamming the backend
@@ -766,6 +770,7 @@ const Classroom = () => {
   const handleSelectVideo = (targetVid) => {
     if (targetVid === videoId) return;
     isSwitchingVideoRef.current = true;
+    lastPlaybackCheckRef.current = null;
     setShowNextOverlay(false);
     setHasCancelledOverlay(false);
     setIsVideoPlaying(false);
@@ -1841,6 +1846,37 @@ const Classroom = () => {
               localStorage.setItem(`learnproof_seek_${videoId}`, String(currentTime));
             } catch (e) { }
 
+            // Active Speed Watchdog: Measure actual playback progression in real time
+            const now = Date.now();
+            if (lastPlaybackCheckRef.current) {
+              const elapsedWallSec = (now - lastPlaybackCheckRef.current.time) / 1000;
+              const elapsedVideoSec = currentTime - lastPlaybackCheckRef.current.videoTime;
+              const expectedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+              const targetApiSpeed = Math.min(expectedSpeed, 2);
+
+              if (
+                targetApiSpeed > 1 &&
+                elapsedWallSec >= 0.8 &&
+                elapsedWallSec <= 2.5 &&
+                elapsedVideoSec > 0
+              ) {
+                const actualSpeed = elapsedVideoSec / elapsedWallSec;
+                const threshold = targetApiSpeed * 0.82; // e.g. ~1.64x for 2x, ~1.23x for 1.5x
+                if (actualSpeed < threshold) {
+                  console.warn(`[SpeedWatchdog] Speed mismatch: expected >= ${threshold.toFixed(2)}x, actual is ${actualSpeed.toFixed(2)}x. Re-kicking player to ${targetApiSpeed}x`);
+                  try {
+                    player.setPlaybackRate(1);
+                    setTimeout(() => {
+                      try {
+                        player.setPlaybackRate(targetApiSpeed);
+                      } catch (_) {}
+                    }, 60);
+                  } catch (_) {}
+                }
+              }
+            }
+            lastPlaybackCheckRef.current = { time: now, videoTime: currentTime };
+
             // Auto-trigger next overlay to block YouTube annotations (which can start up to 20s before the end)
             // Ensure video has actually played past 50% and is for current videoId
             const triggerOffset = duration > 60 ? 20 : (duration * 0.1);
@@ -1915,14 +1951,17 @@ const Classroom = () => {
       setIsVideoPlaying(true);
       if (!hasSeeked) {
         setHasSeeked(true);
+        lastPlaybackCheckRef.current = null;
         const duration = await event.target.getDuration();
         const savedSeekSeconds = parseFloat(localStorage.getItem(`learnproof_seek_${videoId}`) || '0');
         if (savedSeekSeconds > 3 && duration > 0 && savedSeekSeconds < duration - 5) {
           event.target.seekTo(savedSeekSeconds);
+          return;
         } else if (video?.watch_progress > 0 && video?.watch_progress < 98 && duration > 0) {
           const seekSeconds = (video.watch_progress / 100) * duration;
           event.target.seekTo(seekSeconds);
           setLastSavedProgress(video.watch_progress);
+          return;
         }
       }
 
@@ -1932,11 +1971,15 @@ const Classroom = () => {
       setTimeout(() => {
         isSwitchingVideoRef.current = false;
       }, 2500);
-    } else if (event.data === 2) {
-      // PAUSED - keep poster hidden
-      setIsVideoPlaying(true);
+    } else if (event.data === 2 || event.data === 3) {
+      // PAUSED or BUFFERING - reset watchdog baseline
+      lastPlaybackCheckRef.current = null;
+      if (event.data === 2) {
+        setIsVideoPlaying(true);
+      }
     } else if (event.data === 5 || event.data === -1) {
       // CUED / UNSTARTED - kick play to start video without user waiting
+      lastPlaybackCheckRef.current = null;
       try {
         const p = event.target.playVideo();
         if (p && p.catch) p.catch(() => { });
@@ -2205,9 +2248,6 @@ const Classroom = () => {
                     const p = e.target.playVideo();
                     if (p && p.catch) p.catch(() => { });
                   } catch (_) { }
-                  // Auto-restore playback speed
-                  const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-                  enforcePlaybackSpeed(e.target, savedSpeed);
                 }, 150);
               }}
               onStateChange={handlePlayerStateChange}
