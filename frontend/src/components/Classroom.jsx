@@ -511,50 +511,47 @@ const Classroom = () => {
   });
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showBeyondSpeedModal, setShowBeyondSpeedModal] = useState(false);
+  const [speedHudVisible, setSpeedHudVisible] = useState(false);
+  const speedHudTimeoutRef = useRef(null);
   const speedMenuRef = useRef(null);
   const isSwitchingVideoRef = useRef(false);
-  const lastPlaybackCheckRef = useRef(null);
 
   const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4];
+  const userSpeedRef = useRef(playbackSpeed);
 
-  // Helper to reliably enforce speed on YouTube player & DOM video elements across video switches & seeks
-  const enforcePlaybackSpeed = (targetPlayer, targetSpeed) => {
-    if (!targetPlayer) return;
-    const speed = typeof targetSpeed === 'number' && !isNaN(targetSpeed) ? targetSpeed : 1;
-    const clampedApiSpeed = Math.min(speed, 2);
-
-    const apply = () => {
-      try {
-        if (typeof targetPlayer.setPlaybackRate === 'function') {
-          // If non-1 speed, toggle 1 then target so YouTube's internal state machine detects a genuine change
-          if (clampedApiSpeed !== 1) {
-            targetPlayer.setPlaybackRate(1);
-          }
-          targetPlayer.setPlaybackRate(clampedApiSpeed);
-        }
-      } catch (_) {}
-      try {
-        document.querySelectorAll('video').forEach((v) => {
-          v.playbackRate = speed;
-          v.defaultPlaybackRate = speed;
-        });
-      } catch (_) {}
-    };
-
-    apply();
-    // Multi-pass enforcement with nudge to overcome YouTube buffer/seek rate resets
-    [150, 450, 900, 1600, 2500].forEach((delay) => {
-      setTimeout(apply, delay);
-    });
-  };
+  useEffect(() => {
+    userSpeedRef.current = playbackSpeed;
+  }, [playbackSpeed]);
 
   const applyPlaybackSpeed = (rate, playerInstance = player) => {
     const targetPlayer = playerInstance || player;
     setPlaybackSpeed(rate);
+    userSpeedRef.current = rate;
     try {
       localStorage.setItem('learnproof_playback_speed', rate.toString());
     } catch (_) {}
-    enforcePlaybackSpeed(targetPlayer, rate);
+
+    if (targetPlayer && typeof targetPlayer.setPlaybackRate === 'function') {
+      try {
+        targetPlayer.setPlaybackRate(Math.min(rate, 2));
+      } catch (err) {
+        console.error('Failed to set playback rate:', err);
+      }
+    }
+
+    try {
+      document.querySelectorAll('video').forEach((v) => {
+        v.playbackRate = rate;
+        v.defaultPlaybackRate = rate;
+      });
+    } catch (_) {}
+
+    // Show extension-style floating speed HUD
+    setSpeedHudVisible(true);
+    if (speedHudTimeoutRef.current) clearTimeout(speedHudTimeoutRef.current);
+    speedHudTimeoutRef.current = setTimeout(() => {
+      setSpeedHudVisible(false);
+    }, 1100);
   };
 
   const handleStepSpeed = (delta) => {
@@ -568,6 +565,48 @@ const Classroom = () => {
     }
     applyPlaybackSpeed(SPEED_OPTIONS[newIndex]);
   };
+
+  // Extension-style keyboard shortcuts: S (slower), D (faster), R (reset 1x), Z (rewind 5s), X (forward 5s)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (
+        ['INPUT', 'TEXTAREA'].includes(e.target.tagName) ||
+        e.target.isContentEditable ||
+        (e.target.className && typeof e.target.className === 'string' && e.target.className.includes('ql-editor'))
+      ) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      if (key === 'd') {
+        e.preventDefault();
+        handleStepSpeed(1);
+      } else if (key === 's') {
+        e.preventDefault();
+        handleStepSpeed(-1);
+      } else if (key === 'r') {
+        e.preventDefault();
+        applyPlaybackSpeed(1);
+      } else if (key === 'z') {
+        e.preventDefault();
+        if (player && typeof player.getCurrentTime === 'function') {
+          player.getCurrentTime().then((t) => {
+            player.seekTo(Math.max(0, t - 5));
+          });
+        }
+      } else if (key === 'x') {
+        e.preventDefault();
+        if (player && typeof player.getCurrentTime === 'function') {
+          player.getCurrentTime().then((t) => {
+            player.seekTo(t + 5);
+          });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [playbackSpeed, player]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -585,7 +624,6 @@ const Classroom = () => {
 
   useEffect(() => {
     isSwitchingVideoRef.current = true;
-    lastPlaybackCheckRef.current = null;
     setHasSeeked(false);
   }, [videoId]);
 
@@ -770,7 +808,6 @@ const Classroom = () => {
   const handleSelectVideo = (targetVid) => {
     if (targetVid === videoId) return;
     isSwitchingVideoRef.current = true;
-    lastPlaybackCheckRef.current = null;
     setShowNextOverlay(false);
     setHasCancelledOverlay(false);
     setIsVideoPlaying(false);
@@ -1846,37 +1883,6 @@ const Classroom = () => {
               localStorage.setItem(`learnproof_seek_${videoId}`, String(currentTime));
             } catch (e) { }
 
-            // Active Speed Watchdog: Measure actual playback progression in real time
-            const now = Date.now();
-            if (lastPlaybackCheckRef.current) {
-              const elapsedWallSec = (now - lastPlaybackCheckRef.current.time) / 1000;
-              const elapsedVideoSec = currentTime - lastPlaybackCheckRef.current.videoTime;
-              const expectedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-              const targetApiSpeed = Math.min(expectedSpeed, 2);
-
-              if (
-                targetApiSpeed > 1 &&
-                elapsedWallSec >= 0.8 &&
-                elapsedWallSec <= 2.5 &&
-                elapsedVideoSec > 0
-              ) {
-                const actualSpeed = elapsedVideoSec / elapsedWallSec;
-                const threshold = targetApiSpeed * 0.82; // e.g. ~1.64x for 2x, ~1.23x for 1.5x
-                if (actualSpeed < threshold) {
-                  console.warn(`[SpeedWatchdog] Speed mismatch: expected >= ${threshold.toFixed(2)}x, actual is ${actualSpeed.toFixed(2)}x. Re-kicking player to ${targetApiSpeed}x`);
-                  try {
-                    player.setPlaybackRate(1);
-                    setTimeout(() => {
-                      try {
-                        player.setPlaybackRate(targetApiSpeed);
-                      } catch (_) {}
-                    }, 60);
-                  } catch (_) {}
-                }
-              }
-            }
-            lastPlaybackCheckRef.current = { time: now, videoTime: currentTime };
-
             // Auto-trigger next overlay to block YouTube annotations (which can start up to 20s before the end)
             // Ensure video has actually played past 50% and is for current videoId
             const triggerOffset = duration > 60 ? 20 : (duration * 0.1);
@@ -1951,35 +1957,36 @@ const Classroom = () => {
       setIsVideoPlaying(true);
       if (!hasSeeked) {
         setHasSeeked(true);
-        lastPlaybackCheckRef.current = null;
         const duration = await event.target.getDuration();
         const savedSeekSeconds = parseFloat(localStorage.getItem(`learnproof_seek_${videoId}`) || '0');
         if (savedSeekSeconds > 3 && duration > 0 && savedSeekSeconds < duration - 5) {
           event.target.seekTo(savedSeekSeconds);
-          return;
         } else if (video?.watch_progress > 0 && video?.watch_progress < 98 && duration > 0) {
           const seekSeconds = (video.watch_progress / 100) * duration;
           event.target.seekTo(seekSeconds);
           setLastSavedProgress(video.watch_progress);
-          return;
         }
       }
 
-      // Auto-restore & lock playback speed across video changes
-      const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-      enforcePlaybackSpeed(event.target, savedSpeed);
-      setTimeout(() => {
+      // Re-apply preferred playback speed smoothly once video is playing
+      const currentRate = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+      if (currentRate && currentRate !== 1) {
+        setTimeout(() => {
+          try {
+            if (event.target && typeof event.target.setPlaybackRate === 'function') {
+              event.target.setPlaybackRate(Math.min(currentRate, 2));
+            }
+          } catch (_) {}
+          isSwitchingVideoRef.current = false;
+        }, 350);
+      } else {
         isSwitchingVideoRef.current = false;
-      }, 2500);
-    } else if (event.data === 2 || event.data === 3) {
-      // PAUSED or BUFFERING - reset watchdog baseline
-      lastPlaybackCheckRef.current = null;
-      if (event.data === 2) {
-        setIsVideoPlaying(true);
       }
+    } else if (event.data === 2) {
+      // PAUSED - keep poster hidden
+      setIsVideoPlaying(true);
     } else if (event.data === 5 || event.data === -1) {
       // CUED / UNSTARTED - kick play to start video without user waiting
-      lastPlaybackCheckRef.current = null;
       try {
         const p = event.target.playVideo();
         if (p && p.catch) p.catch(() => { });
@@ -2253,18 +2260,27 @@ const Classroom = () => {
               onStateChange={handlePlayerStateChange}
               onPlaybackRateChange={(e) => {
                 const newRate = e.data;
-                const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-                console.log("Playback speed event:", newRate, "expected savedSpeed:", savedSpeed, "switching:", isSwitchingVideoRef.current);
+                const preferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+                console.log("YouTube playback rate event:", newRate, "preferred:", preferred);
 
-                // If YouTube automatically reset to 1 on video load/seek while user selected a different speed,
-                // or if we are actively switching videos, or if user selected >2x and player emitted 2x:
-                // re-enforce savedSpeed instead of accepting the reset!
-                if (isSwitchingVideoRef.current || (newRate === 1 && savedSpeed !== 1) || (savedSpeed > 2 && newRate === 2)) {
-                  enforcePlaybackSpeed(e.target, savedSpeed);
+                // If YouTube automatically reset to 1 upon loading a new video/stream, but user preferred non-1:
+                if (newRate === 1 && preferred !== 1) {
+                  setTimeout(() => {
+                    try {
+                      if (e.target && typeof e.target.setPlaybackRate === 'function') {
+                        e.target.setPlaybackRate(Math.min(preferred, 2));
+                      }
+                    } catch (_) {}
+                  }, 250);
+                  return;
+                }
+
+                if (preferred > 2 && newRate === 2) {
                   return;
                 }
 
                 setPlaybackSpeed(newRate);
+                userSpeedRef.current = newRate;
                 try {
                   localStorage.setItem('learnproof_playback_speed', newRate.toString());
                 } catch (_) {}
@@ -2281,6 +2297,79 @@ const Classroom = () => {
               }}
               onError={() => setPlayerError(true)}
             />
+
+            {/* Extension-Style Floating Speed Pill (Desktop & Mobile) */}
+            <div className={`absolute top-3 left-3 z-20 flex items-center gap-1 bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 text-white rounded-xl px-2 py-1 shadow-lg transition-all duration-200 select-none ${
+              speedHudVisible ? 'opacity-100 scale-100' : 'opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100'
+            }`}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStepSpeed(-1);
+                }}
+                disabled={playbackSpeed <= SPEED_OPTIONS[0]}
+                className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-white/20 active:scale-90 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                title="Slow down [S]"
+              >
+                <Minus size={11} />
+              </button>
+
+              <div 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSpeedMenu(prev => !prev);
+                }}
+                className="px-1.5 py-0.5 text-xs font-mono font-bold text-orange-400 hover:text-orange-300 transition cursor-pointer flex items-center gap-0.5"
+                title="Click for Speed Menu (or press S/D keys)"
+              >
+                <span>{playbackSpeed}x</span>
+                {playbackSpeed > 2 && <Zap size={10} className="fill-amber-400 text-amber-400" />}
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStepSpeed(1);
+                }}
+                disabled={playbackSpeed >= SPEED_OPTIONS[SPEED_OPTIONS.length - 1]}
+                className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-white/20 active:scale-90 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                title="Speed up [D]"
+              >
+                <Plus size={11} />
+              </button>
+
+              {playbackSpeed !== 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    applyPlaybackSpeed(1);
+                  }}
+                  className="ml-0.5 px-1 py-0.5 text-[9px] font-bold uppercase rounded bg-white/10 hover:bg-orange-500 text-gray-300 hover:text-white transition cursor-pointer"
+                  title="Reset to 1x [R]"
+                >
+                  1x
+                </button>
+              )}
+            </div>
+
+            {/* Quick Extension-Style Central Flash Indicator */}
+            <AnimatePresence>
+              {speedHudVisible && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none bg-black/80 backdrop-blur-md border border-orange-500/30 text-white rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-2"
+                >
+                  <Gauge size={22} className="text-orange-500" />
+                  <span className="text-2xl font-mono font-black text-orange-400">{playbackSpeed}x</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Fallback overlay when YouTube blocks embedding */}
             {playerError && (
