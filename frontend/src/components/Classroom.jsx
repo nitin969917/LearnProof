@@ -32,7 +32,9 @@ import {
   RefreshCw,
   Shuffle,
   Printer,
-  ChevronUp
+  ChevronUp,
+  ChevronDown,
+  Gauge
 } from "lucide-react";
 import { useModal } from "../context/ModalContext";
 import YouTube from 'react-youtube';
@@ -498,6 +500,50 @@ const Classroom = () => {
   const [showNextOverlay, setShowNextOverlay] = useState(false);
   const [hasCancelledOverlay, setHasCancelledOverlay] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(() => {
+    try {
+      return parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+    } catch {
+      return 1;
+    }
+  });
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showBeyondSpeedModal, setShowBeyondSpeedModal] = useState(false);
+  const speedMenuRef = useRef(null);
+  const isSwitchingVideoRef = useRef(false);
+
+  const applyPlaybackSpeed = (rate, playerInstance = player) => {
+    const targetPlayer = playerInstance || player;
+    setPlaybackSpeed(rate);
+    try {
+      localStorage.setItem('learnproof_playback_speed', rate.toString());
+    } catch (_) {}
+    if (targetPlayer && typeof targetPlayer.setPlaybackRate === 'function') {
+      try {
+        targetPlayer.setPlaybackRate(rate);
+      } catch (err) {
+        console.error('Failed to set playback rate:', err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (speedMenuRef.current && !speedMenuRef.current.contains(e.target)) {
+        setShowSpeedMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    isSwitchingVideoRef.current = true;
+  }, [videoId]);
 
   // Track continuous progress to avoid spamming the backend
   const [lastSavedProgress, setLastSavedProgress] = useState(0);
@@ -679,6 +725,7 @@ const Classroom = () => {
 
   const handleSelectVideo = (targetVid) => {
     if (targetVid === videoId) return;
+    isSwitchingVideoRef.current = true;
     setShowNextOverlay(false);
     setHasCancelledOverlay(false);
     setIsVideoPlaying(false);
@@ -1841,8 +1888,18 @@ const Classroom = () => {
 
       // Auto-restore playback speed
       const savedSpeed = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-      if (savedSpeed !== 1) {
-        event.target.setPlaybackRate(savedSpeed);
+      if (savedSpeed && savedSpeed !== 1) {
+        try {
+          event.target.setPlaybackRate(savedSpeed);
+        } catch (_) {}
+        setTimeout(() => {
+          try {
+            event.target.setPlaybackRate(savedSpeed);
+          } catch (_) {}
+          isSwitchingVideoRef.current = false;
+        }, 350);
+      } else {
+        isSwitchingVideoRef.current = false;
       }
     } else if (event.data === 2) {
       // PAUSED - keep poster hidden
@@ -1917,7 +1974,67 @@ const Classroom = () => {
               <span className="hidden sm:inline">Back</span>
             </button>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Playback Speed Controller */}
+              <div className="relative" ref={speedMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowSpeedMenu(prev => !prev)}
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gray-50 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-slate-700/80 border border-gray-200/80 dark:border-slate-700 rounded-xl text-xs font-black text-gray-700 dark:text-slate-200 transition-all cursor-pointer shadow-xs active:scale-95"
+                  title="Playback Speed"
+                >
+                  <Gauge size={13} className="text-orange-500 shrink-0" />
+                  <span className="font-mono">{playbackSpeed}x</span>
+                  <ChevronDown size={11} className={`text-gray-400 transition-transform duration-200 ${showSpeedMenu ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showSpeedMenu && (
+                  <div className="absolute right-0 mt-2 w-44 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500">
+                      Playback Speed
+                    </div>
+                    <div className="space-y-0.5">
+                      {[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((rate) => {
+                        const isCurrent = playbackSpeed === rate;
+                        return (
+                          <button
+                            key={rate}
+                            type="button"
+                            onClick={() => {
+                              applyPlaybackSpeed(rate);
+                              setShowSpeedMenu(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              isCurrent
+                                ? 'bg-orange-500 text-white shadow-xs'
+                                : 'text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            <span>{rate === 1 ? '1x (Normal)' : `${rate}x`}</span>
+                            {isCurrent && <Check size={12} className="stroke-[3]" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="my-1.5 border-t border-gray-100 dark:border-slate-800" />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSpeedMenu(false);
+                        setShowBeyondSpeedModal(true);
+                      }}
+                      className="w-full flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/40 transition cursor-pointer"
+                    >
+                      <Sparkles size={12} />
+                      <span>Play &gt; 2x speed?</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Live progress chip */}
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl">
                 <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
@@ -1961,6 +2078,7 @@ const Classroom = () => {
             </div>
 
             <YouTube
+              key={video.vid}
               videoId={video.vid}
               opts={{
                 host: 'https://www.youtube.com',
@@ -1996,13 +2114,16 @@ const Classroom = () => {
                       e.target.setPlaybackRate(savedSpeed);
                     } catch (_) { }
                   }
-                }, 120);
+                }, 150);
               }}
               onStateChange={handlePlayerStateChange}
               onPlaybackRateChange={(e) => {
                 const newRate = e.data;
                 console.log("Playback speed changed to:", newRate);
-                localStorage.setItem('learnproof_playback_speed', newRate.toString());
+                if (!isSwitchingVideoRef.current) {
+                  setPlaybackSpeed(newRate);
+                  localStorage.setItem('learnproof_playback_speed', newRate.toString());
+                }
               }}
               onEnd={() => {
                 if (nextVideo) {
@@ -3745,6 +3866,66 @@ const Classroom = () => {
           </div>
         </div>
       )}
+
+      {/* Beyond 2x Speed Guide Modal */}
+      {showBeyondSpeedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                  <Gauge size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-gray-900 dark:text-white">Playing Beyond 2x Speed</h3>
+                  <p className="text-xs text-gray-400">2.25x, 2.5x, 3x, 4x Playback</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBeyondSpeedModal(false)}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed text-gray-600 dark:text-slate-300">
+              <p>
+                YouTube's embedded player strictly caps built-in speed at <strong className="text-gray-900 dark:text-white">2.0x</strong> via the official YouTube IFrame API.
+              </p>
+              
+              <div className="bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-800/40 rounded-2xl p-3.5 space-y-2">
+                <div className="font-bold text-orange-700 dark:text-orange-300 flex items-center gap-1.5">
+                  <Sparkles size={14} /> Recommended Approach (Desktop / Laptop):
+                </div>
+                <p>
+                  Install the free <strong className="text-orange-900 dark:text-orange-200">"Video Speed Controller"</strong> extension for Chrome, Brave, Edge, or Firefox.
+                </p>
+                <p className="text-[11px] text-orange-600 dark:text-orange-400">
+                  Once installed, simply press <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded border border-orange-200 dark:border-orange-800 font-mono font-bold text-gray-800 dark:text-slate-200">D</kbd> while watching to speed up to 2.5x, 3x, or any custom speed!
+                </p>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-3 space-y-1">
+                <div className="font-bold text-gray-800 dark:text-slate-200">Watch Directly on YouTube:</div>
+                <p className="text-[11px] text-gray-500 dark:text-slate-400">
+                  You can also click the YouTube logo above the video to open it in YouTube where high-speed tools and native shortcuts apply.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowBeyondSpeedModal(false)}
+              className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition cursor-pointer"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
 
       {/* High-Speed Clean Study Notes & PDF Export Modal */}
       {showNotesModal && parsedIntuition && (
