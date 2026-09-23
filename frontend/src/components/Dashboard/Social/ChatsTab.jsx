@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Search, Lock, Unlock, Plus, Copy, Check, MessageCircle, 
   ArrowLeft, Send, LogOut, CheckCheck, MoreVertical, PlusCircle, UserPlus, X, Trash2, CornerUpLeft,
@@ -420,6 +420,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   }
   const messagesEndRef = useRef(null);
   const selectedChatRef = useRef(null);
+  const showGroupDetailsRef = useRef(false);
   const chatLoadSeq = useRef(0);
   const isInitialScrollRef = useRef(true);
   const longPressTimer = useRef(null);
@@ -431,6 +432,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       onToggleHeader(!!selectedChat);
     }
   }, [selectedChat, onToggleHeader]);
+
+  useEffect(() => {
+    showGroupDetailsRef.current = showGroupDetails;
+  }, [showGroupDetails]);
 
   useEffect(() => {
     return () => {
@@ -822,26 +827,50 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
   useEffect(() => {
     if (selectedContact && selectedContact.id) {
-      navigate(`/dashboard/social/chats/${selectedContact.type || 'direct'}/${selectedContact.id}`);
+      const targetPath = `/dashboard/social/chats/${selectedContact.type || 'direct'}/${selectedContact.id}`;
+      if (location.pathname !== targetPath) {
+        navigate(targetPath, { replace: true });
+      }
       if (onClearSelectedContact) {
         onClearSelectedContact();
       }
     }
-  }, [selectedContact, onClearSelectedContact, navigate]);
+  }, [selectedContact, location.pathname, onClearSelectedContact, navigate]);
 
   const selectChat = (chat) => {
     setSelectedChat(chat);
     navigate(`/dashboard/social/chats/${chat.type}/${chat.id}`);
   };
 
+  const handleBack = useCallback(() => {
+    if (showGroupDetailsRef.current) {
+      setShowGroupDetails(false);
+      return;
+    }
+    inputRef.current?.blur();
+    setSelectedChat(null);
+    selectedChatRef.current = null;
+    localStorage.removeItem('social_selected_chat_contact');
+    if (onClearSelectedContact) {
+      onClearSelectedContact();
+    }
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/dashboard/social/chats', { replace: true });
+    }
+  }, [onClearSelectedContact, navigate]);
+
   // Browser back & Android hardware back listener
   useEffect(() => {
     const handlePopState = () => {
+      setShowGroupDetails(false);
       const pathSegments = window.location.pathname.split('/').filter(Boolean);
       const isStillInChat = pathSegments[2] === 'chats' && pathSegments[3] && pathSegments[4];
       if (!isStillInChat) {
         inputRef.current?.blur();
         setSelectedChat(null);
+        selectedChatRef.current = null;
         localStorage.removeItem('social_selected_chat_contact');
         if (onClearSelectedContact) {
           onClearSelectedContact();
@@ -855,14 +884,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       try {
         const { App } = await import('@capacitor/app');
         backButtonHandle = await App.addListener('backButton', (event) => {
-          if (selectedChatRef.current) {
-            inputRef.current?.blur();
-            setSelectedChat(null);
-            localStorage.removeItem('social_selected_chat_contact');
-            if (onClearSelectedContact) {
-              onClearSelectedContact();
-            }
-            navigate('/dashboard/social/chats');
+          if (showGroupDetailsRef.current) {
+            setShowGroupDetails(false);
+          } else if (selectedChatRef.current) {
+            handleBack();
           } else if (event.canGoBack) {
             window.history.back();
           }
@@ -876,7 +901,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         backButtonHandle.remove();
       }
     };
-  }, [onClearSelectedContact, navigate]);
+  }, [onClearSelectedContact, handleBack]);
 
   useEffect(() => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -1372,42 +1397,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     chat.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleBack = () => {
-    inputRef.current?.blur();
-    setSelectedChat(null);
-    localStorage.removeItem('social_selected_chat_contact');
-    if (onClearSelectedContact) {
-      onClearSelectedContact();
-    }
-    navigate('/dashboard/social/chats');
-  };
 
-  const chatTouchStartRef = useRef({ x: 0, y: 0, time: 0, target: null });
-
-  const handleChatTouchStart = (e) => {
-    const touch = e.touches[0];
-    chatTouchStartRef.current = {
-      x: touch.clientX,
-      y: touch.clientY,
-      time: Date.now(),
-      target: e.target,
-    };
-  };
-
-  const handleChatTouchEnd = (e) => {
-    const touch = e.changedTouches[0];
-    const deltaX = touch.clientX - chatTouchStartRef.current.x;
-    const deltaY = touch.clientY - chatTouchStartRef.current.y;
-    const deltaTime = Date.now() - chatTouchStartRef.current.time;
-
-    if (deltaTime > 650) return;
-
-    if (deltaX > 60 && Math.abs(deltaY) < 65 && deltaX > Math.abs(deltaY) * 1.3) {
-      const target = chatTouchStartRef.current.target;
-      if (target && target.closest('input, textarea, button, audio, video, select, .no-swipe, [contenteditable="true"]')) return;
-      handleBack();
-    }
-  };
 
   return (
     <div 
@@ -1587,8 +1577,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
       {/* ── RIGHT PANEL: ACTIVE CONVERSATION WINDOW ── */}
       <div 
-        onTouchStart={handleChatTouchStart}
-        onTouchEnd={handleChatTouchEnd}
         className={`${
           selectedChat 
             ? 'flex fixed inset-0 z-[70] md:static md:z-auto w-full h-[100dvh] md:h-full' 

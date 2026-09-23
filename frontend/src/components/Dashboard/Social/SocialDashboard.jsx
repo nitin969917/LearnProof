@@ -72,19 +72,7 @@ export default function SocialDashboard() {
     return saved ? parseInt(saved, 10) : null;
   });
 
-  const [selectedChatContact, setSelectedChatContact] = useState(() => {
-    const pathSegments = window.location.pathname.split('/').filter(Boolean);
-    if (pathSegments[2] === 'chats' && pathSegments[3] && pathSegments[4]) {
-      return { id: parseInt(pathSegments[4], 10), type: pathSegments[3] };
-    }
-    const params = new URLSearchParams(window.location.search);
-    const chatIdParam = params.get('chatId');
-    const chatTypeParam = params.get('chatType');
-    if (chatIdParam && chatTypeParam) {
-      return { id: parseInt(chatIdParam, 10), type: chatTypeParam };
-    }
-    return null;
-  });
+  const [selectedChatContact, setSelectedChatContact] = useState(null);
 
   const [sharedPost, setSharedPost] = useState(null);
   const [showSharedPostModal, setShowSharedPostModal] = useState(false);
@@ -212,13 +200,7 @@ export default function SocialDashboard() {
     } else if (subRoute === 'chats') {
       setActiveTab('chat');
       setSelectedProfileId(null);
-      const chatType = pathSegments[3];
-      const chatId = pathSegments[4];
-      if (chatType && chatId) {
-        setSelectedChatContact({ id: parseInt(chatId, 10), type: chatType });
-      } else {
-        setSelectedChatContact(null);
-      }
+      setSelectedChatContact(null);
     } else if (subRoute === 'profile') {
       setActiveTab('profile');
       setSelectedChatContact(null);

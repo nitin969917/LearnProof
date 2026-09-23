@@ -251,13 +251,8 @@ const Inbox = () => {
 
     // Open chat conversation directly from inbox
     const handleOpenChat = (friend) => {
-        localStorage.setItem('social_selected_chat_contact', JSON.stringify({
-            id: friend.id,
-            type: 'direct',
-            name: friend.name,
-            profilePicture: friend.profilePicture,
-        }));
-        navigate('/dashboard/social/chats');
+        if (!friend || !friend.id) return;
+        navigate(`/dashboard/social/chats/direct/${friend.id}`);
     };
 
     // View user profile
