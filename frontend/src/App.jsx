@@ -481,14 +481,34 @@ const App = () => {
         window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
         if (Capacitor.isNativePlatform()) {
-            const updateStatusBar = () => {
+            const updateStatusBar = async () => {
                 const isDark = document.documentElement.classList.contains('dark') || localStorage.getItem('theme') === 'dark';
-                if (isDark) {
-                    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-                    StatusBar.setBackgroundColor({ color: '#0F172A' }).catch(() => {});
-                } else {
-                    StatusBar.setStyle({ style: Style.Light }).catch(() => {});
-                    StatusBar.setBackgroundColor({ color: '#FFFFFF' }).catch(() => {});
+                try {
+                    await StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light });
+                } catch (_) {}
+                try {
+                    await StatusBar.setBackgroundColor({ color: isDark ? '#0F172A' : '#FFFFFF' });
+                } catch (_) {}
+                try {
+                    // Place webview below status bar on Android devices/versions that support it
+                    await StatusBar.setOverlaysWebView({ overlay: false });
+                } catch (_) {}
+
+                try {
+                    const info = await StatusBar.getInfo();
+                    if (info && info.overlays) {
+                        // When edge-to-edge is enforced (e.g. Android 15+ or iOS), inject native status bar height into CSS
+                        const platform = Capacitor.getPlatform ? Capacitor.getPlatform() : 'android';
+                        const h = info.height > 0 ? info.height : (platform === 'android' ? 36 : 44);
+                        document.documentElement.style.setProperty('--sat-native', `${h}px`);
+                    } else {
+                        // When overlay is false, the OS pushes the webview down, so top inset is 0px
+                        document.documentElement.style.setProperty('--sat-native', '0px');
+                    }
+                } catch (_) {
+                    if (Capacitor.getPlatform && Capacitor.getPlatform() === 'android') {
+                        document.documentElement.style.setProperty('--sat-native', '36px');
+                    }
                 }
             };
             updateStatusBar();

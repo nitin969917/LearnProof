@@ -1655,7 +1655,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         } flex-col w-full md:w-[340px] lg:w-[380px] h-full min-h-0 shrink-0 border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900`}
       >
         {/* Sidebar Header */}
-        <div className="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col gap-2.5 sm:gap-3 flex-shrink-0">
+        <div className="p-3.5 sm:p-4 border-b border-gray-100 dark:border-gray-800 flex flex-col gap-2.5 sm:gap-3 flex-shrink-0 pt-[calc(0.875rem+var(--sat,0px))] md:pt-4">
           {/* Desktop Top Title Row + Compose Button (hidden on mobile to maximize chat area) */}
           <div className="hidden md:flex items-center justify-between">
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
@@ -1832,7 +1832,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           <>
             <div className="flex-1 flex flex-col h-full min-h-0 relative">
               {/* Active Conversation Header */}
-              <div className="p-3 sm:p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0 z-10 shadow-xs">
+              <div className="p-3 sm:p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0 z-10 shadow-xs pt-[calc(0.75rem+var(--sat,0px))] md:pt-3">
                 <div 
                   onClick={() => {
                     if (selectedChat.type === 'group') {
@@ -2255,7 +2255,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   </button>
                 </div>
               ) : (
-                <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 z-10 p-3 sm:p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+                <div className="border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex flex-col flex-shrink-0 z-10 p-3 sm:p-4 pb-[max(1rem,calc(var(--sab,0px)+0.75rem))]">
                   {/* Reply Banner */}
                   {replyingTo && (
                     <div className="mx-1 mb-2 p-2.5 bg-[#FFF7F2] dark:bg-orange-950/20 border-l-3 border-[#FF5722] rounded-xl flex items-center justify-between gap-2">
@@ -2315,7 +2315,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
             {/* Group Details Sliding Panel */}
             {showGroupDetails && (
               <div className="w-full md:w-[320px] lg:w-[360px] shrink-0 h-full bg-white dark:bg-gray-900 border-l border-gray-100 dark:border-gray-800 flex flex-col z-20 absolute md:static inset-y-0 right-0 shadow-xl md:shadow-none animate-in slide-in-from-right duration-300">
-                <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between flex-shrink-0 pt-[calc(1rem+var(--sat,0px))] md:pt-4">
                   <h3 className="font-bold text-gray-900 dark:text-white text-base">Group Info</h3>
                   <div className="flex items-center gap-1">
                     {/* 3-Dot Group Options Menu */}

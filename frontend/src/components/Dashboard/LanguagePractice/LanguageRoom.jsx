@@ -2802,7 +2802,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       {/* ── Header Bar ── */}
 
       {/* Brand section changes based on nav_source (fromSocial state set at mount) */}
-      <div className="flex items-center justify-between px-4 sm:px-5 h-14 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 shrink-0 z-30">
+      <div className="flex items-center justify-between px-4 sm:px-5 h-[calc(3.5rem+var(--sat,0px))] pt-[var(--sat,0px)] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200 dark:border-white/5 shrink-0 z-30">
 
         {/* Left: Brand + Separator + Room Name */}
         <div className="flex items-center gap-2.5 min-w-0">
@@ -3076,7 +3076,7 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
       </div>
 
       {/* ── Global Bottom Controls Bar ── */}
-      <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-white/5 py-3 px-3 sm:px-6 flex items-center justify-around z-30 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] gap-1 sm:gap-2">
+      <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-white/5 py-3 px-3 sm:px-6 flex items-center justify-around z-30 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] gap-1 sm:gap-2 pb-[max(0.75rem,calc(var(--sab,0px)+0.75rem))]">
 
         {/* On-Stage Controls: Shown only when user is on Stage (Host or Approved Speaker) */}
         {(canPublish || isHost) ? (

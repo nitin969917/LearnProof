@@ -2026,7 +2026,7 @@ const Classroom = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col w-full lg:w-auto lg:h-screen lg:overflow-hidden">
         {/* Premium Header */}
-        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 shadow-sm transition-colors duration-200 relative lg:sticky lg:top-0 z-20">
+        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 shadow-sm transition-colors duration-200 relative lg:sticky lg:top-0 z-20 pt-[var(--sat,0px)]">
           <div className="flex items-center justify-between px-4 sm:px-6 py-3.5">
             <button
               onClick={() => {

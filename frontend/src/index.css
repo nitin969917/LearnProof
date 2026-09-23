@@ -528,10 +528,12 @@ h1, h2, h3, h4 {
     text-rendering: optimizeLegibility;
 }
 
-/* Mobile App Native Enhancements (Capacitor) */
+/* Mobile App Native Enhancements (Capacitor & Edge-to-Edge Android/iOS) */
 :root {
-    --sat: env(safe-area-inset-top, 0px);
-    --sab: env(safe-area-inset-bottom, 0px);
+    --sat-native: 0px;
+    --sab-native: 0px;
+    --sat: max(env(safe-area-inset-top, 0px), var(--sat-native, 0px));
+    --sab: max(env(safe-area-inset-bottom, 0px), var(--sab-native, 0px));
     --sal: env(safe-area-inset-left, 0px);
     --sar: env(safe-area-inset-right, 0px);
 }
@@ -544,16 +546,16 @@ html, body {
 
 /* Safe area utility classes */
 .pt-safe {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: var(--sat, env(safe-area-inset-top, 0px)) !important;
 }
 .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: var(--sab, env(safe-area-inset-bottom, 0px)) !important;
 }
 .mt-safe {
-    margin-top: env(safe-area-inset-top, 0px);
+    margin-top: var(--sat, env(safe-area-inset-top, 0px)) !important;
 }
 .mb-safe {
-    margin-bottom: env(safe-area-inset-bottom, 0px);
+    margin-bottom: var(--sab, env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /* ==========================================================================

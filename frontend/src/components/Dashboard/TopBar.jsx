@@ -158,7 +158,7 @@ const TopBar = ({ onMenuClick }) => {
     };
 
     return (
-        <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm transition-colors duration-200 w-full shrink-0 relative">
+        <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm transition-colors duration-200 w-full shrink-0 relative pt-[var(--sat,0px)]">
             {/* Top Bar Header */}
             <div className="flex items-stretch justify-between h-16 sm:h-20 w-full px-2 sm:px-4">
                 {/* Left Side: Logo & Section Title */}
@@ -287,7 +287,7 @@ const TopBar = ({ onMenuClick }) => {
 
             {/* Mobile Expandable Import Bar (Overlay) */}
             {isMobileImportOpen && (
-                <div className="absolute inset-0 z-50 bg-white dark:bg-gray-800 flex items-center px-2.5 sm:px-4 gap-2 shadow-md">
+                <div className="absolute inset-0 z-50 bg-white dark:bg-gray-800 flex items-center px-2.5 sm:px-4 gap-2 shadow-md pt-[var(--sat,0px)]">
                     <div className="flex flex-1 items-center bg-gray-50 dark:bg-gray-700/90 border border-orange-200 dark:border-gray-600 rounded-full pl-3 pr-1 py-1 gap-2 min-w-0 shadow-inner">
                         <svg viewBox="0 0 24 24" className="w-4 h-4 text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
                             <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.522 3.5 12 3.5 12 3.5s-7.522 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.029 0 12 0 12s0 3.971.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.478 20.5 12 20.5 12 20.5s7.522 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.971 24 12 24 12s0-3.971-.502-5.837z" />
