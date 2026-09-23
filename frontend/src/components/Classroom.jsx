@@ -2085,45 +2085,43 @@ const Classroom = () => {
                   />
                 )}
 
-                {/* Dropdown Menu - Sleek Mobile Slider & Desktop Card */}
+                {/* Dropdown Menu - Compact Mobile Slider & Desktop Card */}
                 {showSpeedMenu && (
-                  <div className="fixed top-16 left-3 right-3 sm:absolute sm:top-full sm:left-auto sm:right-0 sm:w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl p-3.5 sm:p-4 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="fixed top-14 right-3 w-[275px] sm:absolute sm:top-full sm:right-0 sm:mt-2 sm:w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800 rounded-2xl shadow-2xl p-2.5 sm:p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
                     {/* Header */}
-                    <div className="flex items-center justify-between pb-2.5 border-b border-gray-100 dark:border-slate-800">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center">
-                          <Gauge size={14} />
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-md bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                          <Gauge size={12} />
                         </div>
-                        <div>
-                          <div className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-wider">Playback Speed</div>
-                          <div className="text-[10px] text-gray-400 dark:text-slate-500">Persists across all lessons</div>
-                        </div>
+                        <span className="text-[11px] font-black text-gray-800 dark:text-white uppercase tracking-wider">Speed</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-mono text-xs font-black shadow-xs">
+                      <div className="flex items-center gap-1.5">
+                        <div className="px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-mono text-[11px] font-black shadow-xs">
                           {playbackSpeed}x
                         </div>
                         <button
                           type="button"
                           onClick={() => setShowSpeedMenu(false)}
-                          className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                          className="w-5 h-5 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                          aria-label="Close speed selector"
                         >
-                          <X size={14} />
+                          <X size={13} />
                         </button>
                       </div>
                     </div>
 
                     {/* Interactive Slider & Steppers */}
-                    <div className="py-3 space-y-2">
-                      <div className="flex items-center gap-2.5">
+                    <div className="py-2.5 space-y-1.5">
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => handleStepSpeed(-1)}
                           disabled={playbackSpeed <= SPEED_OPTIONS[0]}
-                          className="w-8 h-8 shrink-0 flex items-center justify-center rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                          className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
                           title="Slower (-0.25x)"
                         >
-                          <Minus size={14} />
+                          <Minus size={12} />
                         </button>
 
                         <div className="flex-1 relative flex items-center">
@@ -2134,7 +2132,7 @@ const Classroom = () => {
                             step="0.25"
                             value={playbackSpeed}
                             onChange={(e) => applyPlaybackSpeed(parseFloat(e.target.value))}
-                            className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500 focus:outline-none"
+                            className="w-full h-1.5 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500 focus:outline-none"
                           />
                         </div>
 
@@ -2142,15 +2140,15 @@ const Classroom = () => {
                           type="button"
                           onClick={() => handleStepSpeed(1)}
                           disabled={playbackSpeed >= SPEED_OPTIONS[SPEED_OPTIONS.length - 1]}
-                          className="w-8 h-8 shrink-0 flex items-center justify-center rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                          className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
                           title="Faster (+0.25x)"
                         >
-                          <Plus size={14} />
+                          <Plus size={12} />
                         </button>
                       </div>
 
                       {/* Slider Min / Max Labels */}
-                      <div className="flex justify-between text-[10px] font-bold font-mono text-gray-400 dark:text-slate-500 px-9">
+                      <div className="flex justify-between text-[9px] font-bold font-mono text-gray-400 dark:text-slate-500 px-8">
                         <span>0.5x</span>
                         <span className={playbackSpeed === 1 ? 'text-orange-500 font-black' : ''}>1.0x</span>
                         <span className={playbackSpeed === 2 ? 'text-orange-500 font-black' : ''}>2.0x</span>
@@ -2159,7 +2157,7 @@ const Classroom = () => {
                     </div>
 
                     {/* Quick Snap Preset Chips */}
-                    <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none py-1">
+                    <div className="flex items-center gap-1 overflow-x-auto pb-1.5 scrollbar-none">
                       {[0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4].map((rate) => {
                         const isCurrent = playbackSpeed === rate;
                         return (
@@ -2167,7 +2165,7 @@ const Classroom = () => {
                             key={rate}
                             type="button"
                             onClick={() => applyPlaybackSpeed(rate)}
-                            className={`shrink-0 px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            className={`shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
                               isCurrent
                                 ? 'bg-orange-500 text-white shadow-xs scale-105'
                                 : 'bg-gray-50 dark:bg-slate-800/80 hover:bg-orange-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border border-gray-200/60 dark:border-slate-700/60'
@@ -2180,7 +2178,7 @@ const Classroom = () => {
                     </div>
 
                     {/* Footer Controls */}
-                    <div className="pt-2 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                    <div className="pt-1.5 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
                       <button
                         type="button"
                         onClick={() => applyPlaybackSpeed(1)}
@@ -2188,18 +2186,7 @@ const Classroom = () => {
                       >
                         Reset to 1x
                       </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowSpeedMenu(false);
-                          setShowBeyondSpeedModal(true);
-                        }}
-                        className="flex items-center gap-1 font-black text-orange-600 dark:text-orange-400 hover:underline cursor-pointer"
-                      >
-                        <Sparkles size={11} />
-                        <span>How 2.5x–4x works</span>
-                      </button>
+                      <span className="text-[9px] text-gray-400 dark:text-slate-500">Persists across lessons</span>
                     </div>
                   </div>
                 )}
