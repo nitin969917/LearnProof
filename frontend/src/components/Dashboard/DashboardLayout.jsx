@@ -89,6 +89,23 @@ const DashboardLayout = () => {
     const activeChatGroupId = useSocialMessageStore((state) => state.activeChatGroupId);
     const activeChatUserIdRef = useRef(activeChatUserId);
     const activeChatGroupIdRef = useRef(activeChatGroupId);
+    const recentNotifiedMessageIdsRef = useRef(new Map());
+
+    const isDuplicateNotification = (prefix, id) => {
+        if (!id) return false;
+        const key = `${prefix}-${id}`;
+        const now = Date.now();
+        for (const [k, ts] of recentNotifiedMessageIdsRef.current.entries()) {
+            if (now - ts > 30000) {
+                recentNotifiedMessageIdsRef.current.delete(k);
+            }
+        }
+        if (recentNotifiedMessageIdsRef.current.has(key)) {
+            return true;
+        }
+        recentNotifiedMessageIdsRef.current.set(key, now);
+        return false;
+    };
 
     useEffect(() => {
         activeChatUserIdRef.current = activeChatUserId;
@@ -178,6 +195,7 @@ const DashboardLayout = () => {
                 // Direct message handler
                 const handleGlobalMessage = (message) => {
                     if (!message || !message.senderId) return;
+                    if (message.id && isDuplicateNotification('direct', message.id)) return;
                     const senderStr = message.senderId.toString();
                     const activeStr = activeChatUserIdRef.current ? activeChatUserIdRef.current.toString() : null;
 
@@ -220,6 +238,7 @@ const DashboardLayout = () => {
                 // Group message handler
                 const handleGlobalGroupMessage = (message) => {
                     if (!message || !message.groupId) return;
+                    if (message.id && isDuplicateNotification('group', message.id)) return;
                     const groupStr = message.groupId.toString();
                     const activeGroupStr = activeChatGroupIdRef.current ? activeChatGroupIdRef.current.toString() : null;
 

@@ -702,6 +702,19 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       if (isCurrentGroup) {
         setMessages((prev) => {
           if (prev.some((m) => String(m.id) === String(msg.id))) return prev;
+
+          // If incoming message is from current user, replace matching optimistic message in-place
+          if (currentUserId && String(msg.senderId) === String(currentUserId)) {
+            const optIndex = prev.findIndex(
+              (m) => m.isOptimistic && String(m.senderId) === String(currentUserId)
+            );
+            if (optIndex !== -1) {
+              const updated = [...prev];
+              updated[optIndex] = msg;
+              return updated;
+            }
+          }
+
           return [...prev, msg];
         });
       } else {
@@ -1167,7 +1180,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         id: tempId,
         groupId: targetGroupId,
         senderId: currentUserId,
-        sender: { id: currentUserId, name: user?.name, avatar: user?.avatar },
+        sender: { id: currentUserId, name: user?.name, avatar: user?.avatar, profilePicture: user?.profilePicture || user?.avatar },
         content: groupContent,
         createdAt: new Date().toISOString(),
         isOptimistic: true,
@@ -1186,13 +1199,18 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
         });
         const savedMessage = response.data;
         
-        if (socketRef.current) {
-          socketRef.current.emit('sendGroupMessage', savedMessage);
-        }
+        // Note: Server (datingController) already broadcasts receiveGroupMessage to group room via Socket.io.
+        // We do NOT emit 'sendGroupMessage' here to avoid duplicate broadcasts.
 
         // Replace optimistic message with confirmed server message
         if (selectedChatRef.current && selectedChatRef.current.type === 'group' && String(selectedChatRef.current.id) === String(targetGroupId)) {
-          setMessages((prev) => prev.map(m => m.id === tempId ? savedMessage : m));
+          setMessages((prev) => {
+            // If socket already inserted the savedMessage:
+            if (prev.some(m => String(m.id) === String(savedMessage.id))) {
+              return prev.filter(m => m.id !== tempId);
+            }
+            return prev.map(m => m.id === tempId ? savedMessage : m);
+          });
         }
         appendCachedMessage(`group-${targetGroupId}`, savedMessage);
         setLastMessages((prev) => ({

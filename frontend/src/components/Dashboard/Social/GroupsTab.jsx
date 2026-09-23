@@ -38,10 +38,10 @@ export default function GroupsTab({ currentUserId }) {
 
   useEffect(() => {
     const handleReceiveGroupMessage = (msg) => {
-      if (activeGroupId && msg.groupId === activeGroupId) {
+      if (activeGroupId && String(msg.groupId) === String(activeGroupId)) {
         setMessages((prev) => {
           // Avoid duplicates
-          if (prev.some((m) => m.id === msg.id)) return prev;
+          if (prev.some((m) => String(m.id) === String(msg.id))) return prev;
           return [...prev, msg];
         });
       }
@@ -202,12 +202,13 @@ export default function GroupsTab({ currentUserId }) {
       });
 
       const savedMessage = response.data;
-      // Send via socket to broadcast to other members
-      if (socketRef.current) {
-        socketRef.current.emit('sendGroupMessage', savedMessage);
-      }
+      // Note: Backend datingController already broadcasts receiveGroupMessage to group room via Socket.io.
+      // Do NOT emit 'sendGroupMessage' to avoid duplicate broadcasts across PM2 cluster instances.
 
-      setMessages((prev) => [...prev, savedMessage]);
+      setMessages((prev) => {
+        if (prev.some((m) => String(m.id) === String(savedMessage.id))) return prev;
+        return [...prev, savedMessage];
+      });
       setMessageText('');
     } catch (err) {
       console.error('Error sending group message', err);

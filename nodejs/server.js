@@ -508,9 +508,8 @@ io.on('connection', (socket) => {
   });
 
   socket.on('sendGroupMessage', (message) => {
-    if (!message || !message.groupId) return;
-    // Broadcast to everyone else in this group room except sender
-    socket.to(`group-${message.groupId}`).emit('receiveGroupMessage', message);
+    // Deprecated: datingController already broadcasts saved messages to group-${groupId} via io.to().
+    // Left as a no-op to prevent duplicate broadcasts across PM2 cluster instances.
   });
 
   socket.on('deleteMessage', (data) => {
