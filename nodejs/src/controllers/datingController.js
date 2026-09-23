@@ -464,6 +464,8 @@ const likePost = async (req, res) => {
       },
     });
 
+    await invalidateFeedCache();
+
     const updatedPost = await datingPrisma.post.findUnique({
       where: { id: numPostId },
       select: {
@@ -798,6 +800,8 @@ const savePost = async (req, res) => {
           : { connect: { id: userId } },
       },
     });
+
+    await invalidateFeedCache();
 
     try {
       const io = req.app.get('io');

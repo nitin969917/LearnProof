@@ -352,18 +352,25 @@ export const useSocialFeedStore = create((set, get) => ({
     const posts = get().posts;
     const postIndex = posts.findIndex(p => p.id === postId);
     let post = null;
+    const myId = currentUserId ? String(currentUserId) : '';
 
     if (postIndex !== -1) {
       post = posts[postIndex];
-      const liked = post.likes?.some(l => l.id === currentUserId);
+      const liked = Boolean(
+        post.isLiked ||
+        post.liked ||
+        (myId && post.likes?.some(l => String(l?.id ?? l) === myId))
+      );
       const nextLiked = !liked;
 
       // Optimistic update
       const updatedPost = {
         ...post,
+        isLiked: nextLiked,
+        liked: nextLiked,
         likes: nextLiked
           ? [...(post.likes || []), { id: currentUserId }]
-          : (post.likes || []).filter(l => l.id !== currentUserId),
+          : (post.likes || []).filter(l => String(l?.id ?? l) !== myId),
         _count: {
           ...post._count,
           likes: nextLiked
@@ -447,17 +454,24 @@ export const useSocialFeedStore = create((set, get) => ({
     const posts = get().posts;
     const postIndex = posts.findIndex(p => p.id === postId);
     let post = null;
+    const myId = currentUserId ? String(currentUserId) : '';
 
     if (postIndex !== -1) {
       post = posts[postIndex];
-      const isSaved = post.savedBy?.some(u => u.id === currentUserId);
+      const isSaved = Boolean(
+        post.isSaved ||
+        post.saved ||
+        (myId && post.savedBy?.some(u => String(u?.id ?? u) === myId))
+      );
       const nextSaved = !isSaved;
 
       const updatedPost = {
         ...post,
+        isSaved: nextSaved,
+        saved: nextSaved,
         savedBy: nextSaved
           ? [...(post.savedBy || []), { id: currentUserId }]
-          : (post.savedBy || []).filter(u => u.id !== currentUserId)
+          : (post.savedBy || []).filter(u => String(u?.id ?? u) !== myId)
       };
 
       const newPosts = [...posts];

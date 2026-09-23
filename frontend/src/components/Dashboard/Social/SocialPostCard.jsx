@@ -87,9 +87,20 @@ export default function SocialPostCard({ post, onLike, onSave, currentUserId, on
   const [loadingLikes, setLoadingLikes] = useState(false);
 
   // Derived values from store-managed post prop
-  const liked = post.likes?.some((l) => l.id === currentUserId);
-  const saved = post.savedBy?.some((l) => l.id === currentUserId) || post.isSaved || false;
-  const likesCount = post._count?.likes || 0;
+  const myId = currentUserId ? String(currentUserId) : '';
+  const liked = Boolean(
+    post.isLiked ||
+    post.liked ||
+    (myId && post.likes?.some((l) => String(l?.id ?? l) === myId))
+  );
+  const saved = Boolean(
+    post.isSaved ||
+    post.saved ||
+    (myId && post.savedBy?.some((s) => String(s?.id ?? s) === myId))
+  );
+  const likesCount = typeof post._count?.likes === 'number'
+    ? post._count.likes
+    : (Array.isArray(post.likes) ? post.likes.length : 0);
 
   // Local state only for comments count
   const [commentsCount, setCommentsCount] = useState(() => post._count?.comments || 0);
