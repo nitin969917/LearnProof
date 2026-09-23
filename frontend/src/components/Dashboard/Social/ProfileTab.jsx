@@ -2356,30 +2356,29 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {/* Scrollable Form Body */}
             <form id="edit-profile-form" onSubmit={handleSave} className="px-4 py-4 sm:px-6 sm:py-5 overflow-y-auto space-y-5 flex-1 custom-scrollbar text-left pb-8">
               {/* Profile Photo Upload inside Edit Modal */}
-              <div className="p-3.5 sm:p-4 bg-gradient-to-r from-orange-50/60 via-amber-50/30 to-transparent dark:from-gray-900/90 dark:to-gray-900/40 rounded-2xl border border-orange-100/80 dark:border-gray-700/80 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
+              <div className="p-3 sm:p-4 bg-gradient-to-r from-orange-50/60 via-amber-50/30 to-transparent dark:from-gray-900/90 dark:to-gray-900/40 rounded-2xl border border-orange-100/80 dark:border-gray-700/80 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
                   <div className="relative shrink-0">
                     <UserAvatar
                       src={formData.profilePicture || profile.profilePicture || profile.avatar}
                       name={formData.name || profile.name}
-                      className="w-13 h-13 sm:w-14 sm:h-14 rounded-full border-2 border-orange-300 dark:border-orange-500/50 shadow-sm object-cover"
-                      textClassName="text-lg sm:text-xl font-bold"
+                      className="w-16 h-16 sm:w-18 sm:h-18 rounded-full border-2 border-orange-400/80 dark:border-orange-500/70 shadow-md object-cover"
+                      textClassName="text-xl sm:text-2xl font-bold"
                     />
-                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs">
-                      <Camera size={11} />
+                    <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-xs border-2 border-white dark:border-gray-800">
+                      <Camera size={12} />
                     </div>
                   </div>
                   <div className="min-w-0">
-                    <h5 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white truncate">Profile Photo</h5>
-                    <p className="text-[10px] text-gray-400 mt-0.5">JPG, PNG or HEIC format</p>
+                    <h5 className="text-sm font-bold text-gray-900 dark:text-white">Profile Photo</h5>
                   </div>
                 </div>
 
                 <label
                   htmlFor="modal-avatar-upload-trigger"
-                  className="px-3 py-2 sm:px-4 sm:py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer shrink-0"
+                  className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs active:scale-95 cursor-pointer shrink-0"
                 >
-                  <Camera size={14} />
+                  <Camera size={13} />
                   <span>Change Photo</span>
                   <input
                     id="modal-avatar-upload-trigger"
