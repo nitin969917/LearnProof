@@ -381,15 +381,17 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
               {loading || loadingSuggested ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                    <div key={n} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/80 p-2.5 sm:p-3 animate-pulse flex flex-col items-center gap-2">
-                      <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700"></div>
-                      <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mt-1"></div>
-                      <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded-full w-20 mt-1"></div>
+                    <div key={n} className="bg-white dark:bg-gray-800 rounded-2xl border-0 p-2.5 sm:p-3 shadow-xs animate-pulse flex items-center gap-2.5">
+                      <div className="w-13 h-13 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0"></div>
+                      <div className="flex-1 space-y-1.5 min-w-0">
+                        <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                        <div className="h-5 bg-gray-100 dark:bg-gray-700 rounded-full w-16"></div>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : isUserSearching && results.length === 0 ? (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-8 text-center text-gray-400 text-xs">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border-0 p-8 text-center text-gray-400 text-xs shadow-xs">
                   No users found for "{query}". Try a different name, major, or college.
                 </div>
               ) : (
@@ -402,68 +404,69 @@ export default function DiscoverTab({ onViewProfile, onSelectChatUser, isActive 
                         <div
                           key={student.id}
                           onClick={() => onViewProfile && onViewProfile(student.id)}
-                          className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-150 dark:border-gray-700/80 p-2.5 sm:p-3 shadow-2xs hover:shadow-md hover:border-orange-200 dark:hover:border-gray-600 transition-all duration-200 cursor-pointer flex flex-col items-center text-center relative group"
+                          className="bg-white dark:bg-gray-800 rounded-2xl p-2.5 sm:p-3 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer flex items-center gap-2.5 sm:gap-3 relative group overflow-hidden border-0"
                         >
+                          {/* Picture at one side (Left) */}
+                          <div className="shrink-0 relative">
+                            <UserAvatar
+                              src={student.profilePicture}
+                              name={student.name}
+                              className="w-12 h-12 sm:w-13 sm:h-13 rounded-full object-cover shadow-2xs"
+                              textClassName="text-sm sm:text-base font-black"
+                            />
+                          </div>
+
+                          {/* Name and Connect button at other side (Right) */}
+                          <div className="min-w-0 flex-1 flex flex-col justify-center items-start pr-2">
+                            <h4 className="font-extrabold text-gray-900 dark:text-white text-xs sm:text-[13px] group-hover:text-[#FF5722] transition-colors truncate w-full">
+                              {student.name}
+                            </h4>
+
+                            <div className="mt-1.5 flex items-center">
+                              {fState.isConnected ? (
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="py-1 px-2.5 rounded-full bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 border border-green-200/80 dark:border-green-800 text-[10px] sm:text-[10.5px] font-bold flex items-center gap-1 cursor-default shadow-2xs"
+                                >
+                                  <UserCheck size={11} />
+                                  <span>Connected</span>
+                                </button>
+                              ) : fState.isPending ? (
+                                <button
+                                  type="button"
+                                  disabled
+                                  className="py-1 px-2.5 rounded-full bg-gray-100 dark:bg-gray-750 text-gray-500 dark:text-gray-400 border border-gray-200/80 dark:border-gray-700 text-[10px] sm:text-[10.5px] font-bold flex items-center gap-1 cursor-default shadow-2xs"
+                                >
+                                  <Check size={11} />
+                                  <span>Requested</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleConnect(e, student.id)}
+                                  className="py-1 px-3 rounded-full bg-[#FF5722] hover:bg-[#F4511E] text-white text-[10px] sm:text-[10.5px] font-bold flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs shadow-orange-500/20"
+                                >
+                                  <UserPlus size={11} />
+                                  <span>Connect</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
                           {/* Quick Options Button */}
-                          <div className="absolute top-2 right-2">
+                          <div className="absolute top-1.5 right-1.5">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onViewProfile && onViewProfile(student.id);
                               }}
-                              className="p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-750 transition cursor-pointer"
+                              className="p-1 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-750 transition cursor-pointer"
                               title="View Profile"
                             >
-                              <MoreVertical size={14} />
+                              <MoreVertical size={13} />
                             </button>
-                          </div>
-
-                          {/* Centered Avatar - Preserved prominent size */}
-                          <div className="relative mt-0.5 mb-1.5">
-                            <UserAvatar
-                              src={student.profilePicture}
-                              name={student.name}
-                              className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-orange-100/70 dark:border-gray-700 shadow-xs object-cover"
-                              textClassName="text-base sm:text-lg font-black"
-                            />
-                          </div>
-
-                          {/* Name */}
-                          <h4 className="font-extrabold text-gray-900 dark:text-white text-xs sm:text-sm group-hover:text-[#FF5722] transition-colors truncate w-full px-1">
-                            {student.name}
-                          </h4>
-
-                          {/* Small Compact Button */}
-                          <div className="w-full flex justify-center mt-2">
-                            {fState.isConnected ? (
-                              <button
-                                type="button"
-                                disabled
-                                className="py-1 px-3 rounded-full bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 border border-green-200/80 dark:border-green-800 text-[11px] font-bold flex items-center justify-center gap-1 cursor-default shadow-2xs"
-                              >
-                                <UserCheck size={12} />
-                                <span>Connected</span>
-                              </button>
-                            ) : fState.isPending ? (
-                              <button
-                                type="button"
-                                disabled
-                                className="py-1 px-3 rounded-full bg-gray-100 dark:bg-gray-750 text-gray-500 dark:text-gray-400 border border-gray-200/80 dark:border-gray-700 text-[11px] font-bold flex items-center justify-center gap-1 cursor-default shadow-2xs"
-                              >
-                                <Check size={12} />
-                                <span>Requested</span>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={(e) => handleConnect(e, student.id)}
-                                className="py-1 px-3.5 rounded-full bg-[#FF5722] hover:bg-[#F4511E] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer shadow-xs shadow-orange-500/20"
-                              >
-                                <UserPlus size={12} />
-                                <span>Connect</span>
-                              </button>
-                            )}
                           </div>
                         </div>
                       );
