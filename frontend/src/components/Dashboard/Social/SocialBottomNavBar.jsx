@@ -39,16 +39,7 @@ export default function SocialBottomNavBar() {
     localStorage.setItem('social_active_tab', tabId);
 
     if (tabId === 'chat') {
-      const savedChat = localStorage.getItem('social_selected_chat_contact');
-      try {
-        if (savedChat) {
-          const parsed = JSON.parse(savedChat);
-          if (parsed && parsed.id && parsed.type) {
-            navigate(`/dashboard/social/chats/${parsed.type}/${parsed.id}`);
-            return;
-          }
-        }
-      } catch (e) {}
+      localStorage.removeItem('social_selected_chat_contact');
       navigate('/dashboard/social/chats');
       return;
     }

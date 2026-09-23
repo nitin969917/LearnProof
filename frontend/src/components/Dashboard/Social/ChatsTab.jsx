@@ -821,16 +821,62 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
   }, [currentUserId, isMatrixActive]);
 
   useEffect(() => {
-    if (selectedContact) {
+    if (selectedContact && selectedContact.id) {
       navigate(`/dashboard/social/chats/${selectedContact.type || 'direct'}/${selectedContact.id}`);
-      onClearSelectedContact();
+      if (onClearSelectedContact) {
+        onClearSelectedContact();
+      }
     }
-  }, [selectedContact]);
+  }, [selectedContact, onClearSelectedContact, navigate]);
 
   const selectChat = (chat) => {
     setSelectedChat(chat);
     navigate(`/dashboard/social/chats/${chat.type}/${chat.id}`);
   };
+
+  // Browser back & Android hardware back listener
+  useEffect(() => {
+    const handlePopState = () => {
+      const pathSegments = window.location.pathname.split('/').filter(Boolean);
+      const isStillInChat = pathSegments[2] === 'chats' && pathSegments[3] && pathSegments[4];
+      if (!isStillInChat) {
+        inputRef.current?.blur();
+        setSelectedChat(null);
+        localStorage.removeItem('social_selected_chat_contact');
+        if (onClearSelectedContact) {
+          onClearSelectedContact();
+        }
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    let backButtonHandle = null;
+    (async () => {
+      try {
+        const { App } = await import('@capacitor/app');
+        backButtonHandle = await App.addListener('backButton', (event) => {
+          if (selectedChatRef.current) {
+            inputRef.current?.blur();
+            setSelectedChat(null);
+            localStorage.removeItem('social_selected_chat_contact');
+            if (onClearSelectedContact) {
+              onClearSelectedContact();
+            }
+            navigate('/dashboard/social/chats');
+          } else if (event.canGoBack) {
+            window.history.back();
+          }
+        });
+      } catch (_) {}
+    })();
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (backButtonHandle && typeof backButtonHandle.remove === 'function') {
+        backButtonHandle.remove();
+      }
+    };
+  }, [onClearSelectedContact, navigate]);
 
   useEffect(() => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -852,7 +898,6 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
             }
             return { ...found, type: chatType };
           });
-          localStorage.setItem('social_selected_chat_contact', JSON.stringify({ id: chatId, type: chatType }));
         } else if (!selectedChat || selectedChat.id !== chatId || selectedChat.type !== chatType || !selectedChat.name) {
           if (!selectedChat || selectedChat.id !== chatId || selectedChat.type !== chatType) {
             setSelectedChat({ id: chatId, type: chatType, name: '' });
@@ -883,12 +928,22 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           }
         }
       } else {
-        if (selectedChat) {
-          setSelectedChat(null);
+        // Path is /dashboard/social/chats -> conversation list
+        setSelectedChat(null);
+        localStorage.removeItem('social_selected_chat_contact');
+        if (onClearSelectedContact) {
+          onClearSelectedContact();
         }
       }
+    } else {
+      // Left chats tab
+      setSelectedChat(null);
+      localStorage.removeItem('social_selected_chat_contact');
+      if (onClearSelectedContact) {
+        onClearSelectedContact();
+      }
     }
-  }, [location.pathname, contacts, groups]);
+  }, [location.pathname, contacts, groups, onClearSelectedContact]);
 
   useEffect(() => {
     isInitialScrollRef.current = true;
@@ -1319,6 +1374,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
   const handleBack = () => {
     inputRef.current?.blur();
+    setSelectedChat(null);
     localStorage.removeItem('social_selected_chat_contact');
     if (onClearSelectedContact) {
       onClearSelectedContact();

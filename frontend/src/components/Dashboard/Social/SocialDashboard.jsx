@@ -83,12 +83,7 @@ export default function SocialDashboard() {
     if (chatIdParam && chatTypeParam) {
       return { id: parseInt(chatIdParam, 10), type: chatTypeParam };
     }
-    const saved = localStorage.getItem('social_selected_chat_contact');
-    try {
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
+    return null;
   });
 
   const [sharedPost, setSharedPost] = useState(null);
@@ -260,16 +255,6 @@ export default function SocialDashboard() {
     return () => clearTimeout(handler);
   }, [selectedProfileId]);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (selectedChatContact) {
-        localStorage.setItem('social_selected_chat_contact', JSON.stringify(selectedChatContact));
-      } else {
-        localStorage.removeItem('social_selected_chat_contact');
-      }
-    }, 300);
-    return () => clearTimeout(handler);
-  }, [selectedChatContact]);
 
   const totalUnreadCount = useSocialMessageStore((state) => state.totalUnreadCount);
 
@@ -528,16 +513,8 @@ export default function SocialDashboard() {
       return;
     }
     if (tabId === 'chat') {
-      const savedChat = localStorage.getItem('social_selected_chat_contact');
-      try {
-        if (savedChat) {
-          const parsed = JSON.parse(savedChat);
-          if (parsed && parsed.id && parsed.type) {
-            navigate(`/dashboard/social/chats/${parsed.type}/${parsed.id}`);
-            return;
-          }
-        }
-      } catch (e) {}
+      localStorage.removeItem('social_selected_chat_contact');
+      setSelectedChatContact(null);
       navigate('/dashboard/social/chats');
       return;
     }
