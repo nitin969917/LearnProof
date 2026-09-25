@@ -1,16 +1,25 @@
-import heic2any from 'heic2any';
-
 // In-memory cache for converted JPEG object URLs so we never convert the same source twice
 const convertedCache = new Map();
+let cachedHeic2Any = null;
 
 /**
- * Safely resolves the heic2any function from ESM/CJS interop or global window
+ * Safely resolves the heic2any function on-demand via dynamic import or global window.
+ * This prevents bundling the heavy ~1.3MB WASM/JS binary into the initial application chunk.
  */
-export function getHeic2Any() {
-  if (typeof heic2any === 'function') return heic2any;
-  if (heic2any && typeof heic2any.default === 'function') return heic2any.default;
-  if (typeof window !== 'undefined' && typeof window.heic2any === 'function') return window.heic2any;
-  return null;
+export async function getHeic2Any() {
+  if (cachedHeic2Any) return cachedHeic2Any;
+  if (typeof window !== 'undefined' && typeof window.heic2any === 'function') {
+    cachedHeic2Any = window.heic2any;
+    return cachedHeic2Any;
+  }
+  try {
+    const mod = await import('heic2any');
+    cachedHeic2Any = mod.default || mod;
+    return cachedHeic2Any;
+  } catch (err) {
+    console.warn('heic2any dynamic import failed:', err);
+    return null;
+  }
 }
 
 /**
@@ -106,7 +115,7 @@ export async function convertHeicSourceToJpeg(src) {
     return convertedCache.get(src);
   }
 
-  const converter = getHeic2Any();
+  const converter = await getHeic2Any();
   if (!converter) {
     console.warn('heic2any library not available');
     return null;

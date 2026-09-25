@@ -110,7 +110,9 @@ const handleGoogleCallback = async (req, res) => {
 
 const getPublicStats = async (req, res) => {
     try {
-        const totalUsers = await prisma.userProfile.count();
+        const totalUsers = await cacheService.getOrSet('public:stats:total_users', async () => {
+            return await prisma.userProfile.count();
+        }, 600); // 10 minutes Redis cache
         res.status(200).json({ totalUsers });
     } catch (error) {
         console.error('getPublicStats Error:', error);

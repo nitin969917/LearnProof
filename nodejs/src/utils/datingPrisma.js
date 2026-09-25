@@ -75,6 +75,18 @@ const datingPrisma = new PrismaClient({
       CREATE INDEX IF NOT EXISTS "idx_social_group_messages_group_created" 
       ON "social_group_messages" ("groupId", "createdAt" DESC);
     `);
+    await datingPrisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "idx_social_rooms_scheduled" 
+      ON "social_language_rooms" ("scheduledFor");
+    `);
+    await datingPrisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "idx_social_rooms_created" 
+      ON "social_language_rooms" ("createdAt" DESC);
+    `);
+    await datingPrisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "idx_social_rooms_creator" 
+      ON "social_language_rooms" ("creatorId");
+    `);
   } catch (err) {
     // Ignore if not supported by current dialect or already exists
   }

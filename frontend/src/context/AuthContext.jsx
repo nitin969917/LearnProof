@@ -2,10 +2,27 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { googleLogout } from '@react-oauth/google';
 import axios from "axios";
-import { initMatrixClient, disconnectMatrixClient } from "../utils/matrixClient";
 import { disconnectSocialSocket } from "../utils/socialSocket";
 import { captureReferralParam, attributePendingReferral } from "../utils/referralTracker";
 import { useLiveRoomPipStore } from "../store/liveRoomPipStore";
+
+// Lazy helpers for Matrix client to avoid bundling heavy matrix-js-sdk & WASM into entry chunk
+const safeInitMatrix = async (credentials) => {
+    try {
+        const { initMatrixClient } = await import("../utils/matrixClient");
+        return await initMatrixClient(credentials);
+    } catch (e) {
+        console.warn("Failed to dynamically load Matrix client:", e);
+        return null;
+    }
+};
+
+const safeDisconnectMatrix = async () => {
+    try {
+        const { disconnectMatrixClient } = await import("../utils/matrixClient");
+        disconnectMatrixClient();
+    } catch (e) {}
+};
 
 const AuthContext = createContext();
 
@@ -17,7 +34,7 @@ axios.interceptors.response.use(
             const isLoginRequest = error.config?.url?.includes('/api/login');
             if (!isLoginRequest) {
                 localStorage.removeItem("google_token");
-                disconnectMatrixClient();
+                safeDisconnectMatrix();
                 // If they are on a dashboard/classroom route, redirect to home page to force re-login
                 if (window.location.pathname.startsWith("/dashboard") || window.location.pathname.startsWith("/classroom") || window.location.pathname.startsWith("/ambassador")) {
                     sessionStorage.setItem("redirect_to", window.location.pathname + window.location.search);
@@ -142,7 +159,7 @@ export const AuthProvider = ({ children }) => {
                                 ...prev,
                                 matrixCredentials: res.data.matrixCredentials
                             }));
-                            initMatrixClient(res.data.matrixCredentials).then(clientInstance => {
+                            safeInitMatrix(res.data.matrixCredentials).then(clientInstance => {
                                 setMatrixClient(clientInstance);
                             });
                         }
@@ -154,7 +171,7 @@ export const AuthProvider = ({ children }) => {
                     console.error("Invalid token:", error);
                     localStorage.removeItem("google_token");
                     setMatrixClient(null);
-                    disconnectMatrixClient();
+                    safeDisconnectMatrix();
                 }
             }
         };
@@ -210,7 +227,7 @@ export const AuthProvider = ({ children }) => {
                 attributePendingReferral(sessionToken);
 
                 if (res.data?.matrixCredentials) {
-                    initMatrixClient(res.data.matrixCredentials).then(clientInstance => {
+                    safeInitMatrix(res.data.matrixCredentials).then(clientInstance => {
                         setMatrixClient(clientInstance);
                     }).catch(err => {
                         console.warn("Matrix client background init error:", err);
@@ -230,7 +247,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setToken(null);
         setMatrixClient(null);
-        disconnectMatrixClient();
+        safeDisconnectMatrix();
         disconnectSocialSocket();
         useLiveRoomPipStore.getState().clearActiveRoom();
     };

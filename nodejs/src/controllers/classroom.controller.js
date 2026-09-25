@@ -174,11 +174,8 @@ const updateProgress = async (req, res) => {
                 data: { watch_progress: parseFloat(progress) }
             });
             
-            // Invalidate continue watching cache
+            // Invalidate continue watching cache (full caches are cleared upon markVideoCompleted)
             await cacheService.del(`user:continue:${user.id}`);
-            await cacheService.delByPattern(`classroom:v1:${user.id}:*`);
-            await cacheService.delByPattern(`user:learnings:${user.id}:*`);
-            await cacheService.del(`user:quiz-list:${user.id}`);
         }
 
         res.status(200).json({ message: 'Progress updated' });

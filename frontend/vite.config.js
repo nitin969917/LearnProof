@@ -22,6 +22,15 @@ export default defineConfig({
           if (id.includes('node_modules/mermaid')) {
             return 'mermaid';
           }
+          if (id.includes('node_modules/matrix-js-sdk')) {
+            return 'matrix';
+          }
+          if (id.includes('node_modules/jspdf') || id.includes('node_modules/html2canvas')) {
+            return 'pdf';
+          }
+          if (id.includes('node_modules/heic2any')) {
+            return 'heic2any';
+          }
           if (id.includes('node_modules/recharts')) {
             return 'recharts';
           }

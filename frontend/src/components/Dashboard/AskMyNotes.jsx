@@ -16,18 +16,26 @@ import 'react-quill-new/dist/quill.snow.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import socialApi from '../../api/socialApi';
 import toast from 'react-hot-toast';
-import mermaid from 'mermaid';
 import ConfirmModal from '../Common/ConfirmModal';
 import { useMemo, memo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-// Initialize mermaid once outside the component
-mermaid.initialize({
-    startOnLoad: true,
-    theme: 'default',
-    securityLevel: 'loose',
-    fontFamily: 'Inter, sans-serif'
-});
+let mermaidInstancePromise = null;
+const getMermaid = async () => {
+    if (!mermaidInstancePromise) {
+        mermaidInstancePromise = import('mermaid').then(m => {
+            const instance = m.default || m;
+            instance.initialize({
+                startOnLoad: false,
+                theme: 'default',
+                securityLevel: 'loose',
+                fontFamily: 'Inter, sans-serif'
+            });
+            return instance;
+        });
+    }
+    return mermaidInstancePromise;
+};
 
 /**
  * Custom hook — browser Web Speech API voice input
@@ -149,10 +157,10 @@ const cleanMermaidChart = (chartText) => {
     // Normalize full-width/unicode punctuation to standard ASCII
     let text = chartText.trim();
     text = text.replace(/＃/g, '#')
-               .replace(/；/g, ';')
-               .replace(/：/g, ':')
-               .replace(/，/g, ',')
-               .replace(/—|–|－/g, '-');
+        .replace(/；/g, ';')
+        .replace(/：/g, ':')
+        .replace(/，/g, ',')
+        .replace(/—|–|－/g, '-');
 
     // Strip markdown code fences if AI wrapped the diagram
     text = text.replace(/^```(?:mermaid)?\s*/i, '').replace(/\s*```$/i, '').trim();
@@ -193,7 +201,7 @@ const cleanMermaidChart = (chartText) => {
     // We use a non-word character delimiter like ' §LABEL_idx§' to preserve word boundaries
     const labels = [];
     const shapeRegex = /(\(\(.*?\)\)|\(\[.*?\]\)|\[\[.*?\]\]|\[\(.*?\)\]|\[.*?\]|\(.*?\)|\{.*?\})/g;
-    
+
     tempText = tempText.replace(shapeRegex, (match) => {
         labels.push(match);
         return ` §LABEL_${labels.length - 1}§`;
@@ -303,7 +311,7 @@ const cleanMermaidChart = (chartText) => {
 
     // Reconstruct the text with renamed IDs and original labels
     let result = processedLines.join('\n');
-    
+
     // Restore and sanitize the original shape containers / labels from placeholders
     result = result.replace(/\s*§LABEL_(\d+)§/g, (match, index) => {
         const rawLabel = labels[parseInt(index)];
@@ -323,20 +331,20 @@ const cleanMermaidChart = (chartText) => {
     // ── Hasse/lattice direction fix ───────────────────────────────────────────
     // Detect if this is a Hasse / vertical hierarchy / lattice diagram
     const lowerText = result.toLowerCase();
-    
+
     // Check if the graph contains nodes named a-g in a classic lattice pattern
     // e.g. a --> b, f --> g, etc.
     const isClassicLetterLattice = /\b[a-g]\s*-->\s*[a-g]\b/.test(result);
 
-    const isHasse = lowerText.includes('hasse') || 
-                    lowerText.includes('lattice') || 
-                    lowerText.includes('partial order') || 
-                    lowerText.includes('poset') || 
-                    lowerText.includes('divides') ||
-                    lowerText.includes('level') ||
-                    lowerText.includes('top level') ||
-                    lowerText.includes('bottom level') ||
-                    isClassicLetterLattice;
+    const isHasse = lowerText.includes('hasse') ||
+        lowerText.includes('lattice') ||
+        lowerText.includes('partial order') ||
+        lowerText.includes('poset') ||
+        lowerText.includes('divides') ||
+        lowerText.includes('level') ||
+        lowerText.includes('top level') ||
+        lowerText.includes('bottom level') ||
+        isClassicLetterLattice;
 
     if (isHasse) {
         // Change Top-to-Bottom (TD/TB) to Bottom-to-Top (BT) so minimal nodes go to the bottom
@@ -348,7 +356,7 @@ const cleanMermaidChart = (chartText) => {
     if (numericIdSet.size > 0) {
         const linesOfResult = result.split('\n');
         // Find the index of the graph header line (e.g. graph TD, flowchart BT)
-        const headerIndex = linesOfResult.findIndex(l => 
+        const headerIndex = linesOfResult.findIndex(l =>
             /^\s*(graph|flowchart)\s+(TD|TB|BT|RL|LR)\b/i.test(l)
         );
         if (headerIndex !== -1) {
@@ -378,6 +386,7 @@ const MermaidElement = memo(({ chart }) => {
             try {
                 setError(null);
                 const cleanedChart = cleanMermaidChart(chart);
+                const mermaid = await getMermaid();
                 const { svg: renderedSvg } = await mermaid.render(elementId.current, cleanedChart);
                 setSvg(renderedSvg);
             } catch (err) {
@@ -417,7 +426,7 @@ const MermaidElement = memo(({ chart }) => {
     }
 
     return (
-        <div 
+        <div
             className="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-gray-800 rounded-3xl shadow-sm flex justify-center overflow-x-auto my-4 transition-all w-full max-w-full [&>svg]:max-w-full [&>svg]:h-auto [&>svg]:mx-auto"
             dangerouslySetInnerHTML={{ __html: svg }}
         />
@@ -480,8 +489,8 @@ const AskMyNotes = () => {
         message: '',
         confirmText: 'Confirm',
         type: 'danger',
-        onConfirm: () => {},
-        onCancel: () => {}
+        onConfirm: () => { },
+        onCancel: () => { }
     });
 
     const showConfirm = ({ title, message, confirmText = "Confirm", type = "danger" }) => {
@@ -513,8 +522,8 @@ const AskMyNotes = () => {
             }
             if (inline) {
                 return (
-                    <code 
-                        className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-orange-600 dark:text-orange-400 font-mono text-xs break-all whitespace-pre-wrap" 
+                    <code
+                        className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-orange-600 dark:text-orange-400 font-mono text-xs break-all whitespace-pre-wrap"
                         {...props}
                     >
                         {children}
@@ -522,8 +531,8 @@ const AskMyNotes = () => {
                 );
             }
             return (
-                <code 
-                    className={`${className || ''} block overflow-x-auto text-xs font-mono bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl max-w-full`} 
+                <code
+                    className={`${className || ''} block overflow-x-auto text-xs font-mono bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl max-w-full`}
                     {...props}
                 >
                     {children}
@@ -744,7 +753,7 @@ const AskMyNotes = () => {
 
     const handleDeleteWorkspace = async (wsId, e) => {
         e.stopPropagation(); // Prevent entering workspace
-        
+
         const confirmed = await showConfirm({
             title: "Delete Subject",
             message: "Are you sure you want to delete this subject? This will permanently delete all uploaded files, chats, quizzes, and notes!",
@@ -784,7 +793,7 @@ const AskMyNotes = () => {
         setQuizzes([]);
         setActiveQuiz(null);
         setFlashcards([]);
-        
+
         // Restore tab preference
         const savedTab = localStorage.getItem('study_tab');
         setStudyTab(savedTab || 'notes');
@@ -908,10 +917,10 @@ const AskMyNotes = () => {
             const res = await socialApi.get(`/workspaces/${wsId}/chats`);
             const chatSessions = res.data.chats || [];
             setChats(chatSessions);
-            
+
             const savedChatId = localStorage.getItem('active_chat_id');
             const foundChat = chatSessions.find(c => c.id === parseInt(savedChatId));
-            
+
             if (foundChat) {
                 handleSelectChat(wsId, foundChat);
             } else if (chatSessions.length > 0) {
@@ -957,7 +966,7 @@ const AskMyNotes = () => {
 
     const handleSendMessage = async (e, customPrompt = null) => {
         e?.preventDefault();
-        
+
         const userPrompt = customPrompt || chatInput.trim();
         if (!userPrompt || isStreaming || !activeWorkspace || !activeChat) return;
 
@@ -1152,7 +1161,7 @@ const AskMyNotes = () => {
             toast.error('You must keep at least one note');
             return;
         }
-        
+
         const confirmed = await showConfirm({
             title: "Delete Note",
             message: "Are you sure you want to permanently delete this lesson note?",
@@ -1183,18 +1192,18 @@ const AskMyNotes = () => {
                 const foundQuiz = list.find(q => q.id === parseInt(savedQuizId));
                 if (foundQuiz) {
                     setActiveQuiz(foundQuiz);
-                    
+
                     const savedAnswers = localStorage.getItem('quiz_answers');
                     if (savedAnswers) {
                         try {
                             setQuizAnswers(JSON.parse(savedAnswers));
-                        } catch (e) {}
+                        } catch (e) { }
                     }
                     const savedResult = localStorage.getItem('quiz_result');
                     if (savedResult) {
                         try {
                             setQuizResult(JSON.parse(savedResult));
-                        } catch (e) {}
+                        } catch (e) { }
                     }
                 }
             }
@@ -1247,10 +1256,10 @@ const AskMyNotes = () => {
         setIsGeneratingQuiz(true);
         const id = toast.loading(`Assembling custom test on "${topicName}"...`);
         try {
-            await socialApi.post(`/workspaces/${activeWorkspace.id}/tools/quiz`, { 
-                count: 5, 
+            await socialApi.post(`/workspaces/${activeWorkspace.id}/tools/quiz`, {
+                count: 5,
                 format: 'MCQ',
-                topic: topicName 
+                topic: topicName
             });
             toast.success('Quiz generated successfully!', { id });
 
@@ -1424,8 +1433,8 @@ const AskMyNotes = () => {
                                 }
                             }}
                             className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${studyTab === tab
-                                    ? 'bg-white dark:bg-slate-800 text-orange-600 dark:text-orange-400 shadow-sm border border-slate-100 dark:border-gray-700/50'
-                                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                                ? 'bg-white dark:bg-slate-800 text-orange-600 dark:text-orange-400 shadow-sm border border-slate-100 dark:border-gray-700/50'
+                                : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
                                 }`}
                         >
                             {tab}
@@ -1534,11 +1543,10 @@ const AskMyNotes = () => {
                                         >
                                             {/* Card Header: label + flip hint */}
                                             <div className="flex items-center justify-between mb-3">
-                                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                                                    isFlipped 
-                                                        ? 'bg-green-500/10 text-green-600 dark:text-green-400' 
+                                                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${isFlipped
+                                                        ? 'bg-green-500/10 text-green-600 dark:text-green-400'
                                                         : 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
-                                                }`}>
+                                                    }`}>
                                                     {isFlipped ? '✓ Answer' : 'Question'}
                                                 </span>
                                                 <span className="text-[9px] text-slate-300 dark:text-slate-600 font-medium">
@@ -1604,219 +1612,219 @@ const AskMyNotes = () => {
         return (
             <div className="w-full mx-auto px-3 sm:px-6 lg:px-8 pt-3 pb-28 space-y-6">
 
-                    {/* ── Compact Header (Desktop only - mobile uses TopBar subtabs) ── */}
-                    <div className="hidden lg:flex flex-row items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
-                            <BrainCircuit size={18} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h1 className="text-base sm:text-lg font-black text-gray-900 dark:text-white tracking-tight truncate">Ask My Notes</h1>
-                            <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 leading-tight line-clamp-2 xs:line-clamp-1">Chat with your notes, ask questions & get AI answers</p>
-                        </div>
-                        <button
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-2 sm:py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider shadow-md shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
-                        >
-                            <Plus size={14} className="stroke-[2.5] sm:w-4 sm:h-4" />
-                            <span>Create</span>
-                        </button>
+                {/* ── Compact Header (Desktop only - mobile uses TopBar subtabs) ── */}
+                <div className="hidden lg:flex flex-row items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 flex items-center justify-center text-orange-500 shrink-0">
+                        <BrainCircuit size={18} />
                     </div>
-
-                    {/* ── Mobile Action Row ── */}
-                    <div className="flex lg:hidden items-center justify-between">
-                        <h2 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Your Active Subjects</h2>
-                        <button
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-md shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
-                        >
-                            <Plus size={14} className="stroke-[2.5]" />
-                            <span>New Subject</span>
-                        </button>
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-base sm:text-lg font-black text-gray-900 dark:text-white tracking-tight truncate">Ask My Notes</h1>
+                        <p className="text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 leading-tight line-clamp-2 xs:line-clamp-1">Chat with your notes, ask questions & get AI answers</p>
                     </div>
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-2 sm:py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider shadow-md shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
+                    >
+                        <Plus size={14} className="stroke-[2.5] sm:w-4 sm:h-4" />
+                        <span>Create</span>
+                    </button>
+                </div>
 
-                    {/* Subjects Grid */}
-                    <div className="space-y-6">
-                        <h2 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Your Active Subjects</h2>
-                        {loadingWorkspaces ? (
-                            <div className="flex justify-center items-center py-20">
-                                <Loader2 className="animate-spin text-orange-500" size={32} />
-                            </div>
-                        ) : workspaces.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-6 sm:py-12 px-3 sm:px-8 bg-white dark:bg-gray-900 border border-orange-100 dark:border-gray-800 rounded-3xl sm:rounded-[32px] max-w-4xl mx-auto shadow-sm">
-                                <div className="text-center mb-5 sm:mb-10">
-                                    <div className="inline-flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 bg-orange-50 dark:bg-orange-500/10 text-orange-500 rounded-full mb-2 sm:mb-4 ring-4 sm:ring-8 ring-orange-50/50 dark:ring-orange-500/5">
-                                        <GraduationCap className="w-5 h-5 sm:w-8 sm:h-8" />
-                                    </div>
-                                    <h3 className="text-lg sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Your AI Study Companion</h3>
-                                    <p className="text-[11px] sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 sm:mt-3 max-w-lg mx-auto leading-relaxed px-2">
-                                        Upload your lecture notes, PDFs, or textbooks and instantly ask questions to get precise answers from your materials.
-                                    </p>
+                {/* ── Mobile Action Row ── */}
+                <div className="flex lg:hidden items-center justify-between">
+                    <h2 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Your Active Subjects</h2>
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-md shadow-orange-500/20 active:scale-95 transition-all shrink-0 cursor-pointer"
+                    >
+                        <Plus size={14} className="stroke-[2.5]" />
+                        <span>New Subject</span>
+                    </button>
+                </div>
+
+                {/* Subjects Grid */}
+                <div className="space-y-6">
+                    <h2 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Your Active Subjects</h2>
+                    {loadingWorkspaces ? (
+                        <div className="flex justify-center items-center py-20">
+                            <Loader2 className="animate-spin text-orange-500" size={32} />
+                        </div>
+                    ) : workspaces.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-6 sm:py-12 px-3 sm:px-8 bg-white dark:bg-gray-900 border border-orange-100 dark:border-gray-800 rounded-3xl sm:rounded-[32px] max-w-4xl mx-auto shadow-sm">
+                            <div className="text-center mb-5 sm:mb-10">
+                                <div className="inline-flex items-center justify-center w-10 h-10 sm:w-16 sm:h-16 bg-orange-50 dark:bg-orange-500/10 text-orange-500 rounded-full mb-2 sm:mb-4 ring-4 sm:ring-8 ring-orange-50/50 dark:ring-orange-500/5">
+                                    <GraduationCap className="w-5 h-5 sm:w-8 sm:h-8" />
                                 </div>
+                                <h3 className="text-lg sm:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Your AI Study Companion</h3>
+                                <p className="text-[11px] sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 sm:mt-3 max-w-lg mx-auto leading-relaxed px-2">
+                                    Upload your lecture notes, PDFs, or textbooks and instantly ask questions to get precise answers from your materials.
+                                </p>
+                            </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-6 mb-6 sm:mb-10 w-full max-w-3xl">
-                                    {/* Step 1 */}
-                                    <div className="flex flex-row md:flex-col items-center md:text-center p-3 sm:p-6 bg-orange-50/50 dark:bg-gray-800/50 rounded-2xl border border-orange-100/50 dark:border-gray-700/50 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors gap-3 sm:gap-4">
-                                        <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-orange-500 font-black text-sm sm:text-lg shadow-sm">1</div>
-                                        <div className="text-left md:text-center">
-                                            <h4 className="font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-2 text-sm sm:text-base">Create a Subject</h4>
-                                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight">Organize your workspace by creating a subject for your exams.</p>
-                                        </div>
-                                    </div>
-                                    {/* Step 2 */}
-                                    <div className="flex flex-row md:flex-col items-center md:text-center p-3 sm:p-6 bg-orange-50/50 dark:bg-gray-800/50 rounded-2xl border border-orange-100/50 dark:border-gray-700/50 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors gap-3 sm:gap-4">
-                                        <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-orange-500 font-black text-sm sm:text-lg shadow-sm">2</div>
-                                        <div className="text-left md:text-center">
-                                            <h4 className="font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-2 text-sm sm:text-base">Upload Material</h4>
-                                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight">Drop in your PDFs, lecture slides, or type out notes to feed AI.</p>
-                                        </div>
-                                    </div>
-                                    {/* Step 3 */}
-                                    <div className="flex flex-row md:flex-col items-center md:text-center p-3 sm:p-6 bg-orange-50/50 dark:bg-gray-800/50 rounded-2xl border border-orange-100/50 dark:border-gray-700/50 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors gap-3 sm:gap-4">
-                                        <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-orange-500 font-black text-sm sm:text-lg shadow-sm">3</div>
-                                        <div className="text-left md:text-center">
-                                            <h4 className="font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-2 text-sm sm:text-base">Ask & Learn</h4>
-                                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight">Chat with your documents to get instant answers, summaries, and quizzes.</p>
-                                        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-6 mb-6 sm:mb-10 w-full max-w-3xl">
+                                {/* Step 1 */}
+                                <div className="flex flex-row md:flex-col items-center md:text-center p-3 sm:p-6 bg-orange-50/50 dark:bg-gray-800/50 rounded-2xl border border-orange-100/50 dark:border-gray-700/50 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors gap-3 sm:gap-4">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-orange-500 font-black text-sm sm:text-lg shadow-sm">1</div>
+                                    <div className="text-left md:text-center">
+                                        <h4 className="font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-2 text-sm sm:text-base">Create a Subject</h4>
+                                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight">Organize your workspace by creating a subject for your exams.</p>
                                     </div>
                                 </div>
-
-                                <button
-                                    onClick={() => setIsCreateModalOpen(true)}
-                                    className="w-auto flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider shadow-lg shadow-orange-500/25 active:scale-95 transition-all cursor-pointer group mx-auto"
-                                >
-                                    <Plus size={16} className="sm:w-[18px] sm:h-[18px] stroke-[3] group-hover:rotate-90 transition-transform duration-300" />
-                                    <span>Start Learning Now</span>
-                                </button>
+                                {/* Step 2 */}
+                                <div className="flex flex-row md:flex-col items-center md:text-center p-3 sm:p-6 bg-orange-50/50 dark:bg-gray-800/50 rounded-2xl border border-orange-100/50 dark:border-gray-700/50 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors gap-3 sm:gap-4">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-orange-500 font-black text-sm sm:text-lg shadow-sm">2</div>
+                                    <div className="text-left md:text-center">
+                                        <h4 className="font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-2 text-sm sm:text-base">Upload Material</h4>
+                                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight">Drop in your PDFs, lecture slides, or type out notes to feed AI.</p>
+                                    </div>
+                                </div>
+                                {/* Step 3 */}
+                                <div className="flex flex-row md:flex-col items-center md:text-center p-3 sm:p-6 bg-orange-50/50 dark:bg-gray-800/50 rounded-2xl border border-orange-100/50 dark:border-gray-700/50 hover:bg-orange-50 dark:hover:bg-gray-800 transition-colors gap-3 sm:gap-4">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center text-orange-500 font-black text-sm sm:text-lg shadow-sm">3</div>
+                                    <div className="text-left md:text-center">
+                                        <h4 className="font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-2 text-sm sm:text-base">Ask & Learn</h4>
+                                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 leading-tight">Chat with your documents to get instant answers, summaries, and quizzes.</p>
+                                    </div>
+                                </div>
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5 sm:gap-6">
-                                {workspaces.map((ws) => (
-                                    <div
-                                        key={ws.id}
-                                        onClick={() => handleSelectWorkspace(ws)}
-                                        className="group/card bg-gradient-to-br from-white to-orange-50/40 dark:from-gray-800 dark:to-gray-900 border border-orange-100/50 dark:border-gray-700/60 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(249,115,22,0.12)] hover:border-orange-300 dark:hover:border-orange-500/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden"
-                                    >
-                                        {/* Orange glow accent on hover */}
-                                        <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-gradient-to-b from-orange-500 to-amber-400 transform -translate-x-full group-hover/card:translate-x-0 transition-transform duration-300"></div>
 
-                                        <div className="absolute top-2 right-2 z-0 pointer-events-none opacity-5 group-hover/card:opacity-10 group-hover/card:scale-110 group-hover/card:rotate-12 transition-all duration-700">
-                                            <BrainCircuit className="w-12 h-12 sm:w-20 sm:h-20 text-orange-500" />
+                            <button
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="w-auto flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider shadow-lg shadow-orange-500/25 active:scale-95 transition-all cursor-pointer group mx-auto"
+                            >
+                                <Plus size={16} className="sm:w-[18px] sm:h-[18px] stroke-[3] group-hover:rotate-90 transition-transform duration-300" />
+                                <span>Start Learning Now</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5 sm:gap-6">
+                            {workspaces.map((ws) => (
+                                <div
+                                    key={ws.id}
+                                    onClick={() => handleSelectWorkspace(ws)}
+                                    className="group/card bg-gradient-to-br from-white to-orange-50/40 dark:from-gray-800 dark:to-gray-900 border border-orange-100/50 dark:border-gray-700/60 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_8px_30px_-4px_rgba(249,115,22,0.12)] hover:border-orange-300 dark:hover:border-orange-500/50 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden"
+                                >
+                                    {/* Orange glow accent on hover */}
+                                    <div className="absolute top-0 left-0 w-1.5 sm:w-2 h-full bg-gradient-to-b from-orange-500 to-amber-400 transform -translate-x-full group-hover/card:translate-x-0 transition-transform duration-300"></div>
+
+                                    <div className="absolute top-2 right-2 z-0 pointer-events-none opacity-5 group-hover/card:opacity-10 group-hover/card:scale-110 group-hover/card:rotate-12 transition-all duration-700">
+                                        <BrainCircuit className="w-12 h-12 sm:w-20 sm:h-20 text-orange-500" />
+                                    </div>
+
+                                    <div className="space-y-3 sm:space-y-4 relative z-10">
+                                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-100/80 dark:bg-orange-500/20 rounded-lg w-fit border border-orange-200/50 dark:border-orange-500/20">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)] animate-pulse"></div>
+                                            <span className="text-[9px] sm:text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Active Subject</span>
                                         </div>
-
-                                        <div className="space-y-3 sm:space-y-4 relative z-10">
-                                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-100/80 dark:bg-orange-500/20 rounded-lg w-fit border border-orange-200/50 dark:border-orange-500/20">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)] animate-pulse"></div>
-                                                <span className="text-[9px] sm:text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">Active Subject</span>
-                                            </div>
-                                            <div>
-                                                <h3 className="font-extrabold text-gray-900 dark:text-white text-base sm:text-xl pr-6 group-hover/card:text-orange-600 dark:group-hover/card:text-orange-400 transition-colors duration-300 leading-tight">
-                                                    {ws.name}
-                                                </h3>
-                                                <p className="text-[11px] sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mt-1 sm:mt-1.5">
-                                                    {ws.description || "No description provided."}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center justify-between border-t border-orange-100/60 dark:border-gray-700/40 mt-4 sm:mt-6 pt-3 sm:pt-4 relative z-10">
-                                            <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
-                                                Created: {new Date(ws.createdAt).toLocaleDateString()}
-                                            </span>
-                                            <button
-                                                onClick={(e) => handleDeleteWorkspace(ws.id, e)}
-                                                className="p-1.5 sm:p-2.5 bg-red-500/5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 rounded-lg sm:rounded-xl transition-all duration-300 border border-transparent hover:border-red-200 dark:hover:border-red-900/50 z-20"
-                                            >
-                                                <Trash2 size={14} className="sm:w-4 sm:h-4" />
-                                            </button>
+                                        <div>
+                                            <h3 className="font-extrabold text-gray-900 dark:text-white text-base sm:text-xl pr-6 group-hover/card:text-orange-600 dark:group-hover/card:text-orange-400 transition-colors duration-300 leading-tight">
+                                                {ws.name}
+                                            </h3>
+                                            <p className="text-[11px] sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mt-1 sm:mt-1.5">
+                                                {ws.description || "No description provided."}
+                                            </p>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
 
-                    {/* Premium Animated Modal for Creating Subject */}
-                    <AnimatePresence>
-                        {isCreateModalOpen && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    onClick={() => setIsCreateModalOpen(false)}
-                                    className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-                                />
+                                    <div className="flex items-center justify-between border-t border-orange-100/60 dark:border-gray-700/40 mt-4 sm:mt-6 pt-3 sm:pt-4 relative z-10">
+                                        <span className="text-[9px] sm:text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
+                                            Created: {new Date(ws.createdAt).toLocaleDateString()}
+                                        </span>
+                                        <button
+                                            onClick={(e) => handleDeleteWorkspace(ws.id, e)}
+                                            className="p-1.5 sm:p-2.5 bg-red-500/5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-400 rounded-lg sm:rounded-xl transition-all duration-300 border border-transparent hover:border-red-200 dark:hover:border-red-900/50 z-20"
+                                        >
+                                            <Trash2 size={14} className="sm:w-4 sm:h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                                    transition={{ type: "spring", duration: 0.4 }}
-                                    className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-2xl p-6 shadow-xl w-full max-w-lg z-10 relative space-y-5 overflow-hidden"
-                                >
-                                    <h2 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
-                                        <Plus size={18} className="text-orange-500" />
-                                        Create New Subject
-                                    </h2>
+                {/* Premium Animated Modal for Creating Subject */}
+                <AnimatePresence>
+                    {isCreateModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsCreateModalOpen(false)}
+                                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                            />
 
-                                    <form onSubmit={(e) => {
-                                        handleCreateWorkspace(e);
-                                        setIsCreateModalOpen(false);
-                                    }} className="space-y-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Subject Name</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="e.g. Database Systems, Semester 5"
-                                                value={newWsName}
-                                                onChange={(e) => setNewWsName(e.target.value)}
-                                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm focus:outline-none focus:border-orange-400 dark:focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 dark:focus:ring-orange-500/5 transition-all text-slate-800 dark:text-white shadow-sm font-semibold"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Optional Description</label>
-                                            <input
-                                                type="text"
-                                                placeholder="Brief details or syllabus notes"
-                                                value={newWsDesc}
-                                                onChange={(e) => setNewWsDesc(e.target.value)}
-                                                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm focus:outline-none focus:border-orange-400 dark:focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 dark:focus:ring-orange-500/5 transition-all text-slate-800 dark:text-white shadow-sm font-semibold"
-                                            />
-                                        </div>
-                                        <div className="flex gap-3 pt-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsCreateModalOpen(false)}
-                                                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-250 rounded-xl font-bold text-xs uppercase tracking-wider text-center active:scale-[0.98] transition-all cursor-pointer h-[42px]"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                disabled={isCreatingWs || !newWsName.trim()}
-                                                className="flex-[2] py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-orange-500/25 active:scale-[0.98] transition-all disabled:opacity-50 h-[42px] cursor-pointer"
-                                            >
-                                                {isCreatingWs ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                                                Initialize Subject
-                                            </button>
-                                        </div>
-                                    </form>
-                                </motion.div>
-                            </div>
-                        )}
-                    </AnimatePresence>
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                transition={{ type: "spring", duration: 0.4 }}
+                                className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-2xl p-6 shadow-xl w-full max-w-lg z-10 relative space-y-5 overflow-hidden"
+                            >
+                                <h2 className="text-sm font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-wider">
+                                    <Plus size={18} className="text-orange-500" />
+                                    Create New Subject
+                                </h2>
 
-                    {/* Custom Confirmation Modal */}
-                    <ConfirmModal
-                        isOpen={confirmModal.isOpen}
-                        title={confirmModal.title}
-                        message={confirmModal.message}
-                        confirmText={confirmModal.confirmText}
-                        type={confirmModal.type}
-                        onConfirm={confirmModal.onConfirm}
-                        onCancel={confirmModal.onCancel}
-                    />
+                                <form onSubmit={(e) => {
+                                    handleCreateWorkspace(e);
+                                    setIsCreateModalOpen(false);
+                                }} className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Subject Name</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="e.g. Database Systems, Semester 5"
+                                            value={newWsName}
+                                            onChange={(e) => setNewWsName(e.target.value)}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm focus:outline-none focus:border-orange-400 dark:focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 dark:focus:ring-orange-500/5 transition-all text-slate-800 dark:text-white shadow-sm font-semibold"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest">Optional Description</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Brief details or syllabus notes"
+                                            value={newWsDesc}
+                                            onChange={(e) => setNewWsDesc(e.target.value)}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-xs sm:text-sm focus:outline-none focus:border-orange-400 dark:focus:border-orange-500 focus:ring-4 focus:ring-orange-500/10 dark:focus:ring-orange-500/5 transition-all text-slate-800 dark:text-white shadow-sm font-semibold"
+                                        />
+                                    </div>
+                                    <div className="flex gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCreateModalOpen(false)}
+                                            className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-250 rounded-xl font-bold text-xs uppercase tracking-wider text-center active:scale-[0.98] transition-all cursor-pointer h-[42px]"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={isCreatingWs || !newWsName.trim()}
+                                            className="flex-[2] py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-orange-500/25 active:scale-[0.98] transition-all disabled:opacity-50 h-[42px] cursor-pointer"
+                                        >
+                                            {isCreatingWs ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                                            Initialize Subject
+                                        </button>
+                                    </div>
+                                </form>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* Custom Confirmation Modal */}
+                <ConfirmModal
+                    isOpen={confirmModal.isOpen}
+                    title={confirmModal.title}
+                    message={confirmModal.message}
+                    confirmText={confirmModal.confirmText}
+                    type={confirmModal.type}
+                    onConfirm={confirmModal.onConfirm}
+                    onCancel={confirmModal.onCancel}
+                />
             </div>
         );
     }
@@ -1943,7 +1951,7 @@ const AskMyNotes = () => {
                                             key={src.id}
                                             className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-gray-800 rounded-2xl flex items-center justify-between gap-2 group hover:border-orange-200 dark:hover:border-orange-950 transition-colors"
                                         >
-                                            <div 
+                                            <div
                                                 onClick={() => setPreviewSource(src)}
                                                 className="flex items-center gap-2 min-w-0 cursor-pointer flex-1"
                                                 title="Click to preview document"
@@ -2007,8 +2015,8 @@ const AskMyNotes = () => {
                                     key={chat.id}
                                     onClick={() => handleSelectChat(activeWorkspace.id, chat)}
                                     className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold truncate transition-colors flex items-center justify-between ${activeChat?.id === chat.id
-                                            ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
-                                            : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                        ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
+                                        : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
                                         }`}
                                 >
                                     <span>{chat.title}</span>
@@ -2033,12 +2041,11 @@ const AskMyNotes = () => {
                         {loadingMessages ? (
                             /* Skeleton loader — shown while messages are fetching to prevent empty-state flash */
                             <div className="flex flex-col gap-5 py-4">
-                                {[1,2,3].map(i => (
+                                {[1, 2, 3].map(i => (
                                     <div key={i} className={`flex flex-col gap-2 ${i % 2 === 0 ? 'items-end' : 'items-start'}`}>
                                         <div className="h-2 w-16 bg-slate-100 dark:bg-gray-800 rounded animate-pulse" />
-                                        <div className={`rounded-3xl bg-slate-100 dark:bg-gray-800 animate-pulse ${
-                                            i % 2 === 0 ? 'w-48 h-10' : 'w-full h-20'
-                                        }`} />
+                                        <div className={`rounded-3xl bg-slate-100 dark:bg-gray-800 animate-pulse ${i % 2 === 0 ? 'w-48 h-10' : 'w-full h-20'
+                                            }`} />
                                     </div>
                                 ))}
                             </div>
@@ -2055,57 +2062,57 @@ const AskMyNotes = () => {
                         ) : (
                             // Render in reverse so newest message is at the top of the reversed flex container (= visual bottom)
                             [...messages].reverse().map((msg, index) => (
-                                    <div
-                                        key={msg.id}
-                                        className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'
-                                            }`}
-                                    >
-                                        <div className={`space-y-1 ${msg.role === 'user' ? 'max-w-[85%] sm:max-w-[70%]' : 'w-full'}`}>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">
-                                                {msg.role === 'user' ? 'You' : 'LearnProof Assistant'}
-                                            </span>
+                                <div
+                                    key={msg.id}
+                                    className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'
+                                        }`}
+                                >
+                                    <div className={`space-y-1 ${msg.role === 'user' ? 'max-w-[85%] sm:max-w-[70%]' : 'w-full'}`}>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">
+                                            {msg.role === 'user' ? 'You' : 'LearnProof Assistant'}
+                                        </span>
 
-                                            <div className={`text-sm leading-relaxed ${msg.role === 'user'
-                                                    ? 'p-4 rounded-2xl bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-white dark:border-slate-700/50 shadow-sm'
-                                                    : 'p-5 md:p-6 rounded-3xl bg-white text-slate-800 dark:bg-gray-900 dark:text-slate-100 border border-slate-100 dark:border-gray-800 shadow-sm w-full'
-                                                }`}>
-                                                {msg.content === '' && isStreaming && index === 0 ? (
-                                                    <ThinkingIndicator />
-                                                ) : (
-                                                    <div className="text-xs md:text-sm leading-relaxed text-slate-700 dark:text-slate-300 max-w-none">
-                                                        <ReactMarkdown
-                                                            remarkPlugins={[remarkGfm, remarkMath]}
-                                                            rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
-                                                            components={markdownComponents}
-                                                        >
-                                                            {preprocessMath(msg.content)}
-                                                        </ReactMarkdown>
-                                                    </div>
-                                                )}
+                                        <div className={`text-sm leading-relaxed ${msg.role === 'user'
+                                            ? 'p-4 rounded-2xl bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-white dark:border-slate-700/50 shadow-sm'
+                                            : 'p-5 md:p-6 rounded-3xl bg-white text-slate-800 dark:bg-gray-900 dark:text-slate-100 border border-slate-100 dark:border-gray-800 shadow-sm w-full'
+                                            }`}>
+                                            {msg.content === '' && isStreaming && index === 0 ? (
+                                                <ThinkingIndicator />
+                                            ) : (
+                                                <div className="text-xs md:text-sm leading-relaxed text-slate-700 dark:text-slate-300 max-w-none">
+                                                    <ReactMarkdown
+                                                        remarkPlugins={[remarkGfm, remarkMath]}
+                                                        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
+                                                        components={markdownComponents}
+                                                    >
+                                                        {preprocessMath(msg.content)}
+                                                    </ReactMarkdown>
+                                                </div>
+                                            )}
 
-                                                {/* Citations Footer */}
-                                                {msg.role === 'assistant' && msg.citations && msg.citations.length > 0 && (
-                                                    <div className="border-t border-slate-50 dark:border-gray-800 mt-4 pt-3 space-y-1.5">
-                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                            Sources Cited:
-                                                        </p>
-                                                        <div className="flex flex-wrap gap-1.5">
-                                                            {msg.citations.map((cite, cIdx) => (
-                                                                <span
-                                                                    key={cIdx}
-                                                                    className="text-[9px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-100 dark:border-gray-700/50"
-                                                                    title={`Relevance score: ${Math.round(cite.score * 100)}%`}
-                                                                >
-                                                                    {cite.document_name}
-                                                                </span>
-                                                            ))}
-                                                        </div>
+                                            {/* Citations Footer */}
+                                            {msg.role === 'assistant' && msg.citations && msg.citations.length > 0 && (
+                                                <div className="border-t border-slate-50 dark:border-gray-800 mt-4 pt-3 space-y-1.5">
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                        Sources Cited:
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {msg.citations.map((cite, cIdx) => (
+                                                            <span
+                                                                key={cIdx}
+                                                                className="text-[9px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-100 dark:border-gray-700/50"
+                                                                title={`Relevance score: ${Math.round(cite.score * 100)}%`}
+                                                            >
+                                                                {cite.document_name}
+                                                            </span>
+                                                        ))}
                                                     </div>
-                                                )}
-                                            </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                ))
+                                </div>
+                            ))
                         )}
                     </div>
 
@@ -2128,11 +2135,10 @@ const AskMyNotes = () => {
                                         onClick={isListening ? stopListening : () => startListening(chatInput)}
                                         disabled={isStreaming || sources.length === 0}
                                         title={isListening ? 'Stop recording' : 'Voice input'}
-                                        className={`flex-shrink-0 p-1.5 rounded-xl transition-all ${
-                                            isListening
+                                        className={`flex-shrink-0 p-1.5 rounded-xl transition-all ${isListening
                                                 ? 'text-red-500 animate-pulse'
                                                 : 'text-slate-400 hover:text-orange-500'
-                                        } disabled:opacity-30`}
+                                            } disabled:opacity-30`}
                                     >
                                         {isListening ? <MicOff size={18} /> : <Mic size={18} />}
                                     </button>
@@ -2237,7 +2243,7 @@ const AskMyNotes = () => {
                                                     key={src.id}
                                                     className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-gray-800 rounded-2xl flex items-center justify-between gap-2 group hover:border-orange-200 dark:hover:border-orange-950 transition-colors"
                                                 >
-                                                    <div 
+                                                    <div
                                                         onClick={() => setPreviewSource(src)}
                                                         className="flex items-center gap-2 min-w-0 cursor-pointer flex-1"
                                                         title="Click to preview document"
@@ -2327,7 +2333,7 @@ const AskMyNotes = () => {
                     const previewUrl = `${backendUrl}/api/workspaces/${subjectId}/sources/${previewSource.id}/preview?idToken=${encodeURIComponent(token)}`;
                     const isPdf = previewSource.type?.toUpperCase() === 'PDF';
                     const isText = ['TXT', 'MD', 'CSV'].includes(previewSource.type?.toUpperCase());
-                    
+
                     return (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
                             <motion.div
@@ -2403,7 +2409,7 @@ const AskMyNotes = () => {
                                                 No Inline Preview Available
                                             </h4>
                                             <p className="text-[10px] text-slate-400 leading-relaxed mb-4">
-                                                This file type ({previewSource.type}) cannot be previewed directly in the browser. 
+                                                This file type ({previewSource.type}) cannot be previewed directly in the browser.
                                                 Please download the file to view its contents.
                                             </p>
                                             <a

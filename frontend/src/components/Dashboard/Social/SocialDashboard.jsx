@@ -1,14 +1,16 @@
-import { useState, useEffect, useRef, useCallback, Fragment } from 'react';
+import { useState, useEffect, useRef, useCallback, Fragment, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { Home, Search, Heart, Users, Users2, MessageSquare, User, MessageCircle, ArrowLeft, X, Plus, Send, Image as ImageIcon, AlertTriangle, Menu, Globe, Compass, Bell, Hash, Sparkles } from 'lucide-react';
 import { Link, useNavigate, useOutletContext, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
-import FeedTab from './FeedTab.jsx';
-import DiscoverTab from './DiscoverTab.jsx';
-import FriendsTab from './FriendsTab.jsx';
-import ChatsTab from './ChatsTab.jsx';
-import ProfileTab from './ProfileTab.jsx';
+
+// Lazy-load individual tabs so user only downloads tab code on demand
+const FeedTab = lazy(() => import('./FeedTab.jsx'));
+const DiscoverTab = lazy(() => import('./DiscoverTab.jsx'));
+const FriendsTab = lazy(() => import('./FriendsTab.jsx'));
+const ChatsTab = lazy(() => import('./ChatsTab.jsx'));
+const ProfileTab = lazy(() => import('./ProfileTab.jsx'));
 import SocialPostCard from './SocialPostCard.jsx';
 import PostVisibilitySelector from './PostVisibilitySelector.jsx';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
@@ -614,58 +616,60 @@ export default function SocialDashboard() {
 
           {/* Tab Panels */}
           <div className={`w-full ${(hideHeader || activeTab === 'chat') ? 'h-full' : ''}`}>
-            {visitedTabs.has('feed') && (
-              <div className={activeTab === 'feed' ? 'block' : 'hidden'}>
-                <FeedTab 
-                  currentUserId={effectiveSocialUser?.id || user?.id} 
-                  socialUser={effectiveSocialUser}
-                  onViewProfile={viewUserProfile} 
-                  onSelectChatUser={startDirectChat} 
-                  postCreatedTrigger={postCreatedTrigger}
-                  onOpenCreatePost={openCreatePostModal}
-                  onNavigateTab={handleTabChange}
-                />
-              </div>
-            )}
-            {visitedTabs.has('discover') && (
-              <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
-                <DiscoverTab 
-                  onViewProfile={viewUserProfile} 
-                  onSelectChatUser={startDirectChat}
-                  isActive={activeTab === 'discover'}
-                />
-              </div>
-            )}
-            {visitedTabs.has('friends') && (
-              <div className={activeTab === 'friends' ? 'block' : 'hidden'}>
-                <FriendsTab 
-                  onViewProfile={viewUserProfile} 
-                  onSelectChatUser={startDirectChat} 
-                />
-              </div>
-            )}
-            {visitedTabs.has('chat') && (
-              <div className={activeTab === 'chat' ? 'h-full block' : 'hidden'}>
-                <ChatsTab 
-                  currentUserId={effectiveSocialUser?.id || user?.id}
-                  selectedContact={selectedChatContact}
-                  onClearSelectedContact={() => setSelectedChatContact(null)}
-                  onToggleHeader={setHideHeader}
-                  onViewProfile={viewUserProfile}
-                />
-              </div>
-            )}
-            {visitedTabs.has('profile') && (
-              <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
-                <ProfileTab 
-                  currentUserId={effectiveSocialUser?.id || user?.id}
-                  viewUserId={selectedProfileId}
-                  onBackToFeed={() => handleTabChange('feed')}
-                  onSelectChatUser={startDirectChat}
-                  onViewProfile={viewUserProfile}
-                />
-              </div>
-            )}
+            <Suspense fallback={<div className="flex items-center justify-center py-12 text-sm text-gray-400"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mr-2"></div>Loading...</div>}>
+              {visitedTabs.has('feed') && (
+                <div className={activeTab === 'feed' ? 'block' : 'hidden'}>
+                  <FeedTab 
+                    currentUserId={effectiveSocialUser?.id || user?.id} 
+                    socialUser={effectiveSocialUser}
+                    onViewProfile={viewUserProfile} 
+                    onSelectChatUser={startDirectChat} 
+                    postCreatedTrigger={postCreatedTrigger}
+                    onOpenCreatePost={openCreatePostModal}
+                    onNavigateTab={handleTabChange}
+                  />
+                </div>
+              )}
+              {visitedTabs.has('discover') && (
+                <div className={activeTab === 'discover' ? 'block' : 'hidden'}>
+                  <DiscoverTab 
+                    onViewProfile={viewUserProfile} 
+                    onSelectChatUser={startDirectChat}
+                    isActive={activeTab === 'discover'}
+                  />
+                </div>
+              )}
+              {visitedTabs.has('friends') && (
+                <div className={activeTab === 'friends' ? 'block' : 'hidden'}>
+                  <FriendsTab 
+                    onViewProfile={viewUserProfile} 
+                    onSelectChatUser={startDirectChat} 
+                  />
+                </div>
+              )}
+              {visitedTabs.has('chat') && (
+                <div className={activeTab === 'chat' ? 'h-full block' : 'hidden'}>
+                  <ChatsTab 
+                    currentUserId={effectiveSocialUser?.id || user?.id}
+                    selectedContact={selectedChatContact}
+                    onClearSelectedContact={() => setSelectedChatContact(null)}
+                    onToggleHeader={setHideHeader}
+                    onViewProfile={viewUserProfile}
+                  />
+                </div>
+              )}
+              {visitedTabs.has('profile') && (
+                <div className={activeTab === 'profile' ? 'block' : 'hidden'}>
+                  <ProfileTab 
+                    currentUserId={effectiveSocialUser?.id || user?.id}
+                    viewUserId={selectedProfileId}
+                    onBackToFeed={() => handleTabChange('feed')}
+                    onSelectChatUser={startDirectChat}
+                    onViewProfile={viewUserProfile}
+                  />
+                </div>
+              )}
+            </Suspense>
           </div>
         </div>
       </div>

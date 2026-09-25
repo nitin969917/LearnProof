@@ -71,7 +71,7 @@ function renderSourceToCompressedBase64(source, maxWidth, maxHeight, quality) {
  * @returns {Promise<Blob|null>}
  */
 async function convertHeicToJpegBlob(file) {
-  const converter = getHeic2Any();
+  const converter = await getHeic2Any();
   if (!converter) {
     console.warn('heic2any converter unavailable');
     return null;

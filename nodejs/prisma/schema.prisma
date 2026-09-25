@@ -255,6 +255,8 @@ model VideoNoteFile {
   file          String    // Path to file
   original_name String?   // Original filename from user
   uploaded_at   DateTime  @default(now())
+
+  @@index([noteId])
 }
 
 model VideoComment {
@@ -267,6 +269,9 @@ model VideoComment {
   parentId   Int?
   replies    VideoComment[] @relation("CommentReplies")
   created_at DateTime @default(now())
+
+  @@index([vid, parentId])
+  @@index([userId])
 }
 
 

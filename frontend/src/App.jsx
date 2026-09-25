@@ -8,10 +8,7 @@ import { initializeLaunch } from './utils/launch';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
-import '@livekit/components-styles';
 import { useLiveRoomPipStore } from './store/liveRoomPipStore';
-import LiveRoomPipWindow from './components/Dashboard/LanguagePractice/LiveRoomPipWindow';
 import ParticipantMeetingEndedModal from './components/Dashboard/LanguagePractice/ParticipantMeetingEndedModal';
 import toast from 'react-hot-toast';
 import { resolvePostAuthRedirect, clearAuthRedirect } from './utils/authRedirect';
@@ -83,6 +80,7 @@ const DownloadPage = lazyWithRetry(() => import('./components/Common/DownloadPag
 const AmbassadorLanding = lazyWithRetry(() => import('./components/Common/AmbassadorLanding'));
 const AmbassadorDashboard = lazyWithRetry(() => import('./components/Dashboard/AmbassadorDashboard'));
 const LinkedInCallback = lazyWithRetry(() => import('./components/Common/LinkedInCallback'));
+const LiveKitActiveRoomWrapper = lazyWithRetry(() => import('./components/Dashboard/LanguagePractice/LiveKitActiveRoomWrapper'));
 
 const PageLoader = () => (
     <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white">
@@ -283,44 +281,16 @@ const GlobalLiveRoomManager = ({ children }) => {
 
     if (activeRoom) {
         return (
-            <LiveKitRoom
-                serverUrl={activeRoom.serverUrl}
-                token={activeRoom.token}
-                connect={true}
-                video={false}
-                audio={false}
-                onDisconnected={() => {
-                    const pip = useLiveRoomPipStore.getState();
-                    if (pip.isExplicitlyLeft) {
-                        pip.setShowPip(false);
-                        pip.clearSummaryModals();
-                        pip.clearActiveRoom();
-                        return;
-                    }
-                    const wasInPip = pip.showPip;
-                    if (wasInPip) {
-                        pip.setShowPip(false);
-                        toast('The host has concluded the live session. 👋', { id: 'pip-session-ended', icon: '👋', duration: 4500 });
-                    }
-                    if (!pip.hostSummaryData && !pip.participantEndedData) {
-                        const currentActive = pip.activeRoom;
-                        const isHost = currentActive?.dbRoom?.creatorId && String(currentActive.dbRoom.creatorId) === String(currentActive.userIdentity);
-                        if (!isHost && currentActive?.roomName) {
-                            pip.setParticipantEndedData({
-                                roomName: currentActive.roomName,
-                                message: "The host has ended this live practice session. Thank you for participating!",
-                                duration: pip.sessionSeconds || 0
-                            });
-                        }
-                    }
-                    pip.clearActiveRoom();
-                }}
-            >
-                <RoomAudioRenderer />
-                {children}
-                {showPip && !isExplicitlyLeft && <LiveRoomPipWindow />}
-                {modalElement}
-            </LiveKitRoom>
+            <Suspense fallback={<>{children}{modalElement}</>}>
+                <LiveKitActiveRoomWrapper
+                    activeRoom={activeRoom}
+                    showPip={showPip}
+                    isExplicitlyLeft={isExplicitlyLeft}
+                    modalElement={modalElement}
+                >
+                    {children}
+                </LiveKitActiveRoomWrapper>
+            </Suspense>
         );
     }
 

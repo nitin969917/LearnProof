@@ -209,6 +209,9 @@ model LanguageRoom {
   creatorId                 Int
   creator                   User      @relation(fields: [creatorId], references: [id])
 
+  @@index([scheduledFor])
+  @@index([createdAt])
+  @@index([creatorId])
   @@map("social_language_rooms")
 }
 

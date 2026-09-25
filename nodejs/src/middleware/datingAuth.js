@@ -76,7 +76,7 @@ const datingAuth = async (req, res, next) => {
       user = await datingPrisma.user.findFirst({
         where: {
           OR: [
-            { email: { equals: userEmail, mode: 'insensitive' } },
+            { email: userEmail },
             ...(decoded.uid ? [{ googleId: String(decoded.uid) }] : [])
           ]
         }
