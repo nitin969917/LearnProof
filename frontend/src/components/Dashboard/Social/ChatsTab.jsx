@@ -194,6 +194,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
   // Message Actions & WhatsApp-style Context Menu
   const [activeMenuMessage, setActiveMenuMessage] = useState(null);
+  const [menuReady, setMenuReady] = useState(false);
   const [showCopyToast, setShowCopyToast] = useState(false);
   const [showAllReactions, setShowAllReactions] = useState(false);
   const [infoMessage, setInfoMessage] = useState(null);
@@ -206,6 +207,33 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     }
   });
   const [pinnedMessage, setPinnedMessage] = useState(null);
+
+  // Clear and prevent accidental native iOS text selection while context menu is open
+  useEffect(() => {
+    if (!activeMenuMessage) {
+      setMenuReady(false);
+      return;
+    }
+    const clearSelection = () => {
+      if (window.getSelection) {
+        const sel = window.getSelection();
+        if (sel && !sel.isCollapsed) {
+          sel.removeAllRanges();
+        }
+      }
+    };
+    clearSelection();
+    document.addEventListener('selectionchange', clearSelection);
+    const timer = setTimeout(() => {
+      setMenuReady(true);
+      clearSelection();
+    }, 180);
+    return () => {
+      document.removeEventListener('selectionchange', clearSelection);
+      clearTimeout(timer);
+    };
+  }, [activeMenuMessage]);
+
 
   // Group Details & Member Management states
   const [showGroupDetails, setShowGroupDetails] = useState(false);
@@ -735,16 +763,24 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
     const handleMessageSent = (savedMessage) => {
       if (isMatrixActive) return;
-      setMessages((prev) => {
-        const updated = [...prev];
-        const lastOptimisticIdx = updated.map((m) => m.id).lastIndexOf(undefined);
-        if (lastOptimisticIdx !== -1) {
-          updated[lastOptimisticIdx] = savedMessage;
-        } else if (!updated.some(m => m.id === savedMessage.id)) {
-          updated.push(savedMessage);
-        }
-        return updated;
-      });
+      const active = selectedChatRef.current;
+      const isCurrentChat = active && active.type === 'direct' && (
+        String(savedMessage.receiverId) === String(active.id) ||
+        String(savedMessage.senderId) === String(active.id)
+      );
+
+      if (isCurrentChat) {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastOptimisticIdx = updated.map((m) => m.id).lastIndexOf(undefined);
+          if (lastOptimisticIdx !== -1) {
+            updated[lastOptimisticIdx] = savedMessage;
+          } else if (!updated.some(m => String(m.id) === String(savedMessage.id))) {
+            updated.push(savedMessage);
+          }
+          return updated;
+        });
+      }
 
       appendCachedMessage(`direct-${savedMessage.receiverId}`, savedMessage);
 
@@ -757,7 +793,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     const handleMessageError = ({ error }) => {
       if (isMatrixActive) return;
       console.error('Socket message error:', error);
-      setMessages((prev) => prev.filter((m, i) => !(i === prev.length - 1 && !m.id)));
+      const active = selectedChatRef.current;
+      if (active && active.type === 'direct') {
+        setMessages((prev) => prev.filter((m, i) => !(i === prev.length - 1 && !m.id && String(m.receiverId) === String(active.id))));
+      }
     };
 
     const handleGroupMessage = (msg) => {
@@ -1381,10 +1420,12 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
     if (window.getSelection) {
       window.getSelection().removeAllRanges();
     }
+    document.getSelection()?.empty?.();
     longPressTimer.current = setTimeout(() => {
       if (window.getSelection) {
         window.getSelection().removeAllRanges();
       }
+      document.getSelection()?.empty?.();
       if (document.activeElement && document.activeElement.blur) {
         document.activeElement.blur();
       }
@@ -1404,6 +1445,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       if (diffX > 8 || diffY > 8) {
         clearTimeout(longPressTimer.current);
         longPressTimer.current = null;
+        if (window.getSelection) {
+          window.getSelection().removeAllRanges();
+        }
+        document.getSelection()?.empty?.();
       }
     }
   };
@@ -1413,6 +1458,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+    if (window.getSelection) {
+      window.getSelection().removeAllRanges();
+    }
+    document.getSelection()?.empty?.();
   };
 
   const handleCancelPress = () => {
@@ -1420,6 +1469,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+    if (window.getSelection) {
+      window.getSelection().removeAllRanges();
+    }
+    document.getSelection()?.empty?.();
   };
 
   const handleToggleStar = (msg) => {
@@ -1481,11 +1534,26 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
           createdAt: new Date().toISOString(),
         };
 
-        // Emit via socket
-        socketRef.current?.emit('sendMessage', {
-          receiverId: target.id.toString(),
-          message: newMessage,
-        });
+        if (isMatrixActive && matrixClient) {
+          try {
+            const roomId = await getOrCreateMatrixRoom(target.id);
+            if (roomId) {
+              const content = {
+                msgtype: "m.text",
+                body: txtToForward,
+              };
+              await matrixClient.sendMessage(roomId, content);
+            }
+          } catch (mErr) {
+            console.error('Matrix forward error:', mErr);
+          }
+        } else {
+          // Emit via socket
+          socketRef.current?.emit('sendMessage', {
+            receiverId: target.id.toString(),
+            message: newMessage,
+          });
+        }
 
         // If currently in this chat, append to messages
         if (selectedChatRef.current && selectedChatRef.current.type === 'direct' && String(selectedChatRef.current.id) === String(target.id)) {
@@ -2127,15 +2195,18 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                             >
                               {/* Reply quote strip */}
                               {!msg.isDeleted && parsed.replyTo && (
-                                <div className={`mb-2 pl-2.5 pr-2 py-1 rounded-lg border-l-3 ${
-                                  isMine ? 'border-[#FF5722] bg-white/60 dark:bg-black/20' : 'border-[#FF5722] bg-orange-50 dark:bg-orange-950/20'
-                                }`}>
-                                  <p className="text-[9px] font-bold text-[#FF5722] mb-0.5">
+                                <div 
+                                  className={`mb-2 pl-2.5 pr-2 py-1 rounded-lg border-l-3 select-none ${
+                                    isMine ? 'border-[#FF5722] bg-white/60 dark:bg-black/20' : 'border-[#FF5722] bg-orange-50 dark:bg-orange-950/20'
+                                  }`}
+                                  style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+                                >
+                                  <p className="text-[9px] font-bold text-[#FF5722] mb-0.5 select-none">
                                     {parsed.replyTo.senderId === currentUserId 
                                       ? 'You' 
                                       : (parsed.replyTo.senderName || contacts.find(c => c.id?.toString() === parsed.replyTo.senderId?.toString())?.name || 'Member')}
                                   </p>
-                                  <p className="text-[10px] text-gray-600 dark:text-gray-300 truncate font-medium">
+                                  <p className="text-[10px] text-gray-600 dark:text-gray-300 truncate font-medium select-none">
                                     {parsed.replyTo.text || 'Message'}
                                   </p>
                                 </div>
@@ -2143,11 +2214,14 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
                               {/* Message text */}
                               {msg.isDeleted ? (
-                                <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 italic text-xs py-0.5">
+                                <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 italic text-xs py-0.5 select-none">
                                   <span>This message was deleted</span>
                                 </div>
                               ) : (
-                                <p className="break-words font-normal text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
+                                <p 
+                                  className="break-words font-normal text-xs sm:text-sm leading-relaxed whitespace-pre-wrap select-none"
+                                  style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+                                >
                                   {parsed?.text || msg.content}
                                 </p>
                               )}
@@ -3301,8 +3375,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
       <AnimatePresence>
         {activeMenuMessage && (
           <div 
-            className="fixed inset-0 bg-black/55 backdrop-blur-xs flex flex-col items-center justify-center p-4 z-[2500] select-none"
-            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+            className="fixed inset-0 bg-black/55 backdrop-blur-xs flex flex-col items-center justify-center p-4 z-[2500] select-none chat-context-menu whatsapp-menu-container"
+            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', touchAction: 'none' }}
             onClick={() => {
               setActiveMenuMessage(null);
               setShowAllReactions(false);
@@ -3313,12 +3387,18 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.92, opacity: 0, y: 12 }}
               transition={{ type: 'spring', damping: 28, stiffness: 400 }}
-              className="w-full max-w-[240px] sm:max-w-[260px] flex flex-col items-center gap-1.5"
+              className="w-full max-w-[240px] sm:max-w-[260px] flex flex-col items-center gap-1.5 select-none chat-context-menu whatsapp-menu-container"
+              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* 1. Sleek Floating Reaction Pill */}
               {!activeMenuMessage.isDeleted && (
-                <div className="bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-full px-2 py-1 shadow-lg border border-gray-200/60 dark:border-gray-700/60 flex items-center gap-1 transition-all">
+                <div 
+                  className={`bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-full px-2 py-1 shadow-lg border border-gray-200/60 dark:border-gray-700/60 flex items-center gap-1 transition-all select-none chat-context-menu ${
+                    menuReady ? 'pointer-events-auto' : 'pointer-events-none'
+                  }`}
+                  style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+                >
                   {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => {
                     const reactions = parseMessageContent(activeMenuMessage).reactions || {};
                     const users = reactions[emoji];
@@ -3331,9 +3411,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           setActiveMenuMessage(null);
                           setShowAllReactions(false);
                         }}
-                        className={`text-lg sm:text-xl active:scale-125 hover:scale-115 transition-transform cursor-pointer rounded-full p-0.5 leading-none ${
+                        className={`text-lg sm:text-xl active:scale-125 hover:scale-115 transition-transform cursor-pointer rounded-full p-0.5 leading-none select-none ${
                           reacted ? 'bg-orange-100 dark:bg-orange-950/60 scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
+                        style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                         title={emoji}
                       >
                         {emoji}
@@ -3342,7 +3423,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   })}
                   <button
                     onClick={() => setShowAllReactions(!showAllReactions)}
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer text-xs font-bold shrink-0 ml-0.5"
+                    className="w-5 h-5 rounded-full flex items-center justify-center text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer text-xs font-bold shrink-0 ml-0.5 select-none"
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                     title="More reactions"
                   >
                     <Plus size={12} />
@@ -3357,7 +3439,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     initial={{ opacity: 0, scale: 0.9, y: -6 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: -6 }}
-                    className="bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-2xl p-2 shadow-xl border border-gray-200/60 dark:border-gray-700/60 flex flex-wrap justify-center gap-1.5 max-w-[220px]"
+                    className={`bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-2xl p-2 shadow-xl border border-gray-200/60 dark:border-gray-700/60 flex flex-wrap justify-center gap-1.5 max-w-[220px] select-none chat-context-menu ${
+                      menuReady ? 'pointer-events-auto' : 'pointer-events-none'
+                    }`}
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                   >
                     {['🔥', '🎉', '👏', '💯', '🤔', '🤝', '💡', '🚀', '😍', '🤩', '🙌', '✨'].map((emoji) => (
                       <button
@@ -3367,7 +3452,8 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                           setActiveMenuMessage(null);
                           setShowAllReactions(false);
                         }}
-                        className="text-lg hover:scale-125 active:scale-95 transition-transform p-0.5 cursor-pointer leading-none"
+                        className="text-lg hover:scale-125 active:scale-95 transition-transform p-0.5 cursor-pointer leading-none select-none"
+                        style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                       >
                         {emoji}
                       </button>
@@ -3378,21 +3464,31 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
               {/* 2. Compact Message Bubble Preview */}
               <div 
-                className={`w-full rounded-2xl px-3 py-2 shadow-md border text-xs max-h-24 overflow-y-auto ${
+                className={`w-full rounded-2xl px-3 py-2 shadow-md border text-xs max-h-24 overflow-y-auto select-none chat-bubble-selectable ${
                   activeMenuMessage.senderId === currentUserId
                     ? 'bg-[#FFEADB] text-gray-900 dark:bg-orange-950/90 dark:text-orange-50 border-orange-200/60 dark:border-orange-800/60'
                     : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-100 dark:border-gray-700'
                 }`}
+                style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
               >
                 {parseMessageContent(activeMenuMessage).replyTo && (
-                  <div className="mb-1 pl-1.5 py-0.5 rounded border-l-2 border-[#FF5722] bg-black/5 dark:bg-white/5 text-[9px] text-gray-500 dark:text-gray-400 truncate">
+                  <div 
+                    className="mb-1 pl-1.5 py-0.5 rounded border-l-2 border-[#FF5722] bg-black/5 dark:bg-white/5 text-[9px] text-gray-500 dark:text-gray-400 truncate select-none"
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+                  >
                     {parseMessageContent(activeMenuMessage).replyTo.text || 'Replied message'}
                   </div>
                 )}
-                <p className="break-words font-normal leading-snug whitespace-pre-wrap text-[11px] sm:text-xs">
+                <p 
+                  className="break-words font-normal leading-snug whitespace-pre-wrap text-[11px] sm:text-xs select-none"
+                  style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+                >
                   {parseMessageContent(activeMenuMessage).text || activeMenuMessage.content}
                 </p>
-                <div className="flex items-center justify-end gap-1 mt-0.5 text-[8.5px] text-gray-400 dark:text-gray-500 font-medium">
+                <div 
+                  className="flex items-center justify-end gap-1 mt-0.5 text-[8.5px] text-gray-400 dark:text-gray-500 font-medium select-none"
+                  style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+                >
                   {starredMessageIds[activeMenuMessage.id] && (
                     <Star size={8} className="text-amber-500 fill-amber-500 shrink-0" />
                   )}
@@ -3401,7 +3497,12 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
               </div>
 
               {/* 3. Compact Native iOS/WhatsApp Action Menu */}
-              <div className="w-full bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/60 dark:border-gray-700/60 overflow-hidden divide-y divide-gray-100 dark:divide-gray-800/60">
+              <div 
+                className={`w-full bg-white/95 dark:bg-gray-850/95 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/60 dark:border-gray-700/60 overflow-hidden divide-y divide-gray-100 dark:divide-gray-800/60 select-none chat-context-menu whatsapp-menu-container ${
+                  menuReady ? 'pointer-events-auto' : 'pointer-events-none'
+                }`}
+                style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+              >
                 {/* Reply */}
                 {!activeMenuMessage.isDeleted && (
                   <button
@@ -3411,9 +3512,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setShowAllReactions(false);
                       setTimeout(() => inputRef.current?.focus(), 50);
                     }}
-                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer select-none"
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                   >
-                    <span>Reply</span>
+                    <span className="select-none">Reply</span>
                     <CornerUpLeft size={14} className="text-[#FF5722]" />
                   </button>
                 )}
@@ -3425,9 +3527,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       handleToggleStar(activeMenuMessage);
                       setShowAllReactions(false);
                     }}
-                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer select-none"
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                   >
-                    <span>{starredMessageIds[activeMenuMessage.id] ? 'Unstar' : 'Star'}</span>
+                    <span className="select-none">{starredMessageIds[activeMenuMessage.id] ? 'Unstar' : 'Star'}</span>
                     <Star 
                       size={14} 
                       className={starredMessageIds[activeMenuMessage.id] ? "text-amber-500 fill-amber-500" : "text-gray-400"} 
@@ -3446,9 +3549,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setShowCopyToast(true);
                       setTimeout(() => setShowCopyToast(false), 2000);
                     }}
-                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer select-none"
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                   >
-                    <span>Copy</span>
+                    <span className="select-none">Copy</span>
                     <Copy size={14} className="text-gray-400" />
                   </button>
                 )}
@@ -3460,9 +3564,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       handleForwardMessage(activeMenuMessage);
                       setShowAllReactions(false);
                     }}
-                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer select-none"
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                   >
-                    <span>Forward</span>
+                    <span className="select-none">Forward</span>
                     <Forward size={14} className="text-blue-500" />
                   </button>
                 )}
@@ -3474,9 +3579,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       handleTogglePin(activeMenuMessage);
                       setShowAllReactions(false);
                     }}
-                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer select-none"
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                   >
-                    <span>{pinnedMessage?.id === activeMenuMessage.id ? 'Unpin' : 'Pin'}</span>
+                    <span className="select-none">{pinnedMessage?.id === activeMenuMessage.id ? 'Unpin' : 'Pin'}</span>
                     <Pin size={14} className={pinnedMessage?.id === activeMenuMessage.id ? "text-[#FF5722] fill-[#FF5722]" : "text-gray-400"} />
                   </button>
                 )}
@@ -3489,9 +3595,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setActiveMenuMessage(null);
                       setShowAllReactions(false);
                     }}
-                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/70 active:bg-gray-100 dark:active:bg-gray-700/60 transition font-medium text-xs flex items-center justify-between cursor-pointer select-none"
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                   >
-                    <span>Info</span>
+                    <span className="select-none">Info</span>
                     <Info size={14} className="text-emerald-500" />
                   </button>
                 )}
@@ -3508,9 +3615,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       setShowAllReactions(false);
                       handleDeleteMessage(msgToDelete);
                     }}
-                    className="w-full text-left py-2 px-3.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 active:bg-red-100/60 transition font-medium text-xs flex items-center justify-between cursor-pointer"
+                    className="w-full text-left py-2 px-3.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 active:bg-red-100/60 transition font-medium text-xs flex items-center justify-between cursor-pointer select-none"
+                    style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                   >
-                    <span>Delete</span>
+                    <span className="select-none">Delete</span>
                     <Trash2 size={14} className="text-red-500" />
                   </button>
                 )}
