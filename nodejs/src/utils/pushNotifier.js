@@ -281,8 +281,7 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
         tokens,
         notification: {
           title,
-          body,
-          ...(resolvedImageUrl ? { imageUrl: resolvedImageUrl } : {})
+          body
         },
         data: serializedData,
         webpush: {
@@ -291,7 +290,6 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
             body,
             icon: finalIconUrl,
             badge: `${apiBaseUrl}/LP_M_logo.png`,
-            ...(resolvedImageUrl ? { image: resolvedImageUrl } : {}),
             data: serializedData
           },
           fcmOptions: {
@@ -305,8 +303,7 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
             color: '#F97316',
             channelId: 'learnproof_notifications',
             defaultSound: true,
-            defaultVibrateTimings: true,
-            ...(resolvedImageUrl ? { imageUrl: resolvedImageUrl } : {})
+            defaultVibrateTimings: true
           },
           data: serializedData
         },

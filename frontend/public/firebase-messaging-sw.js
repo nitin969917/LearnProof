@@ -73,14 +73,11 @@ messaging.onBackgroundMessage((payload) => {
   const iconUrl = 'https://api.learnproofai.com/LP_M_logo.png';
   const rawIcon = data.imageUrl || data.avatarUrl || data.senderPicture;
   const dynamicIcon = resolveSwMediaUrl(rawIcon) || iconUrl;
-  const rawImage = data.imageUrl || data.mediaUrl;
-  const dynamicImage = resolveSwMediaUrl(rawImage) || undefined;
 
   const notificationOptions = {
     body: payload.data?.body || "You have a new update",
     icon: dynamicIcon,
     badge: iconUrl,
-    ...(dynamicImage ? { image: dynamicImage } : {}),
     vibrate: [200, 100, 200],
     data: enrichedData
   };
