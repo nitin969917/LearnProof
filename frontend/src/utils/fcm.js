@@ -259,12 +259,14 @@ if (messaging) {
       }
 
       const targetPath = resolveNotificationPath(data);
+      const resolvedAvatar = data.avatarUrl || data.senderPicture || data.imageUrl || payload.notification?.image || null;
 
       toast.custom((t) => (
         React.createElement(SwipeableNotificationToast, {
           t,
+          avatar: resolvedAvatar,
           avatarBadge: React.createElement('span', { className: "absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-gray-800 animate-pulse" }),
-          fallbackInitial: data.roomName ? '🔴' : '🔔',
+          fallbackInitial: data.roomName ? '🔴' : (data.senderName?.[0] || '🔔'),
           title: payload.notification.title,
           body: payload.notification.body,
           tag: 'now',
@@ -342,10 +344,13 @@ if (typeof window !== 'undefined') {
             }
 
             const notifPath = resolveNotificationPath(notifData);
+            const resolvedAvatar = notifData.avatarUrl || notifData.senderPicture || notifData.imageUrl || notification.image || null;
+
             toast.custom((t) => (
               React.createElement(SwipeableNotificationToast, {
                 t,
-                fallbackInitial: '🔔',
+                avatar: resolvedAvatar,
+                fallbackInitial: notifData.senderName?.[0] || '🔔',
                 title: notification.title,
                 body: notification.body,
                 tag: 'now',

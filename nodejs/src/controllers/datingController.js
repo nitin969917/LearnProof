@@ -1332,6 +1332,9 @@ const sendFriendRequest = async (req, res) => {
           type: 'FRIEND_REQUEST_RECEIVED',
           requestId: friendship.id,
           senderId: senderId,
+          senderName: req.user.name || friendship.sender?.name,
+          senderPicture: friendship.sender?.profilePicture || req.user.profilePicture || '',
+          imageUrl: friendship.sender?.profilePicture || req.user.profilePicture || '',
           url: '/dashboard/social?tab=friends&sub=pending',
           clickAction: '/dashboard/social?tab=friends&sub=pending'
         }
@@ -1416,7 +1419,12 @@ const acceptFriendRequest = async (req, res) => {
           type: 'FRIEND_REQUEST_ACCEPTED',
           requestId: friendship.id,
           userId: userId,
-          url: '/dashboard/social?tab=friends'
+          senderId: userId,
+          senderName: req.user.name,
+          senderPicture: req.user.profilePicture || '',
+          imageUrl: req.user.profilePicture || '',
+          url: '/dashboard/social?tab=friends',
+          clickAction: '/dashboard/social?tab=friends'
         }
       );
     } catch (pnErr) {
@@ -1499,7 +1507,12 @@ const acceptFriendship = async (req, res) => {
           type: 'FRIEND_REQUEST_ACCEPTED',
           requestId: friendship.id,
           userId: userId,
-          url: '/dashboard/social?tab=friends'
+          senderId: userId,
+          senderName: req.user.name,
+          senderPicture: req.user.profilePicture || '',
+          imageUrl: req.user.profilePicture || '',
+          url: '/dashboard/social?tab=friends',
+          clickAction: '/dashboard/social?tab=friends'
         }
       );
     } catch (pnErr) {
@@ -2040,6 +2053,7 @@ const createLanguageRoom = async (req, res) => {
             ? `${creatorName} scheduled "${topicText}" (${formattedLanguage}) for ${formatScheduleText(parsedScheduledFor)}. Tap to view.`
             : `Join the private room "${topicText}" in ${formattedLanguage} now!`;
 
+          const creatorAvatar = room.creator?.profilePicture || req.user.profilePicture || null;
           sendPushNotification(
             invitedIds,
             title,
@@ -2047,6 +2061,10 @@ const createLanguageRoom = async (req, res) => {
             { 
               type: isScheduledRoom ? 'LIVE_ROOM_SCHEDULED' : 'LIVE_ROOM_INVITATION', 
               roomName: room.roomName,
+              creatorId: room.creatorId,
+              creatorName,
+              creatorAvatar,
+              imageUrl: creatorAvatar,
               scheduledFor: parsedScheduledFor ? parsedScheduledFor.toISOString() : null
             }
           );
@@ -2097,6 +2115,7 @@ const createLanguageRoom = async (req, res) => {
             ? `"${topicText}" (${formattedLanguage}) is scheduled for ${formatScheduleText(parsedScheduledFor)}. Mark your calendar!`
             : `Join the live room "${topicText}" in ${formattedLanguage} to discuss together!`;
 
+          const creatorAvatar = room.creator?.profilePicture || req.user.profilePicture || null;
           sendPushNotification(
             friendIds,
             title,
@@ -2104,6 +2123,10 @@ const createLanguageRoom = async (req, res) => {
             { 
               type: isScheduledRoom ? 'LIVE_ROOM_SCHEDULED' : 'LIVE_ROOM_CREATED', 
               roomName: room.roomName,
+              creatorId: room.creatorId,
+              creatorName,
+              creatorAvatar,
+              imageUrl: creatorAvatar,
               scheduledFor: parsedScheduledFor ? parsedScheduledFor.toISOString() : null
             }
           );
@@ -2193,7 +2216,14 @@ const sendRoomStartedNotification = async (room, io) => {
           invitedIds,
           `🔴 Private ${mediaTypeLabel} Room Starting Now!`,
           `${creatorName}'s scheduled room "${topicText}" in ${formattedLanguage} is live now. Tap to join!`,
-          { type: 'LIVE_ROOM_STARTED', roomName: fullRoom.roomName }
+          { 
+            type: 'LIVE_ROOM_STARTED', 
+            roomName: fullRoom.roomName,
+            creatorId: fullRoom.creatorId,
+            creatorName,
+            creatorAvatar,
+            imageUrl: creatorAvatar
+          }
         );
 
         if (io) {
@@ -2232,7 +2262,14 @@ const sendRoomStartedNotification = async (room, io) => {
           friendIds,
           `🔴 ${roomTypeLabel} ${mediaTypeLabel} Room Starting Now!`,
           `${creatorName}'s scheduled room "${topicText}" in ${formattedLanguage} is live now. Tap to join!`,
-          { type: 'LIVE_ROOM_STARTED', roomName: fullRoom.roomName }
+          { 
+            type: 'LIVE_ROOM_STARTED', 
+            roomName: fullRoom.roomName,
+            creatorId: fullRoom.creatorId,
+            creatorName,
+            creatorAvatar,
+            imageUrl: creatorAvatar
+          }
         );
 
         if (io) {
@@ -2691,11 +2728,19 @@ const inviteToLanguageRoom = async (req, res) => {
       const formattedLanguage = room.language || 'English';
       const topicText = room.topic || 'General Discussion';
 
+      const creatorAvatar = room.creator?.profilePicture || req.user?.profilePicture || null;
       sendPushNotification(
         newlyAdded,
         `${creatorName} invited you to a live room`,
         `Join "${topicText}" in ${formattedLanguage} now!`,
-        { type: 'LIVE_ROOM_INVITATION', roomName: room.roomName }
+        { 
+          type: 'LIVE_ROOM_INVITATION', 
+          roomName: room.roomName,
+          creatorId: room.creatorId,
+          creatorName,
+          creatorAvatar,
+          imageUrl: creatorAvatar
+        }
       );
 
       try {
@@ -3042,6 +3087,8 @@ const sendGroupMessage = async (req, res) => {
     }).then(async members => {
       const allReceiverIds = members.map(m => m.userId);
       if (allReceiverIds.length > 0 && group) {
+        const senderPic = (message.sender?.profilePicture && !message.sender.profilePicture.startsWith('data:') && message.sender.profilePicture.length < 500) ? message.sender.profilePicture : '';
+        const groupPic = (group.avatar && !group.avatar.startsWith('data:') && group.avatar.length < 500) ? group.avatar : senderPic;
         sendPushNotification(
           allReceiverIds,
           `New message in ${group.name}`,
@@ -3052,7 +3099,8 @@ const sendGroupMessage = async (req, res) => {
             groupName: group.name,
             senderId: String(senderId),
             senderName: message.sender?.name || 'A member',
-            senderPicture: (message.sender?.profilePicture && !message.sender.profilePicture.startsWith('data:') && message.sender.profilePicture.length < 500) ? message.sender.profilePicture : ''
+            senderPicture: senderPic,
+            imageUrl: groupPic || senderPic
           }
         );
       }

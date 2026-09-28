@@ -49,10 +49,14 @@ messaging.onBackgroundMessage((payload) => {
     clickAction: clickAction || '/dashboard'
   };
 
+  const dynamicIcon = data.imageUrl || data.avatarUrl || data.senderPicture || iconUrl;
+  const dynamicImage = data.imageUrl || data.mediaUrl || undefined;
+
   const notificationOptions = {
     body: payload.data?.body || "You have a new update",
-    icon: iconUrl,
+    icon: dynamicIcon,
     badge: iconUrl,
+    ...(dynamicImage ? { image: dynamicImage } : {}),
     vibrate: [200, 100, 200],
     data: enrichedData
   };
