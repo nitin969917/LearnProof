@@ -259,7 +259,7 @@ if (messaging) {
       }
 
       const targetPath = resolveNotificationPath(data);
-      const resolvedAvatar = data.avatarUrl || data.senderPicture || data.imageUrl || payload.notification?.image || null;
+      const resolvedAvatar = data.avatarUrl || data.senderPicture || data.imageUrl || data.creatorAvatar || payload.notification?.image || null;
 
       toast.custom((t) => (
         React.createElement(SwipeableNotificationToast, {
@@ -344,7 +344,7 @@ if (typeof window !== 'undefined') {
             }
 
             const notifPath = resolveNotificationPath(notifData);
-            const resolvedAvatar = notifData.avatarUrl || notifData.senderPicture || notifData.imageUrl || notification.image || null;
+            const resolvedAvatar = notifData.avatarUrl || notifData.senderPicture || notifData.imageUrl || notifData.creatorAvatar || notification.image || null;
 
             toast.custom((t) => (
               React.createElement(SwipeableNotificationToast, {

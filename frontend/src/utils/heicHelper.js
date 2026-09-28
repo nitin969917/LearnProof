@@ -219,9 +219,12 @@ export function resolveMediaUrl(src) {
     return url.replace(/https?:\/\/(localhost|127\.0\.0\.1|80\.225\.218\.46):8000/, backendUrl);
   }
 
-  // If pointing to /media on apex domain (which returns HTML for SPA), redirect to backendUrl
-  if (url.startsWith('https://learnproofai.com/media/') || url.startsWith('http://learnproofai.com/media/')) {
-    return url.replace(/https?:\/\/learnproofai\.com\/media\//, `${backendUrl}/media/`);
+  // If pointing to /media or /uploads on apex domain (which returns HTML for SPA), redirect to backendUrl
+  if (/https?:\/\/(www\.)?learnproofai\.com\/media\//.test(url)) {
+    return url.replace(/https?:\/\/(www\.)?learnproofai\.com\/media\//, `${backendUrl}/media/`);
+  }
+  if (/https?:\/\/(www\.)?learnproofai\.com\/uploads\//.test(url)) {
+    return url.replace(/https?:\/\/(www\.)?learnproofai\.com\/uploads\//, `${backendUrl}/uploads/`);
   }
 
   // Relative /media or media path

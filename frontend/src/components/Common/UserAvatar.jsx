@@ -15,6 +15,7 @@ export default function UserAvatar({
   className = "w-10 h-10 rounded-full",
   textClassName = "",
   alt,
+  fallbackGradient,
   loading = "eager"
 }) {
   const rawSrc = src || user?.profilePicture || user?.avatar || user?.picture || user?.profile_pic || user?.photoURL;
@@ -100,7 +101,7 @@ export default function UserAvatar({
     for (let i = 0; i < nameStr.length; i++) {
       hash = nameStr.charCodeAt(i) + ((hash << 5) - hash);
     }
-    const colorClass = colors[Math.abs(hash) % colors.length];
+    const colorClass = fallbackGradient || colors[Math.abs(hash) % colors.length];
 
     return (
       <div 
