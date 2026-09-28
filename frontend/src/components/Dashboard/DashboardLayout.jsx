@@ -210,7 +210,7 @@ const DashboardLayout = () => {
 
                     // 3. Display sleek floating in-app banner
                     const senderName = message.sender?.name || 'A friend';
-                    const senderPic = message.sender?.profilePicture || message.sender?.avatar || message.senderPicture || message.avatarUrl || null;
+                    const senderPic = message.sender?.profilePicture || null;
                     let displayContent = message.content || 'Sent you a message';
                     try {
                         if (typeof message.content === 'string' && message.content.startsWith('{')) {
@@ -256,7 +256,6 @@ const DashboardLayout = () => {
                     // 3. Display in-app banner for group message
                     const groupName = message.groupName || message.group?.name || 'Group';
                     const senderName = message.senderName || message.sender?.name || 'Someone';
-                    const groupPic = message.group?.avatar || message.groupAvatar || null;
                     let displayContent = message.content || 'Sent a message';
                     try {
                         if (typeof message.content === 'string' && message.content.startsWith('{')) {
@@ -269,11 +268,9 @@ const DashboardLayout = () => {
                         <SwipeableNotificationToast
                             t={t}
                             avatar={
-                                groupPic || (
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 text-white font-black flex items-center justify-center text-sm shadow-xs shrink-0">
-                                        <Users2 size={18} />
-                                    </div>
-                                )
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 text-white font-black flex items-center justify-center text-sm shadow-xs shrink-0">
+                                    <Users2 size={18} />
+                                </div>
                             }
                             title={groupName}
                             body={<><span className="font-bold text-gray-800 dark:text-gray-200">{senderName}: </span>{displayContent}</>}
@@ -307,7 +304,7 @@ const DashboardLayout = () => {
             useSocialFeedStore.getState().handleFriendRequestReceived(data);
             if (!data?.sender) return;
             const senderName = data.sender.name || 'Someone';
-            const senderAvatar = data.sender.profilePicture || data.sender.avatar || data.senderPicture || data.imageUrl || null;
+            const senderAvatar = data.sender.profilePicture || null;
             const senderCollege = data.sender.collegeName || data.sender.department || '';
 
             toast.custom((t) => (
@@ -339,7 +336,7 @@ const DashboardLayout = () => {
             useSocialFeedStore.getState().handleFriendRequestAccepted(data);
             if (!data?.friend?.name) return;
             const friendName = data.friend.name;
-            const friendAvatar = data.friend.profilePicture || data.friend.avatar || data.senderPicture || data.imageUrl || null;
+            const friendAvatar = data.friend.profilePicture || null;
             const friendCollege = data.friend.collegeName || data.friend.department || '';
 
             toast.custom((t) => (
@@ -404,7 +401,7 @@ const DashboardLayout = () => {
             if (data.creatorId && String(data.creatorId) === String(currentUserId)) return;
 
             const creatorName = data.creatorName || data.creator?.name || 'A friend';
-            const creatorAvatar = data.creatorAvatar || data.creator?.profilePicture || data.creator?.avatar || data.imageUrl || null;
+            const creatorAvatar = data.creatorAvatar || data.creator?.profilePicture || null;
             const topic = data.topic || 'General Discussion';
             const language = data.language || 'Live Session';
 

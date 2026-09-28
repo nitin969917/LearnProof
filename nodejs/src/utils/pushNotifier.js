@@ -159,90 +159,7 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
     }
 
     const baseUrl = process.env.FRONTEND_URL || 'https://learnproofai.com';
-    const apiBaseUrl = process.env.API_BASE_URL || 'https://api.learnproofai.com';
     const fullTargetUrl = clickAction.startsWith('http') ? clickAction : `${baseUrl}${clickAction}`;
-
-    // Helper to format full public image URL
-    // Media and static assets must be loaded via api.learnproofai.com because Cloudflare routes apex /media to SPA HTML
-    const formatImageUrl = (img) => {
-      if (!img || typeof img !== 'string') return null;
-      const trimmed = img.trim();
-      if (!trimmed || trimmed.startsWith('data:image') || trimmed.length > 1000) return null;
-      if (trimmed.startsWith('//')) return `https:${trimmed}`;
-      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-        if (/https?:\/\/(www\.)?learnproofai\.com\/media\//.test(trimmed)) {
-          return trimmed.replace(/https?:\/\/(www\.)?learnproofai\.com\/media\//, `${apiBaseUrl}/media/`);
-        }
-        if (/https?:\/\/(www\.)?learnproofai\.com\/uploads\//.test(trimmed)) {
-          return trimmed.replace(/https?:\/\/(www\.)?learnproofai\.com\/uploads\//, `${apiBaseUrl}/uploads/`);
-        }
-        return trimmed;
-      }
-      if (trimmed.startsWith('/media/') || trimmed.startsWith('media/')) {
-        const clean = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-        return `${apiBaseUrl}${clean}`;
-      }
-      if (trimmed.startsWith('/uploads/') || trimmed.startsWith('uploads/')) {
-        const clean = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-        return `${apiBaseUrl}${clean}`;
-      }
-      if (trimmed.startsWith('/')) return `${apiBaseUrl}${trimmed}`;
-      return `${apiBaseUrl}/${trimmed}`;
-    };
-
-    let resolvedImageUrl = null;
-
-    // 1. Direct explicit image passed in data
-    const rawImage = data.imageUrl || data.image || data.avatarUrl || data.senderPicture || data.profilePicture || data.creatorAvatar;
-    if (rawImage) {
-      resolvedImageUrl = formatImageUrl(rawImage);
-    }
-
-    // 2. If not provided or rawImage was invalid/data-URL, but senderId or creatorId exists, query datingPrisma or PostgreSQL user
-    const lookupUserId = data.senderId || data.creatorId || data.hostId || data.userId;
-    if (!resolvedImageUrl && lookupUserId) {
-      try {
-        const numId = parseInt(lookupUserId, 10);
-        if (!isNaN(numId) && numId > 0) {
-          const userRecord = await datingPrisma.user.findUnique({
-            where: { id: numId },
-            select: { profilePicture: true, name: true }
-          });
-          if (userRecord?.profilePicture) {
-            resolvedImageUrl = formatImageUrl(userRecord.profilePicture);
-          }
-          if (!resolvedImageUrl && userRecord?.name) {
-            resolvedImageUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(userRecord.name)}&background=F97316&color=fff&rounded=true&bold=true`;
-          }
-        }
-      } catch (_) {}
-    }
-
-    // 3. If live room, check room thumbnail or host picture
-    if (!resolvedImageUrl && data.roomName) {
-      try {
-        const roomRecord = await datingPrisma.languageRoom.findUnique({
-          where: { roomName: String(data.roomName) },
-          include: { creator: { select: { profilePicture: true, name: true } } }
-        });
-        if (roomRecord?.creator?.profilePicture) {
-          resolvedImageUrl = formatImageUrl(roomRecord.creator.profilePicture);
-        }
-        if (!resolvedImageUrl && roomRecord?.creator?.name) {
-          resolvedImageUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(roomRecord.creator.name)}&background=F97316&color=fff&rounded=true&bold=true`;
-        }
-      } catch (_) {}
-    }
-
-    // 4. If still no image but senderName or creatorName is provided
-    if (!resolvedImageUrl && (data.senderName || data.creatorName)) {
-      const name = data.senderName || data.creatorName;
-      resolvedImageUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=F97316&color=fff&rounded=true&bold=true`;
-    }
-
-    // Fallback logo
-    const fallbackLogo = `${apiBaseUrl}/LP_M_logo.png`;
-    const finalIconUrl = resolvedImageUrl || fallbackLogo;
 
     // Serialize all values to string to comply with FCM data payload requirements (max 4KB total)
     const serializedData = {};
@@ -265,12 +182,6 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
     serializedData.url = clickAction;
     serializedData.path = clickAction;
     serializedData.fullUrl = fullTargetUrl;
-    if (resolvedImageUrl) {
-      serializedData.imageUrl = resolvedImageUrl;
-      serializedData.avatarUrl = resolvedImageUrl;
-      serializedData.senderPicture = resolvedImageUrl;
-      serializedData.mediaUrl = resolvedImageUrl;
-    }
     if (data && data.roomName) {
       serializedData.roomName = String(data.roomName);
     }
@@ -279,17 +190,14 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
     if (admin && admin.apps.length > 0) {
       const response = await admin.messaging().sendEachForMulticast({
         tokens,
-        notification: {
-          title,
-          body
-        },
+        notification: { title, body },
         data: serializedData,
         webpush: {
           notification: {
             title,
             body,
-            icon: finalIconUrl,
-            badge: `${apiBaseUrl}/LP_M_logo.png`,
+            icon: 'https://learnproofai.com/LP_M_logo.png',
+            badge: 'https://learnproofai.com/LP_M_logo.png',
             data: serializedData
           },
           fcmOptions: {
@@ -319,12 +227,8 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
                 body
               },
               badge: 1,
-              sound: 'default',
-              'mutable-content': 1
+              sound: 'default'
             }
-          },
-          fcmOptions: {
-            ...(resolvedImageUrl ? { image: resolvedImageUrl } : {})
           }
         }
       });

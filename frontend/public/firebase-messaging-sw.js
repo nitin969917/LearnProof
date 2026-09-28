@@ -49,34 +49,9 @@ messaging.onBackgroundMessage((payload) => {
     clickAction: clickAction || '/dashboard'
   };
 
-  const resolveSwMediaUrl = (url) => {
-    if (!url || typeof url !== 'string') return null;
-    const trimmed = url.trim();
-    if (!trimmed || trimmed.startsWith('data:image')) return null;
-    const apiBase = 'https://api.learnproofai.com';
-    if (trimmed.startsWith('//')) return 'https:' + trimmed;
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      if (/https?:\/\/(www\.)?learnproofai\.com\/media\//.test(trimmed)) {
-        return trimmed.replace(/https?:\/\/(www\.)?learnproofai\.com\/media\//, apiBase + '/media/');
-      }
-      return trimmed;
-    }
-    if (trimmed.startsWith('/media/') || trimmed.startsWith('media/')) {
-      return apiBase + (trimmed.startsWith('/') ? trimmed : '/' + trimmed);
-    }
-    if (trimmed.startsWith('/uploads/') || trimmed.startsWith('uploads/')) {
-      return apiBase + (trimmed.startsWith('/') ? trimmed : '/' + trimmed);
-    }
-    return trimmed;
-  };
-
-  const iconUrl = 'https://api.learnproofai.com/LP_M_logo.png';
-  const rawIcon = data.imageUrl || data.avatarUrl || data.senderPicture;
-  const dynamicIcon = resolveSwMediaUrl(rawIcon) || iconUrl;
-
   const notificationOptions = {
     body: payload.data?.body || "You have a new update",
-    icon: dynamicIcon,
+    icon: iconUrl,
     badge: iconUrl,
     vibrate: [200, 100, 200],
     data: enrichedData

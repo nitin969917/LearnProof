@@ -2,7 +2,6 @@ import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import UserAvatar from './UserAvatar';
 
 /**
  * Instagram / iOS style swipeable in-app notification toast.
@@ -69,19 +68,17 @@ export default function SwipeableNotificationToast({
 
       {/* Avatar / Icon */}
       <div className="relative shrink-0">
-        {typeof avatar === 'string' && avatar.trim() ? (
-          <UserAvatar
+        {typeof avatar === 'string' && avatar ? (
+          <img
             src={avatar}
-            name={typeof title === 'string' ? title : fallbackInitial}
-            className="w-10 h-10 rounded-full object-cover ring-2 ring-orange-500/20 shrink-0"
-            fallbackGradient={fallbackGradient}
             alt={typeof title === 'string' ? title : 'User'}
+            className="w-10 h-10 rounded-full object-cover ring-2 ring-orange-500/20"
           />
         ) : React.isValidElement(avatar) ? (
           avatar
         ) : (
           <div
-            className={`w-10 h-10 rounded-full bg-gradient-to-tr ${fallbackGradient} text-white font-black flex items-center justify-center text-sm shadow-xs shrink-0`}
+            className={`w-10 h-10 rounded-full bg-gradient-to-tr ${fallbackGradient} text-white font-black flex items-center justify-center text-sm shadow-xs`}
           >
             {fallbackInitial}
           </div>

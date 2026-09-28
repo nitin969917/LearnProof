@@ -347,7 +347,6 @@ io.on('connection', (socket) => {
       // Dispatch push notification to receiver's devices (client-side service worker & OS gatekeep visibility)
       try {
         const senderName = savedMessage.sender?.name || 'A friend';
-        const senderPic = (savedMessage.sender?.profilePicture && !savedMessage.sender.profilePicture.startsWith('data:') && savedMessage.sender.profilePicture.length < 500) ? savedMessage.sender.profilePicture : '';
         sendPushNotification(
           [parseInt(receiverId)],
           `New message from ${senderName}`,
@@ -356,8 +355,7 @@ io.on('connection', (socket) => {
             type: 'CHAT_MESSAGE', 
             senderId: String(message.senderId),
             senderName: senderName,
-            senderPicture: senderPic,
-            imageUrl: senderPic
+            senderPicture: (savedMessage.sender?.profilePicture && !savedMessage.sender.profilePicture.startsWith('data:') && savedMessage.sender.profilePicture.length < 500) ? savedMessage.sender.profilePicture : ''
           }
         );
       } catch (pushErr) {
