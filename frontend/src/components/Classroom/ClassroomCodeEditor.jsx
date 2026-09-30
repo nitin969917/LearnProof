@@ -223,7 +223,7 @@ export default function ClassroomCodeEditor({
         const saved = localStorage.getItem(`learnproof_lang_${videoId}`);
         if (saved) return saved;
       }
-      return localStorage.getItem('learnproof_lang_draft') || 'python';
+      return 'python';
     } catch {
       return 'python';
     }
@@ -236,11 +236,42 @@ export default function ClassroomCodeEditor({
         const saved = localStorage.getItem(`learnproof_code_${videoId}`);
         if (saved !== null) return saved;
       }
-      return localStorage.getItem('learnproof_code_draft') || '';
+      return '';
     } catch {
       return '';
     }
   });
+
+  // Purge any legacy global drafts so they never leak between videos
+  useEffect(() => {
+    try {
+      localStorage.removeItem('learnproof_code_draft');
+      localStorage.removeItem('learnproof_lang_draft');
+    } catch (_) {}
+  }, []);
+
+  // Synchronize editor state whenever videoId changes
+  useEffect(() => {
+    if (!videoId) return;
+    try {
+      const savedCode = localStorage.getItem(`learnproof_code_${videoId}`);
+      const targetCode = savedCode !== null ? savedCode : (externalCode || '');
+      setCode(targetCode);
+      prevExternalCodeRef.current = targetCode;
+
+      const savedLang = localStorage.getItem(`learnproof_lang_${videoId}`);
+      const targetLang = savedLang || externalLanguage || 'python';
+      setLanguage(targetLang);
+      prevExternalLangRef.current = targetLang;
+
+      // Clear previous video's terminal execution state
+      setOutput('');
+      setErrorOutput('');
+      setExecutionTime(null);
+      setExitCode(null);
+      langCacheRef.current = {};
+    } catch (_) {}
+  }, [videoId]);
 
   const [stdin, setStdin] = useState('');
   const [activeBottomTab, setActiveBottomTab] = useState(() => {
@@ -386,7 +417,6 @@ export default function ClassroomCodeEditor({
 
     try {
       if (videoId) localStorage.setItem(`learnproof_lang_${videoId}`, newLang);
-      localStorage.setItem('learnproof_lang_draft', newLang);
     } catch (e) {}
 
     // 1. Instant cache hit: If user previously converted or edited code in newLang
@@ -399,7 +429,6 @@ export default function ClassroomCodeEditor({
       prevExternalCodeRef.current = cached;
       try {
         if (videoId) localStorage.setItem(`learnproof_code_${videoId}`, cached);
-        localStorage.setItem('learnproof_code_draft', cached);
       } catch (e) {}
       if (onCodeChange) onCodeChange(cached);
       return;
@@ -425,7 +454,6 @@ export default function ClassroomCodeEditor({
       prevExternalCodeRef.current = starter;
       try {
         if (videoId) localStorage.setItem(`learnproof_code_${videoId}`, starter);
-        localStorage.setItem('learnproof_code_draft', starter);
       } catch (e) {}
       if (onCodeChange) onCodeChange(starter);
       return;
@@ -451,7 +479,6 @@ export default function ClassroomCodeEditor({
         prevExternalCodeRef.current = res.code;
         try {
           if (videoId) localStorage.setItem(`learnproof_code_${videoId}`, res.code);
-          localStorage.setItem('learnproof_code_draft', res.code);
         } catch (e) {}
         if (onCodeChange) onCodeChange(res.code);
       }
@@ -472,6 +499,12 @@ export default function ClassroomCodeEditor({
   const handleReset = () => {
     const starter = STARTER_CODE[language] || '';
     setCode(starter);
+    prevExternalCodeRef.current = starter;
+    langCacheRef.current[language] = starter;
+    try {
+      if (videoId) localStorage.setItem(`learnproof_code_${videoId}`, starter);
+    } catch (e) {}
+    if (onCodeChange) onCodeChange(starter);
     setOutput('');
     setErrorOutput('');
     setExecutionTime(null);
@@ -484,6 +517,12 @@ export default function ClassroomCodeEditor({
   // Clear code
   const handleClear = () => {
     setCode('');
+    prevExternalCodeRef.current = '';
+    langCacheRef.current[language] = '';
+    try {
+      if (videoId) localStorage.setItem(`learnproof_code_${videoId}`, '');
+    } catch (e) {}
+    if (onCodeChange) onCodeChange('');
     setOutput('');
     setErrorOutput('');
     setExecutionTime(null);
@@ -562,7 +601,6 @@ export default function ClassroomCodeEditor({
       prevExternalCodeRef.current = updatedCode;
       try {
         if (videoId) localStorage.setItem(`learnproof_code_${videoId}`, updatedCode);
-        localStorage.setItem('learnproof_code_draft', updatedCode);
       } catch (err) {}
       if (onCodeChange) onCodeChange(updatedCode);
 
@@ -583,7 +621,6 @@ export default function ClassroomCodeEditor({
     prevExternalCodeRef.current = val;
     try {
       if (videoId) localStorage.setItem(`learnproof_code_${videoId}`, val);
-      localStorage.setItem('learnproof_code_draft', val);
     } catch (err) {}
     if (onCodeChange) onCodeChange(val);
   };

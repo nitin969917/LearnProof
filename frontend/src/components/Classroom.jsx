@@ -480,6 +480,46 @@ const parseIntuitionData = (raw) => {
   return null;
 };
 
+const extractFirstCodeSnippetFromIntuition = (parsed) => {
+  if (!parsed?.pages || !Array.isArray(parsed.pages)) return null;
+  const langAliases = {
+    py: 'python',
+    python3: 'python',
+    js: 'javascript',
+    node: 'javascript',
+    ts: 'typescript',
+    tsx: 'typescript',
+    jsx: 'javascript',
+    cpp: 'cpp',
+    'c++': 'cpp',
+    c: 'c',
+    cs: 'csharp',
+    java: 'java',
+    go: 'go',
+    rust: 'rust',
+    sh: 'bash',
+    bash: 'bash',
+    html: 'html',
+    htm: 'html',
+    markup: 'html',
+    xml: 'html',
+    css: 'html'
+  };
+
+  for (const page of parsed.pages) {
+    if (!page?.content) continue;
+    const match = page.content.match(/```([a-zA-Z0-9+#-]+)?\r?\n([\s\S]*?)```/);
+    if (match) {
+      const rawLang = (match[1] || 'python').toLowerCase().trim();
+      const code = match[2]?.trim();
+      if (code) {
+        return { language: langAliases[rawLang] || rawLang || 'python', code };
+      }
+    }
+  }
+  return null;
+};
+
 const getDynamicSuggestedQuestions = (video, parsedIntuition, seed = 0) => {
   const rawTitle = video?.name || '';
   // Clean title: remove chapter numbers, prefixes like "5.5 ", "1.2 - ", "#10 "
@@ -873,14 +913,14 @@ const Classroom = () => {
     }
   }, [videoId, activeTab]);
 
-  // Code Editor Tab State with persistence across page reloads
+  // Code Editor Tab State with persistence strictly scoped per video
   const [editorCode, setEditorCode] = useState(() => {
     try {
       if (videoId) {
         const saved = localStorage.getItem(`learnproof_code_${videoId}`);
         if (saved !== null) return saved;
       }
-      return localStorage.getItem('learnproof_code_draft') || '';
+      return '';
     } catch {
       return '';
     }
@@ -892,28 +932,38 @@ const Classroom = () => {
         const saved = localStorage.getItem(`learnproof_lang_${videoId}`);
         if (saved) return saved;
       }
-      return localStorage.getItem('learnproof_lang_draft') || 'python';
+      return 'python';
     } catch {
       return 'python';
     }
   });
 
-  // Sync editor when videoId changes
+  // Sync editor when videoId or intuition changes
+  // If no saved code exists and intuition has not been generated, it MUST show BLANK!
   useEffect(() => {
     if (!videoId) return;
     try {
       const savedCode = localStorage.getItem(`learnproof_code_${videoId}`);
       const savedLang = localStorage.getItem(`learnproof_lang_${videoId}`);
-      if (savedCode !== null) setEditorCode(savedCode);
-      if (savedLang) setEditorLanguage(savedLang);
+      if (savedCode !== null) {
+        setEditorCode(savedCode);
+      } else {
+        const snippet = extractFirstCodeSnippetFromIntuition(parsedIntuition);
+        setEditorCode(snippet?.code || '');
+        if (snippet?.language) {
+          setEditorLanguage(snippet.language);
+        }
+      }
+      if (savedLang) {
+        setEditorLanguage(savedLang);
+      }
     } catch (e) {}
-  }, [videoId]);
+  }, [videoId, parsedIntuition]);
 
   const handleEditorCodeChange = (newCode) => {
     setEditorCode(newCode);
     try {
       if (videoId) localStorage.setItem(`learnproof_code_${videoId}`, newCode);
-      localStorage.setItem('learnproof_code_draft', newCode);
     } catch (e) {}
   };
 
@@ -921,7 +971,6 @@ const Classroom = () => {
     setEditorLanguage(newLang);
     try {
       if (videoId) localStorage.setItem(`learnproof_lang_${videoId}`, newLang);
-      localStorage.setItem('learnproof_lang_draft', newLang);
     } catch (e) {}
   };
 
@@ -1493,6 +1542,23 @@ const Classroom = () => {
         if (forceRefresh) {
           toast.success("Regenerated deep, multi-topic study notes!");
         }
+
+        // If no custom code is saved for this video, populate from generated intuition if code exists
+        try {
+          const currentSaved = localStorage.getItem(`learnproof_code_${videoId}`);
+          if (currentSaved === null || currentSaved === '') {
+            const parsed = parseIntuitionData(res.data.content);
+            const snippet = extractFirstCodeSnippetFromIntuition(parsed);
+            if (snippet && snippet.code) {
+              setEditorCode(snippet.code);
+              setEditorLanguage(snippet.language || 'python');
+              localStorage.setItem(`learnproof_code_${videoId}`, snippet.code);
+              if (snippet.language) {
+                localStorage.setItem(`learnproof_lang_${videoId}`, snippet.language);
+              }
+            }
+          }
+        } catch (_) {}
       }
     } catch (err) {
       console.error("Failed to fetch intuition", err);
@@ -3562,6 +3628,7 @@ const Classroom = () => {
                   {activeTab === 'code-editor' && (
                     <div className="space-y-4 no-tab-swipe">
                       <ClassroomCodeEditor
+                        key={videoId}
                         code={editorCode}
                         language={editorLanguage}
                         videoId={videoId}
