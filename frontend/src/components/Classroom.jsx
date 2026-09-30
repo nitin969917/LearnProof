@@ -1017,22 +1017,8 @@ const Classroom = () => {
     }
   };
 
-  // Auto-scroll active tab pill into center view on mobile tabs bar
-  useEffect(() => {
-    const tabBtn = document.getElementById(`classroom-tab-${activeTab}`);
-    if (tabBtn) {
-      tabBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
-  }, [activeTab]);
-
   const handleSelectTab = (tabId, forceScroll = false) => {
     setActiveTab(tabId);
-    setTimeout(() => {
-      const tabBtn = document.getElementById(`classroom-tab-${tabId}`);
-      if (tabBtn) {
-        tabBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      }
-    }, 50);
     if (forceScroll) {
       setTimeout(() => {
         scrollToTabs(true);
@@ -2950,7 +2936,7 @@ const Classroom = () => {
                 id="classroom-tabs-bar"
                 className="sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md py-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-200 mt-0.5 sm:mt-1"
               >
-                <div className="w-full flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none p-1 sm:p-1.5 bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl border border-gray-200/70 dark:border-slate-700/60 shadow-xs lg:grid lg:grid-flow-col lg:auto-cols-fr">
+                <div className="w-full grid grid-cols-4 lg:grid-flow-col lg:auto-cols-fr gap-1 sm:gap-1.5 p-1 sm:p-1.5 bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl border border-gray-200/70 dark:border-slate-700/60 shadow-xs">
                   {visibleClassroomTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -2959,7 +2945,7 @@ const Classroom = () => {
                         key={tab.id}
                         id={`classroom-tab-${tab.id}`}
                         onClick={() => handleSelectTab(tab.id)}
-                        className={`relative shrink-0 flex items-center justify-center gap-1.5 py-1.5 sm:py-2 px-3 sm:px-2 rounded-xl text-center transition-all duration-200 select-none cursor-pointer whitespace-nowrap z-10 ${isActive
+                        className={`relative flex flex-col lg:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 lg:py-2 lg:px-2 rounded-xl text-center transition-all duration-200 select-none cursor-pointer z-10 ${isActive
                             ? 'text-white font-extrabold shadow-sm'
                             : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50 font-bold'
                           }`}
@@ -2971,12 +2957,12 @@ const Classroom = () => {
                             transition={{ type: "spring", bounce: 0.15, duration: 0.45 }}
                           />
                         )}
-                        <Icon size={14} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 sm:size-[15px]" />
-                        <span className="text-xs tracking-tight whitespace-nowrap leading-none font-bold">
+                        <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                        <span className="text-[10px] min-[380px]:text-[11px] lg:text-xs tracking-tight truncate max-w-full leading-tight font-bold">
                           <span className="hidden lg:inline">{tab.label}</span>
                           <span className="lg:hidden">{tab.shortLabel || tab.label}</span>
                           {tab.badge > 0 && (
-                            <span className="ml-1 text-[10px] opacity-80">({tab.badge})</span>
+                            <span className="ml-0.5 text-[9px] opacity-85">({tab.badge})</span>
                           )}
                         </span>
                       </button>
