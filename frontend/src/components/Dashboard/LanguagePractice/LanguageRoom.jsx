@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
@@ -27,7 +27,7 @@ import {
   Check, X, Hand, LogOut, ChevronsDown, Settings, Languages, Sparkles, Camera,
   Lock, Search, UserCheck, ScreenShare, Monitor, MonitorOff, PencilRuler, Presentation, PenTool,
   MoreHorizontal, ShieldCheck, Sliders, Shield, HeartHandshake,
-  Trophy, Award, Clock, ArrowRight
+  Trophy, Award, Clock, ArrowRight, ArrowDown
 } from 'lucide-react';
 
 
@@ -617,6 +617,9 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   // Chat refs and states
   const [chatInput, setChatInput] = useState('');
   const chatTimelineRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const isUserScrolledUpRef = useRef(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [showChatPanel, setShowChatPanel] = useState(window.innerWidth >= 1024);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const showChatPanelRef = useRef(showChatPanel);
@@ -625,6 +628,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     showChatPanelRef.current = showChatPanel;
     if (showChatPanel) {
       setUnreadChatCount(0);
+      isUserScrolledUpRef.current = false;
+      setShowScrollBottom(false);
+      setTimeout(() => {
+        chatTimelineRef.current?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      }, 50);
     }
   }, [showChatPanel]);
 
@@ -1160,35 +1168,55 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
   }, [isHost, room, handleLeaveRoom, roomName, hasExplicitlyLeft]);
 
   // ── Combine and sort chat messages + system events ─────────────────────────
-  const timelineItems = [
-    ...chatHistory.map(m => {
-      const fromIdentity = String(
-        (typeof m.from === 'object' ? (m.from?.identity || m.from?.senderId) : null) ||
-        m.senderId ||
-        (typeof m.from === 'string' ? m.from : '') ||
-        ''
-      );
-      const fromName = (typeof m.from === 'object' ? (m.from?.name || m.from?.userName) : m.from) || 'User';
-      return {
-        type: 'chat',
-        id: m.id || m.timestamp || Date.now(),
-        time: new Date(m.timestamp || (m.sentAt ? new Date(m.sentAt).getTime() : Date.now())),
-        from: { identity: fromIdentity, name: fromName },
-        senderId: fromIdentity,
-        text: m.text || m.message || ''
-      };
-    }),
-    ...systemEvents.map(s => ({
-      type: 'system',
-      id: s.id,
-      time: s.time,
-      text: s.text
-    }))
-  ].sort((a, b) => a.time.getTime() - b.time.getTime());
+  const timelineItems = useMemo(() => {
+    return [
+      ...chatHistory.map(m => {
+        const fromIdentity = String(
+          (typeof m.from === 'object' ? (m.from?.identity || m.from?.senderId) : null) ||
+          m.senderId ||
+          (typeof m.from === 'string' ? m.from : '') ||
+          ''
+        );
+        const fromName = (typeof m.from === 'object' ? (m.from?.name || m.from?.userName) : m.from) || 'User';
+        return {
+          type: 'chat',
+          id: m.id || m.timestamp || Date.now(),
+          time: new Date(m.timestamp || (m.sentAt ? new Date(m.sentAt).getTime() : Date.now())),
+          from: { identity: fromIdentity, name: fromName },
+          senderId: fromIdentity,
+          text: m.text || m.message || ''
+        };
+      }),
+      ...systemEvents.map(s => ({
+        type: 'system',
+        id: s.id,
+        time: s.time,
+        text: s.text
+      }))
+    ].sort((a, b) => a.time.getTime() - b.time.getTime());
+  }, [chatHistory, systemEvents]);
 
-  // ── Auto scroll chat ───────────────────────────────────────────────────────
+  // ── Chat scroll management & Auto scroll ───────────────────────────────────
+  const handleChatScroll = useCallback((e) => {
+    const el = e.currentTarget;
+    if (!el) return;
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const isScrolledUp = dist > 70;
+    isUserScrolledUpRef.current = isScrolledUp;
+    setShowScrollBottom(isScrolledUp);
+  }, []);
+
+  const scrollToBottom = useCallback((smooth = true) => {
+    isUserScrolledUpRef.current = false;
+    setShowScrollBottom(false);
+    chatTimelineRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'nearest' });
+  }, []);
+
   useEffect(() => {
-    chatTimelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Only auto-scroll down if the user is not actively scrolled up reading history
+    if (!isUserScrolledUpRef.current) {
+      chatTimelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }, [timelineItems]);
 
   // ── Leave/End room ─────────────────────────────────────────────────────────
@@ -1874,6 +1902,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
 
     // 1. Immediately append to chat history so the user sees their sent message with 0ms latency!
     syncChatHistory([optimisticChatItem]);
+    isUserScrolledUpRef.current = false;
+    setShowScrollBottom(false);
+    setTimeout(() => {
+      chatTimelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 20);
 
     // 2. Send via Socket.io relay
     const effectivePic = user?.profilePicture || user?.photoURL || null;
@@ -1931,6 +1964,11 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
     };
 
     syncChatHistory([optimisticChatItem]);
+    isUserScrolledUpRef.current = false;
+    setShowScrollBottom(false);
+    setTimeout(() => {
+      chatTimelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 20);
 
     try {
       const socket = getSocialSocket(effectiveId);
@@ -2115,48 +2153,66 @@ function CustomLanguageRoomContent({ roomName, handleLeaveRoom, user, dbRoom, us
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-2 scroll-smooth">
-          {timelineItems.map((item) => {
-            if (item.type === 'system') {
+        <div className="relative flex-1 min-h-0 flex flex-col">
+          <div
+            ref={chatContainerRef}
+            onScroll={handleChatScroll}
+            className="flex-1 overflow-y-auto p-2 space-y-2"
+          >
+            {timelineItems.map((item) => {
+              if (item.type === 'system') {
+                return (
+                  <div key={item.id} className="flex justify-center my-2">
+                    <div className="px-4 py-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-2xl text-[10px] font-semibold text-gray-600 dark:text-gray-400 text-center max-w-xs leading-relaxed">
+                      {item.text}
+                    </div>
+                  </div>
+                );
+              }
+              const myIdStr = String(localParticipant?.identity || currentUserId || '');
+              const fromIdStr = String(item.from?.identity || item.senderId || '');
+              const isMe = Boolean(myIdStr && fromIdStr && myIdStr === fromIdStr);
               return (
-                <div key={item.id} className="flex justify-center my-2">
-                  <div className="px-4 py-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/8 rounded-2xl text-[10px] font-semibold text-gray-600 dark:text-gray-400 text-center max-w-xs leading-relaxed">
-                    {item.text}
+                <div key={item.id} className="flex gap-2 flex-row items-end">
+                  <div
+                    onClick={() => navigate(`/dashboard/social?tab=profile&profileId=${item.from?.identity}`)}
+                    className={`w-7 h-7 rounded-full bg-gradient-to-tr ${getGradient(item.from?.identity || '')} flex items-center justify-center text-white font-black text-[10px] uppercase shrink-0 border border-white/10 cursor-pointer hover:scale-105 transition-all`}
+                    title="View Profile"
+                  >
+                    {item.from?.name?.[0] || 'U'}
+                  </div>
+                  <div className="flex flex-col gap-0.5 max-w-[200px] items-start">
+                    <span
+                      onClick={() => navigate(`/dashboard/social?tab=profile&profileId=${item.from?.identity}`)}
+                      className="text-[9px] font-black text-gray-500 uppercase tracking-wide px-1 cursor-pointer hover:text-orange-500 transition-colors"
+                      title="View Profile"
+                    >
+                      {item.from?.name || 'User'}
+                    </span>
+                    <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${isMe
+                        ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-bl-md shadow-orange-500/20'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-md border border-gray-200 dark:border-white/5'
+                      }`}>
+                      {item.text}
+                    </div>
                   </div>
                 </div>
               );
-            }
-            const myIdStr = String(localParticipant?.identity || currentUserId || '');
-            const fromIdStr = String(item.from?.identity || item.senderId || '');
-            const isMe = Boolean(myIdStr && fromIdStr && myIdStr === fromIdStr);
-            return (
-              <div key={item.id} className="flex gap-2 flex-row items-end">
-                <div
-                  onClick={() => navigate(`/dashboard/social?tab=profile&profileId=${item.from?.identity}`)}
-                  className={`w-7 h-7 rounded-full bg-gradient-to-tr ${getGradient(item.from?.identity || '')} flex items-center justify-center text-white font-black text-[10px] uppercase shrink-0 border border-white/10 cursor-pointer hover:scale-105 transition-all`}
-                  title="View Profile"
-                >
-                  {item.from?.name?.[0] || 'U'}
-                </div>
-                <div className="flex flex-col gap-0.5 max-w-[200px] items-start">
-                  <span
-                    onClick={() => navigate(`/dashboard/social?tab=profile&profileId=${item.from?.identity}`)}
-                    className="text-[9px] font-black text-gray-500 uppercase tracking-wide px-1 cursor-pointer hover:text-orange-500 transition-colors"
-                    title="View Profile"
-                  >
-                    {item.from?.name || 'User'}
-                  </span>
-                  <div className={`px-3 py-2 rounded-2xl text-xs leading-relaxed break-words shadow-sm ${isMe
-                      ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white rounded-bl-md shadow-orange-500/20'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-md border border-gray-200 dark:border-white/5'
-                    }`}>
-                    {item.text}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          <div ref={chatTimelineRef} />
+            })}
+            <div ref={chatTimelineRef} />
+          </div>
+
+          {/* Jump to latest button when user scrolled up */}
+          {showScrollBottom && (
+            <button
+              type="button"
+              onClick={() => scrollToBottom(true)}
+              className="absolute bottom-2 right-3 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold rounded-full shadow-lg shadow-orange-500/30 transition-all transform hover:scale-105 active:scale-95 animate-in fade-in"
+            >
+              <ArrowDown size={13} className="animate-bounce" />
+              <span>Latest</span>
+            </button>
+          )}
         </div>
 
         {/* Quick replies */}

@@ -3042,10 +3042,18 @@ const sendGroupMessage = async (req, res) => {
     }).then(async members => {
       const allReceiverIds = members.map(m => m.userId);
       if (allReceiverIds.length > 0 && group) {
+        let cleanContent = content || 'Sent a message';
+        try {
+          if (typeof content === 'string' && content.trim().startsWith('{')) {
+            const parsed = JSON.parse(content);
+            cleanContent = parsed.text || (parsed.fileUrl ? 'Sent an attachment 📎' : (parsed.isVoiceNote ? 'Sent a voice message 🎙️' : content));
+          }
+        } catch (_) {}
+
         sendPushNotification(
           allReceiverIds,
           `New message in ${group.name}`,
-          `${message.sender?.name || 'A member'}: ${content}`,
+          `${message.sender?.name || 'A member'}: ${cleanContent}`,
           { 
             type: 'GROUP_MESSAGE', 
             groupId: String(groupId),

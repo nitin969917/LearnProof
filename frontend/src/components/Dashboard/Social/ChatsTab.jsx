@@ -2070,7 +2070,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                     inputRef.current?.blur();
                   }
                 }}
-                className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#FAF7F2]/60 dark:bg-gray-950/60 relative"
+                className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-3 bg-[#FAF7F2]/60 dark:bg-gray-950/60 relative w-full"
               >
                 {messages.map((msg, index) => {
                   const isMine = msg.senderId === currentUserId;
@@ -2095,10 +2095,10 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                   const showReplyArrow = Math.abs(swipeX) > 15;
 
                   return (
-                    <div key={msg.id || index} className="flex flex-col gap-3">
+                    <div key={msg.id || index} className="flex flex-col gap-3 w-full min-w-0 max-w-full">
                       {/* Date Separator Pill */}
                       {showDateSeparator && (
-                        <div className="flex justify-center my-2">
+                        <div className="flex justify-center my-2 w-full">
                           <div className="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-3.5 py-1 rounded-full text-[11px] font-bold shadow-xs border border-gray-100 dark:border-gray-700/80 select-none">
                             {currentDateLabel}
                           </div>
@@ -2106,7 +2106,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                       )}
 
                       <div
-                        className={`group flex items-start max-w-[85%] md:max-w-[72%] ${isMine ? 'ml-auto justify-end' : 'mr-auto justify-start'} relative overflow-hidden`}
+                        className={`group flex items-start w-full max-w-[85%] md:max-w-[72%] ${isMine ? 'ml-auto justify-end' : 'mr-auto justify-start'} relative overflow-hidden`}
                         onTouchStart={(e) => {
                           if (msg.isDeleted) return;
                           setSwipeState(prev => ({ ...prev, [index]: { startX: e.touches[0].clientX, x: 0, triggered: false } }));
@@ -2141,7 +2141,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
 
                         {/* Sliding wrapper */}
                         <div
-                          className={`flex items-start gap-2 w-full ${isMine ? 'flex-row-reverse' : ''}`}
+                          className={`flex items-start gap-2 w-full min-w-0 max-w-full ${isMine ? 'flex-row-reverse' : ''}`}
                           style={{ transform: `translateX(${swipeX}px)`, transition: swipeX === 0 ? 'transform 0.2s ease' : 'none' }}
                         >
                           {/* Avatar for group messages or incoming */}
@@ -2154,12 +2154,12 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                             />
                           )}
 
-                          <div className={`flex flex-col ${isMine ? 'items-end' : 'items-start'}`}>
+                          <div className={`flex flex-col min-w-0 max-w-full ${isMine ? 'items-end' : 'items-start flex-1 max-w-[calc(100%-2.5rem)]'}`}>
                             {/* Sender name for group messages */}
                             {selectedChat.type === 'group' && !isMine && (
                               <span
                                 onClick={() => onViewProfile && onViewProfile(msg.senderId)}
-                                className="text-[10px] font-bold text-[#FF5722] ml-1 mb-0.5 cursor-pointer hover:underline"
+                                className="text-[10px] font-bold text-[#FF5722] ml-1 mb-0.5 cursor-pointer hover:underline truncate max-w-full"
                               >
                                 {senderName}
                               </span>
@@ -2168,7 +2168,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                             {/* Message bubble */}
                             <div
                               id={`msg-${msg.id}`}
-                              className={`chat-bubble-selectable rounded-2xl px-4 py-2.5 shadow-xs text-sm relative select-none cursor-pointer transition-transform duration-100 ${
+                              className={`chat-bubble-selectable rounded-2xl px-3.5 py-2.5 shadow-xs text-sm relative select-none cursor-pointer transition-transform duration-100 w-fit max-w-full min-w-0 break-words ${
                                 isMine
                                   ? 'bg-[#FFEADB] text-gray-900 dark:bg-orange-950/70 dark:text-orange-50 rounded-tr-xs border border-orange-200/50 dark:border-orange-800/40'
                                   : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-xs border border-gray-100/90 dark:border-gray-700/80'
@@ -2196,17 +2196,17 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                               {/* Reply quote strip */}
                               {!msg.isDeleted && parsed.replyTo && (
                                 <div 
-                                  className={`mb-2 pl-2.5 pr-2 py-1 rounded-lg border-l-3 select-none ${
+                                  className={`mb-2 pl-2.5 pr-2 py-1 rounded-lg border-l-3 select-none w-full max-w-full min-w-0 overflow-hidden ${
                                     isMine ? 'border-[#FF5722] bg-white/60 dark:bg-black/20' : 'border-[#FF5722] bg-orange-50 dark:bg-orange-950/20'
                                   }`}
                                   style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                                 >
-                                  <p className="text-[9px] font-bold text-[#FF5722] mb-0.5 select-none">
+                                  <p className="text-[9px] font-bold text-[#FF5722] mb-0.5 select-none truncate max-w-full">
                                     {parsed.replyTo.senderId === currentUserId 
                                       ? 'You' 
                                       : (parsed.replyTo.senderName || contacts.find(c => c.id?.toString() === parsed.replyTo.senderId?.toString())?.name || 'Member')}
                                   </p>
-                                  <p className="text-[10px] text-gray-600 dark:text-gray-300 truncate font-medium select-none">
+                                  <p className="text-[10px] text-gray-600 dark:text-gray-300 truncate max-w-full font-medium select-none">
                                     {parsed.replyTo.text || 'Message'}
                                   </p>
                                 </div>
@@ -2219,7 +2219,7 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                                 </div>
                               ) : (
                                 <p 
-                                  className="break-words font-normal text-xs sm:text-sm leading-relaxed whitespace-pre-wrap select-none"
+                                  className="break-words font-normal text-xs sm:text-sm leading-relaxed whitespace-pre-wrap select-none max-w-full [overflow-wrap:anywhere]"
                                   style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                                 >
                                   {parsed?.text || msg.content}
@@ -2227,15 +2227,15 @@ export default function ChatsTab({ currentUserId, selectedContact, onClearSelect
                               )}
 
                               {/* Timestamp, star & read receipts */}
-                              <div className={`flex items-center gap-1 justify-end mt-1 text-[9px] font-medium ${
+                              <div className={`flex items-center gap-1 justify-end mt-1 text-[9px] font-medium shrink-0 select-none ${
                                 isMine ? 'text-[#FF5722]/80 dark:text-orange-300/80' : 'text-gray-400 dark:text-gray-500'
                               }`}>
                                 {starredMessageIds[msg.id] && (
                                   <Star size={9} className="text-amber-500 fill-amber-500 shrink-0" />
                                 )}
-                                <span>{formattedTime}</span>
+                                <span className="shrink-0">{formattedTime}</span>
                                 {isMine && !msg.isDeleted && (
-                                  <CheckCheck size={13} className="text-[#FF5722]" />
+                                  <CheckCheck size={13} className="text-[#FF5722] shrink-0" />
                                 )}
                               </div>
                             </div>

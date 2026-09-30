@@ -36,8 +36,11 @@ import {
   Printer,
   ChevronUp,
   ChevronDown,
-  Gauge
+  Gauge,
+  Code2
 } from "lucide-react";
+import ClassroomCodeEditor from "./Classroom/ClassroomCodeEditor";
+import { convertCodeSnippet } from "../api/compilerApi";
 import { useModal } from "../context/ModalContext";
 import YouTube from 'react-youtube';
 import ReactMarkdown from 'react-markdown';
@@ -83,21 +86,26 @@ const INDIAN_LANGS = [
 
 const preprocessMarkdown = preprocessMath;
 
-// Custom Modern Code Editor Component with Prism Syntax Highlighting
-const CodeEditorBlock = ({ className, children, code, language }) => {
+// Custom Modern Code Editor Component with Multi-Language Switcher & Prism Syntax Highlighting
+const CodeEditorBlock = ({ className, children, code, language, onOpenInEditor }) => {
   const [copied, setCopied] = useState(false);
-  const match = /language-(\w+)/.exec(className || '');
+  const [isConverting, setIsConverting] = useState(false);
+  const match = /language-([a-zA-Z0-9_+#-]+)/.exec(className || '');
   const rawLang = language || (match ? match[1].toLowerCase() : '');
   const langAliases = {
     py: 'python',
+    python3: 'python',
     js: 'javascript',
     ts: 'typescript',
-    tsx: 'tsx',
-    jsx: 'jsx',
+    tsx: 'typescript',
+    jsx: 'javascript',
     cpp: 'cpp',
     'c++': 'cpp',
     c: 'c',
     cs: 'csharp',
+    java: 'java',
+    go: 'go',
+    rust: 'rust',
     sh: 'bash',
     bash: 'bash',
     shell: 'bash',
@@ -110,26 +118,118 @@ const CodeEditorBlock = ({ className, children, code, language }) => {
     yaml: 'yaml',
     yml: 'yaml'
   };
-  const lang = langAliases[rawLang] || rawLang || 'javascript';
-  const rawCode = String(children || code || '').replace(/\n$/, '');
+
+  const rawCode = useMemo(() => {
+    if (typeof code === 'string' && code.trim()) return code.replace(/\n$/, '');
+    if (typeof children === 'string') return children.replace(/\n$/, '');
+    if (Array.isArray(children)) {
+      return children
+        .map(c => (typeof c === 'string' ? c : (c?.props?.children ? String(c.props.children) : '')))
+        .join('')
+        .replace(/\n$/, '');
+    }
+    return String(children || '').replace(/\n$/, '');
+  }, [children, code]);
+
+  let parsedLang = langAliases[rawLang] || rawLang || 'python';
+  // Auto-detect C++ when author used ```c tag for C++ code
+  if (parsedLang === 'c' && (
+    /#include\s*<(?:iostream|vector|algorithm|limits|string|map|set)>/i.test(rawCode) ||
+    /\bstd::/.test(rawCode) ||
+    /\bcout\b/.test(rawCode)
+  )) {
+    parsedLang = 'cpp';
+  }
+  const initialLang = parsedLang;
+
+  const [currentLang, setCurrentLang] = useState(initialLang);
+  const [displayCode, setDisplayCode] = useState(rawCode);
+  const [convertingLang, setConvertingLang] = useState(null);
+  const codeCacheRef = useRef({ [initialLang]: rawCode });
+  const lastRawCodeRef = useRef(rawCode);
+  const lastInitialLangRef = useRef(initialLang);
+
+  useEffect(() => {
+    // Only reset if the actual snippet or initial language changed from a different lesson
+    if (rawCode !== lastRawCodeRef.current || initialLang !== lastInitialLangRef.current) {
+      lastRawCodeRef.current = rawCode;
+      lastInitialLangRef.current = initialLang;
+      codeCacheRef.current = { [initialLang]: rawCode };
+      setCurrentLang(initialLang);
+      setDisplayCode(rawCode);
+    }
+  }, [rawCode, initialLang]);
+
+  const AVAILABLE_LANGS = [
+    { id: 'python', label: 'Python 3', badge: 'PYTHON' },
+    { id: 'cpp', label: 'C++ 17', badge: 'C++' },
+    { id: 'java', label: 'Java', badge: 'JAVA' },
+    { id: 'javascript', label: 'JavaScript', badge: 'JAVASCRIPT' },
+    { id: 'c', label: 'C (C11)', badge: 'C' },
+    { id: 'typescript', label: 'TypeScript', badge: 'TYPESCRIPT' }
+  ];
 
   const handleCopy = (e) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(rawCode);
+    navigator.clipboard.writeText(displayCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleLanguageChange = async (targetLang) => {
+    if (targetLang === currentLang || isConverting) return;
+
+    if (codeCacheRef.current[targetLang]) {
+      setCurrentLang(targetLang);
+      setDisplayCode(codeCacheRef.current[targetLang]);
+      return;
+    }
+
+    try {
+      setConvertingLang(targetLang);
+      setIsConverting(true);
+      const sourceCode = codeCacheRef.current[initialLang] || rawCode;
+      const res = await convertCodeSnippet({
+        code: sourceCode,
+        fromLanguage: initialLang,
+        toLanguage: targetLang
+      });
+      if (res && res.code) {
+        codeCacheRef.current[targetLang] = res.code;
+        setCurrentLang(targetLang);
+        setDisplayCode(res.code);
+      }
+    } catch (err) {
+      console.error('[CodeEditorBlock] Failed to convert code:', err);
+      toast.error(`Could not convert to ${AVAILABLE_LANGS.find(l => l.id === targetLang)?.label || targetLang}. You can test the original code in Code Editor.`);
+    } finally {
+      setIsConverting(false);
+      setConvertingLang(null);
+    }
+  };
+
+  const handleRunInEditor = (e) => {
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('learnproof:open-code-editor', {
+      detail: { code: displayCode, language: currentLang }
+    }));
+    if (onOpenInEditor) {
+      onOpenInEditor(displayCode, currentLang);
+    }
+  };
+
   const highlightedCode = useMemo(() => {
     try {
-      if (Prism.languages[lang]) {
-        return Prism.highlight(rawCode, Prism.languages[lang], lang);
+      if (Prism.languages[currentLang]) {
+        return Prism.highlight(displayCode, Prism.languages[currentLang], currentLang);
       }
-      return Prism.highlight(rawCode, Prism.languages.clike || Prism.languages.javascript, 'javascript');
+      return Prism.highlight(displayCode, Prism.languages.clike || Prism.languages.javascript, 'javascript');
     } catch {
       return null;
     }
-  }, [rawCode, lang]);
+  }, [displayCode, currentLang]);
+
+  const activeDisplayLangLabel = AVAILABLE_LANGS.find(l => l.id === (isConverting && convertingLang ? convertingLang : currentLang))?.label || currentLang;
 
   return (
     <div
@@ -139,7 +239,7 @@ const CodeEditorBlock = ({ className, children, code, language }) => {
       onTouchEnd={(e) => e.stopPropagation()}
     >
       {/* Code Editor Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-100 dark:bg-[#11111b] border-b border-slate-200 dark:border-slate-800/90 text-xs select-none">
+      <div className="flex flex-wrap items-center justify-between gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-[#11111b] border-b border-slate-200 dark:border-slate-800/90 text-xs select-none">
         <div className="flex items-center gap-2">
           {/* Mac OS Window Dots */}
           <div className="flex items-center gap-1.5 opacity-90">
@@ -147,29 +247,62 @@ const CodeEditorBlock = ({ className, children, code, language }) => {
             <span className="w-2.5 h-2.5 rounded-full bg-[#f9e2af] inline-block"></span>
             <span className="w-2.5 h-2.5 rounded-full bg-[#a6e3a1] inline-block"></span>
           </div>
-          {/* Language Badge */}
-          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 ml-1">
-            {rawLang || 'code'}
-          </span>
+
+          {/* Language Selector Dropdown */}
+          <div className="relative inline-flex items-center ml-1">
+            <select
+              value={isConverting && convertingLang ? convertingLang : currentLang}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              disabled={isConverting}
+              aria-label="Change programming language"
+              className="appearance-none pl-2 pr-6 py-0.5 rounded bg-white dark:bg-slate-800/90 text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/60 cursor-pointer shadow-2xs hover:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              {AVAILABLE_LANGS.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={11} className="absolute right-1.5 text-indigo-500 pointer-events-none" />
+          </div>
+
+          {isConverting && (
+            <span className="flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold animate-pulse">
+              <Sparkles size={11} className="animate-spin" />
+              <span>Converting to {activeDisplayLangLabel}...</span>
+            </span>
+          )}
         </div>
 
-        <button
-          onClick={handleCopy}
-          className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800 transition cursor-pointer"
-          title="Copy Code"
-        >
-          {copied ? (
-            <>
-              <Check size={11} className="text-emerald-600 dark:text-emerald-400" />
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Copied!</span>
-            </>
-          ) : (
-            <>
-              <Copy size={11} />
-              <span>Copy</span>
-            </>
-          )}
-        </button>
+        {/* Right side: Run in Editor & Copy */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleRunInEditor}
+            className="flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-950/60 hover:bg-emerald-200/90 dark:hover:bg-emerald-900/80 border border-emerald-300/60 dark:border-emerald-700/50 transition cursor-pointer shadow-2xs"
+            title="Open and run this code in LearnProof Code Editor"
+          >
+            <Play size={10} className="fill-current text-emerald-600 dark:text-emerald-400" />
+            <span>Run in Editor</span>
+          </button>
+
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800 transition cursor-pointer"
+            title="Copy Code"
+          >
+            {copied ? (
+              <>
+                <Check size={11} className="text-emerald-600 dark:text-emerald-400" />
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy size={11} />
+                <span>Copy</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Code Body */}
@@ -179,18 +312,24 @@ const CodeEditorBlock = ({ className, children, code, language }) => {
         onTouchMove={(e) => e.stopPropagation()}
         onTouchEnd={(e) => e.stopPropagation()}
       >
-        {highlightedCode ? (
+        {isConverting ? (
+          <div className="py-6 flex flex-col items-center justify-center space-y-2 text-indigo-500 dark:text-indigo-400">
+            <div className="w-5 h-5 border-2 border-indigo-400/30 border-t-indigo-500 rounded-full animate-spin"></div>
+            <span className="text-xs font-mono font-medium">Converting code to {activeDisplayLangLabel}...</span>
+          </div>
+        ) : highlightedCode ? (
           <pre
             className="m-0 p-0 bg-transparent font-mono whitespace-pre text-slate-800 dark:text-slate-100"
             dangerouslySetInnerHTML={{ __html: highlightedCode }}
           />
         ) : (
-          <pre className="m-0 p-0 bg-transparent font-mono whitespace-pre text-slate-800 dark:text-slate-100">{rawCode}</pre>
+          <pre className="m-0 p-0 bg-transparent font-mono whitespace-pre text-slate-800 dark:text-slate-100">{displayCode}</pre>
         )}
       </div>
     </div>
   );
 };
+
 
 const cleanTopicTitle = (title, idx) => {
   if (!title || typeof title !== 'string') return `Topic ${idx + 1}`;
@@ -495,6 +634,7 @@ const Classroom = () => {
   const [loading, setLoading] = useState(true);
   const [marking, setMarking] = useState(false);
   const [player, setPlayer] = useState(null);
+  const playerRef = useRef(null);
   const [playerError, setPlayerError] = useState(false);
   const [liveProgress, setLiveProgress] = useState(0);
   const [hasSeeked, setHasSeeked] = useState(false);
@@ -515,35 +655,113 @@ const Classroom = () => {
   const speedMenuRef = useRef(null);
   const isSwitchingVideoRef = useRef(false);
 
-  const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4];
+  const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.6, 1.75, 2, 2.5, 3, 3.5, 4];
   const userSpeedRef = useRef(playbackSpeed);
+  const lastPlayProgressRef = useRef({ videoTime: 0, realTime: Date.now() });
 
   useEffect(() => {
     userSpeedRef.current = playbackSpeed;
   }, [playbackSpeed]);
 
-  const applyPlaybackSpeed = (rate, playerInstance = player) => {
-    const targetPlayer = playerInstance || player;
-    setPlaybackSpeed(rate);
-    userSpeedRef.current = rate;
-    try {
-      localStorage.setItem('learnproof_playback_speed', rate.toString());
-    } catch (_) {}
+  useEffect(() => {
+    playerRef.current = player;
+  }, [player]);
 
-    if (targetPlayer && typeof targetPlayer.setPlaybackRate === 'function') {
+  // Map any user speed to the closest rate supported by the YouTube IFrame API
+  // YouTube natively supports [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].
+  // Passing arbitrary numbers like 1.6 or >2 causes YouTube to reject it or revert to 1.0 (normal).
+  const getValidYouTubeRate = (rate, playerInstance = null) => {
+    let available = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+    const target = playerInstance || playerRef.current || player;
+    if (target && typeof target.getAvailablePlaybackRates === 'function') {
       try {
-        targetPlayer.setPlaybackRate(Math.min(rate, 2));
-      } catch (err) {
-        console.error('Failed to set playback rate:', err);
+        const pRates = target.getAvailablePlaybackRates();
+        if (Array.isArray(pRates) && pRates.length > 0) {
+          available = pRates;
+        }
+      } catch (_) {}
+    }
+    const num = parseFloat(rate);
+    if (isNaN(num) || num <= 0) return 1;
+    if (available.includes(num)) return num;
+
+    const clamped = Math.min(Math.max(num, available[0]), available[available.length - 1]);
+    let closest = available[0];
+    let minDiff = Math.abs(clamped - closest);
+    for (const r of available) {
+      const diff = Math.abs(clamped - r);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = r;
       }
     }
+    return closest;
+  };
 
+  // Robust speed enforcer: applies speed to both HTML5 <video> elements and YouTube IFrame API
+  const enforcePlayerSpeed = (rateToEnforce = null, playerInstance = null, forceSync = false) => {
+    const rate = rateToEnforce !== null
+      ? rateToEnforce
+      : (userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1'));
+    const targetPlayer = playerInstance || playerRef.current || player;
+    const ytRate = getValidYouTubeRate(rate, targetPlayer);
+
+    // 1. Direct HTML5 video elements (supports true custom rates e.g. 1.6x, 2.5x, 3x, 4x)
     try {
       document.querySelectorAll('video').forEach((v) => {
-        v.playbackRate = rate;
-        v.defaultPlaybackRate = rate;
+        try {
+          if (v.playbackRate !== rate) v.playbackRate = rate;
+          if (v.defaultPlaybackRate !== rate) v.defaultPlaybackRate = rate;
+        } catch (_) {}
       });
     } catch (_) {}
+
+    // 2. YouTube IFrame API
+    if (targetPlayer && typeof targetPlayer.setPlaybackRate === 'function') {
+      try {
+        if (forceSync && ytRate !== 1) {
+          // Momentarily set to 1 to break YouTube's internal cache, then apply ytRate.
+          // This forces YouTube's internal setter to actively re-assign `video.playbackRate = ytRate`
+          // even if YouTube's UI menu was already showing the custom rate.
+          targetPlayer.setPlaybackRate(1);
+          setTimeout(() => {
+            try {
+              targetPlayer.setPlaybackRate(ytRate);
+            } catch (_) {}
+          }, 35);
+        } else {
+          targetPlayer.setPlaybackRate(ytRate);
+        }
+      } catch (err) {
+        console.error('Failed to set YouTube playback rate:', err);
+      }
+    }
+  };
+
+  // Staggered retries to ensure playback speed takes effect even during buffering, app resume, or stream switches
+  const enforcePlayerSpeedWithRetries = (rateToEnforce = null, playerInstance = null, delays = [0, 80, 250, 600, 1200], forceSync = false) => {
+    delays.forEach((delay, idx) => {
+      const shouldForce = forceSync && (idx === 0 || idx === 1);
+      if (delay === 0) {
+        enforcePlayerSpeed(rateToEnforce, playerInstance, shouldForce);
+      } else {
+        setTimeout(() => {
+          enforcePlayerSpeed(rateToEnforce, playerInstance, shouldForce);
+        }, delay);
+      }
+    });
+  };
+
+  const applyPlaybackSpeed = (rate, playerInstance = player) => {
+    const targetPlayer = playerInstance || playerRef.current || player;
+    const numericRate = Math.round(parseFloat(rate) * 100) / 100;
+    setPlaybackSpeed(numericRate);
+    userSpeedRef.current = numericRate;
+    try {
+      localStorage.setItem('learnproof_playback_speed', numericRate.toString());
+    } catch (_) {}
+
+    enforcePlayerSpeedWithRetries(numericRate, targetPlayer, [0, 80, 250, 600]);
 
     // Show extension-style floating speed HUD
     setSpeedHudVisible(true);
@@ -554,15 +772,17 @@ const Classroom = () => {
   };
 
   const handleStepSpeed = (delta) => {
-    const currentIndex = SPEED_OPTIONS.indexOf(playbackSpeed);
+    const current = Math.round((playbackSpeed || 1) * 100) / 100;
+    const currentIndex = SPEED_OPTIONS.indexOf(current);
     let newIndex;
-    if (currentIndex === -1) {
-      newIndex = SPEED_OPTIONS.findIndex(s => s >= playbackSpeed);
-      if (newIndex === -1) newIndex = SPEED_OPTIONS.length - 1;
-    } else {
+    if (currentIndex !== -1) {
       newIndex = Math.max(0, Math.min(SPEED_OPTIONS.length - 1, currentIndex + delta));
+      applyPlaybackSpeed(SPEED_OPTIONS[newIndex]);
+    } else {
+      // Stepping from a fine-tuned speed (e.g. 1.6x -> 1.7x or 1.5x)
+      const newRate = Math.max(0.5, Math.min(4.0, Math.round((current + delta * 0.1) * 10) / 10));
+      applyPlaybackSpeed(newRate);
     }
-    applyPlaybackSpeed(SPEED_OPTIONS[newIndex]);
   };
 
   // Extension-style keyboard shortcuts: S (slower), D (faster), R (reset 1x), Z (rewind 5s), X (forward 5s)
@@ -648,6 +868,59 @@ const Classroom = () => {
       } catch (e) { }
     }
   }, [videoId, activeTab]);
+
+  // Code Editor Tab State with persistence across page reloads
+  const [editorCode, setEditorCode] = useState(() => {
+    try {
+      if (videoId) {
+        const saved = localStorage.getItem(`learnproof_code_${videoId}`);
+        if (saved !== null) return saved;
+      }
+      return localStorage.getItem('learnproof_code_draft') || null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [editorLanguage, setEditorLanguage] = useState(() => {
+    try {
+      if (videoId) {
+        const saved = localStorage.getItem(`learnproof_lang_${videoId}`);
+        if (saved) return saved;
+      }
+      return localStorage.getItem('learnproof_lang_draft') || 'python';
+    } catch {
+      return 'python';
+    }
+  });
+
+  // Sync editor when videoId changes
+  useEffect(() => {
+    if (!videoId) return;
+    try {
+      const savedCode = localStorage.getItem(`learnproof_code_${videoId}`);
+      const savedLang = localStorage.getItem(`learnproof_lang_${videoId}`);
+      if (savedCode !== null) setEditorCode(savedCode);
+      if (savedLang) setEditorLanguage(savedLang);
+    } catch (e) {}
+  }, [videoId]);
+
+  const handleEditorCodeChange = (newCode) => {
+    setEditorCode(newCode);
+    try {
+      if (videoId) localStorage.setItem(`learnproof_code_${videoId}`, newCode);
+      localStorage.setItem('learnproof_code_draft', newCode);
+    } catch (e) {}
+  };
+
+  const handleEditorLanguageChange = (newLang) => {
+    setEditorLanguage(newLang);
+    try {
+      if (videoId) localStorage.setItem(`learnproof_lang_${videoId}`, newLang);
+      localStorage.setItem('learnproof_lang_draft', newLang);
+    } catch (e) {}
+  };
+
   const [noteContent, setNoteContent] = useState("");
   const [noteFiles, setNoteFiles] = useState([]); // Saved files from server
   const [newNoteFiles, setNewNoteFiles] = useState([]); // Pending files to upload
@@ -930,23 +1203,125 @@ const Classroom = () => {
   const [touchEnd, setTouchEnd] = useState(null);
   const minSwipeDistance = 50;
 
+  // Playlist key for scoping preferences like Code Editor mode
+  const playlistKey = useMemo(() => {
+    return playlist?.pid || playlist?.id || (playlist?.videos?.length > 0 ? `pl_${playlist.name || playlist.videos[0].vid}` : videoId);
+  }, [playlist, videoId]);
+
+  // Automatic programming/coding topic detection
+  const isCodingRelated = useMemo(() => {
+    const textToScan = [
+      playlist?.name || playlist?.title || '',
+      video?.name || video?.title || '',
+      video?.description || '',
+      intuitionContent || video?.intuition || ''
+    ].join(' ').toLowerCase();
+
+    const CODING_REGEX = /(?:\b(c|cpp|c programming|dsa|python|javascript|typescript|js|ts|java|golang|rust|swift|kotlin|php|ruby|sql|react|vue|angular|html|css|coding|programming|algorithm|algorithms|data structure|data structures|compiler|leetcode|codeforces|backend|frontend|fullstack|node\.?js|express|django|flask|spring boot|debugging|software engineering|devops|git|github|bitwise|recursion|pointers|linked list|binary tree|dynamic programming|graph algorithms|array|arrays|vector|stack|queue|trees|graphs|hashmap|oops|object oriented)\b|\bc\+\+(?=[^a-zA-Z0-9]|$))/i;
+
+    const hasCodeFences = /```(c\+\+|cpp|c|python|py|java|javascript|js|typescript|ts|html|css|go|rust|sql|php|swift|kotlin|ruby|bash|sh|json)/i.test(intuitionContent || video?.intuition || '');
+
+    return CODING_REGEX.test(textToScan) || hasCodeFences;
+  }, [playlist, video, intuitionContent]);
+
+  // User explicit override (null means auto-detect based on course content)
+  const [isCodeEditorExplicit, setIsCodeEditorExplicit] = useState(() => {
+    try {
+      const key = playlist?.pid || playlist?.id || videoId;
+      if (key) {
+        const stored = localStorage.getItem(`learnproof_code_editor_${key}`);
+        if (stored !== null) return stored === 'true';
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Sync explicit preference when playlist or video changes
+  useEffect(() => {
+    if (!playlistKey) return;
+    try {
+      const stored = localStorage.getItem(`learnproof_code_editor_${playlistKey}`);
+      if (stored !== null) {
+        setIsCodeEditorExplicit(stored === 'true');
+      } else {
+        setIsCodeEditorExplicit(null);
+      }
+    } catch (_) {}
+  }, [playlistKey]);
+
+  // Active state: explicit user choice if set, otherwise auto-detected based on subject
+  const isCodeEditorEnabled = isCodeEditorExplicit !== null ? isCodeEditorExplicit : isCodingRelated;
+
+  const toggleCodeEditorMode = (forceState = null) => {
+    const nextState = forceState !== null ? forceState : !isCodeEditorEnabled;
+    setIsCodeEditorExplicit(nextState);
+    if (playlistKey) {
+      try {
+        localStorage.setItem(`learnproof_code_editor_${playlistKey}`, nextState.toString());
+      } catch (_) {}
+    }
+    if (nextState) {
+      toast.success("Code Editor enabled for this course", { id: 'code-editor-toggle' });
+      setActiveTab('code-editor');
+      setTimeout(() => {
+        scrollToTabs(true);
+      }, 60);
+    } else {
+      toast.success("Code Editor hidden for this course", { id: 'code-editor-toggle' });
+      if (activeTab === 'code-editor') {
+        setActiveTab('intuition');
+      }
+    }
+  };
+
+  // Handle open in Code Editor from AI Notes or custom events
+  const handleOpenInCodeEditor = (snippetCode, snippetLang) => {
+    if (snippetCode) handleEditorCodeChange(snippetCode);
+    if (snippetLang) handleEditorLanguageChange(snippetLang);
+    // Explicitly enable code editor for this playlist if not already active
+    if (!isCodeEditorEnabled) {
+      setIsCodeEditorExplicit(true);
+      if (playlistKey) {
+        try {
+          localStorage.setItem(`learnproof_code_editor_${playlistKey}`, 'true');
+        } catch (_) {}
+      }
+    }
+    setActiveTab('code-editor');
+    setTimeout(() => {
+      scrollToTabs(true);
+    }, 60);
+  };
+
+  useEffect(() => {
+    const handleGlobalOpenCode = (e) => {
+      const { code, language } = e.detail || {};
+      handleOpenInCodeEditor(code, language);
+    };
+    window.addEventListener('learnproof:open-code-editor', handleGlobalOpenCode);
+    return () => window.removeEventListener('learnproof:open-code-editor', handleGlobalOpenCode);
+  }, []);
+
   const classroomTabs = useMemo(() => [
     ...(playlist ? [{ id: 'playlist', label: 'Playlist', shortLabel: 'Playlist', icon: PlayCircle, hideOnDesktop: true }] : []),
     { id: 'overview', label: 'Overview', shortLabel: 'Overview', icon: BookOpen },
     { id: 'intuition', label: 'AI Notes', shortLabel: 'AI Notes', icon: Sparkles },
+    ...(isCodeEditorEnabled ? [{ id: 'code-editor', label: 'Code Editor', shortLabel: 'Code', icon: Code2 }] : []),
     { id: 'ai-chat', label: 'Ask AI Chatbot', shortLabel: 'AI Chat', icon: Bot },
     { id: 'quiz', label: 'AI Quiz', shortLabel: 'Quiz', icon: CheckCircle },
     { id: 'notes', label: 'Notes', shortLabel: 'Notes', icon: FileText },
     { id: 'discussion', label: `Discussion (${(comments && comments.length) || 0})`, shortLabel: 'Discuss', badge: (comments && comments.length) || 0, icon: MessageSquare },
-  ], [playlist, comments]);
+  ], [playlist, comments, isCodeEditorEnabled]);
 
   const visibleClassroomTabs = useMemo(() => {
     return classroomTabs.filter(t => !t.hideOnDesktop || (typeof window !== 'undefined' && window.innerWidth < 1024));
   }, [classroomTabs]);
 
   const handleTouchStart = (e) => {
-    // Never switch tabs via swipe when on AI Notes, AI Chat, or touching any scrollable elements/tables/code/buttons
-    if (activeTab === 'intuition' || activeTab === 'ai-chat') {
+    // Never switch tabs via swipe when on AI Notes, AI Chat, Code Editor, or touching any scrollable elements/tables/code/buttons
+    if (activeTab === 'intuition' || activeTab === 'ai-chat' || activeTab === 'code-editor') {
       setTouchStart(null);
       setTouchEnd(null);
       return;
@@ -966,7 +1341,7 @@ const Classroom = () => {
   };
 
   const handleTouchMove = (e) => {
-    if (activeTab === 'intuition' || activeTab === 'ai-chat') return;
+    if (activeTab === 'intuition' || activeTab === 'ai-chat' || activeTab === 'code-editor') return;
     if (e.target?.closest?.('.no-tab-swipe, .overflow-x-auto, table, pre, code, select, button, input, textarea, .intuition-markdown')) return;
     if (e.targetTouches?.[0]) {
       setTouchEnd({
@@ -977,7 +1352,7 @@ const Classroom = () => {
   };
 
   const handleTouchEnd = () => {
-    if (activeTab === 'intuition' || activeTab === 'ai-chat') {
+    if (activeTab === 'intuition' || activeTab === 'ai-chat' || activeTab === 'code-editor') {
       setTouchStart(null);
       setTouchEnd(null);
       return;
@@ -1909,6 +2284,61 @@ const Classroom = () => {
                 updatePlaylistVideoState(video.vid, { watch_progress: percentage });
               }
             }
+
+            // Self-healing speed watchdog: keep actual speed locked to preferred speed across lessons/app switches
+            try {
+              const currentPreferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+              const expectedYtRate = getValidYouTubeRate(currentPreferred, player);
+
+              if (expectedYtRate && expectedYtRate !== 1 && typeof player.getCurrentTime === 'function') {
+                const now = Date.now();
+                const realElapsed = (now - lastPlayProgressRef.current.realTime) / 1000;
+                const currentVTime = await player.getCurrentTime();
+                const videoElapsed = currentVTime - lastPlayProgressRef.current.videoTime;
+
+                // Update ref for next second's comparison
+                lastPlayProgressRef.current = { videoTime: currentVTime, realTime: now };
+
+                // If video is playing continuously (not paused, not buffering, not seeking)
+                if (
+                  realElapsed >= 0.75 &&
+                  realElapsed <= 2.5 &&
+                  videoElapsed > 0.3 &&
+                  videoElapsed < 6.0 &&
+                  !document.hidden
+                ) {
+                  const measuredRate = videoElapsed / realElapsed;
+                  // If expected is e.g. 1.75, but measured is ~1.0 (difference > 0.25)
+                  if (measuredRate < expectedYtRate - 0.25) {
+                    console.warn(`[Speed Watchdog] Speed mismatch: expected ${expectedYtRate}x, measured ${measuredRate.toFixed(2)}x. Re-forcing speed.`);
+                    try {
+                      player.setPlaybackRate(1);
+                      setTimeout(() => {
+                        try {
+                          player.setPlaybackRate(expectedYtRate);
+                        } catch (_) {}
+                      }, 35);
+                    } catch (_) {}
+                  }
+                }
+              } else {
+                lastPlayProgressRef.current = {
+                  videoTime: (typeof player?.getCurrentTime === 'function' ? await player.getCurrentTime() : 0),
+                  realTime: Date.now()
+                };
+              }
+
+              if (currentPreferred) {
+                document.querySelectorAll('video').forEach((v) => {
+                  try {
+                    if (Math.abs(v.playbackRate - currentPreferred) > 0.05) {
+                      v.playbackRate = currentPreferred;
+                      v.defaultPlaybackRate = currentPreferred;
+                    }
+                  } catch (_) {}
+                });
+              }
+            } catch (_) {}
           }
         } catch (err) {
           // Ignore player errors during unmounts/loading
@@ -1916,17 +2346,41 @@ const Classroom = () => {
       }, 1000); // Check every 1 second
     }
 
-    // POLICY COMPLIANCE: Pause video if tab is hidden (No background playback)
+    // POLICY COMPLIANCE & SPEED PERSISTENCE:
+    // 1. Pause video if tab is hidden (No background playback)
+    // 2. Re-enforce playback speed when user returns from switching apps or unlocking screen
     const handleVisibilityChange = () => {
-      if (document.hidden && player && player.pauseVideo) {
-        player.pauseVideo();
+      const targetP = playerRef.current || player;
+      if (document.hidden) {
+        if (targetP && typeof targetP.pauseVideo === 'function') {
+          try {
+            targetP.pauseVideo();
+          } catch (_) {}
+        }
+      } else {
+        // App switch return: Re-enforce preferred speed immediately and after resuming
+        const currentPreferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+        if (currentPreferred) {
+          enforcePlayerSpeedWithRetries(currentPreferred, targetP, [50, 200, 600, 1200], true);
+        }
       }
     };
+
+    const handleWindowFocus = () => {
+      const targetP = playerRef.current || player;
+      const currentPreferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+      if (currentPreferred) {
+        enforcePlayerSpeedWithRetries(currentPreferred, targetP, [50, 250, 800], true);
+      }
+    };
+
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleWindowFocus);
 
     return () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleWindowFocus);
       // Final save on unmount/video change if progress changed
       if (latestProgressRef?.current > lastSavedProgress) {
         axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/update-progress/`, {
@@ -1942,33 +2396,29 @@ const Classroom = () => {
     // YT.PlayerState.PLAYING is 1
     if (event.data === 1) {
       setIsVideoPlaying(true);
+      let didSeek = false;
       if (!hasSeeked) {
         setHasSeeked(true);
         const duration = await event.target.getDuration();
         const savedSeekSeconds = parseFloat(localStorage.getItem(`learnproof_seek_${videoId}`) || '0');
         if (savedSeekSeconds > 3 && duration > 0 && savedSeekSeconds < duration - 5) {
-          event.target.seekTo(savedSeekSeconds);
+          event.target.seekTo(savedSeekSeconds, true);
+          didSeek = true;
         } else if (video?.watch_progress > 0 && video?.watch_progress < 98 && duration > 0) {
           const seekSeconds = (video.watch_progress / 100) * duration;
-          event.target.seekTo(seekSeconds);
+          event.target.seekTo(seekSeconds, true);
           setLastSavedProgress(video.watch_progress);
+          didSeek = true;
         }
       }
 
-      // Re-apply preferred playback speed smoothly once video is playing
+      // Re-apply preferred playback speed reliably once video is playing (staggered retries for buffering/resuming)
       const currentRate = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-      if (currentRate && currentRate !== 1) {
-        setTimeout(() => {
-          try {
-            if (event.target && typeof event.target.setPlaybackRate === 'function') {
-              event.target.setPlaybackRate(Math.min(currentRate, 2));
-            }
-          } catch (_) {}
-          isSwitchingVideoRef.current = false;
-        }, 350);
-      } else {
-        isSwitchingVideoRef.current = false;
+      if (currentRate) {
+        const delays = didSeek ? [150, 450, 900, 1600] : [40, 200, 500, 1000];
+        enforcePlayerSpeedWithRetries(currentRate, event.target, delays, true);
       }
+      isSwitchingVideoRef.current = false;
     } else if (event.data === 2) {
       // PAUSED - keep poster hidden
       setIsVideoPlaying(true);
@@ -2106,7 +2556,7 @@ const Classroom = () => {
                           onClick={() => handleStepSpeed(-1)}
                           disabled={playbackSpeed <= SPEED_OPTIONS[0]}
                           className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                          title="Slower (-0.25x)"
+                          title="Slower"
                         >
                           <Minus size={12} />
                         </button>
@@ -2116,7 +2566,7 @@ const Classroom = () => {
                             type="range"
                             min="0.5"
                             max="4"
-                            step="0.25"
+                            step="0.1"
                             value={playbackSpeed}
                             onChange={(e) => applyPlaybackSpeed(parseFloat(e.target.value))}
                             className="w-full h-1.5 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500 focus:outline-none"
@@ -2128,7 +2578,7 @@ const Classroom = () => {
                           onClick={() => handleStepSpeed(1)}
                           disabled={playbackSpeed >= SPEED_OPTIONS[SPEED_OPTIONS.length - 1]}
                           className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                          title="Faster (+0.25x)"
+                          title="Faster"
                         >
                           <Plus size={12} />
                         </button>
@@ -2145,7 +2595,7 @@ const Classroom = () => {
 
                     {/* Quick Snap Preset Chips */}
                     <div className="flex items-center gap-1 overflow-x-auto pb-1.5 scrollbar-none">
-                      {[0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4].map((rate) => {
+                      {[0.75, 1, 1.25, 1.5, 1.6, 1.75, 2, 2.5, 3, 4].map((rate) => {
                         const isCurrent = playbackSpeed === rate;
                         return (
                           <button
@@ -2243,6 +2693,7 @@ const Classroom = () => {
               className="absolute top-0 left-0 w-full h-full"
               containerClassName="w-full h-full absolute inset-0 z-10"
               onReady={(e) => {
+                playerRef.current = e.target;
                 setPlayer(e.target);
                 setPlayerError(false);
                 // Allow iframe postMessage channel handshake to settle before issuing playback commands
@@ -2257,21 +2708,24 @@ const Classroom = () => {
               onPlaybackRateChange={(e) => {
                 const newRate = e.data;
                 const preferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-                console.log("YouTube playback rate event:", newRate, "preferred:", preferred);
+                const expectedYtRate = getValidYouTubeRate(preferred, e.target);
+                console.log("YouTube playback rate event:", newRate, "preferred:", preferred, "expectedYt:", expectedYtRate);
 
-                // If YouTube automatically reset to 1 upon loading a new video/stream, but user preferred non-1:
-                if (newRate === 1 && preferred !== 1) {
+                // If YouTube automatically reset to 1 upon loading a new video/stream or app resume, but preferred is not 1:
+                if (newRate === 1 && expectedYtRate !== 1) {
                   setTimeout(() => {
                     try {
                       if (e.target && typeof e.target.setPlaybackRate === 'function') {
-                        e.target.setPlaybackRate(Math.min(preferred, 2));
+                        e.target.setPlaybackRate(expectedYtRate);
                       }
                     } catch (_) {}
-                  }, 250);
+                  }, 40);
                   return;
                 }
 
-                if (preferred > 2 && newRate === 2) {
+                // If YouTube emitted its nearest quantized rate (e.g. 1.5 when user picked 1.6, or 2.0 when user picked 2.5):
+                // Do NOT downgrade or overwrite the user's customized rate in state or localStorage!
+                if (Math.abs(newRate - expectedYtRate) < 0.05 && preferred !== newRate) {
                   return;
                 }
 
@@ -2774,6 +3228,16 @@ const Classroom = () => {
 
                           {/* Top Controls: Language Picker & Actions */}
                           <div className="flex items-center gap-1.5 sm:gap-2">
+                            {/* Code Editor Quick Open Button */}
+                            <button
+                              onClick={() => handleOpenInCodeEditor()}
+                              title="Open Interactive Code Editor & Compiler"
+                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] sm:text-xs shadow-2xs transition hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
+                            >
+                              <Code2 size={12} />
+                              <span>Code Editor</span>
+                            </button>
+
                             {/* Open Clean Notes & PDF Export Modal */}
                             {parsedIntuition && (
                               <button
@@ -2923,7 +3387,7 @@ const Classroom = () => {
                                                 </code>
                                               );
                                             }
-                                            return <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>;
+                                            return <CodeEditorBlock className={className} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
                                           },
                                           table: ({ node, ...props }) => (
                                             <div
@@ -3005,7 +3469,7 @@ const Classroom = () => {
                                                 </code>
                                               );
                                             }
-                                            return <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>;
+                                            return <CodeEditorBlock className={className} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
                                           },
                                           table: ({ node, ...props }) => (
                                             <div
@@ -3087,6 +3551,20 @@ const Classroom = () => {
                           </div>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Code Editor Tab */}
+                  {activeTab === 'code-editor' && (
+                    <div className="space-y-4 no-tab-swipe">
+                      <ClassroomCodeEditor
+                        code={editorCode}
+                        language={editorLanguage}
+                        videoId={videoId}
+                        onCodeChange={handleEditorCodeChange}
+                        onLanguageChange={handleEditorLanguageChange}
+                        onHideTab={() => toggleCodeEditorMode(false)}
+                      />
                     </div>
                   )}
 
@@ -3230,7 +3708,7 @@ const Classroom = () => {
                                                 </code>
                                               );
                                             }
-                                            return <CodeEditorBlock className={className} {...props}>{children}</CodeEditorBlock>;
+                                            return <CodeEditorBlock className={className} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
                                           }
                                         }}
                                       >
@@ -4286,7 +4764,16 @@ const Classroom = () => {
                             );
                           }
                           const codeContent = String(children || '').replace(/\n$/, '');
-                          return <CodeEditorBlock code={codeContent} language={match ? match[1] : ''} />;
+                          return (
+                            <CodeEditorBlock
+                              code={codeContent}
+                              language={match ? match[1] : ''}
+                              onOpenInEditor={(c, l) => {
+                                setShowNotesModal(false);
+                                handleOpenInCodeEditor(c, l);
+                              }}
+                            />
+                          );
                         },
                         table: ({ node, ...props }) => (
                           <div className="my-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">

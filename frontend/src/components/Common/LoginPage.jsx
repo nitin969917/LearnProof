@@ -722,7 +722,7 @@ const LoginPage = () => {
     }
 
     return (
-        <div className="h-[100dvh] bg-gradient-to-br from-[#fff7f4] via-[#ffffff] to-[#fffbf9] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden flex flex-col justify-between p-4 sm:p-6 selection:bg-orange-200 select-none">
+        <div className="h-[100dvh] max-h-[100dvh] w-full bg-gradient-to-br from-[#fff7f4] via-[#ffffff] to-[#fffbf9] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden flex flex-col justify-between items-center p-2.5 sm:p-4 md:p-6 selection:bg-orange-200 select-none">
             
             {/* Mesh dot grid background overlay matching mockup */}
             <div className="absolute inset-0 z-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }} />
@@ -733,18 +733,18 @@ const LoginPage = () => {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[300px] sm:w-[450px] h-[300px] sm:h-[450px] bg-gradient-to-tr from-amber-200/30 to-transparent rounded-full blur-[90px]" />
             </div>
  
-            {/* Main Centered Box Container Wrapper */}
-            <div className="flex-1 flex items-center justify-center relative z-10 py-4 sm:py-10 w-full">
+            {/* Main Centered Box Container Wrapper - Flex centered with dynamic height */}
+            <div className="flex-1 w-full min-h-0 flex items-center justify-center relative z-10 py-1 sm:py-2">
                 <motion.div 
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                    className="w-full max-w-sm bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-orange-100/70 dark:border-gray-800 rounded-[2.5rem] px-5 py-5 sm:p-8 shadow-[0_20px_50px_rgba(249,115,22,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center space-y-5 sm:space-y-6 relative"
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="w-full max-w-[350px] sm:max-w-[400px] md:max-w-[420px] max-h-[calc(100dvh-2.5rem)] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-orange-100/70 dark:border-gray-800 rounded-[2rem] sm:rounded-[2.5rem] px-4 py-3 sm:px-6 sm:py-4 md:py-5 shadow-[0_20px_50px_rgba(249,115,22,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center justify-between gap-2 sm:gap-2.5 md:gap-3 relative overflow-hidden"
                 >
                     {/* Logo & Headline Swoop Lines */}
-                    <div className="relative w-full flex flex-col items-center text-center">
+                    <div className="relative w-full flex flex-col items-center text-center shrink-0">
                         {/* SVG Swoop Connector Lines from screenshot */}
-                        <svg className="absolute top-2 left-1/2 -translate-x-1/2 w-[240px] h-[100px] pointer-events-none opacity-50 z-0" viewBox="0 0 240 100" fill="none">
+                        <svg className="absolute top-1 left-1/2 -translate-x-1/2 w-[220px] h-[80px] pointer-events-none opacity-40 z-0" viewBox="0 0 240 100" fill="none">
                             <path d="M 30 80 Q 100 40 210 16" stroke="url(#orange-grad)" strokeWidth="1" strokeDasharray="3 3" />
                             <circle cx="30" cy="80" r="3" fill="#f97316" className="animate-pulse" />
                             <defs>
@@ -758,28 +758,28 @@ const LoginPage = () => {
                         <div className="relative z-10 flex items-center justify-center w-full">
                             {/* Main Shield Logo */}
                             <div className="relative">
-                                <img src="/LP_logo_login.png" alt="LearnProof Logo" className="h-28 w-auto object-contain" />
+                                <img src="/LP_logo_login.png" alt="LearnProof Logo" className="h-16 sm:h-20 md:h-22 w-auto object-contain transition-all" />
                             </div>
                             
                             {/* Connected Floating Graduation Cap Icon */}
-                            <div className="absolute top-0 right-8 w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/20">
-                                <GraduationCap size={16} />
+                            <div className="absolute top-0 right-6 sm:right-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
+                                <GraduationCap size={14} />
                             </div>
                         </div>
                     </div>
 
                     {/* Welcome message */}
-                    <div className="text-center space-y-1.5 z-10 w-full">
-                        <h2 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white leading-none">
+                    <div className="text-center space-y-0.5 z-10 w-full shrink-0">
+                        <h2 className="text-lg sm:text-xl md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
                             Welcome 👋
                         </h2>
-                        <p className="text-xs text-slate-455 mt-1 font-semibold dark:text-slate-400">
+                        <p className="text-[10.5px] sm:text-xs text-slate-500 dark:text-slate-400 font-semibold">
                             Sign in to continue your learning journey
                         </p>
                     </div>
 
                     {/* Swipeable Feature Carousel Card widget */}
-                    <div className="w-full relative overflow-hidden h-[146px] flex items-center justify-center z-10">
+                    <div className="w-full relative overflow-hidden h-[112px] sm:h-[122px] md:h-[130px] flex items-center justify-center z-10 shrink-0">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeFeature}
@@ -793,10 +793,8 @@ const LoginPage = () => {
                                 onDragEnd={(e, { offset }) => {
                                     const swipeThreshold = 50;
                                     if (offset.x < -swipeThreshold) {
-                                        // Swipe Left -> next
                                         setActiveFeature((prev) => (prev + 1) % SLIDES.length);
                                     } else if (offset.x > swipeThreshold) {
-                                        // Swipe Right -> previous
                                         setActiveFeature((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
                                     }
                                 }}
@@ -805,21 +803,20 @@ const LoginPage = () => {
                                 {SLIDES[activeFeature].map((item, idx) => (
                                     <div 
                                         key={idx}
-                                        className={`flex-1 flex flex-col items-center text-center p-2.5 pt-3 pb-3 ${item.bgClass} rounded-[1.25rem] shadow-[0_4px_25px_rgba(0,0,0,0.015)] relative overflow-hidden transition-all duration-300 h-full min-w-0 font-sans justify-between`}
+                                        className={`flex-1 flex flex-col items-center text-center p-1.5 sm:p-2 ${item.bgClass} rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.015)] relative overflow-hidden transition-all duration-300 h-full min-w-0 font-sans justify-between`}
                                     >
                                         <div className="flex flex-col items-center w-full">
-                                            {/* White rounded square icon bubble matching screenshot */}
-                                            <div className="w-10 h-10 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-2 shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-slate-100/40 dark:border-gray-700">
+                                            <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center mb-1 shrink-0 shadow-xs border border-slate-100/40 dark:border-gray-700">
                                                 {item.icon}
                                             </div>
-                                            <h4 className="text-[10px] sm:text-[10.5px] font-bold text-[#0f172a] dark:text-white tracking-tight leading-tight text-center w-full px-0.5 font-sans min-h-[24px] flex items-center justify-center">
+                                            <h4 className="text-[9px] sm:text-[10px] md:text-[10.5px] font-bold text-[#0f172a] dark:text-white tracking-tight leading-tight text-center w-full px-0.5 font-sans min-h-[20px] flex items-center justify-center">
                                                 {item.title}
                                             </h4>
-                                            <p className="text-[7.5px] sm:text-[8px] text-slate-500 dark:text-slate-400 font-medium leading-[1.25] tracking-tight text-center font-sans mt-0.5 px-0.5 line-clamp-2">
+                                            <p className="text-[7px] sm:text-[7.5px] md:text-[8px] text-slate-500 dark:text-slate-400 font-medium leading-[1.15] tracking-tight text-center font-sans mt-0.5 px-0.5 line-clamp-2">
                                                 {item.desc}
                                             </p>
                                         </div>
-                                        <div className={`w-5 h-[2px] ${item.lineColor} opacity-90 rounded-full mt-1.5`} />
+                                        <div className={`w-4 sm:w-5 h-[2px] ${item.lineColor} opacity-90 rounded-full mt-0.5`} />
                                     </div>
                                 ))}
                             </motion.div>
@@ -827,15 +824,15 @@ const LoginPage = () => {
                     </div>
 
                     {/* Pagination Dots Indicator */}
-                    <div className="flex justify-center items-center gap-2 shrink-0 select-none z-10">
+                    <div className="flex justify-center items-center gap-1.5 shrink-0 select-none z-10">
                         {SLIDES.map((_, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => setActiveFeature(idx)}
                                 className={`transition-all duration-300 cursor-pointer ${
                                     idx === activeFeature 
-                                        ? 'w-4 h-1.5 rounded-full bg-orange-500 shadow-sm' 
-                                        : 'w-1.5 h-1.5 rounded-full bg-slate-200 dark:bg-gray-800'
+                                        ? 'w-3.5 sm:w-4 h-1 sm:h-1.5 rounded-full bg-orange-500 shadow-xs' 
+                                        : 'w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-slate-200 dark:bg-gray-800'
                             }`}
                                 title={`Slide ${idx + 1}`}
                             />
@@ -843,21 +840,21 @@ const LoginPage = () => {
                     </div>
 
                     {/* Secure badge block */}
-                    <div className="flex items-center gap-1.5 text-[9px] text-orange-600 dark:text-orange-400 font-bold uppercase tracking-wider bg-orange-500/5 px-4 py-1.5 rounded-full border border-orange-500/10 z-10">
-                        <Shield size={10} className="text-orange-500 animate-pulse" />
+                    <div className="flex items-center gap-1.5 text-[8.5px] sm:text-[9px] text-orange-600 dark:text-orange-400 font-bold uppercase tracking-wider bg-orange-500/5 px-3 py-0.5 rounded-full border border-orange-500/10 z-10 shrink-0">
+                        <Shield size={9} className="text-orange-500 animate-pulse" />
                         <span>Secure • Private • Trusted</span>
                     </div>
 
                     {/* Auth Login Action Button */}
-                    <div className="w-full space-y-2 z-10 flex flex-col items-center">
+                    <div className="w-full space-y-1.5 sm:space-y-2 z-10 flex flex-col items-center shrink-0">
                         {/* Continue with Google */}
                         <motion.button 
                             whileHover={{ scale: 1.01, y: -0.5 }}
                             whileTap={{ scale: 0.99 }}
                             onClick={handleManualGoogleLogin}
-                            className="w-[210px] h-[38px] flex items-center justify-center gap-2 px-3 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow hover:border-slate-300 transition-all duration-200 font-medium text-slate-700 dark:text-slate-200 text-xs cursor-pointer"
+                            className="w-full max-w-[240px] sm:max-w-[260px] h-[35px] sm:h-[38px] flex items-center justify-center gap-2 px-3 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl shadow-xs hover:shadow hover:border-slate-300 transition-all duration-200 font-medium text-slate-700 dark:text-slate-200 text-xs cursor-pointer"
                         >
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4 shrink-0" />
+                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-3.5 h-3.5 shrink-0" />
                             <span>Continue with Google</span>
                         </motion.button>
 
@@ -867,9 +864,9 @@ const LoginPage = () => {
                                 whileHover={{ scale: 1.01, y: -0.5 }}
                                 whileTap={{ scale: 0.99 }}
                                 onClick={handleManualAppleLogin}
-                                className="w-[210px] h-[38px] flex items-center justify-center gap-2 px-3 bg-black text-white hover:bg-zinc-900 border border-black rounded-lg shadow-sm transition-all duration-200 font-medium text-xs cursor-pointer"
+                                className="w-full max-w-[240px] sm:max-w-[260px] h-[35px] sm:h-[38px] flex items-center justify-center gap-2 px-3 bg-black text-white hover:bg-zinc-900 border border-black rounded-xl shadow-xs transition-all duration-200 font-medium text-xs cursor-pointer"
                             >
-                                <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                                <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
                                     <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 0.92-2.85-.92.04-2.07.62-2.73 1.37-.58.67-1.09 1.74-.96 2.77 1.03.08 2.15-.53 2.77-1.29z"/>
                                 </svg>
                                 <span>Continue with Apple</span>
@@ -881,39 +878,45 @@ const LoginPage = () => {
                             whileHover={{ scale: 1.01, y: -0.5 }}
                             whileTap={{ scale: 0.99 }}
                             onClick={handleManualLinkedInLogin}
-                            className="w-[210px] h-[38px] flex items-center justify-center gap-2 px-3 bg-[#0A66C2] hover:bg-[#004182] text-white border border-[#0A66C2] rounded-lg shadow-sm hover:shadow transition-all duration-200 font-medium text-xs cursor-pointer"
+                            className="w-full max-w-[240px] sm:max-w-[260px] h-[35px] sm:h-[38px] flex items-center justify-center gap-2 px-3 bg-[#0A66C2] hover:bg-[#004182] text-white border border-[#0A66C2] rounded-xl shadow-xs hover:shadow transition-all duration-200 font-medium text-xs cursor-pointer"
                         >
-                            <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
                                 <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.62 1.62 0 1 0 0 3.24 1.62 1.62 0 0 0 0-3.24z"/>
                             </svg>
                             <span>Continue with LinkedIn</span>
                         </motion.button>
 
-                        {/* Terms of Service agreement text */}
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center leading-normal px-2 pt-0.5">
-                            By continuing, you agree to our{' '}
-                            <a href="/terms" className="text-orange-500 hover:underline font-semibold">Terms of Service</a>
-                            {' '}and{' '}
-                            <a href="/privacy-policy" className="text-orange-500 hover:underline font-semibold">Privacy Policy</a>
-                        </p>
-
-                        {/* App Store Reviewer Demo Login Shortcut */}
-                        <div className="text-center pt-1">
-                            <button
+                        {/* App Store Reviewer Demo Access Button (Prominent & Easy for Apple Reviewers to Locate) */}
+                        <div className="w-full flex justify-center pt-0.5">
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 type="button"
                                 onClick={handleReviewerDemoLogin}
-                                className="text-[10px] text-slate-400 hover:text-orange-500 underline transition-colors cursor-pointer"
+                                className="w-full max-w-[240px] sm:max-w-[260px] py-1.5 sm:py-2 px-3 rounded-xl bg-orange-500/10 hover:bg-orange-500/15 border border-orange-500/30 text-orange-700 dark:text-orange-300 text-[10.5px] sm:text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
+                                title="One-click demo sign in for App Store Reviewers"
                             >
-                                App Store Reviewer Demo Access
-                            </button>
+                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                <span>App Store Reviewer Demo Access</span>
+                            </motion.button>
                         </div>
+
+                        {/* Terms of Service & Privacy agreement text with direct Account Deletion link */}
+                        <p className="text-[9.5px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center leading-tight px-2 pt-0.5">
+                            By continuing, you agree to our{' '}
+                            <a href="/terms" className="text-orange-500 hover:underline font-semibold">Terms</a>
+                            {', '}
+                            <a href="/privacy-policy" className="text-orange-500 hover:underline font-semibold">Privacy Policy</a>
+                            {', & '}
+                            <a href="/delete-account" className="text-orange-500 hover:underline font-semibold">Account Deletion</a>
+                        </p>
                     </div>
                 </motion.div>
             </div>
 
             {/* Branding Footer */}
-            <div className="relative z-10 w-full max-w-md mx-auto text-center pb-2 shrink-0 pt-6">
-                <p className="text-[9px] text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest">
+            <div className="relative z-10 w-full max-w-md mx-auto text-center shrink-0 py-1 sm:py-2">
+                <p className="text-[8.5px] sm:text-[9px] text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest">
                     &copy; 2026 LEARNPROOF AI. ALL RIGHTS RESERVED.
                 </p>
             </div>

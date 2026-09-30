@@ -200,4 +200,8 @@ router.get('/livekit/rooms/:roomName/stage-requests', datingAuth, livekitControl
 router.delete('/livekit/rooms/:roomName/stage-requests/:identity', datingAuth, livekitController.dismissStageRequest);
 router.post('/livekit/translate', datingAuth, livekitController.translateText);
 
+// Online Code Compiler & Multi-Language Runner
+const compilerRoutes = require('./compiler.routes');
+router.use('/compiler', compilerRoutes);
+
 module.exports = router;

@@ -51,24 +51,24 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
         {
             title: 'Learning Hub',
             items: [
-                { name: 'My Learnings', icon: <GraduationCap size={20} />, path: '/dashboard/library' },
+                { name: 'My Learnings', shortName: 'Learnings', icon: <GraduationCap size={20} />, path: '/dashboard/library' },
                 { name: 'Discover', icon: <Compass size={20} />, path: '/dashboard/explore' },
                 { name: 'Quiz', icon: <BrainCircuit size={20} />, path: '/dashboard/quiz' },
-                { name: 'Ask My Notes', icon: <FileText size={20} />, path: '/dashboard/ask-my-notes' },
+                { name: 'Ask My Notes', shortName: 'Notes', icon: <FileText size={20} />, path: '/dashboard/ask-my-notes' },
                 { name: 'Certificates', icon: <Trophy size={20} />, path: '/dashboard/certificates' },
             ]
         },
         {
             title: 'Social & Community',
             items: [
-                { name: 'Live Rooms', icon: <Radio size={20} />, path: '/dashboard/live-rooms' },
-                { name: 'Social Hub', icon: <Users2 size={20} />, path: '/dashboard/social' },
+                { name: 'Live Rooms', shortName: 'Live Rooms', icon: <Radio size={20} />, path: '/dashboard/live-rooms' },
+                { name: 'Social Hub', shortName: 'Social', icon: <Users2 size={20} />, path: '/dashboard/social' },
             ]
         },
         {
             title: 'Support',
             items: [
-                { name: 'Help & Support', icon: <HelpCircle size={20} />, path: '/dashboard/support' }
+                { name: 'Help & Support', shortName: 'Support', icon: <HelpCircle size={20} />, path: '/dashboard/support' }
             ]
         }
     ];
@@ -181,7 +181,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                                      <div className={`relative flex items-center justify-center shrink-0 transition-all duration-200 ${
                                                          isExpanded
                                                              ? `w-8 h-8 rounded-lg ${isActive ? 'bg-orange-500 text-white shadow-xs shadow-orange-500/30' : 'bg-gray-100/80 dark:bg-gray-700/60 text-gray-500 dark:text-gray-400 group-hover:bg-orange-50 dark:group-hover:bg-gray-700 group-hover:text-orange-600'}`
-                                                             : `w-9 h-9 rounded-xl ${isActive ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30 scale-105' : 'bg-gray-100/60 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 group-hover:bg-orange-50 dark:group-hover:bg-gray-700 group-hover:text-orange-600'}`
+                                                             : `w-9 h-9 rounded-xl ${isActive ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30' : 'bg-gray-100/60 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 group-hover:bg-orange-50 dark:group-hover:bg-gray-700 group-hover:text-orange-600'}`
                                                      }`}>
                                                          {React.cloneElement(item.icon, {
                                                              size: isExpanded ? 16 : 18,
@@ -199,8 +199,8 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                                              {item.name}
                                                          </span>
                                                      ) : (
-                                                         <span className={`text-[8.5px] font-bold mt-0.5 tracking-tight leading-none text-center transition-all duration-200 ${isActive ? 'text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-500 dark:text-gray-400'}`}>
-                                                             {item.name}
+                                                         <span className={`text-[8.5px] mt-0.5 tracking-tight leading-none text-center transition-all duration-200 ${isActive ? 'text-orange-600 dark:text-orange-400 font-bold' : 'text-gray-500 dark:text-gray-400 font-medium'}`}>
+                                                             {item.shortName || item.name}
                                                          </span>
                                                      )}
                                                  </motion.div>
@@ -245,7 +245,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                         <LogOut size={isExpanded ? 20 : 18} />
                         {isExpanded && <span className="text-sm whitespace-nowrap">Logout</span>}
                     </button>
- 
+
                     <button
                         onClick={toggleTheme}
                         className={`flex items-center justify-center ${isExpanded ? 'px-3 py-2.5 border border-gray-200 dark:border-gray-700' : 'p-1.5 hover:bg-gray-500/10'} rounded-xl text-gray-755 dark:text-gray-300 transition-all cursor-pointer`}

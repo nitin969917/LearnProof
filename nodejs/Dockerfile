@@ -2,6 +2,9 @@ FROM node:24-alpine
 
 WORKDIR /app
 
+# Install Python and C++ compilers for in-browser sandbox runner
+RUN apk add --no-cache python3 g++
+
 # Copy package files
 COPY package*.json ./
 

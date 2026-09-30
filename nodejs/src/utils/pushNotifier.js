@@ -19,22 +19,57 @@ const isCriticalAlert = (type) => {
 };
 
 /**
- * Resolves a list of SQLite user IDs to their main PostgreSQL user profiles (via email),
+ * Extracts plain human-readable text from raw messages, preventing raw JSON
+ * or internal coding payloads (such as {"text":"...","replyTo":{...}}) from appearing in push notifications.
+ */
+const extractCleanText = (raw) => {
+  if (!raw) return '';
+  if (typeof raw !== 'string') {
+    if (typeof raw === 'object') {
+      if (raw.text) return String(raw.text);
+      if (raw.fileUrl) return 'Sent an attachment 📎';
+      if (raw.isVoiceNote || raw.audioUrl) return 'Sent a voice message 🎙️';
+      if (raw.imageUrl) return 'Sent an image 📷';
+    }
+    return String(raw);
+  }
+  const str = raw.trim();
+  // Case 1: Whole string is JSON
+  if (str.startsWith('{') && str.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(str);
+      if (parsed && typeof parsed === 'object') {
+        if (parsed.text) return String(parsed.text);
+        if (parsed.fileUrl) return 'Sent an attachment 📎';
+        if (parsed.isVoiceNote || parsed.audioUrl) return 'Sent a voice message 🎙️';
+        if (parsed.imageUrl) return 'Sent an image 📷';
+      }
+    } catch (_) {}
+  }
+  // Case 2: String contains JSON e.g. "Sender: {"text":"...", ...}"
+  const jsonMatch = str.match(/\{[\s\S]*"text"\s*:\s*"([\s\S]*?)"[\s\S]*\}/);
+  if (jsonMatch && jsonMatch[1]) {
+    const prefix = str.slice(0, str.indexOf('{')).trim();
+    let extracted = jsonMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    return prefix ? `${prefix} ${extracted}` : extracted;
+  }
+  return str;
+};
+
+/**
+ * Resolves a list of SQLite user IDs to their main PostgreSQL user profiles (via email or direct ID),
  * queries their registered FCM push tokens, and dispatches a multicast message.
  * Falls back to mock logs if the Firebase Admin SDK is not initialized.
- * 
- * Implements Instagram-standard notification delivery:
- * - If receiver is actively viewing this specific chat, OS push notification is suppressed (0 sound, 0 tray popups).
- * - If receiver is active in the app (foreground), OS push notification is suppressed for high-frequency chat
- *   so the user only sees the quiet in-app floating banner without loud ringtones or phone vibration.
- * - Critical events (friend requests, room invitations, alerts) ALWAYS send OS push notifications.
- * - Push notifications are exclusively sent when receiver is offline or has backgrounded/locked the app.
  */
 const sendPushNotification = async (receiverUserIds, title, body, data = {}) => {
   if (!receiverUserIds || receiverUserIds.length === 0) return;
 
   try {
-    // 0. Filter out receivers who are actively in this chat or actively online in the app
+    // Sanitize title & body so raw JSON code never shows in push notifications
+    title = extractCleanText(title);
+    body = extractCleanText(body);
+
+    // 0. Filter out receivers who are actively in this specific chat
     const eligibleReceiverIds = [];
     for (const recId of receiverUserIds) {
       const recIdStr = recId.toString();
@@ -45,36 +80,29 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
         continue;
       }
 
-      // Check if user is currently looking at this specific conversation
-      if (data && data.type === 'CHAT_MESSAGE' && data.senderId) {
-        try {
-          const activeChat = await redis.get(`user:active_chat:${recIdStr}`);
-          if (activeChat === `user:${data.senderId}`) {
-            console.log(`[Push Notification] Suppressing push for user ${recIdStr}: currently viewing chat with ${data.senderId}`);
-            continue;
-          }
-        } catch (_) {}
-      } else if (data && data.type === 'GROUP_MESSAGE' && data.groupId) {
-        try {
-          const activeChat = await redis.get(`user:active_chat:${recIdStr}`);
-          if (activeChat === `group:${data.groupId}`) {
-            console.log(`[Push Notification] Suppressing push for user ${recIdStr}: currently inside group ${data.groupId}`);
-            continue;
-          }
-        } catch (_) {}
-      }
-
-      // Check if user is currently active inside the app (foreground)
+      // Check if user is currently actively viewing this specific chat conversation
+      let shouldSuppress = false;
       try {
-        const socketCount = await redis.scard(`user:sockets:${recIdStr}`);
         const isBackgrounded = await redis.get(`user:backgrounded:${recIdStr}`);
-        if (socketCount > 0 && isBackgrounded !== '1') {
-          // User is actively browsing the app. Socket event already delivered real-time message,
-          // and DashboardLayout displays the in-app banner. Do NOT play loud phone chimes or system tray popups.
-          console.log(`[Push Notification] Suppressing OS push for user ${recIdStr}: currently active in foreground app.`);
-          continue;
+        // If the user has backgrounded or locked the app, NEVER suppress push notifications!
+        if (isBackgrounded !== '1') {
+          const socketCount = await redis.scard(`user:sockets:${recIdStr}`);
+          if (socketCount > 0) {
+            const activeChat = await redis.get(`user:active_chat:${recIdStr}`);
+            if (data && data.type === 'CHAT_MESSAGE' && data.senderId && activeChat === `user:${data.senderId}`) {
+              console.log(`[Push Notification] Suppressing push for user ${recIdStr}: currently viewing chat with ${data.senderId}`);
+              shouldSuppress = true;
+            } else if (data && data.type === 'GROUP_MESSAGE' && data.groupId && activeChat === `group:${data.groupId}`) {
+              console.log(`[Push Notification] Suppressing push for user ${recIdStr}: currently inside group ${data.groupId}`);
+              shouldSuppress = true;
+            }
+          }
         }
       } catch (_) {}
+
+      if (shouldSuppress) {
+        continue;
+      }
 
       eligibleReceiverIds.push(recId);
     }
@@ -115,24 +143,21 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
     }
 
     const emailList = Array.from(candidateEmails);
-    if (emailList.length === 0) {
-      console.log(`[Push Notification] No email addresses resolved for receiver IDs: ${eligibleReceiverIds.join(', ')}`);
-      return;
-    }
 
-    // 2. Fetch active FCM tokens of corresponding users from PG database
+    // 2. Fetch active FCM tokens of corresponding users from PG database (by email OR by userId)
     const tokenRecords = await prisma.userFcmToken.findMany({
       where: {
-        user: {
-          email: { in: emailList }
-        }
+        OR: [
+          ...(emailList.length > 0 ? [{ user: { email: { in: emailList } } }] : []),
+          ...(intIds.length > 0 ? [{ userId: { in: intIds } }] : [])
+        ]
       },
       select: { token: true }
     });
 
     const tokens = Array.from(new Set(tokenRecords.map(r => r.token).filter(Boolean)));
     if (tokens.length === 0) {
-      console.log(`[Push Notification] No registered device tokens found for users: ${emailList.join(', ')}`);
+      console.log(`[Push Notification] No registered device tokens found for users: ${emailList.join(', ')} / IDs: ${intIds.join(', ')}`);
       return;
     }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, ChevronRight, Send, HelpCircle, LifeBuoy, History, Plus, MessageSquare, Clock, CheckCircle, AlertCircle, ArrowLeft, User, ShieldCheck, Search, Sparkles } from 'lucide-react';
+import { Mail, ChevronRight, Send, HelpCircle, LifeBuoy, History, Plus, MessageSquare, Clock, CheckCircle, AlertCircle, ArrowLeft, User, ShieldCheck, Search, Sparkles, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
@@ -146,7 +146,8 @@ const Support = () => {
         { q: "How to earn certificates?", a: "Complete all videos and quizzes in a course with a high passing score." },
         { q: "Are the certificates officially verified?", a: "Yes, every certificate has a unique ID and QR code for public verification." },
         { q: "How does AI Intuition work?", a: "It uses deep learning to extract architectural intuition and key points from transcripts." },
-        { q: "Can I share my achievements?", a: "Direct sharing is enabled for LinkedIn, X, and your personal portfolio." }
+        { q: "Can I share my achievements?", a: "Direct sharing is enabled for LinkedIn, X, and your personal portfolio." },
+        { q: "How can I permanently delete my account and data?", a: "You can permanently delete your account, learning activity, and personal data at any time from your profile settings or by visiting the Account Deletion page.", action: "/delete-account" }
     ];
 
     const filteredTickets = tickets.filter(t => 
@@ -174,11 +175,20 @@ const Support = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
                         <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-500/20 text-[10px] font-black uppercase tracking-wider shadow-sm">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                             Live Support Active
                         </span>
+                        <button
+                            type="button"
+                            onClick={() => navigate('/delete-account')}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200/70 dark:border-red-900/40 text-[10px] font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                            title="Account & Data Deletion"
+                        >
+                            <Trash2 size={11} />
+                            <span>Delete Account</span>
+                        </button>
                     </div>
                 </div>
 
@@ -186,7 +196,7 @@ const Support = () => {
                 <div className="space-y-6 relative z-10">
                     {/* Navigation Tabs */}
                     <div className="flex justify-between items-center border-b border-gray-100 dark:border-gray-800 pb-3">
-                        <div className="flex p-1 bg-white dark:bg-gray-800/80 border border-gray-200/80 dark:border-gray-700/80 rounded-2xl shadow-sm w-full sm:w-80">
+                        <div className="inline-flex p-1 bg-gray-100/80 dark:bg-gray-800/80 border border-gray-200/70 dark:border-gray-700/70 rounded-xl shadow-xs">
                             {tabs.map((tab) => {
                                 const Icon = tab.icon;
                                 const isActive = view === tab.id || (tab.id === 'history' && view === 'detail');
@@ -194,23 +204,23 @@ const Support = () => {
                                     <button
                                         key={tab.id}
                                         onClick={() => setView(tab.id)}
-                                        className={`relative flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 flex-1 cursor-pointer ${
+                                        className={`relative flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 cursor-pointer ${
                                             isActive
                                                 ? "text-white"
-                                                : "text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                                                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                                         }`}
                                     >
                                         {isActive && (
                                             <motion.div
                                                 layoutId="activeTabSupport"
-                                                className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl shadow-md shadow-orange-500/25"
-                                                transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                                                className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg shadow-sm shadow-orange-500/20"
+                                                transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                                             />
                                         )}
-                                        <Icon size={14} className="relative z-10" />
+                                        <Icon size={13} className="relative z-10" />
                                         <span className="relative z-10">{tab.label}</span>
                                         {tab.id === 'history' && tickets.length > 0 && (
-                                            <span className={`relative z-10 ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-black ${isActive ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                                            <span className={`relative z-10 ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${isActive ? 'bg-white/25 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
                                                 {tickets.length}
                                             </span>
                                         )}
@@ -230,35 +240,35 @@ const Support = () => {
                                         initial={{ opacity: 0, y: 12 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -12 }}
-                                        className="bg-white dark:bg-gray-800/90 rounded-3xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-7 shadow-sm relative overflow-hidden"
+                                        className="bg-white dark:bg-gray-800/90 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-5 sm:p-6 shadow-sm relative overflow-hidden"
                                     >
-                                        <div className="mb-6">
-                                            <div className="flex items-center gap-1.5 mb-1.5 text-orange-500 font-black text-[11px] uppercase tracking-widest">
-                                                <Sparkles size={14} />
+                                        <div className="mb-5">
+                                            <div className="flex items-center gap-1.5 mb-1 text-orange-500 font-bold text-[11px] uppercase tracking-wider">
+                                                <Sparkles size={13} />
                                                 <span>Direct Assistance</span>
                                             </div>
-                                            <h2 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white tracking-tight">Request Assistance</h2>
+                                            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">Request Assistance</h2>
                                             <p className="text-gray-400 dark:text-gray-500 text-xs font-medium mt-0.5">Please provide accurate context so our team can resolve your issue quickly.</p>
                                         </div>
 
                                         <form onSubmit={handleSubmit} className="space-y-4">
                                             {/* Priority Selector */}
                                             <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Priority Level</label>
+                                                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">Priority Level</label>
                                                 <div className="grid grid-cols-3 gap-2">
                                                     {[
-                                                        { id: 'NORMAL', label: 'Normal', color: 'border-blue-200 text-blue-600 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-950/20' },
-                                                        { id: 'HIGH', label: 'High', color: 'border-amber-200 text-amber-600 dark:text-amber-400 bg-amber-50/40 dark:bg-amber-950/20' },
-                                                        { id: 'URGENT', label: 'Urgent', color: 'border-red-200 text-red-600 dark:text-red-400 bg-red-50/40 dark:bg-red-950/20' }
+                                                        { id: 'NORMAL', label: 'Normal', color: 'border-blue-200 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20' },
+                                                        { id: 'HIGH', label: 'High', color: 'border-amber-200 text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/20' },
+                                                        { id: 'URGENT', label: 'Urgent', color: 'border-red-200 text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-950/20' }
                                                     ].map(p => (
                                                         <button
                                                             key={p.id}
                                                             type="button"
                                                             onClick={() => setFormState({ ...formState, priority: p.id })}
-                                                            className={`py-2 px-3 rounded-xl border text-xs font-extrabold transition-all cursor-pointer text-center ${
+                                                            className={`py-1.5 px-3 rounded-lg border text-xs font-bold transition-all cursor-pointer text-center ${
                                                                 formState.priority === p.id 
-                                                                    ? `${p.color} border-current shadow-sm ring-1 ring-current` 
-                                                                    : 'border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                                                    ? `${p.color} border-current shadow-xs ring-1 ring-current` 
+                                                                    : 'border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/40 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700'
                                                             }`}
                                                         >
                                                             {p.label}
@@ -269,26 +279,26 @@ const Support = () => {
 
                                             {/* Subject */}
                                             <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Case Subject</label>
+                                                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">Case Subject</label>
                                                 <input 
                                                     required 
                                                     type="text" 
                                                     value={formState.subject} 
                                                     onChange={(e) => setFormState({...formState, subject: e.target.value})} 
-                                                    className="w-full px-4 py-3 bg-gray-50/60 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-semibold text-sm text-gray-900 dark:text-white" 
+                                                    className="w-full px-3.5 py-2.5 bg-gray-50/60 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium text-xs sm:text-sm text-gray-900 dark:text-white" 
                                                     placeholder="e.g., Certificate issue or Video playback error" 
                                                 />
                                             </div>
 
                                             {/* Message */}
                                             <div className="space-y-1.5">
-                                                <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Detailed Message</label>
+                                                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">Detailed Message</label>
                                                 <textarea 
                                                     required 
                                                     rows="4" 
                                                     value={formState.message} 
                                                     onChange={(e) => setFormState({...formState, message: e.target.value})} 
-                                                    className="w-full px-4 py-3 bg-gray-50/60 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-semibold text-sm text-gray-900 dark:text-white resize-none" 
+                                                    className="w-full px-3.5 py-2.5 bg-gray-50/60 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium text-xs sm:text-sm text-gray-900 dark:text-white resize-none" 
                                                     placeholder="Describe the issue in detail..."
                                                 ></textarea>
                                             </div>
@@ -297,13 +307,13 @@ const Support = () => {
                                             <button 
                                                 type="submit" 
                                                 disabled={isSubmitting} 
-                                                className="w-full sm:w-fit px-8 py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-extrabold rounded-2xl uppercase tracking-wider shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all text-xs border-0 cursor-pointer disabled:opacity-50"
+                                                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl shadow-sm shadow-orange-500/20 flex items-center justify-center gap-2 active:scale-95 transition-all text-xs border-0 cursor-pointer disabled:opacity-50"
                                             >
                                                 {isSubmitting ? (
-                                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                                 ) : (
                                                     <>
-                                                        <Send size={15} />
+                                                        <Send size={13} />
                                                         <span>Submit Ticket</span>
                                                     </>
                                                 )}
@@ -321,56 +331,57 @@ const Support = () => {
                                         className="space-y-4"
                                     >
                                         <div className="relative group">
-                                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={16} />
+                                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={15} />
                                             <input 
                                                 type="text" 
                                                 placeholder="Search your support tickets..." 
                                                 value={searchQuery} 
                                                 onChange={(e) => setSearchQuery(e.target.value)} 
-                                                className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 shadow-sm rounded-2xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-semibold text-sm text-gray-900 dark:text-white" 
+                                                className="w-full pl-9 pr-3.5 py-2.5 bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 shadow-xs rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium text-xs sm:text-sm text-gray-900 dark:text-white" 
                                             />
                                         </div>
 
                                         {loading && filteredTickets.length === 0 ? (
-                                            <div className="text-center py-12"><div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
+                                            <div className="text-center py-10"><div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" /></div>
                                         ) : filteredTickets.length === 0 ? (
-                                            <div className="text-center py-14 px-4 bg-white dark:bg-gray-800/80 rounded-3xl border border-gray-200/80 dark:border-gray-700 shadow-sm">
-                                                <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-950/20 text-orange-500 mx-auto flex items-center justify-center mb-3">
-                                                    <MessageSquare size={22} />
+                                            <div className="text-center py-10 px-4 bg-white dark:bg-gray-800/80 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-xs">
+                                                <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/20 text-orange-500 mx-auto flex items-center justify-center mb-2.5">
+                                                    <MessageSquare size={18} />
                                                 </div>
-                                                <h3 className="font-extrabold text-gray-900 dark:text-white text-sm">No Support Tickets</h3>
-                                                <p className="text-gray-400 dark:text-gray-500 text-xs mt-1 max-w-sm mx-auto">You haven't submitted any support requests yet. Open a ticket if you need assistance!</p>
+                                                <h3 className="font-bold text-gray-900 dark:text-white text-xs">No Support Tickets</h3>
+                                                <p className="text-gray-400 dark:text-gray-500 text-[11px] mt-0.5 max-w-sm mx-auto">You haven't submitted any support requests yet. Open a ticket if you need assistance!</p>
                                                 <button
                                                     onClick={() => setView('new')}
-                                                    className="mt-4 px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 cursor-pointer"
+                                                    className="mt-3.5 px-4 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-bold rounded-xl shadow-xs transition active:scale-95 cursor-pointer border-0 inline-flex items-center gap-1.5"
                                                 >
-                                                    + Open New Ticket
+                                                    <Plus size={13} />
+                                                    <span>Open New Ticket</span>
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div className="space-y-3">
+                                            <div className="space-y-2.5">
                                                 {filteredTickets.map(ticket => (
                                                     <div 
                                                         key={ticket.id} 
                                                         onClick={() => fetchTicketDetail(ticket.id)} 
-                                                        className="group bg-white dark:bg-gray-800/90 p-4 rounded-2xl border border-gray-200/80 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-400 transition-all cursor-pointer shadow-sm hover:shadow-md flex items-center justify-between gap-4"
+                                                        className="group bg-white dark:bg-gray-800/90 p-3.5 rounded-xl border border-gray-200/80 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-400 transition-all cursor-pointer shadow-xs hover:shadow-sm flex items-center justify-between gap-3.5"
                                                     >
-                                                        <div className="flex items-center gap-3.5 overflow-hidden">
-                                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${getStatusStyles(ticket.status)} border shadow-xs`}>
-                                                                <MessageSquare size={16} />
+                                                        <div className="flex items-center gap-3 overflow-hidden">
+                                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${getStatusStyles(ticket.status)} border shadow-xs`}>
+                                                                <MessageSquare size={15} />
                                                             </div>
                                                             <div className="overflow-hidden min-w-0">
-                                                                <h3 className="font-extrabold text-gray-900 dark:text-white truncate text-sm mb-1 group-hover:text-orange-500 transition-colors">{ticket.subject}</h3>
-                                                                <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 dark:text-gray-500">
+                                                                <h3 className="font-bold text-gray-900 dark:text-white truncate text-xs sm:text-sm mb-0.5 group-hover:text-orange-500 transition-colors">{ticket.subject}</h3>
+                                                                <div className="flex items-center gap-2 text-[10px] font-medium text-gray-400 dark:text-gray-500">
                                                                     <span>{formatDate(ticket.created_at)}</span>
                                                                     <span className="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></span>
-                                                                    <span className={`px-2 py-0.5 rounded-full uppercase tracking-wider text-[9px] font-black border ${getStatusStyles(ticket.status)}`}>
+                                                                    <span className={`px-2 py-0.5 rounded-full uppercase tracking-wider text-[9px] font-bold border ${getStatusStyles(ticket.status)}`}>
                                                                         {ticket.status}
                                                                     </span>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        <ChevronRight className="text-gray-300 dark:text-gray-600 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all shrink-0" size={18} />
+                                                        <ChevronRight className="text-gray-300 dark:text-gray-600 group-hover:text-orange-500 group-hover:translate-x-0.5 transition-all shrink-0" size={16} />
                                                     </div>
                                                 ))}
                                             </div>
@@ -384,52 +395,52 @@ const Support = () => {
                                         initial={{ opacity: 0, scale: 0.98 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.98 }}
-                                        className="bg-white dark:bg-gray-800/95 rounded-3xl border border-gray-200/80 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col h-full"
+                                        className="bg-white dark:bg-gray-800/95 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-xs overflow-hidden flex flex-col h-full"
                                     >
-                                        <div className="p-4 sm:p-6 bg-orange-50/20 dark:bg-gray-900/40 border-b border-gray-100 dark:border-gray-700">
+                                        <div className="p-4 sm:p-5 bg-orange-50/20 dark:bg-gray-900/40 border-b border-gray-100 dark:border-gray-700">
                                             <button 
                                                 onClick={() => setView('history')} 
-                                                className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 font-extrabold text-xs mb-3 hover:text-orange-500 transition-colors group bg-transparent border-0 cursor-pointer"
+                                                className="flex items-center gap-1.5 text-gray-500 dark:text-gray-400 font-bold text-xs mb-2.5 hover:text-orange-500 transition-colors group bg-transparent border-0 cursor-pointer"
                                             >
-                                                <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                                                <ArrowLeft size={13} className="group-hover:-translate-x-1 transition-transform" />
                                                 <span>Back to Tickets</span>
                                             </button>
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${getStatusStyles(selectedTicket.status)}`}>
+                                            <div className="flex items-center gap-2 mb-1.5">
+                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${getStatusStyles(selectedTicket.status)}`}>
                                                     {selectedTicket.status}
                                                 </span>
-                                                <span className="text-gray-400 dark:text-gray-500 text-xs font-bold">Ticket #{selectedTicket.id}</span>
+                                                <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">Ticket #{selectedTicket.id}</span>
                                             </div>
-                                            <h2 className="text-base sm:text-lg font-black text-gray-900 dark:text-white tracking-tight leading-snug">{selectedTicket.subject}</h2>
+                                            <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white tracking-tight leading-snug">{selectedTicket.subject}</h2>
                                         </div>
 
-                                        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto max-h-[420px] min-h-[280px] bg-gray-50/20 dark:bg-gray-900/20">
+                                        <div className="p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[420px] min-h-[260px] bg-gray-50/20 dark:bg-gray-900/20">
                                             {/* Original Case Message */}
-                                            <div className="flex flex-col items-end gap-1.5">
+                                            <div className="flex flex-col items-end gap-1">
                                                 <div className="flex items-center gap-1.5 mb-0.5">
-                                                    <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">You (Original Ticket)</span>
-                                                    <div className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center font-black text-[9px]">ME</div>
+                                                    <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">You (Original Ticket)</span>
+                                                    <div className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-[9px]">ME</div>
                                                 </div>
-                                                <div className="bg-orange-500 text-white p-4 rounded-2xl rounded-tr-none shadow-sm max-w-[90%] text-left font-medium text-xs sm:text-sm leading-relaxed">
+                                                <div className="bg-orange-500 text-white p-3.5 rounded-2xl rounded-tr-none shadow-xs max-w-[90%] text-left font-normal text-xs sm:text-sm leading-relaxed">
                                                     {selectedTicket.message}
                                                 </div>
-                                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500">{formatDate(selectedTicket.created_at)}</span>
+                                                <span className="text-[9px] font-medium text-gray-400 dark:text-gray-500">{formatDate(selectedTicket.created_at)}</span>
                                             </div>
 
                                             {/* Response Thread */}
                                             {selectedTicket.responses.map(resp => {
                                                 const isFromAdmin = resp.adminId !== null;
                                                 return (
-                                                    <div key={resp.id} className={`flex flex-col gap-1.5 ${isFromAdmin ? 'items-start' : 'items-end'}`}>
+                                                    <div key={resp.id} className={`flex flex-col gap-1 ${isFromAdmin ? 'items-start' : 'items-end'}`}>
                                                         <div className={`flex items-center gap-1.5 mb-0.5 ${isFromAdmin ? '' : 'flex-row-reverse'}`}>
-                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center font-black text-[9px] shadow-sm ${isFromAdmin ? 'bg-slate-700 text-white' : 'bg-orange-500 text-white'}`}>
+                                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] shadow-xs ${isFromAdmin ? 'bg-slate-700 text-white' : 'bg-orange-500 text-white'}`}>
                                                                 {isFromAdmin ? <ShieldCheck size={11} /> : 'ME'}
                                                             </div>
-                                                            <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500">
+                                                            <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500">
                                                                 {isFromAdmin ? 'Support Team' : 'You'}
                                                             </span>
                                                         </div>
-                                                        <div className={`p-4 rounded-2xl shadow-sm max-w-[90%] font-medium text-xs sm:text-sm leading-relaxed ${
+                                                        <div className={`p-3.5 rounded-2xl shadow-xs max-w-[90%] font-normal text-xs sm:text-sm leading-relaxed ${
                                                             isFromAdmin 
                                                             ? 'bg-white dark:bg-gray-800 border border-gray-200/80 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none' 
                                                             : 'bg-orange-500 text-white rounded-tr-none text-left'
@@ -437,8 +448,8 @@ const Support = () => {
                                                             {resp.message}
                                                         </div>
                                                         <div className={`flex items-center gap-2 mt-0.5 ${isFromAdmin ? '' : 'flex-row-reverse'}`}>
-                                                            {isFromAdmin && <span className="text-[9px] font-bold text-orange-500 uppercase flex items-center gap-1 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded-full"><ShieldCheck size={10} /> Verified Staff</span>}
-                                                            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500">{formatDate(resp.created_at)}</span>
+                                                            {isFromAdmin && <span className="text-[9px] font-semibold text-orange-500 uppercase flex items-center gap-1 bg-orange-50 dark:bg-orange-950/40 px-2 py-0.5 rounded-full"><ShieldCheck size={10} /> Staff</span>}
+                                                            <span className="text-[9px] font-medium text-gray-400 dark:text-gray-500">{formatDate(resp.created_at)}</span>
                                                         </div>
                                                     </div>
                                                 );
@@ -446,23 +457,23 @@ const Support = () => {
                                         </div>
 
                                         {selectedTicket.status !== 'CLOSED' && (
-                                            <div className="p-3 sm:p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+                                            <div className="p-3 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
                                                 <form onSubmit={handleRespond} className="relative">
                                                     <textarea 
                                                         required 
                                                         rows="2" 
                                                         value={responseMessage} 
                                                         onChange={(e) => setResponseMessage(e.target.value)} 
-                                                        className="w-full px-4 py-3 bg-gray-50/80 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 focus:border-orange-500 rounded-2xl outline-none transition-all font-medium text-xs sm:text-sm resize-none pr-14 text-gray-900 dark:text-white" 
+                                                        className="w-full px-3.5 py-2.5 bg-gray-50/80 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 focus:border-orange-500 rounded-xl outline-none transition-all font-medium text-xs sm:text-sm resize-none pr-12 text-gray-900 dark:text-white" 
                                                         placeholder="Write your response..."
                                                     ></textarea>
-                                                    <div className="absolute right-2.5 bottom-3">
+                                                    <div className="absolute right-2 bottom-2.5">
                                                         <button 
                                                             type="submit" 
                                                             disabled={isSubmitting || !responseMessage} 
-                                                            className="h-9 w-9 bg-orange-500 text-white rounded-xl flex items-center justify-center hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-40 border-0 cursor-pointer shadow-sm"
+                                                            className="h-8 w-8 bg-orange-500 text-white rounded-lg flex items-center justify-center hover:bg-orange-600 transition-all active:scale-95 disabled:opacity-40 border-0 cursor-pointer shadow-xs"
                                                         >
-                                                            {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={15} />}
+                                                            {isSubmitting ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={13} />}
                                                         </button>
                                                     </div>
                                                 </form>
@@ -476,16 +487,16 @@ const Support = () => {
                         {/* Sidebar widget info */}
                         <div className="space-y-6">
                             {/* Direct Email Card */}
-                            <div className="bg-white dark:bg-gray-800/90 p-5 sm:p-6 rounded-3xl border border-gray-200/80 dark:border-gray-700 shadow-sm relative overflow-hidden text-center">
-                                <div className="w-12 h-12 bg-gradient-to-tr from-orange-500 to-amber-400 rounded-2xl mx-auto flex items-center justify-center text-white shadow-md shadow-orange-500/20 mb-3.5">
-                                    <Mail size={22} />
+                            <div className="bg-white dark:bg-gray-800/90 p-5 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-xs relative overflow-hidden text-center">
+                                <div className="w-11 h-11 bg-gradient-to-tr from-orange-500 to-amber-400 rounded-xl mx-auto flex items-center justify-center text-white shadow-sm shadow-orange-500/20 mb-3">
+                                    <Mail size={19} />
                                 </div>
-                                <h4 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Direct Inquiries</h4>
-                                <p className="text-sm font-black text-gray-900 dark:text-white mb-1 break-all">hello@learnproofai.com</p>
-                                <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mb-4">⚡ Avg response time: &lt; 2 Hours</p>
+                                <h4 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Direct Inquiries</h4>
+                                <p className="text-sm font-bold text-gray-900 dark:text-white mb-0.5 break-all">hello@learnproofai.com</p>
+                                <p className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mb-3.5">⚡ Avg response time: &lt; 2 Hours</p>
                                 <a 
                                     href="mailto:hello@learnproofai.com" 
-                                    className="inline-flex items-center justify-center gap-2 w-full py-2.5 bg-gray-50 dark:bg-gray-700 hover:bg-orange-500 hover:text-white text-gray-800 dark:text-gray-200 font-extrabold rounded-xl text-xs transition-all active:scale-95 no-underline cursor-pointer border border-gray-200 dark:border-gray-600 shadow-xs"
+                                    className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 bg-gray-50 dark:bg-gray-700/60 hover:bg-orange-500 hover:text-white text-gray-700 dark:text-gray-200 font-bold rounded-xl text-xs transition-all active:scale-95 no-underline cursor-pointer border border-gray-200/80 dark:border-gray-600 shadow-xs"
                                 >
                                     <Mail size={13} />
                                     <span>Compose Message</span>
@@ -493,10 +504,10 @@ const Support = () => {
                             </div>
 
                             {/* FAQs Accordion */}
-                            <div className="bg-white dark:bg-gray-800/90 rounded-3xl border border-gray-200/80 dark:border-gray-700 overflow-hidden shadow-sm">
-                                <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40 flex items-center gap-2.5">
-                                    <HelpCircle size={17} className="text-orange-500" />
-                                    <h3 className="font-extrabold text-gray-900 dark:text-white text-xs uppercase tracking-wider">Frequently Asked Questions</h3>
+                            <div className="bg-white dark:bg-gray-800/90 rounded-2xl border border-gray-200/80 dark:border-gray-700 overflow-hidden shadow-xs">
+                                <div className="p-3.5 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40 flex items-center gap-2">
+                                    <HelpCircle size={15} className="text-orange-500" />
+                                    <h3 className="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider">Frequently Asked Questions</h3>
                                 </div>
                                 <div className="p-4 sm:p-5 space-y-3.5">
                                     {faqItems.map((item, i) => (
@@ -506,11 +517,45 @@ const Support = () => {
                                                 <ChevronRight size={14} className="group-open:rotate-90 transition-transform text-gray-400 shrink-0" />
                                             </summary>
                                             <div className="mt-2 p-3 bg-orange-50/40 dark:bg-gray-900/50 rounded-xl text-xs font-medium text-gray-600 dark:text-gray-400 leading-relaxed">
-                                                {item.a}
+                                                <p>{item.a}</p>
+                                                {item.action && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigate(item.action)}
+                                                        className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200/80 dark:border-red-900/40 font-bold rounded-lg text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                        <span>Go to Account Deletion</span>
+                                                    </button>
+                                                )}
                                             </div>
                                         </details>
                                     ))}
                                 </div>
+                            </div>
+
+                            {/* Account Deletion & Privacy Card */}
+                            <div className="bg-white dark:bg-gray-800/90 p-4 sm:p-5 rounded-2xl border border-gray-200/80 dark:border-gray-700 shadow-xs relative overflow-hidden">
+                                <div className="flex items-center gap-2 mb-1.5 text-red-500 dark:text-red-400">
+                                    <div className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-500 dark:text-red-400 flex items-center justify-center">
+                                        <Trash2 size={14} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-xs text-gray-900 dark:text-white leading-tight">Delete Account</h4>
+                                        <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">Privacy & Data Control</p>
+                                    </div>
+                                </div>
+                                <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium leading-relaxed mb-3">
+                                    Need to permanently delete your account, learning activity, certificates, and personal data?
+                                </p>
+                                <button 
+                                    type="button"
+                                    onClick={() => navigate('/delete-account')}
+                                    className="inline-flex items-center justify-center gap-1.5 w-full py-2 px-3 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-950/30 text-red-600 dark:text-red-400 font-bold rounded-xl text-xs transition-all active:scale-95 cursor-pointer border border-red-200/70 dark:border-red-900/40 shadow-xs"
+                                >
+                                    <Trash2 size={12} />
+                                    <span>Delete Account & Data</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -561,7 +606,7 @@ const Support = () => {
                                     </p>
                                     <button 
                                         onClick={() => navigate('/login')}
-                                        className="px-6 py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl uppercase text-xs tracking-widest active:scale-95 transition-all shadow-lg shadow-orange-500/20 cursor-pointer border-0"
+                                        className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs active:scale-95 transition-all shadow-sm shadow-orange-500/20 cursor-pointer border-0"
                                     >
                                         Login to Submit Ticket
                                     </button>
@@ -570,14 +615,31 @@ const Support = () => {
                                 <div className="bg-orange-50/40 dark:bg-gray-800/40 rounded-2xl p-6 sm:p-8 border border-orange-100/50 dark:border-gray-700 space-y-4">
                                     <h2 className="text-xl sm:text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tight">Email Support</h2>
                                     <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base font-semibold leading-relaxed">
-                                        For general inquiries, account deletion requests, or if you cannot log in, you can contact us directly via email.
+                                        For general inquiries, assistance, or direct contact, you can reach our support team anytime via email.
                                     </p>
                                     <a 
                                         href="mailto:hello@learnproofai.com"
-                                        className="inline-block px-6 py-3.5 bg-white dark:bg-gray-800 border border-orange-100 dark:border-gray-700 hover:shadow-lg text-gray-700 dark:text-gray-300 font-extrabold rounded-xl uppercase text-xs tracking-widest active:scale-95 transition-all cursor-pointer no-underline"
+                                        className="inline-block px-5 py-2.5 bg-white dark:bg-gray-800 border border-orange-100 dark:border-gray-700 hover:shadow-sm text-gray-700 dark:text-gray-300 font-bold rounded-xl text-xs active:scale-95 transition-all cursor-pointer no-underline"
                                     >
                                         Email hello@learnproofai.com
                                     </a>
+                                </div>
+
+                                <div className="bg-red-50/30 dark:bg-red-950/20 rounded-2xl p-6 sm:p-8 border border-red-100/80 dark:border-red-900/40 space-y-4">
+                                    <div className="flex items-center gap-2 text-red-500">
+                                        <Trash2 size={20} />
+                                        <h2 className="text-xl sm:text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tight">Account & Data Deletion</h2>
+                                    </div>
+                                    <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base font-semibold leading-relaxed">
+                                        You have full ownership of your data. You can initiate permanent account, progress, certificate, and data deletion directly online.
+                                    </p>
+                                    <button 
+                                        onClick={() => navigate('/delete-account')}
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-xs active:scale-95 transition-all cursor-pointer border-0 shadow-sm shadow-red-500/20"
+                                    >
+                                        <Trash2 size={13} />
+                                        <span>Go to Account Deletion</span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -596,7 +658,17 @@ const Support = () => {
                                                     <ChevronRight size={14} className="group-open:rotate-90 transition-all text-gray-400 dark:text-gray-550 flex-shrink-0" />
                                                 </summary>
                                                 <div className="mt-2 p-3 bg-orange-50/50 dark:bg-gray-900/50 rounded-xl text-xs font-semibold text-gray-500 dark:text-gray-400 leading-relaxed italic">
-                                                    {item.a}
+                                                    <p>{item.a}</p>
+                                                    {item.action && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => navigate(item.action)}
+                                                            className="mt-2.5 not-italic inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200/80 dark:border-red-900/40 font-bold rounded-lg text-[11px] transition-all cursor-pointer shadow-xs active:scale-95"
+                                                        >
+                                                            <Trash2 size={12} />
+                                                            <span>Go to Account Deletion</span>
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </details>
                                         ))}
@@ -608,8 +680,8 @@ const Support = () => {
                         /* Authenticated View */
                         <div className="space-y-6">
                             {/* Navigation Tabs */}
-                            <div className="flex justify-between items-center border-b border-orange-100 dark:border-gray-800 pb-4">
-                                <div className="flex p-1 bg-orange-50 dark:bg-gray-800 border border-orange-100/50 dark:border-gray-700 rounded-xl">
+                            <div className="flex justify-between items-center border-b border-orange-100 dark:border-gray-800 pb-3">
+                                <div className="inline-flex p-1 bg-orange-50 dark:bg-gray-800 border border-orange-100/50 dark:border-gray-700 rounded-xl shadow-xs">
                                     {tabs.map((tab) => {
                                         const Icon = tab.icon;
                                         const isActive = view === tab.id || (tab.id === 'history' && view === 'detail');
@@ -617,13 +689,13 @@ const Support = () => {
                                             <button
                                                 key={tab.id}
                                                 onClick={() => setView(tab.id)}
-                                                className={`relative flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all duration-300 border-0 ${
+                                                className={`relative flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 border-0 ${
                                                     isActive 
-                                                    ? "text-white bg-orange-500 shadow-md shadow-orange-500/10" 
-                                                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 bg-transparent cursor-pointer"
+                                                    ? "text-white bg-orange-500 shadow-sm shadow-orange-500/20" 
+                                                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-transparent cursor-pointer"
                                                 }`}
                                             >
-                                                <Icon size={14} />
+                                                <Icon size={13} />
                                                 <span>{tab.label}</span>
                                             </button>
                                         );
@@ -641,45 +713,45 @@ const Support = () => {
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 exit={{ opacity: 0, y: -10 }}
-                                                className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-3xl border border-orange-100 dark:border-gray-700 shadow-sm relative overflow-hidden"
+                                                className="bg-white dark:bg-gray-800 p-5 sm:p-7 rounded-2xl border border-orange-100 dark:border-gray-700 shadow-sm relative overflow-hidden"
                                             >
-                                                <div className="mb-6">
-                                                    <div className="flex items-center gap-2 mb-2 text-orange-500">
-                                                        <Sparkles size={18} />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">Connect with our team</span>
+                                                <div className="mb-5">
+                                                    <div className="flex items-center gap-1.5 mb-1 text-orange-500 font-bold text-[11px] uppercase tracking-wider">
+                                                        <Sparkles size={14} />
+                                                        <span>Connect with our team</span>
                                                     </div>
-                                                    <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight mb-1">Request Assistance</h2>
-                                                    <p className="text-gray-500 dark:text-gray-400 text-xs font-semibold">Please provide accurate context for a swift resolution.</p>
+                                                    <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight mb-0.5">Request Assistance</h2>
+                                                    <p className="text-gray-500 dark:text-gray-400 text-xs font-medium">Please provide accurate context for a swift resolution.</p>
                                                 </div>
                                                 <form onSubmit={handleSubmit} className="space-y-4">
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Case Subject</label>
+                                                        <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">Case Subject</label>
                                                         <input 
                                                             required 
                                                             type="text" 
                                                             value={formState.subject} 
                                                             onChange={(e) => setFormState({...formState, subject: e.target.value})} 
-                                                            className="w-full px-4 py-3 bg-orange-50/20 dark:bg-gray-900/50 border border-orange-100 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-semibold text-sm text-gray-900 dark:text-white" 
+                                                            className="w-full px-3.5 py-2.5 bg-orange-50/20 dark:bg-gray-900/50 border border-orange-100 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium text-xs sm:text-sm text-gray-900 dark:text-white" 
                                                             placeholder="What can we help you with?" 
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">Detailed Message</label>
+                                                        <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-1">Detailed Message</label>
                                                         <textarea 
                                                             required 
                                                             rows="4" 
                                                             value={formState.message} 
                                                             onChange={(e) => setFormState({...formState, message: e.target.value})} 
-                                                            className="w-full px-4 py-3 bg-orange-50/20 dark:bg-gray-900/50 border border-orange-100 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-semibold text-sm text-gray-900 dark:text-white resize-none" 
+                                                            className="w-full px-3.5 py-2.5 bg-orange-50/20 dark:bg-gray-900/50 border border-orange-100 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all font-medium text-xs sm:text-sm text-gray-900 dark:text-white resize-none" 
                                                             placeholder="Describe the problem accurately..."
                                                         ></textarea>
                                                     </div>
                                                     <button 
                                                         type="submit" 
                                                         disabled={isSubmitting} 
-                                                        className="w-full sm:w-fit sm:px-8 py-3 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl uppercase tracking-widest shadow-lg shadow-orange-500/20 flex items-center justify-center gap-3 active:scale-95 transition-all text-xs border-0 cursor-pointer"
+                                                        className="w-full sm:w-auto px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-sm shadow-orange-500/20 flex items-center justify-center gap-2 active:scale-95 transition-all text-xs border-0 cursor-pointer disabled:opacity-50"
                                                     >
-                                                        {isSubmitting ? <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" /> : <><Send size={18} /> Open Ticket</>}
+                                                        {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <><Send size={13} /> Open Ticket</>}
                                                     </button>
                                                 </form>
                                             </motion.div>

@@ -149,11 +149,26 @@ h1, h2, h3, h4 {
 }
 
 /* ── Theme-Adaptive Prism Syntax Highlighting ───────────────────────────────── */
+.code-editor-body pre,
+.code-editor-body textarea,
+.code-editor-body code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+    font-variant-ligatures: none !important;
+    text-rendering: optimizeLegibility !important;
+    letter-spacing: 0px !important;
+    word-spacing: 0px !important;
+}
+
+.code-editor-body .token {
+    font-weight: 500 !important;
+    font-style: normal !important;
+    letter-spacing: 0px !important;
+}
+
 /* Light Mode (default) */
 .code-editor-body pre,
 .code-editor-body code {
     color: #24292f !important;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
 }
 
 .code-editor-body .token.comment,
@@ -161,7 +176,7 @@ h1, h2, h3, h4 {
 .code-editor-body .token.doctype,
 .code-editor-body .token.cdata {
     color: #6e7781 !important;
-    font-style: italic;
+    font-style: italic !important;
 }
 
 .code-editor-body .token.punctuation {
@@ -198,13 +213,11 @@ h1, h2, h3, h4 {
 .code-editor-body .token.attr-value,
 .code-editor-body .token.keyword {
     color: #cf222e !important;
-    font-weight: 600;
 }
 
 .code-editor-body .token.function,
 .code-editor-body .token.class-name {
     color: #8250df !important;
-    font-weight: 600;
 }
 
 .code-editor-body .token.regex,

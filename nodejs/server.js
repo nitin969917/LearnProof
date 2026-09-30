@@ -260,7 +260,7 @@ io.on('connection', (socket) => {
     const target = data.groupId ? `group:${data.groupId}` : `user:${data.targetUserId}`;
     socket.activeChatTarget = target;
     try {
-      await redis.set(`user:active_chat:${socket.userId}`, target, 'EX', 86400);
+      await redis.set(`user:active_chat:${socket.userId}`, target, 'EX', 300);
       console.log(`[Socket.io] User ${socket.userId} entered chat: ${target}`);
     } catch (e) {
       console.error('Error setting user:active_chat:', e.message);
@@ -347,10 +347,18 @@ io.on('connection', (socket) => {
       // Dispatch push notification to receiver's devices (client-side service worker & OS gatekeep visibility)
       try {
         const senderName = savedMessage.sender?.name || 'A friend';
+        let cleanBody = message.content || 'Sent a message';
+        try {
+          if (typeof message.content === 'string' && message.content.trim().startsWith('{')) {
+            const parsed = JSON.parse(message.content);
+            cleanBody = parsed.text || (parsed.fileUrl ? 'Sent an attachment 📎' : (parsed.isVoiceNote ? 'Sent a voice message 🎙️' : message.content));
+          }
+        } catch (_) {}
+
         sendPushNotification(
           [parseInt(receiverId)],
           `New message from ${senderName}`,
-          message.content,
+          cleanBody,
           { 
             type: 'CHAT_MESSAGE', 
             senderId: String(message.senderId),
