@@ -913,66 +913,7 @@ const Classroom = () => {
     }
   }, [videoId, activeTab]);
 
-  // Code Editor Tab State with persistence strictly scoped per video
-  const [editorCode, setEditorCode] = useState(() => {
-    try {
-      if (videoId) {
-        const saved = localStorage.getItem(`learnproof_code_${videoId}`);
-        if (saved !== null) return saved;
-      }
-      return '';
-    } catch {
-      return '';
-    }
-  });
 
-  const [editorLanguage, setEditorLanguage] = useState(() => {
-    try {
-      if (videoId) {
-        const saved = localStorage.getItem(`learnproof_lang_${videoId}`);
-        if (saved) return saved;
-      }
-      return 'python';
-    } catch {
-      return 'python';
-    }
-  });
-
-  // Sync editor when videoId or intuition changes
-  // If no saved code exists and intuition has not been generated, it MUST show BLANK!
-  useEffect(() => {
-    if (!videoId) return;
-    try {
-      const savedCode = localStorage.getItem(`learnproof_code_${videoId}`);
-      const savedLang = localStorage.getItem(`learnproof_lang_${videoId}`);
-      if (savedCode !== null) {
-        setEditorCode(savedCode);
-      } else {
-        const snippet = extractFirstCodeSnippetFromIntuition(parsedIntuition);
-        setEditorCode(snippet?.code || '');
-        if (snippet?.language) {
-          setEditorLanguage(snippet.language);
-        }
-      }
-      if (savedLang) {
-        setEditorLanguage(savedLang);
-      }
-    } catch (e) {}
-  }, [videoId, parsedIntuition]);
-
-  const handleEditorCodeChange = (newCode) => {
-    setEditorCode(newCode);
-    try {
-      if (videoId) localStorage.setItem(`learnproof_code_${videoId}`, newCode);
-    } catch (e) {}
-  };
-
-  const handleEditorLanguageChange = (newLang) => {
-    setEditorLanguage(newLang);
-    try {
-      if (videoId) localStorage.setItem(`learnproof_lang_${videoId}`, newLang);
-    } catch (e) {}
-  };
 
   const [noteContent, setNoteContent] = useState("");
   const [noteFiles, setNoteFiles] = useState([]); // Saved files from server
@@ -1234,6 +1175,67 @@ const Classroom = () => {
   const parsedIntuition = useMemo(() => parseIntuitionData(intuitionContent), [intuitionContent]);
   const [suggestionSeed, setSuggestionSeed] = useState(0);
   const dynamicSuggestions = useMemo(() => getDynamicSuggestedQuestions(video, parsedIntuition, suggestionSeed), [video, parsedIntuition, suggestionSeed]);
+
+  // Code Editor Tab State with persistence strictly scoped per video
+  const [editorCode, setEditorCode] = useState(() => {
+    try {
+      if (videoId) {
+        const saved = localStorage.getItem(`learnproof_code_${videoId}`);
+        if (saved !== null) return saved;
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  });
+
+  const [editorLanguage, setEditorLanguage] = useState(() => {
+    try {
+      if (videoId) {
+        const saved = localStorage.getItem(`learnproof_lang_${videoId}`);
+        if (saved) return saved;
+      }
+      return 'python';
+    } catch {
+      return 'python';
+    }
+  });
+
+  // Sync editor when videoId or intuition changes
+  // If no saved code exists and intuition has not been generated, it MUST show BLANK!
+  useEffect(() => {
+    if (!videoId) return;
+    try {
+      const savedCode = localStorage.getItem(`learnproof_code_${videoId}`);
+      const savedLang = localStorage.getItem(`learnproof_lang_${videoId}`);
+      if (savedCode !== null) {
+        setEditorCode(savedCode);
+      } else {
+        const snippet = extractFirstCodeSnippetFromIntuition(parsedIntuition);
+        setEditorCode(snippet?.code || '');
+        if (snippet?.language) {
+          setEditorLanguage(snippet.language);
+        }
+      }
+      if (savedLang) {
+        setEditorLanguage(savedLang);
+      }
+    } catch (e) {}
+  }, [videoId, parsedIntuition]);
+
+  const handleEditorCodeChange = (newCode) => {
+    setEditorCode(newCode);
+    try {
+      if (videoId) localStorage.setItem(`learnproof_code_${videoId}`, newCode);
+    } catch (e) {}
+  };
+
+  const handleEditorLanguageChange = (newLang) => {
+    setEditorLanguage(newLang);
+    try {
+      if (videoId) localStorage.setItem(`learnproof_lang_${videoId}`, newLang);
+    } catch (e) {}
+  };
 
 
   // Quiz State
