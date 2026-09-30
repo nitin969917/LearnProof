@@ -16,10 +16,13 @@ import {
   CheckCircle2,
   ChevronDown,
   FileCode2,
-  EyeOff
+  EyeOff,
+  Globe
 } from 'lucide-react';
 import { executeCode, convertCodeSnippet } from '../../api/compilerApi';
 import Prism from 'prismjs';
+import 'prismjs/components/prism-markup';
+import 'prismjs/components/prism-css';
 import 'prismjs/components/prism-c';
 import 'prismjs/components/prism-cpp';
 import 'prismjs/components/prism-java';
@@ -147,16 +150,62 @@ console.log("🚀 Hello from LearnProof TypeScript Editor!");
 const result = processNumbers(numbers);
 console.log("Sorted Array:", result.sorted);
 console.log("Sum:", result.sum);
+`,
+  html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LearnProof HTML / CSS</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 24px;
+      background: #f8fafc;
+      color: #1e293b;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    h1 { color: #f97316; margin-top: 0; font-size: 20px; }
+    p { line-height: 1.6; color: #475569; }
+    button {
+      background: #f97316;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🚀 Hello from LearnProof!</h1>
+    <p>Edit HTML and CSS, then click <strong>Run Code</strong> to see live changes.</p>
+    <button onclick="alert('Hello from your HTML preview!')">Click Me</button>
+  </div>
+</body>
+</html>
 `
 };
 
 const LANGUAGES = [
   { id: 'python', label: 'Python 3', badge: 'PY', ext: '.py' },
-  { id: 'cpp', label: 'C++ 17', badge: 'C++', ext: '.cpp' },
-  { id: 'java', label: 'Java (JDK 21)', badge: 'JAVA', ext: '.java' },
   { id: 'javascript', label: 'JavaScript (Node.js)', badge: 'JS', ext: '.js' },
+  { id: 'typescript', label: 'TypeScript', badge: 'TS', ext: '.ts' },
+  { id: 'html', label: 'HTML / CSS', badge: 'HTML', ext: '.html' },
+  { id: 'cpp', label: 'C++ 17', badge: 'C++', ext: '.cpp' },
   { id: 'c', label: 'C (C11)', badge: 'C', ext: '.c' },
-  { id: 'typescript', label: 'TypeScript', badge: 'TS', ext: '.ts' }
+  { id: 'java', label: 'Java (JDK 21)', badge: 'JAVA', ext: '.java' },
+  { id: 'bash', label: 'Bash', badge: 'SH', ext: '.sh' },
+  { id: 'go', label: 'Go', badge: 'GO', ext: '.go' },
+  { id: 'rust', label: 'Rust', badge: 'RS', ext: '.rs' }
 ];
 
 export default function ClassroomCodeEditor({
@@ -181,20 +230,22 @@ export default function ClassroomCodeEditor({
   });
 
   const [code, setCode] = useState(() => {
-    if (externalCode) return externalCode;
+    if (externalCode !== undefined && externalCode !== null) return externalCode;
     try {
       if (videoId) {
         const saved = localStorage.getItem(`learnproof_code_${videoId}`);
         if (saved !== null) return saved;
       }
-      return localStorage.getItem('learnproof_code_draft') || STARTER_CODE.python;
+      return localStorage.getItem('learnproof_code_draft') || '';
     } catch {
-      return STARTER_CODE.python;
+      return '';
     }
   });
 
   const [stdin, setStdin] = useState('');
-  const [activeBottomTab, setActiveBottomTab] = useState('output'); // 'output' | 'stdin'
+  const [activeBottomTab, setActiveBottomTab] = useState(() => {
+    return (externalLanguage === 'html' || externalLanguage === 'markup') ? 'preview' : 'output';
+  }); // 'preview' | 'output' | 'stdin'
   const [output, setOutput] = useState('');
   const [errorOutput, setErrorOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -279,10 +330,22 @@ export default function ClassroomCodeEditor({
     go: 'go',
     rust: 'rust',
     sh: 'bash',
-    bash: 'bash'
+    bash: 'bash',
+    html: 'markup',
+    htm: 'markup',
+    markup: 'markup',
+    xml: 'markup',
+    css: 'css'
   };
 
   const prismLang = langAliases[language] || language || 'javascript';
+
+  // Auto-switch to preview tab when html is selected
+  useEffect(() => {
+    if ((language === 'html' || language === 'markup') && activeBottomTab !== 'stdin') {
+      setActiveBottomTab('preview');
+    }
+  }, [language]);
 
   // Real-time colorful Prism syntax highlighting
   const highlightedCode = useMemo(() => {
@@ -342,9 +405,17 @@ export default function ClassroomCodeEditor({
       return;
     }
 
-    // 2. Starter code check: If current code is unmodified starter template or blank, load new starter template
+    // 2. If editor is clean/empty, keep it completely clean and empty (do not inject default templates)!
+    if (!code || !code.trim()) {
+      setLanguage(newLang);
+      prevExternalLangRef.current = newLang;
+      if (onLanguageChange) onLanguageChange(newLang);
+      return;
+    }
+
+    // 3. Starter code check: If current code is an unmodified starter template, load target starter
     const isStarter = Object.values(STARTER_CODE).some(starter => starter.trim() === code.trim());
-    if (isStarter || !code.trim()) {
+    if (isStarter) {
       const starter = STARTER_CODE[newLang] || '';
       setLanguage(newLang);
       prevExternalLangRef.current = newLang;
@@ -360,7 +431,7 @@ export default function ClassroomCodeEditor({
       return;
     }
 
-    // 3. Custom code: Convert custom code to target language using Vertex AI
+    // 4. Custom code: Convert custom code to target language using Vertex AI
     try {
       setIsConvertingCode(true);
       setConvertingTargetLang(newLang);
@@ -405,6 +476,9 @@ export default function ClassroomCodeEditor({
     setErrorOutput('');
     setExecutionTime(null);
     setExitCode(null);
+    if (language === 'html' || language === 'markup') {
+      setActiveBottomTab('preview');
+    }
   };
 
   // Clear code
@@ -412,6 +486,8 @@ export default function ClassroomCodeEditor({
     setCode('');
     setOutput('');
     setErrorOutput('');
+    setExecutionTime(null);
+    setExitCode(null);
   };
 
   // Copy code to clipboard
@@ -424,6 +500,16 @@ export default function ClassroomCodeEditor({
   // Execute Code
   const handleRunCode = async () => {
     if (isRunning) return;
+
+    if (language === 'html' || language === 'markup') {
+      setActiveBottomTab('preview');
+      setOutput('HTML/CSS compiled successfully. Live preview rendered.');
+      setErrorOutput('');
+      setExitCode(0);
+      setExecutionTime(1);
+      return;
+    }
+
     setIsRunning(true);
     setActiveBottomTab('output');
     setOutput('');
@@ -512,25 +598,25 @@ export default function ClassroomCodeEditor({
       onTouchMove={(e) => e.stopPropagation()}
       onTouchEnd={(e) => e.stopPropagation()}
     >
-      {/* Top Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 bg-slate-100/90 dark:bg-[#181926] border-b border-slate-200 dark:border-slate-800/80 text-xs select-none">
+      {/* Top Toolbar - strictly in ONE single row on all screen sizes */}
+      <div className="flex items-center justify-between gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-slate-100/90 dark:bg-[#181926] border-b border-slate-200 dark:border-slate-800/80 text-xs select-none overflow-x-auto scrollbar-none whitespace-nowrap min-w-0">
         {/* Left: Window Controls & Language Selector */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Mac OS Window Dots */}
-          <div className="hidden sm:flex items-center gap-1.5 opacity-90 mr-1">
-            <span className="w-3 h-3 rounded-full bg-[#f38ba8] inline-block shadow-xs"></span>
-            <span className="w-3 h-3 rounded-full bg-[#f9e2af] inline-block shadow-xs"></span>
-            <span className="w-3 h-3 rounded-full bg-[#a6e3a1] inline-block shadow-xs"></span>
+          <div className="hidden sm:flex items-center gap-1.5 opacity-90 mr-0.5 shrink-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#f38ba8] inline-block shadow-xs"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#f9e2af] inline-block shadow-xs"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#a6e3a1] inline-block shadow-xs"></span>
           </div>
 
           {/* Language Selector Dropdown */}
-          <div className="relative inline-flex items-center">
+          <div className="relative inline-flex items-center shrink-0">
             <select
               value={isConvertingCode && convertingTargetLang ? convertingTargetLang : language}
               onChange={(e) => handleLanguageChange(e.target.value)}
               disabled={isConvertingCode}
               aria-label="Select Programming Language"
-              className="appearance-none pl-2.5 pr-7 py-1.5 rounded-lg bg-white dark:bg-slate-800 font-semibold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 text-xs cursor-pointer shadow-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+              className="appearance-none pl-2 pr-6 py-1 sm:py-1.5 rounded-lg bg-white dark:bg-slate-800 font-bold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 text-[11px] sm:text-xs cursor-pointer shadow-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-[125px] sm:max-w-none truncate shrink-0"
             >
               {LANGUAGES.map((lang) => (
                 <option key={lang.id} value={lang.id}>
@@ -538,18 +624,18 @@ export default function ClassroomCodeEditor({
                 </option>
               ))}
             </select>
-            <ChevronDown size={13} className="absolute right-2 text-slate-400 pointer-events-none" />
+            <ChevronDown size={12} className="absolute right-1.5 text-slate-400 pointer-events-none" />
           </div>
 
           {isConvertingCode && (
-            <span className="flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold animate-pulse ml-1">
-              <Sparkles size={12} className="animate-spin" />
-              <span>Converting to {LANGUAGES.find(l => l.id === convertingTargetLang)?.label || convertingTargetLang}...</span>
+            <span className="flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold animate-pulse shrink-0">
+              <Sparkles size={11} className="animate-spin" />
+              <span className="hidden md:inline">Converting to {LANGUAGES.find(l => l.id === convertingTargetLang)?.label || convertingTargetLang}...</span>
             </span>
           )}
 
           {/* Font Size Selector */}
-          <div className="hidden md:flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-lg px-1.5 py-0.5 shadow-2xs">
+          <div className="hidden xl:flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 rounded-lg px-1.5 py-0.5 shadow-2xs shrink-0">
             <span className="text-[10px] uppercase font-bold text-slate-400 pl-1">Size:</span>
             {[12, 13, 15].map((sz) => (
               <button
@@ -567,23 +653,23 @@ export default function ClassroomCodeEditor({
           </div>
         </div>
 
-        {/* Right: Actions & Run Button */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Right: Actions & Run Button - ALL in one row */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Copy Button */}
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition cursor-pointer text-xs shadow-2xs"
+            className="flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition cursor-pointer text-xs shrink-0"
             title="Copy Code"
           >
             {copied ? (
               <>
-                <Check size={13} className="text-emerald-500" />
-                <span className="text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">Copied</span>
+                <Check size={13} className="text-emerald-500 shrink-0" />
+                <span className="hidden sm:inline text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">Copied</span>
               </>
             ) : (
               <>
-                <Copy size={13} />
-                <span className="hidden sm:inline text-[11px]">Copy</span>
+                <Copy size={13} className="shrink-0" />
+                <span className="hidden md:inline text-[11px]">Copy</span>
               </>
             )}
           </button>
@@ -591,60 +677,60 @@ export default function ClassroomCodeEditor({
           {/* Reset Template Button */}
           <button
             onClick={handleReset}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition cursor-pointer text-xs shadow-2xs"
-            title="Reset to Starter Template"
+            className="flex items-center gap-1 p-1.5 sm:px-2 sm:py-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition cursor-pointer text-xs shrink-0"
+            title="Reset to Template"
           >
-            <RotateCcw size={13} />
-            <span className="hidden sm:inline text-[11px]">Reset</span>
+            <RotateCcw size={13} className="shrink-0" />
+            <span className="hidden md:inline text-[11px]">Reset</span>
           </button>
 
           {/* Clear Button */}
           <button
             onClick={handleClear}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-white dark:hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-white dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
             title="Clear Code"
           >
-            <Trash2 size={13} />
+            <Trash2 size={13} className="shrink-0" />
           </button>
 
           {/* Optional Hide Tab for this course */}
           {onHideTab && (
             <button
               onClick={onHideTab}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition cursor-pointer text-xs shadow-2xs"
+              className="flex items-center gap-1 p-1.5 sm:px-2 sm:py-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition cursor-pointer text-xs shrink-0"
               title="Hide Code Editor tab for this course"
             >
-              <EyeOff size={13} />
-              <span className="hidden sm:inline text-[11px]">Hide Tab</span>
+              <EyeOff size={13} className="shrink-0" />
+              <span className="hidden lg:inline text-[11px]">Hide</span>
             </button>
           )}
 
           {/* Fullscreen Toggle */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
             title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           >
-            {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            {isFullscreen ? <Minimize2 size={13} className="shrink-0" /> : <Maximize2 size={13} className="shrink-0" />}
           </button>
 
           {/* Primary RUN Button */}
           <button
             onClick={handleRunCode}
             disabled={isRunning}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-sm hover:shadow-emerald-500/20 active:scale-98 transition disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-sm hover:shadow-emerald-500/20 active:scale-98 transition disabled:opacity-50 cursor-pointer shrink-0"
             title="Run Code (⌘+Enter / Ctrl+Enter)"
           >
             {isRunning ? (
               <>
-                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Running...</span>
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0"></div>
+                <span className="text-[11px] sm:text-xs">Running...</span>
               </>
             ) : (
               <>
-                <Play size={13} className="fill-current" />
-                <span>Run Code</span>
-                <span className="hidden md:inline-block text-[10px] font-normal opacity-70 ml-0.5">
+                <Play size={12} className="fill-current shrink-0" />
+                <span className="text-[11px] sm:text-xs">{(language === 'html' || language === 'markup') ? 'Run / Preview' : 'Run Code'}</span>
+                <span className="hidden xl:inline-block text-[10px] font-normal opacity-70 ml-0.5">
                   (⌘+↵)
                 </span>
               </>
@@ -757,16 +843,30 @@ export default function ClassroomCodeEditor({
           </div>
         </div>
 
-        {/* Right Column: Console Output & Stdin Panel (5 Cols Desktop) */}
+        {/* Right Column: Console Output, Stdin & Web Preview Panel (5 Cols Desktop) */}
         <div className="lg:col-span-5 flex flex-col bg-slate-50 dark:bg-[#10111a] min-h-[220px]">
           {/* Panel Tab Selector */}
-          <div className="flex items-center justify-between px-3 py-1.5 bg-slate-100/70 dark:bg-[#161726] border-b border-slate-200 dark:border-slate-800/90 text-xs">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center justify-between px-2.5 sm:px-3 py-1.5 bg-slate-100/70 dark:bg-[#161726] border-b border-slate-200 dark:border-slate-800/90 text-xs overflow-x-auto scrollbar-none whitespace-nowrap min-w-0">
+            <div className="flex items-center gap-1 shrink-0">
+              {(language === 'html' || language === 'markup') && (
+                <button
+                  onClick={() => setActiveBottomTab('preview')}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer transition shrink-0 ${
+                    activeBottomTab === 'preview'
+                      ? 'bg-white dark:bg-slate-800 text-orange-600 dark:text-orange-400 shadow-2xs font-bold'
+                      : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                  }`}
+                >
+                  <Globe size={12} />
+                  <span>Web Preview</span>
+                </button>
+              )}
+
               <button
                 onClick={() => setActiveBottomTab('output')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer transition shrink-0 ${
                   activeBottomTab === 'output'
-                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-2xs font-bold'
                     : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
                 }`}
               >
@@ -781,9 +881,9 @@ export default function ClassroomCodeEditor({
 
               <button
                 onClick={() => setActiveBottomTab('stdin')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer transition shrink-0 ${
                   activeBottomTab === 'stdin'
-                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-2xs font-bold'
                     : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
                 }`}
               >
@@ -796,8 +896,8 @@ export default function ClassroomCodeEditor({
             </div>
 
             {/* Execution status indicator badge */}
-            {activeBottomTab === 'output' && (output || errorOutput || executionTime !== null) && (
-              <div className="flex items-center gap-1.5 text-[10px] font-mono">
+            {(output || errorOutput || executionTime !== null) && (
+              <div className="flex items-center gap-1.5 text-[10px] font-mono shrink-0 ml-2">
                 {exitCode === 0 ? (
                   <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-200/50 dark:border-emerald-800/40">
                     <CheckCircle2 size={11} />
@@ -814,8 +914,18 @@ export default function ClassroomCodeEditor({
           </div>
 
           {/* Panel Body */}
-          <div className="flex-1 p-3 overflow-auto flex flex-col font-mono text-xs">
-            {activeBottomTab === 'output' ? (
+          <div className="flex-1 p-2 sm:p-3 overflow-auto flex flex-col font-mono text-xs">
+            {activeBottomTab === 'preview' ? (
+              <div className="flex-1 flex flex-col min-h-[300px] bg-white rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 shadow-inner">
+                <iframe
+                  key={code}
+                  title="HTML / CSS Live Web Preview"
+                  srcDoc={code || '<!DOCTYPE html><html><body style="font-family:system-ui,-apple-system,sans-serif;padding:24px;color:#64748b;display:flex;align-items:center;justify-content:center;height:80vh;margin:0;"><div style="text-align:center;"><h3>🌐 Web Preview</h3><p>Write your HTML and CSS in the editor to see live rendering here.</p></div></body></html>'}
+                  sandbox="allow-scripts allow-modals"
+                  className="w-full flex-1 min-h-[300px] border-none bg-white"
+                />
+              </div>
+            ) : activeBottomTab === 'output' ? (
               <div className="flex-1 flex flex-col">
                 {isRunning ? (
                   <div className="flex-1 flex flex-col items-center justify-center py-12 text-slate-400 dark:text-slate-500 space-y-2">

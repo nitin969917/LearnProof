@@ -17,6 +17,7 @@ const normalizeLanguage = (lang = '') => {
     if (['go', 'golang'].includes(l)) return 'go';
     if (['rust', 'rs'].includes(l)) return 'rust';
     if (['bash', 'sh', 'shell'].includes(l)) return 'bash';
+    if (['html', 'htm', 'markup', 'xml', 'css', 'web'].includes(l)) return 'html';
     return l || 'python';
 };
 
@@ -208,6 +209,17 @@ const executeCode = async ({ language, code, stdin = '' }) => {
                 executable = 'bash';
                 execArgs = [sourceFileName];
                 break;
+            }
+
+            case 'html': {
+                const endTime = process.hrtime.bigint();
+                const executionTime = Number((endTime - startTime) / 1000000n);
+                return {
+                    stdout: 'HTML/CSS compiled successfully. Live preview rendered.',
+                    stderr: '',
+                    exitCode: 0,
+                    executionTime: Math.max(executionTime, 1)
+                };
             }
 
             default:

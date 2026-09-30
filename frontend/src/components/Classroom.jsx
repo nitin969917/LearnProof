@@ -111,9 +111,11 @@ const CodeEditorBlock = ({ className, children, code, language, onOpenInEditor }
     shell: 'bash',
     zsh: 'bash',
     sql: 'sql',
-    html: 'markup',
-    xml: 'markup',
-    css: 'css',
+    html: 'html',
+    htm: 'html',
+    markup: 'html',
+    xml: 'html',
+    css: 'html',
     json: 'json',
     yaml: 'yaml',
     yml: 'yaml'
@@ -162,11 +164,12 @@ const CodeEditorBlock = ({ className, children, code, language, onOpenInEditor }
 
   const AVAILABLE_LANGS = [
     { id: 'python', label: 'Python 3', badge: 'PYTHON' },
+    { id: 'html', label: 'HTML / CSS', badge: 'HTML' },
+    { id: 'javascript', label: 'JavaScript', badge: 'JAVASCRIPT' },
+    { id: 'typescript', label: 'TypeScript', badge: 'TYPESCRIPT' },
     { id: 'cpp', label: 'C++ 17', badge: 'C++' },
     { id: 'java', label: 'Java', badge: 'JAVA' },
-    { id: 'javascript', label: 'JavaScript', badge: 'JAVASCRIPT' },
-    { id: 'c', label: 'C (C11)', badge: 'C' },
-    { id: 'typescript', label: 'TypeScript', badge: 'TYPESCRIPT' }
+    { id: 'c', label: 'C (C11)', badge: 'C' }
   ];
 
   const handleCopy = (e) => {
@@ -220,8 +223,9 @@ const CodeEditorBlock = ({ className, children, code, language, onOpenInEditor }
 
   const highlightedCode = useMemo(() => {
     try {
-      if (Prism.languages[currentLang]) {
-        return Prism.highlight(displayCode, Prism.languages[currentLang], currentLang);
+      const prismKey = currentLang === 'html' ? 'markup' : currentLang;
+      if (Prism.languages[prismKey]) {
+        return Prism.highlight(displayCode, Prism.languages[prismKey], prismKey);
       }
       return Prism.highlight(displayCode, Prism.languages.clike || Prism.languages.javascript, 'javascript');
     } catch {
@@ -876,9 +880,9 @@ const Classroom = () => {
         const saved = localStorage.getItem(`learnproof_code_${videoId}`);
         if (saved !== null) return saved;
       }
-      return localStorage.getItem('learnproof_code_draft') || null;
+      return localStorage.getItem('learnproof_code_draft') || '';
     } catch {
-      return null;
+      return '';
     }
   });
 
@@ -1013,8 +1017,22 @@ const Classroom = () => {
     }
   };
 
+  // Auto-scroll active tab pill into center view on mobile tabs bar
+  useEffect(() => {
+    const tabBtn = document.getElementById(`classroom-tab-${activeTab}`);
+    if (tabBtn) {
+      tabBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [activeTab]);
+
   const handleSelectTab = (tabId, forceScroll = false) => {
     setActiveTab(tabId);
+    setTimeout(() => {
+      const tabBtn = document.getElementById(`classroom-tab-${tabId}`);
+      if (tabBtn) {
+        tabBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }, 50);
     if (forceScroll) {
       setTimeout(() => {
         scrollToTabs(true);
@@ -2932,7 +2950,7 @@ const Classroom = () => {
                 id="classroom-tabs-bar"
                 className="sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md py-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-200 mt-0.5 sm:mt-1"
               >
-                <div className="w-full grid grid-flow-col auto-cols-fr bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl p-1 sm:p-1.5 gap-0.5 sm:gap-1 border border-gray-200/70 dark:border-slate-700/60 shadow-xs">
+                <div className="w-full flex items-center gap-1 sm:gap-1.5 overflow-x-auto scrollbar-none p-1 sm:p-1.5 bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl border border-gray-200/70 dark:border-slate-700/60 shadow-xs lg:grid lg:grid-flow-col lg:auto-cols-fr">
                   {visibleClassroomTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -2941,8 +2959,8 @@ const Classroom = () => {
                         key={tab.id}
                         id={`classroom-tab-${tab.id}`}
                         onClick={() => handleSelectTab(tab.id)}
-                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 sm:py-2 px-0.5 sm:px-2 rounded-xl text-center transition-all duration-200 select-none cursor-pointer z-10 ${isActive
-                            ? 'text-white font-extrabold'
+                        className={`relative shrink-0 flex items-center justify-center gap-1.5 py-1.5 sm:py-2 px-3 sm:px-2 rounded-xl text-center transition-all duration-200 select-none cursor-pointer whitespace-nowrap z-10 ${isActive
+                            ? 'text-white font-extrabold shadow-sm'
                             : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50 font-bold'
                           }`}
                       >
@@ -2954,11 +2972,11 @@ const Classroom = () => {
                           />
                         )}
                         <Icon size={14} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 sm:size-[15px]" />
-                        <span className="text-[9px] min-[380px]:text-[10px] sm:text-xs tracking-tight truncate max-w-full leading-tight">
+                        <span className="text-xs tracking-tight whitespace-nowrap leading-none font-bold">
                           <span className="hidden lg:inline">{tab.label}</span>
-                          <span className="lg:hidden">{tab.shortLabel}</span>
+                          <span className="lg:hidden">{tab.shortLabel || tab.label}</span>
                           {tab.badge > 0 && (
-                            <span className="ml-0.5 text-[8px] sm:text-[10px] opacity-80 lg:hidden">({tab.badge})</span>
+                            <span className="ml-1 text-[10px] opacity-80">({tab.badge})</span>
                           )}
                         </span>
                       </button>
