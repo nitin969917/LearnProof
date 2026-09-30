@@ -1309,11 +1309,11 @@ const Classroom = () => {
   }, []);
 
   const classroomTabs = useMemo(() => [
-    ...(playlist ? [{ id: 'playlist', label: 'Playlist', shortLabel: 'Playlist', icon: PlayCircle, hideOnDesktop: true }] : []),
+    ...(playlist ? [{ id: 'playlist', label: 'Playlist', shortLabel: 'Videos', icon: PlayCircle, hideOnDesktop: true }] : []),
     { id: 'overview', label: 'Overview', shortLabel: 'Overview', icon: BookOpen },
     { id: 'intuition', label: 'AI Notes', shortLabel: 'AI Notes', icon: Sparkles },
     ...(isCodeEditorEnabled ? [{ id: 'code-editor', label: 'Code Editor', shortLabel: 'Code', icon: Code2 }] : []),
-    { id: 'ai-chat', label: 'Ask AI Chatbot', shortLabel: 'AI Chat', icon: Bot },
+    { id: 'ai-chat', label: 'Ask AI Chatbot', shortLabel: 'Chat', icon: Bot },
     { id: 'quiz', label: 'AI Quiz', shortLabel: 'Quiz', icon: CheckCircle },
     { id: 'notes', label: 'Notes', shortLabel: 'Notes', icon: FileText },
     { id: 'discussion', label: `Discussion (${(comments && comments.length) || 0})`, shortLabel: 'Discuss', badge: (comments && comments.length) || 0, icon: MessageSquare },
@@ -2936,7 +2936,7 @@ const Classroom = () => {
                 id="classroom-tabs-bar"
                 className="sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md py-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-200 mt-0.5 sm:mt-1"
               >
-                <div className="w-full grid grid-cols-4 lg:grid-flow-col lg:auto-cols-fr gap-1 sm:gap-1.5 p-1 sm:p-1.5 bg-gray-50/90 dark:bg-slate-800/60 rounded-2xl border border-gray-200/70 dark:border-slate-700/60 shadow-xs">
+                <div className="w-full grid grid-flow-col auto-cols-fr bg-gray-50/90 dark:bg-slate-800/60 rounded-xl sm:rounded-2xl p-0.5 sm:p-1.5 gap-0.5 sm:gap-1 border border-gray-200/70 dark:border-slate-700/60 shadow-xs">
                   {visibleClassroomTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -2945,7 +2945,7 @@ const Classroom = () => {
                         key={tab.id}
                         id={`classroom-tab-${tab.id}`}
                         onClick={() => handleSelectTab(tab.id)}
-                        className={`relative flex flex-col lg:flex-row items-center justify-center gap-1 sm:gap-1.5 py-2 px-1 lg:py-2 lg:px-2 rounded-xl text-center transition-all duration-200 select-none cursor-pointer z-10 ${isActive
+                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 sm:py-2 px-0.5 sm:px-1.5 rounded-lg sm:rounded-xl text-center transition-all duration-150 select-none cursor-pointer z-10 ${isActive
                             ? 'text-white font-extrabold shadow-sm'
                             : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50 font-bold'
                           }`}
@@ -2953,16 +2953,16 @@ const Classroom = () => {
                         {isActive && (
                           <motion.div
                             layoutId="activeClassroomTabPill"
-                            className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl shadow-md shadow-orange-500/25 -z-10"
-                            transition={{ type: "spring", bounce: 0.15, duration: 0.45 }}
+                            className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg sm:rounded-xl shadow-md shadow-orange-500/25 -z-10"
+                            transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
                           />
                         )}
-                        <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
-                        <span className="text-[10px] min-[380px]:text-[11px] lg:text-xs tracking-tight truncate max-w-full leading-tight font-bold">
+                        <Icon size={14} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 sm:size-[15px]" />
+                        <span className="text-[9px] min-[375px]:text-[9.5px] min-[400px]:text-[10px] sm:text-xs tracking-tight truncate max-w-full leading-none font-bold">
                           <span className="hidden lg:inline">{tab.label}</span>
                           <span className="lg:hidden">{tab.shortLabel || tab.label}</span>
                           {tab.badge > 0 && (
-                            <span className="ml-0.5 text-[9px] opacity-85">({tab.badge})</span>
+                            <span className="ml-0.5 text-[8px] sm:text-[10px] opacity-80 lg:hidden">({tab.badge})</span>
                           )}
                         </span>
                       </button>
