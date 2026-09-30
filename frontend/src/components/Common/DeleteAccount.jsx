@@ -92,13 +92,13 @@ const DeleteAccount = () => {
     const isConfirmed = confirmText.trim().toUpperCase() === 'DELETE';
 
     return (
-        <div className="w-full min-h-[100dvh] bg-gradient-to-br from-[#fff7f4] via-[#ffffff] to-[#fffbf9] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-gray-800 dark:text-gray-100 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] pb-[max(2.5rem,calc(env(safe-area-inset-bottom,0px)+2rem))] px-4 sm:px-6 md:px-10 font-sans selection:bg-orange-200 relative overflow-x-hidden overflow-y-auto overscroll-y-contain">
+        <div className="w-full min-h-screen bg-gradient-to-br from-[#fff7f4] via-[#ffffff] to-[#fffbf9] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-gray-800 dark:text-gray-100 pt-[max(1rem,calc(env(safe-area-inset-top,0px)+0.75rem))] px-4 sm:px-6 md:px-10 font-sans selection:bg-orange-200 relative">
             {/* Background Texture & Soft Ambient Glows */}
             <div className="absolute inset-0 z-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }} />
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-orange-200/40 via-rose-100/20 to-transparent rounded-full blur-[90px] pointer-events-none -translate-y-1/3 translate-x-1/4" />
             <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-amber-200/30 to-transparent rounded-full blur-[90px] pointer-events-none -translate-x-1/4 translate-y-1/4" />
 
-            <div className="max-w-3xl mx-auto relative z-10 py-2 sm:py-6">
+            <div className="max-w-3xl mx-auto relative z-10 pt-2 pb-36 sm:pb-44">
                 {/* Back Button with accessible 44px touch target */}
                 <button 
                     onClick={handleBack}
@@ -281,6 +281,9 @@ const DeleteAccount = () => {
                 <div className="mt-8 sm:mt-12 text-center text-gray-400 dark:text-gray-600 text-xs font-bold uppercase tracking-wider">
                     &copy; 2026 LearnProof AI. All rights reserved.
                 </div>
+
+                {/* Generous bottom spacer so page scrolls comfortably well above mobile browser bars */}
+                <div className="h-16 sm:h-20 w-full" aria-hidden="true" />
             </div>
         </div>
     );
