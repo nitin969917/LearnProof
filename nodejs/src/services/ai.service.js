@@ -41,7 +41,7 @@ if (process.env.GEMINI_API_KEY) {
  * Helper to call Gemini content generation using Vertex AI or Google AI Studio GenAI SDK.
  */
 const generateGeminiContent = async (modelName, contents, config = {}) => {
-    const timeoutMs = config.timeout || 60000; // 60 seconds timeout for full reliable generations
+    const timeoutMs = config.timeout || 25000; // 25s max timeout for fast response & swift fallback
     
     const callPromise = (async () => {
         // 1. Try Google Vertex AI (Credits) if configured
@@ -121,23 +121,20 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
 
 
 const MODELS = {
-    // Recommended Gemini 3 GA Targets (Google Cloud Platform transition)
-    GEMINI_3_FLASH_LITE: 'gemini-3.1-flash-lite',
-    GEMINI_3_FLASH: 'gemini-3.5-flash',
-    GEMINI_3_PRO: 'gemini-3.5-flash',
+    // Primary Active Models (Tested on Vertex AI Credits for essential-rider-500415-u6)
+    GEMINI_FLASH_LITE: 'gemini-2.5-flash-lite', // Sub-second (<1s) response time on Vertex AI
+    GEMINI_FLASH: 'gemini-2.5-flash',           // Fast, balanced, LaTeX & code reasoning (~2s)
+    GEMINI_PRO: 'gemini-2.5-pro',               // Deep reasoning target
 
-    // Primary Production Models
-    GEMINI_FLASH_LITE: 'gemini-3.1-flash-lite', // High-speed, low-latency target
-    GEMINI_FLASH: 'gemini-3.5-flash',           // Balanced, rigorous reasoning target
-    GEMINI_PRO: 'gemini-3.5-flash',             // Deep analysis target
-
-    // Active Gemini 2.5 Fallbacks (Grandfathered in Phase 1 for essential-rider-500415-u6)
+    // Aliases and future migration targets
     GEMINI_2_5_FLASH_LITE: 'gemini-2.5-flash-lite',
     GEMINI_2_5_FLASH: 'gemini-2.5-flash',
     GEMINI_2_5_PRO: 'gemini-2.5-pro',
-    GEMINI_2_5: 'gemini-2.5-flash',
-    GEMINI_3: 'gemini-3.5-flash',
+    GEMINI_2_5: 'gemini-2.5-flash-lite',
+    GEMINI_3: 'gemini-2.5-flash',
     GEMINI_2_5_LITE: 'gemini-2.5-flash-lite',
+    GEMINI_3_FLASH_LITE: 'gemini-3.1-flash-lite',
+    GEMINI_3_FLASH: 'gemini-3.5-flash',
 
     // Open-source / Alternative fallbacks
     GROQ_LLAMA_70B: 'openai/gpt-oss-120b',
@@ -678,12 +675,10 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
         });
     };
 
-    // Priority: Fast Gemini models first for instant ~5-8s response time, with robust fallbacks
+    // Priority: Fast Gemini models first for instant ~1-3s response time, with robust fallbacks
     const chain = [
         { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
         { type: 'gemini', model: MODELS.GEMINI_FLASH },
-        { type: 'gemini', model: MODELS.GEMINI_2_5_FLASH_LITE },
-        { type: 'gemini', model: MODELS.GEMINI_2_5_FLASH },
         { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
     ];
 
@@ -693,39 +688,11 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
             console.log(`[Quiz] Attempting with ${providerName}...`);
             let text;
             if (provider.type === 'gemini') {
-                if (isMultimodalQuiz && (vertexAIClient || aiStudioGenAIClient)) {
-                    try {
-                        const contents = [
-                            {
-                                fileData: {
-                                    fileUri: url,
-                                    mimeType: 'video/mp4'
-                                }
-                            },
-                            {
-                                text: quizPrompt
-                            }
-                        ];
-                        text = await generateGeminiContent(provider.model, contents, {
-                            responseMimeType: "application/json",
-                            maxOutputTokens: 2500,
-                            temperature: 0.3
-                        });
-                    } catch (mmErr) {
-                        console.warn(`[Quiz] Multimodal call failed on ${provider.model}, falling back to text prompt:`, mmErr.message);
-                        text = await generateGeminiContent(provider.model, quizPrompt, {
-                            responseMimeType: "application/json",
-                            maxOutputTokens: 2500,
-                            temperature: 0.3
-                        });
-                    }
-                } else {
-                    text = await generateGeminiContent(provider.model, quizPrompt, {
-                        responseMimeType: "application/json",
-                        maxOutputTokens: 2500,
-                        temperature: 0.3
-                    });
-                }
+                text = await generateGeminiContent(provider.model, quizPrompt, {
+                    responseMimeType: "application/json",
+                    maxOutputTokens: 2500,
+                    temperature: 0.3
+                });
             } else if (provider.type === 'groq') {
                 text = await callGroq(quizPrompt, true, provider.model, 0.3);
             } else if (provider.type === 'cerebras') {
@@ -980,12 +947,11 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
     `);
 
     // --- STEP 3: Setup Provider Routing Chain ---
-    // Gemini 3.5 Flash primary for highest instruction adherence, followed by fast 3.1 Flash Lite and 2.5 fallbacks
+    // Primary: Gemini 2.5 Flash (highest instruction adherence & fast ~2-3s response on Vertex AI)
     let chain = [
         { type: 'gemini', model: MODELS.GEMINI_FLASH },
         { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
-        { type: 'gemini', model: MODELS.GEMINI_2_5_FLASH },
-        { type: 'gemini', model: MODELS.GEMINI_2_5_FLASH_LITE },
+        { type: 'gemini', model: MODELS.GEMINI_PRO },
         { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
         { type: 'cerebras', model: MODELS.CEREBRAS_MODEL },
         { type: 'openrouter', model: MODELS.OPENROUTER_MODEL }
@@ -997,39 +963,11 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
             console.log(`[Intuition] Attempting with ${providerName} (${targetPages} chapters, ${subjectInfo.category})...`);
             let text;
             if (provider.type === 'gemini') {
-                if (isMultimodalVideoRouting && (vertexAIClient || aiStudioGenAIClient)) {
-                    try {
-                        const contents = [
-                            {
-                                fileData: {
-                                    fileUri: url,
-                                    mimeType: 'video/mp4'
-                                }
-                            },
-                            {
-                                text: intuitionPrompt
-                            }
-                        ];
-                        text = await generateGeminiContent(provider.model, contents, {
-                            maxOutputTokens: 8192,
-                            temperature: 0.2,
-                            responseMimeType: "application/json"
-                        });
-                    } catch (mmErr) {
-                        console.warn(`[Intuition] Direct multimodal call failed on ${provider.model} (${mmErr.message}). Retrying text-only...`);
-                        text = await generateGeminiContent(provider.model, intuitionPrompt, {
-                            maxOutputTokens: 8192,
-                            temperature: 0.2,
-                            responseMimeType: "application/json"
-                        });
-                    }
-                } else {
-                    text = await generateGeminiContent(provider.model, intuitionPrompt, {
-                        maxOutputTokens: 8192,
-                        temperature: 0.2,
-                        responseMimeType: "application/json"
-                    });
-                }
+                text = await generateGeminiContent(provider.model, intuitionPrompt, {
+                    maxOutputTokens: 8192,
+                    temperature: 0.2,
+                    responseMimeType: "application/json"
+                });
             } else if (provider.type === 'groq') {
                 text = await callGroq(intuitionPrompt, true, provider.model, 0.2);
             } else if (provider.type === 'cerebras') {
