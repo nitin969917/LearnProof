@@ -1260,10 +1260,11 @@ const Classroom = () => {
   const [selectedHistoryQuiz, setSelectedHistoryQuiz] = useState(null);
   const [loadingHistoryDetails, setLoadingHistoryDetails] = useState(false);
 
-  // 2-Part Quiz Sub-Tabs: Timed Practice Quiz vs Active Recall Flashcards
+  // 2-Part Quiz Sub-Tabs: Timed Practice Quiz vs Flashcards
   const [quizSubTab, setQuizSubTab] = useState('quiz'); // 'quiz' | 'flashcards'
   const [flashcardQuestions, setFlashcardQuestions] = useState([]);
   const [loadingFlashcards, setLoadingFlashcards] = useState(false);
+  const [flashcardsStarted, setFlashcardsStarted] = useState(false);
 
   // Touch swipe handling for switching Classroom tabs on mobile
   const [touchStart, setTouchStart] = useState(null);
@@ -2370,13 +2371,26 @@ const Classroom = () => {
     }
   };
 
-  const fetchFlashcards = async (forceRefresh = false) => {
-    if (!forceRefresh && flashcardQuestions.length > 0) return;
+  // Reset flashcardsStarted and questions when changing video
+  useEffect(() => {
+    setFlashcardsStarted(false);
+    setFlashcardQuestions([]);
+  }, [videoId]);
+
+  // Silent prefetch when user views Quiz tab so Start Flashcards is instant
+  useEffect(() => {
+    if (activeTab === 'quiz' && flashcardQuestions.length === 0 && !loadingFlashcards) {
+      fetchFlashcards(false, true);
+    }
+  }, [activeTab, videoId]);
+
+  const fetchFlashcards = async (forceRefresh = false, silent = false) => {
+    if (!forceRefresh && flashcardQuestions.length > 0) return flashcardQuestions;
 
     // Fast check: if quizData questions exist, reuse
     if (!forceRefresh && Array.isArray(quizData?.questions) && quizData.questions.length > 0) {
       setFlashcardQuestions(quizData.questions);
-      return;
+      return quizData.questions;
     }
 
     // Fast check: if previous history has questions, reuse
@@ -2386,13 +2400,13 @@ const Classroom = () => {
           const parsed = typeof hist.questions === 'string' ? JSON.parse(hist.questions) : hist.questions;
           if (Array.isArray(parsed) && parsed.length > 0) {
             setFlashcardQuestions(parsed);
-            return;
+            return parsed;
           }
         } catch (_) {}
       }
     }
 
-    setLoadingFlashcards(true);
+    if (!silent) setLoadingFlashcards(true);
     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
     const safeToken = encodeURIComponent(token || '');
 
@@ -2407,7 +2421,7 @@ const Classroom = () => {
       });
       if (res.data?.questions && Array.isArray(res.data.questions) && res.data.questions.length > 0) {
         setFlashcardQuestions(res.data.questions);
-        return;
+        return res.data.questions;
       }
     } catch (err) {
       console.warn("Primary flashcards route failed, attempting start-quiz fallback:", err);
@@ -2424,13 +2438,27 @@ const Classroom = () => {
         setFlashcardQuestions(quizRes.data.quiz.questions);
         setQuizData(quizRes.data.quiz);
         setTimeLeft(quizRes.data.quiz.time_limit * 60);
-        return;
+        return quizRes.data.quiz.questions;
       }
     } catch (qErr) {
       console.error("Flashcards fallback failed:", qErr);
-      toast.error("Could not load flashcards. Try again or start the quiz directly.");
+      if (!silent) {
+        toast.error("Could not load flashcards. Try again or start the quiz directly.");
+      }
     } finally {
-      setLoadingFlashcards(false);
+      if (!silent) setLoadingFlashcards(false);
+    }
+    return [];
+  };
+
+  const handleStartFlashcards = async () => {
+    if (flashcardQuestions.length > 0) {
+      setFlashcardsStarted(true);
+      return;
+    }
+    const res = await fetchFlashcards(false, false);
+    if (res && res.length > 0) {
+      setFlashcardsStarted(true);
     }
   };
 
@@ -4148,21 +4176,62 @@ const Classroom = () => {
                       </div>
 
                       {quizSubTab === 'flashcards' ? (
-                        <FlashcardsView
-                          questions={
-                            flashcardQuestions.length > 0 
-                              ? flashcardQuestions 
-                              : (quizData?.questions || [])
-                          }
-                          loading={loadingFlashcards}
-                          onStartQuiz={() => {
-                            setQuizSubTab('quiz');
-                            if (!quizData) {
-                              handleStartQuiz();
+                        flashcardsStarted ? (
+                          <FlashcardsView
+                            questions={
+                              flashcardQuestions.length > 0 
+                                ? flashcardQuestions 
+                                : (quizData?.questions || [])
                             }
-                          }}
-                          onRefresh={() => fetchFlashcards(true)}
-                        />
+                            loading={loadingFlashcards}
+                            onExit={() => setFlashcardsStarted(false)}
+                            onStartQuiz={() => {
+                              setQuizSubTab('quiz');
+                              if (!quizData) {
+                                handleStartQuiz();
+                              }
+                            }}
+                            onRefresh={() => fetchFlashcards(true, false)}
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center py-5 sm:py-9 text-center w-full">
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-orange-100 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mb-3 shadow-xs">
+                              <Layers className="h-7 w-7 sm:h-9 sm:w-9 text-orange-500" />
+                            </div>
+                            <h4 className="text-base sm:text-xl font-bold text-gray-800 dark:text-gray-200 mb-1.5">Ready to study flashcards?</h4>
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-md mb-5 leading-relaxed">
+                              Review key concepts, definitions, and questions at your own pace before taking the timed quiz!
+                            </p>
+                            <div className="flex flex-col sm:flex-row items-center gap-3">
+                              <button
+                                onClick={handleStartFlashcards}
+                                disabled={loadingFlashcards}
+                                className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-7 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                              >
+                                {loadingFlashcards ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    <span>Loading Flashcards...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>Start Flashcards</span>
+                                    <ChevronRight size={14} />
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setQuizSubTab('quiz')}
+                                className="w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-xs sm:text-sm bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-95"
+                              >
+                                <CheckCircle size={14} />
+                                <span>Switch to Practice Quiz</span>
+                              </button>
+                            </div>
+                          </div>
+                        )
                       ) : (
                         <>
                           {selectedHistoryQuiz ? (() => {
@@ -4451,16 +4520,11 @@ const Classroom = () => {
 
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setQuizSubTab('flashcards');
-                                  if (flashcardQuestions.length === 0) {
-                                    fetchFlashcards();
-                                  }
-                                }}
+                                onClick={() => setQuizSubTab('flashcards')}
                                 className="w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-xs sm:text-sm bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-95"
                               >
                                 <Layers size={15} />
-                                <span>Study Flashcards First</span>
+                                <span>Study with Flashcards</span>
                               </button>
                             </div>
 

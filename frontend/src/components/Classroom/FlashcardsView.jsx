@@ -20,9 +20,10 @@ const FlashcardsView = ({
   questions = [], 
   loading = false, 
   onStartQuiz,
-  onRefresh
+  onRefresh,
+  onExit
 }) => {
-  const [isStarted, setIsStarted] = useState(false);
+  const [isStarted, setIsStarted] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [cardStatus, setCardStatus] = useState({}); // { [origIdx]: 'mastered' | 'review' }
@@ -201,8 +202,8 @@ const FlashcardsView = ({
         </p>
         <div className="flex gap-2 justify-center">
           <button
-            onClick={() => setIsStarted(false)}
-            className="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl"
+            onClick={() => onExit ? onExit() : setIsStarted(false)}
+            className="px-4 py-2 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl cursor-pointer"
           >
             Back
           </button>
@@ -289,7 +290,7 @@ const FlashcardsView = ({
       <div className="flex items-center justify-between gap-2 px-1 text-xs">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsStarted(false)}
+            onClick={() => onExit ? onExit() : setIsStarted(false)}
             className="p-1 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white flex items-center gap-1 font-semibold text-[11px] cursor-pointer"
             title="Exit Flashcards"
           >

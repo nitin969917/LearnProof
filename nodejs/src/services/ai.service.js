@@ -737,6 +737,101 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
 };
 
 /**
+ * Fast dedicated Flashcard generator (~1-2s response time)
+ * Generates concise question + answer pairs without slow 4-distractor choices.
+ */
+const generateFlashcards = async (title, description, url = null, intuitionText = null, numCards = 8, directSourceText = null) => {
+    let sourceContent = '';
+    if (intuitionText && typeof intuitionText === 'string') {
+        try {
+            if (intuitionText.trim().startsWith('{')) {
+                const parsed = JSON.parse(intuitionText);
+                if (Array.isArray(parsed?.pages) && parsed.pages.length > 0) {
+                    sourceContent = parsed.pages.map(p => `### ${p.title}\n${p.content}`).join('\n\n');
+                }
+            }
+        } catch (_) {}
+        if (!sourceContent) sourceContent = intuitionText;
+    } else if (directSourceText && typeof directSourceText === 'string') {
+        sourceContent = directSourceText;
+    }
+
+    if (sourceContent && sourceContent.length > 12000) {
+        sourceContent = sourceContent.slice(0, 12000);
+    }
+
+    const flashcardsPrompt = `
+      Act as an expert educator. Based EXCLUSIVELY on the lecture source material below, generate exactly ${numCards} high-yield study flashcards for quick revision and active recall.
+      
+      STRICT CONSTRAINTS:
+      - Grounded 100% in the provided material (definitions, formulas, key insights, syntax, algorithmic concepts).
+      - Do NOT include multiple-choice options or distractors.
+      - "question": A sharp, clear, specific question or concept prompt.
+      - "answer": A direct, concise, and accurate answer (1-2 sentences maximum).
+      - MATHEMATICAL FORMULAS: Format in LaTeX inside dollar signs like $O(N \\log N)$ or $\\sum_{i=1}^n x_i$. Always escape backslashes in JSON (e.g. "\\\\sum", "\\\\frac").
+      - CODE & VARIABLES: Enclose in inline backticks like \`nums[i]\` or \`binary_search()\`.
+      
+      Title: ${title}
+      Context:
+      ${sourceContent || description || 'Lecture video on ' + title}
+      
+      Format the output as a raw JSON array of objects:
+      [
+        {
+          "question": "Question text?",
+          "answer": "Concise answer"
+        }
+      ]
+      Respond ONLY with the raw JSON array. No preamble, no markdown code block wrappers.
+    `;
+
+    const chain = [
+        { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
+        { type: 'gemini', model: MODELS.GEMINI_FLASH },
+        { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
+    ];
+
+    for (const provider of chain) {
+        try {
+            console.log(`[Flashcards] Generating fast cards with ${provider.model}...`);
+            let text;
+            if (provider.type === 'gemini') {
+                text = await generateGeminiContent(provider.model, flashcardsPrompt, {
+                    responseMimeType: "application/json",
+                    maxOutputTokens: 1000,
+                    temperature: 0.2
+                });
+            } else if (provider.type === 'groq') {
+                text = await callGroq(flashcardsPrompt, true, provider.model, 0.2);
+            }
+
+            const rawCards = cleanAIJSON(text);
+            if (Array.isArray(rawCards) && rawCards.length > 0) {
+                const validCards = rawCards
+                    .map(c => ({
+                        question: (c.question || c.front || '').trim(),
+                        answer: (c.answer || c.back || '').trim()
+                    }))
+                    .filter(c => c.question && c.answer);
+
+                if (validCards.length > 0) {
+                    return {
+                        questions: validCards,
+                        isFallback: false
+                    };
+                }
+            }
+        } catch (err) {
+            console.warn(`[Flashcards] ${provider.model} failed:`, err.message);
+            if (provider === chain[chain.length - 1]) throw err;
+        }
+    }
+
+    throw new Error("Unable to generate flashcards from AI providers");
+};
+
+
+/**
  * Helper to strip leading indentation from template literals.
  */
 const dedent = (str) => {
@@ -1399,6 +1494,7 @@ ${specializationGuidance}
 
 module.exports = {
     generateQuiz,
+    generateFlashcards,
     generateIntuition,
     translateText,
     benchmarkAllModels,
