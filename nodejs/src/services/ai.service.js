@@ -921,14 +921,21 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
            - Inline math: $...$ (e.g., $f(x) = \\int e^{-t^2} dt$, $O(n \\log n)$, $\\Delta H$).
            - Block math: $$...$$ (e.g., $$\\lim_{n \\to \\infty} \\left(1 + \\frac{1}{n}\\right)^n = e$$).
            - Never output naked LaTeX commands outside dollar signs.
-        7. CLEAN MARKDOWN & HIGH-RETENTION EXAM STRUCTURE:
-           - Inside each topic, organize the content with clear structural headers:
-             • 🎯 Core Concept & Formal Definitions (clear, formal definitions suitable for exam answers)
-             • ⚙️ In-Depth Mechanisms & Step-by-Step Breakdown (the underlying mechanics explained thoroughly)
-             • 📝 Worked Example / Case Application (concrete examples or problem walk-throughs from the video)
-             • ⚠️ Critical Distinctions, Pitfalls & Common Exam Traps (common mistakes students make)
-             • 💡 Key Revision Summary (high-yield summary takeaways)
-           - Use Markdown headers (###, ####), bullet points (- **Term**: Definition), bolding (**text**), and syntax-highlighted code/formula blocks. NO raw HTML tags (<br>, <b>, <i>).
+        7. DYNAMIC, CONTENT-DRIVEN TOPIC STRUCTURE (NO FORCED STATIC HEADERS):
+           - DO NOT copy-paste rigid generic headers. Dynamically formulate 3 to 6 descriptive, subject-tailored section headers (using Markdown ### with an appropriate contextual emoji) that organically reflect what is actually taught in this specific video lecture.
+           - Every section header must be descriptive and specific to the lesson material. For example:
+             • Computer Science / Coding: "### 💡 Algorithmic Intuition & Invariant", "### 📊 Step-by-Step Dry Run & State Table", "### 💻 Optimal Implementation", "### ⏱️ Time & Space Complexity Analysis", "### ⚠️ Boundary Edge Cases & Traps"
+             • Mathematics / Physics: "### 📐 First Principles & Axioms", "### ✍️ Step-by-Step Mathematical Derivation", "### 📈 Physical Interpretation & Boundary Conditions", "### 📝 Solved University Exam Problems"
+             • Medicine / Healthcare: "### 🧬 Pathophysiology & Cellular Cascades", "### 🩺 Clinical Presentation & Symptoms", "### 🔬 Diagnostic Criteria & Differential Diagnosis", "### 💊 Pharmacological / Clinical Management"
+             • History / Law / Humanities: "### 🏛️ Historical Context & Underlying Catalysts", "### ⏳ Chronology of Key Events & Turning Points", "### ⚖️ Treaties, Statutes & Strategic Shifts", "### 🌍 Global Impact & Modern Precedents"
+             • Business / Finance: "### 📈 Market Mechanics & Strategic Frameworks", "### 💵 Quantitative Financial Models & Valuation", "### 🏢 Real-World Corporate Case Study", "### ⚠️ Risk Factors & Sensitivity Analysis"
+           - Recommended pedagogical progression for each topic:
+             1. Foundational Intuition / Core Definitions / Context
+             2. In-Depth Technical Breakdown (mechanisms, derivations, chronological events, biological pathways, or system architectures as taught in the video)
+             3. Practical Walkthrough / Real-World Application / Code Implementation / Case Study (grounded directly in the lecture)
+             4. Critical Nuances, Common Traps, Edge Cases, or Misconceptions (what students get wrong on exams or in practice)
+             5. High-Yield Revision Takeaways / Exam Memory Hooks
+           - Use Markdown headers (###, ####), bullet points (- **Term**: Definition), bolding (**text**), and syntax-highlighted code/formula blocks where relevant. NO raw HTML tags (<br>, <b>, <i>).
            - CODE & PSEUDOCODE BLOCKS (CRITICAL):
              • ALWAYS place opening and closing code fences (\`\`\`) on their own separate lines with ZERO leading spaces.
              • Always specify the programming language on the opening fence (e.g., \`\`\`python, \`\`\`cpp, \`\`\`javascript, \`\`\`pseudocode).
@@ -955,7 +962,7 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
             {
               "pageNumber": 1,
               "title": "Topic 1: ...",
-              "content": "### 🎯 Core Technical Overview\\nDetailed markdown content...\\n\\n### ⚙️ Mechanics & Implementation\\n..."
+              "content": "### 🎯 [Dynamic Context-Specific Header 1]\\nMarkdown content...\\n\\n### ⚙️ [Dynamic Context-Specific Header 2]\\n...\\n\\n### 💡 [Dynamic High-Yield Summary]\\n..."
             }
           ]
         }
