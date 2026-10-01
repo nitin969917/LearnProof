@@ -332,6 +332,12 @@ const unescapeIntuitionRegexContent = (rawContent) => {
     c = c.replace(/___LATEX_N_(\w+)/g, '\\n$1');
     c = c.replace(/___LATEX_B_(\w+)/g, '\\b$1');
     c = c.replace(/___LATEX_F_(\w+)/g, '\\f$1');
+
+    // Strip leading indentation from code fences so CommonMark never treats closing fence as indented code
+    c = c.replace(/^[ \t]+(```[a-zA-Z0-9_+#-]*)/gm, '$1');
+    c = c.replace(/([^\n`])\s*(```[a-zA-Z0-9_+#-]*)/g, '$1\n\n$2');
+    c = c.replace(/(```(?:[a-zA-Z0-9_+#-]+)?)[ \t]+([^\n\r])/g, '$1\n\n$2');
+
     return c;
 };
 
@@ -376,8 +382,11 @@ const cleanIntuitionJSON = (text, defaultCategory = 'theory_humanities', default
     if (!text || typeof text !== 'string') return null;
 
     let cleaned = text.trim();
-    const jsonMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) cleaned = jsonMatch[1].trim();
+    // Only strip outer code block fences if the response actually starts with ```
+    if (/^\s*```/i.test(cleaned)) {
+        const jsonMatch = cleaned.match(/^\s*```(?:json)?\s*([\s\S]*?)\s*```/i);
+        if (jsonMatch) cleaned = jsonMatch[1].trim();
+    }
 
     const firstBrace = cleaned.indexOf('{');
     const lastBrace = cleaned.lastIndexOf('}');
@@ -407,6 +416,11 @@ const cleanIntuitionJSON = (text, defaultCategory = 'theory_humanities', default
                     .replace(/\x08/g, '')
                     .replace(/\0/g, '')
                     .replace(/\\{2,}(?=(?:frac|to|text|lim|sum|int|cos|sin|tan|cot|sec|csc|ln|log|exp|infty|cdot|cdots|vdots|ddots|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|varpi|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|left|right|quad|qquad|sqrt|times|div|pm|mp|le|ge|leq|geq|ne|neq|approx|sim|simeq|cong|partial|nabla|subset|subseteq|supset|supseteq|in|notin|cap|cup|forall|exists|neg|vee|wedge|boxed|begin|end|over|matrix|pmatrix|bmatrix|vmatrix|Vmatrix|cases|align|aligned|gather|gathered|equiv|parallel|perp|circ|bullet|star|ast|prime|hat|bar|tilde|vec|dot|ddot)\b)/g, () => '\\');
+
+                // Normalize code fences so closing fences with indentation don't break CommonMark
+                pageContent = pageContent.replace(/^[ \t]+(```[a-zA-Z0-9_+#-]*)/gm, '$1');
+                pageContent = pageContent.replace(/([^\n`])\s*(```[a-zA-Z0-9_+#-]*)/g, '$1\n\n$2');
+                pageContent = pageContent.replace(/(```(?:[a-zA-Z0-9_+#-]+)?)[ \t]+([^\n\r])/g, '$1\n\n$2');
 
                 return {
                     pageNumber: p.pageNumber || (idx + 1),
@@ -915,6 +929,10 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
              • ⚠️ Critical Distinctions, Pitfalls & Common Exam Traps (common mistakes students make)
              • 💡 Key Revision Summary (high-yield summary takeaways)
            - Use Markdown headers (###, ####), bullet points (- **Term**: Definition), bolding (**text**), and syntax-highlighted code/formula blocks. NO raw HTML tags (<br>, <b>, <i>).
+           - CODE & PSEUDOCODE BLOCKS (CRITICAL):
+             • ALWAYS place opening and closing code fences (```) on their own separate lines with ZERO leading spaces.
+             • Always specify the programming language on the opening fence (e.g., ```python, ```cpp, ```javascript, ```pseudocode).
+             • NEVER put explanations, bullet points, or headings on the same line as a closing ``` fence.
         8. TOPIC-BY-TOPIC BREAKDOWN:
            - Target topic count: exactly ${targetPages} topics.
            - ${topicStructureGuidance}

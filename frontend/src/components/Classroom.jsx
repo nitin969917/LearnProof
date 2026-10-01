@@ -423,7 +423,10 @@ const parseIntuitionData = (raw) => {
     const innerStr = obj.pages[0].content.trim();
     if (innerStr.includes('"pages"') && (innerStr.startsWith('{') || innerStr.startsWith('```'))) {
       try {
-        const cleanedInner = innerStr.replace(/```(?:json)?\s*([\s\S]*?)```/, '$1').trim();
+        let cleanedInner = innerStr;
+        if (/^\s*```/i.test(cleanedInner)) {
+          cleanedInner = cleanedInner.replace(/^\s*```(?:json)?\s*([\s\S]*?)\s*```/i, '$1').trim();
+        }
         const unwrapped = JSON.parse(cleanedInner);
         if (unwrapped && Array.isArray(unwrapped.pages) && unwrapped.pages.length > 0) {
           obj = unwrapped;
@@ -448,6 +451,9 @@ const parseIntuitionData = (raw) => {
         if (contentStr.includes('\\n')) {
           contentStr = contentStr.replace(/\\n/g, '\n');
         }
+        contentStr = contentStr.replace(/^[ \t]+(```[a-zA-Z0-9_+#-]*)/gm, '$1');
+        contentStr = contentStr.replace(/([^\n`])\s*(```[a-zA-Z0-9_+#-]*)/g, '$1\n\n$2');
+        contentStr = contentStr.replace(/(```(?:[a-zA-Z0-9_+#-]+)?)[ \t]+([^\n\r])/g, '$1\n\n$2');
         return {
           pageNumber: p.pageNumber || idx + 1,
           title: cleanTopicTitle(p.title, idx),
@@ -3450,16 +3456,20 @@ const Classroom = () => {
                                           li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:my-1" {...props} />,
                                           p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words leading-relaxed" {...props} />,
                                           pre: ({ node, children, ...props }) => <>{children}</>,
-                                          code: ({ node, className, children, ...props }) => {
-                                            const match = /language-(\w+)/.exec(className || '');
-                                            if (!match) {
+                                          code: ({ node, inline, className, children, ...props }) => {
+                                            const match = /language-([a-zA-Z0-9_+#-]+)/.exec(className || '');
+                                            const contentStr = String(children || '');
+                                            const isMultiLine = contentStr.includes('\n');
+                                            const isBlock = inline === false || Boolean(match) || isMultiLine;
+
+                                            if (!isBlock) {
                                               return (
                                                 <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>
                                                   {children}
                                                 </code>
                                               );
                                             }
-                                            return <CodeEditorBlock className={className} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
+                                            return <CodeEditorBlock className={className || 'language-python'} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
                                           },
                                           table: ({ node, ...props }) => (
                                             <div
@@ -3532,16 +3542,20 @@ const Classroom = () => {
                                           li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:my-1" {...props} />,
                                           p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words leading-relaxed" {...props} />,
                                           pre: ({ node, children, ...props }) => <>{children}</>,
-                                          code: ({ node, className, children, ...props }) => {
-                                            const match = /language-(\w+)/.exec(className || "");
-                                            if (!match) {
+                                          code: ({ node, inline, className, children, ...props }) => {
+                                            const match = /language-([a-zA-Z0-9_+#-]+)/.exec(className || "");
+                                            const contentStr = String(children || '');
+                                            const isMultiLine = contentStr.includes('\n');
+                                            const isBlock = inline === false || Boolean(match) || isMultiLine;
+
+                                            if (!isBlock) {
                                               return (
                                                 <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>
                                                   {children}
                                                 </code>
                                               );
                                             }
-                                            return <CodeEditorBlock className={className} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
+                                            return <CodeEditorBlock className={className || 'language-python'} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
                                           },
                                           table: ({ node, ...props }) => (
                                             <div
@@ -3772,16 +3786,20 @@ const Classroom = () => {
                                           ul: ({ node, ...props }) => <ul className="list-disc pl-4 my-1 space-y-1" {...props} />,
                                           li: ({ node, ...props }) => <li className="break-words leading-relaxed [&>p]:my-1" {...props} />,
                                           pre: ({ node, children, ...props }) => <>{children}</>,
-                                          code: ({ node, className, children, ...props }) => {
-                                            const match = /language-(\w+)/.exec(className || '');
-                                            if (!match) {
+                                          code: ({ node, inline, className, children, ...props }) => {
+                                            const match = /language-([a-zA-Z0-9_+#-]+)/.exec(className || '');
+                                            const contentStr = String(children || '');
+                                            const isMultiLine = contentStr.includes('\n');
+                                            const isBlock = inline === false || Boolean(match) || isMultiLine;
+
+                                            if (!isBlock) {
                                               return (
                                                 <code className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1 py-0.5 rounded font-mono text-xs font-semibold" {...props}>
                                                   {children}
                                                 </code>
                                               );
                                             }
-                                            return <CodeEditorBlock className={className} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
+                                            return <CodeEditorBlock className={className || 'language-python'} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
                                           }
                                         }}
                                       >
@@ -4826,21 +4844,25 @@ const Classroom = () => {
                         li: ({ node, ...props }) => <li className="text-slate-700 dark:text-slate-300 leading-relaxed [&>p]:my-1" {...props} />,
                         strong: ({ node, ...props }) => <strong className="font-bold text-slate-900 dark:text-white" {...props} />,
                         pre: ({ node, children, ...props }) => <>{children}</>,
-                        code: ({ node, className, children, ...props }) => {
-                          const match = /language-(\w+)/.exec(className || '');
-                          const isExplicitBlock = Boolean(match);
-                          if (!isExplicitBlock) {
+                        code: ({ node, inline, className, children, ...props }) => {
+                          const match = /language-([a-zA-Z0-9_+#-]+)/.exec(className || '');
+                          const contentStr = String(children || '');
+                          const isMultiLine = contentStr.includes('\n');
+                          const isBlock = inline === false || Boolean(match) || isMultiLine;
+
+                          if (!isBlock) {
                             return (
                               <code className="bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold" {...props}>
                                 {children}
                               </code>
                             );
                           }
-                          const codeContent = String(children || '').replace(/\n$/, '');
+                          const codeContent = contentStr.replace(/\n$/, '');
                           return (
                             <CodeEditorBlock
                               code={codeContent}
-                              language={match ? match[1] : ''}
+                              className={className || 'language-python'}
+                              language={match ? match[1] : 'python'}
                               onOpenInEditor={(c, l) => {
                                 setShowNotesModal(false);
                                 handleOpenInCodeEditor(c, l);

@@ -32,6 +32,14 @@ export const preprocessMath = (text) => {
 
   let processed = text;
 
+  // If text contains literal escaped newlines (\\n) that weren't converted, normalize them
+  if (processed.includes('\\n')) {
+    // Protect LaTeX commands starting with \n (nabla, nu, neq, not) before converting \\n
+    processed = processed.replace(/\\n(abla|u|eq|ot)\b/g, '___LATEX_N_$1');
+    processed = processed.replace(/\\n/g, '\n');
+    processed = processed.replace(/___LATEX_N_(\w+)/g, '\\n$1');
+  }
+
   // 1. Remove control characters and restore corrupted \frac / \beta
   processed = processed
     .replace(/\x0crac\b/g, '\\frac')
@@ -42,10 +50,26 @@ export const preprocessMath = (text) => {
     .replace(/\x08/g, '')
     .replace(/\0/g, '');
 
+  // 1b. Normalize code fences BEFORE protecting code blocks:
+  // Strip leading whitespace before code fences so CommonMark never treats closing fence as indented code
+  processed = processed.replace(/^[ \t]+(```[a-zA-Z0-9_+#-]*)/gm, '$1');
+  // Ensure code fences touching preceding text on the same line are cleanly separated
+  processed = processed.replace(/([^\n`])\s*(```[a-zA-Z0-9_+#-]*)/g, '$1\n\n$2');
+  // If ``` is immediately followed by non-code markdown text on the same line, separate it
+  processed = processed.replace(/(```(?:[a-zA-Z0-9_+#-]+)?)[ \t]+([^\n\r])/g, '$1\n\n$2');
+
+  // Auto-close dangling fences if count of ``` is odd
+  const fenceMatches = processed.match(/^```/gm);
+  if (fenceMatches && fenceMatches.length % 2 !== 0) {
+    processed += '\n```\n';
+  }
+
   // 2. Protect fenced code blocks (```...```) and inline code (`...`)
   const codeBlocks = [];
   processed = processed.replace(/(```[\s\S]*?```|`[^`\n]+`)/g, (match) => {
-    codeBlocks.push(match);
+    // Ensure the code block itself has no leading spaces before the closing fence
+    const cleanMatch = match.replace(/^[ \t]+(```)/gm, '$1');
+    codeBlocks.push(cleanMatch);
     return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
   });
 
