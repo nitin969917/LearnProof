@@ -1610,6 +1610,126 @@ const Classroom = () => {
     window.print();
   };
 
+  const blobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const res = reader.result;
+        if (typeof res === 'string') {
+          resolve(res.includes(',') ? res.split(',')[1] : res);
+        } else {
+          resolve('');
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const downloadOrSharePdf = async (pdfBlob, fileName, toastId) => {
+    const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
+
+    // 1. Capacitor Native (iOS / Android Mobile App)
+    // Uses native Filesystem to write to disk, then prompts native OS Share Sheet (Save to Files / Downloads)
+    if (isCapacitorNative) {
+      try {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+        const base64Data = await blobToBase64(pdfBlob);
+
+        const writeResult = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache
+        });
+
+        await Share.share({
+          title: fileName,
+          url: writeResult.uri,
+          dialogTitle: 'Save or Share PDF Notes'
+        });
+
+        toast.success("PDF saved / shared successfully!", { id: toastId, duration: 4000 });
+        return true;
+      } catch (capErr) {
+        if (capErr?.name === 'AbortError' || capErr?.message?.includes('canceled') || capErr?.message?.includes('cancelled')) {
+          toast.dismiss(toastId);
+          return true;
+        }
+        console.warn("Capacitor Filesystem/Share failed, falling back to Web APIs:", capErr);
+      }
+    }
+
+    const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+    const isMobile = isIOS || isAndroid || (typeof window !== 'undefined' && window.innerWidth < 768);
+
+    // 2. Mobile Web: Use Web Share API (native iOS / Android Share Sheet)
+    // Allows user on iPhone to tap "Save to Files" or AirDrop, and on Android to tap "Save to Downloads" or Drive
+    if (isMobile && typeof navigator !== 'undefined' && typeof File !== 'undefined' && navigator.canShare) {
+      try {
+        const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: fileName,
+            text: 'LearnProof AI Study Notes'
+          });
+          toast.success("PDF saved / shared successfully!", { id: toastId, duration: 4000 });
+          return true;
+        }
+      } catch (shareErr) {
+        if (shareErr.name === 'AbortError') {
+          // User dismissed or swiped away the share sheet - clean dismiss without error
+          toast.dismiss(toastId);
+          return true;
+        }
+        console.warn("Mobile Web Share failed, falling back to direct blob view/download:", shareErr);
+      }
+    }
+
+    // 3. Direct Blob fallback
+    const blobUrl = URL.createObjectURL(pdfBlob);
+
+    // On iOS Safari: Programmatic clicks on <a download> with blob URLs are ignored by WebKit.
+    // Opening the blob URL in a new window/tab displays iOS Safari's native PDF reader,
+    // which has the native iOS Share icon to "Save to Files" or AirDrop.
+    if (isIOS) {
+      try {
+        const newWin = window.open(blobUrl, '_blank');
+        if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+          window.location.href = blobUrl;
+        }
+        toast.success("PDF opened. Tap the Share icon to Save to Files!", { id: toastId, duration: 5000 });
+        return true;
+      } catch (iosErr) {
+        console.error("iOS blob navigation failed:", iosErr);
+        window.location.href = blobUrl;
+        return true;
+      }
+    }
+
+    // 4. Desktop and Android browsers: Standard programmatic <a download>
+    try {
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        if (document.body.contains(a)) document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }, 10000);
+      toast.success("PDF Downloaded successfully!", { id: toastId, duration: 4000 });
+      return true;
+    } catch (downloadErr) {
+      console.error("Direct download anchor failed:", downloadErr);
+      window.open(blobUrl, '_blank');
+      toast.success("PDF opened in new tab!", { id: toastId, duration: 4000 });
+      return true;
+    }
+  };
+
   const handleDownloadPdf = async () => {
     if (!parsedIntuition || !parsedIntuition.pages || parsedIntuition.pages.length === 0) {
       toast.error("Please generate study notes first.");
@@ -1792,8 +1912,8 @@ const Classroom = () => {
               );
             }
 
-            pdf.save(fileName);
-            downloaded = true;
+            const pdfBlob = pdf.output('blob');
+            downloaded = await downloadOrSharePdf(pdfBlob, fileName, toastId);
           }
         } catch (clientErr) {
           console.warn("Client-side PDF generation failed, falling back to server:", clientErr);
@@ -1820,30 +1940,17 @@ const Classroom = () => {
             bytes[i] = binaryStr.charCodeAt(i);
           }
           const pdfBlob = new Blob([bytes], { type: 'application/pdf' });
-          const blobUrl = URL.createObjectURL(pdfBlob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            if (document.body.contains(a)) document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
-          }, 10000);
+          downloaded = await downloadOrSharePdf(pdfBlob, fileName, toastId);
         } else if (response.data?.downloadUrl) {
           window.open(`${import.meta.env.VITE_BACKEND_URL}${response.data.downloadUrl}`, '_blank');
+          toast.success("PDF opened in new tab!", { id: toastId, duration: 4000 });
+          downloaded = true;
         }
       }
 
       // 3. Immediately close preview modal so user is back on page
       setShowNotesModal(false);
       setPdfShareModalData(null);
-
-      // 4. Show prominent top-center success toast
-      toast.success("PDF Downloaded successfully!", {
-        id: toastId,
-        duration: 4000
-      });
     } catch (err) {
       console.error("PDF preparation failed:", err);
       toast.error("Failed to prepare PDF. Please try again.", { id: toastId });

@@ -198,9 +198,41 @@ export const formatQuizMath = (text) => {
 
   let processed = text.trim();
 
+  // 0a. Clean any polluted LaTeX inside code backticks from previous cached responses:
+  // e.g. `5 $\le$ 2 * 2` -> `5 <= 2 * 2`, `$largest_element$` -> `largest_element`
+  processed = processed.replace(/`([^`\n]+)`/g, (m, code) => {
+    let cleanCode = code
+      .replace(/\$\\le\s*\$/g, '<=')
+      .replace(/\\le\b/g, '<=')
+      .replace(/\$\\ge\s*\$/g, '>=')
+      .replace(/\\ge\b/g, '>=')
+      .replace(/\$\\neq\s*\$/g, '!=')
+      .replace(/\\neq\b/g, '!=')
+      .replace(/\$([a-zA-Z0-9_]+)\$/g, '$1');
+    return `\`${cleanCode}\``;
+  });
+
+  // 0b. Normalize false math snake_case variables outside code: e.g. $largest_element$ -> `largest_element`
+  processed = processed.replace(/\$([a-zA-Z]{3,}_[a-zA-Z]{2,})\$/g, '`$1`');
+
+  // 0c. Protect multiline code blocks (```...```) and inline code spans (`...`)
+  // so that code syntax (<=, >=, !=, snake_case_identifiers, *, etc.) is NEVER corrupted into broken LaTeX
+  const codeBlocks = [];
+  const protectCode = (match) => {
+    codeBlocks.push(match);
+    return `___QUIZ_CODE_${codeBlocks.length - 1}___`;
+  };
+
+  processed = processed.replace(/```[\s\S]*?```/g, protectCode);
+  processed = processed.replace(/`[^`\n]+`/g, protectCode);
+
   // 1. Normalize escaped backslashes (\\sum -> \sum, \\frac -> \frac, etc.)
   processed = processed.replace(/\\{2,}(?=[a-zA-Z])/g, '\\');
   processed = processed.replace(/\\{2,}(?=[{}_^,;!|~])/g, '\\');
+
+  // 1b. Unwrap single operator dollar signs so surrounding arithmetic can be cleanly formatted as a unified formula:
+  // e.g. 5 $\le$ 2 * 2 -> 5 \le 2 * 2 -> $5 \le 2 \cdot 2$
+  processed = processed.replace(/\$(\\le|\\ge|\\neq|\\to|\\iff|\\implies|\\approx)\$/g, '$1');
 
   // 2. Normalize arrows and inequality symbols (WebKit-safe regexes without lookbehind)
   processed = processed.replace(/<->|<=>|\\leftrightarrow/g, '\\iff ');
@@ -241,7 +273,7 @@ export const formatQuizMath = (text) => {
 
   // 5. Test for natural language words (to distinguish pure math from sentences/explanations)
   const mathFuncs = new Set(['sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'log', 'ln', 'exp', 'det', 'lim', 'max', 'min', 'deg', 'dim', 'to', 'in', 'mod', 'frac', 'sum', 'prod', 'int', 'infty', 'dots', 'alpha', 'beta', 'gamma', 'delta', 'theta', 'lambda', 'sigma', 'omega', 'pi']);
-  const cleanForCheck = processed.replace(/___MATH_BLOCK_\d+___/g, ' ').replace(/\\[a-zA-Z]+/g, ' ');
+  const cleanForCheck = processed.replace(/___MATH_BLOCK_\d+___/g, ' ').replace(/___QUIZ_CODE_\d+___/g, ' ').replace(/\\[a-zA-Z]+/g, ' ');
   const wordMatches = cleanForCheck.match(/\b[a-zA-Z]{2,}\b/g) || [];
   const normalEnglishWords = wordMatches.filter(w => !mathFuncs.has(w.toLowerCase()));
   const hasNaturalLanguage = normalEnglishWords.length >= 2;
@@ -263,7 +295,8 @@ export const formatQuizMath = (text) => {
     
     const needsDisplayStyle = /\\[(sum|int|lim|prod|frac)]/.test(formula);
     const wrapped = needsDisplayStyle ? `$\\displaystyle ${formula}$` : `$${formula}$`;
-    return wrapped.replace(/___MATH_BLOCK_(\d+)___/g, (m, i) => mathBlocks[parseInt(i, 10)]);
+    let res = wrapped.replace(/___MATH_BLOCK_(\d+)___/g, (m, i) => mathBlocks[parseInt(i, 10)]);
+    return res.replace(/___QUIZ_CODE_(\d+)___/g, (m, i) => codeBlocks[parseInt(i, 10)]);
   }
 
   // 6. Sentence mode with embedded math:
@@ -289,25 +322,42 @@ export const formatQuizMath = (text) => {
   sentence = sentence.replace(/(f\^\{[^}]+\}\([^)]+\))/g, (m, g1) => protect(`$${g1}$`));
   sentence = sentence.replace(/\(([a-zA-Z0-9]+-[a-zA-Z0-9]+)\)\^([a-zA-Z0-9{}]+)/g, (m, g1, g2) => protect(`$(${g1})^${g2}$`));
   sentence = sentence.replace(/\b([a-zA-Z0-9]+)\^([a-zA-Z0-9{}]+)\b/g, (m, g1, g2) => protect(`$${g1}^${g2}$`));
-  sentence = sentence.replace(/\b([a-zA-Z0-9]+)\_([a-zA-Z0-9{}]+)\b/g, (m, g1, g2) => protect(`$${g1}_${g2}$`));
+  // Subscripts: ONLY for short mathematical identifiers (e.g. a_n, x_i, v_0, T_1), NEVER snake_case words
+  sentence = sentence.replace(/\b([a-zA-Z]{1,2})\_([0-9a-zA-Z{}]+)\b/g, (m, g1, g2) => protect(`$${g1}_${g2}$`));
   sentence = sentence.replace(/\b([fg]\([a-zA-Z]\))/g, (m, g1) => protect(`$${g1}$`));
   sentence = sentence.replace(/\b([fg]'\([a-zA-Z]\))/g, (m, g1) => protect(`$${g1}$`));
   sentence = sentence.replace(/(?:\\)?\b(sin|cos|tan|cot|sec|csc|log|ln)(?:\(([a-zA-Z0-9.]+)\)|\s+([a-zA-Z0-9]+))/g, (m, g1, g2, g3) => protect(`$\\${g1}(${g2 || g3})$`));
   sentence = sentence.replace(/\b([a-zA-Z])\s*=\s*([0-9]+)\b/g, (m, g1, g2) => protect(`$${g1} = ${g2}$`));
   sentence = sentence.replace(/\(([a-zA-Z0-9]+\s*-\s*[a-zA-Z0-9]+)\)/g, (m, g1) => protect(`$(${g1})$`));
 
-  // Rule 4: Absolute value conditions (e.g. |x|<1)
+  // Rule 4: Parenthesized arithmetic/inequality expressions: e.g. (4 \le 2 * 2) or (x >= 5) or (a + b = c)
+  sentence = sentence.replace(/\(([0-9a-zA-Z\s+\-*/^.]+?)\s*(\\le|\\ge|\\neq|\\to|\\iff|\\implies|[<>=])\s*([0-9a-zA-Z\s+\-*/^.]+?)\)/g, (m, left, op, right) => {
+    const cleanLeft = left.trim().replace(/\*/g, '\\cdot ');
+    const cleanRight = right.trim().replace(/\*/g, '\\cdot ');
+    return protect(`$(${cleanLeft} ${op.trim()} ${cleanRight})$`);
+  });
+
+  // Rule 5: Standalone arithmetic inequality: e.g. 5 \le 2 * 2 or largest \le k * smallest
+  sentence = sentence.replace(/\b([0-9a-zA-Z]+)\s*(\\le|\\ge|\\neq)\s*([0-9a-zA-Z\s+\-*/^.]+?)(?=[.,;!?)]|\s+(?:and|or|then|where|when|if|is|holds|with)\b|$)/g, (m, left, op, right) => {
+    const cleanRight = right.trim().replace(/\*/g, '\\cdot ');
+    return protect(`$${left.trim()} ${op.trim()} ${cleanRight}$`);
+  });
+
+  // Rule 6: Absolute value conditions (e.g. |x|<1)
   sentence = sentence.replace(/\|([a-zA-Z0-9]+)\|\s*(\\le|\\ge|[<>=]+)\s*([0-9a-zA-Z]+)/g, (m, v, op, val) => protect(`$|${v}| ${op.trim()} ${val}$`));
 
-  // Rule 5: Standalone variable identifiers in phrases (e.g. "limit L", "for all real x", "for all x")
+  // Rule 7: Standalone variable identifiers in phrases (e.g. "limit L", "for all real x", "for all x")
   sentence = sentence.replace(/\b(limit|variable|constant|term|point|radius of convergence)\s+([A-Za-z])\b/g, (m, word, v) => `${word} ${protect(`$${v}$`)}`);
   sentence = sentence.replace(/\b(for all real|for all)\s+([a-zA-Z])([.,;]|\s|$)/g, (m, prefix, v, punct) => `${prefix} ${protect(`$${v}$`)}${punct}`);
 
-  // Rule 6: Any remaining LaTeX commands
+  // Rule 8: Any remaining LaTeX commands outside math blocks
   sentence = sentence.replace(/\\[a-zA-Z]+(?:\{[^}]*\})*(?:_\{?[^}\s]*\}?)?(?:\^\{?[^}\s]*\}?)?/g, (m) => protect(`$${m}$`));
 
   // Restore all protected math blocks
   sentence = sentence.replace(/___MATH_BLOCK_(\d+)___/g, (m, i) => mathBlocks[parseInt(i, 10)]);
+
+  // Restore all protected code blocks and inline code spans
+  sentence = sentence.replace(/___QUIZ_CODE_(\d+)___/g, (m, i) => codeBlocks[parseInt(i, 10)]);
 
   return sentence;
 };
