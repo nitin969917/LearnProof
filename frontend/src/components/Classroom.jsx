@@ -2366,9 +2366,6 @@ const Classroom = () => {
       setQuizData(res.data.quiz);
       setAnswers({});
       setTimeLeft(res.data.quiz.time_limit * 60); // Use time_limit from backend (convert to seconds)
-      if (Array.isArray(res.data.quiz?.questions) && res.data.quiz.questions.length > 0) {
-        setFlashcardQuestions(res.data.quiz.questions);
-      }
     } catch (err) {
       console.error(err);
       const errorMsg = err.response?.data?.error || err.response?.data?.message || "Failed to start quiz. Check your connection.";
@@ -2398,25 +2395,6 @@ const Classroom = () => {
 
   const fetchFlashcards = async (forceRefresh = false, silent = false) => {
     if (!forceRefresh && flashcardQuestions.length > 0) return flashcardQuestions;
-
-    // Fast check: if quizData questions exist, reuse
-    if (!forceRefresh && Array.isArray(quizData?.questions) && quizData.questions.length > 0) {
-      setFlashcardQuestions(quizData.questions);
-      return quizData.questions;
-    }
-
-    // Fast check: if previous history has questions, reuse
-    if (!forceRefresh && quizHistory.length > 0) {
-      for (const hist of quizHistory) {
-        try {
-          const parsed = typeof hist.questions === 'string' ? JSON.parse(hist.questions) : hist.questions;
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setFlashcardQuestions(parsed);
-            return parsed;
-          }
-        } catch (_) {}
-      }
-    }
 
     // Reuse existing in-flight request to avoid race condition and duplicate network calls
     if (inFlightFlashcardPromiseRef.current) {
@@ -2448,26 +2426,9 @@ const Classroom = () => {
           return res.data.questions;
         }
       } catch (err) {
-        console.warn("Primary flashcards route failed, attempting start-quiz fallback:", err);
-      }
-
-      // Resilient fallback: use start-quiz endpoint
-      try {
-        const quizRes = await axios.post(`${backendUrl}/api/start-quiz/`, {
-          idToken: token,
-          contentType: 'video',
-          contentId: videoId,
-        });
-        if (quizRes.data?.quiz?.questions && Array.isArray(quizRes.data.quiz.questions) && quizRes.data.quiz.questions.length > 0) {
-          setFlashcardQuestions(quizRes.data.quiz.questions);
-          setQuizData(quizRes.data.quiz);
-          setTimeLeft(quizRes.data.quiz.time_limit * 60);
-          return quizRes.data.quiz.questions;
-        }
-      } catch (qErr) {
-        console.error("Flashcards fallback failed:", qErr);
+        console.error("Flashcards request failed:", err);
         if (!silent) {
-          toast.error("Could not load flashcards. Try again or start the quiz directly.");
+          toast.error("Could not load flashcards. Please try again.");
         }
       }
       return [];
@@ -4185,11 +4146,11 @@ const Classroom = () => {
                         </div>
 
                         {/* Segmented Mode Switcher: Practice Quiz vs Flashcards */}
-                        <div className="flex items-center bg-orange-100/70 dark:bg-slate-800/90 p-1 rounded-xl sm:rounded-2xl border border-orange-200/70 dark:border-slate-700 shadow-2xs w-full sm:w-auto">
+                        <div className="inline-flex items-center bg-orange-100/80 dark:bg-slate-800/90 p-1 rounded-2xl border border-orange-200/80 dark:border-slate-700 shadow-2xs overflow-hidden w-full sm:w-auto gap-1">
                           <button
                             type="button"
                             onClick={() => setQuizSubTab('quiz')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-3.5 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                               quizSubTab === 'quiz'
                                 ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-xs'
                                 : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
@@ -4201,7 +4162,7 @@ const Classroom = () => {
                           <button
                             type="button"
                             onClick={() => setQuizSubTab('flashcards')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-3.5 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                               quizSubTab === 'flashcards'
                                 ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-xs'
                                 : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
@@ -4225,11 +4186,7 @@ const Classroom = () => {
                               className="w-full"
                             >
                               <FlashcardsView
-                                questions={
-                                  flashcardQuestions.length > 0 
-                                    ? flashcardQuestions 
-                                    : (quizData?.questions || [])
-                                }
+                                questions={flashcardQuestions}
                                 loading={loadingFlashcards}
                                 onExit={() => setFlashcardsStarted(false)}
                                 onStartQuiz={() => {

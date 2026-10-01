@@ -190,7 +190,14 @@ const startQuiz = async (req, res) => {
         if (contentType === 'video') {
             const cachedQuiz = await prisma.videoQuizData.findUnique({ where: { vid: contentId } });
             if (cachedQuiz) {
-                questions = normalizeQuestions(cachedQuiz.questions);
+                const parsed = normalizeQuestions(cachedQuiz.questions);
+                // Strict validation: must be genuine MCQ questions with options
+                if (Array.isArray(parsed) && parsed.length > 0 && Array.isArray(parsed[0]?.options) && parsed[0].options.length >= 2) {
+                    questions = parsed;
+                } else {
+                    console.warn(`[startQuiz] Cached questions for vid ${contentId} are not valid MCQ questions. Cleaning and re-generating.`);
+                    await prisma.videoQuizData.delete({ where: { vid: contentId } }).catch(() => {});
+                }
             }
         }
 
@@ -731,35 +738,7 @@ const getQuizFlashcards = async (req, res) => {
             });
         }
 
-        // 2. Check if cached in VideoQuizData (<10ms)
-        if (contentType === 'video') {
-            const cachedQuiz = await prisma.videoQuizData.findUnique({ where: { vid: contentId } });
-            if (cachedQuiz) {
-                questions = normalizeQuestions(cachedQuiz.questions);
-            }
-        }
-
-        // 3. Check if any previous quiz attempt for this video has questions (<10ms)
-        if ((!questions || questions.length === 0) && target && contentType === 'video') {
-            const previousAttempt = await prisma.quiz.findFirst({
-                where: { videoId: target.id },
-                orderBy: { attempted_at: 'desc' }
-            });
-            if (previousAttempt && previousAttempt.questions) {
-                questions = normalizeQuestions(previousAttempt.questions);
-            }
-        }
-
-        // If found in database cache, save to Redis and return immediately
-        if (questions && Array.isArray(questions) && questions.length > 0) {
-            await cacheService.set(cacheKey, questions, 7 * 86400);
-            return res.status(200).json({
-                questions,
-                title: target?.name || 'Flashcards'
-            });
-        }
-
-        // 4. If generation is already in-flight for this contentId, await it to prevent duplicate AI calls
+        // 2. If generation is already in-flight for this contentId, await it to prevent duplicate AI calls
         const inFlightKey = `${contentType}:${contentId}`;
         if (inFlightFlashcardRequests.has(inFlightKey)) {
             const inFlightResult = await inFlightFlashcardRequests.get(inFlightKey);
@@ -769,7 +748,7 @@ const getQuizFlashcards = async (req, res) => {
             });
         }
 
-        // 5. Generate high-speed dedicated flashcards (~1-2s response time)
+        // 3. Generate high-speed dedicated flashcards (~1-2s response time)
         const generateTask = (async () => {
             if (!target) return [];
             const title = target.name;
@@ -796,26 +775,19 @@ const getQuizFlashcards = async (req, res) => {
                 const generatedCards = flashRes.questions || [];
 
                 if (generatedCards.length > 0) {
-                    await prisma.videoQuizData.upsert({
-                        where: { vid: contentId },
-                        update: { questions: JSON.stringify(generatedCards) },
-                        create: { vid: contentId, questions: JSON.stringify(generatedCards) }
-                    });
-                    await cacheService.set(cacheKey, generatedCards, 7 * 86400);
+                    await cacheService.set(cacheKey, generatedCards, 30 * 86400);
                 }
                 return generatedCards;
             } catch (err) {
                 console.error("[Flashcards] Fast generation failed, attempting quiz fallback:", err.message);
                 try {
-                    const quizRes = await generateQuiz(title, description, target.url, intuitionText, 10, transcriptText);
-                    const fallbackCards = (quizRes.questions || []).slice(0, 10);
+                    const quizRes = await generateQuiz(title, description, target.url, intuitionText, 8, transcriptText);
+                    const fallbackCards = (quizRes.questions || []).map(q => ({
+                        question: q.question,
+                        answer: q.answer || (q.options && q.options[0]) || ''
+                    }));
                     if (fallbackCards.length > 0) {
-                        await prisma.videoQuizData.upsert({
-                            where: { vid: contentId },
-                            update: { questions: JSON.stringify(fallbackCards) },
-                            create: { vid: contentId, questions: JSON.stringify(fallbackCards) }
-                        });
-                        await cacheService.set(cacheKey, fallbackCards, 7 * 86400);
+                        await cacheService.set(cacheKey, fallbackCards, 30 * 86400);
                     }
                     return fallbackCards;
                 } catch (fallbackErr) {
