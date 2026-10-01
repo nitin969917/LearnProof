@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   RotateCcw, 
   ChevronLeft, 
@@ -29,6 +29,13 @@ const FlashcardsView = ({
   const [deckOrder, setDeckOrder] = useState([]);
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'review'
   const [isCompleted, setIsCompleted] = useState(false);
+
+  // Auto-fetch if questions are missing and not currently loading
+  useEffect(() => {
+    if ((!questions || questions.length === 0) && !loading && onRefresh) {
+      onRefresh();
+    }
+  }, []);
 
   // Initialize or reset deck order when questions change
   useEffect(() => {
@@ -63,9 +70,9 @@ const FlashcardsView = ({
   }, [cardStatus]);
 
   const progressPct = useMemo(() => {
-    if (!questions.length) return 0;
+    if (!activeDeck.length) return 0;
     return Math.round(((currentIndex + 1) / activeDeck.length) * 100);
-  }, [currentIndex, activeDeck.length, questions.length]);
+  }, [currentIndex, activeDeck.length]);
 
   const handleFlip = useCallback(() => {
     setIsFlipped(prev => !prev);
@@ -97,7 +104,7 @@ const FlashcardsView = ({
     // Auto advance to next card after brief moment
     setTimeout(() => {
       handleNext();
-    }, 250);
+    }, 220);
   }, [currentOriginalIndex, handleNext]);
 
   const handleShuffle = useCallback(() => {
@@ -124,8 +131,7 @@ const FlashcardsView = ({
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Don't trigger if user is typing in an input or textarea
-      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+      if (['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) return;
 
       if (e.code === 'Space') {
         e.preventDefault();
@@ -143,38 +149,38 @@ const FlashcardsView = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleFlip, handleNext, handlePrev]);
 
-  // Loading skeleton
+  // Loading Skeleton State
   if (loading) {
     return (
-      <div className="bg-white dark:bg-slate-800/90 rounded-2xl sm:rounded-3xl p-6 sm:p-10 border border-orange-100 dark:border-slate-700 shadow-sm text-center flex flex-col items-center justify-center min-h-[380px]">
+      <div className="bg-white dark:bg-slate-800/90 rounded-2xl sm:rounded-3xl p-6 sm:p-10 border border-orange-100/90 dark:border-slate-700 shadow-sm text-center flex flex-col items-center justify-center min-h-[380px]">
         <div className="relative mb-4">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-orange-100 dark:bg-orange-950/50 flex items-center justify-center animate-pulse">
-            <Layers className="text-orange-500 animate-bounce" size={28} />
+          <div className="w-16 h-16 rounded-2xl bg-orange-100 dark:bg-orange-950/50 flex items-center justify-center animate-pulse">
+            <Layers className="text-orange-500 animate-bounce" size={30} />
           </div>
-          <Sparkles className="absolute -top-1 -right-1 text-amber-500 animate-spin" size={18} />
+          <Sparkles className="absolute -top-1.5 -right-1.5 text-amber-500 animate-spin" size={20} />
         </div>
         <h4 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-1.5">
-          Preparing AI Flashcards...
+          Generating AI Flashcards...
         </h4>
-        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-sm">
-          Extracting key formulas, core concepts, and active-recall cards from this video lesson.
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-sm leading-relaxed">
+          Extracting key definitions, mechanisms, and active recall cards specifically for this video lesson.
         </p>
       </div>
     );
   }
 
-  // Empty state
+  // Empty state (only shown if not loading and questions array is empty)
   if (!questions || questions.length === 0) {
     return (
-      <div className="bg-white dark:bg-slate-800/90 rounded-2xl sm:rounded-3xl p-6 sm:p-10 border border-orange-100 dark:border-slate-700 shadow-sm text-center flex flex-col items-center justify-center min-h-[360px]">
-        <div className="w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mb-3.5">
+      <div className="bg-white dark:bg-slate-800/90 rounded-2xl sm:rounded-3xl p-6 sm:p-10 border border-orange-100/90 dark:border-slate-700 shadow-sm text-center flex flex-col items-center justify-center min-h-[360px]">
+        <div className="w-14 h-14 rounded-2xl bg-orange-100 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mb-3.5 shadow-2xs">
           <Layers size={28} />
         </div>
         <h4 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-1.5">
-          Flashcards Ready to Generate
+          Flashcards for this Video
         </h4>
         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-md mb-5 leading-relaxed">
-          Generate interactive 3D flashcards to master formulas and key exam concepts through active recall.
+          Active recall flashcards let you test yourself on key concepts, algorithms, and formulas before taking the test.
         </p>
         <button
           onClick={onRefresh || onStartQuiz}
@@ -187,27 +193,27 @@ const FlashcardsView = ({
     );
   }
 
-  // Completion / Summary Card
+  // Study Completion Summary
   if (isCompleted) {
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
+        initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl p-6 sm:p-10 border border-orange-100 dark:border-slate-700 shadow-sm text-center max-w-lg mx-auto"
+        className="bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-orange-100/90 dark:border-slate-700 shadow-sm text-center max-w-lg mx-auto"
       >
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 text-white flex items-center justify-center mb-4 shadow-md shadow-orange-500/20">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 text-white flex items-center justify-center mb-3 shadow-md shadow-orange-500/20">
           <Flame size={32} />
         </div>
-        <h3 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white mb-1.5">
+        <h3 className="text-lg sm:text-2xl font-black text-gray-900 dark:text-white mb-1">
           Deck Complete! 🎉
         </h3>
-        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6">
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-5">
           Great job practicing with active recall! Here is your study summary:
         </p>
 
         {/* Scorecard */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-4 text-center">
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-3.5 text-center">
             <div className="flex items-center justify-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase mb-1">
               <CheckCircle size={14} /> Mastered
             </div>
@@ -216,7 +222,7 @@ const FlashcardsView = ({
             </div>
           </div>
 
-          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-4 text-center">
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-2xl p-3.5 text-center">
             <div className="flex items-center justify-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase mb-1">
               <HelpCircle size={14} /> Needs Review
             </div>
@@ -227,7 +233,7 @@ const FlashcardsView = ({
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-2.5">
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={handleReset}
             className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-gray-800 dark:text-white font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
@@ -256,7 +262,7 @@ const FlashcardsView = ({
               onClick={onStartQuiz}
               className="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 transition cursor-pointer active:scale-95 flex items-center justify-center gap-1.5"
             >
-              <span>Take Quiz Test</span>
+              <span>Take Timed Quiz</span>
               <ArrowRight size={15} />
             </button>
           )}
@@ -268,7 +274,7 @@ const FlashcardsView = ({
   const currentStatus = cardStatus[currentOriginalIndex];
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-4">
+    <div className="w-full max-w-2xl mx-auto space-y-3">
       {/* Top Deck Info & Toolbar */}
       <div className="flex items-center justify-between gap-2 px-1">
         <div className="flex items-center gap-2">
@@ -277,13 +283,12 @@ const FlashcardsView = ({
           </span>
           {filterMode === 'review' && (
             <span className="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
-              Reviewing Flagged ({activeDeck.length})
+              Flagged Only ({activeDeck.length})
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-2">
-          {/* Quick status counter badges */}
+        <div className="flex items-center gap-1.5">
           <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
             <Check size={12} /> {masteredCount} Mastered
           </span>
@@ -294,7 +299,7 @@ const FlashcardsView = ({
           {/* Shuffle button */}
           <button
             onClick={handleShuffle}
-            title="Shuffle Flashcard Deck"
+            title="Shuffle Deck"
             className="p-1.5 sm:p-2 text-gray-500 hover:text-orange-600 dark:text-gray-400 dark:hover:text-orange-400 bg-white dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-xl border border-gray-200/80 dark:border-slate-700 transition cursor-pointer shadow-2xs active:scale-95"
           >
             <Shuffle size={14} />
@@ -320,21 +325,28 @@ const FlashcardsView = ({
       </div>
 
       {/* 3D Flip Card Container */}
-      <div className="perspective-1000 w-full min-h-[320px] sm:min-h-[360px]">
+      <div className="perspective-1000 w-full h-[380px] sm:h-[420px] relative select-none">
         <div
           onClick={handleFlip}
-          className={`transform-style-3d relative w-full min-h-[320px] sm:min-h-[360px] rounded-2xl sm:rounded-3xl cursor-pointer transition-transform duration-500 ${
+          className={`transform-style-3d relative w-full h-full rounded-2xl sm:rounded-3xl cursor-pointer transition-transform duration-500 ${
             isFlipped ? 'rotate-y-180' : ''
           }`}
-          style={{ transformStyle: 'preserve-3d' }}
+          style={{ 
+            transformStyle: 'preserve-3d',
+            WebkitTransformStyle: 'preserve-3d'
+          }}
         >
           {/* FRONT FACE (Question / Prompt) */}
           <div
-            className="backface-hidden absolute inset-0 w-full h-full p-5 sm:p-7 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-800 border-2 border-orange-200/90 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between overflow-y-auto custom-scrollbar"
-            style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+            className="backface-hidden absolute inset-0 w-full h-full p-5 sm:p-7 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-800 border-2 border-orange-200/90 dark:border-slate-700 shadow-md hover:shadow-lg transition-shadow flex flex-col justify-between overflow-y-auto custom-scrollbar"
+            style={{ 
+              backfaceVisibility: 'hidden', 
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'rotateY(0deg)'
+            }}
           >
             {/* Front Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-orange-100 dark:border-slate-700/80">
+            <div className="flex items-center justify-between pb-2.5 border-b border-orange-100 dark:border-slate-700/80 shrink-0">
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300 font-black text-[10px] sm:text-xs uppercase tracking-wider">
                   Question #{currentIndex + 1}
@@ -346,7 +358,7 @@ const FlashcardsView = ({
                 )}
                 {currentStatus === 'review' && (
                   <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <HelpCircle size={10} /> Needs Review
+                    <HelpCircle size={10} /> Review
                   </span>
                 )}
               </div>
@@ -356,23 +368,24 @@ const FlashcardsView = ({
             </div>
 
             {/* Front Question Content */}
-            <div className="py-4 my-auto">
-              <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-slate-100 leading-snug sm:leading-relaxed">
+            <div className="py-3 my-auto overflow-y-auto custom-scrollbar">
+              <div className="text-base sm:text-lg font-bold text-gray-900 dark:text-slate-100 leading-snug sm:leading-relaxed mb-3">
                 <QuizMathText text={currentCard?.question} />
               </div>
 
               {/* Distractor hints */}
               {Array.isArray(currentCard?.options) && currentCard.options.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-dashed border-gray-100 dark:border-slate-700/70">
-                  <span className="text-[11px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-2">
-                    Available Options ({currentCard.options.length}):
+                <div className="pt-2.5 border-t border-dashed border-gray-100 dark:border-slate-700/70">
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider block mb-1.5">
+                    Options to consider:
                   </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 opacity-80">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {currentCard.options.map((opt, oIdx) => (
                       <div 
                         key={oIdx} 
-                        className="px-2.5 py-1.5 rounded-lg bg-gray-50 dark:bg-slate-700/50 border border-gray-200/60 dark:border-slate-600 text-xs text-gray-700 dark:text-slate-300 truncate"
+                        className="px-2.5 py-1.5 rounded-lg bg-gray-50/80 dark:bg-slate-700/40 border border-gray-200/50 dark:border-slate-600 text-xs text-gray-700 dark:text-slate-300 break-words"
                       >
+                        <span className="font-bold text-gray-400 dark:text-slate-500 mr-1.5">{String.fromCharCode(65 + oIdx)}.</span>
                         <QuizMathText text={opt} />
                       </div>
                     ))}
@@ -382,15 +395,15 @@ const FlashcardsView = ({
             </div>
 
             {/* Front Footer Hint */}
-            <div className="pt-3 border-t border-gray-100 dark:border-slate-700/80 flex items-center justify-between text-gray-400 dark:text-slate-500 text-[11px]">
-              <span>💡 Tap card to reveal answer</span>
+            <div className="pt-2.5 border-t border-gray-100 dark:border-slate-700/80 flex items-center justify-between text-gray-400 dark:text-slate-500 text-[11px] shrink-0">
+              <span>💡 Tap anywhere on card to reveal answer</span>
               <span className="hidden sm:inline">Spacebar ␣</span>
             </div>
           </div>
 
           {/* BACK FACE (Answer / Solution) */}
           <div
-            className="backface-hidden rotate-y-180 absolute inset-0 w-full h-full p-5 sm:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-50/90 to-teal-50/50 dark:from-slate-800 dark:to-emerald-950/20 border-2 border-emerald-400/90 dark:border-emerald-600 shadow-sm flex flex-col justify-between overflow-y-auto custom-scrollbar"
+            className="backface-hidden rotate-y-180 absolute inset-0 w-full h-full p-5 sm:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/70 dark:from-slate-800 dark:via-slate-800 dark:to-emerald-950/25 border-2 border-emerald-500 shadow-md flex flex-col justify-between overflow-y-auto custom-scrollbar"
             style={{ 
               backfaceVisibility: 'hidden', 
               WebkitBackfaceVisibility: 'hidden',
@@ -398,7 +411,7 @@ const FlashcardsView = ({
             }}
           >
             {/* Back Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-emerald-200/80 dark:border-emerald-800/60">
+            <div className="flex items-center justify-between pb-2.5 border-b border-emerald-200/80 dark:border-emerald-800/60 shrink-0">
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-black text-[10px] sm:text-xs uppercase tracking-wider flex items-center gap-1">
                 <CheckCircle size={12} /> Correct Answer
               </span>
@@ -408,23 +421,30 @@ const FlashcardsView = ({
             </div>
 
             {/* Back Answer Content */}
-            <div className="py-3 my-auto">
-              <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-emerald-500 dark:border-emerald-500/80 shadow-xs mb-3">
-                <div className="text-sm sm:text-base font-bold text-emerald-900 dark:text-emerald-200 leading-snug">
+            <div className="py-2.5 my-auto overflow-y-auto custom-scrollbar space-y-2.5">
+              <div className="p-3.5 sm:p-4 rounded-xl bg-white dark:bg-slate-800 border-2 border-emerald-500 dark:border-emerald-500/80 shadow-xs">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1">
+                  Answer
+                </span>
+                <div className="text-sm sm:text-base font-bold text-emerald-950 dark:text-emerald-100 leading-snug">
                   <QuizMathText text={currentCard?.answer} />
                 </div>
               </div>
 
               {/* Show original question briefly as reference */}
-              <div className="text-xs text-gray-500 dark:text-slate-400 bg-emerald-100/40 dark:bg-slate-700/40 p-2.5 rounded-lg border border-emerald-200/50 dark:border-slate-600">
-                <strong className="text-gray-700 dark:text-slate-300 block mb-1">Question Reference:</strong>
-                <QuizMathText text={currentCard?.question} />
+              <div className="text-xs text-gray-600 dark:text-slate-400 bg-white/70 dark:bg-slate-800/60 p-2.5 rounded-xl border border-emerald-200/60 dark:border-slate-700">
+                <strong className="text-gray-800 dark:text-slate-200 block mb-1 text-[11px] uppercase tracking-wider">
+                  Question
+                </strong>
+                <div className="line-clamp-3">
+                  <QuizMathText text={currentCard?.question} />
+                </div>
               </div>
             </div>
 
             {/* Back Footer Self-Assessment Buttons */}
             <div 
-              className="pt-3 border-t border-emerald-200/80 dark:border-emerald-800/60 flex items-center justify-between gap-2.5"
+              className="pt-2.5 border-t border-emerald-200/80 dark:border-emerald-800/60 flex items-center justify-between gap-2.5 shrink-0"
               onClick={(e) => e.stopPropagation()} // Prevent accidental flip on rating click
             >
               <button
@@ -448,45 +468,45 @@ const FlashcardsView = ({
       </div>
 
       {/* Bottom Navigation Buttons */}
-      <div className="flex items-center justify-between gap-3 pt-2">
+      <div className="flex items-center justify-between gap-2 pt-1">
         <button
           onClick={handlePrev}
           disabled={currentIndex === 0}
-          className="flex-1 sm:flex-none px-4 py-2.5 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 font-bold text-xs sm:text-sm rounded-xl border border-gray-200/80 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-1 shadow-2xs active:scale-95"
+          className="flex-1 py-2 sm:py-2.5 px-3 bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 font-bold text-xs sm:text-sm rounded-xl border border-gray-200/80 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center justify-center gap-1 shadow-2xs active:scale-95"
         >
           <ChevronLeft size={16} />
-          <span>Previous</span>
+          <span>Prev</span>
         </button>
 
         <button
           onClick={handleFlip}
-          className="px-4 py-2.5 bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-95"
+          className="flex-1 py-2 sm:py-2.5 px-3 bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs active:scale-95"
         >
           <RotateCcw size={14} />
-          <span>{isFlipped ? "Show Question" : "Flip Card"}</span>
+          <span>{isFlipped ? "Question" : "Flip"}</span>
         </button>
 
         <button
           onClick={handleNext}
-          className="flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 transition cursor-pointer flex items-center justify-center gap-1 active:scale-95"
+          className="flex-1 py-2 sm:py-2.5 px-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-500/20 transition cursor-pointer flex items-center justify-center gap-1 active:scale-95"
         >
-          <span>{currentIndex === activeDeck.length - 1 ? "Finish Deck" : "Next"}</span>
+          <span>{currentIndex === activeDeck.length - 1 ? "Finish" : "Next"}</span>
           <ChevronRight size={16} />
         </button>
       </div>
 
       {/* Quick CTA to Switch to Quiz */}
       {onStartQuiz && (
-        <div className="pt-3 border-t border-orange-200/60 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-orange-50/70 dark:bg-orange-950/20 p-3 sm:p-4 rounded-xl border">
+        <div className="pt-2 border-t border-orange-200/50 dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-2 bg-orange-50/60 dark:bg-orange-950/20 p-2.5 sm:p-3 rounded-xl border">
           <div className="flex items-center gap-2">
-            <BookOpen size={16} className="text-orange-600 dark:text-orange-400 shrink-0" />
+            <BookOpen size={15} className="text-orange-600 dark:text-orange-400 shrink-0" />
             <span className="text-xs text-orange-950 dark:text-orange-200 font-medium">
-              Done reviewing flashcards? Test yourself under exam conditions.
+              Done with active recall? Test yourself under exam conditions.
             </span>
           </div>
           <button
             onClick={onStartQuiz}
-            className="w-full sm:w-auto px-4 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-lg shadow-xs transition cursor-pointer active:scale-95 shrink-0"
+            className="w-full sm:w-auto px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-lg shadow-xs transition cursor-pointer active:scale-95 shrink-0"
           >
             Start Timed Quiz →
           </button>

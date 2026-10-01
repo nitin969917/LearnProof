@@ -116,10 +116,20 @@ const startQuiz = async (req, res) => {
             target = await prisma.video.findUnique({
                 where: { userId_vid: { userId: user.id, vid: contentId } }
             });
+            if (!target) {
+                target = await prisma.video.findFirst({
+                    where: { vid: contentId }
+                });
+            }
         } else {
             target = await prisma.playlist.findUnique({
                 where: { userId_pid: { userId: user.id, pid: contentId } }
             });
+            if (!target) {
+                target = await prisma.playlist.findFirst({
+                    where: { pid: contentId }
+                });
+            }
         }
 
         if (!target) return res.status(404).json({ error: 'Content not found' });
@@ -692,6 +702,15 @@ const getQuizFlashcards = async (req, res) => {
                 target = await prisma.video.findFirst({
                     where: { vid: contentId }
                 });
+            }
+            if (!target) {
+                target = {
+                    id: null,
+                    vid: contentId,
+                    name: req.body?.videoTitle || req.query?.videoTitle || 'Video Study Concept',
+                    url: `https://www.youtube.com/watch?v=${contentId}`,
+                    description: 'Video lesson'
+                };
             }
         } else {
             target = await prisma.playlist.findUnique({

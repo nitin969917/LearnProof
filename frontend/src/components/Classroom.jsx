@@ -1377,7 +1377,7 @@ const Classroom = () => {
     { id: 'intuition', label: 'AI Notes', shortLabel: 'AI Notes', icon: Sparkles },
     ...(isCodeEditorEnabled ? [{ id: 'code-editor', label: 'Code Editor', shortLabel: 'Code', icon: Code2 }] : []),
     { id: 'ai-chat', label: 'Ask AI Chatbot', shortLabel: 'Chat', icon: Bot },
-    { id: 'quiz', label: 'AI Quiz & Flashcards', shortLabel: 'Quiz & Cards', icon: CheckCircle },
+    { id: 'quiz', label: 'AI Quiz & Flashcards', shortLabel: 'Quiz', icon: CheckCircle },
     { id: 'notes', label: 'Notes', shortLabel: 'Notes', icon: FileText },
     { id: 'discussion', label: `Discussion (${(comments && comments.length) || 0})`, shortLabel: 'Discuss', badge: (comments && comments.length) || 0, icon: MessageSquare },
   ], [playlist, comments, isCodeEditorEnabled]);
@@ -2393,24 +2393,42 @@ const Classroom = () => {
     }
 
     setLoadingFlashcards(true);
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+    const safeToken = encodeURIComponent(token || '');
+
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
-      const safeToken = encodeURIComponent(token || '');
       const res = await axios.post(`${backendUrl}/api/quiz-flashcards/?idToken=${safeToken}`, {
         idToken: token,
         contentType: 'video',
         contentId: videoId,
+        videoTitle: video?.name || '',
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data?.questions && Array.isArray(res.data.questions) && res.data.questions.length > 0) {
         setFlashcardQuestions(res.data.questions);
+        return;
       }
     } catch (err) {
-      console.warn("Failed to fetch flashcards:", err);
-      if (Array.isArray(quizData?.questions) && quizData.questions.length > 0) {
-        setFlashcardQuestions(quizData.questions);
+      console.warn("Primary flashcards route failed, attempting start-quiz fallback:", err);
+    }
+
+    // Resilient fallback: use start-quiz endpoint
+    try {
+      const quizRes = await axios.post(`${backendUrl}/api/start-quiz/`, {
+        idToken: token,
+        contentType: 'video',
+        contentId: videoId,
+      });
+      if (quizRes.data?.quiz?.questions && Array.isArray(quizRes.data.quiz.questions) && quizRes.data.quiz.questions.length > 0) {
+        setFlashcardQuestions(quizRes.data.quiz.questions);
+        setQuizData(quizRes.data.quiz);
+        setTimeLeft(quizRes.data.quiz.time_limit * 60);
+        return;
       }
+    } catch (qErr) {
+      console.error("Flashcards fallback failed:", qErr);
+      toast.error("Could not load flashcards. Try again or start the quiz directly.");
     } finally {
       setLoadingFlashcards(false);
     }
@@ -4101,11 +4119,11 @@ const Classroom = () => {
                         </div>
 
                         {/* Segmented Mode Switcher: Practice Quiz vs Flashcards */}
-                        <div className="flex items-center bg-orange-100/80 dark:bg-slate-800 p-1 rounded-xl sm:rounded-2xl border border-orange-200/80 dark:border-slate-700 shadow-2xs self-start sm:self-auto w-full sm:w-auto">
+                        <div className="flex items-center bg-orange-100/70 dark:bg-slate-800/90 p-1 rounded-xl sm:rounded-2xl border border-orange-200/70 dark:border-slate-700 shadow-2xs w-full sm:w-auto">
                           <button
                             type="button"
                             onClick={() => setQuizSubTab('quiz')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-3.5 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                               quizSubTab === 'quiz'
                                 ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-xs'
                                 : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
@@ -4122,7 +4140,7 @@ const Classroom = () => {
                                 fetchFlashcards();
                               }
                             }}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-3.5 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                               quizSubTab === 'flashcards'
                                 ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-xs'
                                 : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
@@ -4130,9 +4148,6 @@ const Classroom = () => {
                           >
                             <Layers size={15} />
                             <span>Flashcards</span>
-                            <span className="text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-md font-extrabold uppercase tracking-wider bg-orange-200/70 dark:bg-orange-950/80 text-orange-700 dark:text-orange-300">
-                              Active Recall
-                            </span>
                           </button>
                         </div>
                       </div>
