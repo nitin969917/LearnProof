@@ -1821,20 +1821,43 @@ const Classroom = () => {
             for (let i = 0; i < cards.length; i++) {
               const card = cards[i];
 
-              // High-resolution capture (scale: 2) with native oklch color parsing
+              // High-resolution capture (scale: 2) with fixed Desktop A4 textbook width (820px)
+              // This ensures that even when downloading from a mobile phone, the PDF renders in wide desktop format
+              // with dense academic paragraphs, compact code blocks, and 75% fewer pages!
+              const DESKTOP_WIDTH_PX = 820;
+
               const canvas = await html2canvas(card, {
                 scale: 2,
+                width: DESKTOP_WIDTH_PX,
+                windowWidth: 1200,
                 useCORS: true,
                 logging: false,
                 backgroundColor: '#ffffff',
                 onclone: (clonedDoc) => {
                   clonedDoc.documentElement.classList.remove('dark');
                   clonedDoc.body.classList.remove('dark');
+                  clonedDoc.body.style.width = '1200px';
+
                   const clonedCards = clonedDoc.querySelectorAll('.topic-page-card');
                   clonedCards.forEach((c) => {
                     c.classList.remove('dark');
+                    c.style.width = `${DESKTOP_WIDTH_PX}px`;
+                    c.style.minWidth = `${DESKTOP_WIDTH_PX}px`;
+                    c.style.maxWidth = `${DESKTOP_WIDTH_PX}px`;
                     c.style.backgroundColor = '#ffffff';
                     c.style.color = '#0f172a';
+                    c.style.padding = '28px 36px';
+                    c.style.margin = '0 auto';
+                    c.style.boxSizing = 'border-box';
+                    c.style.borderRadius = '16px';
+
+                    // Ensure inner prose typography is formatted for desktop textbook density
+                    const prose = c.querySelector('.prose');
+                    if (prose) {
+                      prose.style.fontSize = '13.5px';
+                      prose.style.lineHeight = '1.65';
+                      prose.style.maxWidth = '100%';
+                    }
                   });
                 }
               });
