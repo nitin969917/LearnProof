@@ -150,65 +150,108 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const CEREBRAS_API_URL = 'https://api.cerebras.ai/v1/chat/completions';
 
 /**
- * Clean AI JSON response (removes ```json ... ``` blocks if present)
+ * Repair common AI JSON formatting quirks:
+ * - Unescaped backslashes in LaTeX equations (e.g., \log, \sum, \frac, \alpha)
+ * - Trailing commas before closing brackets or braces
+ */
+const repairAIJSONString = (raw) => {
+    if (!raw || typeof raw !== 'string') return '';
+    return raw
+        // Fix unescaped backslashes that are not valid JSON escape sequences (\", \\, \/, \b, \f, \n, \r, \t, \uXXXX)
+        // LaTeX formulas often contain \log, \sum, \frac, \sqrt, \alpha, \le, etc. with single backslashes
+        .replace(/\\(?!["\\/bfnrt]|u[0-9a-fA-F]{4})/g, () => '\\\\')
+        // Remove trailing commas before closing brackets or braces
+        .replace(/,\s*([\]}])/g, '$1');
+};
+
+/**
+ * Clean AI JSON response (removes ```json ... ``` blocks if present and handles LaTeX escapes)
  */
 const cleanAIJSON = (text) => {
+    if (!text || typeof text !== 'string') return null;
+    const trimmed = text.trim();
+    const jsonMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const cleaned = jsonMatch ? jsonMatch[1].trim() : trimmed;
+
+    let parsed = null;
+
+    // Attempt 1: Direct JSON.parse
     try {
-        const trimmed = text.trim();
-        const jsonMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
-        const cleaned = jsonMatch ? jsonMatch[1].trim() : trimmed;
-        let parsed = JSON.parse(cleaned);
-
-        // If the AI returned an object containing the array instead of just the array
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            const findFirstArray = (obj) => {
-                if (Array.isArray(obj)) return obj;
-                if (obj && typeof obj === 'object') {
-                    for (const key of Object.keys(obj)) {
-                        if (Array.isArray(obj[key])) return obj[key];
-                        const nested = findFirstArray(obj[key]);
-                        if (Array.isArray(nested)) return nested;
-                    }
-                }
-                return null;
-            };
-            const extractedArray = findFirstArray(parsed);
-            if (extractedArray) {
-                parsed = extractedArray;
-            }
-        }
-
-        // Normalize correct answers if AI returned A/B/C/D instead of string
-        if (Array.isArray(parsed)) {
-            parsed = parsed.map(q => {
-                let ans = String(q.answer || "").trim().toLowerCase();
-                // Match 'a', 'a)', 'a.', etc.
-                const letterMatch = ans.match(/^([a-d])[\)\.]?$/);
-                if (letterMatch && q.options && q.options.length === 4) {
-                    const idx = letterMatch[1].charCodeAt(0) - 97; // 'a' is 97
-                    if (q.options[idx]) {
-                        return { ...q, answer: q.options[idx] };
-                    }
-                }
-                return q;
-            });
-        }
-
-        return parsed;
-    } catch (e) {
-        // Last resort: try to find anything that looks like a JSON array or object
+        parsed = JSON.parse(cleaned);
+    } catch (_) {
+        // Attempt 2: Parse with LaTeX backslash & trailing comma repair
         try {
-            const start = text.indexOf('[');
-            const end = text.lastIndexOf(']');
-            if (start !== -1 && end !== -1 && end > start) {
-                return JSON.parse(text.substring(start, end + 1));
+            parsed = JSON.parse(repairAIJSONString(cleaned));
+        } catch (_) {
+            // Attempt 3: Substring extraction from first '[' to last ']'
+            const start = cleaned.indexOf('[');
+            const end = cleaned.lastIndexOf(']');
+            if (start !== -1 && end > start) {
+                const sub = cleaned.substring(start, end + 1);
+                try {
+                    parsed = JSON.parse(repairAIJSONString(sub));
+                } catch (e3) {
+                    console.error("Deep parse failed for AI JSON array:", e3.message);
+                }
             }
-        } catch (e2) {
-            console.error("Deep parse failed for AI JSON:", e2.message);
+
+            // Attempt 4: Substring extraction from first '{' to last '}'
+            if (!parsed) {
+                const oStart = cleaned.indexOf('{');
+                const oEnd = cleaned.lastIndexOf('}');
+                if (oStart !== -1 && oEnd > oStart) {
+                    const oSub = cleaned.substring(oStart, oEnd + 1);
+                    try {
+                        parsed = JSON.parse(repairAIJSONString(oSub));
+                    } catch (e4) {
+                        console.error("Deep parse failed for AI JSON object:", e4.message);
+                    }
+                }
+            }
         }
-        console.error("Failed to parse AI JSON. String was:", text);
-        throw e;
     }
+
+    if (!parsed) {
+        console.error("Failed to parse AI JSON. String was:\n", text.slice(0, 400));
+        throw new Error("Invalid JSON structure returned by AI");
+    }
+
+    // If the AI returned an object containing the array instead of just the array
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        const findFirstArray = (obj) => {
+            if (Array.isArray(obj)) return obj;
+            if (obj && typeof obj === 'object') {
+                for (const key of Object.keys(obj)) {
+                    if (Array.isArray(obj[key])) return obj[key];
+                    const nested = findFirstArray(obj[key]);
+                    if (Array.isArray(nested)) return nested;
+                }
+            }
+            return null;
+        };
+        const extractedArray = findFirstArray(parsed);
+        if (extractedArray) {
+            parsed = extractedArray;
+        }
+    }
+
+    // Normalize correct answers if AI returned A/B/C/D instead of string
+    if (Array.isArray(parsed)) {
+        parsed = parsed.map(q => {
+            let ans = String(q.answer || "").trim().toLowerCase();
+            // Match 'a', 'a)', 'a.', etc.
+            const letterMatch = ans.match(/^([a-d])[\)\.]?$/);
+            if (letterMatch && q.options && q.options.length === 4) {
+                const idx = letterMatch[1].charCodeAt(0) - 97; // 'a' is 97
+                if (q.options[idx]) {
+                    return { ...q, answer: q.options[idx] };
+                }
+            }
+            return q;
+        });
+    }
+
+    return parsed;
 };
 
 /**
@@ -798,7 +841,7 @@ const generateFlashcards = async (title, description, url = null, intuitionText 
             if (provider.type === 'gemini') {
                 text = await generateGeminiContent(provider.model, flashcardsPrompt, {
                     responseMimeType: "application/json",
-                    maxOutputTokens: 1000,
+                    maxOutputTokens: 2048,
                     temperature: 0.2
                 });
             } else if (provider.type === 'groq') {
