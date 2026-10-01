@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   RotateCcw, 
   ChevronLeft, 
@@ -74,19 +74,31 @@ const FlashcardsView = ({
 
   const handleNext = useCallback(() => {
     if (currentIndex < activeDeck.length - 1) {
-      setIsFlipped(false);
-      setCurrentIndex(prev => prev + 1);
+      if (isFlipped) {
+        setIsFlipped(false);
+        setTimeout(() => {
+          setCurrentIndex(prev => prev + 1);
+        }, 150);
+      } else {
+        setCurrentIndex(prev => prev + 1);
+      }
     } else {
       setIsCompleted(true);
     }
-  }, [currentIndex, activeDeck.length]);
+  }, [currentIndex, activeDeck.length, isFlipped]);
 
   const handlePrev = useCallback(() => {
     if (currentIndex > 0) {
-      setIsFlipped(false);
-      setCurrentIndex(prev => prev - 1);
+      if (isFlipped) {
+        setIsFlipped(false);
+        setTimeout(() => {
+          setCurrentIndex(prev => prev - 1);
+        }, 150);
+      } else {
+        setCurrentIndex(prev => prev - 1);
+      }
     }
-  }, [currentIndex]);
+  }, [currentIndex, isFlipped]);
 
   const handleRate = useCallback((status) => {
     if (currentOriginalIndex === undefined) return;
@@ -183,8 +195,8 @@ const FlashcardsView = ({
     );
   }
 
-  // 2. LOADING STATE
-  if (loading) {
+  // 2. LOADING STATE (only if no questions loaded yet)
+  if (loading && (!questions || questions.length === 0)) {
     return (
       <div className="py-10 sm:py-14 flex flex-col items-center justify-center text-center">
         <div className="w-10 h-10 border-3 border-orange-500 border-t-transparent rounded-full animate-spin mb-3"></div>
@@ -359,10 +371,19 @@ const FlashcardsView = ({
             </div>
 
             {/* Front Question Content (No bulky stacked option cards) */}
-            <div className="py-2 my-auto text-center">
-              <div className="text-sm sm:text-base font-bold text-gray-900 dark:text-slate-100 leading-snug break-words">
-                <QuizMathText text={currentCard?.question} />
-              </div>
+            <div className="py-2 my-auto text-center w-full">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`front-${currentOriginalIndex}`}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-sm sm:text-base font-bold text-gray-900 dark:text-slate-100 leading-snug break-words"
+                >
+                  <QuizMathText text={currentCard?.question} />
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             {/* Front Footer */}
@@ -401,12 +422,21 @@ const FlashcardsView = ({
             </div>
 
             {/* Back Answer Content */}
-            <div className="py-2 my-auto text-center">
-              <div className="p-2.5 sm:p-3 rounded-xl bg-white dark:bg-slate-800 border-2 border-emerald-500/80 shadow-xs inline-block max-w-full">
-                <div className="text-sm sm:text-base font-bold text-emerald-950 dark:text-emerald-100 leading-snug break-words">
-                  <QuizMathText text={currentCard?.answer} />
-                </div>
-              </div>
+            <div className="py-2 my-auto text-center w-full">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`back-${currentOriginalIndex}`}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                  className="p-2.5 sm:p-3 rounded-xl bg-white dark:bg-slate-800 border-2 border-emerald-500/80 shadow-xs inline-block max-w-full"
+                >
+                  <div className="text-sm sm:text-base font-bold text-emerald-950 dark:text-emerald-100 leading-snug break-words">
+                    <QuizMathText text={currentCard?.answer} />
+                  </div>
+                </motion.div>
+              </AnimatePresence>
             </div>
 
             {/* Back Self-Rating Buttons */}

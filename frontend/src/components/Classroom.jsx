@@ -1265,6 +1265,8 @@ const Classroom = () => {
   const [flashcardQuestions, setFlashcardQuestions] = useState([]);
   const [loadingFlashcards, setLoadingFlashcards] = useState(false);
   const [flashcardsStarted, setFlashcardsStarted] = useState(false);
+  const inFlightFlashcardPromiseRef = useRef(null);
+  const noteCardRef = useRef(null);
 
   // Touch swipe handling for switching Classroom tabs on mobile
   const [touchStart, setTouchStart] = useState(null);
@@ -1588,6 +1590,16 @@ const Classroom = () => {
     navigator.clipboard.writeText(content);
     setCopiedChapter(true);
     setTimeout(() => setCopiedChapter(false), 2000);
+  };
+
+  const handleTopicChange = (newIndex) => {
+    setActiveChapterIndex(newIndex);
+    if (noteCardRef.current) {
+      const rect = noteCardRef.current.getBoundingClientRect();
+      if (rect.top < 80) {
+        noteCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
   };
 
   const handleCopyAllNotes = () => {
@@ -2379,7 +2391,7 @@ const Classroom = () => {
 
   // Silent prefetch when user views Quiz tab so Start Flashcards is instant
   useEffect(() => {
-    if (activeTab === 'quiz' && flashcardQuestions.length === 0 && !loadingFlashcards) {
+    if (activeTab === 'quiz' && flashcardQuestions.length === 0 && !loadingFlashcards && !inFlightFlashcardPromiseRef.current) {
       fetchFlashcards(false, true);
     }
   }, [activeTab, videoId]);
@@ -2406,49 +2418,70 @@ const Classroom = () => {
       }
     }
 
+    // Reuse existing in-flight request to avoid race condition and duplicate network calls
+    if (inFlightFlashcardPromiseRef.current) {
+      if (!silent) setLoadingFlashcards(true);
+      try {
+        const inFlightRes = await inFlightFlashcardPromiseRef.current;
+        return inFlightRes;
+      } finally {
+        if (!silent) setLoadingFlashcards(false);
+      }
+    }
+
     if (!silent) setLoadingFlashcards(true);
     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
     const safeToken = encodeURIComponent(token || '');
 
-    try {
-      const res = await axios.post(`${backendUrl}/api/quiz-flashcards/?idToken=${safeToken}`, {
-        idToken: token,
-        contentType: 'video',
-        contentId: videoId,
-        videoTitle: video?.name || '',
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data?.questions && Array.isArray(res.data.questions) && res.data.questions.length > 0) {
-        setFlashcardQuestions(res.data.questions);
-        return res.data.questions;
+    const currentPromise = (async () => {
+      try {
+        const res = await axios.post(`${backendUrl}/api/quiz-flashcards/?idToken=${safeToken}`, {
+          idToken: token,
+          contentType: 'video',
+          contentId: videoId,
+          videoTitle: video?.name || '',
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data?.questions && Array.isArray(res.data.questions) && res.data.questions.length > 0) {
+          setFlashcardQuestions(res.data.questions);
+          return res.data.questions;
+        }
+      } catch (err) {
+        console.warn("Primary flashcards route failed, attempting start-quiz fallback:", err);
       }
-    } catch (err) {
-      console.warn("Primary flashcards route failed, attempting start-quiz fallback:", err);
-    }
 
-    // Resilient fallback: use start-quiz endpoint
+      // Resilient fallback: use start-quiz endpoint
+      try {
+        const quizRes = await axios.post(`${backendUrl}/api/start-quiz/`, {
+          idToken: token,
+          contentType: 'video',
+          contentId: videoId,
+        });
+        if (quizRes.data?.quiz?.questions && Array.isArray(quizRes.data.quiz.questions) && quizRes.data.quiz.questions.length > 0) {
+          setFlashcardQuestions(quizRes.data.quiz.questions);
+          setQuizData(quizRes.data.quiz);
+          setTimeLeft(quizRes.data.quiz.time_limit * 60);
+          return quizRes.data.quiz.questions;
+        }
+      } catch (qErr) {
+        console.error("Flashcards fallback failed:", qErr);
+        if (!silent) {
+          toast.error("Could not load flashcards. Try again or start the quiz directly.");
+        }
+      }
+      return [];
+    })();
+
+    inFlightFlashcardPromiseRef.current = currentPromise;
+
     try {
-      const quizRes = await axios.post(`${backendUrl}/api/start-quiz/`, {
-        idToken: token,
-        contentType: 'video',
-        contentId: videoId,
-      });
-      if (quizRes.data?.quiz?.questions && Array.isArray(quizRes.data.quiz.questions) && quizRes.data.quiz.questions.length > 0) {
-        setFlashcardQuestions(quizRes.data.quiz.questions);
-        setQuizData(quizRes.data.quiz);
-        setTimeLeft(quizRes.data.quiz.time_limit * 60);
-        return quizRes.data.quiz.questions;
-      }
-    } catch (qErr) {
-      console.error("Flashcards fallback failed:", qErr);
-      if (!silent) {
-        toast.error("Could not load flashcards. Try again or start the quiz directly.");
-      }
+      const result = await currentPromise;
+      return result;
     } finally {
+      inFlightFlashcardPromiseRef.current = null;
       if (!silent) setLoadingFlashcards(false);
     }
-    return [];
   };
 
   const handleStartFlashcards = async () => {
@@ -3627,7 +3660,7 @@ const Classroom = () => {
                                         key={idx}
                                         onClick={() => {
                                           setIsContinuousView(false);
-                                          setActiveChapterIndex(idx);
+                                          handleTopicChange(idx);
                                         }}
                                         className={`px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${isActive
                                             ? `${getCategoryStyle(parsedIntuition.subjectCategory).activePill} shadow-xs`
@@ -3735,92 +3768,100 @@ const Classroom = () => {
                                 if (!currentPage) return null;
 
                                 return (
-                                  <div className="bg-white/90 dark:bg-slate-900/60 p-3 sm:p-6 rounded-xl sm:rounded-2xl border border-indigo-100/90 dark:border-slate-800 shadow-2xs">
-                                    {/* Topic Header */}
-                                    <div className="flex items-center justify-between pb-2 sm:pb-3 mb-2.5 sm:mb-4 border-b border-gray-100 dark:border-slate-800">
-                                      <div className="min-w-0 pr-2">
-                                        {parsedIntuition.totalPages > 1 && (
-                                          <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-0.5">
-                                            Topic {activeChapterIndex + 1} of {parsedIntuition.totalPages}
-                                          </span>
-                                        )}
-                                        <h3 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white m-0 truncate">
-                                          {currentPage.title}
-                                        </h3>
-                                      </div>
-
-                                      <button
-                                        onClick={() => handleCopyChapter(currentPage.content)}
-                                        title="Copy Topic Notes"
-                                        className="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:text-indigo-600 transition cursor-pointer shrink-0"
+                                  <div ref={noteCardRef} className="bg-white/90 dark:bg-slate-900/60 p-3 sm:p-6 rounded-xl sm:rounded-2xl border border-indigo-100/90 dark:border-slate-800 shadow-2xs overflow-hidden">
+                                    <AnimatePresence mode="wait" initial={false}>
+                                      <motion.div
+                                        key={activeChapterIndex}
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -8 }}
+                                        transition={{ duration: 0.18, ease: "easeOut" }}
+                                        className="space-y-3 sm:space-y-4"
                                       >
-                                        <Copy size={11} className="sm:size-[12px]" />
-                                        <span>{copiedChapter ? "Copied!" : "Copy"}</span>
-                                      </button>
-                                    </div>
+                                        {/* Topic Header */}
+                                        <div className="flex items-center justify-between pb-2 sm:pb-3 mb-2.5 sm:mb-4 border-b border-gray-100 dark:border-slate-800">
+                                          <div className="min-w-0 pr-2">
+                                            {parsedIntuition.totalPages > 1 && (
+                                              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-0.5">
+                                                Topic {activeChapterIndex + 1} of {parsedIntuition.totalPages}
+                                              </span>
+                                            )}
+                                            <h3 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white m-0 truncate">
+                                              {currentPage.title}
+                                            </h3>
+                                          </div>
 
-                                    {/* Markdown Content */}
-                                    <div className="prose max-w-none text-gray-800 dark:text-gray-200 leading-relaxed intuition-markdown">
-                                      <ReactMarkdown
-                                        remarkPlugins={[remarkGfm, remarkMath]}
-                                        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
-                                        components={{
-                                          h1: ({ node, ...props }) => <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-5 mb-2.5 break-words" {...props} />,
-                                          h2: ({ node, ...props }) => <h2 className="text-base sm:text-lg font-bold text-indigo-900 dark:text-indigo-200 mt-4 mb-2 break-words" {...props} />,
-                                          h3: ({ node, ...props }) => <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-300 first:mt-2 mt-4 mb-2 break-words" {...props} />,
-                                          h4: ({ node, ...props }) => <h4 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 mt-3 mb-1.5 break-words" {...props} />,
-                                          strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
-                                          ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                          ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                          li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:my-1" {...props} />,
-                                          p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words leading-relaxed" {...props} />,
-                                          pre: ({ node, children, ...props }) => <>{children}</>,
-                                          code: ({ node, inline, className, children, ...props }) => {
-                                            const match = /language-([a-zA-Z0-9_+#-]+)/.exec(className || "");
-                                            const contentStr = String(children || '');
-                                            const isMultiLine = contentStr.includes('\n');
-                                            const isBlock = inline === false || Boolean(match) || isMultiLine;
+                                          <button
+                                            onClick={() => handleCopyChapter(currentPage.content)}
+                                            title="Copy Topic Notes"
+                                            className="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:text-indigo-600 transition cursor-pointer shrink-0"
+                                          >
+                                            <Copy size={11} className="sm:size-[12px]" />
+                                            <span>{copiedChapter ? "Copied!" : "Copy"}</span>
+                                          </button>
+                                        </div>
 
-                                            if (!isBlock) {
-                                              return (
-                                                <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>
-                                                  {children}
-                                                </code>
-                                              );
-                                            }
-                                            return <CodeEditorBlock className={className || 'language-python'} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
-                                          },
-                                          table: ({ node, ...props }) => (
-                                            <div
-                                              className="overflow-x-auto my-4 rounded-xl border border-gray-200 dark:border-slate-700/80 shadow-2xs no-tab-swipe"
-                                              onTouchStart={(e) => e.stopPropagation()}
-                                              onTouchMove={(e) => e.stopPropagation()}
-                                              onTouchEnd={(e) => e.stopPropagation()}
-                                            >
-                                              <table className="w-full text-xs sm:text-sm text-left border-collapse" {...props} />
-                                            </div>
-                                          ),
-                                          thead: ({ node, ...props }) => <thead className="bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 font-bold border-b border-gray-200 dark:border-slate-700" {...props} />,
-                                          tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-slate-800 bg-white dark:bg-slate-900/70" {...props} />,
-                                          tr: ({ node, ...props }) => <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors" {...props} />,
-                                          th: ({ node, ...props }) => <th className="px-3.5 py-2.5 font-semibold text-indigo-900 dark:text-indigo-200 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
-                                          td: ({ node, ...props }) => <td className="px-3.5 py-2.5 text-gray-700 dark:text-slate-300 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
-                                          blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-indigo-500 pl-4 py-1.5 my-3 italic text-gray-700 dark:text-gray-300 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-r-lg" {...props} />
-                                        }}
-                                      >
-                                        {preprocessMarkdown(currentPage.content)}
-                                      </ReactMarkdown>
-                                    </div>
+                                        {/* Markdown Content */}
+                                        <div className="prose max-w-none text-gray-800 dark:text-gray-200 leading-relaxed intuition-markdown">
+                                          <ReactMarkdown
+                                            remarkPlugins={[remarkGfm, remarkMath]}
+                                            rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
+                                            components={{
+                                              h1: ({ node, ...props }) => <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-5 mb-2.5 break-words" {...props} />,
+                                              h2: ({ node, ...props }) => <h2 className="text-base sm:text-lg font-bold text-indigo-900 dark:text-indigo-200 mt-4 mb-2 break-words" {...props} />,
+                                              h3: ({ node, ...props }) => <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-300 first:mt-2 mt-4 mb-2 break-words" {...props} />,
+                                              h4: ({ node, ...props }) => <h4 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 mt-3 mb-1.5 break-words" {...props} />,
+                                              strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
+                                              ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                              ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
+                                              li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:my-1" {...props} />,
+                                              p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words leading-relaxed" {...props} />,
+                                              pre: ({ node, children, ...props }) => <>{children}</>,
+                                              code: ({ node, inline, className, children, ...props }) => {
+                                                const match = /language-([a-zA-Z0-9_+#-]+)/.exec(className || "");
+                                                const contentStr = String(children || '');
+                                                const isMultiLine = contentStr.includes('\n');
+                                                const isBlock = inline === false || Boolean(match) || isMultiLine;
+
+                                                if (!isBlock) {
+                                                  return (
+                                                    <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>
+                                                      {children}
+                                                    </code>
+                                                  );
+                                                }
+                                                return <CodeEditorBlock className={className || 'language-python'} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
+                                              },
+                                              table: ({ node, ...props }) => (
+                                                <div
+                                                  className="overflow-x-auto my-4 rounded-xl border border-gray-200 dark:border-slate-700/80 shadow-2xs no-tab-swipe"
+                                                  onTouchStart={(e) => e.stopPropagation()}
+                                                  onTouchMove={(e) => e.stopPropagation()}
+                                                  onTouchEnd={(e) => e.stopPropagation()}
+                                                >
+                                                  <table className="w-full text-xs sm:text-sm text-left border-collapse" {...props} />
+                                                </div>
+                                              ),
+                                              thead: ({ node, ...props }) => <thead className="bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 font-bold border-b border-gray-200 dark:border-slate-700" {...props} />,
+                                              tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-slate-800 bg-white dark:bg-slate-900/70" {...props} />,
+                                              tr: ({ node, ...props }) => <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors" {...props} />,
+                                              th: ({ node, ...props }) => <th className="px-3.5 py-2.5 font-semibold text-indigo-900 dark:text-indigo-200 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
+                                              td: ({ node, ...props }) => <td className="px-3.5 py-2.5 text-gray-700 dark:text-slate-300 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
+                                              blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-indigo-500 pl-4 py-1.5 my-3 italic text-gray-700 dark:text-gray-300 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-r-lg" {...props} />
+                                            }}
+                                          >
+                                            {preprocessMarkdown(currentPage.content)}
+                                          </ReactMarkdown>
+                                        </div>
+                                      </motion.div>
+                                    </AnimatePresence>
 
                                     {/* Bottom Topic Pagination Controls */}
                                     {parsedIntuition.totalPages > 1 && (
                                       <div className="flex items-center justify-between pt-3 mt-4 sm:pt-4 sm:mt-6 border-t border-gray-100 dark:border-slate-800">
                                         <button
                                           disabled={activeChapterIndex === 0}
-                                          onClick={() => {
-                                            setActiveChapterIndex(i => Math.max(0, i - 1));
-                                            window.scrollTo({ top: 400, behavior: 'smooth' });
-                                          }}
+                                          onClick={() => handleTopicChange(Math.max(0, activeChapterIndex - 1))}
                                           className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-gray-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
                                         >
                                           <ChevronLeft size={13} className="sm:size-[14px]" />
@@ -3833,10 +3874,7 @@ const Classroom = () => {
 
                                         {activeChapterIndex < parsedIntuition.totalPages - 1 ? (
                                           <button
-                                            onClick={() => {
-                                              setActiveChapterIndex(i => Math.min(parsedIntuition.totalPages - 1, i + 1));
-                                              window.scrollTo({ top: 400, behavior: 'smooth' });
-                                            }}
+                                            onClick={() => handleTopicChange(Math.min(parsedIntuition.totalPages - 1, activeChapterIndex + 1))}
                                             className="flex items-center gap-1 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition cursor-pointer"
                                           >
                                             <span>Next Topic</span>
@@ -4176,62 +4214,80 @@ const Classroom = () => {
                       </div>
 
                       {quizSubTab === 'flashcards' ? (
-                        flashcardsStarted ? (
-                          <FlashcardsView
-                            questions={
-                              flashcardQuestions.length > 0 
-                                ? flashcardQuestions 
-                                : (quizData?.questions || [])
-                            }
-                            loading={loadingFlashcards}
-                            onExit={() => setFlashcardsStarted(false)}
-                            onStartQuiz={() => {
-                              setQuizSubTab('quiz');
-                              if (!quizData) {
-                                handleStartQuiz();
-                              }
-                            }}
-                            onRefresh={() => fetchFlashcards(true, false)}
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-5 sm:py-9 text-center w-full">
-                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-orange-100 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mb-3 shadow-xs">
-                              <Layers className="h-7 w-7 sm:h-9 sm:w-9 text-orange-500" />
-                            </div>
-                            <h4 className="text-base sm:text-xl font-bold text-gray-800 dark:text-gray-200 mb-1.5">Ready to study flashcards?</h4>
-                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-md mb-5 leading-relaxed">
-                              Review key concepts, definitions, and questions at your own pace before taking the timed quiz!
-                            </p>
-                            <div className="flex flex-col sm:flex-row items-center gap-3">
-                              <button
-                                onClick={handleStartFlashcards}
-                                disabled={loadingFlashcards}
-                                className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-7 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
-                              >
-                                {loadingFlashcards ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    <span>Loading Flashcards...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span>Start Flashcards</span>
-                                    <ChevronRight size={14} />
-                                  </>
-                                )}
-                              </button>
+                        <AnimatePresence mode="wait">
+                          {flashcardsStarted ? (
+                            <motion.div
+                              key="flashcards-deck"
+                              initial={{ opacity: 0, scale: 0.97 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.97 }}
+                              transition={{ duration: 0.22, ease: "easeOut" }}
+                              className="w-full"
+                            >
+                              <FlashcardsView
+                                questions={
+                                  flashcardQuestions.length > 0 
+                                    ? flashcardQuestions 
+                                    : (quizData?.questions || [])
+                                }
+                                loading={loadingFlashcards}
+                                onExit={() => setFlashcardsStarted(false)}
+                                onStartQuiz={() => {
+                                  setQuizSubTab('quiz');
+                                  if (!quizData) {
+                                    handleStartQuiz();
+                                  }
+                                }}
+                                onRefresh={() => fetchFlashcards(true, false)}
+                              />
+                            </motion.div>
+                          ) : (
+                            <motion.div
+                              key="flashcards-start"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              transition={{ duration: 0.2, ease: "easeOut" }}
+                              className="flex flex-col items-center justify-center py-5 sm:py-9 text-center w-full"
+                            >
+                              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-orange-100 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mb-3 shadow-xs">
+                                <Layers className="h-7 w-7 sm:h-9 sm:w-9 text-orange-500" />
+                              </div>
+                              <h4 className="text-base sm:text-xl font-bold text-gray-800 dark:text-gray-200 mb-1.5">Ready to study flashcards?</h4>
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-md mb-5 leading-relaxed">
+                                Review key concepts, definitions, and questions at your own pace before taking the timed quiz!
+                              </p>
+                              <div className="flex flex-col sm:flex-row items-center gap-3">
+                                <button
+                                  onClick={handleStartFlashcards}
+                                  disabled={loadingFlashcards}
+                                  className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-7 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                                >
+                                  {loadingFlashcards ? (
+                                    <>
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                      <span>Loading Flashcards...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>Start Flashcards</span>
+                                      <ChevronRight size={14} />
+                                    </>
+                                  )}
+                                </button>
 
-                              <button
-                                type="button"
-                                onClick={() => setQuizSubTab('quiz')}
-                                className="w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-xs sm:text-sm bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-95"
-                              >
-                                <CheckCircle size={14} />
-                                <span>Switch to Practice Quiz</span>
-                              </button>
-                            </div>
-                          </div>
-                        )
+                                <button
+                                  type="button"
+                                  onClick={() => setQuizSubTab('quiz')}
+                                  className="w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-xs sm:text-sm bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-95"
+                                >
+                                  <CheckCircle size={14} />
+                                  <span>Switch to Practice Quiz</span>
+                                </button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       ) : (
                         <>
                           {selectedHistoryQuiz ? (() => {
