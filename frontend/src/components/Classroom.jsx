@@ -4114,7 +4114,7 @@ const Classroom = () => {
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] sm:text-xs text-orange-600/80 dark:text-orange-400/80 m-0 mt-0.5">Practice with timed tests or master concepts with active-recall flashcards.</p>
+                            <p className="text-[11px] sm:text-xs text-orange-600/80 dark:text-orange-400/80 m-0 mt-0.5">Practice with timed tests or study concepts with flashcards.</p>
                           </div>
                         </div>
 
@@ -4134,12 +4134,7 @@ const Classroom = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              setQuizSubTab('flashcards');
-                              if (flashcardQuestions.length === 0) {
-                                fetchFlashcards();
-                              }
-                            }}
+                            onClick={() => setQuizSubTab('flashcards')}
                             className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-3.5 sm:px-4 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                               quizSubTab === 'flashcards'
                                 ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-xs'
