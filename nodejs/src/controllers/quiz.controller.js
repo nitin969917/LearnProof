@@ -187,48 +187,49 @@ const startQuiz = async (req, res) => {
                 return res.status(500).json({ error: "No questions found in this playlist's video quizzes." });
             }
 
+            const { generateQuiz, generateIntuition } = require('../services/ai.service');
+            const { fetchTranscript } = require('../services/transcript.service');
+
             let intuitionText = null;
-            // Fetch cached intuition if it exists
+            // 1. Fetch cached intuition if it exists
             const intuition = await prisma.videoIntuition.findUnique({ where: { vid: contentId } });
             if (intuition) intuitionText = intuition.content;
 
-            if (!intuitionText) {
-                // SEQUENTIAL GENERATION: Intuition FIRST, then grounded Quiz
-                const { generateIntuition, generateQuiz } = require('../services/ai.service');
-
-                console.log(`[Quiz] Missing intuition for ${contentId}. Generating intuition first...`);
-                try {
-                    const intuitionRes = await generateIntuition(title, description, target.url, 'English', false, target.duration_seconds || 0);
-                    intuitionText = intuitionRes.content;
-
-                    // Cache Intuition if successful
-                    if (intuitionText && !intuitionRes.isSystemFallback) {
-                        await prisma.videoIntuition.upsert({
-                            where: { vid: contentId },
-                            update: { 
-                                content: intuitionRes.content, 
-                                model_name: intuitionRes.model_name,
-                                transcript_used: !!intuitionRes.transcript_used
-                            },
-                            create: { 
-                                vid: contentId, 
-                                content: intuitionRes.content, 
-                                model_name: intuitionRes.model_name,
-                                transcript_used: !!intuitionRes.transcript_used
-                            }
-                        });
-                        // Invalidate Redis cache to ensure synchronization
-                        await cacheService.del(`video:intuition:${contentId}:English`);
-                    }
-                } catch (e) {
-                    console.error("[Quiz] Intuition generation failed:", e.message);
-                    // Continue with generic quiz if intuition fails? Or fail?
-                    // Let's at least try to generate the quiz with null intuition if it fails
-                }
-
-                console.log(`[Quiz] Grounding quiz in intuition for ${contentId}...`);
+            if (intuitionText) {
+                // Intuition is cached, generate grounded Quiz directly
+                console.log(`[Quiz] Using cached intuition for ${contentId} to generate quiz...`);
                 try {
                     const quizRes = await generateQuiz(title, description, target.url, intuitionText, 10);
+                    questions = (quizRes.questions || []).slice(0, 10);
+
+                    if (questions && questions.length > 0 && !quizRes.isSystemFallback) {
+                        await prisma.videoQuizData.upsert({
+                            where: { vid: contentId },
+                            update: { questions: JSON.stringify(questions) },
+                            create: { vid: contentId, questions: JSON.stringify(questions) }
+                        });
+                    }
+                } catch (e) {
+                    console.error("[Quiz] Grounded quiz generation from intuition failed:", e.message);
+                }
+            }
+
+            // 2. If intuition is NOT cached, FAST DIRECT GROUNDED PATH (takes ~5-8s instead of ~45s!)
+            if (!questions || questions.length === 0) {
+                console.log(`[Quiz] Generating fast direct grounded quiz for ${contentId}...`);
+                let transcriptText = null;
+                try {
+                    const transcriptRes = await fetchTranscript(target.url);
+                    if (!transcriptRes.isFallback && transcriptRes.transcript) {
+                        transcriptText = transcriptRes.transcript;
+                    }
+                } catch (trErr) {
+                    console.warn(`[Quiz] Fast transcript fetch failed for ${contentId}:`, trErr.message);
+                }
+
+                try {
+                    // Pass transcriptText directly or URL for Gemini multimodal
+                    const quizRes = await generateQuiz(title, description, target.url, null, 10, transcriptText);
                     questions = (quizRes.questions || []).slice(0, 10);
 
                     // Cache Quiz if successful
@@ -239,29 +240,35 @@ const startQuiz = async (req, res) => {
                             create: { vid: contentId, questions: JSON.stringify(questions) }
                         });
                     }
-                } catch (e) {
-                    console.error("[Quiz] Quiz generation failed:", e.message);
-                    throw new Error("AI failed to generate quiz questions. Please try again.");
-                }
-            } else {
-                // Intuition is cached, generate grounded Quiz
-                console.log(`[Quiz] Using cached intuition for ${contentId} to generate quiz...`);
-                const { generateQuiz } = require('../services/ai.service');
-                try {
-                    const { questions: generatedQuestions, isSystemFallback } = await generateQuiz(title, description, target.url, intuitionText, 10);
-                    questions = (generatedQuestions || []).slice(0, 10);
 
-                    // Save for videos if not fallback
-                    if (questions && questions.length > 0 && !isSystemFallback) {
-                        await prisma.videoQuizData.upsert({
-                            where: { vid: contentId },
-                            update: { questions: JSON.stringify(questions) },
-                            create: { vid: contentId, questions: JSON.stringify(questions) }
-                        });
+                    // Background asynchronous pre-generation of study notes so notes are ready when user visits Notes tab
+                    if (!intuitionText) {
+                        generateIntuition(title, description, target.url, 'English', false, target.duration_seconds || 0)
+                            .then(async (intuitionRes) => {
+                                if (intuitionRes && intuitionRes.content && !intuitionRes.isSystemFallback) {
+                                    await prisma.videoIntuition.upsert({
+                                        where: { vid: contentId },
+                                        update: { 
+                                            content: intuitionRes.content, 
+                                            model_name: intuitionRes.model_name,
+                                            transcript_used: !!intuitionRes.transcript_used
+                                        },
+                                        create: { 
+                                            vid: contentId, 
+                                            content: intuitionRes.content, 
+                                            model_name: intuitionRes.model_name,
+                                            transcript_used: !!intuitionRes.transcript_used
+                                        }
+                                    });
+                                    await cacheService.del(`video:intuition:${contentId}:English`);
+                                    console.log(`[Quiz -> Background Intuition] Successfully pre-cached notes for ${contentId}`);
+                                }
+                            })
+                            .catch(err => console.warn(`[Quiz -> Background Intuition] Pre-cache failed:`, err.message));
                     }
                 } catch (e) {
-                    console.error("[Quiz] Grounded quiz generation failed:", e.message);
-                    throw new Error("Failed to generate quiz from intuition. AI model might be busy.");
+                    console.error("[Quiz] Direct quiz generation failed:", e.message);
+                    throw new Error("AI failed to generate quiz questions grounded in this video. Please try again.");
                 }
             }
 

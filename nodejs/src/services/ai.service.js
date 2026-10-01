@@ -121,13 +121,25 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
 
 
 const MODELS = {
-    GEMINI_FLASH_LITE: 'gemini-2.5-flash-lite', // Primary fast model under Google Cloud startup credits
-    GEMINI_FLASH: 'gemini-2.5-flash',           // Balanced model under Google Cloud startup credits
-    GEMINI_PRO: 'gemini-2.5-pro',               // Deep reasoning model under Google Cloud startup credits
-    // Backward compatibility aliases
-    GEMINI_2_5: 'gemini-2.5-flash-lite',
-    GEMINI_3: 'gemini-2.5-flash',
-    GEMINI_2_5_LITE: 'gemini-2.5-flash',
+    // Recommended Gemini 3 GA Targets (Google Cloud Platform transition)
+    GEMINI_3_FLASH_LITE: 'gemini-3.1-flash-lite',
+    GEMINI_3_FLASH: 'gemini-3.5-flash',
+    GEMINI_3_PRO: 'gemini-3.5-flash',
+
+    // Primary Production Models
+    GEMINI_FLASH_LITE: 'gemini-3.1-flash-lite', // High-speed, low-latency target
+    GEMINI_FLASH: 'gemini-3.5-flash',           // Balanced, rigorous reasoning target
+    GEMINI_PRO: 'gemini-3.5-flash',             // Deep analysis target
+
+    // Active Gemini 2.5 Fallbacks (Grandfathered in Phase 1 for essential-rider-500415-u6)
+    GEMINI_2_5_FLASH_LITE: 'gemini-2.5-flash-lite',
+    GEMINI_2_5_FLASH: 'gemini-2.5-flash',
+    GEMINI_2_5_PRO: 'gemini-2.5-pro',
+    GEMINI_2_5: 'gemini-2.5-flash',
+    GEMINI_3: 'gemini-3.5-flash',
+    GEMINI_2_5_LITE: 'gemini-2.5-flash-lite',
+
+    // Open-source / Alternative fallbacks
     GROQ_LLAMA_70B: 'openai/gpt-oss-120b',
     GROQ_LLAMA_8B: 'qwen/qwen3.8-27b',
     GROQ_QWEN_32B: 'qwen/qwen3.6-27b',
@@ -204,35 +216,54 @@ const cleanAIJSON = (text) => {
 
 /**
  * Detect subject category based on video metadata and transcript.
+ * Supports universal educational taxonomy across all disciplines.
  */
 const detectSubjectCategory = (title, description, transcriptText) => {
-    const text = `${title || ''} ${description || ''} ${transcriptText ? transcriptText.slice(0, 4000) : ''}`.toLowerCase();
+    const text = `${title || ''} ${description || ''} ${transcriptText ? transcriptText.slice(0, 6000) : ''}`.toLowerCase();
 
     const codingKeywords = [
         'code', 'coding', 'programming', 'python', 'javascript', 'typescript', 'react', 'node', 'java', 'c++',
         'golang', 'rust', 'html', 'css', 'sql', 'database', 'docker', 'kubernetes', 'api', 'git', 'github',
         'backend', 'frontend', 'fullstack', 'algorithm', 'data structure', 'leetcode', 'debugging', 'compiler',
-        'machine learning', 'deep learning', 'neural network', 'devops', 'aws', 'cloud', 'linux', 'cybersecurity'
+        'machine learning', 'deep learning', 'neural network', 'devops', 'aws', 'cloud', 'linux', 'cybersecurity',
+        'software engineering', 'web development', 'app development'
     ];
     const mathScienceKeywords = [
-        'math', 'mathematics', 'calculus', 'algebra', 'geometry', 'physics', 'chemistry', 'biology', 'quantum',
+        'math', 'mathematics', 'calculus', 'algebra', 'geometry', 'physics', 'chemistry', 'quantum',
         'theorem', 'equation', 'derivative', 'integral', 'differential', 'astronomy', 'thermodynamics', 'mechanics',
-        'statistics', 'probability', 'linear algebra', 'electromagnetism', 'genetics', 'biochemistry'
+        'statistics', 'probability', 'linear algebra', 'electromagnetism', 'organic chemistry', 'inorganic',
+        'kinematics', 'optics', 'fluid mechanics', 'discrete math', 'trigonometry', 'vector', 'proof', 'matrix'
+    ];
+    const medicalKeywords = [
+        'medicine', 'medical', 'anatomy', 'physiology', 'pathology', 'pharmacology', 'cardiology', 'neurology',
+        'surgery', 'nursing', 'biochemistry', 'genetics', 'biology', 'immunology', 'microbiology', 'disease',
+        'diagnosis', 'clinical', 'patient', 'therapy', 'symptom', 'syndrome', 'cellular', 'pediatrics', 'oncology',
+        'cellular respiration', 'neuroscience', 'histology'
     ];
     const businessKeywords = [
         'finance', 'economics', 'stock market', 'investing', 'trading', 'crypto', 'accounting', 'marketing',
         'startup', 'entrepreneurship', 'business', 'strategy', 'management', 'macroeconomics', 'microeconomics',
-        'valuation', 'venture capital', 'revenue', 'roi'
+        'valuation', 'venture capital', 'revenue', 'roi', 'balance sheet', 'supply and demand', 'corporate finance',
+        'cash flow', 'financial statements'
+    ];
+    const lawHumanitiesKeywords = [
+        'law', 'legal', 'constitution', 'statute', 'jurisprudence', 'court', 'history', 'world war', 'revolution',
+        'political science', 'government', 'democracy', 'philosophy', 'sociology', 'psychology', 'literature',
+        'linguistics', 'ethics', 'geography', 'international relations', 'civics', 'civilization', 'treaty',
+        'precedent', 'amendment'
     ];
     const tutorialKeywords = [
         'tutorial', 'how to', 'guide', 'step by step', 'setup', 'install', 'crash course', 'walkthrough',
-        'photoshop', 'figma', 'blender', 'editing', 'premiere pro', 'workflow', 'build with me'
+        'photoshop', 'figma', 'blender', 'editing', 'premiere pro', 'workflow', 'build with me', 'practical workshop',
+        'tools setup', 'crafting', 'designing', 'production'
     ];
 
     const scores = {
         coding: 0,
         math_science: 0,
+        medical_health: 0,
         business_finance: 0,
+        law_humanities: 0,
         tutorial_workflow: 0,
         theory_humanities: 0
     };
@@ -243,8 +274,14 @@ const detectSubjectCategory = (title, description, transcriptText) => {
     for (const kw of mathScienceKeywords) {
         if (text.includes(kw)) scores.math_science += 1;
     }
+    for (const kw of medicalKeywords) {
+        if (text.includes(kw)) scores.medical_health += 1;
+    }
     for (const kw of businessKeywords) {
         if (text.includes(kw)) scores.business_finance += 1;
+    }
+    for (const kw of lawHumanitiesKeywords) {
+        if (text.includes(kw)) scores.law_humanities += 1;
     }
     for (const kw of tutorialKeywords) {
         if (text.includes(kw)) scores.tutorial_workflow += 1;
@@ -261,10 +298,12 @@ const detectSubjectCategory = (title, description, transcriptText) => {
 
     const labels = {
         coding: 'Computer Science & Software Engineering',
-        math_science: 'Mathematics & Natural Sciences',
-        business_finance: 'Business, Economics & Finance',
+        math_science: 'Mathematics & Physical Sciences',
+        medical_health: 'Medicine, Biology & Health Sciences',
+        business_finance: 'Business, Economics & Commerce',
+        law_humanities: 'Law, History & Humanities',
         tutorial_workflow: 'Hands-on Applied Workshop & Tutorial',
-        theory_humanities: 'Theoretical Foundations & Humanities'
+        theory_humanities: 'Universal Academic Theory & Core Curriculum'
     };
 
     return { category: topCategory, label: labels[topCategory] };
@@ -552,8 +591,12 @@ async function callCerebras(prompt, jsonMode = false, temperature = 0.1) {
 /**
  * Generate quiz using Gemini. Mimics quiz_generator.py logic but with actual AI.
  */
-const generateQuiz = async (title, description, url = null, intuitionText = null, numQuestions = 10) => {
-    // If intuitionText is JSON with pages, extract all chapters to provide the entire lecture context
+/**
+ * Generate quiz strictly grounded in the video/lecture source material.
+ * Supports both pre-generated intuition notes OR direct lecture transcript/multimodal video for ultra-fast generation.
+ */
+const generateQuiz = async (title, description, url = null, intuitionText = null, numQuestions = 10, directSourceText = null) => {
+    // 1. Check if intuitionText is JSON with pages, extract all chapters
     let parsedNotes = null;
     try {
         if (typeof intuitionText === 'string' && intuitionText.trim().startsWith('{')) {
@@ -561,36 +604,58 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
         }
     } catch (e) {}
 
-    let processedIntuition = intuitionText;
+    let processedSource = null;
     let multiChapterInstructions = '';
+
     if (parsedNotes && Array.isArray(parsedNotes.pages) && parsedNotes.pages.length > 0) {
-        processedIntuition = parsedNotes.pages
+        processedSource = parsedNotes.pages
             .map(p => `### ${p.title}\n${p.content}`)
             .join('\n\n---\n\n');
 
         multiChapterInstructions = `
-      - MULTI-CHAPTER COVERAGE: The provided study notes contain ${parsedNotes.pages.length} distinct chapters. You MUST distribute your questions evenly across ALL chapters (e.g., at least 1-2 questions from each chapter) to thoroughly test the student's mastery across the entire video.
+      - MULTI-CHAPTER COVERAGE: The provided study notes contain ${parsedNotes.pages.length} distinct chapters. You MUST distribute your questions evenly across ALL chapters (at least 1-2 questions from each chapter) to thoroughly test the student's mastery across the entire video.
         `;
+    } else if (intuitionText && typeof intuitionText === 'string' && intuitionText.trim()) {
+        processedSource = intuitionText.trim();
+    } else if (directSourceText && typeof directSourceText === 'string' && directSourceText.trim()) {
+        // Fast path: Grounding directly from the lecture transcript
+        processedSource = directSourceText.length > 50000 
+            ? `${directSourceText.slice(0, 25000)}\n\n[... Lecture Continuation ...]\n\n${directSourceText.slice(-25000)}` 
+            : directSourceText;
+    }
+
+    const isMultimodalQuiz = !processedSource && !!url && (!!vertexAIClient || !!aiStudioGenAIClient);
+
+    const sourceSection = processedSource 
+        ? `\n=== ACTUAL LECTURE SOURCE MATERIAL (MANDATORY GROUND TRUTH) ===\n${processedSource}\n=== END OF LECTURE SOURCE MATERIAL ===\n`
+        : (isMultimodalQuiz 
+            ? `\n(You have been provided with the direct YouTube video link. Watch the video frames, listen to the speaker's audio, and ground every question strictly in what is taught.)\n`
+            : null);
+
+    if (!sourceSection) {
+        console.warn(`[Quiz] Neither intuition, transcript, nor direct video available for ${title}.`);
     }
 
     const quizPrompt = `
-      Act as an expert educator. Based ONLY on the following video/playlist info and specifically the provided "AI Intuition Summary", generate a highly comprehensive and DIVERSE quiz with BETWEEN 8 and 10 multiple-choice questions (STRICTLY AT MOST 10). 
+      Act as an expert university educator. Based EXCLUSIVELY on the provided lecture source material below, generate a highly comprehensive, challenging, and DIVERSE quiz with BETWEEN 8 and 10 multiple-choice questions (STRICTLY AT MOST 10). 
       
-      STRICT CONSTRAINTS:
+      STRICT CONSTRAINTS (ZERO OUTSIDE HALLUCINATION):
+      - 100% GROUNDED IN LECTURE: Every single question and answer MUST be factually and conceptually verifiable directly from the lecture material provided.
+      - ABSOLUTELY NO OUTSIDE TOPICS: Do NOT test any concepts, libraries, formulas, or historical facts that were NOT explicitly mentioned or explained in the lecture.
       - EVERY question must be unique. Do NOT repeat the same concept or wording across questions.
-      - Each question must cover a different sub-topic, technical detail, or specific insight from the summary.
-      - Vary the question types: 
-        1. 25% Conceptual (High-level theory)
-        2. 25% Fact-based (Specific details/definitions)
-        3. 25% Scenario-based (Applying the knowledge)
-        4. 25% Analysis-based (Comparison or troubleshooting)
+      - Each question must cover a different sub-topic, technical detail, or specific insight from the lecture.
+      - Vary the question types across the lecture: 
+        1. 25% Conceptual (High-level principles taught by the instructor)
+        2. 25% Fact-based (Specific definitions, formulas, or syntax explicitly shown)
+        3. 25% Scenario-based (Applying what the instructor demonstrated)
+        4. 25% Analysis-based (Comparison, debugging, or tradeoffs explained)
       ${multiChapterInstructions}
-      It is absolutely critical that every single question is directly derived from the concepts explained in the "AI Intuition Summary" below.
+      It is absolutely critical that every single question is directly derived from the concepts explained in the lecture source material below.
       
       Title: ${title}
       URL: ${url || 'Not provided'}
       Description: ${description}
-      ${processedIntuition ? `\nAI Intuition Summary (PRIMARY SOURCE):\n${processedIntuition}\n` : ''}
+      ${sourceSection || ''}
       
       Format the output as a JSON array of objects, where each object has:
       - "question": The question text
@@ -600,9 +665,6 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
       
       Respond ONLY with the JSON array. No preamble, no markdown blocks.
     `;
-
-    // ... inside the loop ...
-    // Update temperatures to 0.3 below
 
     // Helper to deduplicate locally after AI response
     const deduplicateQuestions = (qs) => {
@@ -616,11 +678,12 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
         });
     };
 
-    // Priority: Google Cloud Vertex AI (funded by Google Cloud startup credits)
+    // Priority: Fast Gemini models first for instant ~5-8s response time, with robust fallbacks
     const chain = [
         { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
         { type: 'gemini', model: MODELS.GEMINI_FLASH },
-        { type: 'gemini', model: MODELS.GEMINI_PRO },
+        { type: 'gemini', model: MODELS.GEMINI_2_5_FLASH_LITE },
+        { type: 'gemini', model: MODELS.GEMINI_2_5_FLASH },
         { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
     ];
 
@@ -630,11 +693,39 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
             console.log(`[Quiz] Attempting with ${providerName}...`);
             let text;
             if (provider.type === 'gemini') {
-                text = await generateGeminiContent(provider.model, quizPrompt, {
-                    responseMimeType: "application/json",
-                    maxOutputTokens: 2000,
-                    temperature: 0.3
-                });
+                if (isMultimodalQuiz && (vertexAIClient || aiStudioGenAIClient)) {
+                    try {
+                        const contents = [
+                            {
+                                fileData: {
+                                    fileUri: url,
+                                    mimeType: 'video/mp4'
+                                }
+                            },
+                            {
+                                text: quizPrompt
+                            }
+                        ];
+                        text = await generateGeminiContent(provider.model, contents, {
+                            responseMimeType: "application/json",
+                            maxOutputTokens: 2500,
+                            temperature: 0.3
+                        });
+                    } catch (mmErr) {
+                        console.warn(`[Quiz] Multimodal call failed on ${provider.model}, falling back to text prompt:`, mmErr.message);
+                        text = await generateGeminiContent(provider.model, quizPrompt, {
+                            responseMimeType: "application/json",
+                            maxOutputTokens: 2500,
+                            temperature: 0.3
+                        });
+                    }
+                } else {
+                    text = await generateGeminiContent(provider.model, quizPrompt, {
+                        responseMimeType: "application/json",
+                        maxOutputTokens: 2500,
+                        temperature: 0.3
+                    });
+                }
             } else if (provider.type === 'groq') {
                 text = await callGroq(quizPrompt, true, provider.model, 0.3);
             } else if (provider.type === 'cerebras') {
@@ -652,7 +743,7 @@ const generateQuiz = async (title, description, url = null, intuitionText = null
 
             return {
                 questions: cleanQs,
-                isFallback: provider.model !== MODELS.GEMINI_2_5,
+                isFallback: provider.model !== MODELS.GEMINI_FLASH_LITE && provider.model !== MODELS.GEMINI_3_FLASH_LITE,
                 isSystemFallback: false
             };
         } catch (error) {
@@ -692,16 +783,11 @@ const dedent = (str) => {
  */
 const generateIntuition = async (title, description, url = null, targetLanguage = null, forceDeepVisual = false, durationSeconds = 0) => {
     // --- STEP 1: Determine Routing Path ---
-    const isMultimodalVideoRouting = forceDeepVisual && !!vertexAIClient && !!url;
-    
-    let hasTranscript = false;
     let transcriptResult = { transcript: null, language: null, isFallback: true };
+    let hasTranscript = false;
     let transcriptText = null;
 
-    if (isMultimodalVideoRouting) {
-        console.log(`[Intuition] Routing to Direct YouTube Multimodal Analysis (Forced) for URL: ${url}`);
-    } else {
-        // Attempt to fetch transcript
+    if (!forceDeepVisual && url) {
         transcriptResult = await fetchTranscript(url);
         hasTranscript = !transcriptResult.isFallback && !!transcriptResult.transcript;
 
@@ -709,8 +795,17 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
             console.log(`[Intuition] Routing to Transcript-Only Analysis. Transcript fetched (${transcriptResult.transcript.length} chars)`);
             transcriptText = transcriptResult.transcript;
         } else {
-            console.log(`[Intuition] Transcript unavailable. Falling back to Title+Description text-only analysis.`);
+            console.log(`[Intuition] Transcript unavailable or disabled for ${url}. Will route to Gemini direct video analysis.`);
         }
+    }
+
+    // Direct YouTube Multimodal Analysis (Gemini watches & listens directly) when transcript is missing or deepVisual is forced
+    const isMultimodalVideoRouting = (forceDeepVisual || !hasTranscript) && (!!vertexAIClient || !!aiStudioGenAIClient) && !!url;
+
+    if (isMultimodalVideoRouting) {
+        console.log(`[Intuition] 🎥 Routing to Direct YouTube Multimodal Analysis (Video + Audio) for URL: ${url}`);
+    } else if (!hasTranscript) {
+        console.log(`[Intuition] ⚠️ Transcript and Multimodal both unavailable. Using metadata.`);
     }
 
     const detectedLanguage = transcriptResult.language || 'English';
@@ -746,17 +841,18 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
         targetPages = 2;
     }
 
-    // Smart sampling for mega transcripts to ensure start, middle, and end are all covered with high generation speed
+    // High-capacity transcript preservation for long lectures (up to 180k chars / ~45k tokens)
     let effectiveTranscript = transcriptText;
-    if (transcriptText && transcriptText.length > 90000) {
-        const third = Math.floor(transcriptText.length / 3);
-        const startChunk = transcriptText.slice(0, 35000);
-        const middleChunk = transcriptText.slice(third, third + 30000);
-        const endChunk = transcriptText.slice(-25000);
-        effectiveTranscript = `${startChunk}\n\n[... Lecture Progression ...]\n\n${middleChunk}\n\n[... Lecture Conclusion ...]\n\n${endChunk}`;
+    if (transcriptText && transcriptText.length > 180000) {
+        const fourth = Math.floor(transcriptText.length / 4);
+        const chunk1 = transcriptText.slice(0, 50000);
+        const chunk2 = transcriptText.slice(fourth, fourth + 40000);
+        const chunk3 = transcriptText.slice(fourth * 2, fourth * 2 + 40000);
+        const chunk4 = transcriptText.slice(-40000);
+        effectiveTranscript = `${chunk1}\n\n[... Lecture Progression Part 1 ...]\n\n${chunk2}\n\n[... Lecture Progression Part 2 ...]\n\n${chunk3}\n\n[... Lecture Conclusion ...]\n\n${chunk4}`;
     }
 
-    // Subject-Specific Pedagogical Guidance
+    // Universal Educational Discipline-Specific Guidance
     let categoryGuidance = '';
     switch (subjectInfo.category) {
         case 'coding':
@@ -768,43 +864,57 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
             break;
         case 'math_science':
             categoryGuidance = `
-- SUBJECT SPECIALIZATION: Mathematics, Pure Science & Engineering.
-- Use rigorous LaTeX notation for ALL equations, variables, and formulas (using $...$ for inline and $$...$$ for block formulas).
+- SUBJECT SPECIALIZATION: Mathematics, Pure Sciences & Engineering.
+- Use rigorous LaTeX notation for ALL equations, variables, constants, and formulas (using $...$ for inline and $$...$$ for block formulas).
 - Include formal theorems, axioms, intuitive physical/mathematical explanations, step-by-step mathematical proofs or derivations, and worked practice problems.
-- Never write plain text math (e.g. write $\\frac{dy}{dx}$ rather than dy/dx).`;
+- Detail scientific laws, chemical reactions/pathways, physical laws, units, and dimensional analysis.`;
+            break;
+        case 'medical_health':
+            categoryGuidance = `
+- SUBJECT SPECIALIZATION: Medicine, Health Sciences, Biology & Pharmacology.
+- Detail anatomical structures, physiological mechanisms, cellular pathways, and biological cascades.
+- Include clinical definitions, diagnostic criteria, etiology, pathology, drug actions/receptors, and clinical correlations.
+- Organize symptoms, classifications, and therapeutic principles into clear, high-retention exam tables or bullet hierarchies.`;
             break;
         case 'business_finance':
             categoryGuidance = `
-- SUBJECT SPECIALIZATION: Business, Economics, Finance & Management.
-- Provide structured analytical frameworks (e.g., SWOT, Porter's Five Forces, Unit Economics, Cost-Benefit Analysis).
+- SUBJECT SPECIALIZATION: Business, Economics, Finance, Accounting & Management.
+- Provide structured analytical frameworks (e.g., SWOT, Porter's Five Forces, Unit Economics, DCF, Cost-Benefit Analysis).
 - Detail financial metrics, formulas (e.g. $ROI = \\frac{\\text{Net Profit}}{\\text{Cost}}$, $LTV/CAC$), and quantitative business dynamics.
-- Include empirical case studies, risk assessments, and executive decision-making tradeoffs.`;
+- Include empirical case studies, risk assessments, market mechanisms, and strategic decision-making tradeoffs.`;
+            break;
+        case 'law_humanities':
+            categoryGuidance = `
+- SUBJECT SPECIALIZATION: Law, History, Political Science, Philosophy & Social Sciences.
+- Provide structured chronological timelines, key historical context, legislative acts/statutes, legal precedents, and case holdings.
+- Detail dialectics, philosophical arguments, cause-and-effect relationships, and institutional structures.
+- Include structured synthesis and thesis arguments suitable for university descriptive essay questions.`;
             break;
         case 'tutorial_workflow':
             categoryGuidance = `
-- SUBJECT SPECIALIZATION: Hands-on Workshop & Technical Workflow.
-- Detail prerequisite dependencies, environment configurations, and tools needed.
+- SUBJECT SPECIALIZATION: Hands-on Workshop, Creative Tools & Technical Workflow.
+- Detail prerequisite dependencies, environment configurations, and tools/software settings needed.
 - Provide comprehensive, step-by-step execution procedures.
-- Highlight common errors, configuration gotchas, and production best practices checklist.`;
+- Highlight common errors, configuration gotchas, keyboard shortcuts, and production best practices checklist.`;
             break;
         default:
             categoryGuidance = `
-- SUBJECT SPECIALIZATION: Academic Theory & Analytical Humanities.
-- Provide rigorous conceptual foundations, historical context, core philosophical paradigms, and schools of thought.
-- Detail cause-and-effect mechanisms, dialectics, and critical perspectives.
+- SUBJECT SPECIALIZATION: Universal Academic Theory & Core Curriculum.
+- Provide rigorous conceptual foundations, key definitions, underlying logic, and formal mechanisms.
+- Detail cause-and-effect relationships, analytical viewpoints, and comparative evaluations.
 - Include structured synthesis suitable for university exam descriptive answers.`;
             break;
     }
 
     const transcriptSection = isMultimodalVideoRouting
-        ? `\n(Using direct YouTube video link multimodal analysis. Analyze the video frames and audio directly.)\n`
+        ? `\n=== DIRECT YOUTUBE VIDEO MULTIMODAL SOURCE ===\n(You are provided with the direct YouTube video link. Watch the visual frames, listen carefully to the speaker's voice, read all slides/diagrams/equations on screen, and ground all notes strictly in this video.)\n`
         : (hasTranscript
-            ? `\n=== ACTUAL VIDEO TRANSCRIPT (PRIMARY SOURCE — ground truth for all concepts) ===\n${effectiveTranscript}\n=== END OF TRANSCRIPT ===\n`
-            : `\n(No transcript available. Synthesize rigorous academic notes based on the video title and description in ${finalLanguage}.)\n`);
+            ? `\n=== ACTUAL VIDEO TRANSCRIPT (PRIMARY SOURCE — Ground truth for all concepts) ===\n${effectiveTranscript}\n=== END OF TRANSCRIPT ===\n`
+            : `\n(Note: No transcript or direct video feed available. Provide foundational notes based on the video title and description in ${finalLanguage}.)\n`);
 
     const topicStructureGuidance = targetPages === 1
         ? `Generate 1 deeply detailed, comprehensive topic that covers the complete subject matter thoroughly.`
-        : `Generate exactly ${targetPages} distinct, progressive topics that conceptually and practically master the lecture from fundamentals to advanced applications.`;
+        : `Generate exactly ${targetPages} distinct, progressive topics that conceptually and practically master the lecture chronologically from fundamentals to advanced applications.`;
 
     const intuitionPrompt = dedent(`
         Act as a Distinguished University Professor, Subject Matter Authority, and Master Educator in ${subjectInfo.label}.
@@ -814,19 +924,34 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
         
         STRICT RULES & GUIDELINES:
         1. NO TIMELINES OR TIMESTAMPS: Absolutely DO NOT write timestamps or timelines (e.g., do NOT write "[00:14:20]" or "At 12 minutes"). The notes must read like cohesive, structured digital study notes.
-        2. EXHAUSTIVE ACADEMIC DEPTH: Avoid superficial summaries or brief 2-sentence points. Explain every concept, theorem, algorithm, or principle thoroughly with underlying mechanisms and technical rigor.
-        3. SUBJECT-ADAPTIVE SPECIALIZATION:
+        2. STRICT VIDEO BOUNDARY & ZERO OUTSIDE HALLUCINATION (CRITICAL):
+           - Ground every single concept, theorem, definition, and example EXCLUSIVELY in what is taught in this video lecture.
+           - DO NOT introduce external textbook chapters, unrelated prerequisites, unmentioned frameworks, or outside trivia that the instructor never taught or referenced.
+           - Cover what the video actually contains from start to finish. Do NOT extrapolate outside the scope of this lecture.
+        3. EXHAUSTIVE INTERNAL DEPTH & EXAM MASTERY:
+           - For the concepts, formulas, processes, and ideas that ARE taught in the video, provide total academic depth so a student can write high-scoring university examination descriptive answers.
+           - Break down underlying mechanisms, explain 'why' and 'how', walk through derivations and proofs step-by-step, and detail edge cases or pitfalls mentioned by the instructor.
+        4. FULL LECTURE PROGRESSION (COVER ENTIRE VIDEO):
+           - The notes must chronologically/thematically encompass the entire video from the opening concepts to the concluding remarks without skipping middle or late segments.
+        5. SUBJECT-ADAPTIVE SPECIALIZATION:
         ${categoryGuidance}
-        4. MATHEMATICAL RIGOR & LATEX:
+        6. MATHEMATICAL RIGOR & LATEX:
            - Wrap ALL mathematical equations, variables, and formulas in standard delimiters.
-           - Inline math: $...$ (e.g., $f(x) = \\int e^{-t^2} dt$, $O(n \\log n)$).
+           - Inline math: $...$ (e.g., $f(x) = \\int e^{-t^2} dt$, $O(n \\log n)$, $\\Delta H$).
            - Block math: $$...$$ (e.g., $$\\lim_{n \\to \\infty} \\left(1 + \\frac{1}{n}\\right)^n = e$$).
            - Never output naked LaTeX commands outside dollar signs.
-        5. CLEAN MARKDOWN: Use Markdown headers (###, ####), lists (- **Term**: Definition), bolding (**text**), and code blocks with syntax tags. NO raw HTML tags (<br>, <b>, <i>).
-        6. TOPIC-BY-TOPIC BREAKDOWN:
+        7. CLEAN MARKDOWN & HIGH-RETENTION EXAM STRUCTURE:
+           - Inside each topic, organize the content with clear structural headers:
+             • 🎯 Core Concept & Formal Definitions (clear, formal definitions suitable for exam answers)
+             • ⚙️ In-Depth Mechanisms & Step-by-Step Breakdown (the underlying mechanics explained thoroughly)
+             • 📝 Worked Example / Case Application (concrete examples or problem walk-throughs from the video)
+             • ⚠️ Critical Distinctions, Pitfalls & Common Exam Traps (common mistakes students make)
+             • 💡 Key Revision Summary (high-yield summary takeaways)
+           - Use Markdown headers (###, ####), bullet points (- **Term**: Definition), bolding (**text**), and syntax-highlighted code/formula blocks. NO raw HTML tags (<br>, <b>, <i>).
+        8. TOPIC-BY-TOPIC BREAKDOWN:
            - Target topic count: exactly ${targetPages} topics.
            - ${topicStructureGuidance}
-           - Each topic must have a clear, descriptive title (e.g., "Topic 1: Core Theoretical Foundations", "Topic 2: Implementation & Case Studies").
+           - Each topic must have a clear, descriptive title (e.g., "Topic 1: Theoretical Foundations & First Principles", "Topic 2: Mechanisms, Derivations & Applications").
            - Each topic should contain 500-1200 words of rich, high-density study material.
            - CRITICAL JSON ESCAPING: Inside the "content" string, do NOT use unescaped double quotes (use single quotes 'like this' or escaped \\"like this\\").
         
@@ -855,11 +980,15 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
     `);
 
     // --- STEP 3: Setup Provider Routing Chain ---
+    // Gemini 3.5 Flash primary for highest instruction adherence, followed by fast 3.1 Flash Lite and 2.5 fallbacks
     let chain = [
-        { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
         { type: 'gemini', model: MODELS.GEMINI_FLASH },
-        { type: 'gemini', model: MODELS.GEMINI_PRO },
-        { type: 'groq', model: MODELS.GROQ_LLAMA_70B }
+        { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
+        { type: 'gemini', model: MODELS.GEMINI_2_5_FLASH },
+        { type: 'gemini', model: MODELS.GEMINI_2_5_FLASH_LITE },
+        { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
+        { type: 'cerebras', model: MODELS.CEREBRAS_MODEL },
+        { type: 'openrouter', model: MODELS.OPENROUTER_MODEL }
     ];
 
     for (const provider of chain) {
@@ -868,23 +997,32 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
             console.log(`[Intuition] Attempting with ${providerName} (${targetPages} chapters, ${subjectInfo.category})...`);
             let text;
             if (provider.type === 'gemini') {
-                if (isMultimodalVideoRouting && vertexAIClient) {
-                    const contents = [
-                        {
-                            fileData: {
-                                fileUri: url,
-                                mimeType: 'video/mp4'
+                if (isMultimodalVideoRouting && (vertexAIClient || aiStudioGenAIClient)) {
+                    try {
+                        const contents = [
+                            {
+                                fileData: {
+                                    fileUri: url,
+                                    mimeType: 'video/mp4'
+                                }
+                            },
+                            {
+                                text: intuitionPrompt
                             }
-                        },
-                        {
-                            text: intuitionPrompt
-                        }
-                    ];
-                    text = await generateGeminiContent(provider.model, contents, {
-                        maxOutputTokens: 8192,
-                        temperature: 0.2,
-                        responseMimeType: "application/json"
-                    });
+                        ];
+                        text = await generateGeminiContent(provider.model, contents, {
+                            maxOutputTokens: 8192,
+                            temperature: 0.2,
+                            responseMimeType: "application/json"
+                        });
+                    } catch (mmErr) {
+                        console.warn(`[Intuition] Direct multimodal call failed on ${provider.model} (${mmErr.message}). Retrying text-only...`);
+                        text = await generateGeminiContent(provider.model, intuitionPrompt, {
+                            maxOutputTokens: 8192,
+                            temperature: 0.2,
+                            responseMimeType: "application/json"
+                        });
+                    }
                 } else {
                     text = await generateGeminiContent(provider.model, intuitionPrompt, {
                         maxOutputTokens: 8192,
@@ -924,10 +1062,10 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
 
             return {
                 content: JSON.stringify(parsedNotes),
-                isFallback: provider.model !== MODELS.GEMINI_2_5,
+                isFallback: provider.model !== MODELS.GEMINI_FLASH && provider.model !== MODELS.GEMINI_3_FLASH,
                 isSystemFallback: false,
-                transcript_used: hasTranscript,
-                model_name: provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : (provider.type === 'groq' ? provider.model : (provider.type === 'openrouter' ? MODELS.OPENROUTER_MODEL : provider.model))
+                transcript_used: hasTranscript || isMultimodalVideoRouting,
+                model_name: (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : (provider.type === 'groq' ? provider.model : (provider.type === 'openrouter' ? MODELS.OPENROUTER_MODEL : provider.model))) + (isMultimodalVideoRouting ? ' (multimodal)' : '')
             };
         } catch (error) {
             const providerName = provider.type === 'groq' ? provider.model : (provider.type === 'cerebras' ? MODELS.CEREBRAS_MODEL : (provider.type === 'openrouter' ? MODELS.OPENROUTER_MODEL : provider.model));
@@ -1301,5 +1439,6 @@ module.exports = {
     benchmarkAllModels,
     generateGeminiContent,
     answerVideoDoubt,
+    detectSubjectCategory,
     MODELS
 };
