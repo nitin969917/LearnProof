@@ -930,9 +930,9 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
              • 💡 Key Revision Summary (high-yield summary takeaways)
            - Use Markdown headers (###, ####), bullet points (- **Term**: Definition), bolding (**text**), and syntax-highlighted code/formula blocks. NO raw HTML tags (<br>, <b>, <i>).
            - CODE & PSEUDOCODE BLOCKS (CRITICAL):
-             • ALWAYS place opening and closing code fences (```) on their own separate lines with ZERO leading spaces.
-             • Always specify the programming language on the opening fence (e.g., ```python, ```cpp, ```javascript, ```pseudocode).
-             • NEVER put explanations, bullet points, or headings on the same line as a closing ``` fence.
+             • ALWAYS place opening and closing code fences (\`\`\`) on their own separate lines with ZERO leading spaces.
+             • Always specify the programming language on the opening fence (e.g., \`\`\`python, \`\`\`cpp, \`\`\`javascript, \`\`\`pseudocode).
+             • NEVER put explanations, bullet points, or headings on the same line as a closing \`\`\` fence.
         8. TOPIC-BY-TOPIC BREAKDOWN:
            - Target topic count: exactly ${targetPages} topics.
            - ${topicStructureGuidance}
