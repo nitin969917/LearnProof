@@ -947,10 +947,10 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
     `);
 
     // --- STEP 3: Setup Provider Routing Chain ---
-    // Primary: Gemini 2.5 Flash (highest instruction adherence & fast ~2-3s response on Vertex AI)
+    // Primary: Gemini 2.5 Flash Lite (ultra-fast ~8-12s generation on Vertex AI), followed by Flash & Pro
     let chain = [
-        { type: 'gemini', model: MODELS.GEMINI_FLASH },
         { type: 'gemini', model: MODELS.GEMINI_FLASH_LITE },
+        { type: 'gemini', model: MODELS.GEMINI_FLASH },
         { type: 'gemini', model: MODELS.GEMINI_PRO },
         { type: 'groq', model: MODELS.GROQ_LLAMA_70B },
         { type: 'cerebras', model: MODELS.CEREBRAS_MODEL },
@@ -966,6 +966,7 @@ const generateIntuition = async (title, description, url = null, targetLanguage 
                 text = await generateGeminiContent(provider.model, intuitionPrompt, {
                     maxOutputTokens: 8192,
                     temperature: 0.2,
+                    timeout: 45000,
                     responseMimeType: "application/json"
                 });
             } else if (provider.type === 'groq') {
