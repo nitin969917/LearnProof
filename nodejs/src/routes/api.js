@@ -122,6 +122,8 @@ router.get('/social/blocked-users', datingAuth, socialController.getBlockedUsers
 router.post('/quiz-list/', authMiddleware, quizController.getQuizList);
 router.post('/start-quiz/', authMiddleware, quizController.startQuiz);
 router.post('/submit-quiz/', authMiddleware, quizController.submitQuiz);
+router.post('/quiz-flashcards/', authMiddleware, quizController.getQuizFlashcards);
+router.get('/quiz-flashcards/', authMiddleware, quizController.getQuizFlashcards);
 router.post('/certs/', authMiddleware, quizController.getCertificates);
 router.post('/activity/', authMiddleware, quizController.getActivityGraph);
 router.get('/quiz-history/', authMiddleware, quizController.getQuizHistory);

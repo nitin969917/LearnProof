@@ -671,6 +671,115 @@ const deleteQuizHistory = async (req, res) => {
     }
 };
 
+const getQuizFlashcards = async (req, res) => {
+    const contentType = req.body?.contentType || req.query?.contentType || 'video';
+    const contentId = req.body?.contentId || req.query?.contentId;
+    const user = req.user;
+
+    if (!contentId) {
+        return res.status(400).json({ error: 'contentId is required' });
+    }
+
+    try {
+        let questions = null;
+        let target = null;
+
+        if (contentType === 'video') {
+            target = await prisma.video.findUnique({
+                where: { userId_vid: { userId: user.id, vid: contentId } }
+            });
+            if (!target) {
+                target = await prisma.video.findFirst({
+                    where: { vid: contentId }
+                });
+            }
+        } else {
+            target = await prisma.playlist.findUnique({
+                where: { userId_pid: { userId: user.id, pid: contentId } }
+            });
+        }
+
+        // 1. Check if cached in VideoQuizData
+        if (contentType === 'video') {
+            const cachedQuiz = await prisma.videoQuizData.findUnique({ where: { vid: contentId } });
+            if (cachedQuiz) {
+                questions = normalizeQuestions(cachedQuiz.questions);
+            }
+        }
+
+        // 2. Check if any previous quiz attempt for this video has questions
+        if ((!questions || questions.length === 0) && target && contentType === 'video') {
+            const previousAttempt = await prisma.quiz.findFirst({
+                where: { videoId: target.id },
+                orderBy: { attempted_at: 'desc' }
+            });
+            if (previousAttempt && previousAttempt.questions) {
+                questions = normalizeQuestions(previousAttempt.questions);
+            }
+        }
+
+        // 3. If still no questions, generate them and cache into VideoQuizData
+        if ((!questions || questions.length === 0) && target) {
+            const title = target.name;
+            const description = target.description || 'No description available';
+            const { generateQuiz } = require('../services/ai.service');
+            const { fetchTranscript } = require('../services/transcript.service');
+
+            let intuitionText = null;
+            const intuition = await prisma.videoIntuition.findUnique({ where: { vid: contentId } });
+            if (intuition) intuitionText = intuition.content;
+
+            if (intuitionText) {
+                try {
+                    const quizRes = await generateQuiz(title, description, target.url, intuitionText, 10);
+                    questions = (quizRes.questions || []).slice(0, 10);
+                    if (questions && questions.length > 0 && !quizRes.isSystemFallback) {
+                        await prisma.videoQuizData.upsert({
+                            where: { vid: contentId },
+                            update: { questions: JSON.stringify(questions) },
+                            create: { vid: contentId, questions: JSON.stringify(questions) }
+                        });
+                    }
+                } catch (e) {
+                    console.error("[Flashcards] Generation from intuition failed:", e.message);
+                }
+            }
+
+            if (!questions || questions.length === 0) {
+                let transcriptText = null;
+                try {
+                    const transcriptRes = await fetchTranscript(target.url);
+                    if (!transcriptRes.isFallback && transcriptRes.transcript) {
+                        transcriptText = transcriptRes.transcript;
+                    }
+                } catch (trErr) {}
+
+                try {
+                    const quizRes = await generateQuiz(title, description, target.url, null, 10, transcriptText);
+                    questions = (quizRes.questions || []).slice(0, 10);
+                    if (questions && questions.length > 0 && !quizRes.isSystemFallback) {
+                        await prisma.videoQuizData.upsert({
+                            where: { vid: contentId },
+                            update: { questions: JSON.stringify(questions) },
+                            create: { vid: contentId, questions: JSON.stringify(questions) }
+                        });
+                    }
+                } catch (e) {
+                    console.error("[Flashcards] Direct quiz generation failed:", e.message);
+                }
+            }
+        }
+
+        res.status(200).json({
+            questions: questions || [],
+            title: target?.name || 'Flashcards'
+        });
+    } catch (error) {
+        console.error("Get Quiz Flashcards Error:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getQuizList,
     startQuiz,
@@ -681,4 +790,5 @@ module.exports = {
     getQuizHistoryDetails,
     verifyCertificate,
     deleteQuizHistory,
+    getQuizFlashcards,
 };
