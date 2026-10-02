@@ -197,9 +197,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                                 </span>
                                             </div>
                                             <p className="text-[11px] text-amber-700/90 dark:text-amber-300/90 font-semibold truncate mt-0.5">
-                                                {(profileData?.daysRemaining ?? user?.daysRemaining ?? profileData?.days_remaining ?? user?.days_remaining) != null
-                                                    ? `${profileData?.daysRemaining ?? user?.daysRemaining ?? profileData?.days_remaining ?? user?.days_remaining} days free access remaining`
-                                                    : 'Campus Grant Active'}
+                                                LearnProof PRO Active
                                             </p>
                                         </div>
                                     </div>
