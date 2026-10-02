@@ -678,6 +678,7 @@ const DashboardLayout = () => {
                 {!isLiveRoom && (!isInsideWorkspace || !isMobile) && (!isInsideSocialChat || !isMobile) && (
                     <TopBar 
                         onMenuClick={toggleSidebar} 
+                        onProfileClick={() => setIsProfileModalOpen(true)}
                         onHeaderAction={onHeaderAction}
                         isLiveRoomList={isLiveRoomList}
                     />

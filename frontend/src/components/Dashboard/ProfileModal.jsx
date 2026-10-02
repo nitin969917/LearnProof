@@ -180,6 +180,32 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                 </p>
                             </div>
 
+                            {/* Pro Scholar Status Banner */}
+                            {(profileData?.is_premium || user?.is_premium || profileData?.isPremium || user?.isPremium) && (
+                                <div className="w-full mb-3 p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-300/80 dark:border-amber-500/40 relative overflow-hidden shadow-2xs">
+                                    <div className="flex items-center gap-2.5">
+                                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 text-white flex items-center justify-center text-base shadow-sm shrink-0">
+                                            👑
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                                                    {(profileData?.premium_tier || user?.premium_tier) === 'ambassador_pro' ? 'Ambassador Pro Pass' : 'Campus Pro Scholar'}
+                                                </span>
+                                                <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                    Active
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] text-amber-700/90 dark:text-amber-300/90 font-semibold truncate mt-0.5">
+                                                {(profileData?.daysRemaining ?? user?.daysRemaining ?? profileData?.days_remaining ?? user?.days_remaining) != null
+                                                    ? `${profileData?.daysRemaining ?? user?.daysRemaining ?? profileData?.days_remaining ?? user?.days_remaining} days free access remaining`
+                                                    : 'Campus Grant Active'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Stats Section */}
                             {loading && !hasExistingData ? (
                                 <div className="w-full space-y-2 animate-pulse">

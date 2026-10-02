@@ -124,8 +124,12 @@ const attributeReferral = async (req, res) => {
         const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress || null;
         const userAgent = req.headers['user-agent'] || null;
 
-        // Atomic transaction: create attribution record + increment signup counter
-        const [attribution, updatedReferral] = await prisma.$transaction([
+        const isAmbassador = (referral.category || '').toLowerCase() === 'ambassador';
+        const sixMonthsExpiry = new Date();
+        sixMonthsExpiry.setMonth(sixMonthsExpiry.getMonth() + 6);
+
+        // Atomic transaction: create attribution record + increment signup counter + grant pro pass if ambassador
+        const txSteps = [
             prisma.referralAttribution.create({
                 data: {
                     referralCodeId: referral.id,
@@ -138,13 +142,40 @@ const attributeReferral = async (req, res) => {
                 where: { id: referral.id },
                 data: { signupCount: { increment: 1 } }
             })
-        ]);
+        ];
+
+        if (isAmbassador) {
+            txSteps.push(
+                prisma.userProfile.update({
+                    where: { id: userId },
+                    data: {
+                        is_premium: true,
+                        premium_tier: 'campus_pro',
+                        premium_since: new Date(),
+                        premium_expires_at: sixMonthsExpiry,
+                        premium_granted_by: `ambassador:${referral.code}`
+                    }
+                })
+            );
+        }
+
+        const [attribution, updatedReferral] = await prisma.$transaction(txSteps);
+
+        if (isAmbassador) {
+            await cacheService.del(`user:profile:id:${userId}`);
+            if (req.user?.uid) await cacheService.del(`user:profile:${req.user.uid}`);
+        }
 
         return res.status(201).json({
             success: true,
-            message: 'Referral attributed successfully',
+            message: isAmbassador
+                ? `Referral attributed & 6-Month Campus Pro Pass unlocked!`
+                : 'Referral attributed successfully',
             code: referral.code,
-            campaign: referral.title || referral.creatorName
+            campaign: referral.title || referral.creatorName,
+            isPremium: isAmbassador,
+            premiumTier: isAmbassador ? 'campus_pro' : null,
+            premiumExpiresAt: isAmbassador ? sixMonthsExpiry : null
         });
     } catch (error) {
         console.error('Error in attributeReferral:', error);

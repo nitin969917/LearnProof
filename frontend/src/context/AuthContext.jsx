@@ -150,18 +150,28 @@ export const AuthProvider = ({ children }) => {
                     // Attribute referral in background if pending
                     attributePendingReferral(storedToken);
 
-                    // Fetch profile to get Matrix credentials
+                    // Fetch profile to get Matrix credentials & Pro status
                     axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/profile/`, {
                         idToken: storedToken
                     }).then(res => {
-                        if (res.data && res.data.matrixCredentials) {
+                        if (res.data) {
                             setUser(prev => ({
                                 ...prev,
-                                matrixCredentials: res.data.matrixCredentials
+                                matrixCredentials: res.data.matrixCredentials || prev?.matrixCredentials,
+                                is_premium: res.data.is_premium,
+                                isPremium: res.data.isPremium,
+                                premium_tier: res.data.premium_tier,
+                                premiumTier: res.data.premiumTier,
+                                premium_expires_at: res.data.premium_expires_at,
+                                premiumExpiresAt: res.data.premiumExpiresAt,
+                                days_remaining: res.data.days_remaining,
+                                daysRemaining: res.data.daysRemaining
                             }));
-                            safeInitMatrix(res.data.matrixCredentials).then(clientInstance => {
-                                setMatrixClient(clientInstance);
-                            });
+                            if (res.data.matrixCredentials) {
+                                safeInitMatrix(res.data.matrixCredentials).then(clientInstance => {
+                                    setMatrixClient(clientInstance);
+                                });
+                            }
                         }
                     }).catch(err => {
                         console.warn("Failed to fetch Matrix profile on load:", err?.message || err);
@@ -219,7 +229,15 @@ export const AuthProvider = ({ children }) => {
                     email: serverDecoded.email || prev?.email,
                     name: serverDecoded.name || prev?.name,
                     picture: serverDecoded.picture || prev?.picture,
-                    matrixCredentials: res.data?.matrixCredentials || prev?.matrixCredentials
+                    matrixCredentials: res.data?.matrixCredentials || prev?.matrixCredentials,
+                    is_premium: res.data?.is_premium,
+                    isPremium: res.data?.isPremium,
+                    premium_tier: res.data?.premium_tier,
+                    premiumTier: res.data?.premiumTier,
+                    premium_expires_at: res.data?.premium_expires_at,
+                    premiumExpiresAt: res.data?.premiumExpiresAt,
+                    days_remaining: res.data?.days_remaining,
+                    daysRemaining: res.data?.daysRemaining
                 }));
                 setToken(sessionToken);
 

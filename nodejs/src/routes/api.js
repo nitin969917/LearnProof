@@ -138,6 +138,7 @@ router.get('/admin/stats', authMiddleware, isAdminMiddleware, adminController.ge
 router.get('/admin/analytics', authMiddleware, isAdminMiddleware, adminController.getAnalyticsData);
 router.get('/admin/users', authMiddleware, isAdminMiddleware, adminController.getUsers);
 router.get('/admin/users/:id', authMiddleware, isAdminMiddleware, adminController.getUserDetails);
+router.put('/admin/users/:id/premium', authMiddleware, isAdminMiddleware, adminController.updateUserPremium);
 router.delete('/admin/users/:id', authMiddleware, isAdminMiddleware, adminController.deleteUser);
 router.get('/admin/content', authMiddleware, isAdminMiddleware, adminController.getContent);
 router.delete('/admin/content/:id', authMiddleware, isAdminMiddleware, adminController.deleteContent);

@@ -259,10 +259,77 @@ const getUsers = async (req, res) => {
                 }
             }
         });
-        res.json({ users });
+        const formattedUsers = users.map(u => {
+            const isPrem = Boolean(u.is_premium);
+            const expiresAt = u.premium_expires_at;
+            const isPremiumActive = isPrem && (!expiresAt || new Date(expiresAt) > new Date());
+            const daysRemaining = expiresAt ? Math.max(0, Math.ceil((new Date(expiresAt) - new Date()) / (1000 * 60 * 60 * 24))) : null;
+
+            return {
+                ...u,
+                is_premium: isPremiumActive,
+                isPremium: isPremiumActive,
+                days_remaining: daysRemaining,
+                daysRemaining
+            };
+        });
+        res.json({ users: formattedUsers });
     } catch (error) {
         console.error('getUsers Error:', error);
         res.status(500).json({ error: 'Failed to fetch users' });
+    }
+};
+
+/**
+ * Admin: Update user's Pro Scholar status (duration, tier, note)
+ * PUT /api/admin/users/:id/premium
+ */
+const updateUserPremium = async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { is_premium, isPremium, duration_months, durationMonths, custom_expiry, customExpiry, premium_tier, premiumTier, note } = req.body;
+
+        const premiumActive = is_premium !== undefined ? Boolean(is_premium) : (isPremium !== undefined ? Boolean(isPremium) : true);
+        const months = parseInt(duration_months || durationMonths || 0);
+        const tier = (premium_tier || premiumTier || 'campus_pro').trim();
+
+        let expiresAt = null;
+        if (!premiumActive) {
+            expiresAt = null;
+        } else if (custom_expiry || customExpiry) {
+            expiresAt = new Date(custom_expiry || customExpiry);
+        } else if (months > 0) {
+            expiresAt = new Date();
+            expiresAt.setMonth(expiresAt.getMonth() + months);
+        } else {
+            // Default 6 months if not specified
+            expiresAt = new Date();
+            expiresAt.setMonth(expiresAt.getMonth() + 6);
+        }
+
+        const updated = await prisma.userProfile.update({
+            where: { id },
+            data: {
+                is_premium: premiumActive,
+                premium_tier: premiumActive ? tier : null,
+                premium_since: premiumActive ? new Date() : null,
+                premium_expires_at: premiumActive ? expiresAt : null,
+                premium_granted_by: premiumActive ? (note || `admin:${req.user?.name || req.user?.id || 'admin'}`) : null
+            }
+        });
+
+        // Invalidate cache for this user
+        await cacheService.del(`user:profile:id:${id}`);
+        if (updated.uid) await cacheService.del(`user:profile:${updated.uid}`);
+
+        return res.status(200).json({
+            success: true,
+            message: premiumActive ? 'User upgraded to Pro Scholar successfully' : 'Pro status removed',
+            user: updated
+        });
+    } catch (error) {
+        console.error('updateUserPremium Error:', error);
+        return res.status(500).json({ error: 'Failed to update user premium status' });
     }
 };
 
@@ -1181,6 +1248,7 @@ const adminTransferGroupOwnership = async (req, res) => {
 module.exports = {
     getDashboardStats,
     getUsers,
+    updateUserPremium,
     deleteUser,
     getContent,
     deleteContent,

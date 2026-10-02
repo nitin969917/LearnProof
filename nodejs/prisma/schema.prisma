@@ -23,6 +23,13 @@ model UserProfile {
   streak_count Int      @default(0)
   joined_at    DateTime @default(now())
 
+  // Premium Prestige Fields
+  is_premium         Boolean   @default(false)
+  premium_tier       String?   @default("campus_pro")
+  premium_since      DateTime?
+  premium_expires_at DateTime?
+  premium_granted_by String?
+
   playlists    Playlist[]
   videos       Video[]
   quizzes      Quiz[]

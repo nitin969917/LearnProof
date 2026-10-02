@@ -1355,6 +1355,21 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
               {profile.name}
             </h2>
 
+            {/* Pro Scholar Prestige Badge */}
+            {((isOwnProfile && (user?.is_premium || user?.isPremium)) || profile.is_premium || profile.isPremium) && (
+              <div className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 shadow-2xs">
+                <span className="text-xs">👑</span>
+                <span className="text-[11px] font-black tracking-wider uppercase bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 dark:from-amber-300 dark:via-orange-300 dark:to-amber-300 bg-clip-text text-transparent">
+                  {((isOwnProfile ? user?.premium_tier : profile.premium_tier) === 'ambassador_pro') ? 'Ambassador Pro Pass' : 'Campus Pro Scholar'}
+                </span>
+                {isOwnProfile && (user?.daysRemaining || user?.days_remaining) != null && (
+                  <span className="text-[10px] font-bold text-amber-800 dark:text-amber-200 bg-amber-200/60 dark:bg-amber-900/50 px-1.5 py-0.2 rounded-full">
+                    {user.daysRemaining || user.days_remaining}d left
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Headline - only rendered when user actually has info */}
             {headline ? (
               <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 mt-0.5">

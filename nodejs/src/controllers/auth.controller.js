@@ -10,8 +10,21 @@ const JWT_SECRET = process.env.JWT_SECRET || 'learnproof_default_secret_9988';
  * Authentication & Profile Controller
  */
 const loginOrRegister = async (req, res) => {
+    const isPrem = Boolean(req.user?.is_premium || req.user?.isPremium);
+    const expiresAt = req.user?.premium_expires_at || req.user?.premiumExpiresAt;
+    const isPremiumActive = isPrem && (!expiresAt || new Date(expiresAt) > new Date());
+    const daysRemaining = expiresAt ? Math.max(0, Math.ceil((new Date(expiresAt) - new Date()) / (1000 * 60 * 60 * 24))) : null;
+
     const responseData = {
         ...req.user,
+        is_premium: isPremiumActive,
+        isPremium: isPremiumActive,
+        premium_tier: req.user?.premium_tier || 'campus_pro',
+        premiumTier: req.user?.premium_tier || 'campus_pro',
+        premium_expires_at: expiresAt,
+        premiumExpiresAt: expiresAt,
+        days_remaining: daysRemaining,
+        daysRemaining,
         token: req.newSessionToken || null
     };
 
@@ -52,7 +65,22 @@ const loginOrRegister = async (req, res) => {
 };
 
 const getProfile = async (req, res) => {
-    const responseData = { ...req.user };
+    const isPrem = Boolean(req.user?.is_premium || req.user?.isPremium);
+    const expiresAt = req.user?.premium_expires_at || req.user?.premiumExpiresAt;
+    const isPremiumActive = isPrem && (!expiresAt || new Date(expiresAt) > new Date());
+    const daysRemaining = expiresAt ? Math.max(0, Math.ceil((new Date(expiresAt) - new Date()) / (1000 * 60 * 60 * 24))) : null;
+
+    const responseData = {
+        ...req.user,
+        is_premium: isPremiumActive,
+        isPremium: isPremiumActive,
+        premium_tier: req.user?.premium_tier || 'campus_pro',
+        premiumTier: req.user?.premium_tier || 'campus_pro',
+        premium_expires_at: expiresAt,
+        premiumExpiresAt: expiresAt,
+        days_remaining: daysRemaining,
+        daysRemaining
+    };
 
     try {
         if (matrixService.ENABLE_MATRIX_CHAT) {
