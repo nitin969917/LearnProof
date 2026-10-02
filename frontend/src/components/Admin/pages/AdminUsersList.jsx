@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { Trash2, Search, Calendar, Eye, Crown, Sparkles, Clock, X, Check, ShieldCheck, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useModal } from '../../../context/ModalContext';
+import ProCrownIcon from '../../Common/ProCrownIcon.jsx';
 
 const AdminUsersList = () => {
     const navigate = useNavigate();
@@ -217,7 +218,8 @@ const AdminUsersList = () => {
                                     : 'text-slate-600 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400'
                             }`}
                         >
-                            <span>👑 Pro</span>
+                            <ProCrownIcon className="w-3.5 h-3.5" />
+                            <span>Pro</span>
                             <span>({proUsersCount})</span>
                         </button>
                         <button
@@ -281,7 +283,7 @@ const AdminUsersList = () => {
                                                     <div className="flex items-center gap-1.5">
                                                         <p className="font-semibold text-slate-800 dark:text-white truncate">{user.name}</p>
                                                         {isPro && (
-                                                            <span title="Active Pro Scholar" className="text-xs">👑</span>
+                                                            <ProCrownIcon className="w-3.5 h-3.5" title="Active Pro Scholar" />
                                                         )}
                                                     </div>
                                                     <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</p>
@@ -298,7 +300,7 @@ const AdminUsersList = () => {
                                                         className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 text-[11px] font-black tracking-wide cursor-pointer hover:shadow-xs active:scale-95 transition-all select-none"
                                                         title="Click to manage Pro duration"
                                                     >
-                                                        <span>👑</span>
+                                                        <ProCrownIcon className="w-3.5 h-3.5" />
                                                         <span className="uppercase">PRO</span>
                                                         {daysLeft != null && (
                                                             <span className="text-[10px] font-bold text-amber-800 dark:text-amber-200 bg-amber-200/60 dark:bg-amber-900/50 px-1.5 py-0.2 rounded-full">
@@ -389,23 +391,24 @@ const AdminUsersList = () => {
 
             {/* Footer summary */}
             <div className="px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                <div>
-                    👑 <span className="font-bold text-amber-600 dark:text-amber-400">{proUsersCount}</span> Pro Scholars active on campus
+                <div className="flex items-center gap-1.5">
+                    <ProCrownIcon className="w-3.5 h-3.5" />
+                    <span><span className="font-bold text-amber-600 dark:text-amber-400">{proUsersCount}</span> Pro Scholars active on campus</span>
                 </div>
                 <div>
                     Showing {filteredUsers.length} of {userList.length} total users
                 </div>
             </div>
 
-            {/* 👑 Manage Pro Scholar Access Modal */}
+            {/* Manage Pro Scholar Access Modal */}
             {isProModalOpen && selectedUserForPro && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
                         {/* Modal Header */}
                         <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent">
                             <div className="flex items-center gap-2.5">
-                                <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-sm">
-                                    👑
+                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-amber-500/20 border border-amber-300/60 dark:border-amber-500/40 flex items-center justify-center shadow-xs">
+                                    <ProCrownIcon className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -441,7 +444,7 @@ const AdminUsersList = () => {
                                                 : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
                                         }`}
                                     >
-                                        <span>👑</span>
+                                        <ProCrownIcon className="w-3.5 h-3.5" />
                                         <span>Active Pro Scholar</span>
                                     </button>
                                     <button

@@ -7,6 +7,7 @@ import socialApi from '../../api/socialApi';
 import { useAuth } from '../../context/AuthContext';
 import { useSocialFeedStore } from '../../store/socialFeedStore';
 import UserAvatar from '../Common/UserAvatar.jsx';
+import ProCrownIcon from '../Common/ProCrownIcon.jsx';
 
 const PROFILE_CACHE_KEY = 'learnproof_cached_user_profile';
 
@@ -184,8 +185,8 @@ const ProfileModal = ({ isOpen, onClose }) => {
                             {(profileData?.is_premium || user?.is_premium || profileData?.isPremium || user?.isPremium) && (
                                 <div className="w-full mb-3 p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-300/80 dark:border-amber-500/40 relative overflow-hidden shadow-2xs">
                                     <div className="flex items-center gap-2.5">
-                                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 text-white flex items-center justify-center text-base shadow-sm shrink-0">
-                                            👑
+                                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500/20 via-orange-500/15 to-amber-500/20 border border-amber-300/60 dark:border-amber-500/40 flex items-center justify-center shadow-xs shrink-0">
+                                            <ProCrownIcon className="w-5 h-5 drop-shadow-xs" />
                                         </div>
                                         <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-1.5 flex-wrap">

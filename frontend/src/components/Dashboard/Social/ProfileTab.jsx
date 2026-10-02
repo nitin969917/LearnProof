@@ -17,6 +17,7 @@ import { useAuth } from '../../../context/AuthContext.jsx';
 import { useModal } from '../../../context/ModalContext.jsx';
 import SocialPostCard from './SocialPostCard.jsx';
 import UserAvatar from '../../Common/UserAvatar.jsx';
+import ProCrownIcon from '../../Common/ProCrownIcon.jsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { compressImage } from '../../../utils/imageCompressor.js';
 import { resolveMediaUrl } from '../../../utils/heicHelper.js';
@@ -1358,7 +1359,7 @@ export default function ProfileTab({ currentUserId, viewUserId, onBackToFeed, on
             {/* Pro Prestige Badge */}
             {((isOwnProfile && (user?.is_premium || user?.isPremium)) || profile.is_premium || profile.isPremium) && (
               <div className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 shadow-2xs">
-                <span className="text-xs">👑</span>
+                <ProCrownIcon className="w-3.5 h-3.5 drop-shadow-xs" />
                 <span className="text-[11px] font-black tracking-wider uppercase bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 dark:from-amber-300 dark:via-orange-300 dark:to-amber-300 bg-clip-text text-transparent">
                   PRO
                 </span>

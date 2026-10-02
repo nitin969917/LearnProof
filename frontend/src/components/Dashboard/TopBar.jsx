@@ -8,6 +8,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useSocialMessageStore } from '../../store/socialMessageStore';
 import { useSocialFeedStore } from '../../store/socialFeedStore';
 import UserAvatar from '../Common/UserAvatar.jsx';
+import ProCrownIcon from '../Common/ProCrownIcon.jsx';
 
 const TopBar = ({ onMenuClick, onProfileClick }) => {
     const [url, setUrl] = useState('');
@@ -260,9 +261,9 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
                         <button
                             onClick={onProfileClick || (() => navigate('/dashboard/social?tab=profile'))}
                             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 hover:from-amber-500/25 hover:to-orange-500/20 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 shadow-2xs hover:shadow-xs transition-all duration-200 active:scale-95 cursor-pointer group shrink-0 select-none"
-                            title="👑 LearnProof PRO Active"
+                            title="LearnProof PRO Active"
                         >
-                            <span className="text-xs group-hover:scale-125 transition-transform duration-200">👑</span>
+                            <ProCrownIcon className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200 drop-shadow-xs" />
                             <span className="text-[11px] font-black tracking-wider uppercase bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 dark:from-amber-300 dark:via-orange-300 dark:to-amber-300 bg-clip-text text-transparent">
                                 PRO
                             </span>
