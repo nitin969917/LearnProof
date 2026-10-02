@@ -190,7 +190,7 @@ const ProfileModal = ({ isOpen, onClose }) => {
                                         <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                 <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
-                                                    {(profileData?.premium_tier || user?.premium_tier) === 'ambassador_pro' ? 'Ambassador Pro Pass' : 'Campus Pro Scholar'}
+                                                    PRO Pass
                                                 </span>
                                                 <span className="text-[9px] font-black uppercase px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                                                     Active

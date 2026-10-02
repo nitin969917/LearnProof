@@ -255,16 +255,16 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
                         </button>
                     )}
                     
-                    {/* Pro Scholar Prestige Badge */}
+                    {/* Pro Prestige Badge */}
                     {(user?.is_premium || user?.isPremium) && (
                         <button
                             onClick={onProfileClick || (() => navigate('/dashboard/social?tab=profile'))}
-                            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.2 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 hover:from-amber-500/25 hover:to-orange-500/20 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 shadow-2xs hover:shadow-xs transition-all duration-200 active:scale-95 cursor-pointer group shrink-0 select-none"
-                            title={`👑 LearnProof Pro Scholar Active${(user?.daysRemaining || user?.days_remaining) ? ` · ${user.daysRemaining || user.days_remaining} days remaining` : ''}`}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 hover:from-amber-500/25 hover:to-orange-500/20 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 shadow-2xs hover:shadow-xs transition-all duration-200 active:scale-95 cursor-pointer group shrink-0 select-none"
+                            title={`👑 LearnProof PRO Active${(user?.daysRemaining || user?.days_remaining) ? ` · ${user.daysRemaining || user.days_remaining} days remaining` : ''}`}
                         >
                             <span className="text-xs group-hover:scale-125 transition-transform duration-200">👑</span>
-                            <span className="text-[10px] sm:text-[11px] font-black tracking-wider uppercase bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 dark:from-amber-300 dark:via-orange-300 dark:to-amber-300 bg-clip-text text-transparent">
-                                Pro Scholar
+                            <span className="text-[11px] font-black tracking-wider uppercase bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 dark:from-amber-300 dark:via-orange-300 dark:to-amber-300 bg-clip-text text-transparent">
+                                PRO
                             </span>
                             {(user?.daysRemaining || user?.days_remaining) !== undefined && (user?.daysRemaining || user?.days_remaining) !== null && (
                                 <span className="hidden sm:inline-flex items-center text-[9px] font-extrabold text-amber-800 dark:text-amber-200 bg-amber-200/60 dark:bg-amber-900/50 px-1.5 py-0.5 rounded-full">

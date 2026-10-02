@@ -299,9 +299,7 @@ const AdminUsersList = () => {
                                                         title="Click to manage Pro duration"
                                                     >
                                                         <span>👑</span>
-                                                        <span className="uppercase">
-                                                            {user.premium_tier === 'ambassador_pro' ? 'Ambassador' : 'Campus Pro'}
-                                                        </span>
+                                                        <span className="uppercase">PRO</span>
                                                         {daysLeft != null && (
                                                             <span className="text-[10px] font-bold text-amber-800 dark:text-amber-200 bg-amber-200/60 dark:bg-amber-900/50 px-1.5 py-0.2 rounded-full">
                                                                 {daysLeft}d left

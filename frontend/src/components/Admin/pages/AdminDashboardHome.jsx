@@ -344,7 +344,7 @@ const AdminDashboardHome = () => {
                         </div>
                         <div className="min-w-0">
                             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
-                                <span>Pro Scholars</span>
+                                <span>PRO Users</span>
                                 <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 px-1 py-0.2 rounded">Campus</span>
                             </p>
                             <h4 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-1.5 mt-0.5">
