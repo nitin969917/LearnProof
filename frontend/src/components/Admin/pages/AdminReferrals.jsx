@@ -99,6 +99,14 @@ const AdminReferrals = () => {
     // Search query inside group creation/editing ambassador checklist
     const [ambassadorPickerSearch, setAmbassadorPickerSearch] = useState('');
 
+    // Pagination for campaigns table
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 50;
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeCategory, searchQuery]);
+
     const fetchData = async (isRefresh = false) => {
         if (!token) return;
         if (isRefresh) setRefreshing(true);
@@ -109,7 +117,7 @@ const AdminReferrals = () => {
                 axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/admin/stats`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }),
-                axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/admin/codes?limit=150`, {
+                axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/admin/codes?limit=1000`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }),
                 axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/admin/groups`, {
@@ -197,15 +205,16 @@ const AdminReferrals = () => {
 
     const handleCategoryChange = async (id, newCategory, name) => {
         try {
+            const normalizedCat = newCategory.toLowerCase();
             const res = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/referrals/admin/codes/${id}`, {
-                category: newCategory
+                category: normalizedCat
             }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
             if (res.data.success) {
-                setCodes(prev => prev.map(c => c.id === id ? { ...c, category: newCategory } : c));
-                const categoryLabel = newCategory.charAt(0).toUpperCase() + newCategory.slice(1);
+                setCodes(prev => prev.map(c => c.id === id ? { ...c, category: normalizedCat } : c));
+                const categoryLabel = normalizedCat.charAt(0).toUpperCase() + normalizedCat.slice(1);
                 toast.success(`Updated ${name || 'user'} status to ${categoryLabel}!`);
                 fetchData(true);
             }
@@ -423,22 +432,64 @@ const AdminReferrals = () => {
         setIsCreateGroupModalOpen(true);
     };
 
-    // Filter codes
+    // Dynamic counts per category across all loaded codes
+    const categoryCounts = useMemo(() => {
+        const safeCodes = Array.isArray(codes) ? codes : [];
+        return {
+            all: safeCodes.length,
+            ambassador: safeCodes.filter(c => (c.category || '').toLowerCase() === 'ambassador').length,
+            creator: safeCodes.filter(c => (c.category || '').toLowerCase() === 'creator').length,
+            student: safeCodes.filter(c => (c.category || '').toLowerCase() === 'student').length,
+            campaign: safeCodes.filter(c => (c.category || '').toLowerCase() === 'campaign').length
+        };
+    }, [codes]);
+
+    // Filter and sort codes intelligently
     const filteredCodes = useMemo(() => {
         const safeCodes = Array.isArray(codes) ? codes : [];
-        return safeCodes.filter(item => {
+        const filtered = safeCodes.filter(item => {
             if (!item) return false;
-            const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
-            const searchLower = (searchQuery || '').toLowerCase();
-            const matchesSearch = !searchQuery ||
+            const itemCat = (item.category || 'student').toLowerCase();
+            const matchesCategory = activeCategory === 'all' || itemCat === activeCategory.toLowerCase();
+            const searchLower = (searchQuery || '').toLowerCase().trim();
+            const matchesSearch = !searchLower ||
                 (item.code && item.code.toLowerCase().includes(searchLower)) ||
                 (item.title && item.title.toLowerCase().includes(searchLower)) ||
                 (item.creatorName && item.creatorName.toLowerCase().includes(searchLower)) ||
-                (item.targetCollege && item.targetCollege.toLowerCase().includes(searchLower));
+                (item.targetCollege && item.targetCollege.toLowerCase().includes(searchLower)) ||
+                (item.referrer?.name && item.referrer.name.toLowerCase().includes(searchLower)) ||
+                (item.referrer?.email && item.referrer.email.toLowerCase().includes(searchLower));
 
             return matchesCategory && matchesSearch;
         });
+
+        return filtered.sort((a, b) => {
+            // Sort by signups desc
+            if ((b.signupCount || 0) !== (a.signupCount || 0)) {
+                return (b.signupCount || 0) - (a.signupCount || 0);
+            }
+            // Then clicks desc
+            if ((b.clicksCount || 0) !== (a.clicksCount || 0)) {
+                return (b.clicksCount || 0) - (a.clicksCount || 0);
+            }
+            // If viewing all, prioritize ambassadors, creators, campaigns
+            if (activeCategory === 'all') {
+                const catWeight = { ambassador: 4, creator: 3, campaign: 2, student: 1 };
+                const wA = catWeight[(a.category || '').toLowerCase()] || 0;
+                const wB = catWeight[(b.category || '').toLowerCase()] || 0;
+                if (wA !== wB) return wB - wA;
+            }
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        });
     }, [codes, activeCategory, searchQuery]);
+
+    // Paginated codes for current page view
+    const totalFiltered = filteredCodes.length;
+    const totalPages = Math.ceil(totalFiltered / ITEMS_PER_PAGE) || 1;
+    const paginatedCodes = useMemo(() => {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredCodes.slice(start, start + ITEMS_PER_PAGE);
+    }, [filteredCodes, currentPage, ITEMS_PER_PAGE]);
 
     // Filter groups
     const filteredGroups = useMemo(() => {
@@ -458,11 +509,19 @@ const AdminReferrals = () => {
         const safeCodes = Array.isArray(codes) ? codes : [];
         return safeCodes.filter(item => {
             if (!item) return false;
-            const q = (ambassadorPickerSearch || '').toLowerCase();
+            const q = (ambassadorPickerSearch || '').toLowerCase().trim();
             if (!q) return true;
             return (item.code && item.code.toLowerCase().includes(q)) ||
                 (item.creatorName && item.creatorName.toLowerCase().includes(q)) ||
-                (item.targetCollege && item.targetCollege.toLowerCase().includes(q));
+                (item.targetCollege && item.targetCollege.toLowerCase().includes(q)) ||
+                (item.referrer?.name && item.referrer.name.toLowerCase().includes(q)) ||
+                (item.referrer?.email && item.referrer.email.toLowerCase().includes(q));
+        }).sort((a, b) => {
+            const aIsAmb = (a.category || '').toLowerCase() === 'ambassador';
+            const bIsAmb = (b.category || '').toLowerCase() === 'ambassador';
+            if (aIsAmb && !bIsAmb) return -1;
+            if (!aIsAmb && bIsAmb) return 1;
+            return (b.signupCount || 0) - (a.signupCount || 0);
         });
     }, [codes, ambassadorPickerSearch]);
 
@@ -716,22 +775,29 @@ const AdminReferrals = () => {
                             {/* Category Tabs */}
                             <div className="flex flex-wrap items-center gap-1.5 p-1 bg-gray-100 dark:bg-gray-700/50 rounded-xl">
                                 {[
-                                    { id: 'all', label: 'All Links' },
-                                    { id: 'ambassador', label: 'Ambassadors' },
-                                    { id: 'creator', label: 'Creators' },
-                                    { id: 'student', label: 'Students' },
-                                    { id: 'campaign', label: 'General Campaigns' }
+                                    { id: 'all', label: 'All Links', count: categoryCounts.all },
+                                    { id: 'ambassador', label: 'Ambassadors', count: categoryCounts.ambassador },
+                                    { id: 'creator', label: 'Creators', count: categoryCounts.creator },
+                                    { id: 'student', label: 'Students', count: categoryCounts.student },
+                                    { id: 'campaign', label: 'General Campaigns', count: categoryCounts.campaign }
                                 ].map(tab => (
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveCategory(tab.id)}
-                                        className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
                                             activeCategory === tab.id
                                                 ? 'bg-white dark:bg-gray-800 text-orange-600 dark:text-orange-400 shadow-sm'
                                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                         }`}
                                     >
-                                        {tab.label}
+                                        <span>{tab.label}</span>
+                                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                                            activeCategory === tab.id
+                                                ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300'
+                                                : 'bg-gray-200/80 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                        }`}>
+                                            {tab.count}
+                                        </span>
                                     </button>
                                 ))}
                             </div>
@@ -782,10 +848,11 @@ const AdminReferrals = () => {
                                             </td>
                                         </tr>
                                     ) : (
-                                        filteredCodes.map((item) => {
+                                        paginatedCodes.map((item) => {
                                             const convRate = item.clicksCount > 0
                                                 ? ((item.signupCount / item.clicksCount) * 100).toFixed(1)
                                                 : 0;
+                                            const itemCategory = (item.category || 'student').toLowerCase();
 
                                             return (
                                                 <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-750/30 transition">
@@ -818,14 +885,14 @@ const AdminReferrals = () => {
                                                     <td className="py-4 px-6">
                                                         <div className="relative inline-flex items-center">
                                                             <select
-                                                                value={item.category || 'student'}
+                                                                value={itemCategory}
                                                                 onChange={(e) => handleCategoryChange(item.id, e.target.value, item.creatorName || (item.referrer ? item.referrer.name : item.code))}
                                                                 className={`text-xs font-bold rounded-xl px-2.5 py-1.5 pr-7 appearance-none cursor-pointer border transition outline-none shadow-2xs ${
-                                                                    item.category === 'ambassador'
+                                                                    itemCategory === 'ambassador'
                                                                         ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800'
-                                                                        : item.category === 'creator'
+                                                                        : itemCategory === 'creator'
                                                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                                                                        : item.category === 'student'
+                                                                        : itemCategory === 'student'
                                                                         ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
                                                                         : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800'
                                                                 }`}
@@ -942,6 +1009,34 @@ const AdminReferrals = () => {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Pagination Bar */}
+                        {totalPages > 1 && (
+                            <div className="px-6 py-3.5 border-t border-gray-100 dark:border-gray-700/60 flex flex-col sm:flex-row items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-900/30">
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    Showing <span className="font-semibold text-gray-900 dark:text-white">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-semibold text-gray-900 dark:text-white">{Math.min(currentPage * ITEMS_PER_PAGE, totalFiltered)}</span> of <span className="font-semibold text-gray-900 dark:text-white">{totalFiltered}</span> referral links
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                                    >
+                                        Previous
+                                    </button>
+                                    <div className="text-xs font-medium text-gray-600 dark:text-gray-400 px-2">
+                                        Page {currentPage} of {totalPages}
+                                    </div>
+                                    <button
+                                        onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Recent Attributed Signups Section */}

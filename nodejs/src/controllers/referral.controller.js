@@ -791,14 +791,14 @@ const getAdminReferralStats = async (req, res) => {
  */
 const getAdminReferralCodes = async (req, res) => {
     try {
-        const { category, search, page = 1, limit = 50 } = req.query;
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
+        const { category, search, page = 1, limit = 1000 } = req.query;
+        const pageNum = parseInt(page) || 1;
+        const limitNum = limit === 'all' ? 5000 : Math.min(parseInt(limit) || 1000, 5000);
         const skip = (pageNum - 1) * limitNum;
 
         const where = {};
         if (category && category !== 'all') {
-            where.category = category;
+            where.category = { equals: category, mode: 'insensitive' };
         }
 
         if (search) {
@@ -806,7 +806,9 @@ const getAdminReferralCodes = async (req, res) => {
                 { code: { contains: search, mode: 'insensitive' } },
                 { title: { contains: search, mode: 'insensitive' } },
                 { creatorName: { contains: search, mode: 'insensitive' } },
-                { targetCollege: { contains: search, mode: 'insensitive' } }
+                { targetCollege: { contains: search, mode: 'insensitive' } },
+                { referrer: { name: { contains: search, mode: 'insensitive' } } },
+                { referrer: { email: { contains: search, mode: 'insensitive' } } }
             ];
         }
 
@@ -816,7 +818,11 @@ const getAdminReferralCodes = async (req, res) => {
                 where,
                 skip,
                 take: limitNum,
-                orderBy: { createdAt: 'desc' },
+                orderBy: [
+                    { signupCount: 'desc' },
+                    { clicksCount: 'desc' },
+                    { createdAt: 'desc' }
+                ],
                 include: {
                     referrer: {
                         select: {
@@ -876,7 +882,7 @@ const createAdminReferralCode = async (req, res) => {
         const newCode = await prisma.referralCode.create({
             data: {
                 code: normalizedCode,
-                category: category || 'ambassador',
+                category: (category || 'ambassador').toLowerCase(),
                 title: title?.trim() || `${creatorName || normalizedCode} Campaign`,
                 creatorName: creatorName?.trim() || null,
                 targetCollege: targetCollege?.trim() || null,
@@ -962,7 +968,7 @@ const updateAdminReferralCode = async (req, res) => {
         const updated = await prisma.referralCode.update({
             where: { id },
             data: {
-                ...(category ? { category } : {}),
+                ...(category ? { category: category.toLowerCase() } : {}),
                 ...(normalizedCode ? { code: normalizedCode } : {}),
                 ...(title !== undefined ? { title: title ? title.trim() : null } : {}),
                 ...(creatorName !== undefined ? { creatorName: creatorName ? creatorName.trim() : null } : {}),
