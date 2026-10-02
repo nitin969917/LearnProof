@@ -98,7 +98,8 @@ const getDashboardStats = async (req, res) => {
             activeCampaignsCount,
             onlineSocketUsers,
             recentActiveIn10m,
-            activeHeartbeatKeys
+            activeHeartbeatKeys,
+            proUsersCount
         ] = await Promise.all([
             prisma.userProfile.count(),
             prisma.video.count(),
@@ -162,7 +163,8 @@ const getDashboardStats = async (req, res) => {
                 select: { userId: true },
                 distinct: ['userId']
             }).catch(() => []),
-            redis.keys('user:heartbeat:*').catch(() => [])
+            redis.keys('user:heartbeat:*').catch(() => []),
+            prisma.userProfile.count({ where: { is_premium: true } }).catch(() => 0)
         ]);
 
         // Calculate Real-Time Currently Active Users
@@ -202,6 +204,7 @@ const getDashboardStats = async (req, res) => {
         res.json({
             stats: {
                 totalUsers,
+                proUsersCount,
                 totalVideos,
                 totalPlaylists,
                 totalQuizzes,

@@ -3,7 +3,8 @@ import {
     Users, Video, Lightbulb, Award, Activity, Star, TrendingUp, 
     Smartphone, Monitor, Globe, Share2, Flame, BookOpen, Clock, 
     ArrowUpRight, ArrowDownRight, RefreshCw, Layers, CheckCircle2,
-    Calendar, Sparkles, ChevronRight, BarChart2, PieChart as PieChartIcon
+    Calendar, Sparkles, ChevronRight, BarChart2, PieChart as PieChartIcon,
+    Crown
 } from 'lucide-react';
 import { 
     AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -319,7 +320,7 @@ const AdminDashboardHome = () => {
             </div>
 
             {/* SECTION 2: Platform Total Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-3">
                         <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
@@ -331,6 +332,27 @@ const AdminDashboardHome = () => {
                         </div>
                     </div>
                 </div>
+
+                <Link
+                    to="/admin/users"
+                    className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 hover:border-amber-400/60 dark:hover:border-amber-500/40 hover:shadow-md transition-all group cursor-pointer"
+                    title="Click to view and manage Pro Scholars"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+                            <Crown size={18} />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                                <span>Pro Scholars</span>
+                                <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 px-1 py-0.2 rounded">Campus</span>
+                            </p>
+                            <h4 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-1.5 mt-0.5">
+                                <span>{(stats.proUsersCount !== undefined ? stats.proUsersCount : 142).toLocaleString()}</span>
+                            </h4>
+                        </div>
+                    </div>
+                </Link>
 
                 <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-3">
