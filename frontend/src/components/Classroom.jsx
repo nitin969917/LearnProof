@@ -955,6 +955,30 @@ const Classroom = () => {
   const [copiedIndex, setCopiedIndex] = useState(null);
   const aiChatBottomRef = useRef(null);
 
+  // AI Chat Paper Style View Mode ('clean' | 'ruled' | 'grid' | 'chalkboard')
+  const [chatViewMode, setChatViewMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('learnproof_chat_view_mode');
+      if (saved === 'clean' || saved === 'ruled' || saved === 'grid' || saved === 'chalkboard') {
+        return saved;
+      }
+      const savedNotes = localStorage.getItem('learnproof_notes_view_mode');
+      if (savedNotes === 'clean' || savedNotes === 'ruled' || savedNotes === 'grid' || savedNotes === 'chalkboard') {
+        return savedNotes;
+      }
+      return 'ruled';
+    } catch {
+      return 'ruled';
+    }
+  });
+
+  const handleSetChatViewMode = (mode) => {
+    setChatViewMode(mode);
+    try {
+      localStorage.setItem('learnproof_chat_view_mode', mode);
+    } catch (e) {}
+  };
+
   useEffect(() => {
     // Auto-scroll to bottom of AI chat when new messages arrive or loading
     if (activeTab === 'ai-chat') {
@@ -4164,9 +4188,91 @@ const Classroom = () => {
                         </div>
                       </div>
 
+                      {/* Chat Paper Style Switcher Toolbar: Clean / Ruled / Grid / Chalk */}
+                      <div className="p-2 sm:p-2.5 bg-slate-50/90 dark:bg-slate-900/90 border-b border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
+                        <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                            <PenTool size={13} className="text-amber-500 shrink-0" />
+                            <span className="truncate">Tutor Notes Style:</span>
+                          </div>
+                          <span className="sm:hidden text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full capitalize">
+                            {chatViewMode === 'ruled' ? '✍️ Ruled' : (chatViewMode === 'grid' ? '▦ Grid' : (chatViewMode === 'chalkboard' ? '🌙 Chalk' : '📄 Clean'))}
+                          </span>
+                        </div>
+
+                        {/* Note Style Segmented Pill Switcher (4-column responsive grid on mobile) */}
+                        <div className="grid grid-cols-4 sm:flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-full sm:w-auto gap-1 sm:gap-0 sm:ml-auto shrink-0">
+                          {/* Clean / Standard Reading */}
+                          <button
+                            type="button"
+                            onClick={() => handleSetChatViewMode('clean')}
+                            title="Standard Clean Chat Cards"
+                            className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                              chatViewMode === 'clean'
+                                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                          >
+                            <FileText size={13} className="shrink-0" />
+                            <span>Clean</span>
+                          </button>
+
+                          {/* Ruled Notebook Paper */}
+                          <button
+                            type="button"
+                            onClick={() => handleSetChatViewMode('ruled')}
+                            title="Authentic Lined Handwritten Notebook"
+                            className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                              chatViewMode === 'ruled'
+                                ? 'bg-amber-500 text-white shadow-xs'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                          >
+                            <PenTool size={13} className="shrink-0" />
+                            <span>Ruled</span>
+                          </button>
+
+                          {/* Grid / Graph Paper */}
+                          <button
+                            type="button"
+                            onClick={() => handleSetChatViewMode('grid')}
+                            title="STEM & Math Grid Graph Paper"
+                            className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                              chatViewMode === 'grid'
+                                ? 'bg-sky-500 text-white shadow-xs'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                          >
+                            <Grid size={13} className="shrink-0" />
+                            <span>Grid</span>
+                          </button>
+
+                          {/* Chalkboard Mode */}
+                          <button
+                            type="button"
+                            onClick={() => handleSetChatViewMode('chalkboard')}
+                            title="Dark Classroom Chalkboard"
+                            className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                              chatViewMode === 'chalkboard'
+                                ? 'bg-slate-950 text-yellow-300 shadow-xs border border-slate-700'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            }`}
+                          >
+                            <Moon size={13} className="shrink-0" />
+                            <span>Chalk</span>
+                          </button>
+                        </div>
+                      </div>
+
                       {/* Quick Doubt Suggestion Prompts - Dynamically Tailored to Lecture */}
                       {aiChatMessages.length === 0 && (
-                        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 sm:p-4 bg-gradient-to-b from-indigo-50/20 via-white to-white dark:from-slate-900/50 dark:via-slate-900 dark:to-slate-900 flex flex-col justify-start">
+                        <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 sm:p-4 flex flex-col justify-start transition-colors ${
+                          chatViewMode === 'chalkboard'
+                            ? 'bg-slate-950'
+                            : (chatViewMode !== 'clean'
+                                ? 'bg-amber-50/20 dark:bg-slate-900'
+                                : 'bg-gradient-to-b from-indigo-50/20 via-white to-white dark:from-slate-900/50 dark:via-slate-900 dark:to-slate-900')
+                        }`}>
                           <div className="w-full space-y-2.5 sm:space-y-3">
                             {/* Top Header Bar with Subject Badge & Shuffle Action */}
                             <div className="flex items-center justify-between">
@@ -4176,6 +4282,7 @@ const Classroom = () => {
                               </div>
 
                               <button
+                                type="button"
                                 onClick={() => setSuggestionSeed(s => s + 1)}
                                 className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 bg-white dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 px-2.5 py-1 rounded-lg transition shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
                                 title="Shuffle suggested questions"
@@ -4185,11 +4292,28 @@ const Classroom = () => {
                               </button>
                             </div>
 
+                            {/* Friendly Handwritten Notebook Tutor Info Banner */}
+                            {chatViewMode !== 'clean' && (
+                              <div className={`p-3 rounded-xl border flex items-center gap-2.5 transition-all ${
+                                chatViewMode === 'chalkboard'
+                                  ? 'bg-slate-900/80 border-slate-700 text-yellow-200'
+                                  : (chatViewMode === 'grid'
+                                      ? 'bg-sky-50/80 dark:bg-sky-950/20 border-sky-200/80 dark:border-sky-800/40 text-sky-900 dark:text-sky-200'
+                                      : 'bg-amber-50/80 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-800/40 text-amber-900 dark:text-amber-200')
+                              }`}>
+                                <PenTool size={15} className={chatViewMode === 'chalkboard' ? 'text-yellow-400 shrink-0' : (chatViewMode === 'grid' ? 'text-sky-500 shrink-0' : 'text-amber-500 shrink-0')} />
+                                <p className="text-xs font-medium leading-snug m-0">
+                                  <strong className="font-bold">Handwritten Tutor Notes Enabled:</strong> Ask any doubt about this lecture and your AI tutor will write notes on your {chatViewMode === 'chalkboard' ? 'classroom chalkboard' : (chatViewMode === 'grid' ? 'engineering grid paper' : 'lined notebook')}!
+                                </p>
+                              </div>
+                            )}
+
                             {/* Suggestion Cards */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                               {dynamicSuggestions.map((item, pIdx) => (
                                 <button
                                   key={pIdx}
+                                  type="button"
                                   onClick={() => handleSendAiQuestion(item.text)}
                                   className="group flex flex-col p-2.5 sm:p-3 bg-white dark:bg-slate-800/90 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/40 border border-gray-200/80 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600 rounded-xl transition-all duration-200 text-left shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
                                 >
@@ -4218,24 +4342,291 @@ const Classroom = () => {
 
                       {/* Message Stream Directly Connected to Input */}
                       {aiChatMessages.length > 0 && (
-                        <div className="space-y-4 overflow-y-auto p-3.5 sm:p-4 custom-scrollbar flex-1 min-h-0">
+                        <div className={`space-y-4 overflow-y-auto p-3.5 sm:p-4 custom-scrollbar flex-1 min-h-0 transition-colors ${
+                          chatViewMode === 'chalkboard'
+                            ? 'bg-slate-950'
+                            : (chatViewMode !== 'clean'
+                                ? 'bg-amber-50/25 dark:bg-slate-950/40'
+                                : 'bg-white dark:bg-slate-900')
+                        }`}>
                           {aiChatMessages.map((msg, mIdx) => {
                             const followUps = msg.role === 'assistant' ? extractFollowUpQuestions(msg.content) : [];
                             const displayContent = msg.role === 'assistant' ? cleanAiMessageContent(msg.content) : msg.content;
+                            const isAssistant = msg.role === 'assistant';
+                            const isHandwritten = isAssistant && chatViewMode !== 'clean';
+
                             return (
                               <div
                                 key={mIdx}
                                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start w-full'}`}
                               >
-                                <div
-                                  className={`rounded-2xl p-3.5 sm:p-4 text-sm ${msg.role === 'user'
-                                      ? 'max-w-[85%] bg-orange-500 text-white rounded-tr-xs shadow-sm font-medium'
-                                      : 'w-full bg-gray-50 dark:bg-slate-800/80 text-gray-800 dark:text-slate-200 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-xs'
+                                {msg.role === 'user' ? (
+                                  /* Student Question Bubble */
+                                  <div className="max-w-[85%] bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-2xl rounded-tr-xs shadow-sm p-3.5 sm:p-4 text-xs sm:text-sm font-medium">
+                                    <div className="flex items-center gap-1.5 mb-1 text-[10px] uppercase tracking-wider font-bold text-white/80">
+                                      <User size={11} />
+                                      <span>Your Question</span>
+                                    </div>
+                                    <p className="whitespace-pre-wrap leading-relaxed m-0 text-white font-medium">{msg.content}</p>
+                                  </div>
+                                ) : isHandwritten ? (
+                                  /* Handwritten Notebook / Chalkboard Assistant Response Card */
+                                  <div
+                                    className={`w-full rounded-2xl p-4 sm:p-6 transition-all duration-200 shadow-sm overflow-hidden select-text relative border ${
+                                      chatViewMode === 'chalkboard'
+                                        ? 'notebook-chalkboard-paper text-slate-100 border-slate-700/80 shadow-md'
+                                        : (chatViewMode === 'grid'
+                                            ? 'notebook-grid-paper border-sky-200/70 dark:border-slate-800'
+                                            : 'notebook-ruled-paper border-amber-200/80 dark:border-slate-800')
                                     }`}
-                                >
-                                  {msg.role === 'user' ? (
-                                    <p className="whitespace-pre-wrap leading-relaxed m-0">{msg.content}</p>
-                                  ) : (
+                                  >
+                                    {/* Spiral Binder Ring Graphic */}
+                                    <div className="absolute top-0 left-0 right-0 h-3 flex items-center justify-around px-4 pointer-events-none opacity-40">
+                                      {[...Array(12)].map((_, i) => (
+                                        <div
+                                          key={i}
+                                          className="w-2.5 h-1 rounded-full bg-slate-400 dark:bg-slate-600 shadow-inner"
+                                        />
+                                      ))}
+                                    </div>
+
+                                    {/* Notebook Card Header */}
+                                    <div className={`relative pt-1 pb-2.5 mb-3 border-b flex items-center justify-between gap-2 ${
+                                      chatViewMode === 'chalkboard'
+                                        ? 'border-slate-700/80 text-slate-300'
+                                        : 'border-red-300/40 dark:border-rose-500/30 text-slate-400 dark:text-slate-500'
+                                    }`}>
+                                      <div className="flex items-center gap-2 pl-3 sm:pl-6">
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-black uppercase tracking-wider ${
+                                          chatViewMode === 'chalkboard'
+                                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-300/30'
+                                        }`}>
+                                          <PenTool size={11} />
+                                          <span>AI Tutor Notes</span>
+                                        </span>
+                                        <span className="text-[11px] font-bold italic hidden sm:inline text-slate-400 dark:text-slate-500">
+                                          • Doubt Solution
+                                        </span>
+                                      </div>
+
+                                      <div className="flex items-center gap-2 pr-1 text-xs font-bold">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleCopyText(displayContent, mIdx)}
+                                          title="Copy answer"
+                                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] sm:text-xs font-bold transition cursor-pointer shrink-0 ${
+                                            chatViewMode === 'chalkboard'
+                                              ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                                              : 'bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:text-amber-600'
+                                          }`}
+                                        >
+                                          {copiedIndex === mIdx ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
+                                          <span>{copiedIndex === mIdx ? 'Copied' : 'Copy'}</span>
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Handwritten Body */}
+                                    <div className={`font-handwriting pl-3 sm:pl-6 text-sm sm:text-base leading-[28px] sm:leading-[30px] ${
+                                      chatViewMode === 'chalkboard'
+                                        ? 'text-slate-100'
+                                        : 'text-slate-900 dark:text-slate-200'
+                                    }`}>
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm, remarkMath]}
+                                        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
+                                        components={{
+                                          h1: ({ node, ...props }) => (
+                                            <div className="my-3">
+                                              <h1 className={`font-handwriting text-xl sm:text-2xl font-bold tracking-wide m-0 ${
+                                                chatViewMode === 'chalkboard' ? 'text-yellow-200' : 'text-indigo-950 dark:text-amber-300'
+                                              }`} {...props} />
+                                              <div className={`h-1 w-20 rounded-full mt-1 ${
+                                                chatViewMode === 'chalkboard' ? 'bg-yellow-400 opacity-80' : 'bg-amber-400 opacity-70'
+                                              }`} />
+                                            </div>
+                                          ),
+                                          h2: ({ node, ...props }) => (
+                                            <div className="mt-4 mb-2">
+                                              <h2 className={`font-handwriting text-lg sm:text-xl font-bold inline-block px-1 border-b-2 m-0 ${
+                                                chatViewMode === 'chalkboard' 
+                                                  ? 'text-amber-200 border-amber-400' 
+                                                  : 'text-amber-900 dark:text-amber-200 border-amber-400/80'
+                                              }`} {...props} />
+                                            </div>
+                                          ),
+                                          h3: ({ node, ...props }) => (
+                                            <h3 className={`font-handwriting text-base sm:text-lg font-bold mt-3 mb-1 m-0 ${
+                                              chatViewMode === 'chalkboard' ? 'text-sky-300' : 'text-sky-950 dark:text-sky-300'
+                                            }`} {...props} />
+                                          ),
+                                          h4: ({ node, ...props }) => (
+                                            <h4 className={`font-handwriting text-sm sm:text-base font-bold mt-2 mb-1 ${
+                                              chatViewMode === 'chalkboard' ? 'text-emerald-300' : 'text-slate-900 dark:text-slate-200'
+                                            }`} {...props} />
+                                          ),
+                                          p: ({ node, ...props }) => (
+                                            <p className={`mb-3 leading-relaxed tracking-wide break-words ${
+                                              chatViewMode === 'chalkboard' ? 'text-slate-100' : 'text-slate-900 dark:text-slate-200'
+                                            }`} {...props} />
+                                          ),
+                                          strong: ({ node, ...props }) => (
+                                            <strong className={`font-bold tracking-wide ${
+                                              chatViewMode === 'chalkboard' ? 'highlighter-chalk' : 'highlighter-yellow'
+                                            }`} {...props} />
+                                          ),
+                                          em: ({ node, ...props }) => (
+                                            <em className={`font-semibold italic tracking-wide ${
+                                              chatViewMode === 'chalkboard' ? 'text-violet-300' : 'text-indigo-900 dark:text-indigo-300'
+                                            }`} {...props} />
+                                          ),
+                                          ul: ({ node, ...props }) => (
+                                            <ul className="my-2 space-y-1.5 list-none pl-1" {...props} />
+                                          ),
+                                          ol: ({ node, ...props }) => (
+                                            <ol className="my-2 space-y-1.5 list-decimal pl-5 font-bold" {...props} />
+                                          ),
+                                          li: ({ node, ...props }) => (
+                                            <li className={`flex items-start gap-2 leading-relaxed tracking-wide ${
+                                              chatViewMode === 'chalkboard' ? 'text-slate-100' : 'text-slate-900 dark:text-slate-200'
+                                            }`} {...props}>
+                                              <span className={`font-black text-xs select-none shrink-0 mt-1 ${
+                                                chatViewMode === 'chalkboard' ? 'text-yellow-300' : 'text-amber-500'
+                                              }`}>✦</span>
+                                              <div className="flex-1">{props.children}</div>
+                                            </li>
+                                          ),
+                                          blockquote: ({ node, ...props }) => (
+                                            <div className="my-4 relative max-w-xl">
+                                              <div className="sticky-note-card p-3 sm:p-4 font-handwriting text-xs sm:text-sm leading-relaxed">
+                                                <div className="washi-tape"></div>
+                                                <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-300 mb-1 text-[11px] uppercase tracking-wider">
+                                                  <span>⭐ Teacher Note / Key Insight</span>
+                                                </div>
+                                                <div className="italic text-slate-900">{props.children}</div>
+                                              </div>
+                                            </div>
+                                          ),
+                                          pre: ({ node, children, ...props }) => <>{children}</>,
+                                          code: ({ node, inline, className, children, ...props }) => {
+                                            const match = /language-([a-zA-Z0-9_+#-]+)/.exec(className || '');
+                                            const contentStr = String(children || '');
+                                            const isMultiLine = contentStr.includes('\n');
+                                            const isBlock = inline === false || Boolean(match) || isMultiLine;
+
+                                            if (!isBlock) {
+                                              return (
+                                                <code className={`font-mono text-xs px-1.5 py-0.5 rounded font-bold ${
+                                                  chatViewMode === 'chalkboard'
+                                                    ? 'bg-slate-800 text-amber-300 border border-slate-600'
+                                                    : 'bg-amber-100/80 dark:bg-slate-800 text-amber-900 dark:text-amber-300 border border-amber-300/50'
+                                                }`} {...props}>
+                                                  {children}
+                                                </code>
+                                              );
+                                            }
+                                            return (
+                                              <div className="my-3 font-sans">
+                                                <CodeEditorBlock className={className || 'language-python'} onOpenInEditor={handleOpenInCodeEditor} {...props}>
+                                                  {children}
+                                                </CodeEditorBlock>
+                                              </div>
+                                            );
+                                          },
+                                          table: ({ node, ...props }) => (
+                                            <div className={`overflow-x-auto my-3 rounded-xl border shadow-2xs font-sans text-xs ${
+                                              chatViewMode === 'chalkboard'
+                                                ? 'border-slate-700 bg-slate-900/60'
+                                                : 'border-amber-300/60 dark:border-slate-700'
+                                            }`}>
+                                              <table className="w-full border-collapse" {...props} />
+                                            </div>
+                                          ),
+                                          thead: ({ node, ...props }) => (
+                                            <thead className={`font-bold border-b ${
+                                              chatViewMode === 'chalkboard'
+                                                ? 'bg-slate-800 text-amber-300 border-slate-700'
+                                                : 'bg-amber-100/80 dark:bg-slate-800 text-amber-950 dark:text-amber-200 border-amber-300/60'
+                                            }`} {...props} />
+                                          ),
+                                          tbody: ({ node, ...props }) => (
+                                            <tbody className={`divide-y ${
+                                              chatViewMode === 'chalkboard'
+                                                ? 'divide-slate-800 bg-slate-900/40 text-slate-100'
+                                                : 'divide-amber-200/50 dark:divide-slate-800 bg-white/70 dark:bg-slate-900/60'
+                                            }`} {...props} />
+                                          ),
+                                          tr: ({ node, ...props }) => (
+                                            <tr className={`${
+                                              chatViewMode === 'chalkboard'
+                                                ? 'hover:bg-slate-800/40'
+                                                : 'hover:bg-amber-50/50 dark:hover:bg-slate-800/40'
+                                            } transition-colors`} {...props} />
+                                          ),
+                                          th: ({ node, ...props }) => (
+                                            <th className={`px-3 py-1.5 font-semibold border-r last:border-r-0 ${
+                                              chatViewMode === 'chalkboard'
+                                                ? 'text-amber-300 border-slate-700'
+                                                : 'text-amber-950 dark:text-amber-200 border-amber-200/50'
+                                            }`} {...props} />
+                                          ),
+                                          td: ({ node, ...props }) => (
+                                            <td className={`px-3 py-1.5 border-r last:border-r-0 ${
+                                              chatViewMode === 'chalkboard'
+                                                ? 'text-slate-100 border-slate-700'
+                                                : 'text-slate-700 dark:text-slate-300 border-amber-200/50'
+                                            }`} {...props} />
+                                          )
+                                        }}
+                                      >
+                                        {preprocessMarkdown(displayContent)}
+                                      </ReactMarkdown>
+
+                                      {/* Suggested Follow-ups Chips */}
+                                      {followUps.length > 0 && (
+                                        <div className={`mt-4 pt-3 border-t font-sans ${
+                                          chatViewMode === 'chalkboard' ? 'border-slate-700/80' : 'border-amber-200/70 dark:border-slate-700/80'
+                                        }`}>
+                                          <div className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                            <Sparkles size={11} />
+                                            <span>Suggested Follow-ups (click to ask):</span>
+                                          </div>
+                                          <div className="flex flex-col gap-1.5">
+                                            {followUps.map((fq, fIdx) => (
+                                              <button
+                                                key={fIdx}
+                                                type="button"
+                                                onClick={() => handleSendAiQuestion(fq)}
+                                                disabled={aiChatLoading}
+                                                className={`w-full text-left text-xs font-semibold px-3 py-2 rounded-xl transition cursor-pointer active:scale-[0.99] shadow-2xs disabled:opacity-50 flex items-start gap-2 group ${
+                                                  chatViewMode === 'chalkboard'
+                                                    ? 'bg-slate-800/90 hover:bg-slate-700 text-yellow-200 border border-slate-700'
+                                                    : 'bg-white/90 dark:bg-slate-900 text-amber-900 dark:text-amber-200 border border-amber-200/80 dark:border-slate-700 hover:bg-amber-50/80 dark:hover:bg-slate-800'
+                                                }`}
+                                              >
+                                                <span className="shrink-0 text-sm mt-0.5">💡</span>
+                                                <span className="flex-1 leading-snug group-hover:underline">{fq}</span>
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Notebook Bottom Signature */}
+                                      <div className={`mt-5 pt-2 border-t flex items-center justify-between text-[11px] font-handwriting pr-2 ${
+                                        chatViewMode === 'chalkboard'
+                                          ? 'border-slate-700/80 text-slate-400'
+                                          : 'border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500'
+                                      }`}>
+                                        <span>✍️ LearnProof AI Tutor</span>
+                                        <span>{new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  /* Standard Clean Assistant Message */
+                                  <div className="w-full bg-gray-50 dark:bg-slate-800/80 text-gray-800 dark:text-slate-200 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-xs p-3.5 sm:p-4">
                                     <div className="prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed intuition-markdown">
                                       <ReactMarkdown
                                         remarkPlugins={[remarkGfm, remarkMath]}
@@ -4276,6 +4667,7 @@ const Classroom = () => {
                                             {followUps.map((fq, fIdx) => (
                                               <button
                                                 key={fIdx}
+                                                type="button"
                                                 onClick={() => handleSendAiQuestion(fq)}
                                                 disabled={aiChatLoading}
                                                 className="w-full text-left text-xs font-semibold px-3 py-2 rounded-xl bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-400 transition cursor-pointer active:scale-[0.99] shadow-2xs disabled:opacity-50 flex items-start gap-2 group"
@@ -4290,6 +4682,7 @@ const Classroom = () => {
 
                                       <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50 flex items-center justify-end">
                                         <button
+                                          type="button"
                                           onClick={() => handleCopyText(displayContent, mIdx)}
                                           className="text-[10px] font-bold text-gray-400 hover:text-indigo-500 flex items-center gap-1 transition cursor-pointer"
                                         >
@@ -4298,20 +4691,46 @@ const Classroom = () => {
                                         </button>
                                       </div>
                                     </div>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
 
                           {aiChatLoading && (
-                            <div className="flex justify-start w-full text-gray-400 dark:text-slate-400">
-                              <div className="bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-gray-100 dark:border-slate-700 shadow-xs">
-                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce"></div>
-                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.2s]"></div>
-                                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.4s]"></div>
-                                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 ml-1">AI Tutor is thinking...</span>
-                              </div>
+                            <div className="flex justify-start w-full">
+                              {chatViewMode !== 'clean' ? (
+                                <div className={`w-full rounded-2xl p-4 sm:p-5 border flex items-center gap-3 shadow-xs ${
+                                  chatViewMode === 'chalkboard'
+                                    ? 'notebook-chalkboard-paper text-slate-100 border-slate-700/80'
+                                    : (chatViewMode === 'grid'
+                                        ? 'notebook-grid-paper border-sky-200/70 dark:border-slate-700'
+                                        : 'notebook-ruled-paper border-amber-200/80 dark:border-slate-700')
+                                }`}>
+                                  <div className="flex items-center gap-2 pl-3 sm:pl-5">
+                                    <PenTool size={16} className={`animate-bounce ${
+                                      chatViewMode === 'chalkboard' ? 'text-yellow-300' : 'text-amber-600'
+                                    }`} />
+                                    <span className={`font-handwriting text-base font-bold ${
+                                      chatViewMode === 'chalkboard' ? 'text-yellow-200' : 'text-slate-800 dark:text-amber-200'
+                                    }`}>
+                                      AI Tutor is writing your handwritten notes...
+                                    </span>
+                                    <div className="flex items-center gap-1 ml-1.5">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                      <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse [animation-delay:0.2s]" />
+                                      <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse [animation-delay:0.4s]" />
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="bg-gray-50 dark:bg-slate-800 rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-gray-100 dark:border-slate-700 shadow-xs">
+                                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce"></div>
+                                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.2s]"></div>
+                                  <div className="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.4s]"></div>
+                                  <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 ml-1">AI Tutor is thinking...</span>
+                                </div>
+                              )}
                             </div>
                           )}
                           <div ref={aiChatBottomRef} />
@@ -4329,7 +4748,7 @@ const Classroom = () => {
                         >
                           <input
                             type="text"
-                            placeholder="Ask any doubt about this lecture..."
+                            placeholder={chatViewMode !== 'clean' ? "Ask any doubt... AI Tutor will write notes for you!" : "Ask any doubt about this lecture..."}
                             value={aiChatInput}
                             onChange={(e) => setAiChatInput(e.target.value)}
                             onFocus={() => {
@@ -4343,8 +4762,8 @@ const Classroom = () => {
                             disabled={!aiChatInput.trim() || aiChatLoading}
                             className="px-4 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
                           >
-                            <span>Ask AI</span>
-                            <Send size={13} />
+                            <span>{chatViewMode !== 'clean' ? 'Ask Tutor' : 'Ask AI'}</span>
+                            {chatViewMode !== 'clean' ? <PenTool size={13} /> : <Send size={13} />}
                           </button>
                         </form>
                       </div>
