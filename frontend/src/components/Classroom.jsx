@@ -4362,12 +4362,18 @@ const Classroom = () => {
                               >
                                 {msg.role === 'user' ? (
                                   /* Student Question Bubble */
-                                  <div className="max-w-[85%] bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-2xl rounded-tr-xs shadow-sm p-3.5 sm:p-4 text-xs sm:text-sm font-medium">
-                                    <div className="flex items-center gap-1.5 mb-1 text-[10px] uppercase tracking-wider font-bold text-white/80">
+                                  <div
+                                    className={`max-w-[85%] bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-2xl rounded-tr-xs shadow-sm p-3.5 sm:p-4 ${
+                                      chatViewMode !== 'clean'
+                                        ? 'font-handwriting text-base sm:text-lg leading-relaxed'
+                                        : 'text-xs sm:text-sm font-medium'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-1.5 mb-1 text-[10px] uppercase tracking-wider font-bold text-white/85 font-sans">
                                       <User size={11} />
                                       <span>Your Question</span>
                                     </div>
-                                    <p className="whitespace-pre-wrap leading-relaxed m-0 text-white font-medium">{msg.content}</p>
+                                    <p className="whitespace-pre-wrap leading-relaxed m-0 text-white">{msg.content}</p>
                                   </div>
                                 ) : isHandwritten ? (
                                   /* Handwritten Notebook / Chalkboard Assistant Response Card */
@@ -4737,8 +4743,33 @@ const Classroom = () => {
                         </div>
                       )}
 
-                      {/* Directly Connected Chat Input Bar */}
-                      <div className="p-2.5 sm:p-3 bg-gray-50/80 dark:bg-slate-800/40 border-t border-gray-100 dark:border-slate-800 shrink-0">
+                      {/* Directly Connected Chat Input Bar with Handwritten Paper Aesthetics */}
+                      <div className={`p-2.5 sm:p-3 border-t shrink-0 transition-colors ${
+                        chatViewMode === 'chalkboard'
+                          ? 'bg-slate-950 border-slate-800'
+                          : (chatViewMode === 'grid'
+                              ? 'bg-[#faf9f5] dark:bg-slate-900 border-sky-200/80 dark:border-slate-800'
+                              : (chatViewMode === 'ruled'
+                                  ? 'bg-[#fdfbf7] dark:bg-slate-900 border-amber-200/80 dark:border-slate-800'
+                                  : 'bg-gray-50/80 dark:bg-slate-800/40 border-gray-100 dark:border-slate-800'))
+                      }`}>
+                        {/* Handwritten Student Note Pad Indicator */}
+                        {chatViewMode !== 'clean' && (
+                          <div className="flex items-center justify-between text-[11px] font-handwriting mb-1.5 px-1 opacity-80">
+                            <span className={`flex items-center gap-1 font-bold ${
+                              chatViewMode === 'chalkboard'
+                                ? 'text-yellow-300'
+                                : (chatViewMode === 'grid' ? 'text-sky-700 dark:text-sky-300' : 'text-amber-800 dark:text-amber-300')
+                            }`}>
+                              <PenTool size={11} />
+                              <span>Student Note Pad • Write your doubt in handwriting:</span>
+                            </span>
+                            <span className="text-[10px] font-sans text-slate-400 hidden sm:inline">
+                              Press Enter ↵ to ask
+                            </span>
+                          </div>
+                        )}
+
                         <form
                           onSubmit={(e) => {
                             e.preventDefault();
@@ -4746,24 +4777,64 @@ const Classroom = () => {
                           }}
                           className="flex items-center gap-2"
                         >
-                          <input
-                            type="text"
-                            placeholder={chatViewMode !== 'clean' ? "Ask any doubt... AI Tutor will write notes for you!" : "Ask any doubt about this lecture..."}
-                            value={aiChatInput}
-                            onChange={(e) => setAiChatInput(e.target.value)}
-                            onFocus={() => {
-                              setTimeout(() => scrollToTabs(true), 120);
-                            }}
-                            disabled={aiChatLoading}
-                            className="flex-1 px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition shadow-inner"
-                          />
+                          <div className="relative flex-1 flex items-center">
+                            {/* Input Left Icon */}
+                            <div className="absolute left-3.5 pointer-events-none flex items-center justify-center">
+                              {chatViewMode === 'chalkboard' ? (
+                                <PenTool size={15} className="text-yellow-400/80" />
+                              ) : (chatViewMode === 'grid' ? (
+                                <Grid size={15} className="text-sky-500/80" />
+                              ) : (chatViewMode === 'ruled' ? (
+                                <PenTool size={15} className="text-amber-600/80" />
+                              ) : (
+                                <Bot size={15} className="text-gray-400" />
+                              )))}
+                            </div>
+
+                            <input
+                              type="text"
+                              placeholder={
+                                chatViewMode === 'chalkboard'
+                                  ? 'Write your doubt on the chalkboard...'
+                                  : (chatViewMode === 'grid'
+                                      ? 'Write your doubt on engineering grid paper...'
+                                      : (chatViewMode === 'ruled'
+                                          ? 'Write your doubt on lined notebook paper...'
+                                          : 'Ask any doubt about this lecture...'))
+                              }
+                              value={aiChatInput}
+                              onChange={(e) => setAiChatInput(e.target.value)}
+                              onFocus={() => {
+                                setTimeout(() => scrollToTabs(true), 120);
+                              }}
+                              disabled={aiChatLoading}
+                              className={`flex-1 pl-10 pr-4 py-2.5 sm:py-3 rounded-xl transition shadow-inner focus:outline-none ${
+                                chatViewMode === 'chalkboard'
+                                  ? 'bg-[#0b1329] border-2 border-slate-700 focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-yellow-200 placeholder:text-yellow-200/50 font-handwriting text-base sm:text-lg tracking-wide placeholder:font-handwriting'
+                                  : (chatViewMode === 'grid'
+                                      ? 'bg-[#faf9f5] dark:bg-slate-950 border-2 border-sky-300/80 dark:border-sky-800/80 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-slate-900 dark:text-sky-100 placeholder:text-sky-800/50 dark:placeholder:text-sky-300/40 font-handwriting text-base sm:text-lg tracking-wide placeholder:font-handwriting'
+                                      : (chatViewMode === 'ruled'
+                                          ? 'bg-[#fdfbf7] dark:bg-slate-950 border-2 border-amber-300/80 dark:border-amber-800/80 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 text-slate-900 dark:text-amber-100 placeholder:text-amber-800/50 dark:placeholder:text-amber-300/40 font-handwriting text-base sm:text-lg tracking-wide placeholder:font-handwriting'
+                                          : 'bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-xs sm:text-sm text-gray-900 dark:text-white placeholder-gray-400 font-sans'))
+                              }`}
+                            />
+                          </div>
+
                           <button
                             type="submit"
                             disabled={!aiChatInput.trim() || aiChatLoading}
-                            className="px-4 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-indigo-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95"
+                            className={`px-4 sm:px-5 py-2.5 sm:py-3 font-bold rounded-xl shadow-md transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0 cursor-pointer active:scale-95 ${
+                              chatViewMode === 'chalkboard'
+                                ? 'bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-handwriting text-base sm:text-lg shadow-yellow-400/20 border border-yellow-300'
+                                : (chatViewMode === 'grid'
+                                    ? 'bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-handwriting text-base sm:text-lg shadow-sky-500/20'
+                                    : (chatViewMode === 'ruled'
+                                        ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-handwriting text-base sm:text-lg shadow-amber-500/20'
+                                        : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-sans text-xs sm:text-sm shadow-indigo-500/20'))
+                            }`}
                           >
                             <span>{chatViewMode !== 'clean' ? 'Ask Tutor' : 'Ask AI'}</span>
-                            {chatViewMode !== 'clean' ? <PenTool size={13} /> : <Send size={13} />}
+                            {chatViewMode !== 'clean' ? <PenTool size={14} /> : <Send size={13} />}
                           </button>
                         </form>
                       </div>
