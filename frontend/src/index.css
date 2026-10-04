@@ -683,3 +683,385 @@ html, body {
   -webkit-transform: rotateY(180deg);
 }
 
+/* ========================================================
+   STUDENT DIGITAL NOTEBOOK & HANDWRITTEN NOTES SYSTEM
+   ======================================================== */
+
+.font-handwriting {
+  font-family: 'Kalam', 'Caveat', 'Patrick Hand', cursive, sans-serif !important;
+}
+
+.font-handwriting-title {
+  font-family: 'Caveat', 'Kalam', cursive, sans-serif !important;
+}
+
+.font-handwriting-body {
+  font-family: 'Kalam', cursive, sans-serif !important;
+}
+
+/* Ensure KaTeX math equations inside handwriting containers retain authentic mathematical symbols */
+.font-handwriting .katex,
+.font-handwriting .katex * {
+  font-family: KaTeX_Main, 'Times New Roman', serif !important;
+}
+.font-handwriting .katex .mathnormal {
+  font-family: KaTeX_Math, 'Times New Roman', serif !important;
+}
+
+/* Lined Ruled Notebook Paper */
+.notebook-ruled-paper {
+  background-color: #fdfbf7;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 31px,
+    rgba(165, 180, 252, 0.4) 31px,
+    rgba(165, 180, 252, 0.4) 32px
+  );
+  box-shadow: inset 46px 0 0 -44px rgba(248, 113, 113, 0.55), inset 48px 0 0 -47px rgba(248, 113, 113, 0.3);
+}
+
+.dark .notebook-ruled-paper {
+  background-color: #0f172a;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 31px,
+    rgba(148, 163, 184, 0.15) 31px,
+    rgba(148, 163, 184, 0.15) 32px
+  );
+  box-shadow: inset 46px 0 0 -44px rgba(244, 63, 94, 0.45);
+}
+
+/* Engineering & Math Grid Paper */
+.notebook-grid-paper {
+  background-color: #faf9f5;
+  background-image: 
+    linear-gradient(rgba(147, 197, 253, 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 197, 253, 0.3) 1px, transparent 1px);
+  background-size: 26px 26px;
+  box-shadow: inset 46px 0 0 -44px rgba(248, 113, 113, 0.55);
+}
+
+.dark .notebook-grid-paper {
+  background-color: #0b1120;
+  background-image: 
+    linear-gradient(rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+  background-size: 26px 26px;
+  box-shadow: inset 46px 0 0 -44px rgba(244, 63, 94, 0.45);
+}
+
+/* Dark Chalkboard Notebook Paper */
+.notebook-chalkboard-paper {
+  background-color: #0b1329 !important;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.45) 0%, transparent 85%),
+    repeating-linear-gradient(
+      transparent,
+      transparent 31px,
+      rgba(71, 85, 105, 0.3) 31px,
+      rgba(71, 85, 105, 0.3) 32px
+    ) !important;
+  box-shadow: inset 46px 0 0 -44px rgba(56, 189, 248, 0.45) !important;
+  color: #f8fafc !important;
+}
+
+/* ===================================================
+   NOTEBOOK DISPLAY MATH CONTAINERS
+   Borderless panels with a subtle background color difference
+   so users know equations can be scrolled left and right
+   =================================================== */
+
+/* Chalkboard Inset Math Panel: Borderless soft slate tint, visible scrollbar */
+.notebook-chalkboard-paper .katex-display {
+  background: rgba(255, 255, 255, 0.055) !important;
+  border: none !important;
+  border-radius: 0.625rem !important;
+  padding: 0.75rem 1rem 0.6rem 1rem !important;
+  margin: 0.85rem 0 !important;
+  box-shadow: none !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent !important;
+}
+
+.notebook-chalkboard-paper .katex-display::-webkit-scrollbar {
+  height: 4px !important;
+  display: block !important;
+}
+.notebook-chalkboard-paper .katex-display::-webkit-scrollbar-track {
+  background: transparent !important;
+  border-radius: 9999px !important;
+}
+.notebook-chalkboard-paper .katex-display::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-radius: 9999px !important;
+}
+.notebook-chalkboard-paper .katex-display::-webkit-scrollbar-thumb:hover {
+  background: rgba(250, 204, 21, 0.8) !important;
+}
+
+/* Ruled Paper Math Panel: Borderless soft parchment tint */
+.notebook-ruled-paper .katex-display {
+  background: rgba(0, 0, 0, 0.035) !important;
+  border: none !important;
+  border-radius: 0.625rem !important;
+  padding: 0.75rem 1rem 0.6rem 1rem !important;
+  margin: 0.85rem 0 !important;
+  box-shadow: none !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent !important;
+}
+
+.notebook-ruled-paper .katex-display::-webkit-scrollbar {
+  height: 4px !important;
+  display: block !important;
+}
+.notebook-ruled-paper .katex-display::-webkit-scrollbar-track {
+  background: transparent !important;
+  border-radius: 9999px !important;
+}
+.notebook-ruled-paper .katex-display::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4) !important;
+  border-radius: 9999px !important;
+}
+.notebook-ruled-paper .katex-display::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 119, 6, 0.8) !important;
+}
+
+/* Grid Paper Math Panel: Borderless soft blueprint tint */
+.notebook-grid-paper .katex-display {
+  background: rgba(14, 165, 233, 0.07) !important;
+  border: none !important;
+  border-radius: 0.625rem !important;
+  padding: 0.75rem 1rem 0.6rem 1rem !important;
+  margin: 0.85rem 0 !important;
+  box-shadow: none !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent !important;
+}
+
+.notebook-grid-paper .katex-display::-webkit-scrollbar {
+  height: 4px !important;
+  display: block !important;
+}
+.notebook-grid-paper .katex-display::-webkit-scrollbar-track {
+  background: transparent !important;
+  border-radius: 9999px !important;
+}
+.notebook-grid-paper .katex-display::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4) !important;
+  border-radius: 9999px !important;
+}
+
+/* Dark mode overrides for Ruled & Grid */
+.dark .notebook-ruled-paper .katex-display,
+.dark .notebook-grid-paper .katex-display {
+  background: rgba(255, 255, 255, 0.055) !important;
+  border: none !important;
+  box-shadow: none !important;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent !important;
+}
+.dark .notebook-ruled-paper .katex-display::-webkit-scrollbar-track,
+.dark .notebook-grid-paper .katex-display::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+/* Force KaTeX math formulas on chalkboard to be crisp chalk white with natural chalk texture */
+.notebook-chalkboard-paper .katex,
+.notebook-chalkboard-paper .katex-html,
+.notebook-chalkboard-paper .katex-display,
+.notebook-chalkboard-paper .katex * {
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+.notebook-chalkboard-paper .katex-display .katex {
+  color: #ffffff !important;
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+/* Force KaTeX math formulas on ruled and grid paper to be crisp dark ink */
+.notebook-ruled-paper .katex,
+.notebook-ruled-paper .katex-html,
+.notebook-ruled-paper .katex-display,
+.notebook-ruled-paper .katex *,
+.notebook-grid-paper .katex,
+.notebook-grid-paper .katex-html,
+.notebook-grid-paper .katex-display,
+.notebook-grid-paper .katex * {
+  color: #0f172a !important;
+}
+
+.dark .notebook-ruled-paper .katex,
+.dark .notebook-ruled-paper .katex-html,
+.dark .notebook-ruled-paper .katex-display,
+.dark .notebook-ruled-paper .katex *,
+.dark .notebook-grid-paper .katex,
+.dark .notebook-grid-paper .katex-html,
+.dark .notebook-grid-paper .katex-display,
+.dark .notebook-grid-paper .katex * {
+  color: #f8fafc !important;
+}
+
+/* High-contrast chalk text for paragraphs and items */
+.notebook-chalkboard-paper p,
+.notebook-chalkboard-paper li,
+.notebook-chalkboard-paper td {
+  color: #f1f5f9 !important;
+}
+
+/* Headings on Chalkboard (pastel glowing chalk) */
+.notebook-chalkboard-paper h1 {
+  color: #fef08a !important;
+  text-shadow: 0 0 12px rgba(254, 240, 138, 0.25);
+}
+
+.notebook-chalkboard-paper h2 {
+  color: #fde68a !important;
+  border-bottom-color: rgba(250, 204, 21, 0.7) !important;
+}
+
+.notebook-chalkboard-paper h3 {
+  color: #93c5fd !important;
+  text-shadow: 0 0 10px rgba(147, 197, 253, 0.2);
+}
+
+.notebook-chalkboard-paper h4 {
+  color: #a7f3d0 !important;
+}
+
+.notebook-chalkboard-paper em {
+  color: #c4b5fd !important;
+}
+
+/* Realistic Digital Highlighter Pen Effects */
+.highlighter-yellow {
+  background: linear-gradient(104deg, rgba(254, 240, 138, 0.9) 0%, rgba(254, 240, 138, 0.75) 92%, rgba(254, 240, 138, 0.6) 100%);
+  border-radius: 4px 6px 3px 5px;
+  padding: 1px 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  color: #1e293b !important;
+}
+
+/* Chalkboard Highlighter (soft glowing chalk yellow with gold underline) */
+.notebook-chalkboard-paper .highlighter-yellow,
+.notebook-chalkboard-paper .highlighter-chalk {
+  background: rgba(250, 204, 21, 0.3) !important;
+  color: #fef08a !important;
+  border-bottom: 2px solid #facc15 !important;
+  padding: 1px 6px !important;
+  border-radius: 4px !important;
+  text-shadow: 0 0 8px rgba(250, 204, 21, 0.4) !important;
+}
+
+.notebook-chalkboard-paper .highlighter-yellow .katex,
+.notebook-chalkboard-paper .highlighter-yellow .katex * {
+  color: #fef08a !important;
+}
+
+/* Ensure Post-it notes stay readable with dark text on yellow paper */
+.notebook-chalkboard-paper .sticky-note-card,
+.notebook-chalkboard-paper .sticky-note-card * {
+  color: #422006 !important;
+}
+.notebook-chalkboard-paper .sticky-note-card .sticky-note-header,
+.notebook-chalkboard-paper .sticky-note-card .sticky-note-header * {
+  color: #92400e !important;
+}
+
+.dark .highlighter-yellow {
+  background: linear-gradient(104deg, rgba(234, 179, 8, 0.4) 0%, rgba(234, 179, 8, 0.3) 95%);
+  color: #fef08a !important;
+  border-bottom: 2px solid rgba(250, 204, 21, 0.7);
+}
+
+.highlighter-cyan {
+  background: linear-gradient(104deg, rgba(165, 243, 252, 0.85) 0%, rgba(165, 243, 252, 0.65) 95%);
+  border-radius: 4px 5px 3px 6px;
+  padding: 1px 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  color: #0f172a !important;
+}
+
+.dark .highlighter-cyan {
+  background: linear-gradient(104deg, rgba(6, 182, 212, 0.35) 0%, rgba(6, 182, 212, 0.25) 95%);
+  color: #a5f3fc !important;
+  border-bottom: 2px solid rgba(34, 211, 238, 0.7);
+}
+
+.highlighter-pink {
+  background: linear-gradient(104deg, rgba(251, 207, 232, 0.85) 0%, rgba(251, 207, 232, 0.65) 95%);
+  border-radius: 5px 3px 6px 4px;
+  padding: 1px 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  color: #0f172a !important;
+}
+
+/* Post-it Sticky Note with Washi Tape */
+.sticky-note-card {
+  position: relative;
+  background: #fef9c3;
+  color: #422006;
+  transform: rotate(-1deg);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-radius: 2px 2px 14px 2px;
+}
+
+.sticky-note-card:hover {
+  transform: rotate(0deg) scale(1.01);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.dark .sticky-note-card {
+  background: #2a2415;
+  color: #fef08a;
+  border: 1px solid rgba(234, 179, 8, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Translucent Washi Tape Strip */
+.washi-tape {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(2px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-left: 2px dashed rgba(0, 0, 0, 0.08);
+  border-right: 2px dashed rgba(0, 0, 0, 0.08);
+  opacity: 0.85;
+}
+
+.dark .washi-tape {
+  background: rgba(255, 255, 255, 0.2);
+  border-left: 2px dashed rgba(255, 255, 255, 0.15);
+  border-right: 2px dashed rgba(255, 255, 255, 0.15);
+}
+
+/* Notebook Spiral Holes */
+.spiral-binder-holes {
+  background-image: radial-gradient(circle, #cbd5e1 35%, transparent 40%);
+  background-size: 24px 24px;
+}
+
+.dark .spiral-binder-holes {
+  background-image: radial-gradient(circle, #334155 35%, transparent 40%);
+  background-size: 24px 24px;
+}
+
+
