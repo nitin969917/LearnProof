@@ -754,7 +754,7 @@ const Classroom = () => {
   };
 
   // Robust speed enforcer: applies speed to both HTML5 <video> elements and YouTube IFrame API
-  const enforcePlayerSpeed = (rateToEnforce = null, playerInstance = null, forceSync = false) => {
+  const enforcePlayerSpeed = (rateToEnforce = null, playerInstance = null) => {
     const rate = rateToEnforce !== null
       ? rateToEnforce
       : (userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1'));
@@ -774,17 +774,14 @@ const Classroom = () => {
     // 2. YouTube IFrame API
     if (targetPlayer && typeof targetPlayer.setPlaybackRate === 'function') {
       try {
-        if (forceSync && ytRate !== 1) {
-          // Momentarily set to 1 to break YouTube's internal cache, then apply ytRate.
-          // This forces YouTube's internal setter to actively re-assign `video.playbackRate = ytRate`
-          // even if YouTube's UI menu was already showing the custom rate.
-          targetPlayer.setPlaybackRate(1);
-          setTimeout(() => {
-            try {
-              targetPlayer.setPlaybackRate(ytRate);
-            } catch (_) {}
-          }, 35);
-        } else {
+        let currentRate = null;
+        if (typeof targetPlayer.getPlaybackRate === 'function') {
+          try {
+            currentRate = targetPlayer.getPlaybackRate();
+          } catch (_) {}
+        }
+        // Only issue command if player rate differs or is unknown to avoid decoder hiccups
+        if (currentRate === null || Math.abs(currentRate - ytRate) > 0.01) {
           targetPlayer.setPlaybackRate(ytRate);
         }
       } catch (err) {
@@ -794,14 +791,13 @@ const Classroom = () => {
   };
 
   // Staggered retries to ensure playback speed takes effect even during buffering, app resume, or stream switches
-  const enforcePlayerSpeedWithRetries = (rateToEnforce = null, playerInstance = null, delays = [0, 80, 250, 600, 1200], forceSync = false) => {
-    delays.forEach((delay, idx) => {
-      const shouldForce = forceSync && (idx === 0 || idx === 1);
+  const enforcePlayerSpeedWithRetries = (rateToEnforce = null, playerInstance = null, delays = [0, 80, 250, 600, 1200]) => {
+    delays.forEach((delay) => {
       if (delay === 0) {
-        enforcePlayerSpeed(rateToEnforce, playerInstance, shouldForce);
+        enforcePlayerSpeed(rateToEnforce, playerInstance);
       } else {
         setTimeout(() => {
-          enforcePlayerSpeed(rateToEnforce, playerInstance, shouldForce);
+          enforcePlayerSpeed(rateToEnforce, playerInstance);
         }, delay);
       }
     });
@@ -2687,47 +2683,24 @@ const Classroom = () => {
               }
             }
 
-            // Self-healing speed watchdog: keep actual speed locked to preferred speed across lessons/app switches
+            // Self-healing speed sync: keep actual speed locked to preferred speed without resetting audio decoder
             try {
               const currentPreferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
               const expectedYtRate = getValidYouTubeRate(currentPreferred, player);
 
-              if (expectedYtRate && expectedYtRate !== 1 && typeof player.getCurrentTime === 'function') {
-                const now = Date.now();
-                const realElapsed = (now - lastPlayProgressRef.current.realTime) / 1000;
-                const currentVTime = await player.getCurrentTime();
-                const videoElapsed = currentVTime - lastPlayProgressRef.current.videoTime;
-
-                // Update ref for next second's comparison
-                lastPlayProgressRef.current = { videoTime: currentVTime, realTime: now };
-
-                // If video is playing continuously (not paused, not buffering, not seeking)
-                if (
-                  realElapsed >= 0.75 &&
-                  realElapsed <= 2.5 &&
-                  videoElapsed > 0.3 &&
-                  videoElapsed < 6.0 &&
-                  !document.hidden
-                ) {
-                  const measuredRate = videoElapsed / realElapsed;
-                  // If expected is e.g. 1.75, but measured is ~1.0 (difference > 0.25)
-                  if (measuredRate < expectedYtRate - 0.25) {
-                    console.warn(`[Speed Watchdog] Speed mismatch: expected ${expectedYtRate}x, measured ${measuredRate.toFixed(2)}x. Re-forcing speed.`);
-                    try {
-                      player.setPlaybackRate(1);
-                      setTimeout(() => {
-                        try {
-                          player.setPlaybackRate(expectedYtRate);
-                        } catch (_) {}
-                      }, 35);
-                    } catch (_) {}
-                  }
+              if (expectedYtRate && player && typeof player.setPlaybackRate === 'function') {
+                let actualRate = null;
+                if (typeof player.getPlaybackRate === 'function') {
+                  try {
+                    actualRate = player.getPlaybackRate();
+                  } catch (_) {}
                 }
-              } else {
-                lastPlayProgressRef.current = {
-                  videoTime: (typeof player?.getCurrentTime === 'function' ? await player.getCurrentTime() : 0),
-                  realTime: Date.now()
-                };
+                // Only enforce if the player's rate has actually drifted away from the preferred rate
+                if (actualRate !== null && Math.abs(actualRate - expectedYtRate) > 0.05) {
+                  try {
+                    player.setPlaybackRate(expectedYtRate);
+                  } catch (_) {}
+                }
               }
 
               if (currentPreferred) {
@@ -2763,7 +2736,7 @@ const Classroom = () => {
         // App switch return: Re-enforce preferred speed immediately and after resuming
         const currentPreferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
         if (currentPreferred) {
-          enforcePlayerSpeedWithRetries(currentPreferred, targetP, [50, 200, 600, 1200], true);
+          enforcePlayerSpeedWithRetries(currentPreferred, targetP, [50, 200, 600, 1200]);
         }
       }
     };
@@ -2772,7 +2745,7 @@ const Classroom = () => {
       const targetP = playerRef.current || player;
       const currentPreferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
       if (currentPreferred) {
-        enforcePlayerSpeedWithRetries(currentPreferred, targetP, [50, 250, 800], true);
+        enforcePlayerSpeedWithRetries(currentPreferred, targetP, [50, 250, 800]);
       }
     };
 
@@ -2818,7 +2791,7 @@ const Classroom = () => {
       const currentRate = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
       if (currentRate) {
         const delays = didSeek ? [150, 450, 900, 1600] : [40, 200, 500, 1000];
-        enforcePlayerSpeedWithRetries(currentRate, event.target, delays, true);
+        enforcePlayerSpeedWithRetries(currentRate, event.target, delays);
       }
       isSwitchingVideoRef.current = false;
     } else if (event.data === 2) {
