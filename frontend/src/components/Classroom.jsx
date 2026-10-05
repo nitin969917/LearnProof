@@ -909,11 +909,20 @@ const Classroom = () => {
         setShowSpeedMenu(false);
       }
     };
+    const handleWindowBlur = () => {
+      // When clicking inside a cross-origin iframe (like YouTube), window loses focus
+      setTimeout(() => {
+        setShowSpeedMenu(false);
+      }, 50);
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('touchstart', handleClickOutside);
+    window.addEventListener('blur', handleWindowBlur);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
+      window.removeEventListener('blur', handleWindowBlur);
     };
   }, []);
 
@@ -3184,8 +3193,24 @@ const Classroom = () => {
               onError={() => setPlayerError(true)}
             />
 
+            {/* Click-Outside Catcher over Video Iframe when Speed Menu is open */}
+            {showSpeedMenu && (
+              <div
+                className="absolute inset-0 z-25 cursor-pointer bg-transparent"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSpeedMenu(false);
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  setShowSpeedMenu(false);
+                }}
+                aria-label="Close speed menu"
+              />
+            )}
+
             {/* Extension-Style Floating Speed Pill (Desktop & Mobile) */}
-            <div className={`absolute top-3 left-3 z-20 flex items-center gap-1 bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 text-white rounded-xl px-2 py-1 shadow-lg transition-all duration-200 select-none ${
+            <div className={`absolute top-3 left-3 z-30 flex items-center gap-1 bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 text-white rounded-xl px-2 py-1 shadow-lg transition-all duration-200 select-none ${
               speedHudVisible ? 'opacity-100 scale-100' : 'opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100'
             }`}>
               <button
