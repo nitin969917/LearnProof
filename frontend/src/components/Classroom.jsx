@@ -909,20 +909,12 @@ const Classroom = () => {
         setShowSpeedMenu(false);
       }
     };
-    const handleWindowBlur = () => {
-      // When clicking inside a cross-origin iframe (like YouTube), window loses focus
-      setTimeout(() => {
-        setShowSpeedMenu(false);
-      }, 50);
-    };
 
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('touchstart', handleClickOutside);
-    window.addEventListener('blur', handleWindowBlur);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
-      window.removeEventListener('blur', handleWindowBlur);
     };
   }, []);
 
@@ -2921,7 +2913,7 @@ const Classroom = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col w-full lg:w-auto lg:h-screen lg:overflow-hidden">
         {/* Premium Header */}
-        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 shadow-sm transition-colors duration-200 relative lg:sticky lg:top-0 z-20 pt-[var(--sat,0px)]">
+        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 shadow-sm transition-colors duration-200 relative lg:sticky lg:top-0 z-40 pt-[var(--sat,0px)]">
           <div className="flex items-center justify-between px-4 sm:px-6 py-3.5">
             <button
               onClick={() => {
@@ -2969,7 +2961,12 @@ const Classroom = () => {
 
                 {/* Dropdown Menu - Compact Mobile Slider & Desktop Card */}
                 {showSpeedMenu && (
-                  <div className="fixed top-14 right-3 w-[275px] sm:absolute sm:top-full sm:right-0 sm:mt-2 sm:w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800 rounded-2xl shadow-2xl p-2.5 sm:p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="fixed top-14 right-3 w-[275px] sm:absolute sm:top-full sm:right-0 sm:mt-2 sm:w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800 rounded-2xl shadow-2xl p-2.5 sm:p-3 z-50 animate-in fade-in zoom-in-95 duration-150"
+                  >
                     {/* Header */}
                     <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5">
