@@ -24,7 +24,7 @@ const BottomNav = () => {
     // 5 Constant Sections: Home, Learn, Social, Rooms, Profile
     const navItems = [
         { name: 'Home', icon: Home, path: '/dashboard' },
-        { name: 'Learn', icon: GraduationCap, path: '/dashboard/library' },
+        { name: 'Learn', icon: GraduationCap, path: '/dashboard/explore' },
         { name: 'Social', icon: Users2, path: '/dashboard/social/feed', badge: totalSocialCount > 0 ? totalSocialCount : null },
         { name: 'Rooms', icon: Radio, path: '/dashboard/live-rooms' },
         { name: 'Profile', icon: User, path: '/dashboard/social/profile' },
@@ -37,7 +37,7 @@ const BottomNav = () => {
         if (path === '/dashboard') {
             return currentPath === '/dashboard';
         }
-        if (path === '/dashboard/library') {
+        if (path === '/dashboard/explore' || path === '/dashboard/library') {
             return (
                 currentPath.startsWith('/dashboard/library') ||
                 currentPath.startsWith('/dashboard/explore') ||

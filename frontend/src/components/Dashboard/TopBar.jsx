@@ -41,8 +41,8 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
     const isGoalsPage = location.pathname.startsWith('/dashboard/goals');
 
     const learnSubTabs = [
-        { name: 'My Learning', icon: GraduationCap, path: '/dashboard/library' },
         { name: 'Discover', icon: Compass, path: '/dashboard/explore' },
+        { name: 'My Learning', icon: GraduationCap, path: '/dashboard/library' },
         { name: 'Quiz', icon: BrainCircuit, path: '/dashboard/quiz' },
         { name: 'Ask My Notes', icon: FileText, path: '/dashboard/ask-my-notes' },
     ];

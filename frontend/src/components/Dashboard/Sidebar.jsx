@@ -51,8 +51,8 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
         {
             title: 'Learning Hub',
             items: [
-                { name: 'My Learnings', shortName: 'Learnings', icon: <GraduationCap size={20} />, path: '/dashboard/library' },
                 { name: 'Discover', icon: <Compass size={20} />, path: '/dashboard/explore' },
+                { name: 'My Learnings', shortName: 'Learnings', icon: <GraduationCap size={20} />, path: '/dashboard/library' },
                 { name: 'Quiz', icon: <BrainCircuit size={20} />, path: '/dashboard/quiz' },
                 { name: 'Ask My Notes', shortName: 'Notes', icon: <FileText size={20} />, path: '/dashboard/ask-my-notes' },
                 { name: 'Certificates', icon: <Trophy size={20} />, path: '/dashboard/certificates' },
