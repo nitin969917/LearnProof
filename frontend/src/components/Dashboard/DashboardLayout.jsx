@@ -591,17 +591,17 @@ const DashboardLayout = () => {
 
         if (isLearnPage) {
             const learnTabs = [
-                '/dashboard/library',
                 '/dashboard/explore',
+                '/dashboard/library',
                 '/dashboard/quiz',
                 '/dashboard/ask-my-notes'
             ];
 
             let currentIndex = 0;
-            if (location.pathname.startsWith('/dashboard/explore')) currentIndex = 1;
+            if (location.pathname.startsWith('/dashboard/explore')) currentIndex = 0;
             else if (location.pathname.startsWith('/dashboard/quiz')) currentIndex = 2;
             else if (location.pathname.startsWith('/dashboard/ask-my-notes')) currentIndex = 3;
-            else currentIndex = 0; // library, playlist, roadmap, certificates
+            else currentIndex = 1; // library, playlist, roadmap, certificates
 
             if (isSwipeLeft && currentIndex < learnTabs.length - 1) {
                 navigate(learnTabs[currentIndex + 1]);
