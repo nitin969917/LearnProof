@@ -96,7 +96,7 @@ export default function ScreenTimeCard() {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 min-w-0">
                         <Clock className="text-orange-500 w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                        <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-100 truncate">Screen Time</h2>
+                        <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-100 truncate">Focus Time</h2>
                         <span className="relative flex h-2 w-2 shrink-0">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -109,7 +109,7 @@ export default function ScreenTimeCard() {
             <div className="p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Today's Usage</p>
+                        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Today's Focus</p>
                         {formatTime(todayTime)}
                     </div>
                     <div className="p-2 bg-orange-50 dark:bg-orange-950/30 text-orange-500 rounded-xl shrink-0">

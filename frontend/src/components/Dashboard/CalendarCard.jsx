@@ -237,7 +237,7 @@ const CalendarCard = () => {
                                                 </button>
                                             </div>
                                         <div className="flex items-center gap-1.5 text-xs text-gray-300 my-2 font-semibold">
-                                            <span>⏱️ Screen Time:</span>
+                                            <span>⏱️ Focus Time:</span>
                                             <span className="text-orange-400 font-bold">{formatSeconds(getScreenTimeForDate(dateStr))}</span>
                                         </div>
                                         {dayActivities.length > 0 ? (

@@ -611,8 +611,8 @@ const LandingPage = () => {
         },
         {
             icon: <Clock className="w-7 h-7" />,
-            title: "Daily Target & Screen Time",
-            description: "Set daily learning goals and track screen time to build consistent study habits with streak tracking.",
+            title: "Daily Target & Focus Time",
+            description: "Set daily learning goals and track focus time to build consistent study habits with streak tracking.",
             gradient: "from-orange-600 to-red-500", glow: "rgba(234,88,12,0.18)", accent: "border-orange-500", badge: "bg-orange-50 text-orange-700"
         }
     ];

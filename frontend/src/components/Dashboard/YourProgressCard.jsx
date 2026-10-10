@@ -173,7 +173,7 @@ const YourProgressCard = () => {
                     </div>
                     <div className="min-w-0 text-left">
                         <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate leading-tight">
-                            Screen Time
+                            Focus Time
                         </p>
                         <p className="text-[11px] sm:text-xs font-black text-gray-900 dark:text-white truncate leading-tight mt-0.5">
                             {formatScreenTime(todaySeconds)}
