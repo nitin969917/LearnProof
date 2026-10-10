@@ -15,6 +15,7 @@ const messageController = require('../controllers/message.controller');
 const fcmController = require('../controllers/fcm.controller');
 const livekitController = require('../controllers/livekit.controller');
 const metricsController = require('../controllers/metrics.controller');
+const goalController = require('../controllers/goal.controller');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -132,6 +133,16 @@ router.get('/quiz-history/:id', authMiddleware, quizController.getQuizHistoryDet
 router.post('/quiz-history/:id', authMiddleware, quizController.getQuizHistoryDetails);
 router.delete('/quiz-history/:id', authMiddleware, quizController.deleteQuizHistory);
 router.get('/verify-certificate/:certId', quizController.verifyCertificate);
+
+// Dynamic Daily Goals
+router.get('/goals/today', authMiddleware, goalController.getTodayGoals);
+router.post('/goals/today', authMiddleware, goalController.getTodayGoals);
+router.post('/goals/custom', authMiddleware, goalController.createCustomGoal);
+router.post('/goals/:id/toggle', authMiddleware, goalController.toggleGoal);
+router.delete('/goals/:id', authMiddleware, goalController.deleteGoal);
+router.get('/goals/history', authMiddleware, goalController.getGoalHistory);
+router.post('/goals/history', authMiddleware, goalController.getGoalHistory);
+router.post('/goals/log-time', authMiddleware, goalController.logStudyTime);
 
 // Admin Routes
 router.get('/admin/stats', authMiddleware, isAdminMiddleware, adminController.getDashboardStats);

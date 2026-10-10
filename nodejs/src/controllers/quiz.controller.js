@@ -2,6 +2,7 @@ const prisma = require('../lib/prisma');
 const { generateQuiz, generateFlashcards } = require('../services/ai.service');
 const { generateCertificatePDF } = require('../services/certificate.service');
 const cacheService = require('../services/cache.service');
+const goalService = require('../services/goal.service');
 
 const inFlightFlashcardRequests = new Map();
 
@@ -386,6 +387,9 @@ const submitQuiz = async (req, res) => {
                 where: { id: user.id },
                 data: { xp: newXp, level: newLevel }
             });
+
+            // Auto-progress matching daily goal for quiz
+            await goalService.recordActivityGoalProgress(user.id, 'QUIZ', 1).catch(e => console.error('[Goal Hook Error]:', e));
 
             // Certificate flow: check if combined playlist quiz
             if (quiz.playlistId && quiz.is_combined && quiz.playlist) {

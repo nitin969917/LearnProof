@@ -60,10 +60,11 @@ const YourProgressCard = () => {
     const [tasks, setTasks] = useState([]);
     useEffect(() => {
         if (user?.uid) {
-            const savedTasks = localStorage.getItem(`learnproof_tasks_${user.uid}`);
+            const savedTasks = localStorage.getItem(`learnproof_cached_goals_${user.uid}`) || localStorage.getItem(`learnproof_tasks_${user.uid}`);
             if (savedTasks) {
                 try {
-                    setTasks(JSON.parse(savedTasks));
+                    const parsed = JSON.parse(savedTasks);
+                    setTasks(Array.isArray(parsed) ? parsed : []);
                 } catch (e) {
                     console.error('Failed to parse saved tasks', e);
                 }
@@ -71,9 +72,9 @@ const YourProgressCard = () => {
         }
     }, [user]);
 
-    const completedTasksCount = tasks.filter(t => t.completed).length;
+    const completedTasksCount = tasks.filter(t => t.is_completed || t.completed).length;
     const totalTasksCount = tasks.length > 0 ? tasks.length : 3;
-    const tasksPercent = tasks.length === 0 ? 0 : Math.round((completedTasksCount / tasks.length) * 100);
+    const tasksPercent = tasks.length === 0 ? 0 : Math.round((completedTasksCount / totalTasksCount) * 100);
 
     // ── 3. Current Streak & 7 Days Activity State ──
     const [streak, setStreak] = useState(1);

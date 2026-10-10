@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
 const cacheService = require('../services/cache.service');
+const goalService = require('../services/goal.service');
 
 /**
  * Classroom Controller
@@ -97,6 +98,9 @@ const markVideoCompleted = async (req, res) => {
         }
         await cacheService.delByPattern(`user:learnings:${user.id}:*`);
         await cacheService.del(`user:quiz-list:${user.id}`);
+
+        // Auto-progress matching daily goal for video watching
+        await goalService.recordActivityGoalProgress(user.id, 'VIDEO', 1).catch(e => console.error('[Goal Hook Error]:', e));
 
         res.status(200).json({ message: 'Video marked as completed' });
     } catch (error) {

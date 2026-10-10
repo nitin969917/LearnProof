@@ -50,6 +50,7 @@ model UserProfile {
   workspaces        Workspace[]
   referralCodes     ReferralCode[]        @relation("ReferrerCodes")
   referralAttribution ReferralAttribution? @relation("ReferredUser")
+  dailyGoals        UserDailyGoal[]
 }
 
 model InboxMessage {
@@ -816,5 +817,23 @@ model AmbassadorGroupMember {
   @@map("ambassador_group_members")
 }
 
+model UserDailyGoal {
+  id            Int          @id @default(autoincrement())
+  user          UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  date          String       // Format: YYYY-MM-DD
+  title         String
+  description   String?
+  category      String       // "VIDEO", "QUIZ", "STUDY_TIME", "FLASHCARD", "CUSTOM"
+  target_value  Int          @default(1)
+  current_value Int          @default(0)
+  is_completed  Boolean      @default(false)
+  xp_reward     Int          @default(20)
+  reference_id  String?
+  action_url    String?
+  created_at    DateTime     @default(now())
+  completed_at  DateTime?
 
-
+  @@index([userId, date])
+  @@index([userId, is_completed])
+}

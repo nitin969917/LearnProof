@@ -2,29 +2,46 @@ import React, { useState, useEffect } from 'react';
 import { Target, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { fetchTodayGoals } from '../../api/goalApi';
 
 const DailyTasksCard = () => {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const navigate = useNavigate();
-    const [tasks, setTasks] = useState([]);
+    const [goals, setGoals] = useState([]);
 
-    // Load tasks from local storage on mount
     useEffect(() => {
+        // 1. Instant load from local cache if available
         if (user?.uid) {
-            const savedTasks = localStorage.getItem(`learnproof_tasks_${user.uid}`);
-            if (savedTasks) {
+            const cached = localStorage.getItem(`learnproof_cached_goals_${user.uid}`) || localStorage.getItem(`learnproof_tasks_${user.uid}`);
+            if (cached) {
                 try {
-                    setTasks(JSON.parse(savedTasks));
-                } catch (e) {
-                    console.error("Failed to parse saved tasks", e);
-                }
+                    const parsed = JSON.parse(cached);
+                    setGoals(Array.isArray(parsed) ? parsed : []);
+                } catch (_) {}
             }
         }
-    }, [user]);
+
+        // 2. Fetch live dynamic goals from database
+        if (token) {
+            fetchTodayGoals(token)
+                .then(res => {
+                    if (res?.goals) {
+                        setGoals(res.goals);
+                        if (user?.uid) {
+                            localStorage.setItem(`learnproof_cached_goals_${user.uid}`, JSON.stringify(res.goals));
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.warn('[DailyTasksCard] Live goals fetch fallback to cache:', err.message);
+                });
+        }
+    }, [user, token]);
 
     // Calculate completions and progress
-    const completedCount = tasks.filter(t => t.completed).length;
-    const progress = tasks.length === 0 ? 0 : Math.round((completedCount / tasks.length) * 100);
+    const completedCount = goals.filter(g => g.is_completed || g.completed).length;
+    const totalCount = goals.length;
+    const progress = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
 
     return (
         <div 
@@ -48,10 +65,10 @@ const DailyTasksCard = () => {
             <div className="p-4 flex flex-col justify-between flex-1">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Tasks Completed</p>
+                        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Goals Achieved</p>
                         <div className="flex items-baseline gap-1">
                             <span className="text-2xl font-black text-gray-800 dark:text-white">{completedCount}</span>
-                            <span className="text-xs font-bold text-gray-400 dark:text-gray-500">/ {tasks.length}</span>
+                            <span className="text-xs font-bold text-gray-400 dark:text-gray-500">/ {totalCount}</span>
                         </div>
                     </div>
                     <div className="p-2.5 bg-orange-50 dark:bg-orange-950/30 text-orange-500 rounded-xl">

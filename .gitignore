@@ -64,4 +64,12 @@ local.properties
 .gradle/
 Pods/
 DerivedData/
-
+# Temporary ignore for work-in-progress features (FlowPilot, AskMyNotes & WIP backend/frontend)
+LEARNPROOF_MASTER_PRODUCT_BLUEPRINT.md
+frontend/src/components/FlowPilot/
+nodejs/src/controllers/flowpilot.controller.js
+nodejs/src/services/flowpilot.service.js
+frontend/src/components/Dashboard/AskMyNotes.jsx
+frontend/src/api/socialApi.js
+nodejs/src/middleware/auth.js
+nodejs/src/routes/workspace.routes.js
