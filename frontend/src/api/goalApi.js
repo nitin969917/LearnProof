@@ -12,7 +12,7 @@ const getHeaders = (token) => {
 };
 
 /**
- * Fetch today's dynamic smart goals (and student custom goals)
+ * Fetch today's goals and dynamic course suggestions
  */
 export const fetchTodayGoals = async (token, clientDate = null) => {
     const url = `${getBackendUrl()}/api/goals/today`;
@@ -29,17 +29,35 @@ export const fetchTodayGoals = async (token, clientDate = null) => {
 };
 
 /**
- * Add a student-defined custom goal
+ * Add a goal (custom or from smart suggestions)
  */
-export const createCustomGoal = async (token, { title, target_value = 1, date = null }) => {
-    const url = `${getBackendUrl()}/api/goals/custom`;
-    const dateParam = date || new Date().toISOString().split('T')[0];
+export const addGoal = async (token, goalData) => {
+    const url = `${getBackendUrl()}/api/goals`;
+    const dateParam = goalData.date || new Date().toISOString().split('T')[0];
+
+    const payload = typeof goalData === 'string'
+        ? { title: goalData, target_value: 1, date: dateParam }
+        : { ...goalData, date: dateParam };
 
     const response = await axios.post(url, {
         idToken: token,
-        title,
-        target_value,
-        date: dateParam
+        ...payload
+    }, {
+        headers: getHeaders(token)
+    });
+
+    return response.data?.goal;
+};
+
+/**
+ * Update an existing goal
+ */
+export const updateGoal = async (token, goalId, updates) => {
+    const url = `${getBackendUrl()}/api/goals/${goalId}/update`;
+
+    const response = await axios.post(url, {
+        idToken: token,
+        ...updates
     }, {
         headers: getHeaders(token)
     });
@@ -77,7 +95,7 @@ export const deleteGoal = async (token, goalId) => {
 };
 
 /**
- * Fetch real historical daily goals completion data
+ * Fetch real historical daily progress and analytics
  */
 export const fetchGoalHistory = async (token, days = 7, date = null) => {
     const url = `${getBackendUrl()}/api/goals/history`;
@@ -91,11 +109,11 @@ export const fetchGoalHistory = async (token, days = 7, date = null) => {
         headers: getHeaders(token)
     });
 
-    return response.data?.history || [];
+    return response.data;
 };
 
 /**
- * Log study minutes towards daily study goal
+ * Log study minutes
  */
 export const logStudyMinutes = async (token, minutes = 1) => {
     const url = `${getBackendUrl()}/api/goals/log-time`;

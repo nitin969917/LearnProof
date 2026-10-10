@@ -13,25 +13,12 @@ const getTodayKey = (date = new Date()) => {
 };
 
 /**
- * Get or dynamically generate today's smart daily goals for a user
+ * Get dynamic smart suggestions based on user's active courses
  */
-const getOrCreateTodayGoals = async (userId, clientDate = null) => {
-    const today = getTodayKey(clientDate || new Date());
+const getSuggestedGoals = async (userId) => {
+    const suggestions = [];
 
-    // 1. Check existing goals for today
-    let goals = await prisma.userDailyGoal.findMany({
-        where: { userId, date: today },
-        orderBy: [{ is_completed: 'asc' }, { id: 'asc' }]
-    });
-
-    if (goals.length > 0) {
-        return goals;
-    }
-
-    // 2. Generate dynamic Smart Goals based on the student's active learning state
-    const generatedGoals = [];
-
-    // Goal 1: Active Course / Video Goal
+    // 1. Check user's active playlist & uncompleted videos
     const activePlaylist = await prisma.playlist.findFirst({
         where: { userId },
         orderBy: { imported_at: 'desc' },
@@ -39,97 +26,111 @@ const getOrCreateTodayGoals = async (userId, clientDate = null) => {
             videos: {
                 where: { is_completed: false },
                 orderBy: { position: 'asc' },
-                take: 2
+                take: 3
             }
         }
     });
 
     if (activePlaylist && activePlaylist.videos.length > 0) {
-        const remainingCount = activePlaylist.videos.length;
-        const target = remainingCount >= 2 ? 2 : 1;
-        const courseName = activePlaylist.name.length > 28 
+        const count = activePlaylist.videos.length >= 2 ? 2 : 1;
+        const name = activePlaylist.name.length > 28 
             ? `${activePlaylist.name.substring(0, 26)}...` 
             : activePlaylist.name;
 
-        generatedGoals.push({
-            userId,
-            date: today,
-            title: `Watch ${target} lesson${target > 1 ? 's' : ''} in "${courseName}"`,
-            description: `Keep your learning streak moving forward.`,
+        suggestions.push({
+            title: `Watch ${count} lesson${count > 1 ? 's' : ''} in "${name}"`,
+            description: `Continue learning momentum in your current playlist.`,
             category: 'VIDEO',
-            target_value: target,
-            current_value: 0,
-            is_completed: false,
+            target_value: count,
             xp_reward: 25,
             reference_id: String(activePlaylist.id),
             action_url: `/dashboard/classroom/${activePlaylist.id}`
         });
     } else {
-        generatedGoals.push({
-            userId,
-            date: today,
+        suggestions.push({
             title: 'Explore and import a course from Discover',
             description: 'Find a high-yield course on YouTube and import it with one tap.',
             category: 'DISCOVER',
             target_value: 1,
-            current_value: 0,
-            is_completed: false,
             xp_reward: 20,
             reference_id: null,
             action_url: '/dashboard/learning'
         });
     }
 
-    // Goal 2: Retention / Quiz Goal
-    generatedGoals.push({
-        userId,
-        date: today,
+    // 2. Retention / Concept Quiz suggestion
+    suggestions.push({
         title: 'Complete 1 Topic Quiz with passing score',
         description: 'Test your understanding and turn passive watching into long-term memory.',
         category: 'QUIZ',
         target_value: 1,
-        current_value: 0,
-        is_completed: false,
         xp_reward: 25,
         reference_id: null,
         action_url: '/dashboard/quiz'
     });
 
-    // Goal 3: Study Focus Time Goal
-    generatedGoals.push({
-        userId,
-        date: today,
-        title: 'Spend 25 mins in focused study',
-        description: 'Deep focus without context switching or social media distractions.',
+    // 3. Focus study sprint
+    suggestions.push({
+        title: 'Complete 25 mins of focused study',
+        description: 'Deep focus sprint without distractions.',
         category: 'STUDY_TIME',
         target_value: 25,
-        current_value: 0,
-        is_completed: false,
         xp_reward: 20,
         reference_id: null,
         action_url: '/dashboard/learning'
     });
 
-    // Save into database
-    await prisma.userDailyGoal.createMany({
-        data: generatedGoals
+    // 4. Workspace / Notes review
+    suggestions.push({
+        title: 'Review 10 flashcards or summary notes',
+        description: 'Strengthen memory retrieval and retention.',
+        category: 'FLASHCARD',
+        target_value: 10,
+        xp_reward: 20,
+        reference_id: null,
+        action_url: '/dashboard/workspaces'
     });
 
-    return await prisma.userDailyGoal.findMany({
+    return suggestions;
+};
+
+/**
+ * Get user's daily goals for today (WITHOUT forcing automatic defaults)
+ */
+const getTodayGoals = async (userId, clientDate = null) => {
+    const today = getTodayKey(clientDate || new Date());
+
+    // 1. Retrieve the user's actual goals for today
+    const goals = await prisma.userDailyGoal.findMany({
         where: { userId, date: today },
         orderBy: [{ is_completed: 'asc' }, { id: 'asc' }]
     });
+
+    // 2. Compute dynamic smart suggestions on the fly (user chooses whether to add them)
+    const suggestedGoals = await getSuggestedGoals(userId);
+
+    const completedCount = goals.filter(g => g.is_completed).length;
+    const totalCount = goals.length;
+    const progress = totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+
+    return {
+        goals,
+        total: totalCount,
+        completed: completedCount,
+        left: totalCount - completedCount,
+        progress,
+        suggestedGoals
+    };
 };
 
 /**
  * Event-Driven Auto Progress Tracker:
- * Automatically advances matching active goals when a student completes an activity.
+ * Advances matching active goals when student completes an activity.
  */
 const recordActivityGoalProgress = async (userId, category, amount = 1, metadata = {}) => {
     try {
         const date = getTodayKey(metadata.date || new Date());
 
-        // Find active matching goals for today
         const matchingGoals = await prisma.userDailyGoal.findMany({
             where: {
                 userId,
@@ -158,7 +159,6 @@ const recordActivityGoalProgress = async (userId, category, amount = 1, metadata
 
             updatedGoals.push(updated);
 
-            // If newly completed, award XP
             if (isNowCompleted) {
                 const user = await prisma.userProfile.findUnique({ where: { id: userId } });
                 if (user) {
@@ -178,13 +178,12 @@ const recordActivityGoalProgress = async (userId, category, amount = 1, metadata
                     });
                 }
 
-                // Check if all today's goals are now 100% complete
+                // Check if all goals are complete
                 const remainingIncomplete = await prisma.userDailyGoal.count({
                     where: { userId, date, is_completed: false }
                 });
 
                 if (remainingIncomplete === 0) {
-                    // Award Daily Sweep Bonus (+50 XP)
                     await prisma.userProfile.update({
                         where: { id: userId },
                         data: { xp: { increment: 50 } }
@@ -202,36 +201,65 @@ const recordActivityGoalProgress = async (userId, category, amount = 1, metadata
 
         return updatedGoals;
     } catch (err) {
-        console.error('[recordActivityGoalProgress] Error recording goal progress:', err);
+        console.error('[recordActivityGoalProgress] Error:', err);
         return [];
     }
 };
 
 /**
- * Add a custom student-defined goal
+ * Add a goal (custom or from suggestion)
  */
-const addCustomGoal = async (userId, clientDate, title, target_value = 1) => {
+const addGoal = async (userId, clientDate, goalData) => {
     const today = getTodayKey(clientDate || new Date());
+
+    const title = typeof goalData === 'string' ? goalData.trim() : (goalData.title || '').trim();
+    if (!title) throw new Error('Goal title is required');
 
     return await prisma.userDailyGoal.create({
         data: {
             userId,
             date: today,
-            title: title.trim(),
-            description: 'Custom learning target set by you.',
-            category: 'CUSTOM',
-            target_value: Math.max(1, parseInt(target_value) || 1),
+            title,
+            description: goalData.description || 'Personal learning target set by you.',
+            category: goalData.category || 'CUSTOM',
+            target_value: Math.max(1, parseInt(goalData.target_value) || 1),
             current_value: 0,
             is_completed: false,
-            xp_reward: 15,
-            reference_id: null,
-            action_url: null
+            xp_reward: goalData.xp_reward || 20,
+            reference_id: goalData.reference_id ? String(goalData.reference_id) : null,
+            action_url: goalData.action_url || null
         }
     });
 };
 
 /**
- * Toggle a goal (e.g., custom goal manual check)
+ * Update target or details of an existing goal
+ */
+const updateGoal = async (userId, goalId, updates) => {
+    const goal = await prisma.userDailyGoal.findFirst({
+        where: { id: parseInt(goalId), userId }
+    });
+
+    if (!goal) throw new Error('Goal not found');
+
+    const data = {};
+    if (updates.title) data.title = updates.title.trim();
+    if (updates.target_value) data.target_value = Math.max(1, parseInt(updates.target_value));
+    if (updates.current_value !== undefined) data.current_value = Math.max(0, parseInt(updates.current_value));
+
+    // Recheck completion
+    const target = data.target_value || goal.target_value;
+    const current = data.current_value !== undefined ? data.current_value : goal.current_value;
+    data.is_completed = current >= target;
+
+    return await prisma.userDailyGoal.update({
+        where: { id: goal.id },
+        data
+    });
+};
+
+/**
+ * Toggle a goal
  */
 const toggleGoal = async (userId, goalId) => {
     const goal = await prisma.userDailyGoal.findFirst({
@@ -285,52 +313,138 @@ const deleteGoal = async (userId, goalId) => {
 };
 
 /**
- * Get real historical progress for past days
+ * Real historical analytics & activity aggregation across PostgreSQL
  */
 const getGoalHistory = async (userId, days = 7, clientDate = null) => {
     const todayKey = getTodayKey(clientDate || new Date());
     const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+    const numDays = Math.min(60, Math.max(7, parseInt(days) || 7));
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - numDays);
+    const startKey = getTodayKey(startDate);
+
+    // 1. Fetch user's goals
+    const allGoals = await prisma.userDailyGoal.findMany({
+        where: {
+            userId,
+            date: { gte: startKey }
+        },
+        orderBy: { date: 'asc' }
+    });
+
+    // 2. Fetch user's activity logs
+    const allLogs = await prisma.userActivityLog.findMany({
+        where: {
+            userId,
+            timestamp: { gte: startDate }
+        },
+        orderBy: { timestamp: 'asc' }
+    });
+
     const history = [];
     const baseDate = new Date();
 
-    for (let i = 1; i <= days; i++) {
-        const past = new Date(baseDate);
-        past.setDate(baseDate.getDate() - i);
-        const dateKey = getTodayKey(past);
+    let totalCompleted = 0;
+    let totalTargets = 0;
 
-        const dayGoals = await prisma.userDailyGoal.findMany({
-            where: { userId, date: dateKey }
+    for (let i = numDays - 1; i >= 0; i--) {
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() - i);
+        const dateKey = getTodayKey(d);
+        const isToday = dateKey === todayKey;
+
+        // Day goals
+        const dayGoals = allGoals.filter(g => g.date === dateKey);
+
+        // Day activities
+        const dayLogs = allLogs.filter(l => {
+            const logDate = getTodayKey(l.timestamp);
+            return logDate === dateKey;
         });
 
-        if (dayGoals.length > 0) {
-            const completed = dayGoals.filter(g => g.is_completed).length;
-            const total = dayGoals.length;
-            const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
+        const dayActivities = [...new Set(dayLogs.map(l => l.activity_type).filter(Boolean))];
 
-            const dateLabel = i === 1 
-                ? 'Yesterday' 
-                : `${daysOfWeek[past.getDay()]}, ${months[past.getMonth()]} ${past.getDate()}`;
+        let dayTotal = dayGoals.length;
+        let dayCompleted = dayGoals.filter(g => g.is_completed).length;
+        let dayProgress = 0;
 
-            history.push({
-                date: dateKey,
-                dateLabel,
-                total,
-                completed,
-                progress
-            });
+        if (dayTotal > 0) {
+            dayProgress = Math.round((dayCompleted / dayTotal) * 100);
+        } else if (dayActivities.length > 0) {
+            // Baseline grounding for past days before explicit goals
+            dayTotal = Math.max(1, Math.min(3, dayActivities.length));
+            dayCompleted = dayTotal;
+            dayProgress = 100;
+        }
+
+        totalCompleted += dayCompleted;
+        totalTargets += dayTotal;
+
+        const dayOfWeek = daysOfWeek[d.getDay()];
+        const month = months[d.getMonth()];
+        const dateNum = d.getDate();
+
+        const dateLabel = isToday 
+            ? 'Today' 
+            : (i === 1 ? 'Yesterday' : `${dayOfWeek}, ${month} ${dateNum}`);
+
+        history.push({
+            date: dateKey,
+            dateLabel,
+            dayShort: dayOfWeek,
+            dayNumber: dateNum,
+            isToday,
+            total: dayTotal,
+            completed: dayCompleted,
+            progress: dayProgress,
+            hasActivity: dayActivities.length > 0 || dayCompleted > 0,
+            activityCount: dayActivities.length,
+            activities: dayActivities.slice(0, 5),
+            goals: dayGoals.map(g => ({
+                id: g.id,
+                title: g.title,
+                category: g.category,
+                is_completed: g.is_completed,
+                target: g.target_value,
+                current: g.current_value
+            }))
+        });
+    }
+
+    // Dynamic streak calculation
+    let streakCount = 0;
+    const historyReversed = [...history].reverse();
+    for (const day of historyReversed) {
+        if (day.isToday && day.progress === 0 && !day.hasActivity) {
+            continue; // Today is still in progress
+        }
+        if (day.progress > 0 || day.hasActivity) {
+            streakCount++;
+        } else {
+            break;
         }
     }
 
-    return history;
+    return {
+        history,
+        stats: {
+            currentStreak: Math.max(1, streakCount),
+            totalCompleted,
+            totalTargets,
+            averageRate: history.length > 0 ? Math.round((totalCompleted / Math.max(1, totalTargets)) * 100) : 0
+        }
+    };
 };
 
 module.exports = {
     getTodayKey,
-    getOrCreateTodayGoals,
+    getTodayGoals,
+    getSuggestedGoals,
     recordActivityGoalProgress,
-    addCustomGoal,
+    addGoal,
+    updateGoal,
     toggleGoal,
     deleteGoal,
     getGoalHistory

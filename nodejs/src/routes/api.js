@@ -137,7 +137,10 @@ router.get('/verify-certificate/:certId', quizController.verifyCertificate);
 // Dynamic Daily Goals
 router.get('/goals/today', authMiddleware, goalController.getTodayGoals);
 router.post('/goals/today', authMiddleware, goalController.getTodayGoals);
-router.post('/goals/custom', authMiddleware, goalController.createCustomGoal);
+router.post('/goals/custom', authMiddleware, goalController.createGoal);
+router.post('/goals', authMiddleware, goalController.createGoal);
+router.put('/goals/:id', authMiddleware, goalController.updateGoal);
+router.post('/goals/:id/update', authMiddleware, goalController.updateGoal);
 router.post('/goals/:id/toggle', authMiddleware, goalController.toggleGoal);
 router.delete('/goals/:id', authMiddleware, goalController.deleteGoal);
 router.get('/goals/history', authMiddleware, goalController.getGoalHistory);

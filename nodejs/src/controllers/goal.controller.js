@@ -4,37 +4,36 @@ const getTodayGoals = async (req, res) => {
     try {
         const user = req.user;
         const clientDate = req.query.date || req.body.date || null;
-        const goals = await goalService.getOrCreateTodayGoals(user.id, clientDate);
-        
-        const completedCount = goals.filter(g => g.is_completed).length;
-        const progress = goals.length === 0 ? 0 : Math.round((completedCount / goals.length) * 100);
-
-        res.status(200).json({
-            goals,
-            total: goals.length,
-            completed: completedCount,
-            left: goals.length - completedCount,
-            progress
-        });
+        const result = await goalService.getTodayGoals(user.id, clientDate);
+        res.status(200).json(result);
     } catch (error) {
         console.error('[getTodayGoals] Error:', error);
         res.status(500).json({ error: error.message });
     }
 };
 
-const createCustomGoal = async (req, res) => {
+const createGoal = async (req, res) => {
     try {
         const user = req.user;
-        const { title, target_value, date } = req.body;
+        const { date } = req.body;
 
-        if (!title || !title.trim()) {
-            return res.status(400).json({ error: 'Title is required' });
-        }
-
-        const goal = await goalService.addCustomGoal(user.id, date, title, target_value || 1);
+        const goal = await goalService.addGoal(user.id, date, req.body);
         res.status(201).json({ goal });
     } catch (error) {
-        console.error('[createCustomGoal] Error:', error);
+        console.error('[createGoal] Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const updateGoal = async (req, res) => {
+    try {
+        const user = req.user;
+        const goalId = req.params.id;
+
+        const updated = await goalService.updateGoal(user.id, goalId, req.body);
+        res.status(200).json({ goal: updated });
+    } catch (error) {
+        console.error('[updateGoal] Error:', error);
         res.status(500).json({ error: error.message });
     }
 };
@@ -68,11 +67,11 @@ const deleteGoal = async (req, res) => {
 const getGoalHistory = async (req, res) => {
     try {
         const user = req.user;
-        const days = parseInt(req.query.days) || 7;
-        const clientDate = req.query.date || null;
+        const days = parseInt(req.query.days || req.body.days) || 7;
+        const clientDate = req.query.date || req.body.date || null;
 
-        const history = await goalService.getGoalHistory(user.id, days, clientDate);
-        res.status(200).json({ history });
+        const data = await goalService.getGoalHistory(user.id, days, clientDate);
+        res.status(200).json(data);
     } catch (error) {
         console.error('[getGoalHistory] Error:', error);
         res.status(500).json({ error: error.message });
@@ -101,7 +100,8 @@ const logStudyTime = async (req, res) => {
 
 module.exports = {
     getTodayGoals,
-    createCustomGoal,
+    createGoal,
+    updateGoal,
     toggleGoal,
     deleteGoal,
     getGoalHistory,
