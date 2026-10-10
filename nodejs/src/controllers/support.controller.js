@@ -1,6 +1,26 @@
 const prisma = require('../lib/prisma');
 
 /**
+ * Helper to determine if a user has admin privileges
+ */
+const isUserAdmin = async (user) => {
+    if (!user) return false;
+    let userEmail = (user.email || '').trim().toLowerCase();
+    if (!userEmail && user.id) {
+        try {
+            const profile = await prisma.userProfile.findUnique({
+                where: { id: user.id },
+                select: { email: true }
+            });
+            userEmail = (profile?.email || '').trim().toLowerCase();
+        } catch (_) {}
+    }
+    const envAdminEmails = (process.env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+    const allowedAdmins = new Set([...envAdminEmails, 'nitin9699176009@gmail.com', 'kakadeavishkar84@gmail.com']);
+    return allowedAdmins.has(userEmail) || userEmail.endsWith('@learnproofai.com');
+};
+
+/**
  * Create a new support ticket
  */
 const createTicket = async (req, res) => {
@@ -80,10 +100,7 @@ const getTicketById = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
-        const envAdminEmails = (process.env.ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-        const allowedAdmins = new Set([...envAdminEmails, 'nitin9699176009@gmail.com', 'kakadeavishkar84@gmail.com']);
-        const userEmail = (req.user.email || '').trim().toLowerCase();
-        const isAdmin = allowedAdmins.has(userEmail) || userEmail.endsWith('@learnproofai.com');
+        const isAdmin = await isUserAdmin(req.user);
 
         const ticket = await prisma.supportTicket.findUnique({
             where: { id: parseInt(id) },
@@ -184,14 +201,7 @@ const respondToTicket = async (req, res) => {
             return res.status(404).json({ error: 'Ticket not found' });
         }
 
-        // Logic fix: Only treat as Admin if they ARE an admin AND NOT the owner.
-        const adminEmail = process.env.ADMIN_EMAIL;
-        const isOfficialAdmin = adminEmail && (
-            req.user.email.toLowerCase() === adminEmail.toLowerCase() ||
-            req.user.email.toLowerCase().endsWith('@learnproofai.com')
-        );
-        
-        let isAdmin = !!isOfficialAdmin;
+        const isAdmin = await isUserAdmin(req.user);
 
         if (!message) {
             return res.status(400).json({ error: 'Message is required' });
