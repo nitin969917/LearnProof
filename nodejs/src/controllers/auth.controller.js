@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const matrixService = require('../services/matrix.service');
 const cacheService = require('../services/cache.service');
+const emailService = require('../services/email.service');
 const JWT_SECRET = process.env.JWT_SECRET || 'learnproof_default_secret_9988';
 
 /**
@@ -630,6 +631,207 @@ const pollLinkedInSession = async (req, res) => {
     }
 };
 
+/**
+ * In-memory fallback OTP storage to guarantee zero-failure OTP handling
+ * even during transient Redis disconnects or local testing.
+ */
+const localOtpStore = new Map();
+
+/**
+ * Send 6-Digit Email OTP
+ * POST /api/auth/email/send-otp
+ */
+const sendEmailOtp = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email || typeof email !== 'string') {
+            return res.status(400).json({ error: 'Valid email address is required.' });
+        }
+
+        const cleanEmail = email.trim().toLowerCase();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(cleanEmail)) {
+            return res.status(400).json({ error: 'Please enter a valid email address.' });
+        }
+
+        // Rate limiting: allow at most 4 OTP requests every 3 minutes per email
+        const rateLimitKey = `ratelimit:email_otp:${cleanEmail}`;
+        const attempts = (await cacheService.get(rateLimitKey)) || 0;
+        if (attempts >= 4) {
+            return res.status(429).json({ error: 'Too many verification code requests. Please wait a few minutes before trying again.' });
+        }
+        await cacheService.set(rateLimitKey, attempts + 1, 180);
+
+        // Apple App Reviewer & demo account deterministic code for instant approval
+        let otpCode;
+        if (cleanEmail === 'apple-reviewer@learnproofai.com' || cleanEmail === 'demo@learnproofai.com') {
+            otpCode = '123456';
+        } else {
+            // Generate secure 6-digit numeric code (100000 - 999999)
+            otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        const otpPayload = {
+            code: otpCode,
+            email: cleanEmail,
+            attempts: 0,
+            createdAt: Date.now()
+        };
+
+        // Cache for 5 minutes (300 seconds) in Redis
+        await cacheService.set(`email_otp:${cleanEmail}`, otpPayload, 300);
+        // Also mirror in local memory fallback
+        localOtpStore.set(cleanEmail, { ...otpPayload, expiresAt: Date.now() + 300000 });
+
+        // Dispatch email via Resend / EmailService / SMTP
+        const emailResult = await emailService.sendOtpEmail(cleanEmail, otpCode);
+
+        return res.status(200).json({
+            success: true,
+            message: emailResult?.devMode
+                ? `Verification code: ${otpCode}`
+                : `Verification code sent to ${cleanEmail}`,
+            devMode: Boolean(emailResult?.devMode),
+            devCode: emailResult?.devMode ? otpCode : undefined
+        });
+    } catch (err) {
+        console.error('sendEmailOtp error:', err);
+        return res.status(500).json({ error: 'Failed to send verification code. Please try again.' });
+    }
+};
+
+/**
+ * Verify 6-Digit Email OTP & Sign In / Register
+ * POST /api/auth/email/verify-otp
+ */
+const verifyEmailOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        if (!email || !otp) {
+            return res.status(400).json({ error: 'Email and 6-digit verification code are required.' });
+        }
+
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanOtp = otp.toString().trim();
+
+        // Check if reviewer demo bypass
+        const isReviewerDemo = (cleanEmail === 'apple-reviewer@learnproofai.com' || cleanEmail === 'demo@learnproofai.com') && cleanOtp === '123456';
+
+        let isValid = false;
+
+        if (isReviewerDemo) {
+            isValid = true;
+        } else {
+            // Check Redis
+            let record = await cacheService.get(`email_otp:${cleanEmail}`);
+            // Fallback to local memory if Redis didn't have it
+            if (!record) {
+                const localRecord = localOtpStore.get(cleanEmail);
+                if (localRecord && localRecord.expiresAt > Date.now()) {
+                    record = localRecord;
+                }
+            }
+
+            if (!record) {
+                return res.status(400).json({ error: 'Verification code has expired or was not requested. Please request a new code.' });
+            }
+
+            if (record.code !== cleanOtp) {
+                record.attempts = (record.attempts || 0) + 1;
+                if (record.attempts >= 5) {
+                    await cacheService.del(`email_otp:${cleanEmail}`);
+                    localOtpStore.delete(cleanEmail);
+                    return res.status(400).json({ error: 'Too many incorrect attempts. Please request a new code.' });
+                }
+                await cacheService.set(`email_otp:${cleanEmail}`, record, 300);
+                return res.status(400).json({ error: 'Incorrect verification code. Please check your email and try again.' });
+            }
+
+            isValid = true;
+            // Clear used OTP
+            await cacheService.del(`email_otp:${cleanEmail}`);
+            localOtpStore.delete(cleanEmail);
+        }
+
+        if (!isValid) {
+            return res.status(400).json({ error: 'Invalid verification code.' });
+        }
+
+        // Find or create UserProfile by email
+        let user = await prisma.userProfile.findUnique({ where: { email: cleanEmail } });
+        let isNewUser = false;
+
+        if (!user) {
+            isNewUser = true;
+            const newUid = `email_${crypto.randomBytes(8).toString('hex')}`;
+            const username = cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 30) || 'Student';
+            const displayName = username.charAt(0).toUpperCase() + username.slice(1);
+            const avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(displayName)}`;
+
+            user = await prisma.userProfile.create({
+                data: {
+                    uid: newUid,
+                    email: cleanEmail,
+                    name: displayName,
+                    profile_pic: avatarUrl
+                }
+            });
+        }
+
+        // Sign 30-day session token (matching Google and Apple token payload)
+        const sessionToken = jwt.sign(
+            {
+                uid: user.uid,
+                email: user.email,
+                name: user.name,
+                picture: user.profile_pic,
+                id: user.id
+            },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+        );
+
+        // Sync Matrix Chat credentials if enabled
+        let matrixCredentials = null;
+        try {
+            if (matrixService.ENABLE_MATRIX_CHAT) {
+                const cacheKey = `matrix:creds:${user.id}`;
+                const cachedCreds = await cacheService.get(cacheKey);
+                if (cachedCreds) {
+                    matrixCredentials = cachedCreds;
+                } else {
+                    const matrixUsername = `user_${user.id}`;
+                    const matrixPassword = crypto
+                        .createHmac('sha256', JWT_SECRET)
+                        .update(user.uid)
+                        .digest('hex');
+                    const matrixCreds = await matrixService.registerUser(matrixUsername, matrixPassword);
+                    if (matrixCreds) {
+                        matrixCredentials = {
+                            userId: matrixCreds.userId,
+                            accessToken: matrixCreds.accessToken,
+                            homeserverUrl: process.env.MATRIX_CLIENT_HOMESERVER_URL || process.env.MATRIX_HOMESERVER_URL || 'http://localhost:8009'
+                        };
+                        await cacheService.set(cacheKey, matrixCredentials, 43200);
+                    }
+                }
+            }
+        } catch (mErr) {
+            console.warn('[verifyEmailOtp] Matrix sync notice:', mErr.message);
+        }
+
+        return res.status(200).json({
+            ...user,
+            token: sessionToken,
+            matrixCredentials,
+            isNewUser
+        });
+    } catch (err) {
+        console.error('verifyEmailOtp error:', err);
+        return res.status(500).json({ error: 'Failed to complete sign in. Please try again.' });
+    }
+};
+
 module.exports = {
     loginOrRegister,
     getProfile,
@@ -640,6 +842,9 @@ module.exports = {
     handleLinkedInLogin,
     handleLinkedInNativeCallback,
     pollLinkedInSession,
+    sendEmailOtp,
+    verifyEmailOtp,
     deleteAccount
 };
+
 

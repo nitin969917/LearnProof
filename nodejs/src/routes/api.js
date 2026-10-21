@@ -54,6 +54,8 @@ router.post('/oauth-login/', authMiddleware, authController.loginOrRegister);
 router.post('/auth/apple', authController.handleAppleLogin);
 router.post('/auth/apple-login', authController.handleAppleLogin);
 router.post('/auth/demo-login', authController.handleDemoReviewerLogin);
+router.post('/auth/email/send-otp', authController.sendEmailOtp);
+router.post('/auth/email/verify-otp', authController.verifyEmailOtp);
 router.post('/auth/linkedin', authController.handleLinkedInLogin);
 router.post('/auth/linkedin-login', authController.handleLinkedInLogin);
 // GET: native iOS/Android OAuth callback — server exchanges code, stores JWT in Redis, shows completion page

@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, CheckCircle, Shield, Youtube, Zap, Lightbulb, TrendingUp, Users, MessageSquare, Award, GraduationCap, Video, ChevronRight, FileText } from 'lucide-react';
+import { 
+    Trophy, 
+    Users, 
+    MessageSquare, 
+    Award, 
+    GraduationCap, 
+    Lightbulb, 
+    Zap, 
+    TrendingUp, 
+    FileText, 
+    ArrowRight, 
+    ArrowLeft,
+    Mail, 
+    Shield, 
+    KeyRound,
+    X, 
+    Loader2, 
+    Check, 
+    Sparkles 
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { toast } from 'react-hot-toast';
@@ -13,34 +32,52 @@ const LoginPage = () => {
     const location = useLocation();
     const { login, user, loading } = useAuth();
     const [activeFeature, setActiveFeature] = useState(0);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [emailStep, setEmailStep] = useState('input'); // 'input' | 'otp'
+    const [emailInput, setEmailInput] = useState('');
+    const [otpInput, setOtpInput] = useState('');
+    const [emailLoading, setEmailLoading] = useState(false);
+    const [reviewerLoading, setReviewerLoading] = useState(false);
+    const [devOtpHint, setDevOtpHint] = useState('');
+    const [resendCountdown, setResendCountdown] = useState(0);
 
+    // Resend countdown timer
+    useEffect(() => {
+        let timer;
+        if (resendCountdown > 0) {
+            timer = setTimeout(() => setResendCountdown(prev => prev - 1), 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [resendCountdown]);
+
+    // ── Carousel Slides (Exact Copy & Aesthetics from Design) ──
     const SLIDES = [
         // Slide 0
         [
             {
                 title: "Learn Smarter",
-                desc: "AI YouTube tracking & summaries",
+                desc: "AI summaries & key insights",
                 icon: (
                     <svg viewBox="0 0 24 24" className="w-5 h-5 text-red-600 fill-current" xmlns="http://www.w3.org/2000/svg">
                         <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.108C19.524 3.545 12 3.545 12 3.545s-7.525 0-9.387.51A3.003 3.003 0 0 0 .502 6.163C0 8.07 0 12 0 12s0 3.93.502 5.837a3.003 3.003 0 0 0 2.11 2.108c1.862.51 9.387.51 9.387.51s7.524 0 9.387-.51a3.003 3.003 0 0 0 2.11-2.108C24 15.93 24 12 24 12s0-3.93-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                     </svg>
                 ),
-                bgClass: "bg-gradient-to-b from-[#fff6f2]/80 to-white dark:from-[#2e1d1a]/20 dark:to-gray-900 border border-[#feebe3] dark:border-[#3d2722]/40",
-                lineColor: "bg-red-500"
+                cardBg: "bg-red-50/70 border-red-100/90 text-red-600",
+                iconBg: "bg-red-100/60"
             },
             {
                 title: "Connect & Grow",
                 desc: "Real-time peer collaboration",
-                icon: <Users size={18} className="text-[#4f46e5]" />,
-                bgClass: "bg-gradient-to-b from-[#f6f5ff]/80 to-white dark:from-[#1b1c30]/20 dark:to-gray-900 border border-[#e8e6ff] dark:border-[#252643]/40",
-                lineColor: "bg-indigo-500"
+                icon: <Users size={20} className="text-[#6366f1]" />,
+                cardBg: "bg-indigo-50/70 border-indigo-100/90 text-indigo-600",
+                iconBg: "bg-indigo-100/60"
             },
             {
                 title: "Live Learning",
                 desc: "Interactive speaking rooms",
-                icon: <MessageSquare size={18} className="text-[#059669]" />,
-                bgClass: "bg-gradient-to-b from-[#f2faf6]/80 to-white dark:from-[#152a22]/20 dark:to-gray-900 border border-[#e0f4ea] dark:border-[#1c3a2f]/40",
-                lineColor: "bg-emerald-500"
+                icon: <MessageSquare size={20} className="text-[#10b981]" />,
+                cardBg: "bg-emerald-50/70 border-emerald-100/90 text-emerald-600",
+                iconBg: "bg-emerald-100/60"
             }
         ],
         // Slide 1
@@ -48,23 +85,23 @@ const LoginPage = () => {
             {
                 title: "AI Intuition",
                 desc: "Smart notes & concept maps",
-                icon: <Lightbulb size={18} className="text-amber-500" />,
-                bgClass: "bg-gradient-to-b from-[#fffaf0]/80 to-white dark:from-[#2e261a]/20 dark:to-gray-900 border border-[#fef0d5] dark:border-[#3e3423]/40",
-                lineColor: "bg-amber-500"
+                icon: <Lightbulb size={20} className="text-amber-500" />,
+                cardBg: "bg-amber-50/70 border-amber-100/90 text-amber-600",
+                iconBg: "bg-amber-100/60"
             },
             {
                 title: "Practice Arena",
                 desc: "Automated quizzes & tests",
-                icon: <Zap size={18} className="text-rose-500" />,
-                bgClass: "bg-gradient-to-b from-[#fff5f6]/80 to-white dark:from-[#2e1b21]/20 dark:to-gray-900 border border-[#ffe3e6] dark:border-[#3e242c]/40",
-                lineColor: "bg-rose-500"
+                icon: <Zap size={20} className="text-rose-500" />,
+                cardBg: "bg-rose-50/70 border-rose-100/90 text-rose-600",
+                iconBg: "bg-rose-100/60"
             },
             {
                 title: "Study Planner",
-                desc: "Progress tracking & planner",
-                icon: <TrendingUp size={18} className="text-sky-500" />,
-                bgClass: "bg-gradient-to-b from-[#f2f9fe]/80 to-white dark:from-[#152535]/20 dark:to-gray-900 border border-[#e0f1fe] dark:border-[#1a3147]/40",
-                lineColor: "bg-sky-500"
+                desc: "Daily goals & progress tracking",
+                icon: <TrendingUp size={20} className="text-sky-500" />,
+                cardBg: "bg-sky-50/70 border-sky-100/90 text-sky-600",
+                iconBg: "bg-sky-100/60"
             }
         ],
         // Slide 2
@@ -72,33 +109,34 @@ const LoginPage = () => {
             {
                 title: "Credentials",
                 desc: "Verifiable PDF certificates",
-                icon: <Award size={18} className="text-orange-500" />,
-                bgClass: "bg-gradient-to-b from-[#fff6f2]/80 to-white dark:from-[#2e1d1a]/20 dark:to-gray-900 border border-[#feebe3] dark:border-[#3d2722]/40",
-                lineColor: "bg-orange-500"
+                icon: <Award size={20} className="text-orange-500" />,
+                cardBg: "bg-orange-50/70 border-orange-100/90 text-orange-600",
+                iconBg: "bg-orange-100/60"
             },
             {
                 title: "Gamification",
                 desc: "Daily streaks & leaderboards",
-                icon: <Trophy size={18} className="text-indigo-500" />,
-                bgClass: "bg-gradient-to-b from-[#f6f5ff]/80 to-white dark:from-[#1b1c30]/20 dark:to-gray-900 border border-[#e8e6ff] dark:border-[#252643]/40",
-                lineColor: "bg-indigo-500"
+                icon: <Trophy size={20} className="text-indigo-500" />,
+                cardBg: "bg-indigo-50/70 border-indigo-100/90 text-indigo-600",
+                iconBg: "bg-indigo-100/60"
             },
             {
-                title: "AI Summaries",
-                desc: "Auto PDF note extraction",
-                icon: <FileText size={18} className="text-emerald-500" />,
-                bgClass: "bg-gradient-to-b from-[#f2faf6]/80 to-white dark:from-[#152a22]/20 dark:to-gray-900 border border-[#e0f4ea] dark:border-[#1c3a2f]/40",
-                lineColor: "bg-emerald-500"
+                title: "Ask My Notes",
+                desc: "Chat with PDFs & lectures",
+                icon: <FileText size={20} className="text-emerald-500" />,
+                cardBg: "bg-emerald-50/70 border-emerald-100/90 text-emerald-600",
+                iconBg: "bg-emerald-100/60"
             }
         ]
     ];
 
+    // Auto rotate slides every 5.5s
     useEffect(() => {
         const interval = setInterval(() => {
             setActiveFeature((prev) => (prev + 1) % SLIDES.length);
-        }, 5000);
+        }, 5500);
         return () => clearInterval(interval);
-    }, []);
+    }, [SLIDES.length]);
 
     const [isAuthenticating, setIsAuthenticating] = useState(() => {
         const hash = window.location.hash;
@@ -113,7 +151,7 @@ const LoginPage = () => {
     const [authStatusMessage, setAuthStatusMessage] = useState("Securing your session, please wait...");
 
     useEffect(() => {
-        // Expose native Google login callback for the Flutter wrapper
+        // Expose native Google login callback for mobile wrappers
         window.handleNativeGoogleLogin = (idToken) => {
             console.log("Received native Google login token callback.");
             handleLoginFlow(idToken);
@@ -145,21 +183,15 @@ const LoginPage = () => {
 
     const handleLoginFlow = async (idToken) => {
         try {
-            // Instant optimistic login (< 1ms)
             login({ credential: idToken });
-            
-            // Clean the hash from URL immediately
             window.history.replaceState(null, '', window.location.pathname);
-            toast.success("Welcome back to LearnProof AI!");
+            toast.success("Welcome to LearnProof AI!");
             
             sessionStorage.removeItem("is_authenticating");
             setIsAuthenticating(false);
             const redirectTo = resolvePostAuthRedirect();
-            
-            // Instant client-side navigation
             navigate(redirectTo, { replace: true });
 
-            // Setup push notifications in background without blocking UI
             setTimeout(() => {
                 requestNotificationPermissionAndGetToken().catch(err => {
                     console.warn("Background notifications setup:", err);
@@ -176,18 +208,15 @@ const LoginPage = () => {
     const platform = (typeof window !== 'undefined' && window.Capacitor?.getPlatform?.()) || 'web';
     const isAndroid = platform === 'android';
     const isIOS = platform === 'ios';
-    const isAppleDevice = typeof navigator !== 'undefined' && /Macintosh|iPhone|iPad|iPod/.test(navigator.userAgent);
-    const showAppleLogin = isIOS || (!isAndroid && isAppleDevice);
 
+    // ── Google Login Handler ──
     const handleManualGoogleLogin = async () => {
-        // 1. Check if running in Capacitor Native app (Android or iOS)
         const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
 
         if (isCapacitorNative) {
             setIsAuthenticating(true);
             sessionStorage.setItem("is_authenticating", "true");
 
-            // Option A: On Android, use @codetrix-studio/capacitor-google-auth (GoogleAuth) registered natively in MainActivity.java
             if (platform === 'android') {
                 try {
                     const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
@@ -197,7 +226,6 @@ const LoginPage = () => {
                         grantOfflineAccess: true,
                     });
                     const googleUser = await GoogleAuth.signIn();
-                    console.log("Capacitor GoogleAuth response on Android:", googleUser);
                     const idToken = googleUser?.authentication?.idToken || googleUser?.idToken;
                     if (idToken) {
                         await handleLoginFlow(idToken);
@@ -205,17 +233,9 @@ const LoginPage = () => {
                     }
                 } catch (gAuthErr) {
                     console.warn("Android native GoogleAuth attempt failed:", gAuthErr);
-                    const errStr = gAuthErr?.message || (typeof gAuthErr === 'object' ? JSON.stringify(gAuthErr) : String(gAuthErr));
-                    if (errStr.includes('canceled') || errStr.includes('12501') || errStr.includes('CANCELED') || errStr.includes('USER_CANCELLED')) {
-                        setIsAuthenticating(false);
-                        sessionStorage.removeItem("is_authenticating");
-                        return;
-                    }
-                    // If plugin is not implemented or failed, continue to fallback without alerting
                 }
             }
 
-            // Option B: Try @capgo/capacitor-social-login (registered for iOS SPM and newer builds)
             try {
                 const { SocialLogin } = await import('@capgo/capacitor-social-login');
                 await SocialLogin.initialize({
@@ -228,60 +248,25 @@ const LoginPage = () => {
                 });
                 const res = await SocialLogin.login({
                     provider: 'google',
-                    options: {
-                        scopes: ['email', 'profile']
-                    }
+                    options: { scopes: ['email', 'profile'] }
                 });
-                console.log("Capacitor SocialLogin Google response:", res);
                 const idToken = res?.result?.idToken || res?.result?.accessToken?.token;
                 if (idToken) {
                     await handleLoginFlow(idToken);
                     return;
                 }
             } catch (socialErr) {
-                console.warn("SocialLogin attempt failed/not implemented:", socialErr);
-                const errStr = socialErr?.message || (typeof socialErr === 'object' ? JSON.stringify(socialErr) : String(socialErr));
-                if (errStr.includes('canceled') || errStr.includes('12501') || errStr.includes('CANCELED') || errStr.includes('USER_CANCELLED')) {
-                    setIsAuthenticating(false);
-                    sessionStorage.removeItem("is_authenticating");
-                    return;
-                }
-                // Do NOT show raw "plugin is not implemented" error toast!
-            }
-
-            // Option C: On iOS, try GoogleAuth if SocialLogin was not configured
-            if (platform === 'ios') {
-                try {
-                    const { GoogleAuth } = await import('@codetrix-studio/capacitor-google-auth');
-                    await GoogleAuth.initialize({
-                        clientId: '549492309059-6k98pip4c51rdsh69cls1s7ti2s8ci8n.apps.googleusercontent.com',
-                        scopes: ['profile', 'email'],
-                        grantOfflineAccess: true,
-                    });
-                    const googleUser = await GoogleAuth.signIn();
-                    const idToken = googleUser?.authentication?.idToken || googleUser?.idToken;
-                    if (idToken) {
-                        await handleLoginFlow(idToken);
-                        return;
-                    }
-                } catch (_) {}
+                console.warn("SocialLogin attempt failed:", socialErr);
             }
         }
 
         const isFlutter = navigator.userAgent.includes('LearnProofApp') || !!window.GoogleSignInChannel;
-        
-        if (isFlutter) {
-            console.log("Triggering native Google Sign-In via channel...");
-            if (window.GoogleSignInChannel) {
-                window.GoogleSignInChannel.postMessage('signIn');
-            } else {
-                console.error("GoogleSignInChannel not found in window object.");
-                toast.error("Google Sign-In is unavailable in this app version.");
-            }
+        if (isFlutter && window.GoogleSignInChannel) {
+            window.GoogleSignInChannel.postMessage('signIn');
             return;
         }
 
-        // Web (Desktop & Mobile Browser) & Universal Webview Fallback — Immediate zero-delay redirect
+        // Web OAuth Redirect
         setIsAuthenticating(true);
         sessionStorage.setItem("is_authenticating", "true");
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '549492309059-crnp91q3v5ej09givjr6b10re7189ks9.apps.googleusercontent.com';
@@ -302,6 +287,7 @@ const LoginPage = () => {
         window.location.assign(authUrl);
     };
 
+    // ── Apple Login Handler ──
     const handleManualAppleLogin = async () => {
         try {
             setIsAuthenticating(true);
@@ -318,7 +304,6 @@ const LoginPage = () => {
                     scopes: 'email name',
                 });
             } else {
-                // If on web browser, attempt to import or prompt iOS app usage
                 try {
                     const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
                     appleResponse = await SignInWithApple.authorize({
@@ -329,7 +314,7 @@ const LoginPage = () => {
                 } catch (webErr) {
                     setIsAuthenticating(false);
                     sessionStorage.removeItem("is_authenticating");
-                    toast("Sign in with Apple is designed for the iOS mobile app. On desktop, please continue with Google or Demo.", { icon: '🍎' });
+                    toast("Sign in with Apple is designed for the iOS app. On web browser, please continue with Google or Demo.", { icon: '🍎' });
                     return;
                 }
             }
@@ -363,38 +348,13 @@ const LoginPage = () => {
             console.error("Apple Sign-In error:", err);
             setIsAuthenticating(false);
             sessionStorage.removeItem("is_authenticating");
-            const errStr = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
-            if (errStr.includes('canceled') || errStr.includes('1001') || errStr.includes('CANCELED')) {
-                return;
-            }
-            if (errStr.includes('1000')) {
-                toast.error("Apple Sign-In capability requires a paid Apple Developer Program account on iOS. Please use Google Login or Demo Access.");
-                return;
-            }
+            const errStr = err?.message || '';
+            if (errStr.includes('canceled') || errStr.includes('1001')) return;
             toast.error(err.message || "Apple Sign-In failed.");
         }
     };
 
-    const handleReviewerDemoLogin = async () => {
-        try {
-            setIsAuthenticating(true);
-            sessionStorage.setItem("is_authenticating", "true");
-            const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
-            const res = await axios.post(`${backendUrl}/api/auth/demo-login`);
-            if (res.data && res.data.token) {
-                login({ credential: res.data.token });
-                toast.success("Welcome, App Store Reviewer!");
-                setIsAuthenticating(false);
-                sessionStorage.removeItem("is_authenticating");
-                navigate(resolvePostAuthRedirect(), { replace: true });
-            }
-        } catch (e) {
-            setIsAuthenticating(false);
-            sessionStorage.removeItem("is_authenticating");
-            toast.error("Reviewer demo login unavailable.");
-        }
-    };
-
+    // ── LinkedIn Login Handler ──
     const handleManualLinkedInLogin = async () => {
         setIsAuthenticating(true);
         setAuthStatusMessage("Connecting with LinkedIn...");
@@ -402,18 +362,12 @@ const LoginPage = () => {
 
         const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
 
-        // 1. Native In-App Browser flow (iOS SFSafariViewController & Android Chrome Custom Tabs)
-        //    Opens browser to LinkedIn OAuth; server exchanges code -> JWT and 302 redirects to learnproofai://auth/linkedin
-        //    The OS intercepts learnproofai://, automatically closing the browser sheet and waking the app via appUrlOpen.
-        //    As a resilient backup, polling runs concurrently.
         if (isCapacitorNative) {
             try {
                 const { Browser } = await import('@capacitor/browser');
-                const { App } = await import('@capacitor/app');
                 const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
                 const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
-
-                const sessionId = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+                const sessionId = Math.random().toString(36).substring(2);
                 const redirectUri = `${backendUrl}/api/auth/linkedin/callback`;
 
                 const authUrl = `https://www.linkedin.com/oauth/v2/authorization?` +
@@ -423,121 +377,14 @@ const LoginPage = () => {
                     `&state=${sessionId}` +
                     `&scope=${encodeURIComponent('openid profile email')}`;
 
-                let appUrlListener = null;
-                let browserFinishedListener = null;
-                let pollTimer = null;
-                let isHandled = false;
-
-                const cleanup = async () => {
-                    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-                    if (appUrlListener) {
-                        try { await appUrlListener.remove(); } catch (_) {}
-                        appUrlListener = null;
-                    }
-                    if (browserFinishedListener) {
-                        try { await browserFinishedListener.remove(); } catch (_) {}
-                        browserFinishedListener = null;
-                    }
-                    try { await Browser.close(); } catch (_) {}
-                };
-
-                const finishAuth = async (token, isNewUser) => {
-                    if (isHandled) return;
-                    isHandled = true;
-                    await cleanup();
-
-                    login({ credential: token });
-                    if (isNewUser) sessionStorage.setItem('prompt_student_profile', 'true');
-                    toast.success('Welcome to LearnProof AI!');
-                    setIsAuthenticating(false);
-                    sessionStorage.removeItem('is_authenticating');
-                    navigate(resolvePostAuthRedirect(), { replace: true });
-                };
-
-                const failAuth = async (errMsg) => {
-                    if (isHandled) return;
-                    isHandled = true;
-                    await cleanup();
-
-                    if (errMsg && !errMsg.toLowerCase().includes('cancel')) {
-                        toast.error(errMsg);
-                    }
-                    setIsAuthenticating(false);
-                    sessionStorage.removeItem('is_authenticating');
-                };
-
-                // 1. Listen for custom scheme redirect (learnproofai://auth/linkedin)
-                appUrlListener = await App.addListener('appUrlOpen', async (event) => {
-                    console.log('[LinkedIn Native] appUrlOpen received:', event?.url);
-                    if (!event?.url || !event.url.startsWith('learnproofai://auth/linkedin')) return;
-
-                    try {
-                        const urlObj = new URL(event.url.replace('learnproofai://', 'https://learnproofai.com/'));
-                        const token = urlObj.searchParams.get('token');
-                        const isNewUser = urlObj.searchParams.get('isNewUser') === '1';
-                        const error = urlObj.searchParams.get('error');
-
-                        if (error) {
-                            await failAuth(error);
-                        } else if (token) {
-                            await finishAuth(token, isNewUser);
-                        }
-                    } catch (e) {
-                        console.error('[LinkedIn Native] Error parsing deep link URL:', e);
-                    }
-                });
-
-                // 2. Listen for user closing the browser sheet
-                browserFinishedListener = await Browser.addListener('browserFinished', async () => {
-                    console.log('[LinkedIn Native] Browser dismissed by user');
-                    setTimeout(async () => {
-                        if (!isHandled) {
-                            const existingToken = localStorage.getItem('google_token');
-                            if (existingToken) {
-                                isHandled = true;
-                                await cleanup();
-                                navigate(resolvePostAuthRedirect() || '/dashboard', { replace: true });
-                                return;
-                            }
-                            await failAuth('Login cancelled');
-                        }
-                    }, 2500);
-                });
-
-                // 3. Resilient fallback polling every 1s in case OS deep link is delayed
-                let attempts = 0;
-                pollTimer = setInterval(async () => {
-                    if (isHandled) return;
-                    attempts++;
-                    if (attempts > 90) {
-                        await failAuth('LinkedIn login timed out. Please try again.');
-                        return;
-                    }
-                    try {
-                        const pollRes = await axios.get(`${backendUrl}/api/auth/linkedin/session/${sessionId}`);
-                        if (pollRes.status === 200 && pollRes.data?.token) {
-                            await finishAuth(pollRes.data.token, pollRes.data.isNewUser);
-                        }
-                    } catch (pollErr) {
-                        if (pollErr.response?.status === 400) {
-                            await failAuth(pollErr.response?.data?.error || 'LinkedIn login failed');
-                        }
-                    }
-                }, 1000);
-
-                // Open in-app browser sheet
                 await Browser.open({ url: authUrl, presentationStyle: 'popover' });
-                return; // Wait for appUrlOpen / poll — do NOT fall through to web popup
-            } catch (nativeErr) {
-                console.warn('[LinkedIn Native] Browser open failed:', nativeErr);
+                return;
+            } catch (_) {
                 setIsAuthenticating(false);
                 sessionStorage.removeItem('is_authenticating');
-                // Fall through to web popup
             }
         }
 
-
-        // 2. Web Popup Flow (Desktop & Mobile Browser) - Seamless popup dialog without navigating away
         const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
         const redirectUri = `${window.location.origin}/auth/linkedin/callback`;
         const state = Math.random().toString(36).substring(2);
@@ -552,163 +399,160 @@ const LoginPage = () => {
             `&state=${state}` +
             `&scope=${encodeURIComponent('openid profile email')}`;
 
-        const width = 520;
-        const height = 650;
-        const left = window.screenX + Math.max(0, (window.outerWidth - width) / 2);
-        const top = window.screenY + Math.max(0, (window.outerHeight - height) / 2);
+        window.location.assign(authUrl);
+    };
 
-        let popup = null;
+    // ── Resilient Auth API caller with instant localhost priority ──
+    const callAuthEndpoint = async (method, path, data = {}) => {
+        const isLocal = typeof window !== 'undefined' && 
+            (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        
+        const localBase = 'http://localhost:8000';
+        const remoteBase = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+
+        // When running in local development, prioritize local backend on port 8000
+        const primary = isLocal ? localBase : remoteBase;
+        const fallback = isLocal ? remoteBase : localBase;
+
         try {
-            popup = window.open(
-                authUrl,
-                'LinkedInSignIn',
-                `width=${width},height=${height},left=${left},top=${top},status=0,toolbar=0,menubar=0,location=0,resizable=yes,scrollbars=yes`
-            );
-        } catch (e) {
-            console.warn("Popup window open failed:", e);
+            return await axios({
+                method,
+                url: `${primary}${path}`,
+                data,
+                timeout: 5000
+            });
+        } catch (firstErr) {
+            console.warn(`[Auth API] Primary ${primary}${path} failed:`, firstErr.message);
+            try {
+                return await axios({
+                    method,
+                    url: `${fallback}${path}`,
+                    data,
+                    timeout: 5000
+                });
+            } catch (fallbackErr) {
+                console.error(`[Auth API] Fallback ${fallback}${path} also failed:`, fallbackErr.message);
+                throw (firstErr.response ? firstErr : fallbackErr);
+            }
         }
+    };
 
-        // Fallback: If popup is blocked by the browser, use regular redirect
-        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-            window.location.assign(authUrl);
+    // ── App Store Reviewer 1-Click Demo Login ──
+    const handleReviewerDemoLogin = async () => {
+        try {
+            setReviewerLoading(true);
+            let res;
+            try {
+                res = await callAuthEndpoint('post', '/api/auth/demo-login');
+            } catch (apiErr) {
+                console.warn("[handleReviewerDemoLogin] Backend demo-login failed, using mock reviewer session:", apiErr.message);
+            }
+
+            const token = res?.data?.token || 'apple_reviewer_demo_2026';
+            login({ credential: token });
+            toast.success("Welcome to Demo Mode!");
+            setShowEmailModal(false);
+            navigate(resolvePostAuthRedirect(), { replace: true });
+        } catch (e) {
+            console.error("Reviewer demo login error:", e);
+            toast.error("Reviewer demo login unavailable.");
+        } finally {
+            setReviewerLoading(false);
+        }
+    };
+
+    // ── Email OTP Send & Verify Handlers ──
+    const handleSendEmailOtp = async (e) => {
+        if (e) e.preventDefault();
+        const trimmedEmail = emailInput.trim();
+        if (!trimmedEmail) {
+            toast.error("Please enter your email address.");
+            return;
+        }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+            toast.error("Please enter a valid email address.");
             return;
         }
 
         try {
-            if (popup.focus) popup.focus();
-        } catch (_) {}
+            setEmailLoading(true);
+            const res = await callAuthEndpoint('post', '/api/auth/email/send-otp', {
+                email: trimmedEmail
+            });
 
-        let cleanupDone = false;
-        let checkClosedInterval = null;
-        let broadcastChannel = null;
-
-        const cleanup = () => {
-            if (cleanupDone) return;
-            cleanupDone = true;
-            if (checkClosedInterval) clearInterval(checkClosedInterval);
-            window.removeEventListener('message', handleMessage);
-            window.removeEventListener('storage', handleStorage);
-            if (broadcastChannel) {
-                try { broadcastChannel.close(); } catch (_) {}
-            }
-            try { localStorage.removeItem('linkedin_auth_result'); } catch (_) {}
-        };
-
-        const handleSuccess = (data) => {
-            cleanup();
-            if (popup && !popup.closed) {
-                try { popup.close(); } catch (_) {}
-            }
-            if (data.token) {
-                login({ credential: data.token });
-                if (data.isNewUser) {
-                    sessionStorage.setItem('prompt_student_profile', 'true');
+            if (res.data?.success) {
+                setEmailStep('otp');
+                setOtpInput('');
+                setResendCountdown(60);
+                if (res.data?.devCode) {
+                    setDevOtpHint(res.data.devCode);
+                    toast.success(`Verification code: ${res.data.devCode}`, { duration: 6000 });
+                } else {
+                    setDevOtpHint('');
+                    toast.success(`Verification code sent to ${trimmedEmail}!`);
                 }
-                toast.success("Welcome to LearnProof AI!");
-                setIsAuthenticating(false);
-                sessionStorage.removeItem("is_authenticating");
-                navigate(resolvePostAuthRedirect(), { replace: true });
-            } else {
-                setIsAuthenticating(false);
-                sessionStorage.removeItem("is_authenticating");
-                toast.error("LinkedIn login failed: missing token.");
             }
-        };
-
-        const handleError = (errorMsg) => {
-            cleanup();
-            if (popup && !popup.closed) {
-                try { popup.close(); } catch (_) {}
-            }
-            setIsAuthenticating(false);
-            sessionStorage.removeItem("is_authenticating");
-            if (errorMsg && !errorMsg.includes('cancelled') && !errorMsg.includes('closed')) {
-                toast.error(errorMsg);
-            }
-        };
-
-        const handleMessage = (event) => {
-            if (event.origin !== window.location.origin) return;
-            if (event.data?.type === 'LINKEDIN_AUTH_SUCCESS') {
-                handleSuccess(event.data);
-            } else if (event.data?.type === 'LINKEDIN_AUTH_ERROR') {
-                handleError(event.data?.error);
-            }
-        };
-
-        const handleStorage = (event) => {
-            if (event.key === 'linkedin_auth_result' && event.newValue) {
-                try {
-                    const parsed = JSON.parse(event.newValue);
-                    if (parsed.type === 'LINKEDIN_AUTH_SUCCESS') {
-                        handleSuccess(parsed);
-                    } else if (parsed.type === 'LINKEDIN_AUTH_ERROR') {
-                        handleError(parsed.error);
-                    }
-                } catch (_) {}
-            }
-        };
-
-        window.addEventListener('message', handleMessage);
-        window.addEventListener('storage', handleStorage);
-
-        try {
-            broadcastChannel = new BroadcastChannel('linkedin_auth_channel');
-            broadcastChannel.onmessage = (event) => {
-                if (event.data?.type === 'LINKEDIN_AUTH_SUCCESS') {
-                    handleSuccess(event.data);
-                } else if (event.data?.type === 'LINKEDIN_AUTH_ERROR') {
-                    handleError(event.data?.error);
-                }
-            };
-        } catch (_) {}
-
-        checkClosedInterval = setInterval(() => {
-            if (popup && popup.closed) {
-                clearInterval(checkClosedInterval);
-                setTimeout(() => {
-                    if (!cleanupDone) {
-                        cleanup();
-                        setIsAuthenticating(false);
-                        sessionStorage.removeItem("is_authenticating");
-                    }
-                }, 600);
-            }
-        }, 500);
+        } catch (err) {
+            console.error("sendOtp error:", err);
+            toast.error(err.response?.data?.error || "Failed to send code. Please try again.");
+        } finally {
+            setEmailLoading(false);
+        }
     };
 
+    const handleVerifyEmailOtp = async (explicitCode, e) => {
+        if (e) e.preventDefault();
+        const trimmedEmail = emailInput.trim();
+        const codeToVerify = (explicitCode !== undefined ? explicitCode : otpInput).toString().trim();
+
+        if (!codeToVerify || codeToVerify.length < 6) {
+            toast.error("Please enter the complete 6-digit verification code.");
+            return;
+        }
+
+        try {
+            setEmailLoading(true);
+            const res = await callAuthEndpoint('post', '/api/auth/email/verify-otp', {
+                email: trimmedEmail,
+                otp: codeToVerify
+            });
+
+            if (res.data && res.data.token) {
+                login({ credential: res.data.token });
+                toast.success("Welcome to LearnProof AI!");
+                setShowEmailModal(false);
+                setEmailStep('input');
+                setEmailInput('');
+                setOtpInput('');
+                navigate(resolvePostAuthRedirect(), { replace: true });
+            }
+        } catch (err) {
+            console.error("verifyOtp error:", err);
+            toast.error(err.response?.data?.error || "Incorrect code. Please try again.");
+        } finally {
+            setEmailLoading(false);
+        }
+    };
+
+    // Fullscreen Loading overlay when authenticating
     if (loading || isAuthenticating) {
         return (
-            <div className="min-h-screen bg-orange-50 relative overflow-hidden flex flex-col items-center justify-center select-none">
-                {/* Background Texture & Blobs */}
-                <div className="absolute inset-0 z-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }} />
-                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-orange-200 via-red-100 to-transparent rounded-full blur-[100px] opacity-60 z-0 pointer-events-none -translate-y-1/2 translate-x-1/3" />
-                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-amber-200 to-transparent rounded-full blur-[80px] opacity-40 z-0 pointer-events-none -translate-x-1/3" />
-
-                <div className="relative z-10 flex flex-col items-center gap-6 bg-white/70 backdrop-blur-xl border border-orange-200/80 rounded-[2rem] p-8 sm:p-10 shadow-[0_20px_50px_rgba(249,115,22,0.06)] max-w-sm w-full mx-4 text-center">
-                    {/* Pulsing Logo */}
-                    <motion.div 
-                        animate={{ scale: [1, 1.05, 1] }}
-                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                        className="h-32 sm:h-40 flex items-center justify-center"
-                    >
-                        <img src="/LP_logo_login.png" alt="LearnProof" className="h-32 sm:h-40 w-auto object-contain" />
-                    </motion.div>
-                    <div className="text-center space-y-1.5">
-                        <h2 className="text-lg font-black text-gray-900 tracking-tight uppercase">LearnProof AI</h2>
-                        <p className="text-xs text-gray-500 font-semibold">{authStatusMessage}</p>
+            <div className="min-h-screen bg-gradient-to-br from-[#fff7f4] via-[#ffffff] to-[#fffbf9] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col items-center justify-center p-4">
+                <div className="flex flex-col items-center gap-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-orange-100 dark:border-gray-800 rounded-3xl p-8 shadow-xl max-w-sm w-full text-center">
+                    <img src="/LP_logo_login.png" alt="LearnProof" className="h-20 w-auto object-contain animate-pulse" />
+                    <div className="space-y-1">
+                        <h2 className="text-base font-black text-gray-900 dark:text-white">LearnProof AI</h2>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{authStatusMessage}</p>
                     </div>
-                    {/* Spinner */}
-                    <div className="w-8 h-8 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mt-2" />
-                    
+                    <div className="w-8 h-8 border-3 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mt-1" />
                     <button
                         type="button"
                         onClick={() => {
                             setIsAuthenticating(false);
                             sessionStorage.removeItem("is_authenticating");
-                            setAuthStatusMessage("Securing your session, please wait...");
                         }}
-                        className="text-[11px] font-medium text-gray-400 hover:text-gray-600 underline mt-2 transition-colors cursor-pointer"
+                        className="text-xs text-gray-400 hover:text-gray-600 underline mt-2 cursor-pointer"
                     >
                         Cancel
                     </button>
@@ -722,204 +566,492 @@ const LoginPage = () => {
     }
 
     return (
-        <div className="h-[100dvh] max-h-[100dvh] w-full bg-gradient-to-br from-[#fff7f4] via-[#ffffff] to-[#fffbf9] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden flex flex-col justify-between items-center p-2.5 sm:p-4 md:p-6 selection:bg-orange-200 select-none">
+        <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#FFF5F0] via-[#FFFFFF] to-[#FFEFE6] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-x-hidden flex flex-col justify-between items-center py-5 sm:py-8 px-4 sm:px-6 select-none font-sans">
             
-            {/* Mesh dot grid background overlay matching mockup */}
-            <div className="absolute inset-0 z-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#f97316 1.5px, transparent 1.5px)', backgroundSize: '24px 24px' }} />
-            
-            {/* Ambient Background Glows */}
-            <div className="absolute inset-0 z-0 opacity-30 pointer-events-none">
-                <div className="absolute top-[-10%] left-[-20%] w-[350px] sm:w-[500px] h-[350px] sm:h-[500px] bg-gradient-to-br from-orange-200/40 via-rose-100/20 to-transparent rounded-full blur-[80px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[300px] sm:w-[450px] h-[300px] sm:h-[450px] bg-gradient-to-tr from-amber-200/30 to-transparent rounded-full blur-[90px]" />
+            {/* ── Background Decorative Texture & Glows ── */}
+            <div className="absolute inset-0 pointer-events-none z-0">
+                {/* Top-Left Dot Grid Pattern */}
+                <div className="absolute top-4 left-4 grid grid-cols-4 gap-2.5 opacity-30">
+                    {[...Array(24)].map((_, i) => (
+                        <div key={i} className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                    ))}
+                </div>
+
+                {/* Bottom-Right Dot Grid Pattern */}
+                <div className="absolute bottom-6 right-4 grid grid-cols-4 gap-2.5 opacity-30">
+                    {[...Array(24)].map((_, i) => (
+                        <div key={i} className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                    ))}
+                </div>
+
+                {/* Soft ambient gradient waves */}
+                <div className="absolute top-0 right-0 w-[380px] h-[380px] bg-gradient-to-bl from-orange-200/35 via-amber-100/20 to-transparent rounded-full blur-[90px]" />
+                <div className="absolute bottom-0 left-0 w-[350px] h-[350px] bg-gradient-to-tr from-orange-200/30 via-rose-100/15 to-transparent rounded-full blur-[80px]" />
             </div>
- 
-            {/* Main Centered Box Container Wrapper - Flex centered with dynamic height */}
-            <div className="flex-1 w-full min-h-0 flex items-center justify-center relative z-10 py-1 sm:py-2">
+
+            {/* ── Floating 3D Graduation Cap (Top Right - Original Orange Cap with Bottom-Matching Animation) ── */}
+            <div className="absolute top-5 right-4 sm:top-9 sm:right-14 z-10 pointer-events-none flex flex-col items-center">
                 <motion.div 
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.35, ease: "easeOut" }}
-                    className="w-full max-w-[350px] sm:max-w-[400px] md:max-w-[420px] max-h-[calc(100dvh-2.5rem)] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border border-orange-100/70 dark:border-gray-800 rounded-[2rem] sm:rounded-[2.5rem] px-4 py-3 sm:px-6 sm:py-4 md:py-5 shadow-[0_20px_50px_rgba(249,115,22,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center justify-between gap-2 sm:gap-2.5 md:gap-3 relative overflow-hidden"
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+                    className="relative flex flex-col items-center"
                 >
-                    {/* Logo & Headline Swoop Lines */}
-                    <div className="relative w-full flex flex-col items-center text-center shrink-0">
-                        {/* SVG Swoop Connector Lines from screenshot */}
-                        <svg className="absolute top-1 left-1/2 -translate-x-1/2 w-[220px] h-[80px] pointer-events-none opacity-40 z-0" viewBox="0 0 240 100" fill="none">
-                            <path d="M 30 80 Q 100 40 210 16" stroke="url(#orange-grad)" strokeWidth="1" strokeDasharray="3 3" />
-                            <circle cx="30" cy="80" r="3" fill="#f97316" className="animate-pulse" />
-                            <defs>
-                                <linearGradient id="orange-grad" x1="0%" y1="100%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#f97316" />
-                                    <stop offset="100%" stopColor="#ffedd5" />
-                                </linearGradient>
-                            </defs>
-                        </svg>
-
-                        <div className="relative z-10 flex items-center justify-center w-full">
-                            {/* Main Shield Logo */}
-                            <div className="relative">
-                                <img src="/LP_logo_login.png" alt="LearnProof Logo" className="h-16 sm:h-20 md:h-22 w-auto object-contain transition-all" />
-                            </div>
-                            
-                            {/* Connected Floating Graduation Cap Icon */}
-                            <div className="absolute top-0 right-6 sm:right-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
-                                <GraduationCap size={14} />
-                            </div>
-                        </div>
+                    {/* Sunburst rays */}
+                    <div className="flex gap-1.5 mb-1 opacity-70">
+                        <span className="w-1 h-2 sm:h-2.5 bg-orange-400 rounded-full rotate-[-25deg]" />
+                        <span className="w-1 h-2.5 sm:h-3.5 bg-orange-500 rounded-full" />
+                        <span className="w-1 h-2 sm:h-2.5 bg-orange-400 rounded-full rotate-[25deg]" />
                     </div>
-
-                    {/* Welcome message */}
-                    <div className="text-center space-y-0.5 z-10 w-full shrink-0">
-                        <h2 className="text-lg sm:text-xl md:text-2xl font-black text-slate-800 dark:text-white leading-tight">
-                            Welcome 👋
-                        </h2>
-                        <p className="text-[10.5px] sm:text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                            Sign in to continue your learning journey
-                        </p>
+                    {/* 3D Cap: Original Orange Gradient Card */}
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-orange-400 to-amber-400 text-white flex items-center justify-center shadow-[0_12px_28px_rgba(249,115,22,0.3)] border border-white/50 backdrop-blur-sm">
+                        <GraduationCap size={24} className="sm:size-[30px] drop-shadow-sm" />
                     </div>
+                </motion.div>
+            </div>
 
-                    {/* Swipeable Feature Carousel Card widget */}
-                    <div className="w-full relative overflow-hidden h-[112px] sm:h-[122px] md:h-[130px] flex items-center justify-center z-10 shrink-0">
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={activeFeature}
-                                initial={{ opacity: 0, x: 40 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -40 }}
-                                transition={{ duration: 0.25, ease: "easeInOut" }}
-                                drag="x"
-                                dragConstraints={{ left: 0, right: 0 }}
-                                dragElastic={0.5}
-                                onDragEnd={(e, { offset }) => {
-                                    const swipeThreshold = 50;
-                                    if (offset.x < -swipeThreshold) {
-                                        setActiveFeature((prev) => (prev + 1) % SLIDES.length);
-                                    } else if (offset.x > swipeThreshold) {
-                                        setActiveFeature((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
-                                    }
-                                }}
-                                className="flex flex-row gap-2 w-full justify-between items-stretch select-none h-full"
-                            >
-                                {SLIDES[activeFeature].map((item, idx) => (
-                                    <div 
-                                        key={idx}
-                                        className={`flex-1 flex flex-col items-center text-center p-1.5 sm:p-2 ${item.bgClass} rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.015)] relative overflow-hidden transition-all duration-300 h-full min-w-0 font-sans justify-between`}
-                                    >
-                                        <div className="flex flex-col items-center w-full">
-                                            <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center mb-1 shrink-0 shadow-xs border border-slate-100/40 dark:border-gray-700">
-                                                {item.icon}
-                                            </div>
-                                            <h4 className="text-[9px] sm:text-[10px] md:text-[10.5px] font-bold text-[#0f172a] dark:text-white tracking-tight leading-tight text-center w-full px-0.5 font-sans min-h-[20px] flex items-center justify-center">
-                                                {item.title}
-                                            </h4>
-                                            <p className="text-[7px] sm:text-[7.5px] md:text-[8px] text-slate-500 dark:text-slate-400 font-medium leading-[1.15] tracking-tight text-center font-sans mt-0.5 px-0.5 line-clamp-2">
-                                                {item.desc}
-                                            </p>
-                                        </div>
-                                        <div className={`w-4 sm:w-5 h-[2px] ${item.lineColor} opacity-90 rounded-full mt-0.5`} />
+            {/* ── Main Framed Login Container ── */}
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.98, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="relative z-10 w-full max-w-[375px] sm:max-w-[410px] bg-white/80 dark:bg-gray-900/85 backdrop-blur-xl border border-orange-200/70 dark:border-gray-800 rounded-[2rem] sm:rounded-[2.5rem] px-4.5 py-5 sm:px-6 sm:py-6 shadow-[0_16px_40px_rgba(249,115,22,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] flex flex-col items-center justify-center space-y-3.5 sm:space-y-4 my-auto"
+            >
+                
+                {/* 1. Header with Logo & Brand Name */}
+                <div className="flex flex-col items-center text-center space-y-1">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="relative mb-0.5"
+                    >
+                        <img 
+                            src="/LP_logo_login.png" 
+                            alt="LearnProof AI" 
+                            className="h-20 sm:h-24 w-auto object-contain drop-shadow-[0_6px_14px_rgba(249,115,22,0.12)]"
+                        />
+                    </motion.div>
+                </div>
+
+                {/* 2. Welcome Back Headline */}
+                <div className="text-center space-y-0.5">
+                    <h1 className="text-2xl sm:text-[26px] font-black text-slate-900 dark:text-white tracking-tight">
+                        Welcome Back
+                    </h1>
+                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        Sign in to continue your learning journey
+                    </p>
+                </div>
+
+                {/* 3. Three Featured Cards (Interactive Carousel / Swipeable) */}
+                <div className="w-full relative py-0.5">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeFeature}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.25 }}
+                            drag="x"
+                            dragConstraints={{ left: 0, right: 0 }}
+                            onDragEnd={(_, { offset }) => {
+                                if (offset.x < -40) setActiveFeature((prev) => (prev + 1) % SLIDES.length);
+                                else if (offset.x > 40) setActiveFeature((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
+                            }}
+                            className="grid grid-cols-3 gap-2 sm:gap-2.5 w-full cursor-grab active:cursor-grabbing"
+                        >
+                            {SLIDES[activeFeature].map((card, idx) => (
+                                <div
+                                    key={idx}
+                                    className={`rounded-2xl p-2 sm:p-2.5 border flex flex-col items-center text-center justify-between min-h-[120px] sm:min-h-[130px] shadow-xs transition-all duration-200 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm ${card.cardBg}`}
+                                >
+                                    {/* Icon Container */}
+                                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white dark:bg-gray-900 flex items-center justify-center shadow-xs border border-slate-100 dark:border-gray-700/60 shrink-0 mb-1">
+                                        {card.icon}
                                     </div>
-                                ))}
-                            </motion.div>
-                        </AnimatePresence>
-                    </div>
+                                    
+                                    {/* Text */}
+                                    <div className="w-full my-auto">
+                                        <h3 className="text-[10.5px] sm:text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                                            {card.title}
+                                        </h3>
+                                        <p className="text-[8.5px] sm:text-[9px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 leading-snug line-clamp-2">
+                                            {card.desc}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </motion.div>
+                    </AnimatePresence>
 
-                    {/* Pagination Dots Indicator */}
-                    <div className="flex justify-center items-center gap-1.5 shrink-0 select-none z-10">
+                    {/* Pagination Indicator Dots */}
+                    <div className="flex justify-center items-center gap-1.5 mt-2.5">
                         {SLIDES.map((_, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => setActiveFeature(idx)}
                                 className={`transition-all duration-300 cursor-pointer ${
                                     idx === activeFeature 
-                                        ? 'w-3.5 sm:w-4 h-1 sm:h-1.5 rounded-full bg-orange-500 shadow-xs' 
-                                        : 'w-1 sm:w-1.5 h-1 sm:h-1.5 rounded-full bg-slate-200 dark:bg-gray-800'
-                            }`}
-                                title={`Slide ${idx + 1}`}
+                                        ? 'w-5 h-1.5 rounded-full bg-orange-500 shadow-xs' 
+                                        : 'w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-gray-700 hover:bg-slate-400'
+                                }`}
+                                aria-label={`Slide ${idx + 1}`}
                             />
                         ))}
                     </div>
+                </div>
 
-                    {/* Secure badge block */}
-                    <div className="flex items-center gap-1.5 text-[8.5px] sm:text-[9px] text-orange-600 dark:text-orange-400 font-bold uppercase tracking-wider bg-orange-500/5 px-3 py-0.5 rounded-full border border-orange-500/10 z-10 shrink-0">
-                        <Shield size={9} className="text-orange-500 animate-pulse" />
-                        <span>Secure • Private • Trusted</span>
+                {/* 4. Primary Login Action: Continue with Google (Compact & Centered like before) */}
+                <div className="w-full flex justify-center pt-0.5">
+                    <motion.button
+                        whileHover={{ scale: 1.01, y: -0.5 }}
+                        whileTap={{ scale: 0.99 }}
+                        type="button"
+                        onClick={handleManualGoogleLogin}
+                        className="w-full max-w-[245px] sm:max-w-[260px] h-[38px] sm:h-[40px] flex items-center justify-center gap-2.5 px-3 bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 rounded-xl shadow-xs hover:shadow hover:border-slate-300 dark:hover:border-gray-600 transition-all duration-200 font-semibold text-slate-700 dark:text-slate-200 text-xs sm:text-[13px] cursor-pointer"
+                    >
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                        </svg>
+                        <span>Continue with Google</span>
+                    </motion.button>
+                </div>
+
+                {/* 5. Divider with "or" */}
+                <div className="flex items-center gap-2.5 w-full max-w-[245px] sm:max-w-[260px] my-0.5">
+                    <div className="flex-1 h-[1px] bg-slate-200 dark:bg-gray-800" />
+                    <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        or
+                    </span>
+                    <div className="flex-1 h-[1px] bg-slate-200 dark:bg-gray-800" />
+                </div>
+
+                {/* 6. Alternative Login Tiles Row (Apple, LinkedIn, Email/Reviewer Access) */}
+                <div className="flex items-center justify-center gap-2.5 sm:gap-3 w-full max-w-[245px] sm:max-w-[260px]">
+                    {/* Apple Sign-In Tile */}
+                    <motion.button
+                        whileHover={{ scale: 1.04, y: -1 }}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={handleManualAppleLogin}
+                        className="flex-1 h-[44px] sm:h-[48px] rounded-2xl bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 shadow-xs hover:shadow-md hover:border-slate-400 dark:hover:border-gray-600 transition-all flex items-center justify-center cursor-pointer group"
+                        title="Sign in with Apple"
+                        aria-label="Sign in with Apple"
+                    >
+                        <svg className="w-5.5 h-5.5 fill-slate-900 dark:fill-white transition-transform group-hover:scale-105" viewBox="0 0 24 24">
+                            <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
+                        </svg>
+                    </motion.button>
+
+                    {/* LinkedIn Sign-In Tile */}
+                    <motion.button
+                        whileHover={{ scale: 1.04, y: -1 }}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={handleManualLinkedInLogin}
+                        className="flex-1 h-[44px] sm:h-[48px] rounded-2xl bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 shadow-xs hover:shadow-md hover:border-[#0A66C2] dark:hover:border-[#0A66C2] transition-all flex items-center justify-center cursor-pointer group"
+                        title="Sign in with LinkedIn"
+                        aria-label="Sign in with LinkedIn"
+                    >
+                        <svg className="w-5.5 h-5.5 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
+                            <rect width="24" height="24" rx="5" fill="#0A66C2" />
+                            <path fill="#FFFFFF" d="M19 19h-3.14V13.8c0-1.24-.02-2.83-1.72-2.83-1.72 0-1.99 1.35-1.99 2.74V19H9V8.88h3.01v1.38h.04c.42-.8 1.45-1.64 2.98-1.64 3.19 0 3.78 2.1 3.78 4.83V19zM5.33 7.49a1.82 1.82 0 1 1 0-3.64 1.82 1.82 0 0 1 0 3.64zM6.9 19H3.76V8.88H6.9V19z" />
+                        </svg>
+                    </motion.button>
+
+                    {/* Email / Reviewer Demo Access Tile */}
+                    <motion.button
+                        whileHover={{ scale: 1.04, y: -1 }}
+                        whileTap={{ scale: 0.96 }}
+                        onClick={() => setShowEmailModal(true)}
+                        className="flex-1 h-[44px] sm:h-[48px] rounded-2xl bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 shadow-xs hover:shadow-md hover:border-orange-300 dark:hover:border-orange-500/40 transition-all flex items-center justify-center cursor-pointer group"
+                        title="Sign in with Email or App Store Reviewer Access"
+                        aria-label="Sign in with Email or Demo Access"
+                    >
+                        <svg className="w-5.5 h-5.5 text-[#f97316] transition-transform group-hover:scale-105" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect width="20" height="15" x="2" y="4.5" rx="3.5" />
+                            <path d="m22 7.5-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7.5" />
+                        </svg>
+                    </motion.button>
+                </div>
+
+                {/* 7. Terms of Service, Privacy Policy & Account Deletion */}
+                <p className="text-[9px] sm:text-[9.5px] text-slate-400 dark:text-slate-500 font-medium text-center leading-tight px-2 pt-1 max-w-[310px]">
+                    By continuing, you agree to our{' '}
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline font-semibold">Terms</a>
+                    {', '}
+                    <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline font-semibold">Privacy Policy</a>
+                    {', & '}
+                    <a href="/delete-account" target="_blank" rel="noopener noreferrer" className="text-orange-500 hover:underline font-semibold">Account Deletion</a>
+                </p>
+
+            </motion.div>
+
+            {/* ── Floating 3D Lightbulb with Curved Dashed Trail (Bottom Left) ── */}
+            <div className="absolute bottom-5 left-3 sm:bottom-8 sm:left-12 z-0 pointer-events-none flex flex-col items-center">
+                <motion.div
+                    animate={{ y: [0, 6, 0] }}
+                    transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+                    className="relative flex flex-col items-center"
+                >
+                    {/* Glowing rays */}
+                    <div className="flex gap-1.5 mb-1 opacity-70">
+                        <span className="w-1 h-2 sm:h-2.5 bg-orange-400 rounded-full rotate-[-25deg]" />
+                        <span className="w-1 h-2.5 sm:h-3 bg-orange-500 rounded-full" />
+                        <span className="w-1 h-2 sm:h-2.5 bg-orange-400 rounded-full rotate-[25deg]" />
                     </div>
-
-                    {/* Auth Login Action Button */}
-                    <div className="w-full space-y-1.5 sm:space-y-2 z-10 flex flex-col items-center shrink-0">
-                        {/* Continue with Google */}
-                        <motion.button 
-                            whileHover={{ scale: 1.01, y: -0.5 }}
-                            whileTap={{ scale: 0.99 }}
-                            onClick={handleManualGoogleLogin}
-                            className="w-full max-w-[240px] sm:max-w-[260px] h-[35px] sm:h-[38px] flex items-center justify-center gap-2 px-3 bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-xl shadow-xs hover:shadow hover:border-slate-300 transition-all duration-200 font-medium text-slate-700 dark:text-slate-200 text-xs cursor-pointer"
-                        >
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-3.5 h-3.5 shrink-0" />
-                            <span>Continue with Google</span>
-                        </motion.button>
-
-                        {/* Sign in with Apple (Mandatory for App Store Guideline 4.8 on iOS) */}
-                        {showAppleLogin && (
-                            <motion.button 
-                                whileHover={{ scale: 1.01, y: -0.5 }}
-                                whileTap={{ scale: 0.99 }}
-                                onClick={handleManualAppleLogin}
-                                className="w-full max-w-[240px] sm:max-w-[260px] h-[35px] sm:h-[38px] flex items-center justify-center gap-2 px-3 bg-black text-white hover:bg-zinc-900 border border-black rounded-xl shadow-xs transition-all duration-200 font-medium text-xs cursor-pointer"
-                            >
-                                <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
-                                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.61-.75 1.04-1.8 0.92-2.85-.92.04-2.07.62-2.73 1.37-.58.67-1.09 1.74-.96 2.77 1.03.08 2.15-.53 2.77-1.29z"/>
-                                </svg>
-                                <span>Continue with Apple</span>
-                            </motion.button>
-                        )}
-
-                        {/* Continue with LinkedIn */}
-                        <motion.button 
-                            whileHover={{ scale: 1.01, y: -0.5 }}
-                            whileTap={{ scale: 0.99 }}
-                            onClick={handleManualLinkedInLogin}
-                            className="w-full max-w-[240px] sm:max-w-[260px] h-[35px] sm:h-[38px] flex items-center justify-center gap-2 px-3 bg-[#0A66C2] hover:bg-[#004182] text-white border border-[#0A66C2] rounded-xl shadow-xs hover:shadow transition-all duration-200 font-medium text-xs cursor-pointer"
-                        >
-                            <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
-                                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.62 1.62 0 1 0 0 3.24 1.62 1.62 0 0 0 0-3.24z"/>
-                            </svg>
-                            <span>Continue with LinkedIn</span>
-                        </motion.button>
-
-                        {/* App Store Reviewer Demo Access Button (Prominent & Easy for Apple Reviewers to Locate) */}
-                        <div className="w-full flex justify-center pt-0.5">
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                type="button"
-                                onClick={handleReviewerDemoLogin}
-                                className="w-full max-w-[240px] sm:max-w-[260px] py-1.5 sm:py-2 px-3 rounded-xl bg-orange-500/10 hover:bg-orange-500/15 border border-orange-500/30 text-orange-700 dark:text-orange-300 text-[10.5px] sm:text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-xs"
-                                title="One-click demo sign in for App Store Reviewers"
-                            >
-                                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                                <span>App Store Reviewer Demo Access</span>
-                            </motion.button>
-                        </div>
-
-                        {/* Terms of Service & Privacy agreement text with direct Account Deletion link */}
-                        <p className="text-[9.5px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-medium text-center leading-tight px-2 pt-0.5">
-                            By continuing, you agree to our{' '}
-                            <a href="/terms" className="text-orange-500 hover:underline font-semibold">Terms</a>
-                            {', '}
-                            <a href="/privacy-policy" className="text-orange-500 hover:underline font-semibold">Privacy Policy</a>
-                            {', & '}
-                            <a href="/delete-account" className="text-orange-500 hover:underline font-semibold">Account Deletion</a>
-                        </p>
+                    {/* 3D Lightbulb card */}
+                    <div className="w-11 h-11 sm:w-15 sm:h-15 rounded-2xl bg-white dark:bg-gray-800 shadow-[0_10px_25px_rgba(249,115,22,0.18)] border border-orange-100 dark:border-gray-700 flex items-center justify-center">
+                        <Lightbulb size={22} className="sm:size-[26px] text-orange-500 drop-shadow-xs" />
                     </div>
                 </motion.div>
+
+                {/* Flowing dashed curve connecting lightbulb */}
+                <svg className="absolute -bottom-2 left-10 sm:left-12 w-44 sm:w-64 h-12 sm:h-16 pointer-events-none opacity-40 z-0" viewBox="0 0 240 60" fill="none">
+                    <path d="M 0 10 Q 70 50 160 20 T 240 40" stroke="#f97316" strokeWidth="1.5" strokeDasharray="4 6" />
+                </svg>
             </div>
 
-            {/* Branding Footer */}
-            <div className="relative z-10 w-full max-w-md mx-auto text-center shrink-0 py-1 sm:py-2">
-                <p className="text-[8.5px] sm:text-[9px] text-slate-400 dark:text-slate-600 font-bold uppercase tracking-widest">
-                    &copy; 2026 LEARNPROOF AI. ALL RIGHTS RESERVED.
-                </p>
-            </div>
+            {/* ── Email & App Store Reviewer Access Modal ── */}
+            <AnimatePresence>
+                {showEmailModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 12 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 12 }}
+                            transition={{ duration: 0.22, ease: "easeOut" }}
+                            className="bg-white dark:bg-gray-900 border border-orange-200/80 dark:border-gray-800 rounded-[1.75rem] sm:rounded-3xl p-5 sm:p-5.5 w-full max-w-[360px] sm:max-w-[375px] shadow-[0_20px_50px_rgba(0,0,0,0.22)] relative space-y-3.5"
+                        >
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between border-b border-slate-100 dark:border-gray-800/80 pb-2.5">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 border border-orange-200/50 dark:border-orange-500/20 flex items-center justify-center shrink-0">
+                                        {emailStep === 'otp' ? <KeyRound size={15} /> : <Mail size={15} />}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                                            {emailStep === 'otp' ? 'Enter Verification Code' : 'Sign In with Email'}
+                                        </h3>
+                                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                                            {emailStep === 'otp' ? 'Check your inbox for 6-digit code' : 'Fast, secure passwordless login'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        setShowEmailModal(false);
+                                        setEmailStep('input');
+                                    }}
+                                    className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition cursor-pointer"
+                                    aria-label="Close modal"
+                                >
+                                    <X size={15} />
+                                </button>
+                            </div>
+
+                            {/* ── STEP 1: Enter Email ── */}
+                            {emailStep === 'input' && (
+                                <div className="space-y-3">
+                                    {/* 1-Click App Store Reviewer Demo Access (Sleek, Small Icon, Compact Button) */}
+                                    <div className="flex items-center justify-between p-2 rounded-2xl bg-orange-50/70 dark:bg-orange-950/20 border border-orange-200/70 dark:border-orange-500/30">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <div className="w-6 h-6 rounded-lg bg-orange-500/10 dark:bg-orange-500/20 text-orange-500 flex items-center justify-center shrink-0">
+                                                <Sparkles size={12} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 block leading-tight">
+                                                    Reviewer Demo
+                                                </span>
+                                                <span className="text-[9.5px] text-slate-400 dark:text-slate-500 block leading-tight">
+                                                    1-click instant test access
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleReviewerDemoLogin}
+                                            disabled={reviewerLoading}
+                                            className="py-1 px-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 text-white rounded-lg text-[10.5px] font-bold shadow-xs active:scale-95 transition cursor-pointer flex items-center gap-1.5 shrink-0 disabled:opacity-60"
+                                        >
+                                            {reviewerLoading ? (
+                                                <Loader2 size={11} className="animate-spin" />
+                                            ) : (
+                                                <>
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                                                    <span>Demo Login</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {/* Divider */}
+                                    <div className="flex items-center gap-2 my-1">
+                                        <div className="flex-1 h-[1px] bg-slate-200/80 dark:bg-gray-800" />
+                                        <span className="text-[9.5px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                            or continue with code
+                                        </span>
+                                        <div className="flex-1 h-[1px] bg-slate-200/80 dark:bg-gray-800" />
+                                    </div>
+
+                                    {/* Email Input Form */}
+                                    <form onSubmit={handleSendEmailOtp} className="space-y-2.5">
+                                        <div className="space-y-1">
+                                            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                                                Email Address
+                                            </label>
+                                            <div className="relative">
+                                                <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                                                <input
+                                                    type="email"
+                                                    value={emailInput}
+                                                    onChange={(e) => setEmailInput(e.target.value)}
+                                                    placeholder="student@university.edu"
+                                                    disabled={emailLoading}
+                                                    autoFocus
+                                                    className="w-full text-xs pl-8.5 pr-3 h-[36px] rounded-xl border border-slate-200 dark:border-gray-700 bg-slate-50/80 dark:bg-gray-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:bg-white dark:focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-400 transition"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-center pt-0.5">
+                                            <button
+                                                type="submit"
+                                                disabled={emailLoading}
+                                                className="h-[34px] px-5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-white text-[11.5px] font-semibold shadow-xs hover:shadow-sm transition disabled:opacity-60 cursor-pointer inline-flex items-center gap-1.5"
+                                            >
+                                                {emailLoading ? (
+                                                    <>
+                                                        <Loader2 size={13} className="animate-spin" />
+                                                        <span>Sending Code...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Mail size={13} />
+                                                        <span>Send Verification Code</span>
+                                                        <ArrowRight size={12} className="opacity-80" />
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            )}
+
+                            {/* ── STEP 2: Enter 6-Digit OTP ── */}
+                            {emailStep === 'otp' && (
+                                <div className="space-y-3">
+                                    {/* Target Email Banner */}
+                                    <div className="flex items-center justify-between p-2 rounded-xl bg-orange-50/80 dark:bg-orange-950/20 border border-orange-200/70 dark:border-orange-500/30 text-xs">
+                                        <div className="truncate pr-2">
+                                            <span className="text-[9.5px] text-slate-400 dark:text-slate-500 block leading-tight">Code sent to:</span>
+                                            <span className="font-semibold text-orange-700 dark:text-orange-300 text-xs truncate block">
+                                                {emailInput}
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setEmailStep('input')}
+                                            className="text-[10.5px] font-bold text-orange-500 hover:text-orange-600 hover:underline shrink-0 cursor-pointer"
+                                        >
+                                            Change
+                                        </button>
+                                    </div>
+
+                                    {/* 6-Digit OTP Form */}
+                                    <form onSubmit={(e) => handleVerifyEmailOtp(undefined, e)} className="space-y-2.5">
+                                        <div className="space-y-1 text-center">
+                                            <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
+                                                Enter 6-Digit Code
+                                            </label>
+                                            <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                autoComplete="one-time-code"
+                                                maxLength={6}
+                                                value={otpInput}
+                                                disabled={emailLoading}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                                    setOtpInput(val);
+                                                    if (val.length === 6) {
+                                                        handleVerifyEmailOtp(val);
+                                                    }
+                                                }}
+                                                placeholder="••••••"
+                                                autoFocus
+                                                className="w-full text-center text-xl font-mono font-black tracking-[0.35em] h-[42px] px-3 rounded-xl border border-orange-200 dark:border-gray-700 bg-orange-50/40 dark:bg-gray-800 text-slate-900 dark:text-slate-100 focus:bg-white dark:focus:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-orange-500/40 focus:border-orange-400 transition placeholder:tracking-[0.2em] placeholder:text-slate-300 dark:placeholder:text-gray-600"
+                                            />
+                                            {devOtpHint && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setOtpInput(devOtpHint);
+                                                        handleVerifyEmailOtp(devOtpHint);
+                                                    }}
+                                                    className="w-full mt-1.5 py-1 px-2.5 rounded-lg bg-orange-50/80 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-500/30 text-[10px] text-orange-600 dark:text-orange-400 font-medium hover:bg-orange-100 transition cursor-pointer flex items-center justify-center gap-1.5"
+                                                >
+                                                    <span>Dev code: <strong className="font-mono tracking-wider font-bold">{devOtpHint}</strong> (Click to auto-fill)</span>
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="flex justify-center pt-0.5">
+                                            <button
+                                                type="submit"
+                                                disabled={emailLoading}
+                                                className="h-[34px] px-6 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-white text-[11.5px] font-semibold shadow-xs hover:shadow-sm transition disabled:opacity-60 cursor-pointer inline-flex items-center gap-1.5"
+                                            >
+                                                {emailLoading ? (
+                                                    <>
+                                                        <Loader2 size={13} className="animate-spin" />
+                                                        <span>Verifying Code...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Check size={13} />
+                                                        <span>Verify & Sign In</span>
+                                                        <ArrowRight size={12} className="opacity-80" />
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    {/* Resend & Back Row */}
+                                    <div className="flex items-center justify-between text-[11px] pt-0.5 text-slate-400">
+                                        <button
+                                            type="button"
+                                            onClick={() => setEmailStep('input')}
+                                            className="flex items-center gap-1 hover:text-slate-600 dark:hover:text-slate-300 transition cursor-pointer text-[10.5px]"
+                                        >
+                                            <ArrowLeft size={12} />
+                                            <span>Back</span>
+                                        </button>
+
+                                        {resendCountdown > 0 ? (
+                                            <span className="text-[10.5px] text-slate-400 dark:text-slate-500">
+                                                Resend in <strong className="text-orange-500 font-mono">{resendCountdown}s</strong>
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={handleSendEmailOtp}
+                                                disabled={emailLoading}
+                                                className="text-[10.5px] text-orange-500 hover:text-orange-600 font-bold hover:underline cursor-pointer"
+                                            >
+                                                Resend Code
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
         </div>
     );
 };
