@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { resolvePostAuthRedirect } from '../../utils/authRedirect';
+import { resolvePostAuthRedirect, showAuthSuccessToast } from '../../utils/authRedirect';
 import { requestNotificationPermissionAndGetToken } from '../../utils/fcm';
 
 const LinkedInCallback = () => {
@@ -24,7 +24,7 @@ const LinkedInCallback = () => {
             if (urlParams.get('isNewUser') === '1') {
                 sessionStorage.setItem('prompt_student_profile', 'true');
             }
-            toast.success("Welcome to LearnProof AI!");
+            showAuthSuccessToast("Welcome to LearnProof AI!");
             const redirectTo = resolvePostAuthRedirect() || '/dashboard';
             navigate(redirectTo, { replace: true });
             return;
@@ -155,7 +155,7 @@ const LinkedInCallback = () => {
 
                     // Fallback for full page redirects
                     login({ credential: res.data.token });
-                    toast.success("Welcome to LearnProof AI!");
+                    showAuthSuccessToast("Welcome to LearnProof AI!");
 
                     if (res.data.isNewUser) {
                         sessionStorage.setItem('prompt_student_profile', 'true');

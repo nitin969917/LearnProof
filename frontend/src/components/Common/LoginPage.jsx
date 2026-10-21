@@ -25,7 +25,7 @@ import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import { requestNotificationPermissionAndGetToken, updateAppBadge } from '../../utils/fcm';
-import { resolvePostAuthRedirect, clearAuthRedirect } from '../../utils/authRedirect';
+import { resolvePostAuthRedirect, clearAuthRedirect, showAuthSuccessToast } from '../../utils/authRedirect';
 
 const LoginPage = () => {
     const navigate = useNavigate();
@@ -262,7 +262,7 @@ const LoginPage = () => {
         try {
             login({ credential: idToken });
             window.history.replaceState(null, '', window.location.pathname);
-            toast.success("Welcome to LearnProof AI!");
+            showAuthSuccessToast("Welcome to LearnProof AI!");
             
             sessionStorage.removeItem("is_authenticating");
             setIsAuthenticating(false);
@@ -450,7 +450,7 @@ const LoginPage = () => {
 
                 if (res.data && res.data.token) {
                     login({ credential: res.data.token });
-                    toast.success("Welcome to LearnProof AI!");
+                    showAuthSuccessToast("Welcome to LearnProof AI!");
                     setIsAuthenticating(false);
                     sessionStorage.removeItem("is_authenticating");
                     navigate(resolvePostAuthRedirect(), { replace: true });
@@ -863,7 +863,7 @@ const LoginPage = () => {
 
             if (res.data && res.data.token) {
                 login({ credential: res.data.token });
-                toast.success("Welcome to LearnProof AI!");
+                showAuthSuccessToast("Welcome to LearnProof AI!");
                 setShowEmailModal(false);
                 setEmailStep('input');
                 setEmailInput('');

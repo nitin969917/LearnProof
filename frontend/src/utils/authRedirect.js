@@ -1,3 +1,5 @@
+import { toast } from 'react-hot-toast';
+
 /**
  * Auth Redirect Manager
  * Handles saving, clearing, and resolving post-authentication redirect targets
@@ -135,4 +137,21 @@ export const resolvePostAuthRedirect = () => {
     } catch (e) {}
 
     return "/dashboard";
+};
+
+export const showAuthSuccessToast = (message = "Welcome to LearnProof AI!") => {
+    try {
+        const lastShown = Number(sessionStorage.getItem('last_auth_toast_time') || 0);
+        const now = Date.now();
+        // Prevent duplicate toast if one was already triggered within the last 6 seconds
+        if (now - lastShown < 6000) {
+            return;
+        }
+        sessionStorage.setItem('last_auth_toast_time', String(now));
+    } catch (_) {}
+
+    toast.success(message, {
+        id: 'auth-success-toast',
+        duration: 3500
+    });
 };

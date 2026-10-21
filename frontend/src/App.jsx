@@ -14,7 +14,7 @@ import { useSocialFeedStore } from './store/socialFeedStore';
 import { updateAppBadge } from './utils/fcm';
 import ParticipantMeetingEndedModal from './components/Dashboard/LanguagePractice/ParticipantMeetingEndedModal';
 import toast from 'react-hot-toast';
-import { resolvePostAuthRedirect, clearAuthRedirect } from './utils/authRedirect';
+import { resolvePostAuthRedirect, clearAuthRedirect, showAuthSuccessToast } from './utils/authRedirect';
 
 // Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
 const lazyWithRetry = (componentImport) => {
@@ -221,7 +221,7 @@ const OAuthRedirectHandler = () => {
             if (isNewUser) {
                 sessionStorage.setItem('prompt_student_profile', 'true');
             }
-            toast.success("Welcome to LearnProof AI!");
+            showAuthSuccessToast("Welcome to LearnProof AI!");
             const targetRedirect = resolvePostAuthRedirect();
             const finalTarget = (targetRedirect && targetRedirect.startsWith('/')) ? targetRedirect : "/dashboard";
             navigate(finalTarget, { replace: true });
@@ -395,6 +395,11 @@ const NotificationDeepLinkHandler = () => {
                         rawUrl = rawUrl.replace('learnproofai://', 'https://learnproofai.com/');
                     }
                     const url = new URL(rawUrl);
+                    // OAuth callbacks (e.g. learnproofai://auth/linkedin) are handled directly by login listeners.
+                    // Do not route notification deep-link navigation into them to prevent duplicate handling or extra toasts.
+                    if (url.pathname.includes('/auth/')) {
+                        return;
+                    }
                     const pathWithSearch = url.pathname + url.search;
                     console.log('[Notification Deep-Link] appUrlOpen event:', pathWithSearch);
                     if (pathWithSearch) {
