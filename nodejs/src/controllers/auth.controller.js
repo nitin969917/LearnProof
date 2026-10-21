@@ -686,6 +686,10 @@ const sendEmailOtp = async (req, res) => {
         // Dispatch email via Resend / EmailService / SMTP
         const emailResult = await emailService.sendOtpEmail(cleanEmail, otpCode);
 
+        if (!emailResult?.success) {
+            return res.status(400).json({ error: emailResult?.error || 'Failed to send verification code. Please check your email and try again.' });
+        }
+
         return res.status(200).json({
             success: true,
             message: emailResult?.devMode

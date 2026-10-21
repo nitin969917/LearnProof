@@ -9,7 +9,7 @@ try {
 class EmailService {
     constructor() {
         this.resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-        this.fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || 'LearnProof AI <onboarding@resend.dev>';
+        this.fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || 'LearnProof AI <auth@learnproofai.com>';
         this.smtpTransporter = null;
         this.initSmtp();
     }
@@ -134,14 +134,14 @@ class EmailService {
 
                 if (error) {
                     console.error('[EmailService] Resend API error response:', error);
-                    return { success: true, warning: error.message };
+                    return { success: false, error: error.message };
                 }
 
                 console.log(`[EmailService] Resend email dispatched to ${toEmail} (ID: ${data?.id})`);
                 return { success: true, provider: 'resend', id: data?.id };
             } catch (resendErr) {
                 console.error('[EmailService] Unexpected error sending via Resend:', resendErr.message);
-                return { success: true, warning: resendErr.message };
+                return { success: false, error: resendErr.message };
             }
         }
 
