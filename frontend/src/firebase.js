@@ -5,7 +5,7 @@ import { getAnalytics, isSupported } from 'firebase/analytics';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_KEY,
+  apiKey: import.meta.env.VITE_FIREBASE_KEY || "AIzaSyD43T1--NTCDprsegnew2ZrL15FY7rz1uU",
   authDomain: "learnproof-b24c7.firebaseapp.com",
   projectId: "learnproof-b24c7",
   storageBucket: "learnproof-b24c7.firebasestorage.app",

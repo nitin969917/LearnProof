@@ -515,24 +515,129 @@ const handleLinkedInLogin = async (req, res) => {
     }
 };
 
+const renderAuthBridgeHtml = ({ title, message, deepLink, isError = false }) => {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>${title}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #fff7ed;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+            text-align: center;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid ${isError ? '#fecaca' : '#fed7aa'};
+            border-radius: 28px;
+            padding: 36px 28px;
+            max-width: 380px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
+        }
+        .icon-wrap { margin-bottom: 20px; }
+        .spinner {
+            width: 38px;
+            height: 38px;
+            border: 3.5px solid rgba(249, 115, 22, 0.2);
+            border-top-color: #f97316;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+        .error-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #fee2e2;
+            color: #dc2626;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0 auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        h1 { font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+        p { font-size: 14px; color: #64748b; line-height: 1.5; margin-bottom: 24px; }
+        .btn {
+            display: block;
+            width: 100%;
+            background: ${isError ? '#ef4444' : '#f97316'};
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 14px 20px;
+            border-radius: 14px;
+            box-shadow: 0 4px 14px ${isError ? 'rgba(239, 68, 68, 0.3)' : 'rgba(249, 115, 22, 0.3)'};
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon-wrap">
+            ${isError ? '<div class="error-icon">!</div>' : '<div class="spinner"></div>'}
+        </div>
+        <h1>${title}</h1>
+        <p>${message}</p>
+        <a id="openBtn" class="btn" href="${deepLink}">${isError ? 'Return to App' : 'Open LearnProof AI'}</a>
+    </div>
+    <script>
+        function launch() {
+            try {
+                window.location.href = "${deepLink}";
+            } catch (_) {}
+        }
+        launch();
+        setTimeout(launch, 300);
+        setTimeout(launch, 1000);
+    </script>
+</body>
+</html>`;
+};
+
 // GET /api/auth/linkedin/callback
 // Native iOS/Android OAuth callback — exchanges code, stores JWT in Redis (for backup polling),
-// and redirects to learnproofai://auth/linkedin custom scheme.
-// This causes Chrome Custom Tabs / SFSafariViewController to close automatically and deliver the token to the app.
+// and delivers to the app via both an HTML bridge page (invoking deep link) and Redis session polling.
 const handleLinkedInNativeCallback = async (req, res) => {
     const { code, error, error_description, state } = req.query;
 
     if (error || !code) {
         const errorMsg = error_description || error || 'Login cancelled';
         if (state) await cacheService.set(`linkedin_session:${state}`, { error: errorMsg }, 300);
-        return res.redirect(302, `learnproofai://auth/linkedin?error=${encodeURIComponent(errorMsg)}`);
+        const deepLink = `learnproofai://auth/linkedin?error=${encodeURIComponent(errorMsg)}`;
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.status(200).send(renderAuthBridgeHtml({
+            title: 'Authentication Cancelled',
+            message: errorMsg,
+            deepLink,
+            isError: true
+        }));
     }
 
     try {
         const clientId = process.env.LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
         const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
         if (!clientSecret) {
-            return res.redirect(302, `learnproofai://auth/linkedin?error=${encodeURIComponent('Server configuration error')}`);
+            const deepLink = `learnproofai://auth/linkedin?error=${encodeURIComponent('Server configuration error')}`;
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            return res.status(200).send(renderAuthBridgeHtml({
+                title: 'Configuration Error',
+                message: 'Server configuration error. Please try again later.',
+                deepLink,
+                isError: true
+            }));
         }
 
         const redirectUri = `${process.env.API_BASE_URL || 'https://api.learnproofai.com'}/api/auth/linkedin/callback`;
@@ -550,7 +655,14 @@ const handleLinkedInNativeCallback = async (req, res) => {
         const access_token = tokenResponse.data?.access_token;
         if (!access_token) {
             if (state) await cacheService.set(`linkedin_session:${state}`, { error: 'Failed to get access token' }, 300);
-            return res.redirect(302, `learnproofai://auth/linkedin?error=${encodeURIComponent('Failed to get access token')}`);
+            const deepLink = `learnproofai://auth/linkedin?error=${encodeURIComponent('Failed to get access token')}`;
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            return res.status(200).send(renderAuthBridgeHtml({
+                title: 'Authentication Failed',
+                message: 'Failed to obtain access token from LinkedIn.',
+                deepLink,
+                isError: true
+            }));
         }
 
         const userInfoResponse = await axios.get('https://api.linkedin.com/v2/userinfo', {
@@ -593,25 +705,39 @@ const handleLinkedInNativeCallback = async (req, res) => {
 
         await cacheService.set(`user:profile:${uid}`, user, 3600);
 
-        // Store JWT in Redis keyed by OAuth state — app can also poll as backup
+        // Store JWT in Redis keyed by OAuth state — app polls this for instant token receipt
         if (state) {
             await cacheService.set(`linkedin_session:${state}`, { token, isNewUser }, 300);
         }
 
-        // Redirect back to app via custom scheme - automatically closes in-app browser tab on both iOS and Android
+        // Deliver HTML bridge page to close SFSafariViewController / in-app browser cleanly on iOS/Android
         const deepLink = `learnproofai://auth/linkedin?token=${encodeURIComponent(token)}&isNewUser=${isNewUser ? '1' : '0'}`;
-        console.log('[LinkedIn Native Callback] Success, redirecting to deep link');
-        return res.redirect(302, deepLink);
+        console.log('[LinkedIn Native Callback] Success, returning auth bridge page with deep link');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.status(200).send(renderAuthBridgeHtml({
+            title: 'Authenticated!',
+            message: 'Connecting your session to LearnProof AI...',
+            deepLink,
+            isError: false
+        }));
 
     } catch (err) {
         console.error('[LinkedIn Native Callback] Error:', err.response?.data || err.message);
-        if (state) await cacheService.set(`linkedin_session:${state}`, { error: 'Authentication failed' }, 300);
-        return res.redirect(302, `learnproofai://auth/linkedin?error=${encodeURIComponent('Authentication failed')}`);
+        const errMsg = err.response?.data?.error_description || err.response?.data?.error || err.message || 'Authentication failed';
+        if (state) await cacheService.set(`linkedin_session:${state}`, { error: errMsg }, 300);
+        const deepLink = `learnproofai://auth/linkedin?error=${encodeURIComponent(errMsg)}`;
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.status(200).send(renderAuthBridgeHtml({
+            title: 'Authentication Failed',
+            message: errMsg,
+            deepLink,
+            isError: true
+        }));
     }
 };
 
 // GET /api/auth/linkedin/session/:sessionId
-// App polls this every 2s after opening the in-app browser
+// App polls this every 1-2s after opening the in-app browser
 // Returns { token, isNewUser } when ready, { pending: true } if not yet, { error } on failure
 const pollLinkedInSession = async (req, res) => {
     const { sessionId } = req.params;
@@ -621,8 +747,8 @@ const pollLinkedInSession = async (req, res) => {
         const data = await cacheService.get(`linkedin_session:${sessionId}`);
         if (!data) return res.status(202).json({ pending: true });
 
-        // Delete after first read (one-time token)
-        try { await cacheService.del(`linkedin_session:${sessionId}`); } catch (_) {}
+        // Retain for 60s so concurrent polls / retries don't drop the token
+        try { await cacheService.set(`linkedin_session:${sessionId}`, data, 60); } catch (_) {}
 
         if (data.error) return res.status(400).json({ error: data.error });
         return res.status(200).json({ token: data.token, isNewUser: data.isNewUser });

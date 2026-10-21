@@ -142,8 +142,7 @@ export const requestNotificationPermissionAndGetToken = async () => {
     await navigator.serviceWorker.ready;
 
     // 3. Generate token using VAPID key
-    // Fallback key is a standard Web Push public key format (user will replace with their Firebase VAPID key)
-    const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BFGv5g3CqV8aTzS9Fv5d2zLwK_ZlI6jV917vT8Bv7nU1m7qW3KxL4v6N9kZ8vL3u7m2N8lO7bC4tS8vQ8eF2zLw'; 
+    const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BH7mjgTNInbOL_sfl6xF_RXJn6rMWhGIuNjeoO8TKRlTwMRI4SSifCA3Ppuj43nMGKSYXyGHQTZOahEUUdiWgN8'; 
     
     const token = await getToken(messaging, {
       serviceWorkerRegistration: registration,

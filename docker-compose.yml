@@ -63,6 +63,10 @@ services:
         - VITE_BACKEND_URL=https://api.learnproofai.com
         - VITE_GOOGLE_CLIENT_ID=557947080645-2iqd1t1h79b273ktjqthcg6q23k9pem1.apps.googleusercontent.com
         - VITE_ADMIN_EMAIL=nitin9699176009@gmail.com,kakadeavishkar84@gmail.com
+        - VITE_LINKEDIN_CLIENT_ID=77qo9l0sx1sbav
+        - VITE_FIREBASE_KEY=AIzaSyD43T1--NTCDprsegnew2ZrL15FY7rz1uU
+        - VITE_FIREBASE_VAPID_KEY=BH7mjgTNInbOL_sfl6xF_RXJn6rMWhGIuNjeoO8TKRlTwMRI4SSifCA3Ppuj43nMGKSYXyGHQTZOahEUUdiWgN8
+        - VITE_APPLE_CLIENT_ID=com.learnproof.web
     container_name: learnproof-frontend
     restart: always
     ports:

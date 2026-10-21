@@ -485,9 +485,10 @@ const LoginPage = () => {
         if (isCapacitorNative) {
             try {
                 const { Browser } = await import('@capacitor/browser');
+                const { App } = await import('@capacitor/app');
                 const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || '77qo9l0sx1sbav';
                 const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
-                const sessionId = Math.random().toString(36).substring(2);
+                const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
                 const redirectUri = `${backendUrl}/api/auth/linkedin/callback`;
 
                 const authUrl = `https://www.linkedin.com/oauth/v2/authorization?` +
@@ -497,9 +498,119 @@ const LoginPage = () => {
                     `&state=${sessionId}` +
                     `&scope=${encodeURIComponent('openid profile email')}`;
 
+                let isHandled = false;
+                let pollInterval = null;
+                let browserFinishedSub = null;
+                let appUrlOpenSub = null;
+
+                const cleanupListeners = () => {
+                    if (pollInterval) {
+                        clearInterval(pollInterval);
+                        pollInterval = null;
+                    }
+                    if (browserFinishedSub) {
+                        try { browserFinishedSub.remove(); } catch (_) {}
+                        browserFinishedSub = null;
+                    }
+                    if (appUrlOpenSub) {
+                        try { appUrlOpenSub.remove(); } catch (_) {}
+                        appUrlOpenSub = null;
+                    }
+                };
+
+                const completeLogin = async (token, isNewUser) => {
+                    if (isHandled) return;
+                    isHandled = true;
+                    cleanupListeners();
+                    try {
+                        await Browser.close();
+                    } catch (_) {}
+                    if (isNewUser) {
+                        sessionStorage.setItem('prompt_student_profile', 'true');
+                    }
+                    handleLoginFlow(token);
+                };
+
+                // 1. Deep link listener: if learnproofai://auth/linkedin opens app
+                try {
+                    appUrlOpenSub = await App.addListener('appUrlOpen', (event) => {
+                        const urlStr = event?.url || '';
+                        if (urlStr.includes('auth/linkedin')) {
+                            try {
+                                const parsed = new URL(urlStr.replace('learnproofai://', 'https://learnproofai.com/'));
+                                const token = parsed.searchParams.get('token');
+                                const isNewUser = parsed.searchParams.get('isNewUser') === '1';
+                                const error = parsed.searchParams.get('error');
+                                if (token) {
+                                    completeLogin(token, isNewUser);
+                                } else if (error) {
+                                    if (isHandled) return;
+                                    isHandled = true;
+                                    cleanupListeners();
+                                    Browser.close().catch(() => {});
+                                    setIsAuthenticating(false);
+                                    sessionStorage.removeItem('is_authenticating');
+                                    toast.error(error);
+                                }
+                            } catch (_) {}
+                        }
+                    });
+                } catch (_) {}
+
+                // 2. Browser finished listener: if user taps the top-left (X) button on sheet
+                try {
+                    browserFinishedSub = await Browser.addListener('browserFinished', async () => {
+                        setTimeout(async () => {
+                            if (isHandled) return;
+                            // Check one final time before giving up
+                            try {
+                                const res = await axios.get(`${backendUrl}/api/auth/linkedin/session/${sessionId}`, { timeout: 3000 });
+                                if (res.data?.token) {
+                                    completeLogin(res.data.token, res.data.isNewUser);
+                                    return;
+                                }
+                            } catch (_) {}
+                            cleanupListeners();
+                            setIsAuthenticating(false);
+                            sessionStorage.removeItem('is_authenticating');
+                        }, 400);
+                    });
+                } catch (_) {}
+
+                // 3. Active session polling: checks Redis backend every 1.2s
+                let pollAttempts = 0;
+                pollInterval = setInterval(async () => {
+                    pollAttempts++;
+                    if (pollAttempts > 75 || isHandled) { // ~90s max
+                        cleanupListeners();
+                        if (!isHandled) {
+                            setIsAuthenticating(false);
+                            sessionStorage.removeItem('is_authenticating');
+                        }
+                        return;
+                    }
+                    try {
+                        const res = await axios.get(`${backendUrl}/api/auth/linkedin/session/${sessionId}`, { timeout: 3500 });
+                        if (res.data?.token) {
+                            completeLogin(res.data.token, res.data.isNewUser);
+                        } else if (res.data?.error) {
+                            if (isHandled) return;
+                            isHandled = true;
+                            cleanupListeners();
+                            Browser.close().catch(() => {});
+                            setIsAuthenticating(false);
+                            sessionStorage.removeItem('is_authenticating');
+                            toast.error(res.data.error || 'LinkedIn login failed');
+                        }
+                    } catch (_) {
+                        // ignore network blips and keep polling
+                    }
+                }, 1200);
+
                 await Browser.open({ url: authUrl, presentationStyle: 'popover' });
                 return;
-            } catch (_) {
+            } catch (err) {
+                console.error('[LinkedIn Capacitor] Failed to launch in-app browser:', err);
                 setIsAuthenticating(false);
                 sessionStorage.removeItem('is_authenticating');
                 return;
