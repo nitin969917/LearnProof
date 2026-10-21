@@ -893,21 +893,23 @@ const LandingPage = () => {
                         transition={{ delay: 0.4, duration: 0.8 }}
                         className="flex flex-col gap-4 mb-10"
                     >
-                        {/* Action Buttons Row */}
-                        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                        {/* Action Buttons Row - Single responsive row for Google, More, and Download */}
+                        <div className="flex items-center gap-1.5 sm:gap-2.5 max-w-full overflow-x-auto no-scrollbar py-0.5">
                             {/* Primary: Continue with Google */}
                             <button 
                                 onClick={handleManualGoogleLogin}
-                                className="flex items-center gap-2.5 px-5 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-gray-700 text-sm h-[42px] justify-center cursor-pointer"
+                                className="flex items-center gap-1.5 sm:gap-2.5 px-3 sm:px-5 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-gray-700 text-xs sm:text-sm h-[38px] sm:h-[42px] justify-center cursor-pointer shrink-0"
                             >
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
-                                <span className="whitespace-nowrap">Continue with Google</span>
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4 shrink-0" />
+                                <span className="whitespace-nowrap">
+                                    <span className="hidden min-[380px]:inline">Continue with </span>Google
+                                </span>
                             </button>
 
                             {/* More Options Button (redirects to /login) */}
                             <button 
                                 onClick={() => navigate('/login')}
-                                className="flex items-center gap-1.5 px-4 bg-white hover:bg-orange-50/60 text-gray-700 hover:text-orange-600 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-sm h-[42px] justify-center cursor-pointer group shrink-0"
+                                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 bg-white hover:bg-orange-50/60 text-gray-700 hover:text-orange-600 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-xs sm:text-sm h-[38px] sm:h-[42px] justify-center cursor-pointer group shrink-0"
                                 title="More sign-in options"
                                 aria-label="More sign-in options"
                             >
@@ -915,10 +917,10 @@ const LandingPage = () => {
                                 <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-transform" />
                             </button>
 
-                            <div className="hidden sm:block h-6 w-px bg-gray-200 mx-0.5" />
+                            <div className="hidden md:block h-6 w-px bg-gray-200 mx-0.5 shrink-0" />
 
                             {/* Dynamic Store Badges: Prioritized by device */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                                 {(deviceInfo.isApple || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
                                     <a
                                         href="https://apps.apple.com/app/learnproof-ai/id6815305441"
@@ -930,7 +932,7 @@ const LandingPage = () => {
                                         <img
                                             src="/app-store-badge.svg"
                                             alt="Download on the App Store"
-                                            className="h-[40px] w-auto"
+                                            className="h-[38px] sm:h-[40px] w-auto"
                                         />
                                     </a>
                                 )}
@@ -945,7 +947,7 @@ const LandingPage = () => {
                                         <img
                                             src="/google-play-badge.svg"
                                             alt="Get it on Google Play"
-                                            className="h-[40px] w-auto"
+                                            className="h-[38px] sm:h-[40px] w-auto"
                                         />
                                     </a>
                                 )}
@@ -1520,56 +1522,61 @@ const LandingPage = () => {
                             Start your journey of transforming YouTube videos into verified certificates. Join {userCount !== null ? <span className="font-bold text-orange-600">{userCount.toLocaleString()}</span> : '...'} active learners today and showcase your dedication to learning.
                         </p>
                         <div className="flex flex-col items-center gap-4 mb-6">
-                            <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
+                            <div className="flex items-center justify-center gap-1.5 sm:gap-2.5 max-w-full overflow-x-auto no-scrollbar py-0.5">
                                 <button 
                                     onClick={handleManualGoogleLogin}
-                                    className="inline-flex items-center gap-2.5 px-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-gray-700 text-sm h-[42px] justify-center cursor-pointer"
+                                    className="inline-flex items-center gap-1.5 sm:gap-2.5 px-3 sm:px-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-gray-700 text-xs sm:text-sm h-[38px] sm:h-[42px] justify-center cursor-pointer shrink-0"
                                 >
-                                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
-                                    <span>Continue with Google</span>
+                                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4 shrink-0" />
+                                    <span className="whitespace-nowrap">
+                                        <span className="hidden min-[380px]:inline">Continue with </span>Google
+                                    </span>
                                 </button>
                                 {/* More Options Button (redirects to /login) */}
                                 <button 
                                     onClick={() => navigate('/login')}
-                                    className="inline-flex items-center gap-1.5 px-4 bg-white hover:bg-orange-50/60 text-gray-700 hover:text-orange-600 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-sm h-[42px] justify-center cursor-pointer group shrink-0"
+                                    className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 bg-white hover:bg-orange-50/60 text-gray-700 hover:text-orange-600 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-xs sm:text-sm h-[38px] sm:h-[42px] justify-center cursor-pointer group shrink-0"
                                     title="More sign-in options"
                                     aria-label="More sign-in options"
                                 >
                                     <span>More</span>
                                     <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-transform" />
                                 </button>
-                            </div>
-                            <div className="flex items-center justify-center gap-2.5 pt-1">
-                                {(deviceInfo.isApple || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
-                                    <a
-                                        href="https://apps.apple.com/app/learnproof-ai/id6815305441"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md"
-                                        aria-label="Download on the App Store"
-                                    >
-                                        <img
-                                            src="/app-store-badge.svg"
-                                            alt="Download on the App Store"
-                                            className="h-[40px] w-auto"
-                                        />
-                                    </a>
-                                )}
-                                {(deviceInfo.isAndroid || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
-                                    <a
-                                        href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md"
-                                        aria-label="Get it on Google Play"
-                                    >
-                                        <img
-                                            src="/google-play-badge.svg"
-                                            alt="Get it on Google Play"
-                                            className="h-[40px] w-auto"
-                                        />
-                                    </a>
-                                )}
+
+                                <div className="hidden md:block h-6 w-px bg-gray-200 mx-0.5 shrink-0" />
+
+                                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                                    {(deviceInfo.isApple || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
+                                        <a
+                                            href="https://apps.apple.com/app/learnproof-ai/id6815305441"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
+                                            aria-label="Download on the App Store"
+                                        >
+                                            <img
+                                                src="/app-store-badge.svg"
+                                                alt="Download on the App Store"
+                                                className="h-[38px] sm:h-[40px] w-auto"
+                                            />
+                                        </a>
+                                    )}
+                                    {(deviceInfo.isAndroid || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
+                                        <a
+                                            href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
+                                            aria-label="Get it on Google Play"
+                                        >
+                                            <img
+                                                src="/google-play-badge.svg"
+                                                alt="Get it on Google Play"
+                                                className="h-[38px] sm:h-[40px] w-auto"
+                                            />
+                                        </a>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
