@@ -304,6 +304,25 @@ const LandingPage = () => {
         return hash.includes("id_token") || hash.includes("credential");
     });
 
+    // Dynamic Device Detection (Apple iOS/macOS, Android, Desktop)
+    const [deviceInfo, setDeviceInfo] = useState(() => {
+        if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+            return { isApple: false, isIOS: false, isAndroid: false, isMac: false };
+        }
+        const ua = navigator.userAgent || '';
+        const platform = navigator.platform || '';
+        const isIOSDevice = /iPhone|iPad|iPod/i.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        const isMacDevice = /Macintosh|MacIntel|MacPPC|Mac68K/i.test(ua) && !isIOSDevice;
+        const isApple = isIOSDevice || isMacDevice;
+        const isAndroidDevice = /Android/i.test(ua);
+        return {
+            isApple,
+            isIOS: isIOSDevice,
+            isAndroid: isAndroidDevice,
+            isMac: isMacDevice,
+        };
+    });
+
     // Safety watchdog: Never allow isLoggingIn to freeze the UI in an infinite loading state
     useEffect(() => {
         if (isLoggingIn) {
@@ -720,13 +739,13 @@ const LandingPage = () => {
 
                         <div className="flex items-center gap-2 sm:gap-4">
                         <button 
-                            onClick={handleManualGoogleLogin}
+                            onClick={() => navigate('/login')}
                             className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors hidden md:block"
                         >
                             Login
                         </button>
                         <button 
-                            onClick={handleManualGoogleLogin}
+                            onClick={() => navigate('/login')}
                             className="group hidden md:inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white rounded-xl text-sm font-bold shadow-[0_4px_18px_rgba(249,115,22,0.35)] hover:shadow-[0_6px_25px_rgba(249,115,22,0.5)] transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 animate-fade-in"
                         >
                             <span>Get Started</span>
@@ -813,7 +832,7 @@ const LandingPage = () => {
                                     <button 
                                         onClick={() => {
                                             setIsMobileMenuOpen(false);
-                                            handleManualGoogleLogin();
+                                            navigate('/login');
                                         }}
                                         className="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold rounded-xl text-center border border-gray-200 transition-colors text-sm active:scale-95"
                                     >
@@ -822,7 +841,7 @@ const LandingPage = () => {
                                     <button 
                                         onClick={() => {
                                             setIsMobileMenuOpen(false);
-                                            handleManualGoogleLogin();
+                                            navigate('/login');
                                         }}
                                         className="flex-1 py-3 bg-gradient-to-r from-orange-600 to-red-500 text-white font-bold rounded-xl text-center shadow-md hover:shadow-lg transition-all text-sm active:scale-95 flex items-center justify-center gap-2"
                                     >
@@ -885,6 +904,22 @@ const LandingPage = () => {
                                 <span className="whitespace-nowrap">Continue with Google</span>
                             </button>
 
+                            {/* Minimal Apple Icon Button */}
+                            <button 
+                                onClick={() => navigate('/login')}
+                                className={`w-[42px] h-[42px] rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center cursor-pointer group shrink-0 ${
+                                    deviceInfo.isApple 
+                                        ? 'bg-black text-white hover:bg-neutral-800 border border-neutral-900 shadow-[0_4px_18px_rgba(0,0,0,0.22)] ring-1 ring-black/10' 
+                                        : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-200/90 hover:border-slate-800'
+                                }`}
+                                title="Continue with Apple"
+                                aria-label="Continue with Apple"
+                            >
+                                <svg className={`w-5 h-5 transition-transform group-hover:scale-110 ${deviceInfo.isApple ? 'fill-white' : 'fill-slate-900'}`} viewBox="0 0 24 24">
+                                    <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
+                                </svg>
+                            </button>
+
                             {/* Minimal LinkedIn Icon Button (matching Login page) */}
                             <button 
                                 onClick={handleManualLinkedInLogin}
@@ -902,42 +937,46 @@ const LandingPage = () => {
                             <button 
                                 onClick={() => navigate('/login')}
                                 className="w-[42px] h-[42px] bg-white hover:bg-slate-50 text-slate-600 hover:text-orange-600 rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.18)] transition-all duration-300 transform hover:-translate-y-0.5 border border-slate-200/90 hover:border-orange-300 flex items-center justify-center cursor-pointer group shrink-0"
-                                title="Sign in with Email OTP or Apple"
-                                aria-label="Sign in with Email OTP or Apple"
+                                title="Sign in with Email OTP"
+                                aria-label="Sign in with Email OTP"
                             >
                                 <Mail size={18} className="transition-transform group-hover:scale-110 text-slate-500 group-hover:text-orange-500" />
                             </button>
 
                             <div className="hidden sm:block h-6 w-px bg-gray-200 mx-0.5" />
 
-                            {/* Store Badges: Apple App Store & Google Play */}
+                            {/* Dynamic Store Badges: Prioritized by device */}
                             <div className="flex items-center gap-2">
-                                <a
-                                    href="https://apps.apple.com/app/learnproof-ai/id6815305441"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="transition-all duration-300 transform hover:-translate-y-0.5 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
-                                    aria-label="Download on the App Store"
-                                >
-                                    <img
-                                        src="/app-store-badge.svg"
-                                        alt="Download on the App Store"
-                                        className="h-[40px] w-auto"
-                                    />
-                                </a>
-                                <a
-                                    href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="transition-all duration-300 transform hover:-translate-y-0.5 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
-                                    aria-label="Get it on Google Play"
-                                >
-                                    <img
-                                        src="/google-play-badge.svg"
-                                        alt="Get it on Google Play"
-                                        className="h-[40px] w-auto"
-                                    />
-                                </a>
+                                {(deviceInfo.isApple || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
+                                    <a
+                                        href="https://apps.apple.com/app/learnproof-ai/id6815305441"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="transition-all duration-300 transform hover:-translate-y-0.5 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
+                                        aria-label="Download on the App Store"
+                                    >
+                                        <img
+                                            src="/app-store-badge.svg"
+                                            alt="Download on the App Store"
+                                            className="h-[40px] w-auto"
+                                        />
+                                    </a>
+                                )}
+                                {(deviceInfo.isAndroid || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
+                                    <a
+                                        href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="transition-all duration-300 transform hover:-translate-y-0.5 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
+                                        aria-label="Get it on Google Play"
+                                    >
+                                        <img
+                                            src="/google-play-badge.svg"
+                                            alt="Get it on Google Play"
+                                            className="h-[40px] w-auto"
+                                        />
+                                    </a>
+                                )}
                             </div>
                         </div>
 
@@ -1518,6 +1557,20 @@ const LandingPage = () => {
                                     <span>Continue with Google</span>
                                 </button>
                                 <button 
+                                    onClick={() => navigate('/login')}
+                                    className={`w-[42px] h-[42px] rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center cursor-pointer group shrink-0 ${
+                                        deviceInfo.isApple 
+                                            ? 'bg-black text-white hover:bg-neutral-800 border border-neutral-900 shadow-[0_4px_18px_rgba(0,0,0,0.22)] ring-1 ring-black/10' 
+                                            : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-200/90 hover:border-slate-800'
+                                    }`}
+                                    title="Continue with Apple"
+                                    aria-label="Continue with Apple"
+                                >
+                                    <svg className={`w-5 h-5 transition-transform group-hover:scale-110 ${deviceInfo.isApple ? 'fill-white' : 'fill-slate-900'}`} viewBox="0 0 24 24">
+                                        <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
+                                    </svg>
+                                </button>
+                                <button 
                                     onClick={handleManualLinkedInLogin}
                                     className="w-[42px] h-[42px] bg-white hover:bg-slate-50 text-[#0A66C2] rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-slate-200/90 hover:border-[#0A66C2] flex items-center justify-center cursor-pointer group shrink-0"
                                     title="Sign in with LinkedIn"
@@ -1531,39 +1584,43 @@ const LandingPage = () => {
                                 <button 
                                     onClick={() => navigate('/login')}
                                     className="w-[42px] h-[42px] bg-white hover:bg-slate-50 text-slate-600 hover:text-orange-600 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-slate-200/90 hover:border-orange-300 flex items-center justify-center cursor-pointer group shrink-0"
-                                    title="Sign in with Email OTP or Apple"
-                                    aria-label="Sign in with Email OTP or Apple"
+                                    title="Sign in with Email OTP"
+                                    aria-label="Sign in with Email OTP"
                                 >
                                     <Mail size={18} className="transition-transform group-hover:scale-110 text-slate-500 group-hover:text-orange-500" />
                                 </button>
                             </div>
                             <div className="flex items-center justify-center gap-2.5 pt-1">
-                                <a
-                                    href="https://apps.apple.com/app/learnproof-ai/id6815305441"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md"
-                                    aria-label="Download on the App Store"
-                                >
-                                    <img
-                                        src="/app-store-badge.svg"
-                                        alt="Download on the App Store"
-                                        className="h-[40px] w-auto"
-                                    />
-                                </a>
-                                <a
-                                    href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md"
-                                    aria-label="Get it on Google Play"
-                                >
-                                    <img
-                                        src="/google-play-badge.svg"
-                                        alt="Get it on Google Play"
-                                        className="h-[40px] w-auto"
-                                    />
-                                </a>
+                                {(deviceInfo.isApple || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
+                                    <a
+                                        href="https://apps.apple.com/app/learnproof-ai/id6815305441"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md"
+                                        aria-label="Download on the App Store"
+                                    >
+                                        <img
+                                            src="/app-store-badge.svg"
+                                            alt="Download on the App Store"
+                                            className="h-[40px] w-auto"
+                                        />
+                                    </a>
+                                )}
+                                {(deviceInfo.isAndroid || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
+                                    <a
+                                        href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md"
+                                        aria-label="Get it on Google Play"
+                                    >
+                                        <img
+                                            src="/google-play-badge.svg"
+                                            alt="Get it on Google Play"
+                                            className="h-[40px] w-auto"
+                                        />
+                                    </a>
+                                )}
                             </div>
                         </div>
 
