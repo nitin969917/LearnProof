@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import socialApi from '../api/socialApi.js';
 import { getSocialSocket } from '../utils/socialSocket.js';
+import { updateAppBadge } from '../utils/fcm.js';
 
 const CACHE_STORAGE_KEY = 'lp_chat_conversations_v1';
 const MAX_MESSAGES_PER_CHAT = 50;
@@ -164,10 +165,12 @@ export const useSocialMessageStore = create((set, get) => ({
       const byContact = response.data || {};
       const directTotal = Object.values(byContact).reduce((sum, val) => sum + val, 0);
       const groupTotal = Object.values(get().unreadByGroup || {}).reduce((sum, val) => sum + val, 0);
+      const total = directTotal + groupTotal;
       set({ 
-        totalUnreadCount: directTotal + groupTotal, 
+        totalUnreadCount: total, 
         unreadByContact: byContact 
       });
+      updateAppBadge(total);
     } catch (err) {
       console.error('Failed to fetch unread counts', err);
     }
@@ -179,8 +182,10 @@ export const useSocialMessageStore = create((set, get) => ({
     set((state) => {
       const newByContact = { ...state.unreadByContact };
       newByContact[senderIdStr] = (newByContact[senderIdStr] || 0) + 1;
+      const newTotal = state.totalUnreadCount + 1;
+      updateAppBadge(newTotal);
       return {
-        totalUnreadCount: state.totalUnreadCount + 1,
+        totalUnreadCount: newTotal,
         unreadByContact: newByContact
       };
     });
@@ -196,9 +201,11 @@ export const useSocialMessageStore = create((set, get) => ({
       const newByContact = { ...state.unreadByContact };
       delete newByContact[contactIdStr];
       delete newByContact[contactId];
+      const newTotal = Math.max(0, state.totalUnreadCount - contactUnread);
+      updateAppBadge(newTotal);
       
       return {
-        totalUnreadCount: Math.max(0, state.totalUnreadCount - contactUnread),
+        totalUnreadCount: newTotal,
         unreadByContact: newByContact
       };
     });
@@ -210,8 +217,10 @@ export const useSocialMessageStore = create((set, get) => ({
     set((state) => {
       const newByGroup = { ...state.unreadByGroup };
       newByGroup[groupIdStr] = (newByGroup[groupIdStr] || 0) + 1;
+      const newTotal = state.totalUnreadCount + 1;
+      updateAppBadge(newTotal);
       return {
-        totalUnreadCount: state.totalUnreadCount + 1,
+        totalUnreadCount: newTotal,
         unreadByGroup: newByGroup
       };
     });
@@ -227,9 +236,11 @@ export const useSocialMessageStore = create((set, get) => ({
       const newByGroup = { ...state.unreadByGroup };
       delete newByGroup[groupIdStr];
       delete newByGroup[groupId];
+      const newTotal = Math.max(0, state.totalUnreadCount - groupUnread);
+      updateAppBadge(newTotal);
 
       return {
-        totalUnreadCount: Math.max(0, state.totalUnreadCount - groupUnread),
+        totalUnreadCount: newTotal,
         unreadByGroup: newByGroup
       };
     });

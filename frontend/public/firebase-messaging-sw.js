@@ -64,6 +64,13 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   
+  // Clear app badge on iOS PWA / desktop browsers when user interacts with notification
+  if ('clearAppBadge' in self.navigator) {
+    self.navigator.clearAppBadge().catch(() => {});
+  } else if ('setAppBadge' in self.navigator) {
+    self.navigator.setAppBadge(0).catch(() => {});
+  }
+  
   const data = event.notification.data || {};
   let targetPath = '/dashboard';
   if (data.roomName) {
@@ -122,4 +129,15 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   );
+});
+
+// Listener for client app messages to clear badge
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CLEAR_BADGE') {
+    if ('clearAppBadge' in self.navigator) {
+      self.navigator.clearAppBadge().catch(() => {});
+    } else if ('setAppBadge' in self.navigator) {
+      self.navigator.setAppBadge(0).catch(() => {});
+    }
+  }
 });

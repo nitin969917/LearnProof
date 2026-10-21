@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import socialApi from '../api/socialApi.js';
+import { updateAppBadge } from '../utils/fcm.js';
 
 let inFlightFetchSocialUser = null;
 let inFlightFetchFriends = null;
@@ -109,22 +110,56 @@ export const useSocialFeedStore = create((set, get) => ({
         pendingRequests: rawPending, 
         pendingFriendCount: rawPending.length 
       });
+      try {
+        const { useSocialMessageStore } = await import('./socialMessageStore.js');
+        const unreadMsgs = useSocialMessageStore.getState().totalUnreadCount || 0;
+        updateAppBadge(rawPending.length + unreadMsgs);
+      } catch (_) {
+        updateAppBadge(rawPending.length);
+      }
     } catch (err) {
       console.error('Failed to fetch pending friend count', err);
     }
   },
 
   incrementPendingFriendCount: () => {
-    set((state) => ({ pendingFriendCount: state.pendingFriendCount + 1 }));
+    set((state) => {
+      const newCount = state.pendingFriendCount + 1;
+      try {
+        import('./socialMessageStore.js').then(({ useSocialMessageStore }) => {
+          const unreadMsgs = useSocialMessageStore.getState().totalUnreadCount || 0;
+          updateAppBadge(newCount + unreadMsgs);
+        }).catch(() => updateAppBadge(newCount));
+      } catch (_) {
+        updateAppBadge(newCount);
+      }
+      return { pendingFriendCount: newCount };
+    });
   },
 
   clearPendingFriendCount: () => {
     set({ pendingFriendCount: 0, pendingRequests: [] });
+    try {
+      import('./socialMessageStore.js').then(({ useSocialMessageStore }) => {
+        const unreadMsgs = useSocialMessageStore.getState().totalUnreadCount || 0;
+        updateAppBadge(unreadMsgs);
+      }).catch(() => updateAppBadge(0));
+    } catch (_) {
+      updateAppBadge(0);
+    }
   },
 
   acceptFriendRequestLocally: (requestId) => {
     set((state) => {
       const nextPending = state.pendingRequests.filter(r => r.id !== requestId);
+      try {
+        import('./socialMessageStore.js').then(({ useSocialMessageStore }) => {
+          const unreadMsgs = useSocialMessageStore.getState().totalUnreadCount || 0;
+          updateAppBadge(nextPending.length + unreadMsgs);
+        }).catch(() => updateAppBadge(nextPending.length));
+      } catch (_) {
+        updateAppBadge(nextPending.length);
+      }
       return {
         pendingRequests: nextPending,
         pendingFriendCount: nextPending.length
@@ -135,6 +170,14 @@ export const useSocialFeedStore = create((set, get) => ({
   declineFriendRequestLocally: (senderId) => {
     set((state) => {
       const nextPending = state.pendingRequests.filter(r => r.senderId !== senderId);
+      try {
+        import('./socialMessageStore.js').then(({ useSocialMessageStore }) => {
+          const unreadMsgs = useSocialMessageStore.getState().totalUnreadCount || 0;
+          updateAppBadge(nextPending.length + unreadMsgs);
+        }).catch(() => updateAppBadge(nextPending.length));
+      } catch (_) {
+        updateAppBadge(nextPending.length);
+      }
       return {
         pendingRequests: nextPending,
         pendingFriendCount: nextPending.length

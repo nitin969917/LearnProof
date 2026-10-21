@@ -9,6 +9,9 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { useLiveRoomPipStore } from './store/liveRoomPipStore';
+import { useSocialMessageStore } from './store/socialMessageStore';
+import { useSocialFeedStore } from './store/socialFeedStore';
+import { updateAppBadge } from './utils/fcm';
 import ParticipantMeetingEndedModal from './components/Dashboard/LanguagePractice/ParticipantMeetingEndedModal';
 import toast from 'react-hot-toast';
 import { resolvePostAuthRedirect, clearAuthRedirect } from './utils/authRedirect';
@@ -508,12 +511,30 @@ const App = () => {
             }
         };
 
+        // Clear or sync app badge on launch (resolves iOS PWA stuck badge count = 1)
+        updateAppBadge(0);
+
+        const syncBadge = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                const totalUnread = useSocialMessageStore.getState().totalUnreadCount || 0;
+                const pendingFriends = useSocialFeedStore.getState().pendingFriendCount || 0;
+                updateAppBadge(totalUnread + pendingFriends);
+            }
+        };
+
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', syncBadge);
+        }
+        window.addEventListener('pageshow', syncBadge);
+        window.addEventListener('focus', syncBadge);
+
         let appStateListener = null;
         if (Capacitor.isNativePlatform()) {
             CapApp.addListener('appStateChange', ({ isActive }) => {
                 console.log('[App Lifecycle] App state changed. isActive:', isActive);
-                // When resuming from background multitasking, do not alter the current route
-                // so the user seamlessly stays on whatever page/video they were viewing.
+                if (isActive) {
+                    syncBadge();
+                }
             }).then(handle => {
                 appStateListener = handle;
             }).catch(() => {});
@@ -523,6 +544,11 @@ const App = () => {
         return () => {
             clearInterval(interval);
             window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+            if (typeof document !== 'undefined') {
+                document.removeEventListener('visibilitychange', syncBadge);
+            }
+            window.removeEventListener('pageshow', syncBadge);
+            window.removeEventListener('focus', syncBadge);
             if (appStateListener) {
                 appStateListener.remove();
             }

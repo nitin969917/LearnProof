@@ -24,7 +24,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
-import { requestNotificationPermissionAndGetToken } from '../../utils/fcm';
+import { requestNotificationPermissionAndGetToken, updateAppBadge } from '../../utils/fcm';
 import { resolvePostAuthRedirect, clearAuthRedirect } from '../../utils/authRedirect';
 
 const LoginPage = () => {
@@ -233,6 +233,9 @@ const LoginPage = () => {
             script.async = true;
             document.head.appendChild(script);
         }
+
+        // Clear any stuck badge on device icon when on login screen
+        updateAppBadge(0);
     }, []);
 
     useEffect(() => {
@@ -821,7 +824,7 @@ const LoginPage = () => {
                 initial={{ opacity: 0, scale: 0.98, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: "easeOut" }}
-                className="relative z-10 w-full max-w-[375px] sm:max-w-[410px] bg-white/80 dark:bg-gray-900/85 backdrop-blur-xl border border-orange-200/70 dark:border-gray-800 rounded-[2rem] sm:rounded-[2.5rem] px-4.5 py-5 sm:px-6 sm:py-6 shadow-[0_16px_40px_rgba(249,115,22,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] flex flex-col items-center justify-center space-y-3.5 sm:space-y-4 my-auto"
+                className="relative z-10 w-full max-w-[375px] sm:max-w-[410px] bg-white/80 dark:bg-gray-900/85 backdrop-blur-xl border border-orange-200/70 dark:border-gray-800 rounded-[2rem] sm:rounded-[2.5rem] px-4.5 py-5 sm:px-6 sm:py-6 shadow-[0_16px_40px_rgba(249,115,22,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] flex flex-col items-center justify-center space-y-3.5 sm:space-y-4 my-auto overflow-hidden"
             >
                 
                 {/* 1. Header with Logo & Brand Name */}
@@ -852,44 +855,48 @@ const LoginPage = () => {
 
                 {/* 3. Three Featured Cards (Interactive Carousel / Swipeable) */}
                 <div className="w-full relative py-0.5">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activeFeature}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ duration: 0.25 }}
-                            drag="x"
-                            dragConstraints={{ left: 0, right: 0 }}
-                            onDragEnd={(_, { offset }) => {
-                                if (offset.x < -40) setActiveFeature((prev) => (prev + 1) % SLIDES.length);
-                                else if (offset.x > 40) setActiveFeature((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
-                            }}
-                            className="grid grid-cols-3 gap-2 sm:gap-2.5 w-full cursor-grab active:cursor-grabbing"
-                        >
-                            {SLIDES[activeFeature].map((card, idx) => (
-                                <div
-                                    key={idx}
-                                    className={`rounded-2xl p-2 sm:p-2.5 border flex flex-col items-center text-center justify-between min-h-[120px] sm:min-h-[130px] shadow-xs transition-all duration-200 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm ${card.cardBg}`}
-                                >
-                                    {/* Icon Container */}
-                                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white dark:bg-gray-900 flex items-center justify-center shadow-xs border border-slate-100 dark:border-gray-700/60 shrink-0 mb-1">
-                                        {card.icon}
+                    {/* Dedicated overflow clipping container so cards stay strictly below/inside the box border */}
+                    <div className="w-full overflow-hidden rounded-2xl py-1 px-0.5 -my-1 -mx-0.5">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeFeature}
+                                initial={{ opacity: 0, x: 24 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -24 }}
+                                transition={{ duration: 0.25, ease: "easeInOut" }}
+                                drag="x"
+                                dragConstraints={{ left: 0, right: 0 }}
+                                dragElastic={0.15}
+                                onDragEnd={(_, { offset }) => {
+                                    if (offset.x < -35) setActiveFeature((prev) => (prev + 1) % SLIDES.length);
+                                    else if (offset.x > 35) setActiveFeature((prev) => (prev - 1 + SLIDES.length) % SLIDES.length);
+                                }}
+                                className="grid grid-cols-3 gap-2 sm:gap-2.5 w-full cursor-grab active:cursor-grabbing"
+                            >
+                                {SLIDES[activeFeature].map((card, idx) => (
+                                    <div
+                                        key={idx}
+                                        className={`rounded-2xl p-2 sm:p-2.5 border flex flex-col items-center text-center justify-between min-h-[120px] sm:min-h-[130px] shadow-xs transition-all duration-200 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm ${card.cardBg}`}
+                                    >
+                                        {/* Icon Container */}
+                                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white dark:bg-gray-900 flex items-center justify-center shadow-xs border border-slate-100 dark:border-gray-700/60 shrink-0 mb-1">
+                                            {card.icon}
+                                        </div>
+                                        
+                                        {/* Text */}
+                                        <div className="w-full my-auto">
+                                            <h3 className="text-[10.5px] sm:text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                                                {card.title}
+                                            </h3>
+                                            <p className="text-[8.5px] sm:text-[9px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 leading-snug line-clamp-2">
+                                                {card.desc}
+                                            </p>
+                                        </div>
                                     </div>
-                                    
-                                    {/* Text */}
-                                    <div className="w-full my-auto">
-                                        <h3 className="text-[10.5px] sm:text-xs font-bold text-slate-900 dark:text-slate-100 leading-tight">
-                                            {card.title}
-                                        </h3>
-                                        <p className="text-[8.5px] sm:text-[9px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 leading-snug line-clamp-2">
-                                            {card.desc}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                        </motion.div>
-                    </AnimatePresence>
+                                ))}
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
 
                     {/* Pagination Indicator Dots */}
                     <div className="flex justify-center items-center gap-1.5 mt-2.5">

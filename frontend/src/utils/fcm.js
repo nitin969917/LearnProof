@@ -409,4 +409,48 @@ if (typeof window !== 'undefined') {
   })();
 }
 
+/**
+ * Safely updates or clears the device app badge (iOS 16.4+ PWA Badging API & Capacitor)
+ * @param {number} count - Unread notifications count. Passing 0 or null clears the badge.
+ */
+export const updateAppBadge = async (count = 0) => {
+  const numericCount = Math.max(0, parseInt(count, 10) || 0);
+
+  // 1. Web Badging API (Supported on iOS 16.4+ PWAs, Chrome, Edge)
+  if (typeof navigator !== 'undefined') {
+    try {
+      if (numericCount > 0 && 'setAppBadge' in navigator) {
+        await navigator.setAppBadge(numericCount);
+      } else if ('clearAppBadge' in navigator) {
+        await navigator.clearAppBadge();
+      } else if ('setAppBadge' in navigator) {
+        await navigator.setAppBadge(0);
+      }
+    } catch (badgeErr) {
+      console.debug('[AppBadge] Web Badging API call skipped/failed:', badgeErr);
+    }
+  }
+
+  // 2. Also notify Service Worker to clear badge if supported
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator && numericCount === 0) {
+    try {
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_BADGE' });
+      }
+    } catch (_) {}
+  }
+
+  // 3. Capacitor native push notifications badge reset (for iOS/Android native app)
+  if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
+    try {
+      const { PushNotifications } = await import('@capacitor/push-notifications');
+      if (numericCount === 0) {
+        await PushNotifications.removeAllDeliveredNotifications();
+      }
+    } catch (capErr) {
+      console.debug('[AppBadge] Capacitor PushNotifications cleanup skipped:', capErr);
+    }
+  }
+};
+
 
