@@ -26,6 +26,7 @@ const DownloadPage = () => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
     const macDownloadUrl = `${backendUrl}/apps/LearnProof-AI.dmg`;
     const winDownloadUrl = `${backendUrl}/apps/LearnProof-AI.exe`;
+    const iosDownloadUrl = "https://apps.apple.com/app/learnproof-ai/id6815305441";
     const androidDownloadUrl = "https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa";
 
     const platforms = [
@@ -186,7 +187,7 @@ const DownloadPage = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
-                    className="bg-white/50 border border-gray-200/60 backdrop-blur-md rounded-3xl p-6 sm:p-8 text-center max-w-2xl mx-auto shadow-sm"
+                    className="bg-white/50 border border-gray-200/60 backdrop-blur-md rounded-3xl p-6 sm:p-8 text-center max-w-3xl mx-auto shadow-sm"
                 >
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
                         <div className="text-left flex items-start gap-4">
@@ -194,21 +195,41 @@ const DownloadPage = () => {
                                 <Smartphone className="w-6 h-6" />
                             </div>
                             <div>
-                                <h4 className="text-lg font-bold text-gray-900">Looking for Android?</h4>
+                                <h4 className="text-lg font-bold text-gray-900">Looking for Mobile Apps?</h4>
                                 <p className="text-gray-500 text-sm mt-0.5 leading-relaxed">
-                                    Take the LearnProof AI experience on the go. Available for installation via Google Play.
+                                    Take the LearnProof AI experience on the go. Available for iPhone, iPad, and Android.
                                 </p>
                             </div>
                         </div>
 
-                        <a
-                            href={androidDownloadUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex-shrink-0 inline-flex items-center gap-2.5 px-6 py-3.5 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl font-bold text-sm transition-all duration-300 shadow-md transform active:scale-95"
-                        >
-                            <span>Get it on Google Play</span>
-                        </a>
+                        <div className="flex flex-wrap items-center gap-2.5 shrink-0 justify-center">
+                            <a
+                                href={iosDownloadUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md"
+                                aria-label="Download on the App Store"
+                            >
+                                <img
+                                    src="/app-store-badge.svg"
+                                    alt="Download on the App Store"
+                                    className="h-[42px] w-auto"
+                                />
+                            </a>
+                            <a
+                                href={androidDownloadUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md"
+                                aria-label="Get it on Google Play"
+                            >
+                                <img
+                                    src="/google-play-badge.svg"
+                                    alt="Get it on Google Play"
+                                    className="h-[42px] w-auto"
+                                />
+                            </a>
+                        </div>
                     </div>
                 </motion.div>
 

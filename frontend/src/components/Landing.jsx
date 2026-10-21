@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, ChevronLeft, ChevronRight, Download, Laptop, Monitor, AlertCircle, Smartphone, Linkedin, Menu, X, Gift, School, Share2 } from 'lucide-react';
+import { Play, Award, BookOpen, CheckCircle, Star, ArrowRight, Youtube, Shield, Zap, Trophy, Target, Clock, Coffee, Lightbulb, TrendingUp, Sparkles, FileText, MessageSquare, CheckSquare, Search, AlertTriangle, Users, ChevronDown, ChevronLeft, ChevronRight, Download, Laptop, Monitor, AlertCircle, Smartphone, Linkedin, Menu, X, Gift, School, Share2, Mail } from 'lucide-react';
 import { GoogleLogin, useGoogleLogin } from '@react-oauth/google';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -872,47 +872,88 @@ const LandingPage = () => {
                         initial={{ opacity: 0, y: 30 }}
                         animate={showContent ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.4, duration: 0.8 }}
-                        className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 flex-wrap mb-10"
+                        className="flex flex-col gap-4 mb-10"
                     >
-                        <button 
-                            onClick={handleManualGoogleLogin}
-                            className="flex items-center gap-2.5 px-4 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-gray-700 text-sm h-[42px] w-[215px] justify-center cursor-pointer"
-                        >
-                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
-                            <span className="whitespace-nowrap">Continue with Google</span>
-                        </button>
-                        <button 
-                            onClick={handleManualLinkedInLogin}
-                            className="flex items-center gap-2.5 px-4 bg-[#0A66C2] hover:bg-[#004182] text-white rounded-xl shadow-[0_4px_20px_rgba(10,102,194,0.18)] hover:shadow-[0_6px_22px_rgba(10,102,194,0.25)] transition-all duration-300 transform hover:-translate-y-0.5 border border-[#0A66C2] font-bold text-sm h-[42px] w-[215px] justify-center cursor-pointer"
-                        >
-                            <svg className="w-4.5 h-4.5 fill-current shrink-0" viewBox="0 0 24 24">
-                                <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.62 1.62 0 1 0 0 3.24 1.62 1.62 0 0 0 0-3.24z"/>
-                            </svg>
-                            <span className="whitespace-nowrap">Continue with LinkedIn</span>
-                        </button>
-                        <a
-                            href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="transition-all duration-300 transform hover:-translate-y-1 hover:opacity-90 drop-shadow-lg hover:drop-shadow-xl block w-auto"
-                            aria-label="Get it on Google Play"
-                        >
-                            <img
-                                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-                                alt="Get it on Google Play"
-                                className="h-[58px] w-auto mx-auto"
-                            />
-                        </a>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 font-medium bg-white/50 px-4 py-2 rounded-full border border-gray-200/50 backdrop-blur-sm mx-auto sm:mx-0">
-                            <CheckCircle size={16} className="text-green-500" />
-                            <span>Free forever to start</span>
-                        </div>
-                        {userCount !== null && (
-                            <div className="flex items-center gap-2 text-sm text-gray-500 font-medium bg-white/50 px-4 py-2 rounded-full border border-gray-200/50 backdrop-blur-sm mx-auto sm:mx-0">
-                                <Users size={16} className="text-orange-500" />
-                                <span>Join <span className="font-bold text-gray-900">{userCount.toLocaleString()}</span> active learners</span>
+                        {/* Action Buttons Row */}
+                        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                            {/* Primary: Continue with Google */}
+                            <button 
+                                onClick={handleManualGoogleLogin}
+                                className="flex items-center gap-2.5 px-5 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-gray-700 text-sm h-[42px] justify-center cursor-pointer"
+                            >
+                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
+                                <span className="whitespace-nowrap">Continue with Google</span>
+                            </button>
+
+                            {/* Minimal LinkedIn Icon Button (matching Login page) */}
+                            <button 
+                                onClick={handleManualLinkedInLogin}
+                                className="w-[42px] h-[42px] bg-white hover:bg-slate-50 text-[#0A66C2] rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(10,102,194,0.22)] transition-all duration-300 transform hover:-translate-y-0.5 border border-slate-200/90 hover:border-[#0A66C2] flex items-center justify-center cursor-pointer group shrink-0"
+                                title="Sign in with LinkedIn"
+                                aria-label="Sign in with LinkedIn"
+                            >
+                                <svg className="w-5 h-5 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
+                                    <rect width="24" height="24" rx="5" fill="#0A66C2" />
+                                    <path fill="#FFFFFF" d="M19 19h-3.14V13.8c0-1.24-.02-2.83-1.72-2.83-1.72 0-1.99 1.35-1.99 2.74V19H9V8.88h3.01v1.38h.04c.42-.8 1.45-1.64 2.98-1.64 3.19 0 3.78 2.1 3.78 4.83V19zM5.33 7.49a1.82 1.82 0 1 1 0-3.64 1.82 1.82 0 0 1 0 3.64zM6.9 19H3.76V8.88H6.9V19z" />
+                                </svg>
+                            </button>
+
+                            {/* Minimal Email / More options button (opens /login) */}
+                            <button 
+                                onClick={() => navigate('/login')}
+                                className="w-[42px] h-[42px] bg-white hover:bg-slate-50 text-slate-600 hover:text-orange-600 rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.18)] transition-all duration-300 transform hover:-translate-y-0.5 border border-slate-200/90 hover:border-orange-300 flex items-center justify-center cursor-pointer group shrink-0"
+                                title="Sign in with Email OTP or Apple"
+                                aria-label="Sign in with Email OTP or Apple"
+                            >
+                                <Mail size={18} className="transition-transform group-hover:scale-110 text-slate-500 group-hover:text-orange-500" />
+                            </button>
+
+                            <div className="hidden sm:block h-6 w-px bg-gray-200 mx-0.5" />
+
+                            {/* Store Badges: Apple App Store & Google Play */}
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href="https://apps.apple.com/app/learnproof-ai/id6815305441"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="transition-all duration-300 transform hover:-translate-y-0.5 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
+                                    aria-label="Download on the App Store"
+                                >
+                                    <img
+                                        src="/app-store-badge.svg"
+                                        alt="Download on the App Store"
+                                        className="h-[40px] w-auto"
+                                    />
+                                </a>
+                                <a
+                                    href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="transition-all duration-300 transform hover:-translate-y-0.5 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
+                                    aria-label="Get it on Google Play"
+                                >
+                                    <img
+                                        src="/google-play-badge.svg"
+                                        alt="Get it on Google Play"
+                                        className="h-[40px] w-auto"
+                                    />
+                                </a>
                             </div>
-                        )}
+                        </div>
+
+                        {/* Social Proof Pills */}
+                        <div className="flex flex-wrap items-center gap-2.5">
+                            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 font-medium bg-white/60 px-3.5 py-1.5 rounded-full border border-gray-200/60 backdrop-blur-sm">
+                                <CheckCircle size={15} className="text-green-500" />
+                                <span>Free forever to start</span>
+                            </div>
+                            {userCount !== null && (
+                                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 font-medium bg-white/60 px-3.5 py-1.5 rounded-full border border-gray-200/60 backdrop-blur-sm">
+                                    <Users size={15} className="text-orange-500" />
+                                    <span>Join <span className="font-bold text-gray-900">{userCount.toLocaleString()}</span> active learners</span>
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
 
                     <div className="flex flex-wrap gap-3 mb-12">
@@ -1294,7 +1335,42 @@ const LandingPage = () => {
                         </p>
                     </div>
 
-                    <div className="flex flex-col items-center gap-6 md:grid md:grid-cols-3 md:gap-8 mb-12 max-w-5xl mx-auto">
+                    <div className="flex flex-col items-center gap-6 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 mb-12 max-w-6xl mx-auto">
+                        {/* iOS Card (App Store) */}
+                        <div className="w-72 md:w-full h-full bg-white border border-orange-100 rounded-2xl p-6 shadow-md hover:border-orange-300 hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-between text-center">
+                            <div className="flex flex-col items-center">
+                                {/* Icon tile */}
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-zinc-800 to-black flex items-center justify-center text-white mb-4 shadow-md">
+                                    <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.37c.62-.75 1.04-1.8 1.01-2.87-.96.04-2.13.64-2.79 1.41-.58.68-1.1 1.76-.96 2.81 1.07.08 2.12-.56 2.74-1.35z"/>
+                                    </svg>
+                                </div>
+
+                                <span className="text-[10px] font-bold text-gray-500 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full mb-3">
+                                    .ipa • Apple App Store
+                                </span>
+
+                                <h3 className="text-base font-bold text-gray-800 mb-2 leading-snug font-sans">LearnProof AI for iOS</h3>
+                                <p className="text-xs text-gray-500 leading-relaxed mb-5">
+                                    Study on iPhone & iPad. Complete AI video intuition, flashcards, and verified certificates on iOS.
+                                </p>
+                            </div>
+
+                            <a
+                                href="https://apps.apple.com/app/learnproof-ai/id6815305441"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-md hover:drop-shadow-lg mt-auto block"
+                                aria-label="Download on the App Store"
+                            >
+                                <img
+                                    src="/app-store-badge.svg"
+                                    alt="Download on the App Store"
+                                    className="h-[44px] w-auto object-contain"
+                                />
+                            </a>
+                        </div>
+
                         {/* Android Card */}
                         <div className="w-72 md:w-full h-full bg-white border border-orange-100 rounded-2xl p-6 shadow-md hover:border-orange-300 hover:shadow-xl transition-all duration-300 flex flex-col items-center justify-between text-center">
                             <div className="flex flex-col items-center">
@@ -1321,9 +1397,9 @@ const LandingPage = () => {
                                 aria-label="Get it on Google Play"
                             >
                                 <img
-                                    src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                                    src="/google-play-badge.svg"
                                     alt="Get it on Google Play"
-                                    className="h-[48px] w-auto object-contain"
+                                    className="h-[44px] w-auto object-contain"
                                 />
                             </a>
                         </div>
@@ -1433,37 +1509,62 @@ const LandingPage = () => {
                             Start your journey of transforming YouTube videos into verified certificates. Join {userCount !== null ? <span className="font-bold text-orange-600">{userCount.toLocaleString()}</span> : '...'} active learners today and showcase your dedication to learning.
                         </p>
                         <div className="flex flex-col items-center gap-4 mb-6">
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                            <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
                                 <button 
                                     onClick={handleManualGoogleLogin}
-                                    className="inline-flex items-center gap-2.5 px-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-gray-700 text-sm h-[42px] justify-center min-w-[215px] cursor-pointer"
+                                    className="inline-flex items-center gap-2.5 px-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-gray-700 text-sm h-[42px] justify-center cursor-pointer"
                                 >
                                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
                                     <span>Continue with Google</span>
                                 </button>
                                 <button 
                                     onClick={handleManualLinkedInLogin}
-                                    className="inline-flex items-center gap-2.5 px-6 bg-[#0A66C2] hover:bg-[#004182] text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-[#0A66C2] font-bold text-sm h-[42px] justify-center min-w-[215px] cursor-pointer"
+                                    className="w-[42px] h-[42px] bg-white hover:bg-slate-50 text-[#0A66C2] rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-slate-200/90 hover:border-[#0A66C2] flex items-center justify-center cursor-pointer group shrink-0"
+                                    title="Sign in with LinkedIn"
+                                    aria-label="Sign in with LinkedIn"
                                 >
-                                    <svg className="w-4.5 h-4.5 fill-current shrink-0" viewBox="0 0 24 24">
-                                        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.2V10.9H6.46M7.83 6.45a1.62 1.62 0 1 0 0 3.24 1.62 1.62 0 0 0 0-3.24z"/>
+                                    <svg className="w-5 h-5 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
+                                        <rect width="24" height="24" rx="5" fill="#0A66C2" />
+                                        <path fill="#FFFFFF" d="M19 19h-3.14V13.8c0-1.24-.02-2.83-1.72-2.83-1.72 0-1.99 1.35-1.99 2.74V19H9V8.88h3.01v1.38h.04c.42-.8 1.45-1.64 2.98-1.64 3.19 0 3.78 2.1 3.78 4.83V19zM5.33 7.49a1.82 1.82 0 1 1 0-3.64 1.82 1.82 0 0 1 0 3.64zM6.9 19H3.76V8.88H6.9V19z" />
                                     </svg>
-                                    <span>Continue with LinkedIn</span>
+                                </button>
+                                <button 
+                                    onClick={() => navigate('/login')}
+                                    className="w-[42px] h-[42px] bg-white hover:bg-slate-50 text-slate-600 hover:text-orange-600 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-slate-200/90 hover:border-orange-300 flex items-center justify-center cursor-pointer group shrink-0"
+                                    title="Sign in with Email OTP or Apple"
+                                    aria-label="Sign in with Email OTP or Apple"
+                                >
+                                    <Mail size={18} className="transition-transform group-hover:scale-110 text-slate-500 group-hover:text-orange-500" />
                                 </button>
                             </div>
-                            <a
-                                href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-lg hover:drop-shadow-xl"
-                                aria-label="Get it on Google Play"
-                            >
-                                <img
-                                    src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-                                    alt="Get it on Google Play"
-                                    className="h-[58px] w-auto"
-                                />
-                            </a>
+                            <div className="flex items-center justify-center gap-2.5 pt-1">
+                                <a
+                                    href="https://apps.apple.com/app/learnproof-ai/id6815305441"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md"
+                                    aria-label="Download on the App Store"
+                                >
+                                    <img
+                                        src="/app-store-badge.svg"
+                                        alt="Download on the App Store"
+                                        className="h-[40px] w-auto"
+                                    />
+                                </a>
+                                <a
+                                    href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md"
+                                    aria-label="Get it on Google Play"
+                                >
+                                    <img
+                                        src="/google-play-badge.svg"
+                                        alt="Get it on Google Play"
+                                        className="h-[40px] w-auto"
+                                    />
+                                </a>
+                            </div>
                         </div>
 
                         <motion.p
