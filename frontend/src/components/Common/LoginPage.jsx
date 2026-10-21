@@ -588,38 +588,16 @@ const LoginPage = () => {
         }
     };
 
-    // Fullscreen Loading overlay when authenticating
-    if (loading || isAuthenticating) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-[#fff7f4] via-[#ffffff] to-[#fffbf9] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col items-center justify-center p-4">
-                <div className="flex flex-col items-center gap-4 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-orange-100 dark:border-gray-800 rounded-3xl p-8 shadow-xl max-w-sm w-full text-center">
-                    <img src="/LP_logo_login.png" alt="LearnProof" className="h-20 w-auto object-contain animate-pulse" />
-                    <div className="space-y-1">
-                        <h2 className="text-base font-black text-gray-900 dark:text-white">LearnProof AI</h2>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{authStatusMessage}</p>
-                    </div>
-                    <div className="w-8 h-8 border-3 border-orange-500/20 border-t-orange-500 rounded-full animate-spin mt-1" />
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setIsAuthenticating(false);
-                            sessionStorage.removeItem("is_authenticating");
-                        }}
-                        className="text-xs text-gray-400 hover:text-gray-600 underline mt-2 cursor-pointer"
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
     if (user) {
         return <Navigate to="/dashboard" replace />;
     }
 
     return (
         <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#FFF5F0] via-[#FFFFFF] to-[#FFEFE6] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-x-hidden flex flex-col justify-between items-center py-5 sm:py-8 px-4 sm:px-6 select-none font-sans">
+            {/* Subtle top progress bar during authentication */}
+            {isAuthenticating && (
+                <div className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 via-amber-400 to-orange-600 animate-pulse z-50 pointer-events-none" />
+            )}
             
             {/* ── Background Decorative Texture & Glows ── */}
             <div className="absolute inset-0 pointer-events-none z-0">
@@ -757,11 +735,12 @@ const LoginPage = () => {
                 {/* 4. Primary Login Action: Continue with Google (Compact & Centered like before) */}
                 <div className="w-full flex justify-center pt-0.5">
                     <motion.button
-                        whileHover={{ scale: 1.01, y: -0.5 }}
-                        whileTap={{ scale: 0.99 }}
+                        whileHover={{ scale: isAuthenticating ? 1 : 1.01, y: isAuthenticating ? 0 : -0.5 }}
+                        whileTap={{ scale: isAuthenticating ? 1 : 0.99 }}
                         type="button"
+                        disabled={isAuthenticating}
                         onClick={handleManualGoogleLogin}
-                        className="w-full max-w-[245px] sm:max-w-[260px] h-[38px] sm:h-[40px] flex items-center justify-center gap-2.5 px-3 bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 rounded-xl shadow-xs hover:shadow hover:border-slate-300 dark:hover:border-gray-600 transition-all duration-200 font-semibold text-slate-700 dark:text-slate-200 text-xs sm:text-[13px] cursor-pointer"
+                        className={`w-full max-w-[245px] sm:max-w-[260px] h-[38px] sm:h-[40px] flex items-center justify-center gap-2.5 px-3 bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 rounded-xl shadow-xs hover:shadow hover:border-slate-300 dark:hover:border-gray-600 transition-all duration-200 font-semibold text-slate-700 dark:text-slate-200 text-xs sm:text-[13px] ${isAuthenticating ? 'opacity-70 cursor-wait' : 'cursor-pointer'}`}
                     >
                         <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -786,10 +765,11 @@ const LoginPage = () => {
                 <div className="flex items-center justify-center gap-2.5 sm:gap-3 w-full max-w-[245px] sm:max-w-[260px]">
                     {/* Apple Sign-In Tile */}
                     <motion.button
-                        whileHover={{ scale: 1.04, y: -1 }}
-                        whileTap={{ scale: 0.96 }}
+                        whileHover={{ scale: isAuthenticating ? 1 : 1.04, y: isAuthenticating ? 0 : -1 }}
+                        whileTap={{ scale: isAuthenticating ? 1 : 0.96 }}
+                        disabled={isAuthenticating}
                         onClick={handleManualAppleLogin}
-                        className="flex-1 h-[44px] sm:h-[48px] rounded-2xl bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 shadow-xs hover:shadow-md hover:border-slate-400 dark:hover:border-gray-600 transition-all flex items-center justify-center cursor-pointer group"
+                        className={`flex-1 h-[44px] sm:h-[48px] rounded-2xl bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 shadow-xs hover:shadow-md hover:border-slate-400 dark:hover:border-gray-600 transition-all flex items-center justify-center group ${isAuthenticating ? 'opacity-70 cursor-wait' : 'cursor-pointer'}`}
                         title="Sign in with Apple"
                         aria-label="Sign in with Apple"
                     >
@@ -800,10 +780,11 @@ const LoginPage = () => {
 
                     {/* LinkedIn Sign-In Tile */}
                     <motion.button
-                        whileHover={{ scale: 1.04, y: -1 }}
-                        whileTap={{ scale: 0.96 }}
+                        whileHover={{ scale: isAuthenticating ? 1 : 1.04, y: isAuthenticating ? 0 : -1 }}
+                        whileTap={{ scale: isAuthenticating ? 1 : 0.96 }}
+                        disabled={isAuthenticating}
                         onClick={handleManualLinkedInLogin}
-                        className="flex-1 h-[44px] sm:h-[48px] rounded-2xl bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 shadow-xs hover:shadow-md hover:border-[#0A66C2] dark:hover:border-[#0A66C2] transition-all flex items-center justify-center cursor-pointer group"
+                        className={`flex-1 h-[44px] sm:h-[48px] rounded-2xl bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 shadow-xs hover:shadow-md hover:border-[#0A66C2] dark:hover:border-[#0A66C2] transition-all flex items-center justify-center group ${isAuthenticating ? 'opacity-70 cursor-wait' : 'cursor-pointer'}`}
                         title="Sign in with LinkedIn"
                         aria-label="Sign in with LinkedIn"
                     >
@@ -815,10 +796,11 @@ const LoginPage = () => {
 
                     {/* Email / Reviewer Demo Access Tile */}
                     <motion.button
-                        whileHover={{ scale: 1.04, y: -1 }}
-                        whileTap={{ scale: 0.96 }}
+                        whileHover={{ scale: isAuthenticating ? 1 : 1.04, y: isAuthenticating ? 0 : -1 }}
+                        whileTap={{ scale: isAuthenticating ? 1 : 0.96 }}
+                        disabled={isAuthenticating}
                         onClick={() => setShowEmailModal(true)}
-                        className="flex-1 h-[44px] sm:h-[48px] rounded-2xl bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 shadow-xs hover:shadow-md hover:border-orange-300 dark:hover:border-orange-500/40 transition-all flex items-center justify-center cursor-pointer group"
+                        className={`flex-1 h-[44px] sm:h-[48px] rounded-2xl bg-white dark:bg-gray-800 border border-slate-200/90 dark:border-gray-700 shadow-xs hover:shadow-md hover:border-orange-300 dark:hover:border-orange-500/40 transition-all flex items-center justify-center group ${isAuthenticating ? 'opacity-70 cursor-wait' : 'cursor-pointer'}`}
                         title="Sign in with Email or App Store Reviewer Access"
                         aria-label="Sign in with Email or Demo Access"
                     >
