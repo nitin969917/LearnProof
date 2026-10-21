@@ -298,23 +298,30 @@ const LoginPage = () => {
             let appleResponse = null;
             if (isCapacitorNative) {
                 const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
+                const nativeBundleId = import.meta.env.VITE_APPLE_NATIVE_CLIENT_ID || 'com.learnproof.learnProof';
                 appleResponse = await SignInWithApple.authorize({
-                    clientId: 'com.learnproof.learnProofTwa',
+                    clientId: nativeBundleId,
                     redirectURI: 'https://learnproofai.com',
                     scopes: 'email name',
                 });
             } else {
                 try {
                     const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
+                    const appleWebServicesId = import.meta.env.VITE_APPLE_CLIENT_ID || 'com.learnproof.web';
                     appleResponse = await SignInWithApple.authorize({
-                        clientId: 'com.learnproof.learnProofTwa',
+                        clientId: appleWebServicesId,
                         redirectURI: 'https://learnproofai.com',
                         scopes: 'email name',
                     });
                 } catch (webErr) {
                     setIsAuthenticating(false);
                     sessionStorage.removeItem("is_authenticating");
-                    toast("Sign in with Apple is designed for the iOS app. On web browser, please continue with Google or Demo.", { icon: '🍎' });
+                    const errStr = String(webErr?.message || webErr || '');
+                    if (errStr.includes('canceled') || errStr.includes('1001') || errStr.includes('user_cancelled_authorize')) {
+                        return;
+                    }
+                    console.warn("Sign in with Apple Web notice:", webErr);
+                    toast("Apple Sign-In is active in the iOS app. For web Safari, please continue with Google or Email while Apple verifies the domain.", { icon: '🍎', duration: 6000 });
                     return;
                 }
             }
