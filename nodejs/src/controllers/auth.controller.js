@@ -307,6 +307,7 @@ const deleteAccount = async (req, res) => {
         await prisma.supportTicket.deleteMany({ where: { userId } }).catch(() => {});
         await prisma.workspace.deleteMany({ where: { userId } }).catch(() => {});
         await prisma.referralCode.deleteMany({ where: { userId } }).catch(() => {});
+        await prisma.userDailyGoal.deleteMany({ where: { userId } }).catch(() => {});
 
         // Delete from social datingPrisma if present
         try {
@@ -315,6 +316,18 @@ const deleteAccount = async (req, res) => {
                 where: { OR: [{ email: req.user.email }, { googleId: userUid }] }
             });
             if (socialUser) {
+                await datingPrisma.message.deleteMany({
+                    where: { OR: [{ senderId: socialUser.id }, { receiverId: socialUser.id }] }
+                }).catch(() => {});
+                await datingPrisma.crush.deleteMany({
+                    where: { OR: [{ senderId: socialUser.id }, { receiverId: socialUser.id }] }
+                }).catch(() => {});
+                await datingPrisma.closeFriendRequest.deleteMany({
+                    where: { OR: [{ senderId: socialUser.id }, { receiverId: socialUser.id }] }
+                }).catch(() => {});
+                await datingPrisma.groupMessage.deleteMany({ where: { senderId: socialUser.id } }).catch(() => {});
+                await datingPrisma.groupMember.deleteMany({ where: { userId: socialUser.id } }).catch(() => {});
+                await datingPrisma.languageRoom.deleteMany({ where: { hostId: socialUser.id } }).catch(() => {});
                 await datingPrisma.post.deleteMany({ where: { userId: socialUser.id } }).catch(() => {});
                 await datingPrisma.comment.deleteMany({ where: { userId: socialUser.id } }).catch(() => {});
                 await datingPrisma.friendship.deleteMany({
