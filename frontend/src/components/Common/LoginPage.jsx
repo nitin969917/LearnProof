@@ -162,6 +162,16 @@ const LoginPage = () => {
     }, []);
 
     useEffect(() => {
+        // Preload Apple Web SDK to avoid Safari popup blocker on click
+        if (typeof window !== 'undefined' && !window.AppleID) {
+            const script = document.createElement('script');
+            script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+            script.async = true;
+            document.head.appendChild(script);
+        }
+    }, []);
+
+    useEffect(() => {
         // If already logged in, redirect to destination immediately
         if (!loading && user) {
             navigate(resolvePostAuthRedirect(), { replace: true });
@@ -289,6 +299,29 @@ const LoginPage = () => {
 
     // ── Apple Login Handler ──
     const handleManualAppleLogin = async () => {
+        const isAppleCancelOrIgnored = (err) => {
+            if (!err) return true;
+            let str = '';
+            try {
+                str = (typeof err === 'object' ? JSON.stringify(err) : String(err)) + ' ' + (err?.error || '') + ' ' + (err?.message || '');
+            } catch (_) {
+                str = String(err);
+            }
+            const lower = str.toLowerCase();
+            return (
+                lower.includes('popup_closed') ||
+                lower.includes('closed_by_user') ||
+                lower.includes('user_cancelled') ||
+                lower.includes('user_canceled') ||
+                lower.includes('canceled') ||
+                lower.includes('cancelled') ||
+                lower.includes('popup_blocked') ||
+                lower.includes('1001') ||
+                lower.includes('dismissed') ||
+                lower.includes('abort')
+            );
+        };
+
         try {
             setIsAuthenticating(true);
             sessionStorage.setItem("is_authenticating", "true");
@@ -305,24 +338,33 @@ const LoginPage = () => {
                     scopes: 'email name',
                 });
             } else {
-                try {
+                const appleWebServicesId = import.meta.env.VITE_APPLE_CLIENT_ID || 'com.learnproof.web';
+
+                if (typeof window !== 'undefined' && window.AppleID?.auth) {
+                    window.AppleID.auth.init({
+                        clientId: appleWebServicesId,
+                        scope: 'name email',
+                        redirectURI: 'https://learnproofai.com',
+                        usePopup: true
+                    });
+                    const res = await window.AppleID.auth.signIn();
+                    appleResponse = {
+                        response: {
+                            user: null,
+                            email: res?.user?.email,
+                            givenName: res?.user?.name?.firstName,
+                            familyName: res?.user?.name?.lastName,
+                            identityToken: res?.authorization?.id_token,
+                            authorizationCode: res?.authorization?.code
+                        }
+                    };
+                } else {
                     const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
-                    const appleWebServicesId = import.meta.env.VITE_APPLE_CLIENT_ID || 'com.learnproof.web';
                     appleResponse = await SignInWithApple.authorize({
                         clientId: appleWebServicesId,
                         redirectURI: 'https://learnproofai.com',
                         scopes: 'email name',
                     });
-                } catch (webErr) {
-                    setIsAuthenticating(false);
-                    sessionStorage.removeItem("is_authenticating");
-                    const errStr = String(webErr?.message || webErr || '');
-                    if (errStr.includes('canceled') || errStr.includes('1001') || errStr.includes('user_cancelled_authorize')) {
-                        return;
-                    }
-                    console.warn("Sign in with Apple Web notice:", webErr);
-                    toast("Apple Sign-In is active in the iOS app. For web Safari, please continue with Google or Email while Apple verifies the domain.", { icon: '🍎', duration: 6000 });
-                    return;
                 }
             }
 
@@ -352,12 +394,16 @@ const LoginPage = () => {
             setIsAuthenticating(false);
             sessionStorage.removeItem("is_authenticating");
         } catch (err) {
-            console.error("Apple Sign-In error:", err);
             setIsAuthenticating(false);
             sessionStorage.removeItem("is_authenticating");
-            const errStr = err?.message || '';
-            if (errStr.includes('canceled') || errStr.includes('1001')) return;
-            toast.error(err.message || "Apple Sign-In failed.");
+
+            if (isAppleCancelOrIgnored(err)) {
+                // User intentionally cancelled, closed the popup, or popup was closed - do not show any error!
+                return;
+            }
+
+            console.error("Apple Sign-In error:", err);
+            toast.error(err?.message || "Sign in with Apple failed. Please try again.");
         }
     };
 
