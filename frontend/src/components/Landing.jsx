@@ -904,43 +904,15 @@ const LandingPage = () => {
                                 <span className="whitespace-nowrap">Continue with Google</span>
                             </button>
 
-                            {/* Minimal Apple Icon Button */}
+                            {/* More Options Button (redirects to /login) */}
                             <button 
                                 onClick={() => navigate('/login')}
-                                className={`w-[42px] h-[42px] rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center cursor-pointer group shrink-0 ${
-                                    deviceInfo.isApple 
-                                        ? 'bg-black text-white hover:bg-neutral-800 border border-neutral-900 shadow-[0_4px_18px_rgba(0,0,0,0.22)] ring-1 ring-black/10' 
-                                        : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-200/90 hover:border-slate-800'
-                                }`}
-                                title="Continue with Apple"
-                                aria-label="Continue with Apple"
+                                className="flex items-center gap-1.5 px-4 bg-white hover:bg-orange-50/60 text-gray-700 hover:text-orange-600 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-sm h-[42px] justify-center cursor-pointer group shrink-0"
+                                title="More sign-in options"
+                                aria-label="More sign-in options"
                             >
-                                <svg className={`w-5 h-5 transition-transform group-hover:scale-110 ${deviceInfo.isApple ? 'fill-white' : 'fill-slate-900'}`} viewBox="0 0 24 24">
-                                    <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
-                                </svg>
-                            </button>
-
-                            {/* Minimal LinkedIn Icon Button (matching Login page) */}
-                            <button 
-                                onClick={handleManualLinkedInLogin}
-                                className="w-[42px] h-[42px] bg-white hover:bg-slate-50 text-[#0A66C2] rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(10,102,194,0.22)] transition-all duration-300 transform hover:-translate-y-0.5 border border-slate-200/90 hover:border-[#0A66C2] flex items-center justify-center cursor-pointer group shrink-0"
-                                title="Sign in with LinkedIn"
-                                aria-label="Sign in with LinkedIn"
-                            >
-                                <svg className="w-5 h-5 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
-                                    <rect width="24" height="24" rx="5" fill="#0A66C2" />
-                                    <path fill="#FFFFFF" d="M19 19h-3.14V13.8c0-1.24-.02-2.83-1.72-2.83-1.72 0-1.99 1.35-1.99 2.74V19H9V8.88h3.01v1.38h.04c.42-.8 1.45-1.64 2.98-1.64 3.19 0 3.78 2.1 3.78 4.83V19zM5.33 7.49a1.82 1.82 0 1 1 0-3.64 1.82 1.82 0 0 1 0 3.64zM6.9 19H3.76V8.88H6.9V19z" />
-                                </svg>
-                            </button>
-
-                            {/* Minimal Email / More options button (opens /login) */}
-                            <button 
-                                onClick={() => navigate('/login')}
-                                className="w-[42px] h-[42px] bg-white hover:bg-slate-50 text-slate-600 hover:text-orange-600 rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.18)] transition-all duration-300 transform hover:-translate-y-0.5 border border-slate-200/90 hover:border-orange-300 flex items-center justify-center cursor-pointer group shrink-0"
-                                title="Sign in with Email OTP"
-                                aria-label="Sign in with Email OTP"
-                            >
-                                <Mail size={18} className="transition-transform group-hover:scale-110 text-slate-500 group-hover:text-orange-500" />
+                                <span>More</span>
+                                <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-transform" />
                             </button>
 
                             <div className="hidden sm:block h-6 w-px bg-gray-200 mx-0.5" />
@@ -1556,38 +1528,15 @@ const LandingPage = () => {
                                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
                                     <span>Continue with Google</span>
                                 </button>
+                                {/* More Options Button (redirects to /login) */}
                                 <button 
                                     onClick={() => navigate('/login')}
-                                    className={`w-[42px] h-[42px] rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center cursor-pointer group shrink-0 ${
-                                        deviceInfo.isApple 
-                                            ? 'bg-black text-white hover:bg-neutral-800 border border-neutral-900 shadow-[0_4px_18px_rgba(0,0,0,0.22)] ring-1 ring-black/10' 
-                                            : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-200/90 hover:border-slate-800'
-                                    }`}
-                                    title="Continue with Apple"
-                                    aria-label="Continue with Apple"
+                                    className="inline-flex items-center gap-1.5 px-4 bg-white hover:bg-orange-50/60 text-gray-700 hover:text-orange-600 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-sm h-[42px] justify-center cursor-pointer group shrink-0"
+                                    title="More sign-in options"
+                                    aria-label="More sign-in options"
                                 >
-                                    <svg className={`w-5 h-5 transition-transform group-hover:scale-110 ${deviceInfo.isApple ? 'fill-white' : 'fill-slate-900'}`} viewBox="0 0 24 24">
-                                        <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
-                                    </svg>
-                                </button>
-                                <button 
-                                    onClick={handleManualLinkedInLogin}
-                                    className="w-[42px] h-[42px] bg-white hover:bg-slate-50 text-[#0A66C2] rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-slate-200/90 hover:border-[#0A66C2] flex items-center justify-center cursor-pointer group shrink-0"
-                                    title="Sign in with LinkedIn"
-                                    aria-label="Sign in with LinkedIn"
-                                >
-                                    <svg className="w-5 h-5 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
-                                        <rect width="24" height="24" rx="5" fill="#0A66C2" />
-                                        <path fill="#FFFFFF" d="M19 19h-3.14V13.8c0-1.24-.02-2.83-1.72-2.83-1.72 0-1.99 1.35-1.99 2.74V19H9V8.88h3.01v1.38h.04c.42-.8 1.45-1.64 2.98-1.64 3.19 0 3.78 2.1 3.78 4.83V19zM5.33 7.49a1.82 1.82 0 1 1 0-3.64 1.82 1.82 0 0 1 0 3.64zM6.9 19H3.76V8.88H6.9V19z" />
-                                    </svg>
-                                </button>
-                                <button 
-                                    onClick={() => navigate('/login')}
-                                    className="w-[42px] h-[42px] bg-white hover:bg-slate-50 text-slate-600 hover:text-orange-600 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-slate-200/90 hover:border-orange-300 flex items-center justify-center cursor-pointer group shrink-0"
-                                    title="Sign in with Email OTP"
-                                    aria-label="Sign in with Email OTP"
-                                >
-                                    <Mail size={18} className="transition-transform group-hover:scale-110 text-slate-500 group-hover:text-orange-500" />
+                                    <span>More</span>
+                                    <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-transform" />
                                 </button>
                             </div>
                             <div className="flex items-center justify-center gap-2.5 pt-1">
