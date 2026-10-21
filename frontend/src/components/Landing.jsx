@@ -323,7 +323,20 @@ const LandingPage = () => {
         };
     });
 
-    // Safety watchdog: Never allow isLoggingIn to freeze the UI in an infinite loading state
+    // Safety watchdog & bfcache return listener: Never allow isLoggingIn to freeze the UI in an infinite loading state
+    useEffect(() => {
+        const handlePageShow = () => {
+            const hash = window.location.hash || '';
+            if (!hash.includes("id_token") && !hash.includes("credential")) {
+                setIsLoggingIn(false);
+                sessionStorage.removeItem("is_logging_in");
+            }
+        };
+
+        window.addEventListener('pageshow', handlePageShow);
+        return () => window.removeEventListener('pageshow', handlePageShow);
+    }, []);
+
     useEffect(() => {
         if (isLoggingIn) {
             const watchdog = setTimeout(() => {

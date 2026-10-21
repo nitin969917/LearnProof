@@ -82,6 +82,8 @@ const LinkedInCallback = () => {
 
             if (error) {
                 console.warn('[LinkedIn Callback] Auth error or cancellation:', error, errorDescription);
+                sessionStorage.removeItem("is_authenticating");
+                sessionStorage.removeItem("linkedin_oauth_state");
                 if (isNativeApp) {
                     setStatusMessage('Authentication cancelled. Returning to app...');
                     redirectNativeError(errorDescription || 'LinkedIn login was cancelled.');
@@ -104,6 +106,8 @@ const LinkedInCallback = () => {
 
             if (!code) {
                 console.warn('[LinkedIn Callback] No authorization code found in URL');
+                sessionStorage.removeItem("is_authenticating");
+                sessionStorage.removeItem("linkedin_oauth_state");
                 if (isNativeApp) {
                     redirectNativeError('No authorization code found.');
                     return;
@@ -130,6 +134,9 @@ const LinkedInCallback = () => {
                 });
 
                 if (res.data && res.data.token) {
+                    sessionStorage.removeItem("is_authenticating");
+                    sessionStorage.removeItem("linkedin_oauth_state");
+
                     if (isNativeApp) {
                         setStatusMessage('Authenticated! Returning to LearnProof AI...');
                         redirectToNativeApp(res.data.token, res.data.isNewUser);
@@ -167,6 +174,8 @@ const LinkedInCallback = () => {
                 }
             } catch (err) {
                 console.error('[LinkedIn Callback] Processing failed:', err);
+                sessionStorage.removeItem("is_authenticating");
+                sessionStorage.removeItem("linkedin_oauth_state");
                 const errMsg = err.response?.data?.details || err.response?.data?.error || err.message || "Failed to sign in with LinkedIn.";
                 if (isNativeApp) {
                     setStatusMessage('Authentication failed. Returning to app...');
