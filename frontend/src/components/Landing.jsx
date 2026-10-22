@@ -728,7 +728,7 @@ const LandingPage = () => {
     return (
         <div className="min-h-screen bg-orange-50 relative overflow-hidden selection:bg-orange-200 pt-16 md:pt-18">
             {/* Header / Sticky Glassmorphism Navbar */}
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-xs border-b border-orange-100/60 py-2 sm:py-2.5">
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-xs border-b border-orange-100/60 py-1 sm:py-1.5">
                 <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
                     {/* Brand Logo */}
                     <div 
@@ -738,7 +738,7 @@ const LandingPage = () => {
                         <img 
                             src="/LP_logo.png" 
                             alt="LearnProof" 
-                            className="h-8.5 sm:h-10 lg:h-11 w-auto object-contain my-0 py-0 block transform -translate-y-[1px] transition-transform duration-200 group-hover:scale-105" 
+                            className="h-10 sm:h-11.5 lg:h-12 w-auto object-contain my-0 py-0 block transform -translate-y-[1px] transition-transform duration-200 group-hover:scale-105" 
                         />
                     </div>
 
@@ -942,7 +942,7 @@ const LandingPage = () => {
                             <div className="hidden sm:block h-6 w-px bg-gray-200 mx-0.5 shrink-0" />
 
                             {/* Dynamic Store Badges: Prioritized by device */}
-                            <div className="flex items-center gap-2 shrink-0">
+                            <div className="basis-full w-full flex justify-center sm:basis-auto sm:w-auto sm:justify-start items-center gap-2 shrink-0 pt-0.5 sm:pt-0">
                                 {(deviceInfo.isApple || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
                                     <a
                                         href="https://apps.apple.com/app/learnproof-ai/id6815305441"
