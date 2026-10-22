@@ -1141,98 +1141,103 @@ const YouTubeExplorer = () => {
             )}
 
             {/* Import Confirmation Modal */}
-            <AnimatePresence>
-                {importData && typeof document !== 'undefined' && createPortal(
-                    <motion.div
-                        className="fixed inset-0 bg-gray-900/60 flex justify-center items-center z-[99999] backdrop-blur-sm p-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                    >
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {importData && (
                         <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-xs bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-2xl text-center"
+                            key="import-confirm-modal"
+                            className="fixed inset-0 bg-gray-900/60 flex justify-center items-center z-[99999] backdrop-blur-sm p-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
                         >
-                            {/* Close button at top-right */}
-                            <button
-                                onClick={handleCancel}
-                                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 cursor-pointer"
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                                className="relative w-full max-w-xs bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-6 shadow-2xl text-center"
                             >
-                                <X size={18} />
-                            </button>
-
-                            {/* Centered Icon */}
-                            <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500 bg-red-500/10">
-                                <Plus size={26} />
-                            </div>
-
-                            {/* Centered Title */}
-                            <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">
-                                Confirm Import
-                            </h3>
-
-                            {/* Centered Message */}
-                            <p className="text-[10px] text-gray-450 dark:text-gray-400 font-bold uppercase tracking-wider mb-4 leading-relaxed">
-                                Review your selection before saving
-                            </p>
-
-                            {/* Details Block */}
-                            <div className="text-left bg-gray-50/50 dark:bg-gray-800/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-800/60 mb-5 space-y-3">
-                                <div className="space-y-0.5">
-                                    <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block">Title</span>
-                                    <p className="text-xs text-gray-900 dark:text-white font-bold leading-snug line-clamp-2" dangerouslySetInnerHTML={{ __html: importData.title }}></p>
-                                </div>
-                                <div className="flex items-center justify-between pt-2.5 border-t border-gray-150/50 dark:border-gray-800/50">
-                                    <div className="space-y-0.5">
-                                        <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block">Type</span>
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-100/30 dark:border-red-900/20">
-                                            {importData.type === 'playlist' ? 'Playlist' : 'Video'}
-                                        </span>
-                                    </div>
-                                    {importData.type === 'playlist' && (
-                                        <div className="text-right space-y-0.5">
-                                            <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block">Lessons</span>
-                                            <p className="text-xs text-gray-900 dark:text-white font-black tracking-tight">{importData.videos?.length || 0} Items</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Action Buttons in One Row */}
-                            <div className="flex gap-3">
+                                {/* Close button at top-right */}
                                 <button
                                     onClick={handleCancel}
-                                    className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-650 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-bold text-xs transition cursor-pointer active:scale-95"
+                                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 cursor-pointer"
                                 >
-                                    Cancel
+                                    <X size={18} />
                                 </button>
-                                <button
-                                    onClick={handleSave}
-                                    className="flex-1 py-2.5 bg-red-500 hover:bg-red-650 text-white rounded-2xl font-extrabold text-xs transition-all shadow-md shadow-red-500/25 active:scale-95 cursor-pointer"
-                                >
-                                    Add Course
-                                </button>
-                            </div>
+
+                                {/* Centered Icon */}
+                                <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 text-red-500 bg-red-500/10">
+                                    <Plus size={26} />
+                                </div>
+
+                                {/* Centered Title */}
+                                <h3 className="text-base font-black text-gray-900 dark:text-white mb-1">
+                                    Confirm Import
+                                </h3>
+
+                                {/* Centered Message */}
+                                <p className="text-[10px] text-gray-450 dark:text-gray-400 font-bold uppercase tracking-wider mb-4 leading-relaxed">
+                                    Review your selection before saving
+                                </p>
+
+                                {/* Details Block */}
+                                <div className="text-left bg-gray-50/50 dark:bg-gray-800/40 p-4 rounded-2xl border border-gray-100 dark:border-gray-800/60 mb-5 space-y-3">
+                                    <div className="space-y-0.5">
+                                        <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block">Title</span>
+                                        <p className="text-xs text-gray-900 dark:text-white font-bold leading-snug line-clamp-2" dangerouslySetInnerHTML={{ __html: importData.title }}></p>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-2.5 border-t border-gray-150/50 dark:border-gray-800/50">
+                                        <div className="space-y-0.5">
+                                            <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block">Type</span>
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-100/30 dark:border-red-900/20">
+                                                {importData.type === 'playlist' ? 'Playlist' : 'Video'}
+                                            </span>
+                                        </div>
+                                        {importData.type === 'playlist' && (
+                                            <div className="text-right space-y-0.5">
+                                                <span className="text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block">Lessons</span>
+                                                <p className="text-xs text-gray-900 dark:text-white font-black tracking-tight">{importData.videos?.length || 0} Items</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Action Buttons in One Row */}
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleCancel}
+                                        className="flex-1 py-2.5 border border-gray-200 dark:border-gray-700 rounded-2xl text-gray-650 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-bold text-xs transition cursor-pointer active:scale-95"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSave}
+                                        className="flex-1 py-2.5 bg-red-500 hover:bg-red-650 text-white rounded-2xl font-extrabold text-xs transition-all shadow-md shadow-red-500/25 active:scale-95 cursor-pointer"
+                                    >
+                                        Add Course
+                                    </button>
+                                </div>
+                            </motion.div>
                         </motion.div>
-                    </motion.div>,
-                    document.body
-                )}
-            </AnimatePresence>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
 
             {/* YouTube-Style Course & Playlist Preview Modal */}
-            <AnimatePresence>
-                {activePreview && typeof document !== 'undefined' && createPortal(
-                    <motion.div
-                        className="fixed inset-0 bg-black/75 dark:bg-black/90 flex items-center justify-center z-[99999] backdrop-blur-xs p-2 sm:p-4 md:p-6 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.22, ease: "easeOut" }}
-                        onClick={() => setActivePreview(null)}
-                        style={{ willChange: 'opacity' }}
-                    >
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {activePreview && (
+                        <motion.div
+                            key="active-preview-modal-backdrop"
+                            className="fixed inset-0 bg-black/75 dark:bg-black/90 flex items-center justify-center z-[99999] backdrop-blur-xs p-2 sm:p-4 md:p-6 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.22, ease: "easeOut" }}
+                            onClick={() => setActivePreview(null)}
+                            style={{ willChange: 'opacity' }}
+                        >
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 16 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -1502,10 +1507,11 @@ const YouTubeExplorer = () => {
                                 )}
                             </div>
                         </motion.div>
-                    </motion.div>,
-                    document.body
+                    </motion.div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence>,
+            document.body
+        )}
         </div>
     );
 };
