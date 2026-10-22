@@ -231,47 +231,52 @@ export default function AmbassadorLanding() {
             <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gradient-to-t from-orange-200/25 to-transparent rounded-full blur-[120px] pointer-events-none" />
 
             {/* ── Sticky Glassmorphism Header / Navbar ── */}
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-orange-100/80 py-1.5 px-4 sm:px-8 lg:px-12 shadow-[0_2px_15px_rgba(249,115,22,0.04)]">
+            {/* ── Sticky Glassmorphism Header / Navbar ── */}
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-orange-100/70 py-2 sm:py-2.5 px-4 sm:px-6 lg:px-8 shadow-[0_2px_15px_rgba(249,115,22,0.04)]">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <Link to="/" className="flex shrink-0 items-center">
-                        <img src="/LP_logo.png" alt="LearnProof" className="h-10 sm:h-12 w-auto object-contain" />
+                    <Link to="/" className="flex shrink-0 items-center select-none group">
+                        <img 
+                            src="/LP_logo.png" 
+                            alt="LearnProof" 
+                            className="h-8.5 sm:h-10 lg:h-11 w-auto object-contain transition-transform duration-200 group-hover:scale-105" 
+                        />
                     </Link>
 
-                    <div className="flex items-center gap-4 sm:gap-6">
-                        <div className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-bold text-gray-600">
-                            <Link to="/" className="hover:text-orange-600 transition-colors">Home</Link>
-                            <Link to="/#features" className="hover:text-orange-600 transition-colors">Features</Link>
-                            <Link to="/#how-it-works" className="hover:text-orange-600 transition-colors">How It Works</Link>
-                            <Link to="/#faq" className="hover:text-orange-600 transition-colors">FAQs</Link>
-                            <span className="text-orange-600 font-extrabold flex items-center gap-1.5 bg-orange-50 px-3 py-1 rounded-full border border-orange-200/80 shadow-sm">
-                                <Sparkles size={13} className="text-orange-500" />
-                                Ambassadors
+                    <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
+                        <div className="hidden lg:flex items-center gap-4 xl:gap-7 text-xs xl:text-sm font-semibold text-gray-600">
+                            <Link to="/" className="hover:text-orange-600 transition-colors whitespace-nowrap">Home</Link>
+                            <Link to="/#features" className="hover:text-orange-600 transition-colors whitespace-nowrap">Features</Link>
+                            <Link to="/#how-it-works" className="hover:text-orange-600 transition-colors whitespace-nowrap">How It Works</Link>
+                            <Link to="/#faq" className="hover:text-orange-600 transition-colors whitespace-nowrap">FAQs</Link>
+                            <span className="text-orange-600 font-bold flex items-center gap-1.5 bg-orange-100/70 px-2.5 xl:px-3 py-1 rounded-full border border-orange-200 whitespace-nowrap shrink-0">
+                                <Sparkles size={13} className="text-orange-500 shrink-0" />
+                                <span>Ambassadors</span>
                             </span>
                         </div>
 
-                        <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                             {user ? (
                                 <button 
                                     onClick={() => navigate('/ambassador/portal')}
-                                    className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white rounded-xl text-sm font-bold shadow-[0_4px_18px_rgba(249,115,22,0.3)] hover:shadow-[0_6px_25px_rgba(249,115,22,0.45)] transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 lg:px-5 lg:py-2.5 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white rounded-xl text-xs sm:text-sm font-bold shadow-[0_4px_16px_rgba(249,115,22,0.32)] hover:shadow-[0_6px_22px_rgba(249,115,22,0.48)] transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 whitespace-nowrap shrink-0 cursor-pointer"
                                 >
                                     <span>My Dashboard</span>
-                                    <ArrowRight size={15} />
+                                    <ArrowRight size={15} className="shrink-0" />
                                 </button>
                             ) : (
                                 <>
                                     <button 
                                         onClick={handlePrimaryCta}
-                                        className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors hidden md:block px-3 py-2 cursor-pointer"
+                                        className="text-xs sm:text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors hidden sm:block px-2.5 py-1.5 rounded-lg hover:bg-orange-50/50 whitespace-nowrap shrink-0 cursor-pointer"
                                     >
                                         Login
                                     </button>
                                     <button 
                                         onClick={handlePrimaryCta}
-                                        className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white rounded-xl text-sm font-bold shadow-[0_4px_18px_rgba(249,115,22,0.3)] hover:shadow-[0_6px_25px_rgba(249,115,22,0.45)] transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+                                        className="inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 lg:px-5 lg:py-2.5 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white rounded-xl text-xs sm:text-sm font-bold shadow-[0_4px_16px_rgba(249,115,22,0.32)] hover:shadow-[0_6px_22px_rgba(249,115,22,0.48)] transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 whitespace-nowrap shrink-0 cursor-pointer"
                                     >
-                                        <span>Join Program</span>
-                                        <ArrowRight size={15} />
+                                        <span className="whitespace-nowrap">Join Program</span>
+                                        <ArrowRight size={15} className="shrink-0" />
                                     </button>
                                 </>
                             )}
@@ -279,7 +284,7 @@ export default function AmbassadorLanding() {
                             {/* Mobile hamburger menu toggle */}
                             <button 
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                className="md:hidden p-2 rounded-xl text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors focus:outline-none cursor-pointer"
+                                className="lg:hidden p-2 rounded-xl text-gray-600 hover:text-orange-600 hover:bg-orange-50 transition-colors focus:outline-none shrink-0 cursor-pointer"
                                 aria-label="Toggle navigation menu"
                             >
                                 {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -296,7 +301,7 @@ export default function AmbassadorLanding() {
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.25, ease: "easeInOut" }}
-                            className="w-full bg-white/95 backdrop-blur-md border-t border-orange-100 shadow-xl md:hidden overflow-hidden"
+                            className="w-full bg-white/95 backdrop-blur-md border-t border-orange-100 shadow-xl lg:hidden overflow-hidden"
                         >
                             <div className="px-6 py-5 flex flex-col gap-3">
                                 <Link 

@@ -728,52 +728,63 @@ const LandingPage = () => {
     return (
         <div className="min-h-screen bg-orange-50 relative overflow-hidden selection:bg-orange-200 pt-16 md:pt-18">
             {/* Header / Sticky Glassmorphism Navbar */}
-            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm border-b border-orange-100/50 py-1">
-                <div className="w-full px-4 sm:px-8 lg:px-12 flex items-center justify-between">
-                    <div className="flex shrink-0 items-center cursor-pointer py-0 my-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                        <img src="/LP_logo.png" alt="LearnProof" className="h-10 sm:h-14 w-auto object-contain my-0 py-0 block transform -translate-y-[1.5px]" />
+            <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-xs border-b border-orange-100/60 py-2 sm:py-2.5">
+                <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+                    {/* Brand Logo */}
+                    <div 
+                        className="flex shrink-0 items-center cursor-pointer select-none py-0 my-0 group" 
+                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    >
+                        <img 
+                            src="/LP_logo.png" 
+                            alt="LearnProof" 
+                            className="h-8.5 sm:h-10 lg:h-11 w-auto object-contain my-0 py-0 block transform -translate-y-[1px] transition-transform duration-200 group-hover:scale-105" 
+                        />
                     </div>
 
-                    <div className="flex items-center gap-4 sm:gap-6">
-                        <div className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-bold text-gray-600 mr-2 lg:mr-4">
-                            <button onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">About</button>
-                            <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">Features</button>
-                            <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">How It Works</button>
-                            <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">FAQs</button>
-                            <button onClick={() => document.getElementById('download')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors">Downloads</button>
+                    {/* Navigation Links + CTA Container */}
+                    <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
+                        {/* Desktop Navigation Links (Visible on lg: 1024px and up) */}
+                        <div className="hidden lg:flex items-center gap-3.5 xl:gap-7 text-xs xl:text-sm font-semibold text-gray-600">
+                            <button onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors whitespace-nowrap cursor-pointer">About</button>
+                            <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors whitespace-nowrap cursor-pointer">Features</button>
+                            <button onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors whitespace-nowrap cursor-pointer">How It Works</button>
+                            <button onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors whitespace-nowrap cursor-pointer">FAQs</button>
+                            <button onClick={() => document.getElementById('download')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-orange-600 transition-colors whitespace-nowrap cursor-pointer">Downloads</button>
                             <button 
                                 onClick={() => navigate('/ambassador')} 
-                                className="text-orange-600 hover:text-orange-700 transition-colors flex items-center gap-1.5 font-extrabold bg-orange-100/70 hover:bg-orange-100 px-3 py-1 rounded-full border border-orange-200"
+                                className="text-orange-600 hover:text-orange-700 transition-colors flex items-center gap-1.5 font-bold bg-orange-100/70 hover:bg-orange-100 px-2.5 xl:px-3 py-1 rounded-full border border-orange-200 whitespace-nowrap shrink-0 cursor-pointer"
                             >
-                                <Sparkles size={13} className="text-orange-500" />
+                                <Sparkles size={13} className="text-orange-500 shrink-0" />
                                 <span>Ambassadors</span>
                             </button>
                         </div>
 
-                        <div className="flex items-center gap-2 sm:gap-4">
-                        <button 
-                            onClick={() => navigate('/login')}
-                            className="text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors hidden md:block"
-                        >
-                            Login
-                        </button>
-                        <button 
-                            onClick={() => navigate('/login')}
-                            className="group hidden md:inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white rounded-xl text-sm font-bold shadow-[0_4px_18px_rgba(249,115,22,0.35)] hover:shadow-[0_6px_25px_rgba(249,115,22,0.5)] transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 animate-fade-in"
-                        >
-                            <span>Get Started</span>
-                            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                        </button>
+                        {/* Action Buttons (Login, Get Started, Mobile Toggle) */}
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                            <button 
+                                onClick={() => navigate('/login')}
+                                className="text-xs sm:text-sm font-bold text-gray-700 hover:text-orange-600 transition-colors hidden sm:block px-2.5 py-1.5 rounded-lg hover:bg-orange-50/50 whitespace-nowrap shrink-0 cursor-pointer"
+                            >
+                                Login
+                            </button>
+                            <button 
+                                onClick={() => navigate('/login')}
+                                className="group flex items-center justify-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 lg:px-5 lg:py-2.5 bg-gradient-to-r from-orange-600 to-red-500 hover:from-orange-700 hover:to-red-600 text-white rounded-xl text-xs sm:text-sm font-bold shadow-[0_4px_16px_rgba(249,115,22,0.32)] hover:shadow-[0_6px_22px_rgba(249,115,22,0.48)] transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 whitespace-nowrap shrink-0 cursor-pointer"
+                            >
+                                <span className="whitespace-nowrap">Get Started</span>
+                                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-1 shrink-0" />
+                            </button>
 
-                        {/* Mobile hamburger menu toggle */}
-                        <button 
-                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="md:hidden p-2 rounded-xl text-gray-600 hover:text-orange-600 hover:bg-orange-50/50 transition-colors focus:outline-none"
-                            aria-label="Toggle navigation menu"
-                        >
-                            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                        </button>
-                    </div>
+                            {/* Mobile / Tablet Hamburger Menu Toggle (Visible below lg: 1024px) */}
+                            <button 
+                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                                className="lg:hidden p-2 rounded-xl text-gray-600 hover:text-orange-600 hover:bg-orange-50/70 transition-colors focus:outline-none shrink-0 cursor-pointer"
+                                aria-label="Toggle navigation menu"
+                            >
+                                {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -785,7 +796,7 @@ const LandingPage = () => {
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.3, ease: "easeInOut" }}
-                            className="w-full bg-white/95 backdrop-blur-md border-t border-orange-100 shadow-xl md:hidden overflow-hidden"
+                            className="w-full bg-white/95 backdrop-blur-md border-t border-orange-100 shadow-xl lg:hidden overflow-hidden"
                         >
                             <div className="px-6 py-6 flex flex-col gap-5 max-h-[85vh] overflow-y-auto">
                                 <div className="flex flex-col gap-3 text-sm font-bold text-gray-700">
