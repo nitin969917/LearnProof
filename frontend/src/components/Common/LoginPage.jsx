@@ -32,7 +32,13 @@ const LoginPage = () => {
     const location = useLocation();
     const { login, user, loading } = useAuth();
     const [activeFeature, setActiveFeature] = useState(0);
-    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [showEmailModal, setShowEmailModal] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('mode') === 'email' || params.get('email') === 'true';
+        }
+        return false;
+    });
     const [emailStep, setEmailStep] = useState('input'); // 'input' | 'otp'
     const [emailInput, setEmailInput] = useState('');
     const [otpInput, setOtpInput] = useState('');
@@ -40,6 +46,14 @@ const LoginPage = () => {
     const [reviewerLoading, setReviewerLoading] = useState(false);
     const [devOtpHint, setDevOtpHint] = useState('');
     const [resendCountdown, setResendCountdown] = useState(0);
+
+    // Auto-open email modal if navigated via query param
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (params.get('mode') === 'email' || params.get('email') === 'true') {
+            setShowEmailModal(true);
+        }
+    }, [location.search]);
 
     // Resend countdown timer
     useEffect(() => {

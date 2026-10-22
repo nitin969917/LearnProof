@@ -172,8 +172,7 @@ const RootRoute = () => {
     const { user, loading } = useAuth();
     const isNativeApp = typeof window !== 'undefined' && (
         Capacitor.isNativePlatform() || 
-        navigator.userAgent.includes('LearnProofApp') ||
-        window.location.hostname === 'localhost'
+        navigator.userAgent.includes('LearnProofApp')
     );
 
     if (loading) return <PageLoader />;

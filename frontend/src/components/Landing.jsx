@@ -468,6 +468,16 @@ const LandingPage = () => {
     }, []);
 
     useEffect(() => {
+        // Preload Apple Web SDK to avoid Safari popup blocker on click
+        if (typeof window !== 'undefined' && !window.AppleID) {
+            const script = document.createElement('script');
+            script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+            script.async = true;
+            document.head.appendChild(script);
+        }
+    }, []);
+
+    useEffect(() => {
         const isFlutter = navigator.userAgent.includes('LearnProofApp') || !!window.GoogleSignInChannel;
         if (isFlutter && !loading) {
             if (user) {
@@ -552,6 +562,104 @@ const LandingPage = () => {
             `&scope=${encodeURIComponent('openid profile email')}`;
 
         window.location.assign(authUrl);
+    };
+
+    const handleManualAppleLogin = async (customTarget = "/dashboard") => {
+        setAuthRedirect(customTarget);
+        setIsLoggingIn(true);
+
+        const isCapacitorNative = typeof window !== 'undefined' && !!window.Capacitor?.isNativePlatform?.();
+
+        const isAppleCancelOrIgnored = (err) => {
+            if (!err) return true;
+            let str = '';
+            try {
+                str = (typeof err === 'object' ? JSON.stringify(err) : String(err)) + ' ' + (err?.error || '') + ' ' + (err?.message || '');
+            } catch (_) {
+                str = String(err);
+            }
+            const lower = str.toLowerCase();
+            return (
+                lower.includes('popup_closed') ||
+                lower.includes('closed_by_user') ||
+                lower.includes('user_cancelled') ||
+                lower.includes('user_canceled') ||
+                lower.includes('canceled') ||
+                lower.includes('cancelled') ||
+                lower.includes('popup_blocked') ||
+                lower.includes('1001') ||
+                lower.includes('dismissed') ||
+                lower.includes('abort')
+            );
+        };
+
+        try {
+            let appleResponse = null;
+            if (isCapacitorNative) {
+                const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
+                const nativeBundleId = import.meta.env.VITE_APPLE_NATIVE_CLIENT_ID || 'com.learnproof.learnProof';
+                appleResponse = await SignInWithApple.authorize({
+                    clientId: nativeBundleId,
+                    redirectURI: 'https://learnproofai.com',
+                    scopes: 'email name',
+                });
+            } else {
+                const appleWebServicesId = import.meta.env.VITE_APPLE_CLIENT_ID || 'com.learnproof.web';
+                if (typeof window !== 'undefined' && window.AppleID?.auth) {
+                    window.AppleID.auth.init({
+                        clientId: appleWebServicesId,
+                        scope: 'name email',
+                        redirectURI: 'https://learnproofai.com',
+                        usePopup: true
+                    });
+                    const res = await window.AppleID.auth.signIn();
+                    appleResponse = {
+                        response: {
+                            user: null,
+                            email: res?.user?.email,
+                            givenName: res?.user?.name?.firstName,
+                            familyName: res?.user?.name?.lastName,
+                            identityToken: res?.authorization?.id_token,
+                            authorizationCode: res?.authorization?.code
+                        }
+                    };
+                } else {
+                    setIsLoggingIn(false);
+                    navigate('/login');
+                    return;
+                }
+            }
+
+            if (appleResponse && appleResponse.response?.identityToken) {
+                const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://api.learnproofai.com';
+                const res = await axios.post(`${backendUrl}/api/auth/apple`, {
+                    identityToken: appleResponse.response.identityToken,
+                    authorizationCode: appleResponse.response.authorizationCode,
+                    fullName: appleResponse.response.givenName || appleResponse.response.familyName ? {
+                        givenName: appleResponse.response.givenName,
+                        familyName: appleResponse.response.familyName
+                    } : null,
+                    email: appleResponse.response.email,
+                    user: appleResponse.response.user
+                });
+
+                if (res.data && res.data.token) {
+                    login({ credential: res.data.token });
+                    toast.success("Welcome to LearnProof AI!");
+                    setIsLoggingIn(false);
+                    navigate(customTarget, { replace: true });
+                    return;
+                }
+            }
+            setIsLoggingIn(false);
+        } catch (err) {
+            setIsLoggingIn(false);
+            if (isAppleCancelOrIgnored(err)) {
+                return;
+            }
+            console.error("Apple Sign-In error:", err);
+            navigate('/login');
+        }
     };
 
 
@@ -885,9 +993,9 @@ const LandingPage = () => {
             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-amber-200 to-transparent rounded-full blur-[100px] opacity-40 z-0 pointer-events-none -translate-x-1/3"></div>
 
             {/* Hero Section */}
-            < div className="relative z-10 min-h-screen flex items-center justify-between px-4 sm:px-8 lg:px-16 pt-20 pb-10" >
+            <div className="relative z-10 min-h-0 lg:min-h-screen flex flex-col lg:flex-row items-center justify-between px-4 sm:px-8 lg:px-16 pt-16 sm:pt-20 pb-4 sm:pb-8 lg:pb-12">
                 {/* Animated LearnProof Title with Enhanced Content */}
-                < motion.div
+                <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={showContent ? { opacity: 1, y: 0 } : {}}
                     transition={{ delay: 0.1, duration: 0.7, ease: "easeOut" }}
@@ -915,35 +1023,91 @@ const LandingPage = () => {
                         initial={{ opacity: 0, y: 30 }}
                         animate={showContent ? { opacity: 1, y: 0 } : {}}
                         transition={{ delay: 0.4, duration: 0.8 }}
-                        className="flex flex-col gap-4 mb-10"
+                        className="flex flex-col gap-3.5 mb-2 sm:mb-4"
                     >
-                        {/* Action Buttons Row */}
-                        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-                            {/* Primary: Continue with Google */}
-                            <button 
-                                onClick={handleManualGoogleLogin}
-                                className="flex items-center gap-2.5 px-5 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-gray-700 text-sm h-[42px] justify-center cursor-pointer shrink-0"
-                            >
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5 shrink-0" />
-                                <span className="whitespace-nowrap">Continue with Google</span>
-                            </button>
+                        {/* Action Area: Social Auth Options (Image 2) + App Downloads */}
+                        <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-4 sm:gap-6 mb-1">
+                            {/* Auth Buttons matching Image 2 without enclosing box */}
+                            <div className="w-[240px] flex flex-col items-center shrink-0">
+                                {/* Continue with Google */}
+                                <button
+                                    type="button"
+                                    onClick={() => handleManualGoogleLogin()}
+                                    className="w-full h-[44px] flex items-center justify-center gap-2.5 px-3 bg-white border border-slate-200/90 rounded-2xl shadow-xs hover:shadow-sm hover:border-slate-300 transition-all duration-200 font-semibold text-slate-800 text-[14.5px] cursor-pointer group"
+                                >
+                                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                                    </svg>
+                                    <span className="whitespace-nowrap font-bold text-slate-900">Continue with Google</span>
+                                </button>
 
-                            {/* More Options Button (redirects to /login) */}
-                            <button 
-                                onClick={() => navigate('/login')}
-                                className="flex items-center gap-1.5 px-4 bg-white hover:bg-orange-50/60 text-gray-700 hover:text-orange-600 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(249,115,22,0.15)] transition-all duration-300 transform hover:-translate-y-0.5 border border-orange-100 font-bold text-sm h-[42px] justify-center cursor-pointer group shrink-0"
-                                title="More sign-in options"
-                                aria-label="More sign-in options"
-                            >
-                                <span>More</span>
-                                <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-transform" />
-                            </button>
+                                {/* Divider with "OR" */}
+                                <div className="flex items-center gap-2.5 w-full my-2">
+                                    <div className="flex-1 h-[1px] bg-slate-200/90" />
+                                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                        or
+                                    </span>
+                                    <div className="flex-1 h-[1px] bg-slate-200/90" />
+                                </div>
 
-                            <div className="hidden sm:block h-6 w-px bg-gray-200 mx-0.5 shrink-0" />
+                                {/* Alternative Login Tiles Row (Apple, LinkedIn, Email) */}
+                                <div className="flex items-center justify-between gap-2.5 w-full">
+                                    {/* Apple Sign-In Tile */}
+                                    <button
+                                        type="button"
+                                        onClick={handleManualAppleLogin}
+                                        className="flex-1 h-[44px] rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-sm hover:border-slate-400 transition-all flex items-center justify-center group cursor-pointer"
+                                        title="Sign in with Apple"
+                                        aria-label="Sign in with Apple"
+                                    >
+                                        <svg className="w-5 h-5 fill-slate-900 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
+                                            <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
+                                        </svg>
+                                    </button>
 
-                            {/* Dynamic Store Badges: Prioritized by device */}
-                            <div className="basis-full w-full flex justify-center sm:basis-auto sm:w-auto sm:justify-start items-center gap-2 shrink-0 pt-0.5 sm:pt-0">
-                                {(deviceInfo.isApple || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
+                                    {/* LinkedIn Sign-In Tile */}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleManualLinkedInLogin()}
+                                        className="flex-1 h-[44px] rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-sm hover:border-[#0A66C2] transition-all flex items-center justify-center group cursor-pointer"
+                                        title="Sign in with LinkedIn"
+                                        aria-label="Sign in with LinkedIn"
+                                    >
+                                        <svg className="w-5 h-5 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
+                                            <rect width="24" height="24" rx="5" fill="#0A66C2" />
+                                            <path fill="#FFFFFF" d="M19 19h-3.14V13.8c0-1.24-.02-2.83-1.72-2.83-1.72 0-1.99 1.35-1.99 2.74V19H9V8.88h3.01v1.38h.04c.42-.8 1.45-1.64 2.98-1.64 3.19 0 3.78 2.1 3.78 4.83V19zM5.33 7.49a1.82 1.82 0 1 1 0-3.64 1.82 1.82 0 0 1 0 3.64zM6.9 19H3.76V8.88H6.9V19z" />
+                                        </svg>
+                                    </button>
+
+                                    {/* Email / Reviewer Access Tile */}
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/login?mode=email')}
+                                        className="flex-1 h-[44px] rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-sm hover:border-orange-300 transition-all flex items-center justify-center group cursor-pointer"
+                                        title="Sign in with Email"
+                                        aria-label="Sign in with Email"
+                                    >
+                                        <svg className="w-5 h-5 text-[#f97316] transition-transform group-hover:scale-105" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect width="20" height="15" x="2" y="4.5" rx="3.5" />
+                                            <path d="m22 7.5-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7.5" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Subtle divider on tablet / desktop */}
+                            <div className="hidden sm:block w-px bg-orange-200/70 self-stretch my-2 shrink-0" />
+
+                            {/* App Store & Google Play Badges */}
+                            <div className="flex flex-col items-center sm:items-start justify-center gap-2">
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    <Download size={13} className="text-orange-500" />
+                                    <span>Get the App</span>
+                                </div>
+                                <div className="flex flex-row sm:flex-col lg:flex-row items-center gap-2.5">
                                     <a
                                         href="https://apps.apple.com/app/learnproof-ai/id6815305441"
                                         target="_blank"
@@ -954,11 +1118,9 @@ const LandingPage = () => {
                                         <img
                                             src="/app-store-badge.svg"
                                             alt="Download on the App Store"
-                                            className="h-[40px] w-auto block"
+                                            className="h-[38px] w-[124px] sm:h-[40px] sm:w-[130px] block"
                                         />
                                     </a>
-                                )}
-                                {(deviceInfo.isAndroid || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
                                     <a
                                         href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
                                         target="_blank"
@@ -969,51 +1131,36 @@ const LandingPage = () => {
                                         <img
                                             src="/google-play-badge.svg"
                                             alt="Get it on Google Play"
-                                            className="h-[40px] w-auto block"
+                                            className="h-[38px] w-[124px] sm:h-[40px] sm:w-[130px] block"
                                         />
                                     </a>
-                                )}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Social Proof Pills */}
-                        <div className="flex flex-wrap items-center gap-2.5">
-                            <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 font-medium bg-white/60 px-3.5 py-1.5 rounded-full border border-gray-200/60 backdrop-blur-sm">
-                                <CheckCircle size={15} className="text-green-500" />
-                                <span>Free forever to start</span>
+                        {/* Trust & Social Proof Row */}
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2.5 sm:gap-x-3 gap-y-1.5 text-xs sm:text-[13px] text-gray-500 font-medium pt-1 w-full text-center sm:text-left">
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <CheckCircle size={15} className="text-emerald-500 shrink-0" />
+                                <span className="font-medium text-gray-600">Free forever to start</span>
+                            </div>
+                            <span className="text-gray-400 select-none font-bold">•</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                                <Shield size={14} className="text-blue-500 shrink-0" />
+                                <span className="font-medium text-gray-600">No credit card required</span>
                             </div>
                             {userCount !== null && (
-                                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 font-medium bg-white/60 px-3.5 py-1.5 rounded-full border border-gray-200/60 backdrop-blur-sm">
-                                    <Users size={15} className="text-orange-500" />
-                                    <span>Join <span className="font-bold text-gray-900">{userCount.toLocaleString()}</span> active learners</span>
-                                </div>
+                                <>
+                                    <span className="text-gray-400 select-none hidden sm:inline font-bold">•</span>
+                                    <div className="w-full sm:w-auto flex items-center justify-center sm:justify-start gap-1.5 text-orange-600 sm:text-gray-500 pt-0.5 sm:pt-0">
+                                        <Users size={14} className="text-orange-500 shrink-0" />
+                                        <span>Join <strong className="text-gray-900 font-bold">{userCount.toLocaleString()}</strong> active learners</span>
+                                    </div>
+                                </>
                             )}
                         </div>
                     </motion.div>
-
-                    <div className="flex flex-wrap gap-3 mb-12">
-                        {[
-                            { text: "AI-Powered YouTube Course Learning", icon: <Youtube size={18} className="text-red-500" /> },
-                            { text: "AI Quiz & Roadmaps", icon: <Zap size={18} className="text-amber-500" /> },
-                            { text: "Smart Notes & AI Intuition", icon: <Lightbulb size={18} className="text-yellow-500" /> },
-                            { text: "Progress Tracking & Study Planner", icon: <TrendingUp size={18} className="text-blue-500" /> },
-                            { text: "Social Learning & Real-Time Collaboration", icon: <Users size={18} className="text-indigo-500" /> },
-                            { text: "Interactive Speaking Rooms", icon: <MessageSquare size={18} className="text-emerald-500" /> },
-                            { text: "Certificates & Achievements", icon: <Award size={18} className="text-orange-500" /> },
-                        ].map((item, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, x: -15 }}
-                                animate={showContent ? { opacity: 1, x: 0 } : {}}
-                                transition={{ delay: 0.6 + (i * 0.05), duration: 0.5 }}
-                                className="flex items-center gap-2 bg-white/70 backdrop-blur-md border border-gray-200/60 rounded-full px-4 py-2 shadow-sm text-gray-700 font-semibold text-sm hover:border-orange-200 transition-colors"
-                            >
-                                <div role="img" aria-label={item.text}>{item.icon}</div>
-                                <span>{item.text}</span>
-                            </motion.div>
-                        ))}
-                    </div>
-                </motion.div >
+                </motion.div>
 
                 {/* Enhanced Right Side Design */}
                 < motion.div
@@ -1121,7 +1268,7 @@ const LandingPage = () => {
             </div >
 
             {/* Section Divider */}
-            <div className="px-8 sm:px-16">
+            <div className="px-8 sm:px-16 my-2 sm:my-4">
                 <div className="h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
             </div>
 
@@ -1131,45 +1278,35 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
                 viewport={{ once: true }}
-                className="py-10 sm:py-16 px-3 sm:px-8 lg:px-16"
+                className="py-4 sm:py-10 px-3 sm:px-8 lg:px-16"
             >
                 <div className="max-w-5xl mx-auto">
                     <motion.div
-                        initial={{ opacity: 0, y: 30 }}
+                        initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
+                        transition={{ duration: 0.6 }}
                         viewport={{ once: true }}
-                        className="text-center mb-8 sm:mb-12"
+                        className="text-center mb-5 sm:mb-8"
                     >
-                        <h2 className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-3 sm:mb-6 text-gray-800">
+                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold mb-2 text-gray-900 tracking-tight">
                             See LearnProof in <span className="bg-gradient-to-r from-orange-600 to-red-500 bg-clip-text text-transparent">Action</span>
                         </h2>
-                        <p className="text-gray-600 text-sm sm:text-lg max-w-2xl mx-auto px-2">
-                            Watch how LearnProof AI transforms YouTube videos into a complete learning experience with quizzes, notes, and verified certificates.
+                        <p className="text-gray-500 text-sm sm:text-base max-w-md mx-auto">
+                            Turn any YouTube video into notes, quizzes, and certificates.
                         </p>
                     </motion.div>
 
                     {/* Single YouTube Video */}
                     <motion.div
-                        initial={{ opacity: 0, y: 30 }}
+                        initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.7, delay: 0.2 }}
+                        transition={{ duration: 0.6, delay: 0.15 }}
                         viewport={{ once: true }}
-                        className="bg-white/80 backdrop-blur-xl border border-orange-200 rounded-2xl sm:rounded-3xl p-3 sm:p-5 shadow-xl hover:shadow-2xl transition-all duration-300"
+                        className="bg-white/80 backdrop-blur-xl border border-orange-200/80 rounded-2xl sm:rounded-3xl p-2 sm:p-3.5 shadow-xl hover:shadow-2xl transition-all duration-300"
                     >
-                        <div className="flex items-center gap-3 mb-3 sm:mb-5 px-1 sm:px-2">
-                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                                <Youtube className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-base sm:text-xl font-bold text-gray-800 leading-tight">How LearnProof AI Works</h3>
-                                <p className="text-xs sm:text-sm text-gray-500 font-medium mt-0.5">Your Complete AI Learning Platform — Turn YouTube videos into notes, intuition & certificates</p>
-                            </div>
-                        </div>
-
                         {/* Responsive Default YouTube Player — exact 16:10 native aspect ratio (62.5%, matching 3456x2160 video) for seamless zero black bars playback */}
                         <div 
-                            className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-xl border border-orange-100/60"
+                            className="relative w-full rounded-xl sm:rounded-2xl overflow-hidden bg-black shadow-lg border border-orange-100/60"
                             style={{ paddingTop: '62.5%' }}
                         >
                             <iframe
@@ -1177,7 +1314,7 @@ const LandingPage = () => {
                                 className="absolute inset-0 w-full h-full"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allowFullScreen
-                                title="How LearnProof AI Works | Your Complete AI Learning Platform"
+                                title="LearnProof AI Demo"
                             ></iframe>
                         </div>
                     </motion.div>
@@ -1543,61 +1680,111 @@ const LandingPage = () => {
                         <p className="text-gray-600 text-lg mb-10 max-w-2xl mx-auto">
                             Start your journey of transforming YouTube videos into verified certificates. Join {userCount !== null ? <span className="font-bold text-orange-600">{userCount.toLocaleString()}</span> : '...'} active learners today and showcase your dedication to learning.
                         </p>
-                        <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 mb-6">
-                            {/* Primary: Continue with Google */}
-                            <button 
-                                onClick={handleManualGoogleLogin}
-                                className="inline-flex items-center gap-2.5 px-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-gray-700 text-sm h-[42px] justify-center cursor-pointer shrink-0"
-                            >
-                                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5 shrink-0" />
-                                <span className="whitespace-nowrap">Continue with Google</span>
-                            </button>
+                        {/* Action Area: Social Auth Options (Image 2) + App Downloads */}
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-6">
+                            {/* Auth Buttons matching Image 2 without enclosing box */}
+                            <div className="w-[240px] flex flex-col items-center shrink-0">
+                                {/* Continue with Google */}
+                                <button
+                                     type="button"
+                                     onClick={() => handleManualGoogleLogin()}
+                                     className="w-full h-[44px] flex items-center justify-center gap-2.5 px-3 bg-white border border-slate-200/90 rounded-2xl shadow-xs hover:shadow-sm hover:border-slate-300 transition-all duration-200 font-semibold text-slate-800 text-[14.5px] cursor-pointer group"
+                                 >
+                                     <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                                     </svg>
+                                     <span className="whitespace-nowrap font-bold text-slate-900">Continue with Google</span>
+                                </button>
 
-                            {/* More Options Button (redirects to /login) */}
-                            <button 
-                                onClick={() => navigate('/login')}
-                                className="inline-flex items-center gap-1.5 px-4 bg-white hover:bg-orange-50/60 text-gray-700 hover:text-orange-600 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 border border-orange-100 font-bold text-sm h-[42px] justify-center cursor-pointer group shrink-0"
-                                title="More sign-in options"
-                                aria-label="More sign-in options"
-                            >
-                                <span>More</span>
-                                <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-transform" />
-                            </button>
+                                {/* Divider with "OR" */}
+                                <div className="flex items-center gap-2.5 w-full my-2">
+                                    <div className="flex-1 h-[1px] bg-slate-200/90" />
+                                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                                        or
+                                    </span>
+                                    <div className="flex-1 h-[1px] bg-slate-200/90" />
+                                </div>
 
-                            <div className="hidden sm:block h-6 w-px bg-gray-200 mx-0.5 shrink-0" />
+                                {/* Alternative Login Tiles Row */}
+                                <div className="flex items-center justify-between gap-2.5 w-full">
+                                    <button
+                                        type="button"
+                                        onClick={handleManualAppleLogin}
+                                        className="flex-1 h-[44px] rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-sm hover:border-slate-400 transition-all flex items-center justify-center group cursor-pointer"
+                                        title="Sign in with Apple"
+                                        aria-label="Sign in with Apple"
+                                    >
+                                        <svg className="w-5 h-5 fill-slate-900 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
+                                            <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
+                                        </svg>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleManualLinkedInLogin()}
+                                        className="flex-1 h-[44px] rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-sm hover:border-[#0A66C2] transition-all flex items-center justify-center group cursor-pointer"
+                                        title="Sign in with LinkedIn"
+                                        aria-label="Sign in with LinkedIn"
+                                    >
+                                        <svg className="w-5 h-5 transition-transform group-hover:scale-105" viewBox="0 0 24 24">
+                                            <rect width="24" height="24" rx="5" fill="#0A66C2" />
+                                            <path fill="#FFFFFF" d="M19 19h-3.14V13.8c0-1.24-.02-2.83-1.72-2.83-1.72 0-1.99 1.35-1.99 2.74V19H9V8.88h3.01v1.38h.04c.42-.8 1.45-1.64 2.98-1.64 3.19 0 3.78 2.1 3.78 4.83V19zM5.33 7.49a1.82 1.82 0 1 1 0-3.64 1.82 1.82 0 0 1 0 3.64zM6.9 19H3.76V8.88H6.9V19z" />
+                                        </svg>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/login?mode=email')}
+                                        className="flex-1 h-[44px] rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-sm hover:border-orange-300 transition-all flex items-center justify-center group cursor-pointer"
+                                        title="Sign in with Email"
+                                        aria-label="Sign in with Email"
+                                    >
+                                        <svg className="w-5 h-5 text-[#f97316] transition-transform group-hover:scale-105" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect width="20" height="15" x="2" y="4.5" rx="3.5" />
+                                            <path d="m22 7.5-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7.5" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
 
-                            {/* Dynamic Store Badges */}
-                            <div className="flex items-center justify-center gap-2 shrink-0">
-                                {(deviceInfo.isApple || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
+                            {/* Subtle divider on tablet / desktop */}
+                            <div className="hidden sm:block w-px bg-orange-200/70 self-stretch my-2 shrink-0" />
+
+                            {/* App Store & Google Play Badges */}
+                            <div className="flex flex-col items-center sm:items-start justify-center gap-2">
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    <Download size={13} className="text-orange-500" />
+                                    <span>Get the App</span>
+                                </div>
+                                <div className="flex flex-row sm:flex-col lg:flex-row items-center gap-2.5">
                                     <a
                                         href="https://apps.apple.com/app/learnproof-ai/id6815305441"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
+                                        className="transition-all duration-300 transform hover:-translate-y-0.5 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
                                         aria-label="Download on the App Store"
                                     >
                                         <img
                                             src="/app-store-badge.svg"
                                             alt="Download on the App Store"
-                                            className="h-[40px] w-auto block"
+                                            className="h-[38px] w-[124px] sm:h-[40px] sm:w-[130px] block"
                                         />
                                     </a>
-                                )}
-                                {(deviceInfo.isAndroid || (!deviceInfo.isAndroid && !deviceInfo.isApple)) && (
                                     <a
                                         href="https://play.google.com/store/apps/details?id=com.learnproof.learn_proof_twa"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="transition-all duration-300 transform hover:scale-105 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
+                                        className="transition-all duration-300 transform hover:-translate-y-0.5 hover:opacity-90 drop-shadow-sm hover:drop-shadow-md block shrink-0"
                                         aria-label="Get it on Google Play"
                                     >
                                         <img
                                             src="/google-play-badge.svg"
                                             alt="Get it on Google Play"
-                                            className="h-[40px] w-auto block"
+                                            className="h-[38px] w-[124px] sm:h-[40px] sm:w-[130px] block"
                                         />
                                     </a>
-                                )}
+                                </div>
                             </div>
                         </div>
 
