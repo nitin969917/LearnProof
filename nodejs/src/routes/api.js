@@ -1,6 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware, optionalAuthMiddleware, isAdminMiddleware } = require('../middleware/auth');
+const authModule = require('../middleware/auth');
+const authMiddleware = authModule.authMiddleware;
+const isAdminMiddleware = authModule.isAdminMiddleware;
+const optionalAuthMiddleware = authModule.optionalAuthMiddleware || (async (req, res, next) => {
+    let idToken = req.body?.idToken || req.query?.idToken || req.headers['authorization']?.split('Bearer ')[1];
+    if (!idToken) return next();
+    try {
+        await authMiddleware(req, res, () => next());
+    } catch (err) {
+        next();
+    }
+});
 const datingAuth = require('../middleware/datingAuth');
 const multer = require('multer');
 
