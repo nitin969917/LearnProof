@@ -13,6 +13,9 @@ const search = async (req, res) => {
     const { query, type = 'all', sortBy = 'relevance', duration = 'any' } = req.body;
     if (!query) return res.status(400).json({ error: 'Missing query' });
 
+    // Determine user country/region (default to 'IN' for local relevant content if not detected)
+    const gl = req.body.gl || req.headers['cf-ipcountry'] || req.headers['x-country-code'] || 'IN';
+
     // Guard against explicit pure entertainment searches
     const queryCheck = isAllowedEducationalContent({ title: query });
     if (!queryCheck.allowed) {
@@ -23,13 +26,13 @@ const search = async (req, res) => {
         });
     }
 
-    const cacheKey = `${query.trim().toLowerCase()}_${type}_${sortBy}_${duration}`;
+    const cacheKey = `${query.trim().toLowerCase()}_${type}_${sortBy}_${duration}_${gl}`;
     if (searchCache.has(cacheKey)) {
         return res.status(200).json(searchCache.get(cacheKey));
     }
 
     // Request up to 50 results for comprehensive YouTube-style discovery
-    const result = await searchYoutube(query, 50, { type, sortBy, duration });
+    const result = await searchYoutube(query, 50, { type, sortBy, duration, gl });
     if (result.error) return res.status(500).json({ error: result.error });
 
     if (searchCache.size > 300) {
@@ -72,6 +75,37 @@ const autocomplete = async (req, res) => {
     } catch (err) {
         console.error('Autocomplete error:', err.message);
         res.status(200).json({ suggestions: [] });
+    }
+};
+
+const previewCache = new Map();
+
+const playlistPreview = async (req, res) => {
+    const { url, playlistId } = req.body;
+    const targetUrl = url || (playlistId ? `https://www.youtube.com/playlist?list=${playlistId}` : null);
+    if (!targetUrl) return res.status(400).json({ error: 'Missing url or playlistId' });
+
+    const cacheKey = targetUrl.trim();
+    if (previewCache.has(cacheKey)) {
+        return res.status(200).json({ success: true, data: previewCache.get(cacheKey) });
+    }
+
+    try {
+        const result = await getYoutubeMetadata(targetUrl, 50);
+        if (result.error) {
+            return res.status(400).json({ error: result.error });
+        }
+
+        if (previewCache.size > 200) {
+            const firstKey = previewCache.keys().next().value;
+            previewCache.delete(firstKey);
+        }
+        previewCache.set(cacheKey, result);
+
+        res.status(200).json({ success: true, data: result });
+    } catch (err) {
+        console.error('Playlist preview error:', err.message);
+        res.status(500).json({ error: 'Failed to fetch playlist preview' });
     }
 };
 
@@ -185,6 +219,7 @@ const recommendPlaylists = async (req, res) => {
 module.exports = {
     search,
     autocomplete,
+    playlistPreview,
     importMetadata,
     recommendPlaylists,
 };

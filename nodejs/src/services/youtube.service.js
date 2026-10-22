@@ -210,35 +210,61 @@ const parseDurationText = (durationText) => {
  * Helper to parse a single YouTube item from search results
  */
 const parseRawItem = (item, results, seenIds) => {
+    // 0. Unwrap shelfRenderer (playlists and course collections grouped by YouTube)
+    if (item.shelfRenderer) {
+        const sr = item.shelfRenderer;
+        const innerList = sr.content?.verticalListRenderer?.items || sr.content?.horizontalListRenderer?.items || [];
+        for (const innerItem of innerList) {
+            parseRawItem(innerItem, results, seenIds);
+        }
+        return;
+    }
+
+    // Skip channelRenderer - educational courses/playlists & videos only
+    if (item.channelRenderer) {
+        return;
+    }
+
     // 1. Check for videoRenderer
     if (item.videoRenderer) {
         const vr = item.videoRenderer;
-        const durationText = vr.lengthText?.simpleText || "";
-        const durationSec = parseDurationText(durationText);
-        
-        // Filter out shorts (less than or equal to 60 seconds)
-        if (durationSec > 60 && !seenIds.has(vr.videoId)) {
-            const title = vr.title?.runs?.[0]?.text || vr.title?.simpleText || "";
-            const channel = vr.ownerText?.runs?.[0]?.text || vr.shortBylineText?.runs?.[0]?.text || "";
-            const description = vr.detailedMetadataSnippets?.[0]?.snippetText?.runs?.map(r => r.text).join('') || vr.descriptionSnippet?.runs?.map(r => r.text).join('') || "";
-
-            // Educational content eligibility check
-            if (!isAllowedEducationalContent({ title, channel, description }).allowed) {
-                return;
+        if (!seenIds.has(vr.videoId)) {
+            let durationText = vr.lengthText?.simpleText || vr.lengthText?.runs?.map(r => r.text).join('') || "";
+            if (!durationText && vr.thumbnailOverlays) {
+                for (const ov of vr.thumbnailOverlays) {
+                    if (ov.thumbnailOverlayTimeStatusRenderer?.text?.simpleText) {
+                        durationText = ov.thumbnailOverlayTimeStatusRenderer.text.simpleText;
+                        break;
+                    }
+                }
             }
+            const durationSec = parseDurationText(durationText);
+            const title = vr.title?.runs?.[0]?.text || vr.title?.simpleText || "";
+            
+            // Filter out shorts (<= 60s or #shorts tag)
+            const isShort = (durationSec > 0 && durationSec <= 60) || title.toLowerCase().includes('#shorts');
+            if (!isShort) {
+                const channel = vr.ownerText?.runs?.[0]?.text || vr.shortBylineText?.runs?.[0]?.text || "";
+                const description = vr.detailedMetadataSnippets?.[0]?.snippetText?.runs?.map(r => r.text).join('') || vr.descriptionSnippet?.runs?.map(r => r.text).join('') || "";
 
-            seenIds.add(vr.videoId);
-            results.push({
-                type: 'video',
-                id: vr.videoId,
-                title: title,
-                channel: channel,
-                description: description,
-                thumbnail: vr.thumbnail?.thumbnails?.[vr.thumbnail?.thumbnails.length - 1]?.url || vr.thumbnail?.thumbnails?.[0]?.url || "",
-                published_at: vr.publishedTimeText?.simpleText || "",
-                url: `https://www.youtube.com/watch?v=${vr.videoId}`
-            });
+                // Educational content eligibility check
+                if (isAllowedEducationalContent({ title, channel, description }).allowed) {
+                    seenIds.add(vr.videoId);
+                    results.push({
+                        type: 'video',
+                        id: vr.videoId,
+                        title: title,
+                        channel: channel,
+                        description: description,
+                        thumbnail: vr.thumbnail?.thumbnails?.[vr.thumbnail?.thumbnails.length - 1]?.url || vr.thumbnail?.thumbnails?.[0]?.url || "",
+                        published_at: vr.publishedTimeText?.simpleText || "",
+                        duration: durationText,
+                        url: `https://www.youtube.com/watch?v=${vr.videoId}`
+                    });
+                }
+            }
         }
+        return;
     }
 
     // 2. Check for playlistRenderer (older style)
@@ -250,31 +276,30 @@ const parseRawItem = (item, results, seenIds) => {
             const channel = pr.longBylineText?.runs?.[0]?.text || pr.shortBylineText?.runs?.[0]?.text || "";
 
             // Educational content eligibility check
-            if (!isAllowedEducationalContent({ title, channel }).allowed) {
-                return;
+            if (isAllowedEducationalContent({ title, channel }).allowed) {
+                seenIds.add(pr.playlistId);
+                results.push({
+                    type: 'playlist',
+                    id: pr.playlistId,
+                    title: title,
+                    channel: channel,
+                    description: "",
+                    thumbnail: pr.thumbnails?.[0]?.thumbnails?.[pr.thumbnails[0].thumbnails.length - 1]?.url || pr.thumbnails?.[0]?.thumbnails?.[0]?.url || "",
+                    published_at: "",
+                    url: `https://www.youtube.com/playlist?list=${pr.playlistId}`,
+                    video_count: count
+                });
             }
-
-            seenIds.add(pr.playlistId);
-            results.push({
-                type: 'playlist',
-                id: pr.playlistId,
-                title: title,
-                channel: channel,
-                description: "",
-                thumbnail: pr.thumbnails?.[0]?.thumbnails?.[pr.thumbnails[0].thumbnails.length - 1]?.url || pr.thumbnails?.[0]?.thumbnails?.[0]?.url || "",
-                published_at: "",
-                url: `https://www.youtube.com/playlist?list=${pr.playlistId}`,
-                video_count: count
-            });
         }
+        return;
     }
 
-    // 3. Check for lockupViewModel
+    // 3. Check for lockupViewModel (modern YouTube structure for courses, playlists, and videos)
     if (item.lockupViewModel) {
         const vm = item.lockupViewModel;
         const contentType = vm.contentType;
         const contentId = vm.contentId;
-        if (seenIds.has(contentId)) return;
+        if (!contentId || seenIds.has(contentId)) return;
 
         const title = vm.metadata?.lockupMetadataViewModel?.title?.content || "";
         
@@ -303,7 +328,8 @@ const parseRawItem = (item, results, seenIds) => {
             thumbnail = sources[sources.length - 1]?.url || "";
         }
 
-        if (contentType === 'LOCKUP_CONTENT_TYPE_PLAYLIST') {
+        // SUPPORT BOTH PLAYLISTS AND OFFICIAL YOUTUBE COURSES!
+        if (contentType === 'LOCKUP_CONTENT_TYPE_PLAYLIST' || contentType === 'LOCKUP_CONTENT_TYPE_COURSE') {
             let videoCount = 0;
             const overlays = vm.contentImage?.collectionThumbnailViewModel?.primaryThumbnail?.thumbnailViewModel?.overlays;
             if (overlays) {
@@ -329,7 +355,7 @@ const parseRawItem = (item, results, seenIds) => {
                 id: contentId,
                 title: title,
                 channel: channel,
-                description: "",
+                description: contentType === 'LOCKUP_CONTENT_TYPE_COURSE' ? 'Official Course' : '',
                 thumbnail: thumbnail,
                 published_at: "",
                 url: `https://www.youtube.com/playlist?list=${contentId}`,
@@ -340,14 +366,18 @@ const parseRawItem = (item, results, seenIds) => {
             const overlays = vm.contentImage?.thumbnailViewModel?.overlays;
             if (overlays) {
                 for (const overlay of overlays) {
-                    if (overlay.thumbnailOverlayTimeStatusRenderer) {
-                        durationText = overlay.thumbnailOverlayTimeStatusRenderer.text || "";
+                    if (overlay.thumbnailOverlayTimeStatusRenderer?.text?.simpleText) {
+                        durationText = overlay.thumbnailOverlayTimeStatusRenderer.text.simpleText;
+                        break;
+                    } else if (typeof overlay.thumbnailOverlayTimeStatusRenderer?.text === 'string') {
+                        durationText = overlay.thumbnailOverlayTimeStatusRenderer.text;
                         break;
                     }
                 }
             }
             const durationSec = parseDurationText(durationText);
-            if (durationSec > 60) {
+            const isShort = (durationSec > 0 && durationSec <= 60) || title.toLowerCase().includes('#shorts');
+            if (!isShort) {
                 seenIds.add(contentId);
                 results.push({
                     type: 'video',
@@ -357,6 +387,7 @@ const parseRawItem = (item, results, seenIds) => {
                     description: "",
                     thumbnail: thumbnail,
                     published_at: "",
+                    duration: durationText,
                     url: `https://www.youtube.com/watch?v=${contentId}`
                 });
             }
@@ -382,7 +413,7 @@ const searchYoutube = async (query, maxResults = 50, optionsOrType = {}, order =
         options = optionsOrType;
     }
 
-    const { type = 'all', sortBy = 'relevance', duration = 'any' } = options;
+    const { type = 'all', sortBy = 'relevance', duration = 'any', gl = 'IN' } = options;
 
     const getSpParam = (t, s, d) => {
         if (t === 'playlist') {
@@ -423,7 +454,7 @@ const searchYoutube = async (query, maxResults = 50, optionsOrType = {}, order =
                     clientName: 'WEB',
                     clientVersion: '2.20240101.00.00',
                     hl: 'en',
-                    gl: 'US'
+                    gl: gl || 'IN'
                 }
             },
             query: query

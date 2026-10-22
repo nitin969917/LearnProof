@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authMiddleware, isAdminMiddleware } = require('../middleware/auth');
+const { authMiddleware, optionalAuthMiddleware, isAdminMiddleware } = require('../middleware/auth');
 const datingAuth = require('../middleware/datingAuth');
 const multer = require('multer');
 
@@ -76,9 +76,10 @@ router.post('/v1/metrics/app-launch', metricsController.logAppLaunch);
 
 // YouTube
 router.post('/import/', authMiddleware, youtubeController.importMetadata);
-router.post('/youtube-search/', authMiddleware, youtubeController.search);
-router.post('/youtube-autocomplete/', authMiddleware, youtubeController.autocomplete);
-router.post('/recommend-playlists/', authMiddleware, youtubeController.recommendPlaylists);
+router.post('/playlist-preview/', optionalAuthMiddleware, youtubeController.playlistPreview);
+router.post('/youtube-search/', optionalAuthMiddleware, youtubeController.search);
+router.post('/youtube-autocomplete/', optionalAuthMiddleware, youtubeController.autocomplete);
+router.post('/recommend-playlists/', optionalAuthMiddleware, youtubeController.recommendPlaylists);
 
 // Learning
 router.post('/save-learning/', authMiddleware, learningController.saveLearning);

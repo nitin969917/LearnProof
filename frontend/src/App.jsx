@@ -616,6 +616,8 @@ const App = () => {
                                     <Route index element={<DashboardHome />} />
                                     <Route path="library" element={<MyLearnings />} />
                                     <Route path="explore" element={<YouTubeExplorer />} />
+                                    <Route path="search" element={<YouTubeExplorer />} />
+                                    <Route path="youtube" element={<YouTubeExplorer />} />
                                     <Route path="certificates" element={<MyCertificates />} />
                                     <Route path="playlist/:id" element={<PlaylistProgress />} />
                                     <Route path="roadmap/:pid" element={<RoadmapDetail />} />

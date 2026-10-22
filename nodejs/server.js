@@ -223,13 +223,24 @@ io.on('connection', (socket) => {
 
       // Auto-join all group rooms this user belongs to for real-time notifications & badges
       try {
-        const userGroups = await datingPrisma.groupMember.findMany({
-          where: { userId: parseInt(userIdStr) },
-          select: { groupId: true }
-        });
-        userGroups.forEach(gm => {
-          socket.join(`group-${gm.groupId}`);
-        });
+        let memberUserId = parseInt(userIdStr, 10);
+        if (isNaN(memberUserId) || memberUserId > 2147483647) {
+          const userRec = await datingPrisma.user.findFirst({
+            where: { googleId: userIdStr },
+            select: { id: true }
+          });
+          memberUserId = userRec ? userRec.id : null;
+        }
+
+        if (memberUserId) {
+          const userGroups = await datingPrisma.groupMember.findMany({
+            where: { userId: memberUserId },
+            select: { groupId: true }
+          });
+          userGroups.forEach(gm => {
+            socket.join(`group-${gm.groupId}`);
+          });
+        }
       } catch (groupErr) {
         console.error('[Socket.io] Error auto-joining user group rooms:', groupErr.message);
       }
