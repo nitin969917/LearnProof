@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
     Search, Youtube, Play, Plus, Loader, Sparkles, SlidersHorizontal, 
     X, ChevronLeft, ChevronRight, Layers, Video, ListVideo, 
@@ -1141,9 +1142,9 @@ const YouTubeExplorer = () => {
 
             {/* Import Confirmation Modal */}
             <AnimatePresence>
-                {importData && (
+                {importData && typeof document !== 'undefined' && createPortal(
                     <motion.div
-                        className="fixed inset-0 bg-gray-900/60 flex justify-center items-center z-[120] backdrop-blur-sm p-4"
+                        className="fixed inset-0 bg-gray-900/60 flex justify-center items-center z-[99999] backdrop-blur-sm p-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -1215,15 +1216,16 @@ const YouTubeExplorer = () => {
                                 </button>
                             </div>
                         </motion.div>
-                    </motion.div>
+                    </motion.div>,
+                    document.body
                 )}
             </AnimatePresence>
 
             {/* YouTube-Style Course & Playlist Preview Modal */}
             <AnimatePresence>
-                {activePreview && (
+                {activePreview && typeof document !== 'undefined' && createPortal(
                     <motion.div
-                        className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-center justify-center z-[100] backdrop-blur-xs p-2 sm:p-4 md:p-6"
+                        className="fixed inset-0 bg-black/75 dark:bg-black/90 flex items-center justify-center z-[99999] backdrop-blur-xs p-2 sm:p-4 md:p-6 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
@@ -1237,7 +1239,7 @@ const YouTubeExplorer = () => {
                             exit={{ scale: 0.96, opacity: 0, y: 12 }}
                             transition={{ type: "spring", stiffness: 360, damping: 28, mass: 0.7 }}
                             style={{ willChange: 'transform, opacity' }}
-                            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden text-gray-900 dark:text-white transition-colors duration-200"
+                            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-6xl max-h-[94dvh] sm:max-h-[92vh] flex flex-col overflow-hidden text-gray-900 dark:text-white transition-colors duration-200"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Modal Header Bar */}
@@ -1500,7 +1502,8 @@ const YouTubeExplorer = () => {
                                 )}
                             </div>
                         </motion.div>
-                    </motion.div>
+                    </motion.div>,
+                    document.body
                 )}
             </AnimatePresence>
         </div>
