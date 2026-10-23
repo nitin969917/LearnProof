@@ -9,6 +9,11 @@ import { motion } from 'framer-motion';
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+// Automatically detect macOS runtime to optimize desktop typography and proportions
+if (typeof navigator !== 'undefined' && (/Macintosh|Mac OS X/.test(navigator.userAgent) || navigator.platform?.includes('Mac'))) {
+  document.documentElement.classList.add('platform-mac');
+}
+
 // Reusable swipe-up gesture wrapper for standard toasts (success, error, info)
 const SwipeableToast = ({ toast: t, children }) => {
   return (

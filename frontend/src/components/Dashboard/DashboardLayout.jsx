@@ -376,7 +376,8 @@ const DashboardLayout = () => {
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
         const savedState = localStorage.getItem('sidebarExpanded');
-        return savedState !== null ? savedState === 'true' : false;
+        if (savedState !== null) return savedState === 'true';
+        return typeof window !== 'undefined' ? window.innerWidth >= 1200 : false;
     });
     const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
 
