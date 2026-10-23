@@ -9,31 +9,7 @@ import { motion } from 'framer-motion';
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-// Automatically detect macOS runtime to optimize desktop typography and proportions
-if (typeof navigator !== 'undefined' && (/Macintosh|Mac OS X/.test(navigator.userAgent) || navigator.platform?.includes('Mac'))) {
-  document.documentElement.classList.add('platform-mac');
-  const savedZoom = localStorage.getItem('app_desktop_zoom') || '1.08';
-  document.documentElement.style.zoom = savedZoom;
 
-  window.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+' || e.key === '-')) {
-      e.preventDefault();
-      const current = parseFloat(document.documentElement.style.zoom || localStorage.getItem('app_desktop_zoom') || '1.08');
-      let next = current;
-      if (e.key === '=' || e.key === '+') {
-        next = Math.min(1.35, +(current + 0.04).toFixed(2));
-      } else if (e.key === '-') {
-        next = Math.max(0.8, +(current - 0.04).toFixed(2));
-      }
-      localStorage.setItem('app_desktop_zoom', String(next));
-      document.documentElement.style.zoom = String(next);
-    } else if ((e.metaKey || e.ctrlKey) && e.key === '0') {
-      e.preventDefault();
-      localStorage.setItem('app_desktop_zoom', '1.08');
-      document.documentElement.style.zoom = '1.08';
-    }
-  });
-}
 
 // Reusable swipe-up gesture wrapper for standard toasts (success, error, info)
 const SwipeableToast = ({ toast: t, children }) => {
