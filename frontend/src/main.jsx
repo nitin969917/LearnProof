@@ -9,53 +9,7 @@ import { motion } from 'framer-motion';
 
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-// User-controlled Desktop / Mac Zoom Support (Default: 100% natural, shortcuts: Cmd/Ctrl + / - / 0)
-(function initDesktopZoom() {
-  if (typeof window === 'undefined') return;
 
-  const saved = localStorage.getItem('user_desktop_zoom');
-  if (saved && saved !== '1' && saved !== '1.0') {
-    document.documentElement.style.zoom = saved;
-  }
-
-  let toastTimer = null;
-  const showZoomIndicator = (zoomVal) => {
-    let el = document.getElementById('zoom-level-indicator');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'zoom-level-indicator';
-      el.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[9999999] bg-gray-900/90 dark:bg-gray-800/95 text-white text-xs font-bold px-3.5 py-1.5 rounded-full shadow-lg backdrop-blur-md pointer-events-none transition-opacity duration-200';
-      document.body.appendChild(el);
-    }
-    el.innerText = `Zoom: ${Math.round(zoomVal * 100)}%`;
-    el.style.opacity = '1';
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      if (el) el.style.opacity = '0';
-    }, 1200);
-  };
-
-  window.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && (e.key === '=' || e.key === '+' || e.key === '-')) {
-      e.preventDefault();
-      const current = parseFloat(document.documentElement.style.zoom || localStorage.getItem('user_desktop_zoom') || '1.0') || 1.0;
-      let next = current;
-      if (e.key === '=' || e.key === '+') {
-        next = Math.min(1.4, +(current + 0.05).toFixed(2));
-      } else if (e.key === '-') {
-        next = Math.max(0.75, +(current - 0.05).toFixed(2));
-      }
-      document.documentElement.style.zoom = String(next);
-      localStorage.setItem('user_desktop_zoom', String(next));
-      showZoomIndicator(next);
-    } else if ((e.metaKey || e.ctrlKey) && e.key === '0') {
-      e.preventDefault();
-      document.documentElement.style.zoom = '1.0';
-      localStorage.removeItem('user_desktop_zoom');
-      showZoomIndicator(1.0);
-    }
-  });
-})();
 
 
 

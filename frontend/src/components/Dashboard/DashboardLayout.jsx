@@ -653,7 +653,7 @@ const DashboardLayout = () => {
             {/* Sidebar (Desktop expands/collapses, Mobile via drawer) */}
             {(!isLiveRoom || !isMobile) && (!isInsideWorkspace || !isMobile) && (
                 <aside
-                    className={`fixed lg:static inset-y-0 left-0 z-[60] ${
+                    className={`fixed lg:static inset-y-0 left-0 z-[60] h-full flex flex-col min-h-0 ${
                         isSidebarExpanded 
                             ? 'w-56 lg:w-56 bg-white dark:bg-gray-800 border-r border-orange-200 dark:border-gray-700' 
                             : 'w-56 lg:w-[90px] bg-transparent border-none'
