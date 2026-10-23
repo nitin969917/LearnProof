@@ -91,7 +91,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
         <div className={`flex flex-col min-h-0 transition-all duration-300 overflow-hidden ${
             isExpanded 
                 ? 'h-full w-full bg-white dark:bg-gray-800 border-r border-orange-100 dark:border-gray-700' 
-                : 'h-[calc(100%-1rem)] max-h-full my-auto w-[70px] bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-[2.2rem] shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] mx-[10px]'
+                : 'h-[calc(100%-1rem)] max-h-full my-2 w-[70px] bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-[2.2rem] shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] mx-[10px]'
         }`}>
             <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${isExpanded ? 'py-4 px-3 sm:px-4 space-y-6' : 'py-2 px-1 space-y-1 hide-scrollbar'}`}>
                 <div className={`flex items-center ${isExpanded ? 'justify-between px-2 mb-2' : 'justify-center px-1 mb-1'}`}>

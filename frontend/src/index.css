@@ -9,12 +9,16 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
-html, body, #root {
-  height: 100%;
-  width: 100%;
+html, body {
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  width: 100%;
+  min-height: 100%;
+}
+
+#root {
+  width: 100%;
+  min-height: 100%;
 }
 
 body, button, input, select, textarea {
