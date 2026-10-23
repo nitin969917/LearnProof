@@ -7,8 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useSocialMessageStore } from '../../store/socialMessageStore';
 import { useSocialFeedStore } from '../../store/socialFeedStore';
-import UserAvatar from '../Common/UserAvatar.jsx';
-import ProCrownIcon from '../Common/ProCrownIcon.jsx';
 
 const topBarAutocompleteCache = new Map();
 
@@ -311,65 +309,62 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
     return (
         <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-orange-100 dark:border-gray-700 shadow-sm transition-colors duration-200 w-full shrink-0 relative pt-[var(--sat,0px)]">
             {/* Top Bar Header */}
-            <div className="flex items-stretch justify-between h-16 sm:h-20 w-full px-2 sm:px-4">
+            <div className="flex items-center justify-between h-16 w-full px-3 sm:px-5 lg:px-6">
                 {/* Left Side: Logo & Section Title */}
-                <div className="flex items-stretch min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <div
                         onClick={() => navigate('/dashboard')}
-                        className="h-full cursor-pointer hover:opacity-90 transition-opacity shrink-0 flex items-stretch ml-1 sm:ml-0"
+                        className="cursor-pointer hover:opacity-90 transition-opacity shrink-0 flex items-center py-1.5"
                     >
                         {/* Mobile Logo */}
                         <img
                             src="/LP_M_logo.png"
                             alt="LearnProof"
-                            className="h-full w-auto object-cover object-left block sm:hidden"
+                            className="h-9 w-auto object-contain block sm:hidden"
                         />
                         {/* Desktop Logo */}
                         <img
                             src="/LP_logo.png"
                             alt="LearnProof"
-                            className="h-full w-auto object-cover object-left hidden sm:block"
+                            className="h-8 sm:h-9 w-auto object-contain hidden sm:block"
                         />
                     </div>
 
                     {/* Section Title when in Learning Hub (Mobile only) */}
                     {isLearningHub && (
-                        <div className="flex lg:hidden items-center gap-3 px-2 sm:px-4 min-w-0">
-                            <div className="border-l border-gray-200 dark:border-gray-700 h-8"></div>
+                        <div className="flex lg:hidden items-center gap-2 px-1 min-w-0">
+                            <div className="border-l border-gray-200 dark:border-gray-700 h-5"></div>
                             <div className="min-w-0">
-                                <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Learn</h1>
-                                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Your learning space</p>
+                                <h1 className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate">Learn</h1>
                             </div>
                         </div>
                     )}
 
                     {/* Section Title when in Social Hub (Mobile only) */}
                     {isSocialHub && (
-                        <div className="flex lg:hidden items-center gap-3 px-2 sm:px-4 min-w-0">
-                            <div className="border-l border-gray-200 dark:border-gray-700 h-8"></div>
+                        <div className="flex lg:hidden items-center gap-2 px-1 min-w-0">
+                            <div className="border-l border-gray-200 dark:border-gray-700 h-5"></div>
                             <div className="min-w-0">
-                                <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Social Hub</h1>
-                                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Connect &amp; Share</p>
+                                <h1 className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate">Social</h1>
                             </div>
                         </div>
                     )}
 
                     {/* Section Title when on Live Rooms page (Mobile only) */}
                     {isLiveRoomsPage && (
-                        <div className="flex lg:hidden items-center gap-3 px-2 sm:px-4 min-w-0">
-                            <div className="border-l border-gray-200 dark:border-gray-700 h-8"></div>
+                        <div className="flex lg:hidden items-center gap-2 px-1 min-w-0">
+                            <div className="border-l border-gray-200 dark:border-gray-700 h-5"></div>
                             <div className="min-w-0">
-                                <h1 className="text-sm sm:text-base font-black text-gray-900 dark:text-white leading-tight">Live Rooms</h1>
-                                <p className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-black">Audio &amp; Video Practice</p>
+                                <h1 className="text-sm font-bold text-gray-900 dark:text-white leading-tight truncate">Live Rooms</h1>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Right Side: Actions (Import & Inbox Group & Menu) */}
-                <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 pl-2 sm:pl-0 min-w-0">
-                    {/* Desktop Smart Search / Import Bar (sm and up) */}
-                    <div ref={desktopSearchRef} className="hidden md:flex relative items-center flex-1 max-w-[340px] bg-white dark:bg-gray-700 border border-orange-100 dark:border-gray-600 rounded-full pl-3 pr-1 py-1 gap-2 shadow-sm transition-all duration-200 focus-within:ring-2 focus-within:ring-orange-500/25">
+                {/* Right Side: Actions (Search, Notifications, Menu) */}
+                <div className="flex flex-1 items-center justify-end gap-1.5 sm:gap-2.5 min-w-0">
+                    {/* Desktop Smart Search / Import Bar (md and up) */}
+                    <div ref={desktopSearchRef} className="hidden md:flex relative items-center flex-1 max-w-[360px] lg:max-w-[420px] bg-gray-50/80 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-full pl-3.5 pr-1.5 py-1.5 gap-2 shadow-2xs transition-all duration-200 focus-within:bg-white dark:focus-within:bg-gray-700 focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20">
                         {isYouTubeUrl(url) ? (
                             <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.522 3.5 12 3.5 12 3.5s-7.522 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.029 0 12 0 12s0 3.971.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.478 20.5 12 20.5 12 20.5s7.522 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.971 24 12 24 12s0-3.971-.502-5.837z" />
@@ -380,7 +375,7 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
                         )}
                         <input
                             type="text"
-                            placeholder="Search or paste YouTube link..."
+                            placeholder="Search courses, topics or paste link..."
                             className="w-full bg-transparent outline-none text-xs sm:text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 font-medium"
                             value={url}
                             onChange={(e) => {
@@ -395,7 +390,7 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
                         <button
                             onClick={() => handleSmartSubmit()}
                             disabled={loading}
-                            className={`text-white px-3.5 py-1.5 rounded-full text-xs font-black uppercase transition-all shrink-0 cursor-pointer ${
+                            className={`text-white px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer shadow-2xs active:scale-95 ${
                                 isYouTubeUrl(url) 
                                     ? 'bg-[#FF5100] hover:bg-orange-600' 
                                     : 'bg-gray-900 dark:bg-orange-600 hover:bg-gray-800'
@@ -458,41 +453,28 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
                         </AnimatePresence>
                     </div>
 
-                    {/* Mobile Search/Import Trigger Pill (on Home only) */}
-                    {!isLearningHub && !isSocialHub && !isLiveRoomsPage && !isSearchPage && (
+                    {/* Mobile Search/Import Icon Trigger */}
+                    {!isSearchPage && (
                         <button
                             onClick={() => setIsMobileImportOpen(true)}
-                            className="flex md:hidden items-center gap-1.5 bg-orange-50/80 dark:bg-gray-700/80 hover:bg-orange-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 border border-orange-200/80 dark:border-gray-600 rounded-full px-2.5 py-1 text-[11px] font-bold shrink-0 shadow-sm active:scale-95 transition-all cursor-pointer"
+                            className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-700/60 rounded-xl transition-all md:hidden cursor-pointer active:scale-95 shrink-0 flex items-center justify-center"
                             title="Search or Import"
+                            aria-label="Search or Import"
                         >
-                            <Search className="w-3.5 h-3.5 text-[#FF5100] shrink-0" />
-                            <span className="text-[11px] font-extrabold text-[#FF5100]">Search / Import</span>
-                        </button>
-                    )}
-                    
-                    {/* Pro Prestige Badge */}
-                    {(user?.is_premium || user?.isPremium) && (
-                        <button
-                            onClick={onProfileClick || (() => navigate('/dashboard/social?tab=profile'))}
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 hover:from-amber-500/25 hover:to-orange-500/20 text-amber-700 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 shadow-2xs hover:shadow-xs transition-all duration-200 active:scale-95 cursor-pointer group shrink-0 select-none"
-                            title="LearnProof PRO Active"
-                        >
-                            <ProCrownIcon className="w-3.5 h-3.5 group-hover:scale-110 transition-transform duration-200 drop-shadow-xs" />
-                            <span className="text-[11px] font-black tracking-wider uppercase bg-gradient-to-r from-amber-600 via-orange-600 to-amber-600 dark:from-amber-300 dark:via-orange-300 dark:to-amber-300 bg-clip-text text-transparent">
-                                PRO
-                            </span>
+                            <Search size={20} />
                         </button>
                     )}
 
                     {/* Bell Notification Action */}
                     <button
                         onClick={() => navigate('/dashboard/inbox')}
-                        className="relative p-2 text-gray-500 dark:text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-700/50 rounded-xl transition-all cursor-pointer shrink-0 active:scale-95"
+                        className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-700/60 rounded-xl transition-all cursor-pointer shrink-0 active:scale-95 flex items-center justify-center"
                         title="Inbox"
+                        aria-label="Notifications"
                     >
                         <Bell size={20} />
                         {totalSocialCount > 0 ? (
-                            <span className="absolute top-1 right-1 bg-[#FF5100] rounded-full w-4 h-4 text-[9px] font-bold text-white flex items-center justify-center shadow-sm">
+                            <span className="absolute top-1 right-1 bg-[#FF5100] rounded-full w-4 h-4 text-[9px] font-bold text-white flex items-center justify-center shadow-xs">
                                 {totalSocialCount > 9 ? '9+' : totalSocialCount}
                             </span>
                         ) : activeRoomsCount > 0 ? (
@@ -506,8 +488,9 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
                     {/* Menu Toggle Action - for mobile/tablet where sidebar is hidden */}
                     <button
                         onClick={onMenuClick}
-                        className="relative p-2 text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-gray-700 rounded-xl transition-all shrink-0 active:scale-95 flex items-center justify-center cursor-pointer lg:hidden"
+                        className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-gray-700/60 rounded-xl transition-all shrink-0 active:scale-95 flex items-center justify-center cursor-pointer lg:hidden"
                         title="Menu"
+                        aria-label="Menu"
                     >
                         <Menu size={20} />
                     </button>
