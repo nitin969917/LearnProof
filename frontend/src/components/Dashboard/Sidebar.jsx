@@ -88,7 +88,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
     };
 
     return (
-        <div className={`flex flex-col transition-all duration-300 overflow-hidden ${
+        <div className={`flex flex-col min-h-0 transition-all duration-300 overflow-hidden ${
             isExpanded 
                 ? 'h-full w-full bg-white dark:bg-gray-800 border-r border-orange-100 dark:border-gray-700' 
                 : 'h-[calc(100%-1rem)] max-h-full my-auto w-[70px] bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-[2.2rem] shadow-[0_12px_40px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] mx-[10px]'
