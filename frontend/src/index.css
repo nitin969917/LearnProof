@@ -15,39 +15,7 @@ body, button, input, select, textarea {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Desktop & Mac App UI Scaling: Prevents microscopic text/icons on high-res monitors and Mac iPad container */
-@media screen and (min-width: 1024px) {
-  html {
-    font-size: 16.5px;
-  }
-}
 
-@media screen and (min-width: 1280px) {
-  html {
-    font-size: 17.5px;
-  }
-}
-
-@media screen and (min-width: 1536px) {
-  html {
-    font-size: 18.5px;
-  }
-}
-
-/* Extra comfort scale when running inside macOS app window */
-html.platform-mac {
-  -webkit-font-smoothing: subpixel-antialiased;
-}
-@media screen and (min-width: 1024px) {
-  html.platform-mac {
-    font-size: 17.5px;
-  }
-}
-@media screen and (min-width: 1360px) {
-  html.platform-mac {
-    font-size: 18.5px;
-  }
-}
 
 /* Quill Dark Mode Overrides */
 .dark .quill-container .ql-toolbar {
