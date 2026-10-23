@@ -641,7 +641,7 @@ const DashboardLayout = () => {
     };
 
     const layoutContent = (
-        <div className="flex h-[100dvh] bg-orange-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 relative transition-colors duration-200 overflow-hidden font-sans">
+        <div className="flex h-full max-h-[100dvh] bg-orange-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 relative transition-colors duration-200 overflow-hidden font-sans">
             {/* Sidebar Overlay for Mobile (triggered from Bottom Nav) */}
             {isMobileSidebarOpen && (
                 <div
