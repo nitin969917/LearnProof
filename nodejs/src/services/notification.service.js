@@ -175,6 +175,21 @@ const sendDailyNotifications = async () => {
                     await attemptSendNotification(user.id, token, type, formattedTitle, formattedBody, startOfTodayUTC, endOfTodayUTC);
                 } else if (type === 'STREAK_AT_RISK' && user.streak_count > 0 && isInactiveToday) {
                     await attemptSendNotification(user.id, token, type, formattedTitle, formattedBody, startOfTodayUTC, endOfTodayUTC);
+                } else if (type === 'ROADMAP_DAILY_REMINDER') {
+                    // Check if student has incomplete daily goals scheduled for today
+                    const todayDateKey = `${localParts.year}-${String(localParts.month).padStart(2, '0')}-${String(localParts.day).padStart(2, '0')}`;
+                    const pendingGoals = await prisma.userDailyGoal.count({
+                        where: {
+                            userId: user.id,
+                            date: todayDateKey,
+                            is_completed: false
+                        }
+                    });
+                    if (pendingGoals > 0) {
+                        const roadmapTitle = formattedTitle.replace(/{remaining}/g, pendingGoals);
+                        const roadmapBody = formattedBody.replace(/{remaining}/g, pendingGoals);
+                        await attemptSendNotification(user.id, token, type, roadmapTitle, roadmapBody, startOfTodayUTC, endOfTodayUTC);
+                    }
                 }
             }
         }
@@ -320,6 +335,32 @@ const ensureDefaultTemplates = async () => {
                 body: 'Keep up the momentum! Your {streak}-day learning streak is at risk of resetting.',
                 hour: 21,
                 minute: 30,
+                enabled: true
+            }
+        });
+
+        await prisma.notificationTemplate.upsert({
+            where: { type: 'ROADMAP_DAILY_REMINDER' },
+            update: {},
+            create: {
+                type: 'ROADMAP_DAILY_REMINDER',
+                title: '🎯 Today\'s Roadmap Lessons Ready',
+                body: 'You have {remaining} lesson(s) scheduled for today. Keep up the pace!',
+                hour: 14,
+                minute: 0,
+                enabled: true
+            }
+        });
+
+        await prisma.notificationTemplate.upsert({
+            where: { type: 'STUDY_PROGRESS_NUDGE' },
+            update: {},
+            create: {
+                type: 'STUDY_PROGRESS_NUDGE',
+                title: '🔥 Great Progress Today!',
+                body: '{remaining} lesson(s) remaining to hit today\'s target! Keep going!',
+                hour: 0,
+                minute: 0,
                 enabled: true
             }
         });

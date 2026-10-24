@@ -106,12 +106,25 @@ const markVideoCompleted = async (req, res) => {
 
             // Trigger real-time mobile push notification with teacher instruction
             if (coachMessage) {
-                pushNotifier.sendPushToUser([user.id], {
-                    title: coachMessage.title,
-                    body: coachMessage.message,
-                    type: 'STUDY_PROGRESS_NUDGE',
-                    clickAction: '/dashboard/goals'
-                }).catch(err => console.error('[Push Coach Error]:', err));
+                const adminTpl = await prisma.notificationTemplate.findUnique({
+                    where: { type: 'STUDY_PROGRESS_NUDGE' }
+                }).catch(() => null);
+
+                if (!adminTpl || adminTpl.enabled) {
+                    const finalTitle = adminTpl?.title
+                        ? adminTpl.title.replace(/{title}/g, coachMessage.title).replace(/{name}/g, user.name || '')
+                        : coachMessage.title;
+                    const finalBody = adminTpl?.body
+                        ? adminTpl.body.replace(/{message}/g, coachMessage.message).replace(/{remaining}/g, coachMessage.remaining).replace(/{name}/g, user.name || '')
+                        : coachMessage.message;
+
+                    pushNotifier.sendPushToUser([user.id], {
+                        title: finalTitle,
+                        body: finalBody,
+                        type: 'STUDY_PROGRESS_NUDGE',
+                        clickAction: '/dashboard/goals'
+                    }).catch(err => console.error('[Push Coach Error]:', err));
+                }
             }
         } catch (e) {
             console.error('[Goal Hook Error]:', e);

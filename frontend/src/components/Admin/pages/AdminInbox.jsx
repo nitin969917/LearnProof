@@ -4,7 +4,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { 
     Mail, Send, Users, User, Trash2, Search, Filter, CheckCircle, 
     Clock, Edit2, Bell, PlayCircle, Info, Sparkles, MessageSquare, 
-    Smartphone, Check, X, ShieldAlert, ArrowRight, RefreshCw, Layers
+    Smartphone, Check, X, ShieldAlert, ArrowRight, RefreshCw, Layers,
+    Zap, Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -18,7 +19,32 @@ const formatTime12h = (hour, minute) => {
     return `${h}:${m} ${ampm}`;
 };
 
+const getTemplateMeta = (type) => {
+    switch (type) {
+        case 'STREAK_KEEP_ALIVE':
+            return { label: '🌅 Morning Kickstart', badge: 'Streak Keep-Alive', isCron: true };
+        case 'STREAK_AT_RISK':
+            return { label: '🔥 Evening Urgency', badge: 'Streak Saver', isCron: true };
+        case 'ROADMAP_DAILY_REMINDER':
+            return { label: '🎯 Roadmap Scheduled', badge: 'Daily Roadmap Schedule', isCron: true };
+        case 'STUDY_PROGRESS_NUDGE':
+            return { label: '🚀 Lesson Coach', badge: 'Live Lesson Completion', isCron: false };
+        default:
+            return { label: type, badge: 'System Notification', isCron: true };
+    }
+};
+
 const TEMPLATE_PRESETS = [
+    {
+        title: "🎯 Roadmap Schedule Alert",
+        subject: "Your study schedule for today is ready!",
+        message: "You have {remaining} lessons scheduled for today in your roadmap. Jump into your Classroom and keep your streak safe!"
+    },
+    {
+        title: "🚀 Duolingo-Style Lesson Coach",
+        subject: "Great Focus Today!",
+        message: "Awesome work! {remaining} lesson(s) remaining to hit today's daily target. Finish strong!"
+    },
     {
         title: "🚀 New AI Features Launched!",
         subject: "Explore new AI Workspaces & Notes on LearnProof!",
@@ -217,9 +243,13 @@ const AdminInbox = () => {
         try {
             const testTitle = tpl.title
                 .replace(/{streak}/g, "5")
+                .replace(/{remaining}/g, "2")
+                .replace(/{title}/g, "🚀 Great Job!")
                 .replace(/{name}/g, user.name || "Admin");
             const testBody = tpl.body
                 .replace(/{streak}/g, "5")
+                .replace(/{remaining}/g, "2")
+                .replace(/{message}/g, "Lesson completed! 2 lessons remaining for today's goal.")
                 .replace(/{name}/g, user.name || "Admin");
 
             const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/admin/send-push/`, {
@@ -448,52 +478,73 @@ const AdminInbox = () => {
                             {activeTab === 'schedule' && (
                                 <div className="space-y-4 bg-orange-50/40 dark:bg-orange-950/20 p-4 rounded-2xl border border-orange-100 dark:border-orange-900/30">
                                     <label className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 block">
-                                        Select Target Cron Slot
+                                        Select Target Template Slot
                                     </label>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {templateList.map(tpl => (
-                                            <button
-                                                key={tpl.type}
-                                                type="button"
-                                                onClick={() => handleSelectTemplate(tpl)}
-                                                className={`py-2.5 px-3 text-xs font-bold rounded-xl border text-center transition-all ${
-                                                    selectedTemplate === tpl.type 
-                                                        ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-500/20' 
-                                                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-500/40'
-                                                }`}
-                                            >
-                                                {tpl.type === 'STREAK_KEEP_ALIVE' ? '🌅 Morning Reminder' : '🔥 Evening At Risk'}
-                                            </button>
-                                        ))}
+                                        {templateList.map(tpl => {
+                                            const meta = getTemplateMeta(tpl.type);
+                                            return (
+                                                <button
+                                                    key={tpl.type}
+                                                    type="button"
+                                                    onClick={() => handleSelectTemplate(tpl)}
+                                                    className={`py-2.5 px-3 text-xs font-bold rounded-xl border text-center transition-all ${
+                                                        selectedTemplate === tpl.type 
+                                                            ? 'bg-orange-500 text-white border-orange-500 shadow-sm shadow-orange-500/20' 
+                                                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-orange-500/40'
+                                                    }`}
+                                                >
+                                                    {meta.label}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-3 pt-2">
-                                        <div>
-                                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Dispatch Hour (0-23)</label>
-                                            <input 
-                                                type="number"
-                                                min="0"
-                                                max="23"
-                                                value={templateHour}
-                                                onChange={(e) => setTemplateHour(parseInt(e.target.value) || 0)}
-                                                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
-                                            />
+                                    {selectedTemplate === 'STUDY_PROGRESS_NUDGE' ? (
+                                        <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                                            <span className="font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1.5">
+                                                <Zap size={13} /> Real-Time Event Trigger
+                                            </span>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                                Dispatched live to mobile devices when a student completes a video lesson in Classroom.
+                                            </p>
+                                            <p className="text-[10px] text-slate-400">
+                                                Available tags: <code className="text-orange-500 font-mono font-bold">{'{remaining}'}</code>, <code className="text-orange-500 font-mono font-bold">{'{message}'}</code>, <code className="text-orange-500 font-mono font-bold">{'{name}'}</code>
+                                            </p>
                                         </div>
-                                        <div>
-                                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Minute (0-59)</label>
-                                            <input 
-                                                type="number"
-                                                min="0"
-                                                max="59"
-                                                value={templateMinute}
-                                                onChange={(e) => setTemplateMinute(parseInt(e.target.value) || 0)}
-                                                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
-                                            />
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-3 pt-2">
+                                            <div>
+                                                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Dispatch Hour (0-23)</label>
+                                                <input 
+                                                    type="number"
+                                                    min="0"
+                                                    max="23"
+                                                    value={templateHour}
+                                                    onChange={(e) => setTemplateHour(parseInt(e.target.value) || 0)}
+                                                    className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Minute (0-59)</label>
+                                                <input 
+                                                    type="number"
+                                                    min="0"
+                                                    max="59"
+                                                    value={templateMinute}
+                                                    onChange={(e) => setTemplateMinute(parseInt(e.target.value) || 0)}
+                                                    className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     <div className="flex items-center justify-between pt-2">
-                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Trigger Daily at {formatTime12h(templateHour, templateMinute)}</span>
+                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                            {selectedTemplate === 'STUDY_PROGRESS_NUDGE'
+                                                ? 'Dispatched live on lesson completion'
+                                                : `Trigger Daily at ${formatTime12h(templateHour, templateMinute)}`}
+                                        </span>
                                         <button
                                             type="button"
                                             onClick={() => setTemplateEnabled(!templateEnabled)}
@@ -684,9 +735,8 @@ const AdminInbox = () => {
                             </div>
 
                             <div className="space-y-4">
-                                {templateList.map(tpl => {
                                     const isEnabled = tpl.enabled;
-                                    const isMorning = tpl.type === 'STREAK_KEEP_ALIVE';
+                                    const meta = getTemplateMeta(tpl.type);
 
                                     return (
                                         <div 
@@ -701,7 +751,7 @@ const AdminInbox = () => {
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                                                         <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 uppercase tracking-wider">
-                                                            {isMorning ? '🌅 Morning Streak Alert' : '🔥 Evening Urgency Alert'}
+                                                            {meta.badge}
                                                         </span>
                                                         <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1 ${
                                                             isEnabled 
@@ -717,8 +767,17 @@ const AdminInbox = () => {
                                                 </div>
 
                                                 <div className="px-3 py-1.5 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 rounded-xl border border-orange-200 dark:border-orange-900/30 text-xs font-bold flex items-center gap-1.5 self-start shrink-0">
-                                                    <Clock size={13} />
-                                                    Runs daily at {formatTime12h(tpl.hour, tpl.minute)}
+                                                    {tpl.type === 'STUDY_PROGRESS_NUDGE' ? (
+                                                        <>
+                                                            <Zap size={13} />
+                                                            Instant on completion
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Clock size={13} />
+                                                            Runs daily at {formatTime12h(tpl.hour, tpl.minute)}
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
 
