@@ -23,6 +23,13 @@ const formatDuration = (seconds) => {
     return `${s}s`;
 };
 
+const getLocalDateKey = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const date = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${date}`;
+};
+
 /**
  * Intelligent Date-Wise Scheduler & Dynamic Catch-Up Engine
  */
@@ -33,7 +40,7 @@ const getDailySchedule = (videos, days, isCatchUp = false) => {
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayKey = today.toISOString().split('T')[0];
+    const todayKey = getLocalDateKey(today);
 
     // If catch-up is active, keep completed lessons where they were, 
     // and redistribute incomplete lessons starting from TODAY across remaining days.
@@ -64,7 +71,7 @@ const getDailySchedule = (videos, days, isCatchUp = false) => {
             // Real calendar date calculation
             const dayDate = new Date(today);
             dayDate.setDate(today.getDate() + (dayCount - 1));
-            const dayKey = dayDate.toISOString().split('T')[0];
+            const dayKey = getLocalDateKey(dayDate);
 
             const isToday = dayKey === todayKey;
             const isPast = dayKey < todayKey;
@@ -79,14 +86,15 @@ const getDailySchedule = (videos, days, isCatchUp = false) => {
             else {
                 const tmrw = new Date(today);
                 tmrw.setDate(today.getDate() + 1);
-                if (tmrw.toISOString().split('T')[0] === dayKey) {
+                if (getLocalDateKey(tmrw) === dayKey) {
                     dateLabel = `Tomorrow • ${monthStr} ${dayNum}`;
                 }
             }
 
             schedule.push({
                 day: dayCount,
-                dateKey,
+                dateKey: dayKey,
+                dayKey,
                 dateLabel,
                 isToday,
                 isPast,
@@ -443,7 +451,7 @@ const RoadmapDetail = () => {
         }
         setSyncingGoals(true);
         try {
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = getLocalDateKey(new Date());
             await syncRoadmapGoals(token, {
                 videos: todayDayPlan.videos,
                 date: todayStr,
