@@ -98,6 +98,30 @@ const logStudyTime = async (req, res) => {
     }
 };
 
+const syncRoadmapGoals = async (req, res) => {
+    try {
+        const user = req.user;
+        const { videos, date, pid, playlistName } = req.body;
+        const result = await goalService.syncRoadmapVideos(user.id, { videos, date, pid, playlistName });
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('[syncRoadmapGoals] Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+const getCoachGuidance = async (req, res) => {
+    try {
+        const user = req.user;
+        const clientDate = req.query.date || req.body.date || null;
+        const guidance = await goalService.getTodayCoachGuidance(user.id, clientDate);
+        res.status(200).json(guidance);
+    } catch (error) {
+        console.error('[getCoachGuidance] Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getTodayGoals,
     createGoal,
@@ -105,5 +129,7 @@ module.exports = {
     toggleGoal,
     deleteGoal,
     getGoalHistory,
-    logStudyTime
+    logStudyTime,
+    syncRoadmapGoals,
+    getCoachGuidance
 };

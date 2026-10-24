@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const cacheService = require('../services/cache.service');
 const goalService = require('../services/goal.service');
+const pushNotifier = require('../utils/pushNotifier');
 
 /**
  * Classroom Controller
@@ -97,12 +98,29 @@ const markVideoCompleted = async (req, res) => {
             await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
         }
         await cacheService.delByPattern(`user:learnings:${user.id}:*`);
-        await cacheService.del(`user:quiz-list:${user.id}`);
+        // Auto-progress matching daily goal for video watching and generate active coach guidance
+        let coachMessage = null;
+        try {
+            const goalResult = await goalService.recordActivityGoalProgress(user.id, 'VIDEO', 1, { reference_id: videoId });
+            coachMessage = goalResult?.coachMessage || null;
 
-        // Auto-progress matching daily goal for video watching
-        await goalService.recordActivityGoalProgress(user.id, 'VIDEO', 1).catch(e => console.error('[Goal Hook Error]:', e));
+            // Trigger real-time mobile push notification with teacher instruction
+            if (coachMessage) {
+                pushNotifier.sendPushToUser([user.id], {
+                    title: coachMessage.title,
+                    body: coachMessage.message,
+                    type: 'STUDY_PROGRESS_NUDGE',
+                    clickAction: '/dashboard/goals'
+                }).catch(err => console.error('[Push Coach Error]:', err));
+            }
+        } catch (e) {
+            console.error('[Goal Hook Error]:', e);
+        }
 
-        res.status(200).json({ message: 'Video marked as completed' });
+        res.status(200).json({ 
+            message: 'Video marked as completed',
+            coachMessage 
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

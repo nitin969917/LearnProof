@@ -129,3 +129,40 @@ export const logStudyMinutes = async (token, minutes = 1) => {
 
     return response.data;
 };
+
+/**
+ * Sync today's scheduled roadmap videos into Daily Goals
+ */
+export const syncRoadmapGoals = async (token, { videos, date, pid, playlistName }) => {
+    const url = `${getBackendUrl()}/api/goals/sync-roadmap`;
+    const dateParam = date || new Date().toISOString().split('T')[0];
+
+    const response = await axios.post(url, {
+        idToken: token,
+        videos,
+        date: dateParam,
+        pid,
+        playlistName
+    }, {
+        headers: getHeaders(token)
+    });
+
+    return response.data;
+};
+
+/**
+ * Fetch current real-time coach guidance for student's session
+ */
+export const fetchCoachGuidance = async (token, date = null) => {
+    const url = `${getBackendUrl()}/api/goals/coach-guidance`;
+    const dateParam = date || new Date().toISOString().split('T')[0];
+
+    const response = await axios.post(url, {
+        idToken: token,
+        date: dateParam
+    }, {
+        headers: getHeaders(token)
+    });
+
+    return response.data;
+};

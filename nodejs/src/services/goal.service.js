@@ -48,25 +48,42 @@ const getTodayGoals = async (userId, clientDate = null) => {
 /**
  * Event-Driven Auto Progress Tracker:
  * Automatically advances matching goals when student completes an activity.
+ * Generates active Duolingo-style teacher instruction message.
  */
 const recordActivityGoalProgress = async (userId, category, amount = 1, metadata = {}) => {
     try {
         const date = getTodayKey(metadata.date || new Date());
 
-        const matchingGoals = await prisma.userDailyGoal.findMany({
-            where: {
-                userId,
-                date,
-                category,
-                is_completed: false
-            }
-        });
+        // 1. First attempt to match by specific reference_id (e.g. videoId), if provided
+        let targetGoals = [];
+        if (metadata.reference_id) {
+            targetGoals = await prisma.userDailyGoal.findMany({
+                where: {
+                    userId,
+                    date,
+                    category,
+                    reference_id: String(metadata.reference_id),
+                    is_completed: false
+                }
+            });
+        }
 
-        if (matchingGoals.length === 0) return [];
+        // 2. If no specific reference_id matched, find any incomplete goal in this category
+        if (targetGoals.length === 0) {
+            targetGoals = await prisma.userDailyGoal.findMany({
+                where: {
+                    userId,
+                    date,
+                    category,
+                    is_completed: false
+                },
+                take: 1
+            });
+        }
 
         const updatedGoals = [];
 
-        for (const goal of matchingGoals) {
+        for (const goal of targetGoals) {
             const newCurrent = Math.min(goal.target_value, goal.current_value + amount);
             const isNowCompleted = newCurrent >= goal.target_value;
 
@@ -99,37 +116,52 @@ const recordActivityGoalProgress = async (userId, category, amount = 1, metadata
                         }
                     });
                 }
-
-                // Check if all goals for today are completed
-                const remainingIncomplete = await prisma.userDailyGoal.count({
-                    where: { userId, date, is_completed: false }
-                });
-
-                if (remainingIncomplete === 0) {
-                    await prisma.userProfile.update({
-                        where: { id: userId },
-                        data: { xp: { increment: 50 } }
-                    });
-
-                    await prisma.userActivityLog.create({
-                        data: {
-                            userId,
-                            activity_type: `All Daily Goals Completed (+50 XP Bonus)`
-                        }
-                    });
-                }
             }
         }
 
-        return updatedGoals;
+        // 3. Calculate remaining video / overall goals for today to generate active coach instruction
+        const remainingIncomplete = await prisma.userDailyGoal.count({
+            where: { userId, date, is_completed: false }
+        });
+        const totalGoalsToday = await prisma.userDailyGoal.count({
+            where: { userId, date }
+        });
+
+        let coachMessage = null;
+        if (totalGoalsToday > 0) {
+            if (remainingIncomplete === 0) {
+                coachMessage = {
+                    type: 'GOAL_COMPLETED',
+                    title: '🎯 Daily Goal Achieved!',
+                    message: "Boom! You completed all scheduled goals for today. Great job keeping your study streak alive!",
+                    remaining: 0
+                };
+            } else if (remainingIncomplete === 1) {
+                coachMessage = {
+                    type: 'ONE_REMAINING',
+                    title: '🔥 Almost There!',
+                    message: "Awesome focus! Only 1 lesson remaining to finish today's goal.",
+                    remaining: 1
+                };
+            } else {
+                coachMessage = {
+                    type: 'PROGRESS_UPDATE',
+                    title: '🚀 Great Job!',
+                    message: `Lesson completed! ${remainingIncomplete} lessons remaining for today's goal.`,
+                    remaining: remainingIncomplete
+                };
+            }
+        }
+
+        return { updatedGoals, remainingIncomplete, coachMessage };
     } catch (err) {
         console.error('[recordActivityGoalProgress] Error:', err);
-        return [];
+        return { updatedGoals: [], remainingIncomplete: 0, coachMessage: null };
     }
 };
 
 /**
- * Add a clean user-defined goal
+ * Add a clean user-defined or system-synced goal
  */
 const addGoal = async (userId, clientDate, goalData) => {
     const date = getTodayKey(clientDate || new Date());
@@ -140,19 +172,24 @@ const addGoal = async (userId, clientDate, goalData) => {
 
     if (!title) throw new Error('Goal title is required');
 
+    const category = typeof goalData === 'object' && goalData.category ? goalData.category : 'CUSTOM';
+    const reference_id = typeof goalData === 'object' && goalData.reference_id ? String(goalData.reference_id) : null;
+    const action_url = typeof goalData === 'object' && goalData.action_url ? String(goalData.action_url) : null;
+    const description = typeof goalData === 'object' && goalData.description ? String(goalData.description) : null;
+
     return await prisma.userDailyGoal.create({
         data: {
             userId,
             date,
             title,
-            description: null,
-            category: 'CUSTOM',
+            description,
+            category,
             target_value: 1,
             current_value: 0,
             is_completed: false,
-            xp_reward: 20,
-            reference_id: null,
-            action_url: null
+            xp_reward: category === 'VIDEO' ? 25 : 20,
+            reference_id,
+            action_url
         }
     });
 };
@@ -308,6 +345,111 @@ const getGoalHistory = async (userId, days = 7, clientDate = null) => {
     };
 };
 
+/**
+ * Bulk sync today's scheduled roadmap videos into UserDailyGoal
+ */
+const syncRoadmapVideos = async (userId, { videos, date, pid, playlistName }) => {
+    const dateKey = getTodayKey(date || new Date());
+    if (!Array.isArray(videos) || videos.length === 0) {
+        return { synced: 0, goals: [] };
+    }
+
+    const existingGoals = await prisma.userDailyGoal.findMany({
+        where: {
+            userId,
+            date: dateKey,
+            category: 'VIDEO'
+        },
+        select: { reference_id: true, id: true }
+    });
+
+    const existingRefIds = new Set(existingGoals.map(g => g.reference_id).filter(Boolean));
+    const createdGoals = [];
+
+    for (const v of videos) {
+        const vid = v.vid || v.video_id;
+        if (!vid) continue;
+
+        if (!existingRefIds.has(vid)) {
+            const goal = await prisma.userDailyGoal.create({
+                data: {
+                    userId,
+                    date: dateKey,
+                    title: v.name || v.title || 'Study Video Lesson',
+                    description: playlistName ? `From ${playlistName}` : null,
+                    category: 'VIDEO',
+                    target_value: 1,
+                    current_value: v.is_completed ? 1 : 0,
+                    is_completed: !!v.is_completed,
+                    xp_reward: 25,
+                    reference_id: vid,
+                    action_url: `/classroom/${vid}`
+                }
+            });
+            createdGoals.push(goal);
+            existingRefIds.add(vid);
+        }
+    }
+
+    const allToday = await getGoalsByDate(userId, dateKey);
+    return {
+        synced: createdGoals.length,
+        createdGoals,
+        todayGoals: allToday
+    };
+};
+
+/**
+ * Get active Coach Guidance for student's dashboard & study session
+ */
+const getTodayCoachGuidance = async (userId, clientDate = null) => {
+    const date = getTodayKey(clientDate || new Date());
+    
+    const goals = await prisma.userDailyGoal.findMany({
+        where: { userId, date },
+        orderBy: [{ is_completed: 'asc' }, { id: 'asc' }]
+    });
+
+    const total = goals.length;
+    const completed = goals.filter(g => g.is_completed).length;
+    const remaining = total - completed;
+
+    let coachMessage = null;
+    if (total > 0) {
+        if (remaining === 0) {
+            coachMessage = {
+                type: 'GOAL_COMPLETED',
+                title: '🎯 Daily Goal Smashed!',
+                message: `You completed all ${total} study goals for today. Your streak is safe!`,
+                remaining: 0
+            };
+        } else if (remaining === 1) {
+            coachMessage = {
+                type: 'ONE_REMAINING',
+                title: '🔥 Almost There!',
+                message: `Only 1 lesson remaining for today's goal! Finish strong.`,
+                remaining: 1
+            };
+        } else {
+            coachMessage = {
+                type: 'PROGRESS_UPDATE',
+                title: '🚀 Keep It Up!',
+                message: `${completed} done, ${remaining} lessons remaining to complete today's target.`,
+                remaining: remaining
+            };
+        }
+    }
+
+    return {
+        date,
+        total,
+        completed,
+        remaining,
+        coachMessage,
+        goals
+    };
+};
+
 module.exports = {
     getTodayKey,
     getGoalsByDate,
@@ -316,5 +458,7 @@ module.exports = {
     addGoal,
     toggleGoal,
     deleteGoal,
-    getGoalHistory
+    getGoalHistory,
+    syncRoadmapVideos,
+    getTodayCoachGuidance
 };

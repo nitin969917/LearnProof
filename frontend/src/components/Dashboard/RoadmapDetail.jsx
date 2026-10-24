@@ -3,13 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     ArrowLeft, Clock, Play, CheckCircle, Sparkles, AlertCircle, 
-    Library, Trophy, BookOpen, BarChart2, ChevronRight, Loader2, Trash2
+    Library, Trophy, BookOpen, BarChart2, ChevronRight, Loader2, Trash2,
+    Calendar, Zap, RefreshCw, BookmarkCheck, Target
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { useModal } from '../../context/ModalContext';
 import apiCache from '../../utils/apiCache';
+import { syncRoadmapGoals } from '../../api/goalApi';
 
 const formatDuration = (seconds) => {
     if (!seconds) return "0m";
@@ -21,10 +23,28 @@ const formatDuration = (seconds) => {
     return `${s}s`;
 };
 
-const getDailySchedule = (videos, days) => {
-    if (!videos || !days || days <= 0) return [];
+/**
+ * Intelligent Date-Wise Scheduler & Dynamic Catch-Up Engine
+ */
+const getDailySchedule = (videos, days, isCatchUp = false) => {
+    if (!videos || !days || days <= 0) {
+        return { schedule: [], hasPastOverdue: false, overdueCount: 0 };
+    }
     
-    const totalDuration = videos.reduce((acc, v) => acc + (v.duration_seconds || 0), 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayKey = today.toISOString().split('T')[0];
+
+    // If catch-up is active, keep completed lessons where they were, 
+    // and redistribute incomplete lessons starting from TODAY across remaining days.
+    let targetVideos = [...videos];
+    if (isCatchUp) {
+        const completedVids = targetVideos.filter(v => v.is_completed);
+        const incompleteVids = targetVideos.filter(v => !v.is_completed);
+        targetVideos = [...completedVids, ...incompleteVids];
+    }
+
+    const totalDuration = targetVideos.reduce((acc, v) => acc + (v.duration_seconds || 0), 0);
     const targetPerDay = totalDuration / days;
     
     const schedule = [];
@@ -32,17 +52,45 @@ const getDailySchedule = (videos, days) => {
     let currentDayDuration = 0;
     let dayCount = 1;
 
-    for (let i = 0; i < videos.length; i++) {
-        const video = videos[i];
+    for (let i = 0; i < targetVideos.length; i++) {
+        const video = targetVideos[i];
         const videoDuration = video.duration_seconds || 0;
-        const isLastVideo = i === videos.length - 1;
+        const isLastVideo = i === targetVideos.length - 1;
         
         currentDayVideos.push(video);
         currentDayDuration += videoDuration;
 
         if ((currentDayDuration >= targetPerDay && dayCount < days) || isLastVideo) {
+            // Real calendar date calculation
+            const dayDate = new Date(today);
+            dayDate.setDate(today.getDate() + (dayCount - 1));
+            const dayKey = dayDate.toISOString().split('T')[0];
+
+            const isToday = dayKey === todayKey;
+            const isPast = dayKey < todayKey;
+            const isFuture = dayKey > todayKey;
+
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const monthStr = monthNames[dayDate.getMonth()];
+            const dayNum = dayDate.getDate();
+
+            let dateLabel = `${monthStr} ${dayNum}`;
+            if (isToday) dateLabel = `Today • ${monthStr} ${dayNum}`;
+            else {
+                const tmrw = new Date(today);
+                tmrw.setDate(today.getDate() + 1);
+                if (tmrw.toISOString().split('T')[0] === dayKey) {
+                    dateLabel = `Tomorrow • ${monthStr} ${dayNum}`;
+                }
+            }
+
             schedule.push({
                 day: dayCount,
+                dateKey,
+                dateLabel,
+                isToday,
+                isPast,
+                isFuture,
                 videos: currentDayVideos,
                 totalDuration: currentDayDuration
             });
@@ -52,7 +100,20 @@ const getDailySchedule = (videos, days) => {
         }
     }
     
-    return schedule;
+    // Check if any past day has incomplete lessons
+    let overdueCount = 0;
+    schedule.forEach(day => {
+        if (day.isPast) {
+            const missed = day.videos.filter(v => !v.is_completed).length;
+            overdueCount += missed;
+        }
+    });
+
+    return {
+        schedule,
+        hasPastOverdue: overdueCount > 0,
+        overdueCount
+    };
 };
 
 const RoadmapDetail = () => {
@@ -348,11 +409,56 @@ const RoadmapDetail = () => {
         );
     }
 
-    const schedule = getDailySchedule(playlist.videos, playlist.duration_goal);
+    const [isCatchUpActive, setIsCatchUpActive] = useState(false);
+    const [syncingGoals, setSyncingGoals] = useState(false);
+    const [syncedToday, setSyncedToday] = useState(false);
+
+    const { schedule, hasPastOverdue, overdueCount } = getDailySchedule(
+        playlist.videos, 
+        playlist.duration_goal, 
+        isCatchUpActive
+    );
     const completedVideosCount = playlist.videos.filter(v => v.is_completed).length;
     const totalVideos = playlist.videos.length;
     const percentComplete = totalVideos > 0 ? Math.round((completedVideosCount / totalVideos) * 100) : 0;
     const videosPerDay = Math.ceil(totalVideos / playlist.duration_goal);
+    const todayDayPlan = schedule.find(d => d.isToday) || schedule[0];
+
+    const handleAutoAdjustCatchUp = () => {
+        setIsCatchUpActive(prev => {
+            const next = !prev;
+            if (next) {
+                toast.success("Schedule rebalanced! Remaining lessons redistributed from today.");
+            } else {
+                toast("Reverted to original sequential schedule.");
+            }
+            return next;
+        });
+    };
+
+    const handleSyncTodayGoals = async () => {
+        if (!token || !todayDayPlan?.videos?.length) {
+            toast("No scheduled lessons found for today.");
+            return;
+        }
+        setSyncingGoals(true);
+        try {
+            const todayStr = new Date().toISOString().split('T')[0];
+            await syncRoadmapGoals(token, {
+                videos: todayDayPlan.videos,
+                date: todayStr,
+                pid: playlist.pid,
+                playlistName: playlist.name
+            });
+            setSyncedToday(true);
+            toast.success(`🎯 Synced ${todayDayPlan.videos.length} lessons with today's Daily Goals!`);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to sync roadmap goals.");
+        } finally {
+            setSyncingGoals(false);
+        }
+    };
 
     return (
         <motion.div
@@ -636,6 +742,58 @@ const RoadmapDetail = () => {
                             </div>
                         </div>
 
+                        {/* Catch-Up / Rebalance Recommendation Banner */}
+                        {hasPastOverdue && (
+                            <div className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl flex items-center justify-between gap-3 shadow-xs shrink-0">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                        <Zap size={16} />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-black text-amber-950 dark:text-amber-100 leading-tight">
+                                            {overdueCount} Lesson{overdueCount > 1 ? 's' : ''} Behind Schedule
+                                        </p>
+                                        <p className="text-[10px] text-amber-700 dark:text-amber-300/80 truncate">
+                                            Auto-adjust spreads unfinished lessons from today onwards.
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleAutoAdjustCatchUp}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer flex items-center gap-1 active:scale-95 ${
+                                        isCatchUpActive
+                                            ? 'bg-amber-600 text-white shadow-xs'
+                                            : 'bg-white dark:bg-gray-800 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700 hover:bg-amber-100'
+                                    }`}
+                                >
+                                    <RefreshCw size={12} className={isCatchUpActive ? 'animate-spin' : ''} />
+                                    {isCatchUpActive ? 'Rebalanced ✓' : 'Auto-Adjust'}
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Schedule Toolbar (Sync with Daily Goals) */}
+                        <div className="flex items-center justify-between gap-2 px-1 py-1 shrink-0">
+                            <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                <Calendar size={13} className="text-orange-500" />
+                                {todayDayPlan ? `Today's Plan (${todayDayPlan.videos.length} lessons)` : 'Curriculum Schedule'}
+                            </span>
+                            <button
+                                onClick={handleSyncTodayGoals}
+                                disabled={syncingGoals || syncedToday}
+                                className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-60 shrink-0"
+                            >
+                                {syncingGoals ? (
+                                    <Loader2 size={12} className="animate-spin" />
+                                ) : syncedToday ? (
+                                    <BookmarkCheck size={12} />
+                                ) : (
+                                    <Target size={12} />
+                                )}
+                                <span>{syncedToday ? "Synced to Goals ✓" : "Sync Today's Goals"}</span>
+                            </button>
+                        </div>
+
                         {/* Scrollable Day-by-Day Schedule List */}
                         <div className="flex-1 lg:overflow-y-auto space-y-2 sm:space-y-3 pr-0 lg:pr-1 min-h-0">
                             {schedule.map((dayPlan, dayIndex) => {
@@ -652,9 +810,11 @@ const RoadmapDetail = () => {
                                         transition={{ duration: 0.2, delay: Math.min(dayIndex * 0.015, 0.15), ease: "easeOut" }}
                                         whileHover={{ y: -1 }}
                                         className={`rounded-2xl border transition-[border-color,background-color] duration-150 transform-gpu p-2.5 sm:p-3 space-y-2 ${
-                                            isDayDone
-                                                ? 'bg-[#F4FAF6] dark:bg-emerald-950/15 border-emerald-200 dark:border-emerald-900/40'
-                                                : 'bg-gray-50/60 dark:bg-gray-900/30 border-gray-100 dark:border-gray-800'
+                                            dayPlan.isToday
+                                                ? 'bg-orange-50/40 dark:bg-orange-950/15 border-orange-200 dark:border-orange-800/40 ring-1 ring-orange-500/20'
+                                                : isDayDone
+                                                    ? 'bg-[#F4FAF6] dark:bg-emerald-950/15 border-emerald-200 dark:border-emerald-900/40'
+                                                    : 'bg-gray-50/60 dark:bg-gray-900/30 border-gray-100 dark:border-gray-800'
                                         }`}
                                     >
                                         {/* Day Banner Header */}
@@ -663,25 +823,37 @@ const RoadmapDetail = () => {
                                                 <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center font-black text-[11px] sm:text-xs shrink-0 ${
                                                     isDayDone
                                                         ? 'bg-emerald-500 text-white shadow-xs'
-                                                        : 'bg-orange-500 text-white shadow-xs'
+                                                        : dayPlan.isToday
+                                                            ? 'bg-orange-500 text-white shadow-xs'
+                                                            : 'bg-gray-700 text-white shadow-xs'
                                                 }`}>
                                                     {isDayDone ? <CheckCircle size={14} /> : dayPlan.day}
                                                 </div>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 flex-wrap">
                                                     <h3 className="text-xs sm:text-sm font-black text-gray-900 dark:text-white">
                                                         Day {dayPlan.day}
                                                     </h3>
+                                                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                                                        • {dayPlan.dateLabel}
+                                                    </span>
                                                     <span className="text-[10px] font-bold text-gray-400 dark:text-gray-400">
                                                         • {completedInDay} of {totalInDay} Lessons Done
                                                     </span>
                                                 </div>
                                             </div>
 
-                                            {isDayDone && (
-                                                <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-black uppercase tracking-wider rounded-md">
-                                                    Completed
-                                                </span>
-                                            )}
+                                            <div className="flex items-center gap-1.5">
+                                                {dayPlan.isToday && (
+                                                    <span className="px-2 py-0.5 bg-orange-500 text-white text-[9px] font-black uppercase tracking-wider rounded-md shadow-xs animate-pulse">
+                                                        TODAY
+                                                    </span>
+                                                )}
+                                                {isDayDone && (
+                                                    <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[9px] font-black uppercase tracking-wider rounded-md">
+                                                        Completed
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         {/* Micro Day Progress Bar */}

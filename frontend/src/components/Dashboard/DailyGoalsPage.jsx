@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
     Target, 
     CheckCircle2, 
@@ -17,7 +18,8 @@ import {
     Sparkles, 
     Zap, 
     Check, 
-    ArrowRight 
+    ArrowRight,
+    Play
 } from 'lucide-react';
 import { 
     AreaChart, 
@@ -40,6 +42,7 @@ import {
 } from '../../api/goalApi';
 
 const DailyGoalsPage = () => {
+    const navigate = useNavigate();
     const { user, token } = useAuth();
     const { confirm } = useModal();
 
@@ -509,21 +512,37 @@ const DailyGoalsPage = () => {
                                                     {/* XP Badge */}
                                                     <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 shrink-0 flex items-center gap-1">
                                                         <Zap size={11} className="text-amber-500 fill-amber-500" />
-                                                        <span>+20 XP</span>
+                                                        <span>+{goal.xp_reward || 20} XP</span>
                                                     </span>
                                                 </div>
 
-                                                {/* Right side: Delete Button (Stops propagation so row doesn't toggle) */}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteGoal(goal.id);
-                                                    }}
-                                                    className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all cursor-pointer shrink-0"
-                                                    title="Delete Goal"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                {/* Right side: Direct Play Button & Delete Button */}
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    {(goal.action_url || goal.reference_id) && !goal.is_completed && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate(goal.action_url || `/classroom/${goal.reference_id}`);
+                                                            }}
+                                                            className="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer transition-transform"
+                                                            title="Study now in Classroom"
+                                                        >
+                                                            <Play size={10} fill="currentColor" />
+                                                            <span>Play</span>
+                                                        </button>
+                                                    )}
+
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteGoal(goal.id);
+                                                        }}
+                                                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all cursor-pointer shrink-0"
+                                                        title="Delete Goal"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
                                             </motion.div>
                                         ))}
                                     </AnimatePresence>

@@ -2613,17 +2613,43 @@ const Classroom = () => {
     });
   };
 
+  const showCoachToast = (coachMessage) => {
+    if (!coachMessage) return;
+    toast.custom((t) => (
+      <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-sm sm:max-w-md w-full bg-white dark:bg-gray-800 shadow-2xl rounded-2xl pointer-events-auto flex ring-1 ring-black/5 dark:ring-white/10 p-4 border-l-4 ${coachMessage.remaining === 0 ? 'border-emerald-500' : coachMessage.remaining === 1 ? 'border-amber-500' : 'border-orange-500'}`}>
+        <div className="flex-1 w-0">
+          <div className="flex items-start">
+            <div className="shrink-0 pt-0.5 text-2xl">
+              {coachMessage.remaining === 0 ? '🏆' : coachMessage.remaining === 1 ? '🔥' : '🎯'}
+            </div>
+            <div className="ml-3 flex-1 min-w-0">
+              <p className="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                {coachMessage.title}
+              </p>
+              <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 leading-snug">
+                {coachMessage.message}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    ), { duration: 5500 });
+  };
+
   const markAsCompleted = async () => {
     if (!video) return;
     setMarking(true);
     try {
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/mark-completed/`, {
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/mark-completed/`, {
         idToken: token,
         videoId: video.vid,
       });
       setVideo({ ...video, watch_progress: 100, is_completed: true });
       setLiveProgress(100);
       updatePlaylistVideoState(video.vid, { watch_progress: 100, is_completed: true });
+      if (res.data?.coachMessage) {
+        showCoachToast(res.data.coachMessage);
+      }
     } catch (err) {
       console.error(err);
       toast.error("Failed to mark as completed");
@@ -2691,12 +2717,15 @@ const Classroom = () => {
 
               if (percentage >= 95 && !video.is_completed) {
                 // Auto-mark completed
-                await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/mark-completed/`, {
+                const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/mark-completed/`, {
                   idToken: token,
                   videoId: video.vid,
                 });
                 setVideo(prev => ({ ...prev, watch_progress: 100, is_completed: true }));
                 updatePlaylistVideoState(video.vid, { watch_progress: 100, is_completed: true });
+                if (res.data?.coachMessage) {
+                  showCoachToast(res.data.coachMessage);
+                }
               } else {
                 // Just update partial progress
                 await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/update-progress/`, {
