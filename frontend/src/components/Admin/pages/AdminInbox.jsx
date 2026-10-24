@@ -735,6 +735,7 @@ const AdminInbox = () => {
                             </div>
 
                             <div className="space-y-4">
+                                {templateList.map(tpl => {
                                     const isEnabled = tpl.enabled;
                                     const meta = getTemplateMeta(tpl.type);
 
