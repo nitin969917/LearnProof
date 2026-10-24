@@ -107,6 +107,8 @@ const sendExplicitPush = async (req, res) => {
 
     try {
         let tokens = [];
+        let finalTitle = String(title || '');
+        let finalBody = String(body || '');
 
         if (isBroadcast) {
             // Fetch all registered user tokens
@@ -194,11 +196,11 @@ const sendExplicitPush = async (req, res) => {
             }
 
             // Interpolate dynamic template tags with real learner values
-            title = title
+            finalTitle = finalTitle
                 .replace(/{name}/g, targetUser.name || 'Learner')
                 .replace(/{streak}/g, String(targetUser.streak_count || 1))
                 .replace(/{remaining}/g, '2');
-            body = body
+            finalBody = finalBody
                 .replace(/{name}/g, targetUser.name || 'Learner')
                 .replace(/{streak}/g, String(targetUser.streak_count || 1))
                 .replace(/{remaining}/g, '2');
@@ -222,7 +224,7 @@ const sendExplicitPush = async (req, res) => {
         // Send to multiple tokens using sendEachForMulticast
         const response = await admin.messaging().sendEachForMulticast({
             tokens,
-            notification: { title, body },
+            notification: { title: finalTitle, body: finalBody },
             webpush: {
                 notification: {
                     icon: 'https://learnproofai.com/LP_M_logo.png',
@@ -247,8 +249,8 @@ const sendExplicitPush = async (req, res) => {
                 payload: {
                     aps: {
                         alert: {
-                            title,
-                            body
+                            title: finalTitle,
+                            body: finalBody
                         },
                         badge: 1,
                         sound: 'default'
