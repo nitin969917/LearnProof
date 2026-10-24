@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
@@ -700,7 +700,13 @@ const DashboardLayout = () => {
                     }`}
                 >
                     <ErrorBoundary>
-                        <Outlet context={{ toggleSidebar, setHeaderAction: setOnHeaderAction }} />
+                        <Suspense fallback={
+                            <div className="flex flex-col items-center justify-center min-h-[45vh] w-full py-16">
+                                <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        }>
+                            <Outlet context={{ toggleSidebar, setHeaderAction: setOnHeaderAction }} />
+                        </Suspense>
                     </ErrorBoundary>
                 </div>
             </main>

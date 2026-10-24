@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import AdminSidebar from "./AdminSidebar";
 import { Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -114,7 +114,13 @@ const AdminLayout = () => {
                 <main className="flex-1 overflow-x-hidden overflow-y-auto">
                     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 h-full">
                         <ErrorBoundary>
-                            <Outlet />
+                            <Suspense fallback={
+                                <div className="flex items-center justify-center min-h-[45vh] w-full py-16">
+                                    <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            }>
+                                <Outlet />
+                            </Suspense>
                         </ErrorBoundary>
                     </div>
                 </main>

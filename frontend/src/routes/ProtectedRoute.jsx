@@ -12,6 +12,11 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
+  // If a stored token exists in localStorage, wait for AuthProvider state sync rather than kicking user out
+  if (!user && typeof window !== 'undefined' && localStorage.getItem('google_token')) {
+    return null;
+  }
+
   if (!user) {
     const isFlutter = navigator.userAgent.includes('LearnProofApp') || !!window.GoogleSignInChannel;
     if (

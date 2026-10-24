@@ -94,6 +94,28 @@ const PageLoader = () => (
     </div>
 );
 
+// Preload primary dashboard sections in background idle time so mobile tab switching is instant with 0ms delay
+if (typeof window !== 'undefined') {
+    const idlePreloadTabs = () => {
+        const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 1200));
+        schedule(() => {
+            import('./components/Dashboard/YouTubeExplorer');
+            import('./components/Dashboard/Social/SocialDashboard');
+            import('./components/Dashboard/LanguagePractice/LanguageLearning');
+            import('./components/Dashboard/MyLearnings');
+            import('./components/Dashboard/Quiz');
+            import('./components/Dashboard/MyCertificates');
+            import('./components/Dashboard/DailyGoalsPage');
+        });
+    };
+
+    if (document.readyState === 'complete') {
+        idlePreloadTabs();
+    } else {
+        window.addEventListener('load', idlePreloadTabs, { once: true });
+    }
+}
+
 // In-memory cold launch tracker. Initialized to true only on fresh JS engine process boot (cold start).
 // During in-session multitasking (backgrounding/resuming), this stays false so active pages are never reset.
 let isAppColdBoot = true;
