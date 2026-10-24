@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -252,6 +252,49 @@ const RoadmapDetail = () => {
     const [isEditingGoal, setIsEditingGoal] = useState(false);
     const [roadmapDaysInput, setRoadmapDaysInput] = useState("");
     const [settingGoal, setSettingGoal] = useState(false);
+    const [isCatchUpActive, setIsCatchUpActive] = useState(false);
+    const [syncingGoals, setSyncingGoals] = useState(false);
+    const [syncedToday, setSyncedToday] = useState(false);
+
+    // Dynamic schedule calculations (Unconditionally called on every render)
+    const { schedule, hasPastOverdue, overdueCount } = useMemo(() => {
+        if (!playlist?.videos || !playlist?.duration_goal) {
+            return { schedule: [], hasPastOverdue: false, overdueCount: 0 };
+        }
+        return getDailySchedule(
+            playlist.videos, 
+            playlist.duration_goal, 
+            isCatchUpActive
+        );
+    }, [playlist?.videos, playlist?.duration_goal, isCatchUpActive]);
+
+    const completedVideosCount = useMemo(() => {
+        return playlist?.videos ? playlist.videos.filter(v => v.is_completed).length : 0;
+    }, [playlist?.videos]);
+
+    const totalVideos = playlist?.videos?.length || 0;
+    const percentComplete = totalVideos > 0 && playlist?.duration_goal ? Math.round((completedVideosCount / totalVideos) * 100) : 0;
+    const videosPerDay = playlist?.duration_goal ? Math.ceil(totalVideos / playlist.duration_goal) : 0;
+    const todayDayPlan = schedule.find(d => d.isToday) || schedule[0];
+
+    // Helper: auto-sync today's scheduled lessons into user daily goals
+    const autoSyncTodayGoals = async (videosList, plPid, plName) => {
+        if (!token || !videosList || !videosList.length) return false;
+        try {
+            const todayStr = getLocalDateKey(new Date());
+            await syncRoadmapGoals(token, {
+                videos: videosList,
+                date: todayStr,
+                pid: plPid,
+                playlistName: plName
+            });
+            setSyncedToday(true);
+            return true;
+        } catch (err) {
+            console.error('[autoSyncTodayGoals Error]:', err);
+            return false;
+        }
+    };
 
     const handleUpdateGoal = async (e) => {
         if (e) e.preventDefault();
@@ -268,7 +311,6 @@ const RoadmapDetail = () => {
                 pid: pid,
                 duration_goal: parseInt(days)
             });
-            toast.success("Mastery roadmap recalculated!");
             
             // Re-fetch details to sync the whole UI
             const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/playlist-detail/`, {
@@ -276,13 +318,74 @@ const RoadmapDetail = () => {
                 pid: pid
             });
             const { playlist: plData, videos } = response.data;
-            setPlaylist({ ...plData, videos: videos || [] });
+            const updatedPlaylist = { ...plData, videos: videos || [] };
+            setPlaylist(updatedPlaylist);
             setIsEditingGoal(false);
+
+            // Automatically sync newly calculated today lessons into Daily Goals
+            const newScheduleResult = getDailySchedule(videos || [], parseInt(days), false);
+            const todayPlan = newScheduleResult.schedule.find(d => d.isToday) || newScheduleResult.schedule[0];
+            if (todayPlan?.videos?.length) {
+                const synced = await autoSyncTodayGoals(todayPlan.videos, plData.pid, plData.name);
+                if (synced) {
+                    toast.success("Mastery roadmap recalculated & today's study goals automatically synced! 🎯");
+                } else {
+                    toast.success("Mastery roadmap recalculated!");
+                }
+            } else {
+                toast.success("Mastery roadmap recalculated!");
+            }
         } catch (err) {
             console.error(err);
             toast.error("Failed to update roadmap");
         } finally {
             setSettingGoal(false);
+        }
+    };
+
+    const handleAutoAdjustCatchUp = async () => {
+        const nextCatchUp = !isCatchUpActive;
+        setIsCatchUpActive(nextCatchUp);
+
+        if (nextCatchUp) {
+            toast.success("Schedule rebalanced! Remaining lessons redistributed from today.");
+            // Automatically sync rebalanced today lessons into Daily Goals
+            if (playlist?.videos?.length && playlist?.duration_goal) {
+                const rebalancedResult = getDailySchedule(playlist.videos, playlist.duration_goal, true);
+                const todayPlan = rebalancedResult.schedule.find(d => d.isToday) || rebalancedResult.schedule[0];
+                if (todayPlan?.videos?.length) {
+                    const synced = await autoSyncTodayGoals(todayPlan.videos, playlist.pid, playlist.name);
+                    if (synced) {
+                        toast.success(`🎯 Synced ${todayPlan.videos.length} rebalanced lessons to today's Daily Goals!`);
+                    }
+                }
+            }
+        } else {
+            toast("Reverted to original sequential schedule.");
+        }
+    };
+
+    const handleSyncTodayGoals = async () => {
+        if (!token || !todayDayPlan?.videos?.length) {
+            toast("No scheduled lessons found for today.");
+            return;
+        }
+        setSyncingGoals(true);
+        try {
+            const todayStr = getLocalDateKey(new Date());
+            await syncRoadmapGoals(token, {
+                videos: todayDayPlan.videos,
+                date: todayStr,
+                pid: playlist.pid,
+                playlistName: playlist.name
+            });
+            setSyncedToday(true);
+            toast.success(`🎯 Synced ${todayDayPlan.videos.length} lessons with today's Daily Goals!`);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to sync roadmap goals.");
+        } finally {
+            setSyncingGoals(false);
         }
     };
 
@@ -417,56 +520,6 @@ const RoadmapDetail = () => {
         );
     }
 
-    const [isCatchUpActive, setIsCatchUpActive] = useState(false);
-    const [syncingGoals, setSyncingGoals] = useState(false);
-    const [syncedToday, setSyncedToday] = useState(false);
-
-    const { schedule, hasPastOverdue, overdueCount } = getDailySchedule(
-        playlist.videos, 
-        playlist.duration_goal, 
-        isCatchUpActive
-    );
-    const completedVideosCount = playlist.videos.filter(v => v.is_completed).length;
-    const totalVideos = playlist.videos.length;
-    const percentComplete = totalVideos > 0 ? Math.round((completedVideosCount / totalVideos) * 100) : 0;
-    const videosPerDay = Math.ceil(totalVideos / playlist.duration_goal);
-    const todayDayPlan = schedule.find(d => d.isToday) || schedule[0];
-
-    const handleAutoAdjustCatchUp = () => {
-        setIsCatchUpActive(prev => {
-            const next = !prev;
-            if (next) {
-                toast.success("Schedule rebalanced! Remaining lessons redistributed from today.");
-            } else {
-                toast("Reverted to original sequential schedule.");
-            }
-            return next;
-        });
-    };
-
-    const handleSyncTodayGoals = async () => {
-        if (!token || !todayDayPlan?.videos?.length) {
-            toast("No scheduled lessons found for today.");
-            return;
-        }
-        setSyncingGoals(true);
-        try {
-            const todayStr = getLocalDateKey(new Date());
-            await syncRoadmapGoals(token, {
-                videos: todayDayPlan.videos,
-                date: todayStr,
-                pid: playlist.pid,
-                playlistName: playlist.name
-            });
-            setSyncedToday(true);
-            toast.success(`🎯 Synced ${todayDayPlan.videos.length} lessons with today's Daily Goals!`);
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to sync roadmap goals.");
-        } finally {
-            setSyncingGoals(false);
-        }
-    };
 
     return (
         <motion.div
