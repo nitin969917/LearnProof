@@ -65,13 +65,17 @@ const BottomNav = () => {
     };
 
     const handleItemClick = (e, item) => {
+        e.preventDefault();
+        e.stopPropagation();
         if (item.name === 'Profile') {
-            e.preventDefault();
             localStorage.removeItem('social_selected_profile_id');
             navigate('/dashboard/social/profile');
         } else if (item.name === 'Social') {
-            e.preventDefault();
             navigate('/dashboard/social/feed');
+        } else if (item.name === 'Learn') {
+            navigate('/dashboard/explore');
+        } else {
+            navigate(item.path);
         }
     };
 
@@ -81,11 +85,11 @@ const BottomNav = () => {
                 {navItems.map((item) => {
                     const isActive = checkActive(item.path);
                     return (
-                        <NavLink
+                        <button
                             key={item.name}
-                            to={item.path}
+                            type="button"
                             onClick={(e) => handleItemClick(e, item)}
-                            className="relative flex flex-col items-center justify-center flex-1 h-full py-1.5 no-underline touch-manipulation select-none outline-none border-none focus:outline-none focus:ring-0 focus-visible:outline-none active:outline-none group"
+                            className="relative flex flex-col items-center justify-center flex-1 h-full py-1.5 no-underline touch-manipulation select-none outline-none border-none focus:outline-none focus:ring-0 focus-visible:outline-none active:outline-none cursor-pointer bg-transparent"
                         >
                             {isActive && (
                                 <motion.div
@@ -94,11 +98,8 @@ const BottomNav = () => {
                                     transition={{ type: "spring", stiffness: 450, damping: 35 }}
                                 />
                             )}
-                            <motion.div
-                                whileTap={{ scale: 0.88 }}
-                                className="flex flex-col items-center justify-center w-full h-full relative z-10 cursor-pointer"
-                            >
-                                <div className={`transition-all duration-200 flex flex-col items-center justify-center ${isActive ? 'scale-105 text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'}`}>
+                            <div className="flex flex-col items-center justify-center w-full h-full relative z-10 active:scale-95 transition-transform duration-100">
+                                <div className={`transition-all duration-200 flex flex-col items-center justify-center ${isActive ? 'scale-105 text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-400 dark:text-gray-500'}`}>
                                     {item.name === 'Profile' ? (
                                         (socialUser?.profilePicture || socialUser?.avatar) ? (
                                             <div className={`w-[22px] h-[22px] rounded-full overflow-hidden border transition-all ${isActive ? 'border-orange-500 ring-2 ring-orange-500/30' : 'border-gray-300 dark:border-gray-600'}`}>
@@ -130,8 +131,8 @@ const BottomNav = () => {
                                         {item.badge > 99 ? '99+' : item.badge}
                                     </span>
                                 )}
-                            </motion.div>
-                        </NavLink>
+                            </div>
+                        </button>
                     );
                 })}
             </div>

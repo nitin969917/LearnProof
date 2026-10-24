@@ -14,11 +14,18 @@ html, body {
   padding: 0;
   width: 100%;
   min-height: 100%;
+  background-color: #fffaf5;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.dark, html.dark body {
+  background-color: #111827;
 }
 
 #root {
   width: 100%;
   min-height: 100%;
+  background-color: inherit;
 }
 
 body, button, input, select, textarea {

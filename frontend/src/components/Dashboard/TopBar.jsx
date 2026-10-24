@@ -619,13 +619,14 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
                         const isActive = checkLearnSubActive(tab.path);
                         const Icon = tab.icon;
                         return (
-                            <Link
+                            <button
                                 key={tab.name}
-                                to={tab.path}
-                                className={`relative flex items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-1 sm:px-2 text-xs font-bold transition-all whitespace-nowrap cursor-pointer touch-manipulation outline-none ${
+                                type="button"
+                                onClick={() => navigate(tab.path)}
+                                className={`relative flex items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-1 sm:px-2 text-xs font-bold transition-all whitespace-nowrap cursor-pointer touch-manipulation outline-none active:scale-95 ${
                                     isActive
                                         ? 'text-orange-600 dark:text-orange-400 font-extrabold'
-                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                                        : 'text-gray-500 dark:text-gray-400'
                                 }`}
                             >
                                 <Icon size={15} strokeWidth={isActive ? 2.5 : 2} className={`shrink-0 ${isActive ? 'text-orange-500' : ''}`} />
@@ -637,7 +638,7 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
                                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                     />
                                 )}
-                            </Link>
+                            </button>
                         );
                     })}
                 </div>
@@ -650,13 +651,14 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
                         const isActive = checkSocialSubActive(tab.path);
                         const Icon = tab.icon;
                         return (
-                            <Link
+                            <button
                                 key={tab.name}
-                                to={tab.path}
-                                className={`relative flex items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-1 sm:px-2 text-xs font-bold transition-all whitespace-nowrap cursor-pointer touch-manipulation outline-none ${
+                                type="button"
+                                onClick={() => navigate(tab.path)}
+                                className={`relative flex items-center justify-center gap-1 sm:gap-1.5 py-2.5 px-1 sm:px-2 text-xs font-bold transition-all whitespace-nowrap cursor-pointer touch-manipulation outline-none active:scale-95 ${
                                     isActive
                                         ? 'text-orange-600 dark:text-orange-400 font-extrabold'
-                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                                        : 'text-gray-500 dark:text-gray-400'
                                 }`}
                             >
                                 <Icon size={15} strokeWidth={isActive ? 2.5 : 2} className={`shrink-0 ${isActive ? 'text-orange-500' : ''}`} />
@@ -673,7 +675,7 @@ const TopBar = ({ onMenuClick, onProfileClick }) => {
                                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                     />
                                 )}
-                            </Link>
+                            </button>
                         );
                     })}
                 </div>

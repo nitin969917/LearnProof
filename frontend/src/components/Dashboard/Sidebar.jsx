@@ -172,11 +172,10 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                              }
                                          >
                                              {({ isActive }) => (
-                                                 <motion.div
-                                                     whileTap={{ scale: 0.94 }}
+                                                 <div
                                                      className={`flex ${
                                                          isExpanded ? 'flex-row items-center gap-3' : 'flex-col items-center justify-center'
-                                                     } w-full h-full relative`}
+                                                     } w-full h-full relative active:scale-95 transition-transform duration-100`}
                                                  >
                                                      <div className={`relative flex items-center justify-center shrink-0 transition-all duration-200 ${
                                                          isExpanded
@@ -203,7 +202,7 @@ const Sidebar = ({ isExpanded = true, onProfileClick, onClose, onMenuClick }) =>
                                                              {item.shortName || item.name}
                                                          </span>
                                                      )}
-                                                 </motion.div>
+                                                 </div>
                                              )}
                                          </NavLink>
                                     )
