@@ -352,18 +352,6 @@ const ensureDefaultTemplates = async () => {
             }
         });
 
-        await prisma.notificationTemplate.upsert({
-            where: { type: 'STUDY_PROGRESS_NUDGE' },
-            update: {},
-            create: {
-                type: 'STUDY_PROGRESS_NUDGE',
-                title: '🔥 Great Progress Today!',
-                body: '{remaining} lesson(s) remaining to hit today\'s target! Keep going!',
-                hour: 0,
-                minute: 0,
-                enabled: true
-            }
-        });
         console.log('[Notification Cron] Default templates checked and seeded successfully.');
     } catch (e) {
         console.error('[Notification Cron] Error seeding templates on startup:', e.message);

@@ -367,7 +367,7 @@ const AdminInbox = () => {
         }
     };
 
-    const templateList = ensureArray(templates);
+    const templateList = ensureArray(templates).filter(t => t.type !== 'STUDY_PROGRESS_NUDGE');
     const userList = ensureArray(users);
     const messageList = ensureArray(messages);
 
@@ -580,50 +580,34 @@ const AdminInbox = () => {
                                         })}
                                     </div>
 
-                                    {selectedTemplate === 'STUDY_PROGRESS_NUDGE' ? (
-                                        <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 space-y-1">
-                                            <span className="font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1.5">
-                                                <Zap size={13} /> Real-Time Event Trigger
-                                            </span>
-                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                                                Dispatched live to mobile devices when a student completes a video lesson in Classroom.
-                                            </p>
-                                            <p className="text-[10px] text-slate-400">
-                                                Available tags: <code className="text-orange-500 font-mono font-bold">{'{remaining}'}</code>, <code className="text-orange-500 font-mono font-bold">{'{message}'}</code>, <code className="text-orange-500 font-mono font-bold">{'{name}'}</code>
-                                            </p>
+                                    <div className="grid grid-cols-2 gap-3 pt-2">
+                                        <div>
+                                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Dispatch Hour (0-23)</label>
+                                            <input 
+                                                type="number"
+                                                min="0"
+                                                max="23"
+                                                value={templateHour}
+                                                onChange={(e) => setTemplateHour(parseInt(e.target.value) || 0)}
+                                                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
+                                            />
                                         </div>
-                                    ) : (
-                                        <div className="grid grid-cols-2 gap-3 pt-2">
-                                            <div>
-                                                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Dispatch Hour (0-23)</label>
-                                                <input 
-                                                    type="number"
-                                                    min="0"
-                                                    max="23"
-                                                    value={templateHour}
-                                                    onChange={(e) => setTemplateHour(parseInt(e.target.value) || 0)}
-                                                    className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Minute (0-59)</label>
-                                                <input 
-                                                    type="number"
-                                                    min="0"
-                                                    max="59"
-                                                    value={templateMinute}
-                                                    onChange={(e) => setTemplateMinute(parseInt(e.target.value) || 0)}
-                                                    className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
-                                                />
-                                            </div>
+                                        <div>
+                                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1 block">Minute (0-59)</label>
+                                            <input 
+                                                type="number"
+                                                min="0"
+                                                max="59"
+                                                value={templateMinute}
+                                                onChange={(e) => setTemplateMinute(parseInt(e.target.value) || 0)}
+                                                className="w-full px-3.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none font-bold"
+                                            />
                                         </div>
-                                    )}
+                                    </div>
 
                                     <div className="flex items-center justify-between pt-2">
                                         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                            {selectedTemplate === 'STUDY_PROGRESS_NUDGE'
-                                                ? 'Dispatched live on lesson completion'
-                                                : `Trigger Daily at ${formatTime12h(templateHour, templateMinute)}`}
+                                            Trigger Daily at {formatTime12h(templateHour, templateMinute)}
                                         </span>
                                         <button
                                             type="button"
@@ -1009,17 +993,8 @@ const AdminInbox = () => {
                                                 </div>
 
                                                 <div className="px-3 py-1.5 bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 rounded-xl border border-orange-200 dark:border-orange-900/30 text-xs font-bold flex items-center gap-1.5 self-start shrink-0">
-                                                    {tpl.type === 'STUDY_PROGRESS_NUDGE' ? (
-                                                        <>
-                                                            <Zap size={13} />
-                                                            Instant on completion
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Clock size={13} />
-                                                            Runs daily at {formatTime12h(tpl.hour, tpl.minute)}
-                                                        </>
-                                                    )}
+                                                    <Clock size={13} />
+                                                    Runs daily at {formatTime12h(tpl.hour, tpl.minute)}
                                                 </div>
                                             </div>
 

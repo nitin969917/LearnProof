@@ -98,52 +98,15 @@ const markVideoCompleted = async (req, res) => {
             await cacheService.del(`playlist:detail:${user.id}:${video.playlist.pid}`);
         }
         await cacheService.delByPattern(`user:learnings:${user.id}:*`);
-        // Auto-progress matching daily goal for video watching and generate active coach guidance
-        let coachMessage = null;
+        // Auto-progress matching daily goal for video watching silently in database without irritating the user
         try {
-            // Check admin template configuration for live lesson completion nudge
-            const adminTpl = await prisma.notificationTemplate.findUnique({
-                where: { type: 'STUDY_PROGRESS_NUDGE' }
-            }).catch(() => null);
-
-            // If admin has turned OFF this trigger (enabled === false), completely suppress both toast & push notification!
-            if (adminTpl && !adminTpl.enabled) {
-                coachMessage = null;
-            } else {
-                const goalResult = await goalService.recordActivityGoalProgress(user.id, 'VIDEO', 1, { reference_id: videoId });
-                coachMessage = goalResult?.coachMessage || null;
-
-                // If user didn't have a scheduled daily goal for today, still provide active congratulatory encouragement!
-                if (!coachMessage) {
-                    coachMessage = {
-                        type: 'LESSON_COMPLETED',
-                        title: '🎉 Lesson Completed!',
-                        message: "Awesome work! You just completed another lesson. Keep your momentum going!",
-                        remaining: 0
-                    };
-                }
-
-                const finalTitle = adminTpl?.title
-                    ? adminTpl.title.replace(/{title}/g, coachMessage.title).replace(/{name}/g, user.name || '')
-                    : coachMessage.title;
-                const finalBody = adminTpl?.body
-                    ? adminTpl.body.replace(/{message}/g, coachMessage.message).replace(/{remaining}/g, String(coachMessage.remaining)).replace(/{name}/g, user.name || '')
-                    : coachMessage.message;
-
-                pushNotifier.sendPushToUser([user.id], {
-                    title: finalTitle,
-                    body: finalBody,
-                    type: 'STUDY_PROGRESS_NUDGE',
-                    clickAction: '/dashboard/goals'
-                }).catch(err => console.error('[Push Coach Error]:', err));
-            }
+            await goalService.recordActivityGoalProgress(user.id, 'VIDEO', 1, { reference_id: videoId });
         } catch (e) {
             console.error('[Goal Hook Error]:', e);
         }
 
         res.status(200).json({ 
-            message: 'Video marked as completed',
-            coachMessage 
+            message: 'Video marked as completed' 
         });
     } catch (error) {
         res.status(500).json({ error: error.message });

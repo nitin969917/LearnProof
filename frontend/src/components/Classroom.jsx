@@ -2647,9 +2647,6 @@ const Classroom = () => {
       setVideo({ ...video, watch_progress: 100, is_completed: true });
       setLiveProgress(100);
       updatePlaylistVideoState(video.vid, { watch_progress: 100, is_completed: true });
-      if (res.data?.coachMessage) {
-        showCoachToast(res.data.coachMessage);
-      }
     } catch (err) {
       console.error(err);
       toast.error("Failed to mark as completed");
@@ -2723,9 +2720,6 @@ const Classroom = () => {
                 });
                 setVideo(prev => ({ ...prev, watch_progress: 100, is_completed: true }));
                 updatePlaylistVideoState(video.vid, { watch_progress: 100, is_completed: true });
-                if (res.data?.coachMessage) {
-                  showCoachToast(res.data.coachMessage);
-                }
               } else {
                 // Just update partial progress
                 await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/update-progress/`, {
