@@ -13,7 +13,13 @@ const isCriticalAlert = (type) => {
     'FRIEND_ACCEPTED',
     'ROOM_INVITE',
     'LIVE_ROOM_INVITE',
-    'ADMIN_ALERT'
+    'ADMIN_ALERT',
+    'STUDY_PROGRESS_NUDGE',
+    'LESSON_COACH',
+    'ROADMAP_DAILY_REMINDER',
+    'STREAK_KEEP_ALIVE',
+    'STREAK_AT_RISK',
+    'TEST_PUSH'
   ];
   return critical.includes(upper);
 };
@@ -111,29 +117,44 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
       return;
     }
 
-    // 1. Get emails of target users in dating SQLite database & PostgreSQL User table
+    // 1. Resolve target users across SQLite database and PostgreSQL UserProfile table
     const intIds = eligibleReceiverIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0);
-    const candidateEmails = new Set();
+    const strUids = eligibleReceiverIds.map(id => String(id).trim()).filter(id => id && isNaN(Number(id)) && !id.includes('@'));
+    const directEmails = eligibleReceiverIds.map(id => String(id).trim().toLowerCase()).filter(id => id.includes('@'));
 
+    const candidateEmails = new Set(directEmails);
+    const resolvedUserIds = new Set(intIds);
+
+    // Search PostgreSQL UserProfile table
+    try {
+      const orClauses = [];
+      if (intIds.length > 0) orClauses.push({ id: { in: intIds } });
+      if (strUids.length > 0) orClauses.push({ uid: { in: strUids } });
+      if (directEmails.length > 0) orClauses.push({ email: { in: directEmails } });
+
+      if (orClauses.length > 0) {
+        const pgUsers = await prisma.userProfile.findMany({
+          where: { OR: orClauses },
+          select: { id: true, email: true }
+        });
+        pgUsers.forEach(u => {
+          resolvedUserIds.add(u.id);
+          if (u.email && u.email.trim()) {
+            candidateEmails.add(u.email.trim());
+            candidateEmails.add(u.email.trim().toLowerCase());
+          }
+        });
+      }
+    } catch (_) {}
+
+    // Check dating SQLite database if applicable
     if (intIds.length > 0) {
-      const sqliteUsers = await datingPrisma.user.findMany({
-        where: { id: { in: intIds } },
-        select: { email: true }
-      });
-      sqliteUsers.forEach(u => {
-        if (u.email && u.email.trim()) {
-          candidateEmails.add(u.email.trim());
-          candidateEmails.add(u.email.trim().toLowerCase());
-        }
-      });
-
-      // Also check if any IDs correspond directly to main PostgreSQL User IDs
       try {
-        const pgUsers = await prisma.user.findMany({
+        const sqliteUsers = await datingPrisma.user.findMany({
           where: { id: { in: intIds } },
           select: { email: true }
         });
-        pgUsers.forEach(u => {
+        sqliteUsers.forEach(u => {
           if (u.email && u.email.trim()) {
             candidateEmails.add(u.email.trim());
             candidateEmails.add(u.email.trim().toLowerCase());
@@ -143,13 +164,14 @@ const sendPushNotification = async (receiverUserIds, title, body, data = {}) => 
     }
 
     const emailList = Array.from(candidateEmails);
+    const targetUserIds = Array.from(resolvedUserIds);
 
     // 2. Fetch active FCM tokens of corresponding users from PG database (by email OR by userId)
     const tokenRecords = await prisma.userFcmToken.findMany({
       where: {
         OR: [
           ...(emailList.length > 0 ? [{ user: { email: { in: emailList } } }] : []),
-          ...(intIds.length > 0 ? [{ userId: { in: intIds } }] : [])
+          ...(targetUserIds.length > 0 ? [{ userId: { in: targetUserIds } }] : [])
         ]
       },
       select: { token: true }

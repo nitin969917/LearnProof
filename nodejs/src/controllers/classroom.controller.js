@@ -101,30 +101,41 @@ const markVideoCompleted = async (req, res) => {
         // Auto-progress matching daily goal for video watching and generate active coach guidance
         let coachMessage = null;
         try {
-            const goalResult = await goalService.recordActivityGoalProgress(user.id, 'VIDEO', 1, { reference_id: videoId });
-            coachMessage = goalResult?.coachMessage || null;
+            // Check admin template configuration for live lesson completion nudge
+            const adminTpl = await prisma.notificationTemplate.findUnique({
+                where: { type: 'STUDY_PROGRESS_NUDGE' }
+            }).catch(() => null);
 
-            // Trigger real-time mobile push notification with teacher instruction
-            if (coachMessage) {
-                const adminTpl = await prisma.notificationTemplate.findUnique({
-                    where: { type: 'STUDY_PROGRESS_NUDGE' }
-                }).catch(() => null);
+            // If admin has turned OFF this trigger (enabled === false), completely suppress both toast & push notification!
+            if (adminTpl && !adminTpl.enabled) {
+                coachMessage = null;
+            } else {
+                const goalResult = await goalService.recordActivityGoalProgress(user.id, 'VIDEO', 1, { reference_id: videoId });
+                coachMessage = goalResult?.coachMessage || null;
 
-                if (!adminTpl || adminTpl.enabled) {
-                    const finalTitle = adminTpl?.title
-                        ? adminTpl.title.replace(/{title}/g, coachMessage.title).replace(/{name}/g, user.name || '')
-                        : coachMessage.title;
-                    const finalBody = adminTpl?.body
-                        ? adminTpl.body.replace(/{message}/g, coachMessage.message).replace(/{remaining}/g, coachMessage.remaining).replace(/{name}/g, user.name || '')
-                        : coachMessage.message;
-
-                    pushNotifier.sendPushToUser([user.id], {
-                        title: finalTitle,
-                        body: finalBody,
-                        type: 'STUDY_PROGRESS_NUDGE',
-                        clickAction: '/dashboard/goals'
-                    }).catch(err => console.error('[Push Coach Error]:', err));
+                // If user didn't have a scheduled daily goal for today, still provide active congratulatory encouragement!
+                if (!coachMessage) {
+                    coachMessage = {
+                        type: 'LESSON_COMPLETED',
+                        title: '🎉 Lesson Completed!',
+                        message: "Awesome work! You just completed another lesson. Keep your momentum going!",
+                        remaining: 0
+                    };
                 }
+
+                const finalTitle = adminTpl?.title
+                    ? adminTpl.title.replace(/{title}/g, coachMessage.title).replace(/{name}/g, user.name || '')
+                    : coachMessage.title;
+                const finalBody = adminTpl?.body
+                    ? adminTpl.body.replace(/{message}/g, coachMessage.message).replace(/{remaining}/g, String(coachMessage.remaining)).replace(/{name}/g, user.name || '')
+                    : coachMessage.message;
+
+                pushNotifier.sendPushToUser([user.id], {
+                    title: finalTitle,
+                    body: finalBody,
+                    type: 'STUDY_PROGRESS_NUDGE',
+                    clickAction: '/dashboard/goals'
+                }).catch(err => console.error('[Push Coach Error]:', err));
             }
         } catch (e) {
             console.error('[Goal Hook Error]:', e);

@@ -125,20 +125,82 @@ const sendExplicitPush = async (req, res) => {
             ]);
             tokens = Array.from(combinedTokens);
         } else {
-            if (!receiverUid) {
-                return res.status(400).json({ error: 'Receiver UID is required for targeted push notifications' });
+            let targetUser = null;
+
+            // 1. If receiverUid is empty, 'me', or 'self', default to currently authenticated admin user
+            if (!receiverUid || receiverUid === 'me' || receiverUid === 'self') {
+                if (req.user?.id) {
+                    targetUser = await prisma.userProfile.findUnique({
+                        where: { id: req.user.id },
+                        include: { fcmTokens: { select: { token: true } } }
+                    });
+                }
             }
-            
-            const targetUser = await prisma.userProfile.findUnique({
-                where: { uid: receiverUid },
-                include: { fcmTokens: { select: { token: true } } }
-            });
+
+            // 2. Search by numeric integer ID (e.g. 1 or '1')
+            if (!targetUser && receiverUid) {
+                const trimmed = String(receiverUid).trim();
+                if (/^\d+$/.test(trimmed)) {
+                    targetUser = await prisma.userProfile.findUnique({
+                        where: { id: parseInt(trimmed, 10) },
+                        include: { fcmTokens: { select: { token: true } } }
+                    });
+                }
+            }
+
+            // 3. Search by UID string
+            if (!targetUser && receiverUid) {
+                targetUser = await prisma.userProfile.findUnique({
+                    where: { uid: String(receiverUid).trim() },
+                    include: { fcmTokens: { select: { token: true } } }
+                });
+            }
+
+            // 4. Search by email address
+            if (!targetUser && receiverUid && String(receiverUid).includes('@')) {
+                targetUser = await prisma.userProfile.findUnique({
+                    where: { email: String(receiverUid).trim().toLowerCase() },
+                    include: { fcmTokens: { select: { token: true } } }
+                });
+            }
+
+            // 5. Fallback to logged-in user if still not found
+            if (!targetUser && req.user?.id) {
+                targetUser = await prisma.userProfile.findUnique({
+                    where: { id: req.user.id },
+                    include: { fcmTokens: { select: { token: true } } }
+                });
+            }
 
             if (!targetUser) {
-                return res.status(404).json({ error: 'Target user not found' });
+                return res.status(404).json({ error: 'Target user not found in LearnProof database.' });
             }
 
-            tokens = targetUser.fcmTokens.map(r => r.token);
+            const targetRecipientName = targetUser.name || targetUser.email || `User #${targetUser.id}`;
+            tokens = targetUser.fcmTokens.map(r => r.token).filter(Boolean);
+
+            if (tokens.length === 0) {
+                return res.status(200).json({ 
+                    success: false, 
+                    message: `Target user "${targetRecipientName}" exists, but has 0 active push notification tokens. The user must click "Allow" on the notification prompt in their browser or mobile app.`, 
+                    sentCount: 0,
+                    user: {
+                        id: targetUser.id,
+                        name: targetUser.name,
+                        email: targetUser.email
+                    }
+                });
+            }
+
+            // Interpolate dynamic template tags with real learner values
+            title = title
+                .replace(/{name}/g, targetUser.name || 'Learner')
+                .replace(/{streak}/g, String(targetUser.streak_count || 1))
+                .replace(/{remaining}/g, '2');
+            body = body
+                .replace(/{name}/g, targetUser.name || 'Learner')
+                .replace(/{streak}/g, String(targetUser.streak_count || 1))
+                .replace(/{remaining}/g, '2');
         }
 
         if (tokens.length === 0) {
@@ -252,16 +314,53 @@ const getNotificationTemplates = async (req, res) => {
 
 /**
  * Endpoint to update an existing notification template or toggle its status.
- * Expects { type: string, title: string, body: string, hour: number, minute: number, enabled: boolean } in body.
+ * Supports:
+ * - Master Switch toggle: { action: 'toggleMasterSwitch', enabled: boolean } or { toggleAll: true, enabled: boolean }
+ * - Quick individual toggle: { type: string, enabled: boolean }
+ * - Full template update: { type: string, title: string, body: string, hour: number, minute: number, enabled: boolean }
  */
 const updateNotificationTemplate = async (req, res) => {
-    const { type, title, body, hour, minute, enabled } = req.body;
-
-    if (!type || !title || !body || hour === undefined || minute === undefined) {
-        return res.status(400).json({ error: 'All fields (type, title, body, hour, minute) are required' });
-    }
+    const { action, toggleAll, type, title, body, hour, minute, enabled } = req.body;
 
     try {
+        // 1. Master System Switch: Enable or Disable ALL notification templates at once
+        if (action === 'toggleMasterSwitch' || toggleAll !== undefined) {
+            const enabledState = enabled !== undefined ? !!enabled : false;
+            await prisma.notificationTemplate.updateMany({
+                data: { enabled: enabledState, updated_at: new Date() }
+            });
+            const allTemplates = await prisma.notificationTemplate.findMany({
+                orderBy: { hour: 'asc' }
+            });
+            return res.status(200).json({
+                success: true,
+                message: `Automated Notification System ${enabledState ? 'ENABLED' : 'DISABLED'} successfully!`,
+                data: allTemplates,
+                systemEnabled: enabledState
+            });
+        }
+
+        // 2. Quick toggle of a single template's enabled state
+        if (type && enabled !== undefined && (!title || !body)) {
+            const existing = await prisma.notificationTemplate.findUnique({ where: { type } });
+            if (existing) {
+                const updated = await prisma.notificationTemplate.update({
+                    where: { type },
+                    data: { enabled: !!enabled, updated_at: new Date() }
+                });
+                return res.status(200).json({
+                    success: true,
+                    message: `Template ${type} ${enabled ? 'enabled' : 'disabled'} successfully!`,
+                    data: updated
+                });
+            }
+        }
+
+        // 3. Full template update
+        if (!type || !title || !body || hour === undefined || minute === undefined) {
+            return res.status(400).json({ error: 'All fields (type, title, body, hour, minute) are required' });
+        }
+
         const template = await prisma.notificationTemplate.upsert({
             where: { type },
             update: {

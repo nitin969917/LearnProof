@@ -5,11 +5,12 @@ import {
     Mail, Send, Users, User, Trash2, Search, Filter, CheckCircle, 
     Clock, Edit2, Bell, PlayCircle, Info, Sparkles, MessageSquare, 
     Smartphone, Check, X, ShieldAlert, ArrowRight, RefreshCw, Layers,
-    Zap, Target
+    Zap, Target, Power
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useModal } from '../../../context/ModalContext';
+import { requestNotificationPermissionAndGetToken } from '../../../utils/fcm';
 
 // 12-hour format helper
 const formatTime12h = (hour, minute) => {
@@ -91,6 +92,12 @@ const AdminInbox = () => {
     const [templateHour, setTemplateHour] = useState(8);
     const [templateMinute, setTemplateMinute] = useState(0);
     const [templateEnabled, setTemplateEnabled] = useState(true);
+
+    // Schedule Test Recipient state
+    const [testTargetType, setTestTargetType] = useState('self'); // 'self' | 'learner'
+    const [testTargetUser, setTestTargetUser] = useState(null);
+    const [testSearchQuery, setTestSearchQuery] = useState('');
+    const [registeringDevice, setRegisteringDevice] = useState(false);
 
     useEffect(() => {
         if (token) {
@@ -233,40 +240,108 @@ const AdminInbox = () => {
         }
     };
 
-    const handleSendTestPush = async (tpl) => {
-        if (!user || !user.uid) {
-            toast.error("You must be logged in to send a test push");
-            return;
+    const handleRegisterCurrentDevice = async () => {
+        setRegisteringDevice(true);
+        try {
+            const token = await requestNotificationPermissionAndGetToken();
+            if (token) {
+                toast.success("This browser is now registered to receive push notifications!");
+            } else {
+                toast.error("Notification permission was not granted. Please check your browser address bar permissions icon.");
+            }
+        } catch (e) {
+            toast.error("Could not register device for notifications.");
+        } finally {
+            setRegisteringDevice(false);
         }
+    };
+
+    const isMasterSystemActive = templates.length > 0 ? templates.some(t => t.enabled) : true;
+
+    const handleToggleMasterSwitch = async () => {
+        const nextState = !isMasterSystemActive;
+        const confirmed = await confirm({
+            title: nextState ? "Turn ON Automated Notification System?" : "Turn OFF Automated Notification System?",
+            message: nextState 
+                ? "This will turn ON all automated streak reminder crons and real-time lesson completion coach pushes for all students." 
+                : "This will completely turn OFF all automated streak reminder crons and student lesson completion coach notifications across LearnProof.",
+            confirmText: nextState ? "Turn ON All" : "Turn OFF All",
+            type: nextState ? "info" : "danger"
+        });
+        if (!confirmed) return;
 
         setSending(true);
         try {
+            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/admin/notification-templates/`, {
+                idToken: token,
+                action: 'toggleMasterSwitch',
+                enabled: nextState
+            });
+            toast.success(res.data.message || `System ${nextState ? 'Activated' : 'Disabled'}`);
+            if (res.data.data) {
+                setTemplates(ensureArray(res.data.data));
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.error || "Failed to toggle system master switch");
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const handleToggleSingleTemplate = async (tpl) => {
+        const nextState = !tpl.enabled;
+        setSending(true);
+        try {
+            await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/admin/notification-templates/`, {
+                idToken: token,
+                type: tpl.type,
+                enabled: nextState
+            });
+            toast.success(`${tpl.type} is now ${nextState ? 'ENABLED' : 'DISABLED'}`);
+            setTemplates(prev => prev.map(t => t.type === tpl.type ? { ...t, enabled: nextState } : t));
+            if (selectedTemplate === tpl.type) {
+                setTemplateEnabled(nextState);
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.error || "Failed to toggle template status");
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const handleSendTestPush = async (tpl) => {
+        setSending(true);
+        try {
+            const targetName = testTargetType === 'learner' && testTargetUser ? (testTargetUser.name || 'Learner') : (user?.name || 'Admin');
+            const targetStreak = testTargetType === 'learner' && testTargetUser ? (testTargetUser.streak_count || 5) : 5;
+            const targetUid = testTargetType === 'learner' && testTargetUser ? (testTargetUser.uid || testTargetUser.id) : (user?.uid || user?.id || 'me');
+
             const testTitle = tpl.title
-                .replace(/{streak}/g, "5")
+                .replace(/{streak}/g, String(targetStreak))
                 .replace(/{remaining}/g, "2")
                 .replace(/{title}/g, "🚀 Great Job!")
-                .replace(/{name}/g, user.name || "Admin");
+                .replace(/{name}/g, targetName);
             const testBody = tpl.body
-                .replace(/{streak}/g, "5")
+                .replace(/{streak}/g, String(targetStreak))
                 .replace(/{remaining}/g, "2")
                 .replace(/{message}/g, "Lesson completed! 2 lessons remaining for today's goal.")
-                .replace(/{name}/g, user.name || "Admin");
+                .replace(/{name}/g, targetName);
 
             const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/admin/send-push/`, {
                 idToken: token,
-                receiverUid: user.uid,
+                receiverUid: targetUid,
                 isBroadcast: false,
                 title: `[Test] ${testTitle}`,
                 body: testBody
             });
             
-            if (res.data.sentCount === 0) {
-                toast.error("No registered FCM tokens found for your account. Please allow push notifications in this browser first!");
+            if (res.data.sentCount === 0 || res.data.success === false) {
+                toast.error(res.data.message || "No registered FCM tokens found for this account. Ensure push notifications are allowed in browser!");
             } else {
-                toast.success("Test push notification dispatched successfully to your device!");
+                toast.success(res.data.message || `Test push notification dispatched successfully to ${targetName}!`);
             }
         } catch (err) {
-            toast.error(err.response?.data?.error || "Failed to send test push notification.");
+            toast.error(err.response?.data?.error || err.response?.data?.message || "Failed to send test push notification.");
         } finally {
             setSending(false);
         }
@@ -299,6 +374,11 @@ const AdminInbox = () => {
     const filteredUsers = userList.filter(u => 
         (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
         (u.email || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const testFilteredUsers = userList.filter(u => 
+        (u.name || '').toLowerCase().includes(testSearchQuery.toLowerCase()) || 
+        (u.email || '').toLowerCase().includes(testSearchQuery.toLowerCase())
     );
 
     const selectedUserObj = userList.find(u => u.uid === selectedUserUid);
@@ -560,6 +640,122 @@ const AdminInbox = () => {
                                 </div>
                             )}
 
+                            {/* Targeted Test Recipient for Schedule Tab */}
+                            {activeTab === 'schedule' && (
+                                <div className="space-y-3 p-4 bg-orange-500/5 dark:bg-orange-950/20 rounded-2xl border border-orange-500/20">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400 flex items-center gap-1.5">
+                                            <Target size={14} /> Test Push Recipient
+                                        </label>
+                                        <button
+                                            type="button"
+                                            disabled={registeringDevice}
+                                            onClick={handleRegisterCurrentDevice}
+                                            className="text-[11px] font-bold text-orange-600 hover:text-orange-700 dark:text-orange-400 underline flex items-center gap-1"
+                                        >
+                                            <Smartphone size={12} /> {registeringDevice ? 'Registering...' : 'Enable this Device'}
+                                        </button>
+                                    </div>
+
+                                    {/* Segmented Switcher */}
+                                    <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTestTargetType('self')}
+                                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                                                testTargetType === 'self'
+                                                    ? 'bg-orange-500 text-white shadow-sm'
+                                                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                            }`}
+                                        >
+                                            <User size={13} />
+                                            <span>Myself ({user?.name || 'Admin'})</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTestTargetType('learner')}
+                                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                                                testTargetType === 'learner'
+                                                    ? 'bg-orange-500 text-white shadow-sm'
+                                                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                                            }`}
+                                        >
+                                            <Users size={13} />
+                                            <span>Specific Learner</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Specific Learner Picker for Test */}
+                                    {testTargetType === 'learner' && (
+                                        <div className="space-y-2 pt-1">
+                                            {testTargetUser ? (
+                                                <div className="p-2.5 bg-white dark:bg-slate-800 border border-orange-200 dark:border-orange-900/40 rounded-xl flex items-center justify-between">
+                                                    <div className="flex items-center gap-2.5 min-w-0">
+                                                        {testTargetUser.profile_pic ? (
+                                                            <img src={testTargetUser.profile_pic} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />
+                                                        ) : (
+                                                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center text-xs shrink-0">
+                                                                {testTargetUser.name?.charAt(0) || 'U'}
+                                                            </div>
+                                                        )}
+                                                        <div className="min-w-0">
+                                                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{testTargetUser.name}</p>
+                                                            <p className="text-[10px] text-slate-400 truncate">{testTargetUser.email}</p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setTestTargetUser(null)}
+                                                        className="p-1 hover:bg-orange-50 dark:hover:bg-slate-700 rounded text-orange-600 dark:text-orange-400 text-xs font-bold"
+                                                    >
+                                                        Change
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    <div className="relative">
+                                                        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                        <input 
+                                                            type="text"
+                                                            placeholder="Search learner by name or email to test..."
+                                                            value={testSearchQuery}
+                                                            onChange={(e) => setTestSearchQuery(e.target.value)}
+                                                            className="w-full pl-8 pr-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none"
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-36 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-xl p-1 bg-white dark:bg-slate-800/60 space-y-1 custom-scrollbar">
+                                                        {testFilteredUsers.length > 0 ? (
+                                                            testFilteredUsers.slice(0, 20).map(u => (
+                                                                <button
+                                                                    key={u.uid || u.id}
+                                                                    type="button"
+                                                                    onClick={() => setTestTargetUser(u)}
+                                                                    className="w-full flex items-center gap-2 p-1.5 rounded-lg text-left text-xs transition-colors hover:bg-orange-50 dark:hover:bg-slate-700"
+                                                                >
+                                                                    {u.profile_pic ? (
+                                                                        <img src={u.profile_pic} className="w-5 h-5 rounded-full object-cover shrink-0" alt="" />
+                                                                    ) : (
+                                                                        <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center text-[10px] shrink-0">
+                                                                            {u.name?.charAt(0) || 'U'}
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="truncate flex-1">
+                                                                        <div className="font-bold text-slate-900 dark:text-white truncate text-[11px]">{u.name}</div>
+                                                                        <div className="text-[9px] text-slate-400 truncate">{u.email}</div>
+                                                                    </div>
+                                                                </button>
+                                                            ))
+                                                        ) : (
+                                                            <div className="p-3 text-center text-xs text-slate-400">No matching learners found</div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Recipient Targeting (for Inbox & Push) */}
                             {activeTab !== 'schedule' && (
                                 <div className="space-y-3">
@@ -730,8 +926,53 @@ const AdminInbox = () => {
                                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Automated push notifications sent every day to active learners</p>
                                 </div>
                                 <span className="text-xs font-bold text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-3 py-1 rounded-full border border-orange-200 dark:border-orange-900/30">
-                                    {templateList.length} Slots Active
+                                    {templateList.filter(t => t.enabled).length}/{templateList.length} Active
                                 </span>
+                            </div>
+
+                            {/* Master System Switch Banner */}
+                            <div className={`p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                                isMasterSystemActive
+                                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                                    : 'bg-rose-500/10 border-rose-500/30'
+                            }`}>
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shrink-0 ${
+                                        isMasterSystemActive ? 'bg-emerald-500 shadow-md shadow-emerald-500/20' : 'bg-rose-500 shadow-md shadow-rose-500/20'
+                                    }`}>
+                                        <Power size={20} />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                                                {isMasterSystemActive ? 'System Automation: Active' : 'System Automation: OFF (Disabled)'}
+                                            </h3>
+                                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                                isMasterSystemActive ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/20 text-rose-600 dark:text-rose-400'
+                                            }`}>
+                                                {isMasterSystemActive ? 'Running' : 'Halted'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                            {isMasterSystemActive 
+                                                ? 'All automated crons and lesson coach notifications are active.' 
+                                                : 'All crons, video completion pushes, and in-app coach popups are stopped.'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    disabled={sending}
+                                    onClick={handleToggleMasterSwitch}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 self-start sm:self-auto shrink-0 shadow-sm ${
+                                        isMasterSystemActive
+                                            ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20'
+                                            : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20'
+                                    }`}
+                                >
+                                    <Power size={13} />
+                                    {isMasterSystemActive ? 'Turn OFF System' : 'Turn ON System'}
+                                </button>
                             </div>
 
                             <div className="space-y-4">
@@ -792,7 +1033,19 @@ const AdminInbox = () => {
                                                 <span className="text-slate-400 text-[11px]">
                                                     Template Type: <code className="font-mono text-slate-600 dark:text-slate-300">{tpl.type}</code>
                                                 </span>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <button
+                                                        type="button"
+                                                        disabled={sending}
+                                                        onClick={() => handleToggleSingleTemplate(tpl)}
+                                                        className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 border ${
+                                                            isEnabled 
+                                                                ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 border-rose-200 dark:border-rose-900/40 hover:bg-rose-100' 
+                                                                : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 border-emerald-200 dark:border-emerald-900/40 hover:bg-emerald-100'
+                                                        }`}
+                                                    >
+                                                        <Power size={12} /> {isEnabled ? 'Turn OFF' : 'Turn ON'}
+                                                    </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => handleSelectTemplate(tpl)}
