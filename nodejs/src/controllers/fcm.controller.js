@@ -126,9 +126,10 @@ const sendExplicitPush = async (req, res) => {
             tokens = Array.from(combinedTokens);
         } else {
             let targetUser = null;
+            const trimmedUid = receiverUid ? String(receiverUid).trim() : '';
 
             // 1. If receiverUid is empty, 'me', or 'self', default to currently authenticated admin user
-            if (!receiverUid || receiverUid === 'me' || receiverUid === 'self') {
+            if (!trimmedUid || trimmedUid === 'me' || trimmedUid === 'self') {
                 if (req.user?.id) {
                     targetUser = await prisma.userProfile.findUnique({
                         where: { id: req.user.id },
@@ -137,29 +138,29 @@ const sendExplicitPush = async (req, res) => {
                 }
             }
 
-            // 2. Search by numeric integer ID (e.g. 1 or '1')
-            if (!targetUser && receiverUid) {
-                const trimmed = String(receiverUid).trim();
-                if (/^\d+$/.test(trimmed)) {
+            // 2. Search by UID string (Primary: Google / Firebase auth UID, e.g. "115932470826165331971")
+            if (!targetUser && trimmedUid) {
+                targetUser = await prisma.userProfile.findUnique({
+                    where: { uid: trimmedUid },
+                    include: { fcmTokens: { select: { token: true } } }
+                });
+            }
+
+            // 3. Search by numeric integer database ID (only if safe 32-bit positive integer: 1 to 2147483647)
+            if (!targetUser && trimmedUid) {
+                const numVal = Number(trimmedUid);
+                if (Number.isInteger(numVal) && numVal > 0 && numVal <= 2147483647 && String(numVal) === trimmedUid) {
                     targetUser = await prisma.userProfile.findUnique({
-                        where: { id: parseInt(trimmed, 10) },
+                        where: { id: numVal },
                         include: { fcmTokens: { select: { token: true } } }
                     });
                 }
             }
 
-            // 3. Search by UID string
-            if (!targetUser && receiverUid) {
-                targetUser = await prisma.userProfile.findUnique({
-                    where: { uid: String(receiverUid).trim() },
-                    include: { fcmTokens: { select: { token: true } } }
-                });
-            }
-
             // 4. Search by email address
-            if (!targetUser && receiverUid && String(receiverUid).includes('@')) {
+            if (!targetUser && trimmedUid && trimmedUid.includes('@')) {
                 targetUser = await prisma.userProfile.findUnique({
-                    where: { email: String(receiverUid).trim().toLowerCase() },
+                    where: { email: trimmedUid.toLowerCase() },
                     include: { fcmTokens: { select: { token: true } } }
                 });
             }
