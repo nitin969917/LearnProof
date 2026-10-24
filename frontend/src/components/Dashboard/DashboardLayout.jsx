@@ -34,13 +34,13 @@ class ErrorBoundary extends React.Component {
             msg.includes('Failed to fetch dynamically imported module') ||
             msg.includes('Importing a module script failed') ||
             msg.includes('error loading dynamically imported module') ||
-            msg.includes("reading 'default'") ||
-            msg.includes("properties of undefined") ||
+            msg.includes('Failed to load module script') ||
+            msg.includes("Strict MIME type checking") ||
             msg.includes("Unexpected token '<'")
         ) {
             const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
             const now = Date.now();
-            if (!lastReload || now - parseInt(lastReload, 10) > 4000) {
+            if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
                 sessionStorage.setItem('chunk_reload_timestamp', String(now));
                 window.location.reload();
             }

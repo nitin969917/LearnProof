@@ -16,47 +16,53 @@ import ParticipantMeetingEndedModal from './components/Dashboard/LanguagePractic
 import toast from 'react-hot-toast';
 import { resolvePostAuthRedirect, clearAuthRedirect, showAuthSuccessToast } from './utils/authRedirect';
 
-// Helper to handle lazy loading chunk failures (e.g. after redeployment where old chunks are deleted)
-const lazyWithRetry = (componentImport) => {
-    return lazy(async () => {
-        try {
-            const module = await componentImport();
-            if (module && (module.default || typeof module === 'function')) {
-                return module;
-            }
-            throw new Error("Stale chunk module default export is undefined");
-        } catch (error) {
-            console.warn('Failed to load dynamic chunk asset (likely post-deployment chunk mismatch), reloading page for fresh assets...', error);
-            const lastReload = sessionStorage.getItem('chunk_reload_timestamp');
-            const now = Date.now();
-            if (!lastReload || now - parseInt(lastReload, 10) > 3000) {
-                sessionStorage.setItem('chunk_reload_timestamp', String(now));
-                window.location.reload();
-            }
-            // Return dummy empty component to prevent fatal error overlay while browser reloads
-            return { default: () => null };
-        }
-    });
+// Direct static imports for core dashboard shell and primary mobile tabs
+// Guarantees 0ms instant mobile tab switching, zero network chunk requests, and zero Suspense fallbacks
+import DashboardLayout from './components/Dashboard/DashboardLayout';
+import DashboardHome from './components/Dashboard/DashboardHome';
+import YouTubeExplorer from './components/Dashboard/YouTubeExplorer';
+import MyLearnings from './components/Dashboard/MyLearnings';
+import SocialDashboard from './components/Dashboard/Social/SocialDashboard';
+import LanguageLearning from './components/Dashboard/LanguagePractice/LanguageLearning';
+
+// Resilient lazy load helper: retries chunk loading up to 2 times on transient network drops
+// Never triggers full-page reloads or empty black-screen dummy components
+const lazyWithRetry = (componentImport, retries = 2, interval = 500) => {
+    return lazy(() => new Promise((resolve, reject) => {
+        const attempt = (remaining) => {
+            componentImport()
+                .then((module) => {
+                    if (module && (module.default || typeof module === 'function')) {
+                        resolve(module);
+                    } else {
+                        reject(new Error("Module default export is undefined"));
+                    }
+                })
+                .catch((error) => {
+                    if (remaining > 0) {
+                        setTimeout(() => attempt(remaining - 1), interval);
+                    } else {
+                        console.error('Failed to load dynamic chunk asset:', error);
+                        reject(error);
+                    }
+                });
+        };
+        attempt(retries);
+    }));
 };
 
-// Lazy load components to optimize bundle size
+// Lazy load secondary/nested sub-features to optimize initial download
 const LandingPage = lazyWithRetry(() => import('./components/Landing'));
-const DashboardLayout = lazyWithRetry(() => import('./components/Dashboard/DashboardLayout'));
-const DashboardHome = lazyWithRetry(() => import('./components/Dashboard/DashboardHome'));
 const MyCertificates = lazyWithRetry(() => import('./components/Dashboard/MyCertificates'));
-const MyLearnings = lazyWithRetry(() => import('./components/Dashboard/MyLearnings'));
 const Inbox = lazyWithRetry(() => import('./components/Dashboard/Inbox'));
 const Quiz = lazyWithRetry(() => import('./components/Dashboard/Quiz'));
 const Classroom = lazyWithRetry(() => import('./components/Classroom'));
-const YouTubeExplorer = lazyWithRetry(() => import('./components/Dashboard/YouTubeExplorer'));
 const PlaylistProgress = lazyWithRetry(() => import('./components/Dashboard/PlaylistProgress'));
 const AIBenchmark = lazyWithRetry(() => import('./components/Dashboard/AIBenchmark'));
 const AskMyNotes = lazyWithRetry(() => import('./components/Dashboard/AskMyNotesComingSoon'));
 const AskMyNotesOriginal = lazyWithRetry(() => import('./components/Dashboard/AskMyNotes'));
 const WorkspaceQuizPage = lazyWithRetry(() => import('./components/Dashboard/WorkspaceQuizPage'));
 const RoadmapDetail = lazyWithRetry(() => import('./components/Dashboard/RoadmapDetail'));
-const SocialDashboard = lazyWithRetry(() => import('./components/Dashboard/Social/SocialDashboard'));
-const LanguageLearning = lazyWithRetry(() => import('./components/Dashboard/LanguagePractice/LanguageLearning'));
 const LanguageRoom = lazyWithRetry(() => import('./components/Dashboard/LanguagePractice/LanguageRoom'));
 const DailyGoalsPage = lazyWithRetry(() => import('./components/Dashboard/DailyGoalsPage'));
 const LoginPage = lazyWithRetry(() => import('./components/Common/LoginPage'));
@@ -99,13 +105,12 @@ if (typeof window !== 'undefined') {
     const idlePreloadTabs = () => {
         const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 1200));
         schedule(() => {
-            import('./components/Dashboard/YouTubeExplorer');
-            import('./components/Dashboard/Social/SocialDashboard');
-            import('./components/Dashboard/LanguagePractice/LanguageLearning');
-            import('./components/Dashboard/MyLearnings');
             import('./components/Dashboard/Quiz');
             import('./components/Dashboard/MyCertificates');
             import('./components/Dashboard/DailyGoalsPage');
+            import('./components/Dashboard/Inbox');
+            import('./components/Dashboard/PlaylistProgress');
+            import('./components/Dashboard/AIBenchmark');
         });
     };
 
@@ -662,7 +667,7 @@ const App = () => {
                                     <Route path='live-rooms' element={<LanguageLearning />} />
                                     <Route path='live-rooms/:roomName' element={<LanguageRoom />} />
                                     
-                                    <Route path='*' element={<Navigate to="/" replace />} />
+                                    <Route path='*' element={<Navigate to="/dashboard" replace />} />
                                 </Route>
                                 <Route
                                     path='classroom/:videoId'

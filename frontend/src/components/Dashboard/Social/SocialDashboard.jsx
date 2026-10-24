@@ -5,12 +5,12 @@ import { Link, useNavigate, useOutletContext, useLocation } from 'react-router-d
 import { useAuth } from '../../../context/AuthContext.jsx';
 import socialApi from '../../../api/socialApi.js';
 
-// Lazy-load individual tabs so user only downloads tab code on demand
-const FeedTab = lazy(() => import('./FeedTab.jsx'));
+// Statically import primary tabs (Feed & Profile) so BottomNav navigation is 0ms instant
+import FeedTab from './FeedTab.jsx';
+import ProfileTab from './ProfileTab.jsx';
 const DiscoverTab = lazy(() => import('./DiscoverTab.jsx'));
 const FriendsTab = lazy(() => import('./FriendsTab.jsx'));
 const ChatsTab = lazy(() => import('./ChatsTab.jsx'));
-const ProfileTab = lazy(() => import('./ProfileTab.jsx'));
 import SocialPostCard from './SocialPostCard.jsx';
 import PostVisibilitySelector from './PostVisibilitySelector.jsx';
 import { useSocialMessageStore } from '../../../store/socialMessageStore.js';
