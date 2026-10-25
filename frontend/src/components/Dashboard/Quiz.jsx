@@ -41,6 +41,8 @@ const Quiz = () => {
 
     const [searchQuery, setSearchQuery] = useState("");
     const filteredPlaylists = playlists.filter(pl => pl.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const hasAnyQuizContent = (playlists && playlists.length > 0) || (history && history.length > 0);
+    const showQuizSearch = !loading && Boolean(searchQuery.trim().length > 0 || hasAnyQuizContent);
 
     const [videos, setVideos] = useState([]);
     const [selectedHistoryQuiz, setSelectedHistoryQuiz] = useState(null);
@@ -771,18 +773,20 @@ const Quiz = () => {
             </div>
 
             {/* ── Search Bar (Identical style, size, position to My Learning) ── */}
-            <div className="space-y-3 relative z-10">
-                <div className="relative group">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={16} />
-                    <input
-                        type="text"
-                        placeholder="Search completed quizzes..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
-                    />
+            {showQuizSearch && (
+                <div className="space-y-3 relative z-10">
+                    <div className="relative group">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Search completed quizzes..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="space-y-4 sm:space-y-5 relative z-10">
 

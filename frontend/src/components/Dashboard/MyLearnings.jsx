@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { Play, Library, Video, Search, Trash2, Plus, Clock, ChevronRight, Sparkles, BookOpen, ArrowLeft, CheckCircle, Compass } from 'lucide-react';
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Play, Library, Video, Search, Trash2, Plus, Clock, ChevronRight, Sparkles, BookOpen, ArrowLeft, ArrowRight, CheckCircle, Compass, GraduationCap, BrainCircuit } from 'lucide-react';
 import { useModal } from "../../context/ModalContext";
 import apiCache from "../../utils/apiCache";
 
@@ -22,8 +22,21 @@ function useDebouncedValue(value, delay = 500) {
 const MyLearnings = () => {
     const { token } = useAuth();
     const { confirm } = useModal();
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    const [activeTab, setActiveTab] = useState(localStorage.getItem("libraryActiveTab") || "playlists");
+    const urlTab = searchParams.get('tab');
+    const initialTab = (urlTab && ['playlists', 'videos', 'roadmap'].includes(urlTab))
+        ? urlTab
+        : (localStorage.getItem("libraryActiveTab") || "playlists");
+
+    const [activeTab, setActiveTab] = useState(initialTab);
+
+    useEffect(() => {
+        if (urlTab && ['playlists', 'videos', 'roadmap'].includes(urlTab) && urlTab !== activeTab) {
+            setActiveTab(urlTab);
+        }
+    }, [urlTab]);
 
     useEffect(() => {
         localStorage.setItem("libraryActiveTab", activeTab);
@@ -40,11 +53,18 @@ const MyLearnings = () => {
     const [playlists, setPlaylists] = useState(cachedData?.playlists || []);
     const [videoPagination, setVideoPagination] = useState(cachedData?.videos || {});
     const [loading, setLoading] = useState(!cachedData);
+    const [hasInitialContent, setHasInitialContent] = useState(() => {
+        if (cachedData) {
+            return {
+                videos: (cachedData?.videos?.results || []).length > 0,
+                playlists: (cachedData?.playlists || []).length > 0
+            };
+        }
+        return null;
+    });
     const [roadmapDaysUpdate, setRoadmapDaysUpdate] = useState({});
     const [isSavingRoadmap, setIsSavingRoadmap] = useState({});
     const [expandedRoadmap, setExpandedRoadmap] = useState(null);
-
-    const navigate = useNavigate();
 
     useEffect(() => {
         if (!token) return;
@@ -69,10 +89,18 @@ const MyLearnings = () => {
                     return res.data;
                 },
                 onSuccess: (data) => {
-                    setVideos(data?.videos?.results || []);
+                    const vids = data?.videos?.results || [];
+                    const pls = data?.playlists || [];
+                    setVideos(vids);
                     setVideoPagination(data?.videos || {});
-                    setPlaylists(data?.playlists || []);
+                    setPlaylists(pls);
                     setLoading(false);
+                    if (!debouncedSearch) {
+                        setHasInitialContent({
+                            videos: vids.length > 0,
+                            playlists: pls.length > 0
+                        });
+                    }
                 },
                 onError: (err) => {
                     console.error(err);
@@ -108,7 +136,11 @@ const MyLearnings = () => {
             apiCache.invalidate('learnings');
             apiCache.invalidate('continue');
 
-            setVideos(prev => prev.filter(v => v.vid !== videoId));
+            setVideos(prev => {
+                const nextVideos = prev.filter(v => v.vid !== videoId);
+                setHasInitialContent(h => h ? { ...h, videos: nextVideos.length > 0 } : null);
+                return nextVideos;
+            });
 
             // Also remove from playlists if needed
             setPlaylists(prev =>
@@ -144,7 +176,11 @@ const MyLearnings = () => {
             apiCache.invalidate('learnings');
             apiCache.invalidate('continue');
 
-            setPlaylists(prev => prev.filter(p => p.pid !== playlistId));
+            setPlaylists(prev => {
+                const nextPlaylists = prev.filter(p => p.pid !== playlistId);
+                setHasInitialContent(h => h ? { ...h, playlists: nextPlaylists.length > 0 } : null);
+                return nextPlaylists;
+            });
             setVideos(prev => prev.filter(v => !playlist.videos.some(pv => pv.vid === v.vid)));
         } catch (err) {
             console.error(err);
@@ -216,8 +252,36 @@ const MyLearnings = () => {
     const tabs = [
         { id: "playlists", label: "Playlists", icon: Library },
         { id: "videos", label: "Videos", icon: Video },
-        { id: "roadmap", label: "Roadmap", icon: Sparkles }
+        { id: "roadmap", label: "Roadmap", icon: Sparkles },
+        { id: "quiz", label: "Quiz", icon: BrainCircuit }
     ];
+
+    const hasTabContent = useMemo(() => {
+        if (hasInitialContent) {
+            if (activeTab === 'videos') return hasInitialContent.videos;
+            if (activeTab === 'playlists' || activeTab === 'roadmap') return hasInitialContent.playlists;
+        }
+        if (activeTab === 'videos') return videos.length > 0;
+        if (activeTab === 'playlists' || activeTab === 'roadmap') return playlists.length > 0;
+        return false;
+    }, [activeTab, hasInitialContent, videos.length, playlists.length]);
+
+    const showSearchBar = !loading && Boolean(searchQuery.trim().length > 0 || hasTabContent);
+
+    const handleTabClick = (tabId) => {
+        if (tabId === 'quiz') {
+            navigate('/dashboard/quiz');
+            return;
+        }
+        setActiveTab(tabId);
+        setSearchQuery("");
+        localStorage.setItem("libraryActiveTab", tabId);
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            next.set('tab', tabId);
+            return next;
+        }, { replace: true });
+    };
 
     const handleUpdateRoadmap = async (pid, days) => {
         if (!days || isNaN(days) || parseInt(days) <= 0) {
@@ -260,30 +324,29 @@ const MyLearnings = () => {
             </div>
 
             {/* ── Search + Tab Bar ────────────────────────────────── */}
-            <div className="space-y-3">
-                {/* Search */}
-                <div className="relative group">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={16} />
-                    <input
-                        type="text"
-                        placeholder={`Search ${activeTab}...`}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
-                    />
-                </div>
-                {/* Modern Segmented Tab Switcher */}
-                <div className="w-full sm:max-w-md grid grid-cols-3 p-1 sm:p-1.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-2xl shadow-sm gap-1">
+            <div className={`space-y-3 ${!showSearchBar ? 'hidden lg:block' : ''}`}>
+                {/* Search - only visible when user has items in this tab or is searching */}
+                {showSearchBar && (
+                    <div className="relative group">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors" size={16} />
+                        <input
+                            type="text"
+                            placeholder={`Search ${activeTab}...`}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
+                        />
+                    </div>
+                )}
+                {/* Modern Segmented Tab Switcher - Desktop View (Mobile uses unified TopBar subtabs) */}
+                <div className="w-full sm:max-w-lg grid grid-cols-4 p-1 sm:p-1.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/60 rounded-2xl shadow-sm gap-1 hidden lg:grid">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => {
-                                    setActiveTab(tab.id);
-                                    setSearchQuery("");
-                                }}
+                                onClick={() => handleTabClick(tab.id)}
                                 className={`relative flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl font-bold text-xs transition-all duration-300 select-none cursor-pointer z-10 ${
                                     isActive
                                         ? "text-white"
@@ -323,43 +386,66 @@ const MyLearnings = () => {
                     </div>
                 ) : !searchQuery && videos.length === 0 && playlists.length === 0 ? (
                     <motion.div 
-                        initial={{ opacity: 0, scale: 0.96 }}
+                        initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 p-8 md:p-12 text-center shadow-xl shadow-orange-500/5 flex flex-col items-center justify-center max-w-2xl mx-auto my-6 relative overflow-hidden"
+                        transition={{ duration: 0.25, ease: "easeOut" }}
+                        className="bg-white dark:bg-gray-800 rounded-3xl sm:rounded-[32px] border border-gray-100 dark:border-gray-700/80 p-6 sm:p-10 flex flex-col items-center justify-center text-center shadow-[0_10px_35px_rgba(0,0,0,0.03)] dark:shadow-none max-w-2xl mx-auto my-4"
                     >
-                        <div className="absolute top-0 right-0 w-60 h-60 bg-orange-500/5 rounded-full blur-3xl pointer-events-none"></div>
-                        <div className="absolute bottom-0 left-0 w-60 h-60 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
-
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 mb-5">
-                            <Compass size={32} className="drop-shadow-md" />
+                        <div className="w-full max-w-[460px] sm:max-w-[520px] flex items-center justify-center -mt-2 mb-1 sm:mb-2 select-none pointer-events-none">
+                            <img
+                                src="/empty-state-banner.png"
+                                alt="No playlists or lessons yet"
+                                className="w-full h-auto object-contain max-h-[210px] sm:max-h-[240px]"
+                                loading="eager"
+                            />
                         </div>
-
-                        <h2 className="text-xl md:text-2xl font-black text-gray-900 dark:text-white mb-2">
-                            Your Library is Empty
-                        </h2>
-
-                        <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 max-w-md mb-6 leading-relaxed">
-                            You haven't enrolled in any video lessons or learning roadmaps yet. Explore our catalog to discover topics and start building your knowledge!
+                        <h3 className="text-xl sm:text-2xl font-black text-[#0B192C] dark:text-white tracking-tight leading-snug">
+                            Ready to start your learning journey?
+                        </h3>
+                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-md mx-auto mt-2 mb-6 sm:mb-7 leading-relaxed">
+                            Explore any topic, course, or paste a YouTube link to get instant AI notes and quizzes.
                         </p>
-
-                        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                            <button
-                                onClick={() => navigate('/dashboard/explore')}
-                                className="px-8 py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/20 hover:shadow-orange-500/35 hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-2"
-                            >
-                                <Search size={16} />
-                                <span>Explore Content</span>
-                            </button>
-                        </div>
+                        <button
+                            onClick={() => navigate('/dashboard', { state: { focusSearch: true } })}
+                            className="inline-flex items-center justify-center gap-2.5 sm:gap-3 px-6 sm:px-7 py-3 sm:py-3.5 rounded-full bg-gradient-to-r from-[#FF5100] via-[#FF6315] to-[#FF7730] hover:from-[#E64900] hover:via-[#F55900] hover:to-[#FF6B1A] active:scale-95 text-white font-extrabold text-[14px] sm:text-[15px] shadow-[0_10px_25px_-5px_rgba(255,81,0,0.38)] hover:shadow-[0_14px_32px_-4px_rgba(255,81,0,0.48)] border border-white/20 transition-all duration-200 cursor-pointer group select-none"
+                        >
+                            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                                <Search className="w-3.5 h-3.5 text-white" strokeWidth={2.6} />
+                            </div>
+                            <span className="tracking-wide">Start Learning</span>
+                            <ArrowRight className="w-4 h-4 text-white/90 group-hover:translate-x-1 group-hover:text-white transition-transform duration-200 shrink-0" strokeWidth={2.6} />
+                        </button>
                     </motion.div>
                 ) : (
                     <>
                         {activeTab === "videos" && (
                             <div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6">
                                 {videos.length === 0 ? (
-                                    <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
-                                        <Video className="w-12 h-12 text-gray-300 dark:text-gray-650 mx-auto mb-2" />
-                                        <p className="text-xs text-gray-405 dark:text-gray-500 font-medium">No videos in your library yet.</p>
+                                    <div className="col-span-full bg-white dark:bg-gray-800 rounded-3xl sm:rounded-[32px] border border-gray-100 dark:border-gray-700/80 p-6 sm:p-10 flex flex-col items-center justify-center text-center shadow-[0_10px_35px_rgba(0,0,0,0.03)] dark:shadow-none max-w-2xl mx-auto my-4">
+                                        <div className="w-full max-w-[460px] sm:max-w-[520px] flex items-center justify-center -mt-2 mb-1 sm:mb-2 select-none pointer-events-none">
+                                            <img
+                                                src="/empty-state-banner.png"
+                                                alt="No individual lessons yet"
+                                                className="w-full h-auto object-contain max-h-[210px] sm:max-h-[240px]"
+                                                loading="eager"
+                                            />
+                                        </div>
+                                        <h3 className="text-xl sm:text-2xl font-black text-[#0B192C] dark:text-white tracking-tight leading-snug">
+                                            Ready to add your first lesson?
+                                        </h3>
+                                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-md mx-auto mt-2 mb-6 sm:mb-7 leading-relaxed">
+                                            Explore single videos or search any topic to start learning with instant AI notes.
+                                        </p>
+                                        <button
+                                            onClick={() => navigate('/dashboard', { state: { focusSearch: true } })}
+                                            className="inline-flex items-center justify-center gap-2.5 sm:gap-3 px-6 sm:px-7 py-3 sm:py-3.5 rounded-full bg-gradient-to-r from-[#FF5100] via-[#FF6315] to-[#FF7730] hover:from-[#E64900] hover:via-[#F55900] hover:to-[#FF6B1A] active:scale-95 text-white font-extrabold text-[14px] sm:text-[15px] shadow-[0_10px_25px_-5px_rgba(255,81,0,0.38)] hover:shadow-[0_14px_32px_-4px_rgba(255,81,0,0.48)] border border-white/20 transition-all duration-200 cursor-pointer group select-none"
+                                        >
+                                            <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                                                <Search className="w-3.5 h-3.5 text-white" strokeWidth={2.6} />
+                                            </div>
+                                            <span className="tracking-wide">Start Learning</span>
+                                            <ArrowRight className="w-4 h-4 text-white/90 group-hover:translate-x-1 group-hover:text-white transition-transform duration-200 shrink-0" strokeWidth={2.6} />
+                                        </button>
                                     </div>
                                 ) : (
                                     videos.map((video, index) => (
@@ -441,9 +527,31 @@ const MyLearnings = () => {
                         {activeTab === "playlists" && (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6">
                         {playlists.length === 0 ? (
-                            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
-                                <Library className="w-12 h-12 text-gray-300 dark:text-gray-650 mx-auto mb-2" />
-                                <p className="text-xs text-gray-405 dark:text-gray-500 font-medium">No playlists found.</p>
+                            <div className="col-span-full bg-white dark:bg-gray-800 rounded-3xl sm:rounded-[32px] border border-gray-100 dark:border-gray-700/80 p-6 sm:p-10 flex flex-col items-center justify-center text-center shadow-[0_10px_35px_rgba(0,0,0,0.03)] dark:shadow-none max-w-2xl mx-auto my-4">
+                                <div className="w-full max-w-[460px] sm:max-w-[520px] flex items-center justify-center -mt-2 mb-1 sm:mb-2 select-none pointer-events-none">
+                                    <img
+                                        src="/empty-state-banner.png"
+                                        alt="No playlists added yet"
+                                        className="w-full h-auto object-contain max-h-[210px] sm:max-h-[240px]"
+                                        loading="eager"
+                                    />
+                                </div>
+                                <h3 className="text-xl sm:text-2xl font-black text-[#0B192C] dark:text-white tracking-tight leading-snug">
+                                    Ready to start a full course?
+                                </h3>
+                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-md mx-auto mt-2 mb-6 sm:mb-7 leading-relaxed">
+                                    Explore playlists or paste a YouTube link to track lessons and generate quizzes.
+                                </p>
+                                <button
+                                    onClick={() => navigate('/dashboard', { state: { focusSearch: true } })}
+                                    className="inline-flex items-center justify-center gap-2.5 sm:gap-3 px-6 sm:px-7 py-3 sm:py-3.5 rounded-full bg-gradient-to-r from-[#FF5100] via-[#FF6315] to-[#FF7730] hover:from-[#E64900] hover:via-[#F55900] hover:to-[#FF6B1A] active:scale-95 text-white font-extrabold text-[14px] sm:text-[15px] shadow-[0_10px_25px_-5px_rgba(255,81,0,0.38)] hover:shadow-[0_14px_32px_-4px_rgba(255,81,0,0.48)] border border-white/20 transition-all duration-200 cursor-pointer group select-none"
+                                >
+                                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                                        <Search className="w-3.5 h-3.5 text-white" strokeWidth={2.6} />
+                                    </div>
+                                    <span className="tracking-wide">Start Learning</span>
+                                    <ArrowRight className="w-4 h-4 text-white/90 group-hover:translate-x-1 group-hover:text-white transition-transform duration-200 shrink-0" strokeWidth={2.6} />
+                                </button>
                             </div>
                         ) : (
                             playlists.map((pl, index) => {
@@ -548,9 +656,31 @@ const MyLearnings = () => {
                 {!loading && activeTab === "roadmap" && (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(350px,1fr))] gap-6">
                         {playlists.length === 0 ? (
-                            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 p-6 text-center">
-                                <Sparkles className="w-12 h-12 text-gray-300 dark:text-gray-650 mx-auto mb-2" />
-                                <p className="text-xs text-gray-405 dark:text-gray-500 font-medium">No roadmaps set up yet.</p>
+                            <div className="col-span-full bg-white dark:bg-gray-800 rounded-3xl sm:rounded-[32px] border border-gray-100 dark:border-gray-700/80 p-6 sm:p-10 flex flex-col items-center justify-center text-center shadow-[0_10px_35px_rgba(0,0,0,0.03)] dark:shadow-none max-w-2xl mx-auto my-4">
+                                <div className="w-full max-w-[460px] sm:max-w-[520px] flex items-center justify-center -mt-2 mb-1 sm:mb-2 select-none pointer-events-none">
+                                    <img
+                                        src="/empty-state-banner.png"
+                                        alt="No roadmaps set up yet"
+                                        className="w-full h-auto object-contain max-h-[210px] sm:max-h-[240px]"
+                                        loading="eager"
+                                    />
+                                </div>
+                                <h3 className="text-xl sm:text-2xl font-black text-[#0B192C] dark:text-white tracking-tight leading-snug">
+                                    Ready to plan your roadmap?
+                                </h3>
+                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-md mx-auto mt-2 mb-6 sm:mb-7 leading-relaxed">
+                                    Add a playlist first, then customize your daily goal and target schedule.
+                                </p>
+                                <button
+                                    onClick={() => navigate('/dashboard', { state: { focusSearch: true } })}
+                                    className="inline-flex items-center justify-center gap-2.5 sm:gap-3 px-6 sm:px-7 py-3 sm:py-3.5 rounded-full bg-gradient-to-r from-[#FF5100] via-[#FF6315] to-[#FF7730] hover:from-[#E64900] hover:via-[#F55900] hover:to-[#FF6B1A] active:scale-95 text-white font-extrabold text-[14px] sm:text-[15px] shadow-[0_10px_25px_-5px_rgba(255,81,0,0.38)] hover:shadow-[0_14px_32px_-4px_rgba(255,81,0,0.48)] border border-white/20 transition-all duration-200 cursor-pointer group select-none"
+                                >
+                                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                                        <Search className="w-3.5 h-3.5 text-white" strokeWidth={2.6} />
+                                    </div>
+                                    <span className="tracking-wide">Start Learning</span>
+                                    <ArrowRight className="w-4 h-4 text-white/90 group-hover:translate-x-1 group-hover:text-white transition-transform duration-200 shrink-0" strokeWidth={2.6} />
+                                </button>
                             </div>
                         ) : (
                             playlists.map((pl, index) => {

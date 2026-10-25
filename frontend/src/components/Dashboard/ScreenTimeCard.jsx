@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, BarChart2, Edit2, Check, X } from 'lucide-react';
+import { Clock, BarChart2, Edit2, Check, X, ChevronRight } from 'lucide-react';
 
 export default function ScreenTimeCard() {
     const [todayTime, setTodayTime] = useState(0);
@@ -7,7 +7,7 @@ export default function ScreenTimeCard() {
         try {
             const saved = localStorage.getItem('learnproof_screentime_target');
             return saved ? parseFloat(saved) : 2;
-        } catch (e) {
+        } catch {
             return 2;
         }
     });
@@ -48,79 +48,50 @@ export default function ScreenTimeCard() {
         }
     };
 
-    const formatTime = (totalSeconds) => {
-        const hrs = Math.floor(totalSeconds / 3600);
-        const mins = Math.floor((totalSeconds % 3600) / 60);
-        const secs = totalSeconds % 60;
-
-        if (hrs > 0) {
-            return (
-                <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-gray-800 dark:text-white">{hrs}</span>
-                    <span className="text-xs font-bold text-gray-400 dark:text-gray-500 mr-1.5">hr{hrs > 1 ? 's' : ''}</span>
-                    <span className="text-2xl font-black text-gray-800 dark:text-white">{mins}</span>
-                    <span className="text-xs font-bold text-gray-400 dark:text-gray-500 mr-1.5">min{mins > 1 ? 's' : ''}</span>
-                    <span className="text-lg font-bold text-orange-500/80">{secs}</span>
-                    <span className="text-[10px] font-bold text-orange-500/60">s</span>
-                </div>
-            );
-        }
-
-        if (mins > 0) {
-            return (
-                <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-gray-800 dark:text-white">{mins}</span>
-                    <span className="text-xs font-bold text-gray-400 dark:text-gray-500 mr-1.5">min{mins > 1 ? 's' : ''}</span>
-                    <span className="text-lg font-bold text-orange-500">{secs}</span>
-                    <span className="text-[10px] font-bold text-orange-450">s</span>
-                </div>
-            );
-        }
-
-        return (
-            <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-gray-800 dark:text-white">{secs}</span>
-                <span className="text-xs font-bold text-gray-400 dark:text-gray-500">sec{secs !== 1 ? 's' : ''}</span>
-            </div>
-        );
-    };
+    const hrs = Math.floor(todayTime / 3600);
+    const mins = Math.floor((todayTime % 3600) / 60);
 
     // Calculate progress towards custom hours daily learning/screen time target
     const dailyTargetSeconds = targetHours * 3600;
     const percentOfTarget = Math.min(100, Math.round((todayTime / dailyTargetSeconds) * 100));
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-orange-100 dark:border-gray-700 overflow-hidden transform transition-all duration-300 hover:shadow-md dark:shadow-gray-900/50">
-            {/* Header */}
-            <div className="p-3 sm:p-4 border-b border-orange-50 dark:border-gray-700 bg-gradient-to-r from-orange-50/50 dark:from-gray-800 to-white dark:to-gray-800">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                        <Clock className="text-orange-500 w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                        <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-100 truncate">Focus Time</h2>
-                        <span className="relative flex h-2 w-2 shrink-0">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                        </span>
-                    </div>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 dark:border-gray-750 p-3.5 sm:p-5 flex flex-col justify-between transform transition-all duration-300 hover:shadow-md dark:shadow-gray-900/50">
+            {/* Header: Clock + Title + Green Dot + Chevron */}
+            <div className="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-gray-50 dark:border-gray-700/50">
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 shrink-0" strokeWidth={2.4} />
+                    <h2 className="text-xs sm:text-base font-bold text-gray-900 dark:text-white truncate">Focus Time</h2>
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 inline-block shrink-0"></span>
                 </div>
+                <ChevronRight size={16} className="text-orange-500 shrink-0 sm:w-[18px] sm:h-[18px]" strokeWidth={2.5} />
             </div>
 
             {/* Body */}
-            <div className="p-4 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Today's Focus</p>
-                        {formatTime(todayTime)}
+            <div className="pt-2.5 sm:pt-3 flex flex-col gap-2.5 sm:gap-3 flex-1 justify-between">
+                <div className="flex items-center justify-between gap-1">
+                    <div className="min-w-0">
+                        <p className="text-[9px] sm:text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider truncate">
+                            TODAY'S FOCUS
+                        </p>
+                        <div className="flex items-baseline gap-0.5 sm:gap-1 mt-0.5 sm:mt-1">
+                            <span className="text-xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                {hrs > 0 ? `${hrs}h ${mins}` : mins}
+                            </span>
+                            <span className="text-[10px] sm:text-sm font-bold text-gray-500 dark:text-gray-400 ml-0.5">
+                                {hrs > 0 ? 'm' : 'mins'}
+                            </span>
+                        </div>
                     </div>
-                    <div className="p-2 bg-orange-50 dark:bg-orange-950/30 text-orange-500 rounded-xl shrink-0">
-                        <BarChart2 size={18} />
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-[#FFF5ED] dark:bg-orange-950/40 flex items-center justify-center shrink-0">
+                        <BarChart2 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" strokeWidth={2.4} />
                     </div>
                 </div>
 
                 {/* Progress Visual */}
-                <div className="min-h-[44px] flex flex-col justify-end">
+                <div className="pt-1">
                     {isEditing ? (
-                        <form onSubmit={handleSaveTarget} className="flex items-center justify-between gap-1 w-full bg-gray-50 dark:bg-gray-900 p-1 rounded-lg border border-orange-100 dark:border-gray-700">
+                        <form onSubmit={handleSaveTarget} className="flex items-center justify-between gap-1 w-full bg-gray-50 dark:bg-gray-900 p-1 rounded-lg border border-orange-100 dark:border-gray-700 mb-1.5">
                             <div className="flex items-center gap-1 min-w-0">
                                 <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Tgt:</span>
                                 <input
@@ -144,27 +115,27 @@ export default function ScreenTimeCard() {
                             </div>
                         </form>
                     ) : (
-                        <div className="flex justify-between items-center text-[10px] text-gray-400 dark:text-gray-500 font-bold mb-1.5 w-full">
-                            <div className="flex items-center gap-1">
-                                <span>Daily Target ({targetHours}h)</span>
+                        <div className="flex justify-between items-center text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 w-full">
+                            <div className="flex items-center gap-1 min-w-0">
+                                <span className="truncate">of {targetHours}h target</span>
                                 <button
                                     onClick={() => {
                                         setEditValue(targetHours.toString());
                                         setIsEditing(true);
                                     }}
-                                    className="p-0.5 hover:text-orange-500 transition text-gray-400 dark:text-gray-500"
+                                    className="p-0.5 hover:text-orange-500 transition text-gray-400 dark:text-gray-500 shrink-0"
                                     title="Set Daily Target"
                                 >
                                     <Edit2 size={10} />
                                 </button>
                             </div>
-                            <span>{percentOfTarget}%</span>
+                            <span className="font-bold text-gray-700 dark:text-gray-300 shrink-0 ml-1">{percentOfTarget}%</span>
                         </div>
                     )}
 
                     <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
                         <div
-                            className="bg-gradient-to-r from-orange-400 to-amber-500 h-1.5 rounded-full transition-all duration-500 ease-out"
+                            className="bg-[#F97316] h-full rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${percentOfTarget}%` }}
                         ></div>
                     </div>
@@ -173,3 +144,4 @@ export default function ScreenTimeCard() {
         </div>
     );
 }
+

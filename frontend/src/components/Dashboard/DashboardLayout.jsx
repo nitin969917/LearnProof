@@ -581,9 +581,7 @@ const DashboardLayout = () => {
         // 1. Learn Hub Tabs Swiping
         const isLearnPage = (
             location.pathname.startsWith('/dashboard/library') ||
-            location.pathname.startsWith('/dashboard/explore') ||
             location.pathname.startsWith('/dashboard/quiz') ||
-            location.pathname.startsWith('/dashboard/ask-my-notes') ||
             location.pathname.startsWith('/dashboard/playlist') ||
             location.pathname.startsWith('/dashboard/roadmap') ||
             location.pathname.startsWith('/dashboard/certificates')
@@ -591,17 +589,27 @@ const DashboardLayout = () => {
 
         if (isLearnPage) {
             const learnTabs = [
-                '/dashboard/explore',
-                '/dashboard/library',
-                '/dashboard/quiz',
-                '/dashboard/ask-my-notes'
+                '/dashboard/library?tab=playlists',
+                '/dashboard/library?tab=videos',
+                '/dashboard/library?tab=roadmap',
+                '/dashboard/quiz'
             ];
 
+            const params = new URLSearchParams(location.search);
+            const currentTab = params.get('tab') || 'playlists';
+
             let currentIndex = 0;
-            if (location.pathname.startsWith('/dashboard/explore')) currentIndex = 0;
-            else if (location.pathname.startsWith('/dashboard/quiz')) currentIndex = 2;
-            else if (location.pathname.startsWith('/dashboard/ask-my-notes')) currentIndex = 3;
-            else currentIndex = 1; // library, playlist, roadmap, certificates
+            if (location.pathname.startsWith('/dashboard/quiz')) {
+                currentIndex = 3;
+            } else if (location.pathname.startsWith('/dashboard/roadmap')) {
+                currentIndex = 2;
+            } else if (location.pathname.startsWith('/dashboard/library')) {
+                if (currentTab === 'videos') currentIndex = 1;
+                else if (currentTab === 'roadmap') currentIndex = 2;
+                else currentIndex = 0;
+            } else {
+                currentIndex = 0;
+            }
 
             if (isSwipeLeft && currentIndex < learnTabs.length - 1) {
                 navigate(learnTabs[currentIndex + 1]);

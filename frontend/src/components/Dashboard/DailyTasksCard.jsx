@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Target, ArrowRight } from 'lucide-react';
+import { Target, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { fetchTodayGoals } from '../../api/goalApi';
@@ -46,45 +46,49 @@ const DailyTasksCard = () => {
     return (
         <div 
             onClick={() => navigate('/dashboard/goals')}
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-orange-100 dark:border-gray-700 overflow-hidden cursor-pointer transform transition-all duration-300 hover:shadow-md hover:border-orange-200 dark:hover:border-gray-650 group flex flex-col justify-between h-full min-h-[160px]"
+            className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 dark:border-gray-750 p-3.5 sm:p-5 flex flex-col justify-between transform transition-all duration-300 hover:shadow-md dark:shadow-gray-900/50 cursor-pointer"
         >
-            {/* Header */}
-            <div className="p-3 border-b border-orange-50 dark:border-gray-700 bg-gradient-to-r from-orange-50/50 dark:from-gray-800 to-white dark:to-gray-800">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                        <Target className="text-orange-500 w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                        <h2 className="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-100 truncate">Daily Goals</h2>
+            {/* Header: Target + Title + Chevron */}
+            <div className="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-gray-50 dark:border-gray-700/50">
+                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                    <div className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center shrink-0">
+                        <Target className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-[#2563EB]" strokeWidth={2.4} />
                     </div>
-                    <div className="text-orange-500 transition-transform duration-300 group-hover:translate-x-1 shrink-0">
-                        <ArrowRight size={16} />
-                    </div>
+                    <h2 className="text-xs sm:text-base font-bold text-gray-900 dark:text-white truncate">Daily Goals</h2>
                 </div>
+                <ChevronRight size={16} className="text-orange-500 shrink-0 sm:w-[18px] sm:h-[18px]" strokeWidth={2.5} />
             </div>
 
             {/* Body */}
-            <div className="p-4 flex flex-col justify-between flex-1">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5">Goals Achieved</p>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-black text-gray-800 dark:text-white">{completedCount}</span>
-                            <span className="text-xs font-bold text-gray-400 dark:text-gray-500">/ {totalCount}</span>
+            <div className="pt-2.5 sm:pt-3 flex flex-col gap-2.5 sm:gap-3 flex-1 justify-between">
+                <div className="flex items-center justify-between gap-1">
+                    <div className="min-w-0">
+                        <p className="text-[9px] sm:text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider truncate">
+                            GOALS ACHIEVED
+                        </p>
+                        <div className="flex items-baseline gap-0.5 sm:gap-1 mt-0.5 sm:mt-1">
+                            <span className="text-xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                {completedCount}
+                            </span>
+                            <span className="text-[10px] sm:text-base font-bold text-gray-400 dark:text-gray-500">
+                                /{totalCount}
+                            </span>
                         </div>
                     </div>
-                    <div className="p-2.5 bg-orange-50 dark:bg-orange-950/30 text-orange-500 rounded-xl">
-                        <Target size={20} />
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-[#FFF5ED] dark:bg-orange-950/40 flex items-center justify-center shrink-0">
+                        <Target className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" strokeWidth={2.4} />
                     </div>
                 </div>
 
                 {/* Progress bar */}
-                <div className="flex flex-col justify-end mt-2">
-                    <div className="flex justify-between items-center text-[10px] text-gray-400 dark:text-gray-500 font-bold mb-1.5 w-full">
-                        <span>Completion Rate</span>
-                        <span>{progress}%</span>
+                <div className="pt-1">
+                    <div className="flex justify-between items-center text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 w-full">
+                        <span className="truncate">Completion Rate</span>
+                        <span className="font-bold text-gray-700 dark:text-gray-300 shrink-0 ml-1">{progress}%</span>
                     </div>
                     <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
                         <div
-                            className="bg-gradient-to-r from-orange-400 to-amber-500 h-1.5 rounded-full transition-all duration-500 ease-out"
+                            className="bg-[#2563EB] h-full rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${progress}%` }}
                         ></div>
                     </div>

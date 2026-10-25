@@ -5,6 +5,7 @@ import { useSocialMessageStore } from "../../store/socialMessageStore";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { 
+    Search,
     BookOpen, 
     GraduationCap, 
     Video, 
@@ -28,6 +29,7 @@ import VideosSection from "./VideosSection";
 import DailyTasksCard from "./DailyTasksCard";
 import ScreenTimeCard from "./ScreenTimeCard";
 import YourProgressCard from "./YourProgressCard";
+import DashboardHeroBanner from "./DashboardHeroBanner";
 
 const DashboardHome = () => {
     const { token, user } = useAuth();
@@ -250,412 +252,408 @@ const DashboardHome = () => {
         <div className="flex flex-col lg:flex-row gap-6 lg:items-start max-w-[1360px] mx-auto px-0 md:px-8 py-3 lg:py-6 pb-24 md:pb-8 animate-in fade-in duration-500">
             {/* Left column (Flexible) */}
             <div className="flex-1 min-w-0 space-y-4">
-                {/* 1. GREETING BANNER CARD */}
-                <div className="bg-gradient-to-br from-[#FFF5F2] to-[#FFF9F6] dark:from-gray-800 dark:to-gray-900 rounded-2xl border border-orange-200 dark:border-gray-700 shadow-sm relative overflow-hidden transition-all duration-200 flex flex-row items-end justify-between min-h-[110px]">
-                    <div className="flex-1 space-y-1 text-left min-w-0 p-4 sm:p-5 self-center">
-                        <span className="text-xs sm:text-sm font-bold text-gray-500/80 dark:text-slate-400">Welcome back,</span>
-                        <h1 className="text-base sm:text-2xl font-black text-orange-500 leading-tight">
-                            {user?.name || "Learner"}! 👋
-                        </h1>
-                        <p className="text-[11px] sm:text-xs text-gray-500/80 dark:text-slate-400 font-semibold leading-snug max-w-[200px] sm:max-w-xl">
-                            Select a path to continue your learning journey or interact with other students.
-                        </p>
-                    </div>
-                    <div className="w-[110px] sm:w-[150px] shrink-0 self-end">
-                        <img 
-                            src="/waving_student.png" 
-                            alt="Welcome Illustration" 
-                            className="w-full h-auto object-contain block" 
-                        />
-                    </div>
-                </div>
-                {/* 2. SERVICES/FEATURES GRID - DESKTOP VIEW ONLY */}
-                <div className="hidden lg:grid grid-cols-4 gap-4">
+                {/* 1. HERO SEARCH BANNER */}
+                <DashboardHeroBanner user={user} />
+                {/* 2. SERVICES/FEATURES GRID - DESKTOP VIEW ONLY (3 Cards Side-by-Side as in Image 2) */}
+                <div className="hidden lg:grid grid-cols-3 gap-4">
                     {/* Learning Hub Card */}
                     <div
-                        onClick={() => navigate((playlists.length === 0 && videos.length === 0) ? '/dashboard/explore' : '/dashboard/library')}
-                        className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => navigate('/dashboard/library')}
+                        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/80 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer select-none min-h-[170px]"
                     >
                         <div>
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-950/40 text-red-500 flex items-center justify-center shrink-0">
-                                    <svg viewBox="0 0 24 24" className="w-4 h-4 text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                                <div className="w-10 h-10 rounded-full bg-red-100/70 dark:bg-red-950/40 text-red-500 flex items-center justify-center shrink-0">
+                                    <svg viewBox="0 0 24 24" className="w-4.5 h-4.5 text-red-600 fill-red-600 shrink-0" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.522 3.5 12 3.5 12 3.5s-7.522 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.029 0 12 0 12s0 3.971.502 5.837a3.003 3.003 0 0 0 2.11 2.107C4.478 20.5 12 20.5 12 20.5s7.522 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.971 24 12 24 12s0-3.971-.502-5.837z" />
                                         <polygon points="9.545 15.568 15.818 12 9.545 8.432" fill="white" />
                                     </svg>
                                 </div>
-                                <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                                <h3 className="text-base font-bold text-gray-900 dark:text-white leading-tight">
                                     Learning Hub
                                 </h3>
                             </div>
-                            <p className="text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-3 leading-snug line-clamp-2 min-h-[32px]">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-3 leading-relaxed line-clamp-2">
                                 Learn from YouTube videos, study AI notes, and view roadmaps.
                             </p>
                         </div>
-                        <div className="flex items-center justify-between mt-4">
-                            <span className="text-[10px] font-black text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-3 py-1 rounded-full">
-                                {playlists.length + videos.length > 0 ? `${playlists.length + videos.length} Courses` : "21 Courses"}
+                        <div className="flex items-center justify-between mt-4 pt-2">
+                            <span className="text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-100/70 dark:bg-orange-950/50 px-3 py-1 rounded-full">
+                                {playlists.length + videos.length > 0 ? `${playlists.length + videos.length} Courses` : "17 Courses"}
                             </span>
-                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform shrink-0">
-                                <ArrowRight size={12} />
+                            <div className="w-8 h-8 rounded-full bg-[#F97316] text-white flex items-center justify-center shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform shrink-0">
+                                <ArrowRight className="w-4 h-4 text-white" strokeWidth={2.5} />
                             </div>
                         </div>
                     </div>
 
                     {/* Live Rooms Card */}
                     <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => navigate('/dashboard/live-rooms')}
-                        className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/80 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer select-none min-h-[170px]"
                     >
                         <div>
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0">
-                                    <Radio size={16} />
+                                <div className="w-10 h-10 rounded-full bg-blue-100/70 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0">
+                                    <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M4.9 19.1C1.2 15.4 1.2 8.6 4.9 4.9" />
+                                        <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
+                                        <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+                                        <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
+                                        <path d="M19.1 4.9c3.7 3.7 3.7 10.5 0 14.2" />
+                                    </svg>
                                 </div>
-                                <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                                <h3 className="text-base font-bold text-gray-900 dark:text-white leading-tight">
                                     Live Rooms
                                 </h3>
                             </div>
-                            <p className="text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-3 leading-snug line-clamp-2 min-h-[32px]">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-3 leading-relaxed line-clamp-2">
                                 Join audio/video study rooms and interact with others in real-time.
                             </p>
                         </div>
-                        <div className="flex items-center justify-between mt-4">
-                            <span className="text-[10px] font-black text-blue-600 bg-blue-50 dark:bg-blue-950/40 px-3 py-1 rounded-full">
+                        <div className="flex items-center justify-between mt-4 pt-2">
+                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-100/70 dark:bg-blue-950/50 px-3 py-1 rounded-full">
                                 Interact
                             </span>
-                            <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform shrink-0">
-                                <ArrowRight size={12} />
+                            <div className="w-8 h-8 rounded-full bg-[#2563EB] text-white flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform shrink-0">
+                                <ArrowRight className="w-4 h-4 text-white" strokeWidth={2.5} />
                             </div>
                         </div>
                     </div>
 
                     {/* Social Hub Card */}
                     <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => navigate('/dashboard/social')}
-                        className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
+                        className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/80 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer select-none min-h-[170px]"
                     >
                         <div>
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-[#1f2c24] text-emerald-500 flex items-center justify-center shrink-0">
-                                    <Users2 size={16} />
+                                <div className="w-10 h-10 rounded-full bg-emerald-100/70 dark:bg-emerald-950/40 text-emerald-500 flex items-center justify-center shrink-0">
+                                    <Users2 className="w-5 h-5 text-emerald-600" strokeWidth={2.2} />
                                 </div>
-                                <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
+                                <h3 className="text-base font-bold text-gray-900 dark:text-white leading-tight">
                                     Social Hub
                                 </h3>
                             </div>
-                            <p className="text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-3 leading-snug line-clamp-2 min-h-[32px]">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-3 leading-relaxed line-clamp-2">
                                 Interact with study partners, send messages, and share updates.
                             </p>
                         </div>
-                        <div className="flex items-center justify-between mt-4">
-                            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full">
+                        <div className="flex items-center justify-between mt-4 pt-2">
+                            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/50 px-3 py-1 rounded-full">
                                 Connect
                             </span>
-                            <div className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
-                                <ArrowRight size={12} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Ask My Notes Card */}
-                    <div
-                        onClick={() => navigate('/dashboard/ask-my-notes')}
-                        className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/40 dark:border-gray-700 p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all group cursor-pointer"
-                    >
-                        <div>
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
-                                    <FileText size={16} />
-                                </div>
-                                <h3 className="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                    Ask My Notes
-                                </h3>
-                            </div>
-                            <p className="text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-3 leading-snug line-clamp-2 min-h-[32px]">
-                                Chat with your PDFs, slides, and notes using LearnProof AI.
-                            </p>
-                        </div>
-                        <div className="flex items-center justify-between mt-4 flex-row">
-                            <span className="text-[10px] font-black text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-3 py-1 rounded-full">
-                                Chat
-                            </span>
-                            <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform shrink-0">
-                                <ArrowRight size={12} />
+                            <div className="w-8 h-8 rounded-full bg-[#059669] text-white flex items-center justify-center shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform shrink-0">
+                                <ArrowRight className="w-4 h-4 text-white" strokeWidth={2.5} />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 2. SERVICES/FEATURES GRID - MOBILE VIEW ONLY */}
-                <div className="block lg:hidden space-y-4">
-                    {/* Continue Learning Group */}
-                    <div className="space-y-2.5">
-                        {/* Header: Continue Learning */}
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                                <div className="p-1 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-500">
-                                    <BookOpen size={18} />
-                                </div>
-                                <h2 className="text-sm sm:text-base font-black text-gray-955 dark:text-white uppercase tracking-wider">
-                                    Continue Learning
-                                </h2>
-                            </div>
-                            <button
-                                onClick={() => navigate('/dashboard/library')}
-                                className="px-3 py-1 rounded-full border border-orange-200/60 dark:border-gray-700 bg-white dark:bg-gray-800 text-orange-600 dark:text-orange-400 text-[10px] font-black flex items-center gap-0.5 transition-all cursor-pointer shadow-sm"
-                            >
-                                View all <ArrowRight size={10} />
-                            </button>
-                        </div>
-
-                        {/* Learning Hub & Live Rooms in a 2-Column Grid */}
-                        <div className="grid grid-cols-2 gap-4">
-                            {/* Learning Hub Card */}
-                            <div
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => navigate((playlists.length === 0 && videos.length === 0) ? '/dashboard/explore' : '/dashboard/library')}
-                                className="bg-gradient-to-b from-[#FFFDFB] to-[#FFF9F5] dark:from-gray-800 dark:to-gray-900 border border-orange-100/50 dark:border-gray-700 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer touch-manipulation select-none"
-                            >
-                                <div>
-                                    <div className="flex items-center gap-2.5 mb-2">
-                                        <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
-                                            <GraduationCap size={22} />
-                                        </div>
-                                        <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">
-                                            Learning Hub
-                                        </h3>
-                                    </div>
-                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold leading-snug line-clamp-3 min-h-[48px]">
-                                        Learn from YouTube videos, study notes, and roadmap.
-                                    </p>
-                                </div>
-                                <div className="flex items-center justify-between mt-4">
-                                    <span className="text-xs font-black text-orange-600 dark:text-orange-400 bg-orange-50/60 dark:bg-orange-950/40 px-2 py-0.5 rounded-full">
-                                        {playlists.length + videos.length > 0 ? `${playlists.length + videos.length} Courses` : "8 Courses"}
-                                    </span>
-                                    <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-md shrink-0">
-                                        <ArrowRight size={12} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Live Rooms Card */}
-                            <div
-                                role="button"
-                                tabIndex={0}
-                                onClick={() => navigate('/dashboard/live-rooms')}
-                                className="bg-gradient-to-b from-[#F9FBFF] to-[#F1F6FF] dark:from-gray-800 dark:to-gray-900 border border-blue-100/50 dark:border-gray-700 p-4 rounded-2xl flex flex-col justify-between shadow-sm active:scale-98 transition-all group cursor-pointer touch-manipulation select-none"
-                            >
-                                <div>
-                                    <div className="flex items-center gap-2.5 mb-2">
-                                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center shrink-0">
-                                            <Radio size={22} />
-                                        </div>
-                                        <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">
-                                            Live Rooms
-                                        </h3>
-                                    </div>
-                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold leading-snug line-clamp-3 min-h-[48px]">
-                                        Join audio/video study rooms and interact with others in real-time.
-                                    </p>
-                                </div>
-                                <div className="flex items-center justify-between mt-4">
-                                    <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/40 px-2 py-0.5 rounded-full">
-                                        Join Now
-                                    </span>
-                                    <div className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-md shrink-0">
-                                        <ArrowRight size={12} />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Connect & Collaborate Group */}
-                    <div className="space-y-2.5">
-                        {/* Header: Connect & Collaborate */}
+                {/* 3. CONTINUE LEARNING SECTION (Mobile only) */}
+                <div className="block lg:hidden space-y-2">
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <div className="p-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500">
-                                <Users2 size={18} />
-                            </div>
-                            <h2 className="text-sm sm:text-base font-black text-gray-955 dark:text-white uppercase tracking-wider">
-                                Connect & Collaborate
+                            <BookOpen className="w-5 h-5 text-[#F97316]" strokeWidth={2.4} />
+                            <h2 className="text-[17px] sm:text-lg font-black text-gray-900 dark:text-white tracking-tight">
+                                Continue learning
                             </h2>
                         </div>
+                        <button
+                            onClick={() => navigate('/dashboard/library')}
+                            className="text-[#F97316] hover:text-orange-600 font-bold text-xs sm:text-sm flex items-center gap-0.5 transition-colors cursor-pointer"
+                        >
+                            <span>View all</span>
+                            <ChevronRight size={16} strokeWidth={2.4} />
+                        </button>
+                    </div>
 
-                        {/* Social Hub Horizontal Card */}
+                    {/* 2-Column Grid Side-by-Side */}
+                    <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                        {/* Learning Hub Card */}
                         <div
                             role="button"
                             tabIndex={0}
-                            onClick={() => navigate('/dashboard/social')}
-                            className="bg-gradient-to-r from-[#F4FBF7] to-[#EBF9F1] dark:from-gray-800/40 dark:to-gray-900 border border-emerald-100/50 dark:border-gray-700 p-4 rounded-2xl flex flex-row items-center justify-between gap-4 shadow-sm active:scale-98 transition-all group cursor-pointer touch-manipulation select-none"
+                            onClick={() => navigate('/dashboard/library')}
+                            className="bg-[#FFFDFB] dark:bg-gray-800/90 border border-[#FDE8D7] dark:border-gray-700/80 rounded-2xl p-2.5 sm:p-3 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group select-none min-h-[72px] sm:min-h-[78px]"
                         >
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-[#1f2c24] text-emerald-500 flex items-center justify-center shrink-0">
-                                    <Users2 size={26} />
+                            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#FFF2E8] dark:bg-orange-950/40 flex items-center justify-center shrink-0">
+                                    <GraduationCap className="w-5 h-5 text-[#F97316]" strokeWidth={2.2} />
                                 </div>
-                                <div className="min-w-0">
-                                    <h3 className="text-[13px] font-black text-gray-955 dark:text-white leading-tight">
-                                        Social Hub
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="text-[13.5px] sm:text-[15px] font-extrabold text-gray-900 dark:text-white leading-tight">
+                                        Learning Hub
                                     </h3>
-                                    <p className="text-xs text-gray-400 dark:text-slate-400 font-bold mt-1 leading-snug line-clamp-2">
-                                        Interact with study partners, send messages, and share updates.
+                                    <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium leading-snug mt-0.5 line-clamp-2">
+                                        Courses, notes &amp; roadmaps
                                     </p>
                                 </div>
                             </div>
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate('/dashboard/social');
-                                }}
-                                className="px-4 py-2 bg-emerald-500 text-white text-xs font-black rounded-full shadow-md flex items-center gap-0.5 cursor-pointer shrink-0 active:scale-95 transition-transform"
-                            >
-                                Connect <ArrowRight size={10} />
-                            </button>
+                            <div className="w-7 h-7 rounded-full bg-[#F97316] text-white flex items-center justify-center shadow-md shadow-orange-500/20 group-hover:scale-105 transition-transform shrink-0 ml-1.5">
+                                <ArrowRight className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                            </div>
+                        </div>
+
+                        {/* Live Rooms Card */}
+                        <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => navigate('/dashboard/live-rooms')}
+                            className="bg-[#F0F7FF] dark:bg-gray-800/90 border border-[#DBEAFE] dark:border-gray-700/80 rounded-2xl p-2.5 sm:p-3 flex items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer group select-none min-h-[72px] sm:min-h-[78px]"
+                        >
+                            <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#E1EFFF] dark:bg-blue-950/40 flex items-center justify-center shrink-0">
+                                    <svg className="w-5 h-5 text-[#2563EB]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M4.9 19.1C1.2 15.4 1.2 8.6 4.9 4.9" />
+                                        <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
+                                        <circle cx="12" cy="12" r="2.2" fill="currentColor" />
+                                        <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
+                                        <path d="M19.1 4.9c3.7 3.7 3.7 10.5 0 14.2" />
+                                    </svg>
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="text-[13.5px] sm:text-[15px] font-extrabold text-gray-900 dark:text-white leading-tight">
+                                        Live Rooms
+                                    </h3>
+                                    <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium leading-snug mt-0.5 line-clamp-2">
+                                        Study together live
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="w-7 h-7 rounded-full bg-[#2563EB] text-white flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform shrink-0 ml-1.5">
+                                <ArrowRight className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
+                            </div>
                         </div>
                     </div>
                 </div>
-                {/* ── MOBILE VIEW ONLY: YOUR PROGRESS CARD ── */}
-                <div className="block lg:hidden">
-                    <YourProgressCard />
-                </div>
 
-                {/* 4. SHARE CARD SECTION */}
-                <div className="bg-[#FFFBF7] dark:bg-gray-800/40 rounded-2xl border border-orange-200 dark:border-gray-700/50 p-3 flex flex-row items-center justify-between gap-3 shadow-sm hover:shadow-md transition-all">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl bg-orange-100/70 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
-                            <Share2 size={18} />
-                        </div>
-                        <div className="min-w-0">
-                            <h3 className="font-black text-gray-900 dark:text-white text-xs sm:text-sm leading-tight">
-                                Share LearnProof AI
-                            </h3>
-                            <p className="text-[10px] sm:text-xs text-gray-500/80 dark:text-slate-400 font-bold mt-0.5 line-clamp-1">
-                                {referralCode ? `Code: ${referralCode} • Invite friends & learn together` : 'Invite your friends and learn together.'}
-                            </p>
+                {/* 4. LEARNING CONTENT SECTION: PLAYLISTS & INDIVIDUAL LESSONS */}
+                {loadingLearnings ? (
+                    <div className="space-y-4 animate-pulse">
+                        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+                        <div className="flex gap-4 overflow-hidden">
+                            <div className="w-[210px] sm:w-[290px] h-[160px] bg-gray-100 dark:bg-gray-800 rounded-2xl shrink-0"></div>
+                            <div className="w-[210px] sm:w-[290px] h-[160px] bg-gray-100 dark:bg-gray-800 rounded-2xl shrink-0"></div>
                         </div>
                     </div>
-                    <button
-                        onClick={handleShare}
-                        className="shrink-0 px-4 py-2 rounded-full bg-orange-500 hover:bg-orange-600 text-white font-black text-xs transition-all cursor-pointer shadow-sm shadow-orange-500/20 active:scale-95 flex items-center gap-1.5"
-                    >
-                        <Share2 size={12} /> Share
-                    </button>
-                </div>
-
-                {/* 5. PLAYLISTS SECTION */}
-                {playlists.length > 0 && (
-                    <div className="space-y-4 relative group">
+                ) : (playlists.length === 0 && videos.length === 0) ? (
+                    /* EMPTY STATE: Shown ONLY when user has neither playlists nor individual lessons */
+                    <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                            <h2 className="text-sm sm:text-base font-black text-gray-900 dark:text-white flex items-center gap-2">
-                                <Library size={18} className="text-orange-500" />
-                                <span>Your Playlists</span>
-                            </h2>
-                            <button
-                                onClick={() => navigate('/dashboard/library')}
-                                className="px-3.5 py-1 rounded-full border border-orange-100 dark:border-gray-700 bg-white dark:bg-gray-800 text-orange-500 dark:text-orange-400 text-xs font-bold flex items-center gap-1 hover:bg-orange-50/20 active:scale-95 transition-all cursor-pointer shadow-sm"
-                            >
-                                View all <ArrowRight size={10} />
-                            </button>
+                            <div className="flex items-center gap-2 sm:gap-2.5">
+                                <Library className="w-5 h-5 sm:w-6 sm:h-6 text-[#F97316]" strokeWidth={2.3} />
+                                <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                                    Your Playlists
+                                </h2>
+                            </div>
                         </div>
 
-                        <div className="relative">
-                            {/* Scroll buttons */}
+                        <div className="bg-white dark:bg-gray-800 rounded-3xl sm:rounded-[32px] border border-gray-100 dark:border-gray-700/80 p-6 sm:p-10 flex flex-col items-center justify-center text-center shadow-[0_10px_35px_rgba(0,0,0,0.03)] dark:shadow-none max-w-2xl mx-auto my-2">
+                            <div className="w-full max-w-[460px] sm:max-w-[520px] flex items-center justify-center -mt-2 mb-1 sm:mb-2 select-none pointer-events-none">
+                                <img
+                                    src="/empty-state-banner.png"
+                                    alt="No playlists or lessons yet"
+                                    className="w-full h-auto object-contain max-h-[210px] sm:max-h-[240px]"
+                                    loading="eager"
+                                />
+                            </div>
+                            <h3 className="text-xl sm:text-2xl font-black text-[#0B192C] dark:text-white tracking-tight leading-snug">
+                                Ready to start your learning journey?
+                            </h3>
+                            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-md mx-auto mt-2 mb-6 sm:mb-7 leading-relaxed">
+                                Explore any topic, course, or paste a YouTube link to get instant AI notes and quizzes.
+                            </p>
                             <button
-                                onClick={() => scrollPlaylists('left')}
-                                className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white dark:hover:bg-gray-700 hidden md:flex items-center justify-center text-gray-600 dark:text-gray-300 cursor-pointer"
+                                onClick={() => {
+                                    const searchInput = document.querySelector('input[placeholder*="Search for courses"]');
+                                    if (searchInput) {
+                                        searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        searchInput.focus();
+                                    } else {
+                                        navigate('/dashboard');
+                                    }
+                                }}
+                                className="inline-flex items-center justify-center gap-2.5 sm:gap-3 px-6 sm:px-7 py-3 sm:py-3.5 rounded-full bg-gradient-to-r from-[#FF5100] via-[#FF6315] to-[#FF7730] hover:from-[#E64900] hover:via-[#F55900] hover:to-[#FF6B1A] active:scale-95 text-white font-extrabold text-[14px] sm:text-[15px] shadow-[0_10px_25px_-5px_rgba(255,81,0,0.38)] hover:shadow-[0_14px_32px_-4px_rgba(255,81,0,0.48)] border border-white/20 transition-all duration-200 cursor-pointer group select-none"
                             >
-                                <ChevronLeft size={20} />
+                                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center shrink-0 shadow-inner">
+                                    <Search className="w-3.5 h-3.5 text-white" strokeWidth={2.6} />
+                                </div>
+                                <span className="tracking-wide">Start Learning</span>
+                                <ArrowRight className="w-4 h-4 text-white/90 group-hover:translate-x-1 group-hover:text-white transition-transform duration-200 shrink-0" strokeWidth={2.6} />
                             </button>
-
-                            <div
-                                ref={playlistContainerRef}
-                                className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory hide-scrollbar mt-4"
-                            >
-                                {playlists.map((pl) => {
-                                    const totalVideos = pl.videos?.length || 0;
-                                    const completedVideos = pl.videos?.filter(v => v.is_completed)?.length || 0;
-                                    const percentComplete = totalVideos ? Math.round((completedVideos / totalVideos) * 100) : 0;
-                                    const thumbnail = pl.thumbnail || (pl.videos?.length > 0 ? `https://img.youtube.com/vi/${pl.videos[0].vid}/hqdefault.jpg` : "");
-
-                                    return (
-                                        <div
-                                            key={pl.pid}
-                                            onClick={() => navigate(`/dashboard/playlist/${pl.pid}`)}
-                                            className="flex-shrink-0 w-[210px] sm:w-[290px] bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer snap-start flex flex-col overflow-hidden group/item"
-                                        >
-                                            <div className="w-full aspect-video relative flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
-                                                {thumbnail ? (
-                                                    <img 
-                                                        src={thumbnail} 
-                                                        alt={pl.name} 
-                                                        className="w-full h-full object-cover animate-none"
-                                                    />
-                                                ) : (
-                                                    <Library size={24} className="text-orange-300" />
-                                                )}
-                                                <div className="absolute bottom-1 right-1 bg-black/75 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">
-                                                    {totalVideos} Videos
-                                                </div>
-                                            </div>
-                                            <div className="flex-1 flex flex-col justify-between min-w-0 p-3 pb-3.5">
-                                                <h3 className="font-bold text-gray-855 dark:text-gray-100 text-[13px] leading-tight line-clamp-2 group-hover/item:text-orange-500 transition-colors">
-                                                    {pl.name}
-                                                </h3>
-                                                <div className="mt-2.5">
-                                                    <div className="flex items-center justify-between text-[10px] text-gray-400 dark:text-slate-400 font-bold mb-0.5">
-                                                        <span>Progress</span>
-                                                        <span>{percentComplete}%</span>
-                                                    </div>
-                                                    <div className="w-full bg-gray-105 dark:bg-gray-700 h-1 rounded-full overflow-hidden">
-                                                        <div
-                                                            className="bg-orange-500 h-full rounded-full transition-all duration-300"
-                                                            style={{ width: `${percentComplete}%` }}
-                                                        ></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                        </div>
+                    </div>
+                ) : (
+                    /* USER HAS CONTENT: Show Playlists if any */
+                    playlists.length > 0 && (
+                        <div className="space-y-4 relative group">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2 sm:gap-2.5">
+                                    <Library className="w-5 h-5 sm:w-6 sm:h-6 text-[#F97316]" strokeWidth={2.3} />
+                                    <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                                        Your Playlists
+                                    </h2>
+                                </div>
+                                <button
+                                    onClick={() => navigate('/dashboard/library')}
+                                    className="text-[#F97316] hover:text-orange-600 font-bold text-xs sm:text-sm flex items-center gap-0.5 transition-colors cursor-pointer"
+                                >
+                                    <span>View all</span>
+                                    <ChevronRight size={16} strokeWidth={2.4} />
+                                </button>
                             </div>
 
-                            <button
-                                onClick={() => scrollPlaylists('right')}
-                                className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white dark:hover:bg-gray-700 hidden md:flex items-center justify-center text-gray-600 dark:text-gray-300 cursor-pointer"
-                            >
-                                <ChevronRight size={20} />
-                            </button>
+                            <div className="relative">
+                                {/* Scroll buttons */}
+                                <button
+                                    onClick={() => scrollPlaylists('left')}
+                                    className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white dark:hover:bg-gray-700 hidden md:flex items-center justify-center text-gray-600 dark:text-gray-300 cursor-pointer"
+                                >
+                                    <ChevronLeft size={20} />
+                                </button>
+
+                                <div
+                                    ref={playlistContainerRef}
+                                    className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory hide-scrollbar mt-4"
+                                >
+                                    {playlists.map((pl) => {
+                                        const totalVideos = pl.videos?.length || 0;
+                                        const completedVideos = pl.videos?.filter(v => v.is_completed)?.length || 0;
+                                        const percentComplete = totalVideos ? Math.round((completedVideos / totalVideos) * 100) : 0;
+                                        const thumbnail = pl.thumbnail || (pl.videos?.length > 0 ? `https://img.youtube.com/vi/${pl.videos[0].vid}/hqdefault.jpg` : "");
+
+                                        return (
+                                            <div
+                                                key={pl.pid}
+                                                onClick={() => navigate(`/dashboard/playlist/${pl.pid}`)}
+                                                className="flex-shrink-0 w-[210px] sm:w-[290px] bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer snap-start flex flex-col overflow-hidden group/item"
+                                            >
+                                                <div className="w-full aspect-video relative flex items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0">
+                                                    {thumbnail ? (
+                                                        <img 
+                                                            src={thumbnail} 
+                                                            alt={pl.name} 
+                                                            className="w-full h-full object-cover animate-none"
+                                                        />
+                                                    ) : (
+                                                        <Library size={24} className="text-orange-300" />
+                                                    )}
+                                                    <div className="absolute bottom-1 right-1 bg-black/75 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">
+                                                        {totalVideos} Videos
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1 flex flex-col justify-between min-w-0 p-3 pb-3.5">
+                                                    <h3 className="font-bold text-gray-855 dark:text-gray-100 text-[13px] leading-tight line-clamp-2 group-hover/item:text-orange-500 transition-colors">
+                                                        {pl.name}
+                                                    </h3>
+                                                    <div className="mt-2.5">
+                                                        <div className="flex items-center justify-between text-[10px] text-gray-400 dark:text-slate-400 font-bold mb-0.5">
+                                                            <span>Progress</span>
+                                                            <span>{percentComplete}%</span>
+                                                        </div>
+                                                        <div className="w-full bg-gray-105 dark:bg-gray-700 h-1 rounded-full overflow-hidden">
+                                                            <div
+                                                                className="bg-orange-500 h-full rounded-full transition-all duration-300"
+                                                                style={{ width: `${percentComplete}%` }}
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <button
+                                    onClick={() => scrollPlaylists('right')}
+                                    className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 dark:bg-gray-800/90 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white dark:hover:bg-gray-700 hidden md:flex items-center justify-center text-gray-600 dark:text-gray-300 cursor-pointer"
+                                >
+                                    <ChevronRight size={20} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )
                 )}
 
-                {/* 6. INDIVIDUAL VIDEOS & QUICK RESUME SECTION */}
+                {/* 5. INDIVIDUAL VIDEOS & QUICK RESUME SECTION (Positioned directly below Your Playlists) */}
                 <div className="space-y-4">
                     <VideosSection data={videos} loading={loadingLearnings} />
                     <ContinueWatching videos={continueVideos} loading={loadingContinue} />
+                </div>
+
+                {/* 6. YOUR PROGRESS, STUDY ACTIVITY & SHARE SECTION (Mobile only - placed below learning content) */}
+                <div className="block lg:hidden space-y-3.5">
+                    {/* Your Progress Combined Card (Focus, Goals, Streak) */}
+                    <YourProgressCard />
+                    {/* Study Activity Calendar */}
+                    <CalendarCard />
+                    {/* Completed Videos List (Mobile only) */}
+                    <CompletedSection />
+                    {/* Mobile Share Card - with tight spacing to calendar */}
+                    <div className="bg-[#FFFBF7] dark:bg-gray-800/40 rounded-2xl border border-orange-200 dark:border-gray-700/50 p-3.5 flex flex-row items-center justify-between gap-3 shadow-sm hover:shadow-md transition-all">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-orange-100/70 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
+                                <Share2 size={18} />
+                            </div>
+                            <div className="min-w-0">
+                                <h3 className="font-bold text-gray-900 dark:text-white text-xs leading-tight">
+                                    Share LearnProof AI
+                                </h3>
+                                <p className="text-[10px] text-gray-500/80 dark:text-slate-400 font-medium mt-0.5 line-clamp-1">
+                                    {referralCode ? `Code: ${referralCode} • Invite friends & learn together` : 'Invite your friends and learn together.'}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleShare}
+                            className="shrink-0 px-3.5 py-1.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs transition-all cursor-pointer shadow-sm shadow-orange-500/20 active:scale-95 flex items-center gap-1.5"
+                        >
+                            <Share2 size={12} /> Share
+                        </button>
+                    </div>
                 </div>
 
                 {/* 7. COMPLETED VIDEOS LIST (Desktop only) */}
                 <div className="hidden lg:block">
                     <CompletedSection />
                 </div>
-            </div>
 
-            {/* Right column on desktop / Bottom widgets on mobile (Screen time, daily tasks, calendar) */}
-            <div className="w-full lg:w-[310px] shrink-0 flex flex-col gap-4">
-                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                    <ScreenTimeCard />
-                    <DailyTasksCard />
+                {/* 8. SHARE CARD SECTION (Desktop - at the very end of all main sections) */}
+                <div className="hidden lg:flex bg-[#FFFBF7] dark:bg-gray-800/40 rounded-2xl border border-orange-200 dark:border-gray-700/50 p-3.5 flex flex-row items-center justify-between gap-3 shadow-sm hover:shadow-md transition-all mt-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-orange-100/70 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center shrink-0">
+                            <Share2 size={18} />
+                        </div>
+                        <div className="min-w-0">
+                            <h3 className="font-bold text-gray-900 dark:text-white text-sm leading-tight">
+                                Share LearnProof AI
+                            </h3>
+                            <p className="text-xs text-gray-500/80 dark:text-slate-400 font-medium mt-0.5 line-clamp-1">
+                                {referralCode ? `Code: ${referralCode} • Invite friends & learn together` : 'Invite your friends and learn together.'}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleShare}
+                        className="shrink-0 px-4 py-2 rounded-full bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs transition-all cursor-pointer shadow-sm shadow-orange-500/20 active:scale-95 flex items-center gap-1.5"
+                    >
+                        <Share2 size={12} /> Share
+                    </button>
                 </div>
-                <CalendarCard />
             </div>
 
-            {/* Completed Videos List (Mobile only) */}
-            <div className="block lg:hidden w-full">
-                <CompletedSection />
+            {/* Right column on desktop (Screen time, daily tasks, calendar) */}
+            <div className="hidden lg:flex w-[310px] shrink-0 flex-col gap-4">
+                <ScreenTimeCard />
+                <DailyTasksCard />
+                <CalendarCard />
             </div>
         </div> );
 };

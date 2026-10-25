@@ -151,7 +151,14 @@ const YouTubeExplorer = () => {
         isInputFocusedRef.current = false;
     }, [location.pathname]);
 
-    // Sync with query param if redirected from TopBar (e.g. ?q=react) or if cleared
+    // Canonicalize /dashboard/explore to /dashboard/search preserving query string
+    useEffect(() => {
+        if (location.pathname === '/dashboard/explore' || location.pathname === '/dashboard/youtube') {
+            navigate(`/dashboard/search${location.search}`, { replace: true });
+        }
+    }, [location.pathname, location.search]);
+
+    // Sync with query param if redirected from main page or search bar
     useEffect(() => {
         const qParam = searchParams.get('q');
         if (qParam && qParam.trim()) {
@@ -164,10 +171,9 @@ const YouTubeExplorer = () => {
             setQuery(qParam.trim());
             setHasSearched(true);
             handleSearchWithQuery(qParam.trim());
-        } else if (hasSearched && !qParam) {
-            setQuery('');
-            setResults([]);
-            setHasSearched(false);
+        } else {
+            // No search query provided -> return to dashboard where main search bar is
+            navigate('/dashboard', { replace: true });
         }
     }, [searchParams]);
 
@@ -232,8 +238,7 @@ const YouTubeExplorer = () => {
         isInputFocusedRef.current = false;
         inputRef.current?.blur();
         setQuery(selectedText);
-        const targetBase = location.pathname.startsWith('/dashboard/search') ? '/dashboard/search' : '/dashboard/explore';
-        navigate(`${targetBase}?q=${encodeURIComponent(selectedText)}`, { replace: true });
+        navigate(`/dashboard/search?q=${encodeURIComponent(selectedText)}`, { replace: true });
         handleSearchWithQuery(selectedText);
     };
 
@@ -252,8 +257,7 @@ const YouTubeExplorer = () => {
         if (isYouTubeUrl(trimmed)) {
             await handleImportClick(trimmed);
         } else {
-            const targetBase = location.pathname.startsWith('/dashboard/search') ? '/dashboard/search' : '/dashboard/explore';
-            navigate(`${targetBase}?q=${encodeURIComponent(trimmed)}`, { replace: true });
+            navigate(`/dashboard/search?q=${encodeURIComponent(trimmed)}`, { replace: true });
             await handleSearchWithQuery(trimmed);
         }
     };
@@ -261,17 +265,16 @@ const YouTubeExplorer = () => {
     const handleTopicClick = (tag) => {
         if (!tag) return;
         setQuery(tag);
-        const targetBase = location.pathname.startsWith('/dashboard/search') ? '/dashboard/search' : '/dashboard/explore';
-        navigate(`${targetBase}?q=${encodeURIComponent(tag)}`, { replace: true });
+        navigate(`/dashboard/search?q=${encodeURIComponent(tag)}`, { replace: true });
         handleSearchWithQuery(tag);
     };
 
     const handleResetSearch = () => {
-        setQuery('');
-        setResults([]);
-        setHasSearched(false);
-        const targetBase = location.pathname.startsWith('/dashboard/search') ? '/dashboard/search' : '/dashboard/explore';
-        navigate(targetBase, { replace: true });
+        if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+        } else {
+            navigate('/dashboard');
+        }
     };
 
     const handleKeyDown = (e) => {
@@ -538,17 +541,15 @@ const YouTubeExplorer = () => {
             <div className="space-y-2.5 pt-1">
                 {/* Top Search Bar Row */}
                 <div className="w-full flex items-center gap-2 sm:gap-3">
-                    {/* Back Arrow button when in searching mode to return to Discover idle view */}
-                    {isSearchingMode && (
-                        <button
-                            type="button"
-                            onClick={handleResetSearch}
-                            className="p-2 sm:p-2.5 rounded-full hover:bg-gray-200/80 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 transition-colors shrink-0 active:scale-95 cursor-pointer"
-                            title="Back to Discover"
-                        >
-                            <ArrowLeft size={20} />
-                        </button>
-                    )}
+                    {/* Back Arrow button to return to Dashboard */}
+                    <button
+                        type="button"
+                        onClick={handleResetSearch}
+                        className="p-2 sm:p-2.5 rounded-full hover:bg-gray-200/80 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 transition-colors shrink-0 active:scale-95 cursor-pointer"
+                        title="Back to Dashboard"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
 
                     {/* Search Input Bar (Native YouTube style) */}
                     <div className="flex-1 relative" ref={searchRef}>
@@ -922,12 +923,17 @@ const YouTubeExplorer = () => {
                     )}
                 </AnimatePresence>
 
-                {/* Subtle Result Count */}
+                {/* Search Result Count & Query Heading */}
                 {!loading && isSearchingMode && results.length > 0 && (
-                    <div className="flex items-center justify-between pt-1">
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                            About {results.length} educational courses & videos found
-                        </span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pt-1 border-b border-gray-100 dark:border-gray-800 pb-2">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
+                                Results for <span className="text-[#FF5100]">"{qParam || query}"</span>
+                            </h2>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                ({results.length} found)
+                            </span>
+                        </div>
                         {totalPages > 1 && (
                             <span className="text-xs text-gray-400 font-medium">
                                 Page {currentPage} of {totalPages}
@@ -956,7 +962,7 @@ const YouTubeExplorer = () => {
                         </p>
                     </div>
                     <div className="pt-2">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2.5">Popular topics to explore</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2.5">Popular topics to search</p>
                         <div className="flex flex-wrap gap-2 justify-center">
                             {['Python Course', 'Web Development', 'Machine Learning', 'Data Structures', 'Calculus', 'Organic Chemistry'].map(tag => (
                                 <button
@@ -973,37 +979,36 @@ const YouTubeExplorer = () => {
                 </motion.div>
             )}
 
-            {/* 2. Idle State: No search performed yet -> Show Ready to Discover */}
+            {/* 2. Fallback State: No search performed yet */}
             {!isSearchingMode && results.length === 0 && !loading && (
-                <div className="text-center py-12 sm:py-20 bg-gray-50/50 dark:bg-gray-700/20 rounded-3xl sm:rounded-[3rem] border-2 border-dashed border-gray-100 dark:border-gray-700 max-w-4xl mx-auto w-full">
-                        <div className="flex flex-col items-center justify-center p-8 text-center space-y-6">
-                            <div className="relative group">
-                                <div className="absolute inset-0 bg-red-500/20 rounded-full blur-2xl group-hover:blur-3xl transition-all duration-500"></div>
-                                <div className="relative w-24 h-24 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-2xl border border-gray-100 dark:border-gray-700">
-                                    <Youtube size={48} className="text-red-500" />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Ready to Discover?</h3>
-                                <p className="max-w-md mx-auto text-sm text-gray-500 dark:text-slate-400 font-medium leading-relaxed">
-                                    Use the command center above to search for tutorials, courses, and playlists. 
-                                    Everything you find can be imported directly into your dashboard.
-                                </p>
-                            </div>
-                            <div className="flex flex-wrap gap-2 justify-center pt-4">
-                                {['ReactJS', 'Python', 'DSA', 'Web Development', 'AI', 'UI/UX'].map(tag => (
-                                    <button 
-                                        key={tag}
-                                        type="button"
-                                        onClick={() => handleTopicClick(tag)}
-                                        className="px-4 py-2 bg-white dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-500 hover:border-red-100 transition-all shadow-sm cursor-pointer active:scale-95"
-                                    >
-                                        {tag}
-                                    </button>
-                                ))}
-                            </div>
+                <div className="text-center py-12 sm:py-16 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/80 max-w-2xl mx-auto shadow-sm p-6 sm:p-8 space-y-4">
+                    <div className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-950/40 text-[#FF5100] flex items-center justify-center mx-auto shadow-sm">
+                        <Search size={28} />
+                    </div>
+                    <div className="space-y-1.5">
+                        <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-white">
+                            Search Results
+                        </h3>
+                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+                            Search for courses, playlists, or paste a YouTube video link above to view results.
+                        </p>
+                    </div>
+                    <div className="pt-2">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2.5">Popular topics to search</p>
+                        <div className="flex flex-wrap gap-2 justify-center">
+                            {['Python Course', 'Web Development', 'Machine Learning', 'Data Structures', 'Calculus', 'DSA'].map(tag => (
+                                <button
+                                    key={tag}
+                                    type="button"
+                                    onClick={() => handleTopicClick(tag)}
+                                    className="px-3.5 py-1.5 bg-gray-50 dark:bg-gray-700/60 hover:bg-orange-50 hover:text-[#FF5100] dark:hover:bg-gray-700 rounded-full text-xs font-bold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 transition cursor-pointer active:scale-95"
+                                >
+                                    {tag}
+                                </button>
+                            ))}
                         </div>
                     </div>
+                </div>
             )}
 
             {/* 3. Loading State */}

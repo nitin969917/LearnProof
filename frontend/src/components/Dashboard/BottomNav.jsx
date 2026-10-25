@@ -24,7 +24,7 @@ const BottomNav = () => {
     // 5 Constant Sections: Home, Learn, Social, Rooms, Profile
     const navItems = [
         { name: 'Home', icon: Home, path: '/dashboard' },
-        { name: 'Learn', icon: GraduationCap, path: '/dashboard/explore' },
+        { name: 'Learn', icon: GraduationCap, path: '/dashboard/library' },
         { name: 'Social', icon: Users2, path: '/dashboard/social/feed', badge: totalSocialCount > 0 ? totalSocialCount : null },
         { name: 'Rooms', icon: Radio, path: '/dashboard/live-rooms' },
         { name: 'Profile', icon: User, path: '/dashboard/social/profile' },
@@ -37,10 +37,9 @@ const BottomNav = () => {
         if (path === '/dashboard') {
             return currentPath === '/dashboard';
         }
-        if (path === '/dashboard/explore' || path === '/dashboard/library') {
+        if (path === '/dashboard/library') {
             return (
                 currentPath.startsWith('/dashboard/library') ||
-                currentPath.startsWith('/dashboard/explore') ||
                 currentPath.startsWith('/dashboard/quiz') ||
                 currentPath.startsWith('/dashboard/ask-my-notes') ||
                 currentPath.startsWith('/dashboard/playlist') ||
@@ -73,7 +72,7 @@ const BottomNav = () => {
         } else if (item.name === 'Social') {
             navigate('/dashboard/social/feed');
         } else if (item.name === 'Learn') {
-            navigate('/dashboard/explore');
+            navigate('/dashboard/library');
         } else {
             navigate(item.path);
         }

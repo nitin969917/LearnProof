@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import axios from "axios";
-import { Play, ChevronLeft, ChevronRight, Video } from 'lucide-react';
+import { Play, ChevronLeft, ChevronRight, Video, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -44,11 +44,22 @@ const VideosSection = ({ data: videos = [], loading = true }) => {
     }
 
     return (
-        <div className="space-y-2">
-            <h2 className="text-sm sm:text-base font-black text-gray-900 dark:text-white flex items-center gap-1.5">
-                <Video size={18} className="text-orange-500" />
-                Your Individual Lessons
-            </h2>
+        <div className="space-y-3">
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2 sm:gap-2.5">
+                    <Video className="w-5 h-5 sm:w-6 sm:h-6 text-[#F97316]" strokeWidth={2.3} />
+                    <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                        Your Individual Lessons
+                    </h2>
+                </div>
+                <button
+                    onClick={() => navigate('/dashboard/library')}
+                    className="text-[#F97316] hover:text-orange-600 font-bold text-xs sm:text-sm flex items-center gap-0.5 transition-colors cursor-pointer"
+                >
+                    <span>View all</span>
+                    <ChevronRight size={16} strokeWidth={2.4} />
+                </button>
+            </div>
             <div className="relative group">
                 <button
                     onClick={() => scroll('left')}

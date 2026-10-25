@@ -73,7 +73,7 @@ const YourProgressCard = () => {
     }, [user]);
 
     const completedTasksCount = tasks.filter(t => t.is_completed || t.completed).length;
-    const totalTasksCount = tasks.length > 0 ? tasks.length : 3;
+    const totalTasksCount = tasks.length > 0 ? tasks.length : 6;
     const tasksPercent = tasks.length === 0 ? 0 : Math.round((completedTasksCount / totalTasksCount) * 100);
 
     // ── 3. Current Streak & 7 Days Activity State ──
@@ -102,121 +102,82 @@ const YourProgressCard = () => {
         fetchActivity();
     }, [token]);
 
-    // Build 7 days of the current week (Monday to Sunday)
-    const getWeekDays = () => {
-        const now = new Date();
-        const currentDayIndex = (now.getDay() + 6) % 7; // 0 for Mon, 6 for Sun
-        const monday = new Date(now);
-        monday.setDate(now.getDate() - currentDayIndex);
-
-        const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-        return labels.map((label, idx) => {
-            const d = new Date(monday);
-            d.setDate(monday.getDate() + idx);
-            const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            
-            // Check if day is active:
-            // 1. Has activity in backend graph
-            // 2. Has local screentime > 0
-            // 3. Is current day or past day within current streak
-            let hasScreenTime = false;
-            try {
-                const dataStr = localStorage.getItem('learnproof_screentime') || '{}';
-                const data = JSON.parse(dataStr);
-                hasScreenTime = (data[dateStr] || 0) > 0;
-            } catch {}
-
-            const isBackendActive = Boolean(activityGraph[dateStr]?.activity_count > 0);
-            const isWithinStreak = idx <= currentDayIndex && (currentDayIndex - idx < streak);
-
-            const active = isBackendActive || hasScreenTime || isWithinStreak;
-
-            return {
-                label,
-                dateStr,
-                isToday: idx === currentDayIndex,
-                active,
-            };
-        });
-    };
-
-    const weekDays = getWeekDays();
-
     return (
-        <div 
-            onClick={() => navigate('/dashboard/goals')}
-            className="bg-white dark:bg-gray-800 rounded-2xl border border-orange-100/70 dark:border-gray-700/80 p-3.5 sm:p-4 shadow-sm hover:shadow-md transition-all cursor-pointer select-none"
-        >
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100 dark:border-gray-800">
-                <div className="flex items-center gap-2">
-                    <div className="text-orange-500 flex items-center justify-center">
-                        <BarChart2 size={18} />
+        <div className="space-y-3">
+            {/* Header: Vertical orange bars + Your progress + View all OUTSIDE */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 sm:gap-2.5">
+                    <div className="flex items-end gap-[2px] sm:gap-[2.5px] h-4 sm:h-[18px] text-[#F97316] shrink-0">
+                        <span className="w-[3px] sm:w-[3.5px] h-2 sm:h-2.5 bg-[#F97316] rounded-full"></span>
+                        <span className="w-[3px] sm:w-[3.5px] h-3.5 sm:h-[17px] bg-[#F97316] rounded-full"></span>
+                        <span className="w-[3px] sm:w-[3.5px] h-2.5 sm:h-3 bg-[#F97316] rounded-full"></span>
                     </div>
-                    <h3 className="text-sm font-black text-gray-900 dark:text-white leading-none">
-                        Your Progress
-                    </h3>
+                    <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                        Your progress
+                    </h2>
                 </div>
 
-                <div className="flex items-center gap-1 text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-semibold group">
-                    <span>Keep going! You're doing great! 🚀</span>
-                    <ChevronRight size={15} className="text-orange-500 group-hover:translate-x-0.5 transition-transform" />
-                </div>
+                <button
+                    onClick={() => navigate('/dashboard/goals')}
+                    className="text-[#F97316] hover:text-orange-600 font-bold text-xs sm:text-sm flex items-center gap-0.5 transition-colors cursor-pointer"
+                >
+                    <span>View all</span>
+                    <ChevronRight size={16} strokeWidth={2.4} />
+                </button>
             </div>
 
-            {/* 3 Columns Section (No bottom progress bars) */}
-            <div className="grid grid-cols-3 divide-x divide-gray-100 dark:divide-gray-800 py-0.5">
-                {/* Column 1: Screen Time */}
-                <div className="px-1.5 sm:px-2 first:pl-0 flex items-center gap-1.5 sm:gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-orange-50 dark:bg-orange-950/40 border border-orange-100 dark:border-orange-900/30 text-orange-500 flex items-center justify-center shrink-0">
-                        <Clock size={15} />
+            {/* The Progress Card Container with 3 Metric Tiles */}
+            <div 
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate('/dashboard/goals')}
+                className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100/90 dark:border-gray-700/80 p-2.5 sm:p-3.5 shadow-sm hover:shadow-md transition-all cursor-pointer select-none group"
+            >
+                {/* 3 Metric Tiles */}
+                <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+                    {/* Column 1: Focus */}
+                    <div className="bg-[#FFF9F3] dark:bg-orange-950/20 border border-[#FFE8D6] dark:border-orange-900/30 rounded-2xl p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 transition-all group-hover:border-orange-200">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-[#FFE9D5] dark:bg-orange-900/50 text-[#FF5100] flex items-center justify-center shrink-0">
+                            <Clock className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#FF5100]" strokeWidth={2.3} />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-bold leading-tight">
+                                Focus
+                            </p>
+                            <p className="text-xs sm:text-sm font-black text-gray-900 dark:text-white leading-tight mt-0.5 truncate">
+                                {formatScreenTime(todaySeconds)}
+                            </p>
+                        </div>
                     </div>
-                    <div className="min-w-0 text-left">
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate leading-tight">
-                            Focus Time
-                        </p>
-                        <p className="text-[11px] sm:text-xs font-black text-gray-900 dark:text-white truncate leading-tight mt-0.5">
-                            {formatScreenTime(todaySeconds)}
-                            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 ml-0.5">
-                                /{targetHours}h
-                            </span>
-                        </p>
-                    </div>
-                </div>
 
-                {/* Column 2: Daily Goals */}
-                <div className="px-1.5 sm:px-2 flex items-center gap-1.5 sm:gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/30 text-blue-500 flex items-center justify-center shrink-0">
-                        <Target size={15} />
+                    {/* Column 2: Goals */}
+                    <div className="bg-[#F4F9FF] dark:bg-blue-950/20 border border-[#E0EFFF] dark:border-blue-900/30 rounded-2xl p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 transition-all group-hover:border-blue-200">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-[#E0EEFF] dark:bg-blue-900/50 text-[#2563EB] flex items-center justify-center shrink-0">
+                            <Target className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#2563EB]" strokeWidth={2.3} />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-bold leading-tight">
+                                Goals
+                            </p>
+                            <p className="text-xs sm:text-sm font-black text-gray-900 dark:text-white leading-tight mt-0.5 truncate">
+                                {completedTasksCount}<span className="text-[10px] sm:text-xs font-semibold text-gray-400 dark:text-gray-500">/{totalTasksCount}</span>
+                            </p>
+                        </div>
                     </div>
-                    <div className="min-w-0 text-left">
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate leading-tight">
-                            Daily Goals
-                        </p>
-                        <p className="text-[11px] sm:text-xs font-black text-gray-900 dark:text-white truncate leading-tight mt-0.5">
-                            {completedTasksCount}
-                            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 ml-0.5">
-                                /{totalTasksCount}
-                            </span>
-                        </p>
-                    </div>
-                </div>
 
-                {/* Column 3: Current Streak */}
-                <div className="px-1.5 sm:px-2 last:pr-0 flex items-center gap-1.5 sm:gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/30 text-red-500 flex items-center justify-center shrink-0">
-                        <Flame size={15} />
-                    </div>
-                    <div className="min-w-0 text-left">
-                        <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold truncate leading-tight">
-                            Current Streak
-                        </p>
-                        <p className="text-[11px] sm:text-xs font-black text-gray-900 dark:text-white truncate leading-tight mt-0.5">
-                            {streak}
-                            <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 ml-0.5">
-                                day{streak === 1 ? '' : 's'}
-                            </span>
-                        </p>
+                    {/* Column 3: Streak */}
+                    <div className="bg-[#FFF5F6] dark:bg-rose-950/20 border border-[#FFE2E6] dark:border-rose-900/30 rounded-2xl p-2 sm:p-2.5 flex items-center gap-2 sm:gap-2.5 transition-all group-hover:border-rose-200">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl bg-[#FFE2E7] dark:bg-rose-900/50 text-[#FF2E56] flex items-center justify-center shrink-0">
+                            <Flame className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#FF2E56]" strokeWidth={2.3} />
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-bold leading-tight">
+                                Streak
+                            </p>
+                            <p className="text-xs sm:text-sm font-black text-gray-900 dark:text-white leading-tight mt-0.5 truncate">
+                                {streak} <span className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400">{streak === 1 ? 'day' : 'days'}</span>
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
