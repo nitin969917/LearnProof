@@ -13,12 +13,9 @@ const getTodayKey = (date = new Date()) => {
 };
 
 /**
- * Get user's daily goals for a specific date (defaults to today)
- * Completely user-owned — no auto-generated defaults or unwanted suggestions.
+ * Internal helper: fetch raw goals for a specific date
  */
-const getGoalsByDate = async (userId, clientDate = null) => {
-    const date = getTodayKey(clientDate || new Date());
-
+const fetchGoalsForDate = async (userId, date) => {
     const goals = await prisma.userDailyGoal.findMany({
         where: { userId, date },
         orderBy: [{ is_completed: 'asc' }, { id: 'asc' }]
@@ -36,6 +33,18 @@ const getGoalsByDate = async (userId, clientDate = null) => {
         left: totalCount - completedCount,
         progress
     };
+};
+
+/**
+ * Get user's daily goals for a specific date (defaults to today)
+ * Automatically ensures today's active roadmap lessons are synced seamlessly.
+ */
+const getGoalsByDate = async (userId, clientDate = null, skipAutoSync = false) => {
+    const date = getTodayKey(clientDate || new Date());
+    if (!skipAutoSync) {
+        await autoSyncActiveRoadmapGoals(userId, date);
+    }
+    return await fetchGoalsForDate(userId, date);
 };
 
 /**
@@ -348,7 +357,7 @@ const getGoalHistory = async (userId, days = 7, clientDate = null) => {
 /**
  * Bulk sync today's scheduled roadmap videos into UserDailyGoal
  */
-const syncRoadmapVideos = async (userId, { videos, date, pid, playlistName }) => {
+const syncRoadmapVideos = async (userId, { videos, date, pid, playlistName }, skipAutoSync = true) => {
     const dateKey = getTodayKey(date || new Date());
     if (!Array.isArray(videos) || videos.length === 0) {
         return { synced: 0, goals: [] };
@@ -391,13 +400,120 @@ const syncRoadmapVideos = async (userId, { videos, date, pid, playlistName }) =>
         }
     }
 
-    const allToday = await getGoalsByDate(userId, dateKey);
+    const allToday = await getGoalsByDate(userId, dateKey, skipAutoSync);
     return {
         synced: createdGoals.length,
         createdGoals,
         todayGoals: allToday
     };
 };
+
+/**
+ * Automatically sync active roadmap lessons into UserDailyGoal for today.
+ * Ensures the student always sees today's scheduled lessons in Daily Goals without needing manual sync.
+ */
+async function autoSyncActiveRoadmapGoals(userId, clientDate = null) {
+    try {
+        const todayStr = getTodayKey(new Date());
+        const targetDate = getTodayKey(clientDate || new Date());
+
+        // Only auto-sync for today (never rewrite past history)
+        if (targetDate !== todayStr) return;
+
+        // Fetch user's active playlists that have a duration goal configured
+        const playlists = await prisma.playlist.findMany({
+            where: {
+                userId,
+                duration_goal: { not: null, gt: 0 }
+            },
+            include: {
+                videos: {
+                    orderBy: [{ position: 'asc' }, { id: 'asc' }],
+                    select: {
+                        id: true,
+                        vid: true,
+                        name: true,
+                        duration_seconds: true,
+                        is_completed: true,
+                        watch_progress: true,
+                        updated_at: true,
+                        position: true
+                    }
+                }
+            }
+        });
+
+        if (!playlists.length) return;
+
+        // Rank playlists by recent activity (videos completed or watched, or recent import)
+        const activePlaylists = playlists
+            .map(pl => {
+                const incompleteVideos = pl.videos.filter(v => !v.is_completed);
+                const latestActivity = pl.videos.reduce((latest, v) => {
+                    const t = v.updated_at ? new Date(v.updated_at).getTime() : 0;
+                    return Math.max(latest, t);
+                }, new Date(pl.imported_at).getTime());
+                return {
+                    playlist: pl,
+                    incompleteVideos,
+                    latestActivity
+                };
+            })
+            .filter(item => item.incompleteVideos.length > 0)
+            .sort((a, b) => b.latestActivity - a.latestActivity);
+
+        if (!activePlaylists.length) return;
+
+        // Auto-sync for top active roadmap
+        for (const item of activePlaylists.slice(0, 1)) {
+            const { playlist: pl, incompleteVideos } = item;
+
+            // Check if today already has goals for this playlist
+            const existingForPlaylist = await prisma.userDailyGoal.findFirst({
+                where: {
+                    userId,
+                    date: targetDate,
+                    category: 'VIDEO',
+                    description: { contains: pl.name }
+                }
+            });
+
+            if (existingForPlaylist) {
+                // Today's goals from this roadmap are already established
+                continue;
+            }
+
+            // Calculate quota of videos for today based on duration_goal
+            const days = pl.duration_goal || 7;
+            const totalDuration = incompleteVideos.reduce((acc, v) => acc + (v.duration_seconds || 0), 0);
+            let todayVideos = [];
+
+            if (totalDuration > 0) {
+                const targetPerDay = totalDuration / Math.max(1, days);
+                let currentDuration = 0;
+                for (const v of incompleteVideos) {
+                    todayVideos.push(v);
+                    currentDuration += (v.duration_seconds || 0);
+                    if (currentDuration >= targetPerDay) break;
+                }
+            } else {
+                const quotaCount = Math.max(1, Math.ceil(incompleteVideos.length / Math.max(1, days)));
+                todayVideos = incompleteVideos.slice(0, quotaCount);
+            }
+
+            if (todayVideos.length > 0) {
+                await syncRoadmapVideos(userId, {
+                    videos: todayVideos,
+                    date: targetDate,
+                    pid: pl.pid,
+                    playlistName: pl.name
+                }, true); // skipAutoSync to prevent recursion
+            }
+        }
+    } catch (err) {
+        console.warn('[autoSyncActiveRoadmapGoals] Non-blocking warning:', err.message);
+    }
+}
 
 /**
  * Get active Coach Guidance for student's dashboard & study session
@@ -454,6 +570,7 @@ module.exports = {
     getTodayKey,
     getGoalsByDate,
     getTodayGoals,
+    autoSyncActiveRoadmapGoals,
     recordActivityGoalProgress,
     addGoal,
     toggleGoal,

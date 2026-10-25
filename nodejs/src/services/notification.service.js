@@ -178,6 +178,12 @@ const sendDailyNotifications = async () => {
                 } else if (type === 'ROADMAP_DAILY_REMINDER') {
                     // Check if student has incomplete daily goals scheduled for today
                     const todayDateKey = `${localParts.year}-${String(localParts.month).padStart(2, '0')}-${String(localParts.day).padStart(2, '0')}`;
+                    try {
+                        const goalService = require('./goal.service');
+                        await goalService.autoSyncActiveRoadmapGoals(user.id, todayDateKey);
+                    } catch (e) {
+                        // ignore non-blocking error in cron
+                    }
                     const pendingGoals = await prisma.userDailyGoal.count({
                         where: {
                             userId: user.id,

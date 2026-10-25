@@ -11,7 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-hot-toast';
 import { useModal } from '../../context/ModalContext';
 import apiCache from '../../utils/apiCache';
-import { syncRoadmapGoals } from '../../api/goalApi';
+import { syncRoadmapGoals, fetchTodayGoals } from '../../api/goalApi';
 
 const formatDuration = (seconds) => {
     if (!seconds) return "0m";
@@ -295,6 +295,35 @@ const RoadmapDetail = () => {
             return false;
         }
     };
+
+    // Auto-check and auto-sync today's scheduled roadmap goals on load
+    useEffect(() => {
+        let isMounted = true;
+        if (!token || !playlist || !todayDayPlan?.videos?.length) return;
+
+        const checkAndAutoSync = async () => {
+            try {
+                const todayStr = getLocalDateKey(new Date());
+                const res = await fetchTodayGoals(token, todayStr);
+                const existingGoals = res?.goals || [];
+                const todayVids = new Set(todayDayPlan.videos.map(v => v.vid || v.video_id));
+                const alreadySynced = existingGoals.some(g => todayVids.has(g.reference_id));
+
+                if (alreadySynced) {
+                    if (isMounted) setSyncedToday(true);
+                } else {
+                    // Auto-sync today's scheduled lessons seamlessly in the background
+                    await autoSyncTodayGoals(todayDayPlan.videos, playlist.pid, playlist.name);
+                    if (isMounted) setSyncedToday(true);
+                }
+            } catch (e) {
+                console.warn('[RoadmapDetail] Auto-sync check:', e);
+            }
+        };
+
+        checkAndAutoSync();
+        return () => { isMounted = false; };
+    }, [token, playlist?.pid, todayDayPlan?.videos]);
 
     const handleUpdateGoal = async (e) => {
         if (e) e.preventDefault();
@@ -841,13 +870,18 @@ const RoadmapDetail = () => {
                             </span>
                             <button
                                 onClick={handleSyncTodayGoals}
-                                disabled={syncingGoals || syncedToday}
-                                className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer disabled:opacity-60 shrink-0"
+                                disabled={syncingGoals}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0 ${
+                                    syncedToday 
+                                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20" 
+                                        : "bg-orange-500 hover:bg-orange-600 text-white active:scale-95"
+                                }`}
+                                title={syncedToday ? "Today's lessons are synced with Daily Goals! Click to re-sync." : "Sync today's lessons with Daily Goals"}
                             >
                                 {syncingGoals ? (
                                     <Loader2 size={12} className="animate-spin" />
                                 ) : syncedToday ? (
-                                    <BookmarkCheck size={12} />
+                                    <BookmarkCheck size={12} className="text-emerald-500" />
                                 ) : (
                                     <Target size={12} />
                                 )}
