@@ -357,11 +357,11 @@ const DashboardHome = () => {
                 </div>
 
                 {/* 3. CONTINUE LEARNING SECTION (Mobile only) */}
-                <div className="block lg:hidden space-y-2">
+                <div className="block lg:hidden space-y-3 pb-2">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <BookOpen className="w-5 h-5 text-[#F97316]" strokeWidth={2.4} />
-                            <h2 className="text-[17px] sm:text-lg font-black text-gray-900 dark:text-white tracking-tight">
+                        <div className="flex items-center gap-2 sm:gap-2.5">
+                            <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-[#F97316]" strokeWidth={2.3} />
+                            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight">
                                 Continue learning
                             </h2>
                         </div>
@@ -375,7 +375,7 @@ const DashboardHome = () => {
                     </div>
 
                     {/* 2-Column Grid Side-by-Side */}
-                    <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                    <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                         {/* Learning Hub Card */}
                         <div
                             role="button"
@@ -388,7 +388,7 @@ const DashboardHome = () => {
                                     <GraduationCap className="w-5 h-5 text-[#F97316]" strokeWidth={2.2} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <h3 className="text-[13.5px] sm:text-[15px] font-extrabold text-gray-900 dark:text-white leading-tight">
+                                    <h3 className="text-[13.5px] sm:text-[14px] font-bold text-gray-900 dark:text-white leading-tight">
                                         Learning Hub
                                     </h3>
                                     <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium leading-snug mt-0.5 line-clamp-2">
@@ -419,7 +419,7 @@ const DashboardHome = () => {
                                     </svg>
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <h3 className="text-[13.5px] sm:text-[15px] font-extrabold text-gray-900 dark:text-white leading-tight">
+                                    <h3 className="text-[13.5px] sm:text-[14px] font-bold text-gray-900 dark:text-white leading-tight">
                                         Live Rooms
                                     </h3>
                                     <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium leading-snug mt-0.5 line-clamp-2">
@@ -493,7 +493,7 @@ const DashboardHome = () => {
                 ) : (
                     /* USER HAS CONTENT: Show Playlists if any */
                     playlists.length > 0 && (
-                        <div className="space-y-4 relative group">
+                        <div className="space-y-3 relative group">
                             <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-2 sm:gap-2.5">
                                     <Library className="w-5 h-5 sm:w-6 sm:h-6 text-[#F97316]" strokeWidth={2.3} />
@@ -521,7 +521,7 @@ const DashboardHome = () => {
 
                                 <div
                                     ref={playlistContainerRef}
-                                    className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory hide-scrollbar mt-4"
+                                    className="flex overflow-x-auto gap-4 pb-2 snap-x snap-mandatory hide-scrollbar"
                                 >
                                     {playlists.map((pl) => {
                                         const totalVideos = pl.videos?.length || 0;

@@ -61,7 +61,7 @@ const ContinueWatching = ({ videos: propVideos, loading: propLoading }) => {
                     <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                     <div className="h-6 w-44 bg-gray-255 dark:bg-gray-700 rounded animate-pulse"></div>
                 </div>
-                <div className="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory hide-scrollbar">
+                <div className="flex overflow-x-auto gap-4 pb-2 snap-x snap-mandatory hide-scrollbar">
                     {Array.from({ length: 4 }).map((_, i) => (
                         <div key={i} className="flex-shrink-0 w-[280px] sm:w-[320px] bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 animate-pulse space-y-4">
                             <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
@@ -98,7 +98,7 @@ const ContinueWatching = ({ videos: propVideos, loading: propLoading }) => {
 
                 <div 
                     ref={scrollContainerRef}
-                    className="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory hide-scrollbar"
+                    className="flex overflow-x-auto gap-4 pb-2 snap-x snap-mandatory hide-scrollbar"
                 >
                     {videos.map((video, index) => (
                         <motion.div
