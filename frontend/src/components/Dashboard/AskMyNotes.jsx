@@ -3,7 +3,7 @@ import {
     ArrowLeft, Sparkles, Plus, Trash2, Loader2, Upload, X,
     CheckCircle2, AlertTriangle, Send, FileText, BrainCircuit,
     BookOpen, HelpCircle, RefreshCw, Layers, Save, Check, Play,
-    Mic, MicOff, Download, GraduationCap
+    Mic, MicOff, Download, GraduationCap, Zap, User, Copy, BookmarkPlus
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -19,6 +19,8 @@ import toast from 'react-hot-toast';
 import ConfirmModal from '../Common/ConfirmModal';
 import { useMemo, memo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import LaserScopeModal from '../FlowPilot/LaserScopeModal';
+import FlowPilotStudyDesk from '../FlowPilot/FlowPilotStudyDesk';
 
 let mermaidInstancePromise = null;
 const getMermaid = async () => {
@@ -523,7 +525,7 @@ const AskMyNotes = () => {
             if (inline) {
                 return (
                     <code
-                        className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-orange-600 dark:text-orange-400 font-mono text-xs break-all whitespace-pre-wrap"
+                        className="px-1.5 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 font-mono text-xs font-semibold border border-orange-100 dark:border-orange-900/30 break-all whitespace-pre-wrap"
                         {...props}
                     >
                         {children}
@@ -532,7 +534,7 @@ const AskMyNotes = () => {
             }
             return (
                 <code
-                    className={`${className || ''} block overflow-x-auto text-xs font-mono bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl max-w-full`}
+                    className={`${className || ''} block overflow-x-auto text-xs font-mono bg-slate-900 text-slate-100 p-3.5 rounded-xl max-w-full`}
                     {...props}
                 >
                     {children}
@@ -541,47 +543,47 @@ const AskMyNotes = () => {
         },
         pre({ children }) {
             return (
-                <pre className="w-full overflow-x-auto bg-slate-50 dark:bg-slate-950/50 border border-slate-100/50 dark:border-gray-800/50 rounded-xl my-3 p-3 max-w-full">
+                <pre className="w-full overflow-x-auto bg-slate-900 text-slate-100 border border-slate-800 rounded-xl my-3 p-3.5 max-w-full text-xs font-mono shadow-sm">
                     {children}
                 </pre>
             );
         },
         h1({ children }) {
-            return <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-7 mb-2 pb-1.5 border-b-2 border-slate-200 dark:border-gray-700">{children}</h1>;
+            return <h1 className="text-lg md:text-xl font-bold text-slate-900 dark:text-slate-100 mt-4 mb-2 pb-1 border-b border-slate-100 dark:border-gray-800">{children}</h1>;
         },
         h2({ children }) {
-            return <h2 className="text-xl font-black text-slate-800 dark:text-slate-100 mt-6 mb-1.5">{children}</h2>;
+            return <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-slate-100 mt-3.5 mb-1.5">{children}</h2>;
         },
         h3({ children }) {
-            return <h3 className="text-lg font-black text-slate-700 dark:text-slate-200 mt-5 mb-1">{children}</h3>;
+            return <h3 className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-200 mt-3 mb-1">{children}</h3>;
         },
         h4({ children }) {
-            return <h4 className="text-base font-bold text-slate-600 dark:text-slate-300 mt-4 mb-0.5">{children}</h4>;
+            return <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-2.5 mb-0.5">{children}</h4>;
         },
         p({ children }) {
-            return <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mb-2 last:mb-0">{children}</p>;
+            return <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mb-2.5 last:mb-0">{children}</p>;
         },
         ul({ children }) {
-            return <ul className="list-disc list-outside pl-5 space-y-1.5 my-2 text-xs md:text-sm text-slate-700 dark:text-slate-300">{children}</ul>;
+            return <ul className="list-disc list-outside pl-5 space-y-1.5 my-2.5 text-sm text-slate-700 dark:text-slate-300">{children}</ul>;
         },
         ol({ children }) {
-            return <ol className="list-decimal list-outside pl-5 space-y-1.5 my-2 text-xs md:text-sm text-slate-700 dark:text-slate-300">{children}</ol>;
+            return <ol className="list-decimal list-outside pl-5 space-y-1.5 my-2.5 text-sm text-slate-700 dark:text-slate-300">{children}</ol>;
         },
         li({ children }) {
-            return <li className="leading-relaxed [&>p]:inline">{children}</li>;
+            return <li className="leading-relaxed text-sm text-slate-700 dark:text-slate-300 [&>p]:inline">{children}</li>;
         },
         hr() {
             return <hr className="my-3 border-slate-100 dark:border-gray-800" />;
         },
         blockquote({ children }) {
-            return <blockquote className="border-l-2 border-orange-400 pl-3 my-2 text-xs italic text-slate-500 dark:text-slate-400">{children}</blockquote>;
+            return <blockquote className="border-l-3 border-orange-500 bg-orange-50/50 dark:bg-orange-950/20 px-3 py-2 my-2 rounded-r-lg text-xs italic text-slate-600 dark:text-slate-300">{children}</blockquote>;
         },
         strong({ children }) {
-            return <strong className="font-bold text-slate-800 dark:text-slate-100">{children}</strong>;
+            return <strong className="font-bold text-slate-900 dark:text-white">{children}</strong>;
         },
         table({ children }) {
             return (
-                <div className="w-full overflow-x-auto my-4 border border-slate-100 dark:border-gray-800 rounded-2xl shadow-sm bg-white dark:bg-gray-900">
+                <div className="w-full overflow-x-auto my-3 border border-slate-200/80 dark:border-gray-800 rounded-xl shadow-xs bg-white dark:bg-gray-900">
                     <table className="min-w-full divide-y divide-slate-100 dark:divide-gray-800 text-xs text-left">
                         {children}
                     </table>
@@ -590,14 +592,14 @@ const AskMyNotes = () => {
         },
         th({ children }) {
             return (
-                <th className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 text-[10px]">
+                <th className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 text-[10px]">
                     {children}
                 </th>
             );
         },
         td({ children }) {
             return (
-                <td className="px-4 py-3 border-t border-slate-100 dark:border-gray-800 text-slate-600 dark:text-slate-300 whitespace-normal leading-relaxed">
+                <td className="px-4 py-2.5 border-t border-slate-100 dark:border-gray-800 text-slate-700 dark:text-slate-300 whitespace-normal leading-relaxed">
                     {children}
                 </td>
             );
@@ -640,6 +642,7 @@ const AskMyNotes = () => {
     const [loadingChats, setLoadingChats] = useState(false);
     const [loadingMessages, setLoadingMessages] = useState(false);
     const messagesContainerRef = useRef(null);
+    const messagesEndRef = useRef(null);
 
     // Study Pane / Right Pane State
     const [studyTab, setStudyTab] = useState('notes'); // 'notes' | 'quiz' | 'flashcards'
@@ -659,6 +662,12 @@ const AskMyNotes = () => {
     const [isGeneratingCards, setIsGeneratingCards] = useState(false);
     const [knowledgeMap, setKnowledgeMap] = useState([]);
     const [isGeneratingMap, setIsGeneratingMap] = useState(false);
+
+    // FlowPilot Deep Study Sprint States
+    const [isLaserScopeOpen, setIsLaserScopeOpen] = useState(false);
+    const [isFlowPilotDeskOpen, setIsFlowPilotDeskOpen] = useState(false);
+    const [activeSprintPlan, setActiveSprintPlan] = useState(null);
+    const [isStartingSprint, setIsStartingSprint] = useState(false);
 
     // Save notes indicator
     const [isSavingNote, setIsSavingNote] = useState(false);
@@ -1074,11 +1083,20 @@ const AskMyNotes = () => {
         }
     };
 
-    const scrollToBottom = () => {
-        if (messagesContainerRef.current) {
-            messagesContainerRef.current.scrollTop = 0; // 0 = bottom in flex-col-reverse
+    const scrollToBottom = (behavior = 'smooth') => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+        } else if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
         }
     };
+
+    // Auto-scroll on new messages or stream chunks
+    useEffect(() => {
+        if (messages.length > 0) {
+            scrollToBottom(isStreaming ? 'auto' : 'smooth');
+        }
+    }, [messages.length, isStreaming]);
 
     // ==========================================
     // STUDY PANE API: NOTES, QUIZZES, FLASHCARDS
@@ -1228,7 +1246,8 @@ const AskMyNotes = () => {
             const response = await socialApi.get(`/workspaces/${wsId}/knowledge-map`);
             setKnowledgeMap(response.data.knowledgeMap || []);
         } catch (err) {
-            console.error('Failed to load knowledge map:', err);
+            // Knowledge map is optional and generated on-demand
+            console.warn('Knowledge map not yet generated for this workspace:', err?.message || err);
         }
     };
 
@@ -1400,6 +1419,45 @@ const AskMyNotes = () => {
             toast.error(err.response?.data?.error || 'Failed to generate flashcards.', { id });
         } finally {
             setIsGeneratingCards(false);
+        }
+    };
+
+    // ==========================================
+    // FLOWPILOT SPRINT HANDLERS
+    // ==========================================
+    const handleStartFlowSprint = async (sprintConfig) => {
+        if (!activeWorkspace) {
+            toast.error('Please select or create a subject first!');
+            return;
+        }
+        setIsStartingSprint(true);
+        const toastId = toast.loading('Building your 4-Rung Cognitive Study Plan with Gemini 1.5 Flash...');
+        try {
+            const res = await socialApi.post(`/workspaces/${activeWorkspace.id}/flowpilot/sprint`, sprintConfig);
+            if (res.data?.success && res.data?.plan) {
+                setActiveSprintPlan(res.data.plan);
+                setIsLaserScopeOpen(false);
+                setIsFlowPilotDeskOpen(true);
+                toast.success('Cognitive Study Desk ready! Enter Flow State.', { id: toastId });
+            } else {
+                toast.error(res.data?.message || 'Failed to generate sprint plan.', { id: toastId });
+            }
+        } catch (err) {
+            console.error('[FlowPilot] Start Sprint error:', err);
+            toast.error(err.response?.data?.message || err.response?.data?.error || 'Error initializing sprint. Please try again.', { id: toastId });
+        } finally {
+            setIsStartingSprint(false);
+        }
+    };
+
+    const handleSprintOpenNote = (note) => {
+        setIsFlowPilotDeskOpen(false);
+        setStudyTab('notes');
+        if (activeWorkspace?.id) {
+            fetchNotes(activeWorkspace.id);
+        }
+        if (note) {
+            setActiveNote(note);
         }
     };
 
@@ -1856,8 +1914,23 @@ const AskMyNotes = () => {
                     </div>
                 </div>
 
-                {/* Right actions: Summary, Sources Toggle, and Tools Toggle */}
+                {/* Right actions: FlowPilot, Summary, Sources Toggle, and Tools Toggle */}
                 <div className="flex items-center gap-1.5 sm:gap-2">
+                    {/* FlowPilot Sprint Button - Primary Cognitive Engine */}
+                    <button
+                        onClick={() => setIsLaserScopeOpen(true)}
+                        disabled={isStartingSprint}
+                        className="p-2 sm:py-1.5 sm:px-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-md shadow-orange-500/20 transition-all transform active:scale-95 cursor-pointer disabled:opacity-50 ring-1 ring-orange-400/30"
+                        title="Start LearnProof FlowPilot Deep Study Sprint"
+                    >
+                        {isStartingSprint ? (
+                            <Loader2 size={16} className="animate-spin text-white" />
+                        ) : (
+                            <Zap size={15} className="text-white fill-white" />
+                        )}
+                        <span className="hidden sm:inline font-black tracking-tight">FlowPilot Sprint</span>
+                    </button>
+
                     {/* Summary Button */}
                     <button
                         onClick={triggerGenerateSummary}
@@ -2033,96 +2106,219 @@ const AskMyNotes = () => {
 
 
 
-                    {/* Chat Messages — flex-col-reverse keeps newest at bottom without JS scrolling */}
+                    {/* Chat Messages */}
                     <div
                         ref={messagesContainerRef}
-                        className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 flex flex-col-reverse gap-6"
+                        className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 space-y-6 flex flex-col"
                     >
                         {loadingMessages ? (
                             /* Skeleton loader — shown while messages are fetching to prevent empty-state flash */
-                            <div className="flex flex-col gap-5 py-4">
+                            <div className="flex flex-col gap-5 py-4 w-full max-w-3xl mx-auto">
                                 {[1, 2, 3].map(i => (
                                     <div key={i} className={`flex flex-col gap-2 ${i % 2 === 0 ? 'items-end' : 'items-start'}`}>
-                                        <div className="h-2 w-16 bg-slate-100 dark:bg-gray-800 rounded animate-pulse" />
-                                        <div className={`rounded-3xl bg-slate-100 dark:bg-gray-800 animate-pulse ${i % 2 === 0 ? 'w-48 h-10' : 'w-full h-20'
+                                        <div className="h-2 w-16 bg-slate-200/70 dark:bg-gray-800 rounded animate-pulse" />
+                                        <div className={`rounded-2xl md:rounded-3xl bg-white dark:bg-gray-900 border border-slate-100 dark:border-gray-800 animate-pulse ${i % 2 === 0 ? 'w-48 h-12' : 'w-full h-24'
                                             }`} />
                                     </div>
                                 ))}
                             </div>
                         ) : messages.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-center max-w-sm mx-auto space-y-4">
-                                <div className="p-4 bg-orange-500/10 rounded-3xl text-orange-500">
-                                    <Sparkles size={32} />
+                            <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4 py-8 my-auto">
+                                <div className="w-14 h-14 rounded-3xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/25">
+                                    <Sparkles size={28} />
                                 </div>
-                                <h3 className="font-black text-slate-800 dark:text-white text-lg tracking-tight">Ask your documents anything</h3>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    Upload course materials and ask questions. LearnProof will retrieve relevant context and cite page references.
+                                <h3 className="font-extrabold text-slate-900 dark:text-white text-xl tracking-tight">Ask your documents anything</h3>
+                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-sm">
+                                    Upload course materials and ask questions. LearnProof AI will retrieve relevant context and cite page references.
                                 </p>
+
+                                {/* Quick prompt suggestions */}
+                                <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-left">
+                                    {[
+                                        "Summarize key concepts from this document",
+                                        "Explain the most difficult topics with examples",
+                                        "Generate a revision outline with page references",
+                                        "Create 5 practice questions from the chapters"
+                                    ].map((suggestion, sIdx) => (
+                                        <button
+                                            key={sIdx}
+                                            onClick={() => handleSendMessage(null, suggestion)}
+                                            disabled={sources.length === 0 || isStreaming}
+                                            className="p-3 rounded-2xl bg-white dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800 text-xs font-medium text-slate-700 dark:text-slate-300 hover:border-orange-500 hover:text-orange-600 dark:hover:text-orange-400 transition-all text-left shadow-2xs cursor-pointer group disabled:opacity-40 disabled:cursor-not-allowed"
+                                        >
+                                            <div className="flex items-center gap-1.5 text-orange-500 mb-1">
+                                                <Sparkles size={11} />
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">Prompt idea</span>
+                                            </div>
+                                            <span className="line-clamp-2 leading-snug">{suggestion}</span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* FlowPilot Quick Launch Card */}
+                                <div className="w-full mt-2 p-5 rounded-3xl bg-gradient-to-br from-orange-500/10 via-amber-500/10 to-orange-500/5 border border-orange-200/70 dark:border-orange-900/40 text-left shadow-sm">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <span className="p-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm">
+                                                <Zap size={14} className="fill-white text-white" />
+                                            </span>
+                                            <span className="text-xs font-black uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                                                LearnProof FlowPilot™
+                                            </span>
+                                        </div>
+                                        <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400">
+                                            Deep Focus
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-600 dark:text-slate-300 mb-3.5 leading-relaxed">
+                                        Select 2–3 chapters from your 500+ page book. Complete the 4-Rung Cognitive Ladder (Intuition, Mechanism, Traps, and Handwritten Paper Proofs) with zero phone distraction.
+                                    </p>
+                                    <button
+                                        onClick={() => setIsLaserScopeOpen(true)}
+                                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-orange-500/20 transition-all cursor-pointer active:scale-95"
+                                    >
+                                        <Zap size={14} className="fill-white text-white" />
+                                        <span>Start Flow Study Sprint</span>
+                                    </button>
+                                </div>
                             </div>
                         ) : (
-                            // Render in reverse so newest message is at the top of the reversed flex container (= visual bottom)
-                            [...messages].reverse().map((msg, index) => (
-                                <div
-                                    key={msg.id}
-                                    className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'
-                                        }`}
-                                >
-                                    <div className={`space-y-1 ${msg.role === 'user' ? 'max-w-[85%] sm:max-w-[70%]' : 'w-full'}`}>
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">
-                                            {msg.role === 'user' ? 'You' : 'LearnProof Assistant'}
-                                        </span>
+                            /* Natural top-to-bottom chat flow */
+                            messages.map((msg, index) => {
+                                const isUser = msg.role === 'user';
+                                const isLatestAssistant = !isUser && index === messages.length - 1;
 
-                                        <div className={`text-sm leading-relaxed ${msg.role === 'user'
-                                            ? 'p-4 rounded-2xl bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-white dark:border-slate-700/50 shadow-sm'
-                                            : 'p-5 md:p-6 rounded-3xl bg-white text-slate-800 dark:bg-gray-900 dark:text-slate-100 border border-slate-100 dark:border-gray-800 shadow-sm w-full'
-                                            }`}>
-                                            {msg.content === '' && isStreaming && index === 0 ? (
-                                                <ThinkingIndicator />
-                                            ) : (
-                                                <div className="text-xs md:text-sm leading-relaxed text-slate-700 dark:text-slate-300 max-w-none">
-                                                    <ReactMarkdown
-                                                        remarkPlugins={[remarkGfm, remarkMath]}
-                                                        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
-                                                        components={markdownComponents}
-                                                    >
-                                                        {preprocessMath(msg.content)}
-                                                    </ReactMarkdown>
-                                                </div>
-                                            )}
-
-                                            {/* Citations Footer */}
-                                            {msg.role === 'assistant' && msg.citations && msg.citations.length > 0 && (
-                                                <div className="border-t border-slate-50 dark:border-gray-800 mt-4 pt-3 space-y-1.5">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                        Sources Cited:
-                                                    </p>
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        {msg.citations.map((cite, cIdx) => (
-                                                            <span
-                                                                key={cIdx}
-                                                                className="text-[9px] font-bold bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-100 dark:border-gray-700/50"
-                                                                title={`Relevance score: ${Math.round(cite.score * 100)}%`}
-                                                            >
-                                                                {cite.document_name}
-                                                            </span>
-                                                        ))}
+                                return (
+                                    <div
+                                        key={msg.id || index}
+                                        className={`flex flex-col w-full ${isUser ? 'items-end' : 'items-start'} group`}
+                                    >
+                                        {/* Header identity */}
+                                        <div className={`flex items-center gap-1.5 mb-1.5 ${isUser ? 'pr-1' : 'pl-1 w-full justify-between'}`}>
+                                            {isUser ? (
+                                                <>
+                                                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">You</span>
+                                                    <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                                                        <User size={11} />
                                                     </div>
-                                                </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white shadow-sm shadow-orange-500/25">
+                                                            <Sparkles size={12} className="text-white" />
+                                                        </div>
+                                                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                                            LearnProof AI
+                                                        </span>
+                                                        <span className="text-[9px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400 bg-orange-100/70 dark:bg-orange-950/50 px-2 py-0.5 rounded-full">
+                                                            Assistant
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Actions: Copy & Add to Notes */}
+                                                    {msg.content && (
+                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    navigator.clipboard.writeText(msg.content);
+                                                                    toast.success('Copied to clipboard');
+                                                                }}
+                                                                className="px-2 py-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-gray-800 rounded-md transition-all text-[11px] font-medium flex items-center gap-1 cursor-pointer"
+                                                                title="Copy response"
+                                                            >
+                                                                <Copy size={12} />
+                                                                <span className="hidden sm:inline">Copy</span>
+                                                            </button>
+                                                            {activeNote && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const formattedHtml = `<h3>AI Notes: ${activeWorkspace?.name || 'Study Session'}</h3><p>${msg.content.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br/>')}</p>`;
+                                                                        const newContent = activeNote.content 
+                                                                            ? `${activeNote.content}<hr/>${formattedHtml}`
+                                                                            : formattedHtml;
+                                                                        handleUpdateNoteContent(newContent);
+                                                                        toast.success('Saved to your notebook!');
+                                                                    }}
+                                                                    className="px-2 py-1 text-slate-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30 rounded-md transition-all text-[11px] font-medium flex items-center gap-1 cursor-pointer"
+                                                                    title="Save to Notes"
+                                                                >
+                                                                    <BookmarkPlus size={12} />
+                                                                    <span className="hidden sm:inline">Save to Note</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
+
+                                        {/* Message Bubble/Card */}
+                                        {isUser ? (
+                                            <div className="max-w-[85%] sm:max-w-[75%] md:max-w-[70%] px-4.5 py-3 rounded-2xl rounded-tr-xs bg-gradient-to-r from-[#FF5100] via-[#FF6315] to-[#FF7730] text-white shadow-sm shadow-orange-500/20 text-sm leading-relaxed font-medium break-words">
+                                                {msg.content}
+                                            </div>
+                                        ) : (
+                                            <div className="w-full rounded-2xl md:rounded-3xl bg-white dark:bg-gray-900 border border-slate-200/80 dark:border-gray-800/80 p-5 md:p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] dark:shadow-none text-slate-800 dark:text-slate-100">
+                                                {msg.content === '' && isStreaming && isLatestAssistant ? (
+                                                    <ThinkingIndicator />
+                                                ) : (
+                                                    <div className="text-[14px] leading-relaxed text-slate-800 dark:text-slate-200 max-w-none">
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[remarkGfm, remarkMath]}
+                                                            rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
+                                                            components={markdownComponents}
+                                                        >
+                                                            {preprocessMath(msg.content)}
+                                                        </ReactMarkdown>
+                                                    </div>
+                                                )}
+
+                                                {/* Citations Footer */}
+                                                {msg.citations && msg.citations.length > 0 && (
+                                                    <div className="border-t border-slate-100 dark:border-gray-800 mt-4 pt-3.5 space-y-2">
+                                                        <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                                            <FileText size={12} className="text-orange-500" />
+                                                            <span>Sources Cited ({msg.citations.length})</span>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {msg.citations.map((cite, cIdx) => (
+                                                                <div
+                                                                    key={cIdx}
+                                                                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-orange-50/80 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 px-2.5 py-1 rounded-lg border border-orange-200/60 dark:border-orange-800/40"
+                                                                    title={`Relevance score: ${Math.round((cite.score || 0) * 100)}%`}
+                                                                >
+                                                                    <BookOpen size={11} className="shrink-0 text-orange-500" />
+                                                                    <span className="truncate max-w-[220px]">{cite.document_name}</span>
+                                                                    {cite.page && (
+                                                                        <span className="px-1.5 py-0.5 bg-white dark:bg-gray-800 rounded text-[10px] font-bold text-slate-600 dark:text-slate-300 border border-orange-200/50">
+                                                                            p. {cite.page}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
+                        {/* Scroll anchor */}
+                        <div ref={messagesEndRef} className="h-2 shrink-0" />
                     </div>
 
                     {/* Chat Prompt Box */}
-                    <div className="p-4 bg-white dark:bg-gray-900 border-t border-slate-100 dark:border-gray-800">
-                        <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
-                            <div className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-gray-800 bg-slate-50 dark:bg-slate-800 focus-within:border-orange-500 transition-colors">
+                    <div className="p-3.5 sm:p-4 bg-white dark:bg-gray-900 border-t border-slate-100 dark:border-gray-800 shrink-0">
+                        <form onSubmit={handleSendMessage} className="flex gap-2 items-center max-w-4xl mx-auto">
+                            <div className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200/90 dark:border-gray-800 bg-slate-50/80 dark:bg-slate-800/80 focus-within:border-orange-500 focus-within:bg-white dark:focus-within:bg-slate-850 focus-within:ring-2 focus-within:ring-orange-500/20 transition-all shadow-2xs">
                                 <input
                                     type="text"
-                                    placeholder={sources.length === 0 ? "Upload files first to enable chat" : isListening ? "Listening... speak now" : "Ask a question about your files..."}
+                                    placeholder={sources.length === 0 ? "Upload documents first to ask questions..." : isListening ? "Listening... speak now" : "Ask a question about your files..."}
                                     value={chatInput}
                                     onChange={(e) => setChatInput(e.target.value)}
                                     disabled={isStreaming || sources.length === 0}
@@ -2136,9 +2332,9 @@ const AskMyNotes = () => {
                                         disabled={isStreaming || sources.length === 0}
                                         title={isListening ? 'Stop recording' : 'Voice input'}
                                         className={`flex-shrink-0 p-1.5 rounded-xl transition-all ${isListening
-                                                ? 'text-red-500 animate-pulse'
-                                                : 'text-slate-400 hover:text-orange-500'
-                                            } disabled:opacity-30`}
+                                                ? 'text-red-500 animate-pulse bg-red-50 dark:bg-red-950/30'
+                                                : 'text-slate-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950/20'
+                                            } disabled:opacity-30 cursor-pointer`}
                                     >
                                         {isListening ? <MicOff size={18} /> : <Mic size={18} />}
                                     </button>
@@ -2146,8 +2342,8 @@ const AskMyNotes = () => {
                             </div>
                             <button
                                 type="submit"
-                                disabled={!chatInput.trim() || isStreaming}
-                                className="flex-shrink-0 p-3 bg-gradient-to-r from-orange-600 to-amber-500 text-white rounded-2xl hover:scale-105 active:scale-95 transition-all disabled:opacity-40"
+                                disabled={!chatInput.trim() || isStreaming || sources.length === 0}
+                                className="flex-shrink-0 p-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-md shadow-orange-500/25 disabled:opacity-40 disabled:hover:scale-100 disabled:shadow-none cursor-pointer"
                             >
                                 <Send size={18} />
                             </button>
@@ -2427,6 +2623,25 @@ const AskMyNotes = () => {
                     );
                 })()}
             </AnimatePresence>
+
+            {/* FlowPilot Laser-Scope Configuration Modal */}
+            <LaserScopeModal
+                isOpen={isLaserScopeOpen}
+                onClose={() => setIsLaserScopeOpen(false)}
+                workspace={{ ...activeWorkspace, sources }}
+                onStartSprint={handleStartFlowSprint}
+            />
+
+            {/* FlowPilot Fullscreen Cognitive Study Desk */}
+            {activeSprintPlan && (
+                <FlowPilotStudyDesk
+                    isOpen={isFlowPilotDeskOpen}
+                    onClose={() => setIsFlowPilotDeskOpen(false)}
+                    workspaceId={activeWorkspace?.id}
+                    initialPlan={activeSprintPlan}
+                    onOpenNote={handleSprintOpenNote}
+                />
+            )}
         </div>
     );
 };
