@@ -41,22 +41,36 @@ if (process.env.GEMINI_API_KEY) {
  * Helper to call Gemini content generation using Vertex AI or Google AI Studio GenAI SDK.
  */
 const generateGeminiContent = async (modelName, contents, config = {}) => {
-    const timeoutMs = config.timeout || 25000; // 25s max timeout for fast response & swift fallback
-    
+    const timeoutMs = config.timeout || 40000; // 40s max timeout for fast response & swift fallback
+
+    // Normalize contents: ensure clean string format to avoid SDK 400 serialization errors
+    let normalizedContents = contents;
+    if (Array.isArray(contents) && contents.length > 0) {
+        if (typeof contents[0] === 'string') {
+            normalizedContents = contents.join('\n');
+        } else if (contents[0]?.parts && Array.isArray(contents[0].parts)) {
+            normalizedContents = contents[0].parts.map(p => p.text || '').join('\n');
+        }
+    }
+
     const callPromise = (async () => {
-        // 1. Try Google Vertex AI (Credits) if configured
+        // 1. Try Google Vertex AI (Credits) if configured with a 12s fast-failover timeout
         if (vertexAIClient) {
             try {
                 console.log(`[Google Vertex AI Credits] Calling model: ${modelName}`);
-                const response = await vertexAIClient.models.generateContent({
+                const vertexCall = vertexAIClient.models.generateContent({
                     model: modelName,
-                    contents: contents,
+                    contents: normalizedContents,
                     config: {
                         maxOutputTokens: config.maxOutputTokens || 8192,
                         temperature: config.temperature,
                         responseMimeType: config.responseMimeType
                     }
                 });
+                const vertexTimeout = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Vertex AI internal timeout')), 12000)
+                );
+                const response = await Promise.race([vertexCall, vertexTimeout]);
                 if (response && response.text) return response.text;
             } catch (vertexErr) {
                 console.warn(`[Google Vertex AI Credits] ${modelName} failed (${vertexErr.message}), falling back to Google AI Studio GenAI SDK...`);
@@ -69,7 +83,7 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
             try {
                 const response = await aiStudioGenAIClient.models.generateContent({
                     model: modelName,
-                    contents: contents,
+                    contents: normalizedContents,
                     config: {
                         maxOutputTokens: config.maxOutputTokens || 8192,
                         temperature: config.temperature,
@@ -88,7 +102,7 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
                             responseMimeType: config.responseMimeType
                         }
                     });
-                    const result = await model.generateContent(contents);
+                    const result = await model.generateContent(normalizedContents);
                     return result.response.text();
                 }
                 throw studioErr;
@@ -105,7 +119,7 @@ const generateGeminiContent = async (modelName, contents, config = {}) => {
                     responseMimeType: config.responseMimeType
                 }
             });
-            const result = await model.generateContent(contents);
+            const result = await model.generateContent(normalizedContents);
             return result.response.text();
         }
 
@@ -1542,6 +1556,8 @@ module.exports = {
     translateText,
     benchmarkAllModels,
     generateGeminiContent,
+    cleanAIJSON,
+    repairAIJSONString,
     answerVideoDoubt,
     detectSubjectCategory,
     MODELS

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { 
     Search, Youtube, Play, Plus, Loader, Sparkles, SlidersHorizontal, 
     X, ChevronLeft, ChevronRight, Layers, Video, ListVideo, 
-    Calendar, Eye, Clock, Zap, RotateCcw, ArrowLeft 
+    Calendar, Eye, Clock, Zap, RotateCcw, ArrowLeft, VolumeX, Volume2 
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
@@ -59,24 +59,55 @@ const YouTubeExplorer = () => {
     // Import modal state
     const [importLoading, setImportLoading] = useState(false);
     const [importData, setImportData] = useState(null);
-    const [activePreview, setActivePreview] = useState(null); // stores { id, type } of item to preview
-    const [iframeReady, setIframeReady] = useState(false);
 
-    // Prevent background scroll and page shift while preview modal is open
-    useEffect(() => {
-        if (activePreview) {
-            const originalOverflow = document.body.style.overflow;
-            document.body.style.overflow = 'hidden';
-            return () => {
-                document.body.style.overflow = originalOverflow;
-            };
+    // YouTube-style inline hover & scroll preview state
+    const [previewingItemId, setPreviewingItemId] = useState(null);
+    const [isPreviewMuted, setIsPreviewMuted] = useState(true);
+    const hoverTimerRef = useRef(null);
+    const cardRefs = useRef({});
+    const iframeRefs = useRef({});
+
+    const handleCardMouseEnter = (itemId) => {
+        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = setTimeout(() => {
+            setPreviewingItemId(itemId);
+        }, 350);
+    };
+
+    const handleCardMouseLeave = () => {
+        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+        setPreviewingItemId(null);
+    };
+
+    const togglePreviewMute = (e, itemId) => {
+        if (e) {
+            e.stopPropagation();
+            e.preventDefault();
         }
-    }, [activePreview]);
+        setIsPreviewMuted((prev) => {
+            const next = !prev;
+            try {
+                const iframe = iframeRefs.current[itemId];
+                if (iframe && iframe.contentWindow) {
+                    const cmd = next ? 'mute' : 'unMute';
+                    iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: cmd, args: [] }), '*');
+                    if (!next) {
+                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'setVolume', args: [100] }), '*');
+                    }
+                }
+            } catch (_) {}
+            return next;
+        });
+    };
 
-    // Reset iframe loading state when target video changes
-    useEffect(() => {
-        setIframeReady(false);
-    }, [activePreview?.id, activePreview?.activeVideoId]);
+    const handleCardClick = (item) => {
+        if (!item) return;
+        if (item.type === 'video') {
+            navigate(`/classroom/${item.id}`);
+        } else {
+            handleImportClick(item.url);
+        }
+    };
 
     // Recommendations state
     const [recommendSubject, setRecommendSubject] = useState('');
@@ -410,130 +441,53 @@ const YouTubeExplorer = () => {
         setImportData(null);
     };
 
-    const handleOpenPreview = async (item) => {
-        if (!item) return;
+    // Mobile / Touch Scroll Auto-Preview (plays centered card while scrolling, like YouTube mobile)
+    useEffect(() => {
+        const isTouchDevice = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+        if (!isTouchDevice) return;
 
-        if (item.type === 'video') {
-            setActivePreview({
-                id: item.id,
-                type: 'video',
-                title: item.title,
-                channel: item.channel,
-                thumbnail: item.thumbnail,
-                duration: item.duration,
-                url: item.url || `https://www.youtube.com/watch?v=${item.id}`,
-                activeVideoId: item.id,
-                activeVideoIndex: 0,
-                videos: [],
-                loadingVideos: false
-            });
-            return;
-        }
-
-        // Course / Playlist Preview
-        setActivePreview({
-            id: item.id,
-            type: 'playlist',
-            title: item.title,
-            channel: item.channel,
-            thumbnail: item.thumbnail,
-            video_count: item.video_count || 0,
-            url: item.url || `https://www.youtube.com/playlist?list=${item.id}`,
-            activeVideoId: null,
-            activeVideoIndex: 0,
-            videos: [],
-            loadingVideos: true
-        });
-
-        try {
-            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/playlist-preview/`, {
-                playlistId: item.id,
-                url: item.url
-            });
-
-            if (res.data?.success && res.data?.data) {
-                const plData = res.data.data;
-                const vids = plData.videos || [];
-                const firstId = vids[0]?.video_id || null;
-
-                setActivePreview(prev => {
-                    if (!prev || prev.id !== item.id) return prev;
-                    return {
-                        ...prev,
-                        title: plData.title || prev.title,
-                        channel: plData.channel || prev.channel,
-                        video_count: plData.video_count || vids.length || prev.video_count,
-                        videos: vids,
-                        activeVideoId: firstId,
-                        activeVideoIndex: 0,
-                        loadingVideos: false
-                    };
+        const observer = new IntersectionObserver(
+            (entries) => {
+                let candidate = null;
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting && entry.intersectionRatio >= 0.75) {
+                        if (!candidate || entry.intersectionRatio > candidate.intersectionRatio) {
+                            candidate = entry;
+                        }
+                    }
                 });
-            } else {
-                setActivePreview(prev => (prev && prev.id === item.id ? { ...prev, loadingVideos: false } : prev));
+
+                if (candidate) {
+                    const id = candidate.target.getAttribute('data-item-id');
+                    if (id) {
+                        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+                        hoverTimerRef.current = setTimeout(() => {
+                            setPreviewingItemId(id);
+                        }, 500);
+                    }
+                } else {
+                    setPreviewingItemId(null);
+                }
+            },
+            {
+                threshold: [0.3, 0.75, 0.95],
+                rootMargin: '-15% 0px -15% 0px'
             }
-        } catch (err) {
-            console.error("Failed to load playlist preview details:", err);
-            setActivePreview(prev => (prev && prev.id === item.id ? { ...prev, loadingVideos: false } : prev));
-        }
-    };
+        );
 
-    const handleSelectPreviewVideo = (vid, index) => {
-        if (!vid) return;
-        setActivePreview(prev => {
-            if (!prev) return null;
-            return {
-                ...prev,
-                activeVideoId: vid.video_id,
-                activeVideoIndex: index
-            };
+        const elements = Object.values(cardRefs.current);
+        elements.forEach((el) => {
+            if (el) observer.observe(el);
         });
-    };
 
-    const handleNextPreviewVideo = () => {
-        if (!activePreview || !activePreview.videos?.length) return;
-        const nextIdx = Math.min(activePreview.activeVideoIndex + 1, activePreview.videos.length - 1);
-        const nextVid = activePreview.videos[nextIdx];
-        if (nextVid) {
-            setActivePreview(prev => ({
-                ...prev,
-                activeVideoIndex: nextIdx,
-                activeVideoId: nextVid.video_id
-            }));
-        }
-    };
-
-    const handlePrevPreviewVideo = () => {
-        if (!activePreview || !activePreview.videos?.length) return;
-        const prevIdx = Math.max(activePreview.activeVideoIndex - 1, 0);
-        const prevVid = activePreview.videos[prevIdx];
-        if (prevVid) {
-            setActivePreview(prev => ({
-                ...prev,
-                activeVideoIndex: prevIdx,
-                activeVideoId: prevVid.video_id
-            }));
-        }
-    };
+        return () => {
+            observer.disconnect();
+            if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+        };
+    }, [currentResults]);
 
     const qParam = searchParams.get('q');
     const isSearchingMode = Boolean(qParam || hasSearched || results.length > 0 || (loading && query.trim()));
-
-    const currentThumbnail = activePreview
-        ? (activePreview.videos?.[activePreview.activeVideoIndex]?.thumbnail ||
-           activePreview.thumbnail ||
-           (activePreview.activeVideoId ? `https://i.ytimg.com/vi/${activePreview.activeVideoId}/hqdefault.jpg` : ''))
-        : '';
-
-    const embedSrc = activePreview
-        ? (activePreview.activeVideoId
-            ? `https://www.youtube.com/embed/${activePreview.activeVideoId}?autoplay=1&rel=0`
-            : activePreview.type === 'video'
-                ? `https://www.youtube.com/embed/${activePreview.id}?autoplay=1&rel=0`
-                : !activePreview.loadingVideos
-                    ? `https://www.youtube.com/embed/videoseries?list=${activePreview.id}&autoplay=1&rel=0`
-                    : null)
-        : null;
 
     return (
         <div className="max-w-[1360px] mx-auto px-3 sm:px-6 lg:px-10 space-y-4 pb-20">
@@ -1033,7 +987,13 @@ const YouTubeExplorer = () => {
                 <div ref={resultsRef} className="space-y-4 sm:space-y-5 pb-4">
                     {/* Old Card Grid View */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
-                        {currentResults.map((item, idx) => (
+                        {currentResults.map((item, idx) => {
+                            const isPreviewing = previewingItemId === item.id;
+                            const embedPreviewUrl = item.type === 'video'
+                                ? `https://www.youtube.com/embed/${item.id}?autoplay=1&mute=${isPreviewMuted ? 1 : 0}&controls=0&modestbranding=1&loop=1&playlist=${item.id}&playsinline=1&rel=0&disablekb=1&iv_load_policy=3&enablejsapi=1`
+                                : `https://www.youtube.com/embed/videoseries?list=${item.id}&autoplay=1&mute=${isPreviewMuted ? 1 : 0}&controls=0&modestbranding=1&playsinline=1&rel=0&disablekb=1&iv_load_policy=3&enablejsapi=1`;
+
+                            return (
                             <motion.div
                                 key={item.id}
                                 initial={{ opacity: 0, scale: 0.95 }}
@@ -1042,23 +1002,66 @@ const YouTubeExplorer = () => {
                                 className="group relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 overflow-hidden flex flex-col"
                             >
                                 <div 
-                                    className="relative aspect-video overflow-hidden border-b border-gray-100 dark:border-gray-700/50 cursor-pointer active:scale-[0.98] transition-transform duration-150" 
-                                    onClick={() => handleOpenPreview(item)}
+                                    ref={(el) => { if (el) cardRefs.current[item.id] = el; }}
+                                    data-item-id={item.id}
+                                    onMouseEnter={() => handleCardMouseEnter(item.id)}
+                                    onMouseLeave={handleCardMouseLeave}
+                                    onClick={() => handleCardClick(item)}
+                                    className="relative aspect-video overflow-hidden border-b border-gray-100 dark:border-gray-700/50 cursor-pointer active:scale-[0.98] transition-transform duration-150 bg-black select-none" 
                                 >
+                                    {/* Inline Muted/Unmuted Video Preview on Hover/Scroll (YouTube Style) */}
+                                    {isPreviewing && (
+                                        <div className="absolute inset-0 z-10 overflow-hidden bg-black pointer-events-none animate-in fade-in duration-300">
+                                            <iframe
+                                                ref={(el) => { if (el) iframeRefs.current[item.id] = el; }}
+                                                src={embedPreviewUrl}
+                                                title="Video Preview"
+                                                className="w-full h-full scale-[1.08] pointer-events-none"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Interactive Unmute / Mute Button */}
+                                    {isPreviewing && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => togglePreviewMute(e, item.id)}
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            className="absolute top-2 left-2 z-30 px-2.5 py-1 rounded-full bg-black/85 hover:bg-black text-white text-[10px] font-bold flex items-center gap-1.5 shadow-lg border border-white/20 transition-all cursor-pointer active:scale-90"
+                                            title={isPreviewMuted ? "Click to unmute sound" : "Click to mute sound"}
+                                        >
+                                            {isPreviewMuted ? (
+                                                <>
+                                                    <VolumeX size={12} className="text-white/80" />
+                                                    <span>Unmute</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Volume2 size={12} className="text-emerald-400 animate-pulse" />
+                                                    <span className="text-emerald-300">Sound ON</span>
+                                                </>
+                                            )}
+                                        </button>
+                                    )}
+
                                     <img 
                                         src={item.thumbnail} 
                                         alt={item.title} 
                                         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" 
                                         loading="lazy" 
                                     />
-                                    <div className="absolute inset-0 bg-black/40 xl:bg-gradient-to-t xl:from-black/60 xl:via-transparent xl:to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
-                                        <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500 shadow-xl">
-                                            <Play size={20} className="fill-white ml-0.5" />
+                                    
+                                    {!isPreviewing && (
+                                        <div className="absolute inset-0 bg-black/40 xl:bg-gradient-to-t xl:from-black/60 xl:via-transparent xl:to-transparent opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center pointer-events-none">
+                                            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white ring-1 ring-white/50 transform scale-0 group-hover:scale-100 transition-transform duration-500 shadow-xl">
+                                                <Play size={20} className="fill-white ml-0.5" />
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                     
                                     {/* Type badge */}
-                                    <div className={`absolute top-2.5 right-2.5 px-2 py-0.5 text-white text-[8px] sm:text-[9px] font-black uppercase tracking-wider rounded-md shadow-md z-10 ${
+                                    <div className={`absolute top-2.5 right-2.5 px-2 py-0.5 text-white text-[8px] sm:text-[9px] font-black uppercase tracking-wider rounded-md shadow-md z-20 pointer-events-none ${
                                         item.type === 'playlist' ? 'bg-red-500' : 'bg-blue-600'
                                     }`}>
                                         {item.type}
@@ -1066,14 +1069,14 @@ const YouTubeExplorer = () => {
 
                                     {/* Video count badge for playlist */}
                                     {item.type === 'playlist' && item.video_count > 0 && (
-                                        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-xs text-white text-[9px] font-bold rounded leading-none z-10">
+                                        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-xs text-white text-[9px] font-bold rounded leading-none z-20 pointer-events-none">
                                             {item.video_count} Videos
                                         </div>
                                     )}
 
                                     {/* Duration badge for video */}
                                     {item.type === 'video' && item.duration && (
-                                        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-xs text-white text-[9px] font-bold rounded leading-none z-10">
+                                        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-xs text-white text-[9px] font-bold rounded leading-none z-20 pointer-events-none">
                                             {item.duration}
                                         </div>
                                     )}
@@ -1081,7 +1084,7 @@ const YouTubeExplorer = () => {
                                 <div className="p-3 sm:p-3.5 space-y-2.5 flex flex-col flex-1 justify-between">
                                     <div className="space-y-0.5">
                                         <h3 
-                                            onClick={() => handleOpenPreview(item)}
+                                            onClick={() => handleCardClick(item)}
                                             className="font-bold text-gray-900 dark:text-white line-clamp-2 leading-snug group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors text-xs sm:text-sm cursor-pointer" 
                                             dangerouslySetInnerHTML={{ __html: item.title }}
                                         />
@@ -1097,7 +1100,8 @@ const YouTubeExplorer = () => {
                                     </button>
                                 </div>
                             </motion.div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* Numbered 10's Page Navigation */}
@@ -1229,294 +1233,7 @@ const YouTubeExplorer = () => {
                 document.body
             )}
 
-            {/* YouTube-Style Course & Playlist Preview Modal */}
-            {typeof document !== 'undefined' && createPortal(
-                <AnimatePresence>
-                    {activePreview && (
-                        <motion.div
-                            key="active-preview-modal-backdrop"
-                            className="fixed inset-0 bg-black/75 dark:bg-black/90 flex items-center justify-center z-[99999] backdrop-blur-xs p-2 sm:p-4 md:p-6 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.22, ease: "easeOut" }}
-                            onClick={() => setActivePreview(null)}
-                            style={{ willChange: 'opacity' }}
-                        >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 16 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.96, opacity: 0, y: 12 }}
-                            transition={{ type: "spring", stiffness: 360, damping: 28, mass: 0.7 }}
-                            style={{ willChange: 'transform, opacity' }}
-                            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-6xl max-h-[94dvh] sm:max-h-[92vh] flex flex-col overflow-hidden text-gray-900 dark:text-white transition-colors duration-200"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Modal Header Bar */}
-                            <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-800/80 bg-gray-50/95 dark:bg-gray-900/95 shrink-0 gap-3 transition-colors duration-200">
-                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                    <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-600/20 text-red-600 dark:text-red-500 flex items-center justify-center shrink-0">
-                                        {activePreview.type === 'playlist' ? <ListVideo size={18} /> : <Video size={18} />}
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/30">
-                                                {activePreview.type === 'playlist' ? 'Course Playlist Preview' : 'Video Preview'}
-                                            </span>
-                                            {activePreview.type === 'playlist' && activePreview.videos?.length > 0 && (
-                                                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium hidden sm:inline">
-                                                    Lesson {activePreview.activeVideoIndex + 1} of {activePreview.videos.length}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <h2 
-                                            className="text-xs sm:text-sm font-bold truncate text-gray-900 dark:text-white"
-                                            dangerouslySetInnerHTML={{ __html: activePreview.title }}
-                                        />
-                                    </div>
-                                </div>
 
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleImportClick(activePreview.url)}
-                                        disabled={importLoading}
-                                        className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-500/20 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50"
-                                    >
-                                        <Plus size={14} strokeWidth={2.5} />
-                                        <span className="hidden sm:inline">Add to Library</span>
-                                        <span className="sm:hidden">Add</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setActivePreview(null)}
-                                        className="p-1.5 sm:p-2 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-200/60 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                                        title="Close preview"
-                                    >
-                                        <X size={18} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Main Content Area (Player + Syllabus Grid) */}
-                            <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 min-h-0 bg-gray-50/50 dark:bg-black/40">
-                                {/* Left Column: Video Player & Controls */}
-                                <div className={`${activePreview.type === 'playlist' ? 'lg:col-span-7 xl:col-span-8' : 'lg:col-span-12'} flex flex-col bg-white dark:bg-gray-900/60 overflow-y-auto`}>
-                                    {/* Video Player Container */}
-                                    <div className="relative aspect-video w-full bg-black overflow-hidden select-none">
-                                        {/* Embedded YouTube Iframe Player (Mounted cleanly once embedSrc is ready) */}
-                                        {embedSrc && (
-                                            <iframe
-                                                key={activePreview.activeVideoId || activePreview.id}
-                                                width="100%"
-                                                height="100%"
-                                                src={embedSrc}
-                                                title="YouTube Video Preview"
-                                                frameBorder="0"
-                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                allowFullScreen
-                                                onLoad={() => setIframeReady(true)}
-                                                className={`w-full h-full transition-opacity duration-300 ${
-                                                    iframeReady ? 'opacity-100' : 'opacity-0'
-                                                }`}
-                                            />
-                                        )}
-
-                                        {/* Seamless Video Poster & Loading State (Eliminates the blank screen flash) */}
-                                        <div
-                                            className={`absolute inset-0 z-10 flex flex-col items-center justify-center bg-black transition-opacity duration-500 ${
-                                                iframeReady ? 'opacity-0 pointer-events-none' : 'opacity-100'
-                                            }`}
-                                        >
-                                            {currentThumbnail && (
-                                                <img
-                                                    src={currentThumbnail}
-                                                    alt={activePreview.title}
-                                                    className="absolute inset-0 w-full h-full object-cover filter blur-xs opacity-65 scale-105 transition-transform duration-700"
-                                                />
-                                            )}
-                                            <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px]" />
-                                            <div className="relative z-20 flex flex-col items-center gap-3 p-4 text-center">
-                                                <div className="w-12 h-12 rounded-full bg-red-600/90 text-white flex items-center justify-center shadow-xl shadow-red-600/30 ring-4 ring-white/10 animate-pulse">
-                                                    <Loader size={22} className="animate-spin text-white" />
-                                                </div>
-                                                <span className="text-xs font-black uppercase tracking-wider text-white bg-black/70 px-3 py-1 rounded-full backdrop-blur-md shadow-lg border border-white/10">
-                                                    {activePreview.loadingVideos ? 'Loading Syllabus...' : 'Starting Video Player...'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Video Meta & Controls */}
-                                    <div className="p-4 sm:p-5 space-y-3 bg-white dark:bg-transparent border-t lg:border-t-0 border-gray-100 dark:border-transparent">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                            <div className="space-y-1 min-w-0 flex-1">
-                                                <h3 
-                                                    className="font-bold text-sm sm:text-base text-gray-900 dark:text-white leading-snug line-clamp-2"
-                                                    dangerouslySetInnerHTML={{ 
-                                                        __html: (activePreview.videos?.[activePreview.activeVideoIndex]?.title) || activePreview.title 
-                                                    }}
-                                                />
-                                                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                                    <span className="font-semibold text-gray-700 dark:text-gray-300">{activePreview.channel}</span>
-                                                    {activePreview.type === 'playlist' && activePreview.videos?.length > 0 && (
-                                                        <>
-                                                            <span>•</span>
-                                                            <span className="text-red-600 dark:text-red-400 font-bold">
-                                                                Lesson #{activePreview.activeVideoIndex + 1} of {activePreview.videos.length}
-                                                            </span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Prev / Next Buttons for Playlist */}
-                                            {activePreview.type === 'playlist' && activePreview.videos?.length > 1 && (
-                                                <div className="flex items-center gap-2 shrink-0">
-                                                    <button
-                                                        type="button"
-                                                        onClick={handlePrevPreviewVideo}
-                                                        disabled={activePreview.activeVideoIndex === 0}
-                                                        className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1 cursor-pointer"
-                                                        title="Previous lesson"
-                                                    >
-                                                        <ChevronLeft size={16} />
-                                                        <span>Prev</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={handleNextPreviewVideo}
-                                                        disabled={activePreview.activeVideoIndex >= activePreview.videos.length - 1}
-                                                        className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-gray-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1 cursor-pointer"
-                                                        title="Next lesson"
-                                                    >
-                                                        <span>Next</span>
-                                                        <ChevronRight size={16} />
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right Column: YouTube-style Playlist Lessons / Syllabus Drawer */}
-                                {activePreview.type === 'playlist' && (
-                                    <div className="lg:col-span-5 xl:col-span-4 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-950/60 flex flex-col min-h-[300px] lg:min-h-0 overflow-hidden">
-                                        {/* Drawer Header */}
-                                        <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-800/80 bg-white/80 dark:bg-gray-900/40 flex items-center justify-between shrink-0">
-                                            <div>
-                                                <h4 className="text-xs font-black uppercase tracking-wider text-gray-800 dark:text-gray-300 flex items-center gap-2">
-                                                    <ListVideo size={15} className="text-red-500" />
-                                                    Course Lessons
-                                                </h4>
-                                                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                                                    {activePreview.videos?.length > 0 
-                                                        ? `${activePreview.videos.length} lessons in this course` 
-                                                        : `${activePreview.video_count || ''} videos`}
-                                                </p>
-                                            </div>
-                                            {activePreview.loadingVideos && (
-                                                <div className="flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
-                                                    <Loader size={12} className="animate-spin text-red-500" />
-                                                    <span>Loading...</span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Scrollable Lesson Items */}
-                                        <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-1.5 max-h-[340px] lg:max-h-none">
-                                            {/* Skeletons while loading */}
-                                            {activePreview.loadingVideos && activePreview.videos.length === 0 && (
-                                                [...Array(6).keys()].map(i => (
-                                                    <div key={i} className="animate-pulse flex items-center gap-3 p-2 rounded-xl bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800/60">
-                                                        <div className="w-5 h-4 bg-gray-200 dark:bg-gray-800 rounded"></div>
-                                                        <div className="w-20 aspect-video bg-gray-200 dark:bg-gray-800 rounded-lg shrink-0"></div>
-                                                        <div className="flex-1 space-y-1.5">
-                                                            <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded w-5/6"></div>
-                                                            <div className="h-2.5 bg-gray-200 dark:bg-gray-800 rounded w-1/3"></div>
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            )}
-
-                                            {/* Loaded Playlist Lessons */}
-                                            {activePreview.videos.map((vid, idx) => {
-                                                const isActive = activePreview.activeVideoIndex === idx || activePreview.activeVideoId === vid.video_id;
-                                                return (
-                                                    <div
-                                                        key={vid.video_id || idx}
-                                                        onClick={() => handleSelectPreviewVideo(vid, idx)}
-                                                        className={`group p-2 rounded-xl flex items-center gap-2.5 sm:gap-3 transition-all cursor-pointer border ${
-                                                            isActive
-                                                                ? 'bg-red-50 dark:bg-red-500/15 border-red-200 dark:border-red-500/50 text-gray-900 dark:text-white shadow-xs'
-                                                                : 'bg-white dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-800/60 border-gray-200/70 dark:border-transparent text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white shadow-2xs'
-                                                        }`}
-                                                    >
-                                                        {/* Lesson Number or Playing Indicator */}
-                                                        <div className="w-6 shrink-0 text-center font-bold text-xs">
-                                                            {isActive ? (
-                                                                <Play size={13} className="text-red-600 dark:text-red-500 fill-red-600 dark:fill-red-500 mx-auto animate-pulse" />
-                                                            ) : (
-                                                                <span className="text-gray-400 dark:text-gray-500 group-hover:text-gray-700 dark:group-hover:text-gray-300">{idx + 1}</span>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Thumbnail */}
-                                                        <div className="relative w-20 aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0 border border-gray-200 dark:border-gray-800">
-                                                            <img
-                                                                src={vid.thumbnail || `https://i.ytimg.com/vi/${vid.video_id}/mqdefault.jpg`}
-                                                                alt={vid.title}
-                                                                className="w-full h-full object-cover"
-                                                                loading="lazy"
-                                                            />
-                                                            {vid.duration && (
-                                                                <span className="absolute bottom-1 right-1 px-1 py-0.2 bg-black/80 text-[9px] font-bold rounded text-white leading-none">
-                                                                    {vid.duration}
-                                                                </span>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Lesson Title */}
-                                                        <div className="flex-1 min-w-0 space-y-0.5">
-                                                            <p 
-                                                                className={`text-xs line-clamp-2 leading-snug ${
-                                                                    isActive ? 'text-red-600 dark:text-red-400 font-bold' : 'font-semibold text-gray-800 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white'
-                                                                }`}
-                                                                dangerouslySetInnerHTML={{ __html: vid.title }}
-                                                            />
-                                                            {isActive && (
-                                                                <span className="inline-block text-[9px] font-black text-red-600 dark:text-red-400 uppercase tracking-wider">
-                                                                    Now Playing
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-
-                                            {!activePreview.loadingVideos && activePreview.videos.length === 0 && (
-                                                <div className="text-center py-8 text-gray-500 dark:text-gray-400 space-y-2">
-                                                    <ListVideo size={28} className="mx-auto text-gray-400 dark:text-gray-600" />
-                                                    <p className="text-xs">Detailed lesson syllabus available upon importing.</p>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleImportClick(activePreview.url)}
-                                                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold transition cursor-pointer"
-                                                    >
-                                                        Add Course to Library
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>,
-            document.body
-        )}
         </div>
     );
 };

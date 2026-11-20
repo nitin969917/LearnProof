@@ -226,6 +226,71 @@ export const formatQuizMath = (text) => {
   processed = processed.replace(/```[\s\S]*?```/g, protectCode);
   processed = processed.replace(/`[^`\n]+`/g, protectCode);
 
+  // 1. Unicode Greek, math operators, superscripts, and subscripts
+  processed = processed
+    .replace(/π/g, '\\pi ')
+    .replace(/∫/g, '\\int ')
+    .replace(/∑/g, '\\sum ')
+    .replace(/∏/g, '\\prod ')
+    .replace(/√/g, '\\sqrt ')
+    .replace(/∞/g, '\\infty ')
+    .replace(/≠/g, '\\neq ')
+    .replace(/≤/g, '\\le ')
+    .replace(/≥/g, '\\ge ')
+    .replace(/±/g, '\\pm ')
+    .replace(/×/g, '\\times ')
+    .replace(/÷/g, '\\div ')
+    .replace(/·|•/g, '\\cdot ')
+    .replace(/∂/g, '\\partial ')
+    .replace(/θ/g, '\\theta ')
+    .replace(/α/g, '\\alpha ')
+    .replace(/β/g, '\\beta ')
+    .replace(/λ/g, '\\lambda ')
+    .replace(/σ/g, '\\sigma ')
+    .replace(/ω/g, '\\omega ')
+    .replace(/Δ/g, '\\Delta ')
+    .replace(/ε/g, '\\epsilon ')
+    .replace(/²/g, '^2')
+    .replace(/³/g, '^3')
+    .replace(/⁴/g, '^4')
+    .replace(/ⁿ/g, '^n')
+    .replace(/₀/g, '_0')
+    .replace(/₁/g, '_1')
+    .replace(/₂/g, '_2')
+    .replace(/₃/g, '_3')
+    .replace(/₄/g, '_4')
+    .replace(/₅/g, '_5')
+    .replace(/₆/g, '_6')
+    .replace(/₇/g, '_7')
+    .replace(/₈/g, '_8')
+    .replace(/₉/g, '_9')
+    .replace(/ₙ/g, '_n');
+
+  // Integral bounds [a, b] -> _{a}^{b}
+  processed = processed.replace(/\\int\s*\[\s*([^,\s\]]+)\s*,\s*([^\]\s]+)\s*\]/g, '\\int_{$1}^{$2} ');
+  processed = processed.replace(/\\int\s*_([0-9a-zA-Z\\]+)\^([0-9a-zA-Z\\]+)/g, '\\int_{$1}^{$2} ');
+
+  // Normalize fractions with pi or constants: 1/\pi, 2/\pi, 1/(2\pi), 1/2\pi
+  processed = processed.replace(/\b([0-9]+)\s*\/\s*\\pi\b/g, '\\frac{$1}{\\pi}');
+  processed = processed.replace(/\b([0-9]+)\s*\/\s*\(\s*([0-9]*)\\pi\s*\)/g, '\\frac{$1}{$2\\pi}');
+  processed = processed.replace(/\b([0-9]+)\s*\/\s*([0-9]*)\\pi\b/g, '\\frac{$1}{$2\\pi}');
+
+  // Trig and log functions
+  processed = processed.replace(/(?:\\)?\b(sin|cos|tan|cot|sec|csc|log|ln)\s*\(\s*([^)]+)\s*\)/g, '\\$1($2)');
+
+  // Differentials at ends of integrals: dx, dy, dt, etc.
+  processed = processed.replace(/\s+(d[xytzruvw]|d\\theta|d\\phi)\b/g, '\\,$1');
+
+  // Summations: sum(an cos(nx)) -> \sum a_n \cos(nx)
+  processed = processed.replace(/\bsum\s*\(\s*([^)]+)\s*\)/g, '\\sum $1');
+  processed = processed.replace(/\bsum\b(?!\s*[_^])/g, '\\sum ');
+
+  // Subscripts for variable identifiers with numbers: a0 -> a_0, b1 -> b_1, x0 -> x_0
+  processed = processed.replace(/\b([a-zA-Z])([0-9]+)\b/g, '$1_$2');
+
+  // Ensure \pi followed by letters has space: e.g. \pi x -> \pi x
+  processed = processed.replace(/\\pi(?=[a-zA-Z])/g, '\\pi ');
+
   // 1. Normalize escaped backslashes (\\sum -> \sum, \\frac -> \frac, etc.)
   processed = processed.replace(/\\{2,}(?=[a-zA-Z])/g, '\\');
   processed = processed.replace(/\\{2,}(?=[{}_^,;!|~])/g, '\\');
@@ -272,23 +337,33 @@ export const formatQuizMath = (text) => {
   });
 
   // 5. Test for natural language words (to distinguish pure math from sentences/explanations)
-  const mathFuncs = new Set(['sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'log', 'ln', 'exp', 'det', 'lim', 'max', 'min', 'deg', 'dim', 'to', 'in', 'mod', 'frac', 'sum', 'prod', 'int', 'infty', 'dots', 'alpha', 'beta', 'gamma', 'delta', 'theta', 'lambda', 'sigma', 'omega', 'pi']);
+  const mathFuncs = new Set([
+    'sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'log', 'ln', 'exp', 'det', 'lim', 'max', 'min', 
+    'deg', 'dim', 'to', 'in', 'mod', 'frac', 'sum', 'prod', 'int', 'infty', 'dots', 
+    'alpha', 'beta', 'gamma', 'delta', 'theta', 'lambda', 'sigma', 'omega', 'pi',
+    'dx', 'dy', 'dz', 'dt', 'dr', 'du', 'dv', 'dw', 'dtheta', 'dphi',
+    'nx', 'mx', 'kx', 'ax', 'bx', 'cx', 'an', 'bn', 'cn', 'xn', 'yn', 'zn', 'a0', 'b0', 'c0',
+    'true', 'false', 'none'
+  ]);
   const cleanForCheck = processed.replace(/___MATH_BLOCK_\d+___/g, ' ').replace(/___QUIZ_CODE_\d+___/g, ' ').replace(/\\[a-zA-Z]+/g, ' ');
   const wordMatches = cleanForCheck.match(/\b[a-zA-Z]{2,}\b/g) || [];
   const normalEnglishWords = wordMatches.filter(w => !mathFuncs.has(w.toLowerCase()));
   const hasNaturalLanguage = normalEnglishWords.length >= 2;
 
   const hasMathIndicators = 
-    /\\[a-zA-Z]+/.test(processed) || // has LaTeX command like \sum, \frac, \infty, \beta
+    /\\[a-zA-Z]+/.test(processed) || // has LaTeX command like \sum, \frac, \int, \infty, \pi, \cos
     /[a-zA-Z0-9_()]+\^[a-zA-Z0-9_{}()]+/.test(processed) || // powers like e^x, x^2
     /[a-zA-Z0-9_()]+\_[a-zA-Z0-9_{}()]+/.test(processed) || // subscripts like a_n
     /^[a-zA-Z]\([a-zA-Z]\)\s*=/.test(processed) || // f(x)=
     /^[a-zA-Z]\^[a-zA-Z0-9]\s*=/.test(processed) || // e^x =
-    (/=/.test(processed) && /[+\-*/^]/.test(processed)); // equations
+    (/=/.test(processed) && /[+\-*/^]/.test(processed)) || // equations
+    /\\int|\\sum|\\frac|\\prod|\\sqrt/.test(processed);
 
   // If it is predominantly a pure math formula or equation (like pure math options without English words):
   if (hasMathIndicators && !hasNaturalLanguage) {
     let formula = processed;
+    // Subscripts for an, bn in pure math options
+    formula = formula.replace(/\b([abc])n\b/g, '$1_n');
     formula = formula.replace(/\.\.\./g, '\\dots');
     formula = formula.replace(/\((f\^\{[^}]+\}\([^)]+\))\/([a-zA-Z0-9{}!]+)\)/g, '\\frac{$1}{$2}');
     formula = replaceFraction(formula);
@@ -302,8 +377,8 @@ export const formatQuizMath = (text) => {
   // 6. Sentence mode with embedded math:
   let sentence = processed;
 
-  // Rule 1: Equations at start of option (e.g. L = |x|/ (2n+2) -> 0, so... or L = 1, so...)
-  sentence = sentence.replace(/^([a-zA-Z]\s*=\s*[^,;]+?)(?=\s*,\s*|\s*;\s*|\s+(?:so|implying|where|when|if|for|which|because)\b|$)/g, (m, eq) => {
+  // Rule 1: Equations at start of option (e.g. L = |x|/ (2n+2) -> 0, so... or b_n = 0 for all...)
+  sentence = sentence.replace(/^([a-zA-Z](?:_[0-9a-zA-Z{}]+)?\s*=\s*[^,;]+?)(?=\s*,\s*|\s*;\s*|\s+(?:so|implying|where|when|if|for|which|because)\b|$)/g, (m, eq) => {
     let cleanEq = eq.trim();
     cleanEq = replaceFraction(cleanEq);
     cleanEq = cleanEq.replace(/\|([a-zA-Z0-9]+)\|\s*([<>=]+)\s*([0-9a-zA-Z]+)/g, '|$1| $2 $3');
@@ -346,9 +421,11 @@ export const formatQuizMath = (text) => {
   // Rule 6: Absolute value conditions (e.g. |x|<1)
   sentence = sentence.replace(/\|([a-zA-Z0-9]+)\|\s*(\\le|\\ge|[<>=]+)\s*([0-9a-zA-Z]+)/g, (m, v, op, val) => protect(`$|${v}| ${op.trim()} ${val}$`));
 
-  // Rule 7: Standalone variable identifiers in phrases (e.g. "limit L", "for all real x", "for all x")
-  sentence = sentence.replace(/\b(limit|variable|constant|term|point|radius of convergence)\s+([A-Za-z])\b/g, (m, word, v) => `${word} ${protect(`$${v}$`)}`);
+  // Rule 7: Standalone variable identifiers in phrases (e.g. "limit L", "for all real x", "for all x", "formula for a_n")
+  sentence = sentence.replace(/\b(formula for|value of|coefficient|integral of|constant|term|variable)\s+([a-zA-Z](?:_[0-9a-zA-Z{}]+)?)\b/g, (m, word, v) => `${word} ${protect(`$${v}$`)}`);
+  sentence = sentence.replace(/\b(limit|point|radius of convergence)\s+([A-Za-z])\b/g, (m, word, v) => `${word} ${protect(`$${v}$`)}`);
   sentence = sentence.replace(/\b(for all real|for all)\s+([a-zA-Z])([.,;]|\s|$)/g, (m, prefix, v, punct) => `${prefix} ${protect(`$${v}$`)}${punct}`);
+  sentence = sentence.replace(/\bfrom\s+(-?\\pi|-?[0-9a-zA-Z]+)\s+to\s+(-?\\pi|-?[0-9a-zA-Z]+)\b/g, (m, from, to) => `from ${protect(`$${from.trim()}$`)} to ${protect(`$${to.trim()}$`)}`);
 
   // Rule 8: Any remaining LaTeX commands outside math blocks
   sentence = sentence.replace(/\\[a-zA-Z]+(?:\{[^}]*\})*(?:_\{?[^}\s]*\}?)?(?:\^\{?[^}\s]*\}?)?/g, (m) => protect(`$${m}$`));

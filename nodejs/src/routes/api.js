@@ -27,6 +27,7 @@ const fcmController = require('../controllers/fcm.controller');
 const livekitController = require('../controllers/livekit.controller');
 const metricsController = require('../controllers/metrics.controller');
 const goalController = require('../controllers/goal.controller');
+const checkpointController = require('../controllers/checkpoint.controller');
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -147,6 +148,9 @@ router.get('/quiz-history/:id', authMiddleware, quizController.getQuizHistoryDet
 router.post('/quiz-history/:id', authMiddleware, quizController.getQuizHistoryDetails);
 router.delete('/quiz-history/:id', authMiddleware, quizController.deleteQuizHistory);
 router.get('/verify-certificate/:certId', quizController.verifyCertificate);
+
+// Duolingo Checkpoint Questions (lecture-only, transcript-grounded)
+router.get('/checkpoint-questions/:videoId', optionalAuthMiddleware, checkpointController.getCheckpointQuestions);
 
 // Dynamic Daily Goals
 router.get('/goals/today', authMiddleware, goalController.getTodayGoals);

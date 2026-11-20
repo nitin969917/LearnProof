@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
@@ -40,7 +41,11 @@ import {
   Code2,
   PenTool,
   Grid,
-  Moon
+  Moon,
+  Maximize,
+  Minimize,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import ClassroomCodeEditor from "./Classroom/ClassroomCodeEditor";
 import HandwrittenNotebookView from "./Dashboard/HandwrittenNotebookView";
@@ -55,6 +60,11 @@ import 'katex/dist/katex.min.css';
 import { preprocessMath } from '../utils/mathPreprocessor';
 import QuizMathText from './Common/QuizMathText';
 import FlashcardsView from './Classroom/FlashcardsView';
+import DuolingoHud from './Classroom/DuolingoHud';
+import DuolingoCheckpointOverlay from './Classroom/DuolingoCheckpointOverlay';
+import DuolingoCelebrationModal from './Classroom/DuolingoCelebrationModal';
+import TimelineCheckpointMarkers from './Classroom/TimelineCheckpointMarkers';
+import { playComboSound } from '../utils/duoAudio';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { motion, AnimatePresence } from "framer-motion";
@@ -679,7 +689,7 @@ const getCategoryStyle = (category) => {
 
 const Classroom = () => {
 
-  const { user, token, loading: authLoading } = useAuth();
+  const { user, token, loading: authLoading, updateUser } = useAuth();
   const { confirm } = useModal();
   const { videoId } = useParams();
   const navigate = useNavigate();
@@ -690,6 +700,7 @@ const Classroom = () => {
   const [marking, setMarking] = useState(false);
   const [player, setPlayer] = useState(null);
   const playerRef = useRef(null);
+  const playerContainerRef = useRef(null);
   const [playerError, setPlayerError] = useState(false);
   const [liveProgress, setLiveProgress] = useState(0);
   const [hasSeeked, setHasSeeked] = useState(false);
@@ -698,170 +709,111 @@ const Classroom = () => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(() => {
     try {
-      return parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+      const saved = parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+      if (isNaN(saved) || saved <= 0) return 1;
+      return Math.min(Math.max(saved, 0.5), 2.0);
     } catch {
       return 1;
     }
   });
-  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const [showBeyondSpeedModal, setShowBeyondSpeedModal] = useState(false);
-  const [speedHudVisible, setSpeedHudVisible] = useState(false);
-  const speedHudTimeoutRef = useRef(null);
-  const speedMenuRef = useRef(null);
   const isSwitchingVideoRef = useRef(false);
 
-  const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.6, 1.75, 2, 2.5, 3, 3.5, 4];
-  const userSpeedRef = useRef(playbackSpeed);
-  const lastPlayProgressRef = useRef({ videoTime: 0, realTime: Date.now() });
-  const wasAppBackgroundedRef = useRef(false);
-  const consecutiveSlowCountRef = useRef(0);
-  const lastSyncCooldownRef = useRef(0);
+  // Fullscreen & native-like video controls visibility state (supports native HTML5 & iOS/mobile pseudo-fullscreen)
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
+  const [isPseudoFullscreen, setIsPseudoFullscreen] = useState(false);
+  const isFullscreen = isNativeFullscreen || isPseudoFullscreen;
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const controlsHideTimeoutRef = useRef(null);
+  const isCurrentlyPlayingRef = useRef(false);
+
+  const showControlsTemporarily = () => {
+    setControlsVisible(true);
+    if (controlsHideTimeoutRef.current) {
+      clearTimeout(controlsHideTimeoutRef.current);
+    }
+    if (isCurrentlyPlayingRef.current) {
+      controlsHideTimeoutRef.current = setTimeout(() => {
+        setControlsVisible(false);
+      }, 2500);
+    }
+  };
+
+  const handlePlayerMouseMove = () => {
+    showControlsTemporarily();
+  };
+
+  const handlePlayerMouseLeave = () => {
+    if (isCurrentlyPlayingRef.current) {
+      if (controlsHideTimeoutRef.current) {
+        clearTimeout(controlsHideTimeoutRef.current);
+      }
+      setControlsVisible(false);
+    }
+  };
 
   useEffect(() => {
-    userSpeedRef.current = playbackSpeed;
-  }, [playbackSpeed]);
+    const handleGlobalMouseMove = () => {
+      showControlsTemporarily();
+    };
+
+    window.addEventListener('mousemove', handleGlobalMouseMove, { passive: true });
+    window.addEventListener('touchstart', handleGlobalMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('touchstart', handleGlobalMouseMove);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (controlsHideTimeoutRef.current) {
+        clearTimeout(controlsHideTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Duolingo Gamification & Checkpoint State
+  const [checkpoints, setCheckpoints] = useState([]);
+  const [activeCheckpoint, setActiveCheckpoint] = useState(null);
+  const triggeredCheckpointIdsRef = useRef(new Set());
+  const [checkpointsEnabled, setCheckpointsEnabled] = useState(() => {
+    try {
+      const saved = localStorage.getItem('learnproof_checkpoints_enabled');
+      // Default to OFF for new users; stays ON once the user explicitly enables it
+      return saved === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [completedCheckpoints, setCompletedCheckpoints] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`learnproof_completed_cp_${videoId}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [sessionXp, setSessionXp] = useState(0);
+  const [recentXpGain, setRecentXpGain] = useState(null);
+  const [userStreak, setUserStreak] = useState(() => user?.streak_count || 1);
+  const [hearts, setHearts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('learnproof_user_hearts');
+      return saved !== null ? parseInt(saved, 10) : 5;
+    } catch {
+      return 5;
+    }
+  });
+  const [recentHeartLost, setRecentHeartLost] = useState(false);
+  const [comboCount, setComboCount] = useState(0);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [videoDuration, setVideoDuration] = useState(0);
 
   useEffect(() => {
     playerRef.current = player;
   }, [player]);
 
-  // Map any user speed to the closest rate supported by the YouTube IFrame API
-  // YouTube natively supports [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].
-  // Passing arbitrary numbers like 1.6 or >2 causes YouTube to reject it or revert to 1.0 (normal).
-  const getValidYouTubeRate = (rate, playerInstance = null) => {
-    let available = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
-    const target = playerInstance || playerRef.current || player;
-    if (target && typeof target.getAvailablePlaybackRates === 'function') {
-      try {
-        const pRates = target.getAvailablePlaybackRates();
-        if (Array.isArray(pRates) && pRates.length > 0) {
-          available = pRates;
-        }
-      } catch (_) {}
-    }
-    const num = parseFloat(rate);
-    if (isNaN(num) || num <= 0) return 1;
-    if (available.includes(num)) return num;
-
-    const clamped = Math.min(Math.max(num, available[0]), available[available.length - 1]);
-    let closest = available[0];
-    let minDiff = Math.abs(clamped - closest);
-    for (const r of available) {
-      const diff = Math.abs(clamped - r);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closest = r;
-      }
-    }
-    return closest;
-  };
-
-  // Busts YouTube's internal rate-cache after mobile backgrounding/app switch
-  const resyncPlaybackSpeed = (rateToEnforce = null, playerInstance = null) => {
-    const rate = rateToEnforce !== null
-      ? rateToEnforce
-      : (userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1'));
-    const targetPlayer = playerInstance || playerRef.current || player;
-    if (!targetPlayer || typeof targetPlayer.setPlaybackRate !== 'function') return;
-
-    const ytRate = getValidYouTubeRate(rate, targetPlayer);
-    if (ytRate === 1) {
-      try {
-        targetPlayer.setPlaybackRate(1);
-      } catch (_) {}
-      return;
-    }
-
-    // Step 1: Briefly set rate to 1 to force YouTube to clear its internal rate-equality check
-    try {
-      targetPlayer.setPlaybackRate(1);
-    } catch (_) {}
-
-    // Step 2: Re-apply the target rate after 45ms so the hardware decoder is explicitly commanded
-    setTimeout(() => {
-      try {
-        if (targetPlayer && typeof targetPlayer.setPlaybackRate === 'function') {
-          targetPlayer.setPlaybackRate(ytRate);
-        }
-      } catch (_) {}
-    }, 45);
-  };
-
-  // Robust speed enforcer: applies speed to both HTML5 <video> elements and YouTube IFrame API
-  const enforcePlayerSpeed = (rateToEnforce = null, playerInstance = null) => {
-    const rate = rateToEnforce !== null
-      ? rateToEnforce
-      : (userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1'));
-    const targetPlayer = playerInstance || playerRef.current || player;
-    const ytRate = getValidYouTubeRate(rate, targetPlayer);
-
-    // 1. Direct HTML5 video elements (supports true custom rates e.g. 1.6x, 2.5x, 3x, 4x)
-    try {
-      document.querySelectorAll('video').forEach((v) => {
-        try {
-          if (v.playbackRate !== rate) v.playbackRate = rate;
-          if (v.defaultPlaybackRate !== rate) v.defaultPlaybackRate = rate;
-        } catch (_) {}
-      });
-    } catch (_) {}
-
-    // 2. YouTube IFrame API
-    if (targetPlayer && typeof targetPlayer.setPlaybackRate === 'function') {
-      try {
-        targetPlayer.setPlaybackRate(ytRate);
-      } catch (err) {
-        console.error('Failed to set YouTube playback rate:', err);
-      }
-    }
-  };
-
-  // Staggered retries to ensure playback speed takes effect even during buffering, app resume, or stream switches
-  const enforcePlayerSpeedWithRetries = (rateToEnforce = null, playerInstance = null, delays = [0, 80, 250, 600, 1200]) => {
-    delays.forEach((delay) => {
-      if (delay === 0) {
-        enforcePlayerSpeed(rateToEnforce, playerInstance);
-      } else {
-        setTimeout(() => {
-          enforcePlayerSpeed(rateToEnforce, playerInstance);
-        }, delay);
-      }
-    });
-  };
-
-  const applyPlaybackSpeed = (rate, playerInstance = player) => {
-    const targetPlayer = playerInstance || playerRef.current || player;
-    const numericRate = Math.round(parseFloat(rate) * 100) / 100;
-    setPlaybackSpeed(numericRate);
-    userSpeedRef.current = numericRate;
-    try {
-      localStorage.setItem('learnproof_playback_speed', numericRate.toString());
-    } catch (_) {}
-
-    enforcePlayerSpeedWithRetries(numericRate, targetPlayer, [0, 80, 250, 600]);
-
-    // Show extension-style floating speed HUD
-    setSpeedHudVisible(true);
-    if (speedHudTimeoutRef.current) clearTimeout(speedHudTimeoutRef.current);
-    speedHudTimeoutRef.current = setTimeout(() => {
-      setSpeedHudVisible(false);
-    }, 1100);
-  };
-
-  const handleStepSpeed = (delta) => {
-    const current = Math.round((playbackSpeed || 1) * 100) / 100;
-    const currentIndex = SPEED_OPTIONS.indexOf(current);
-    let newIndex;
-    if (currentIndex !== -1) {
-      newIndex = Math.max(0, Math.min(SPEED_OPTIONS.length - 1, currentIndex + delta));
-      applyPlaybackSpeed(SPEED_OPTIONS[newIndex]);
-    } else {
-      // Stepping from a fine-tuned speed (e.g. 1.6x -> 1.7x or 1.5x)
-      const newRate = Math.max(0.5, Math.min(4.0, Math.round((current + delta * 0.1) * 10) / 10));
-      applyPlaybackSpeed(newRate);
-    }
-  };
-
-  // Extension-style keyboard shortcuts: S (slower), D (faster), R (reset 1x), Z (rewind 5s), X (forward 5s)
+  // Extension-style keyboard shortcuts: Z (rewind 5s), X (forward 5s), F (fullscreen)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (
@@ -873,55 +825,351 @@ const Classroom = () => {
       }
 
       const key = e.key.toLowerCase();
-      if (key === 'd') {
-        e.preventDefault();
-        handleStepSpeed(1);
-      } else if (key === 's') {
-        e.preventDefault();
-        handleStepSpeed(-1);
-      } else if (key === 'r') {
-        e.preventDefault();
-        applyPlaybackSpeed(1);
-      } else if (key === 'z') {
-        e.preventDefault();
-        if (player && typeof player.getCurrentTime === 'function') {
-          player.getCurrentTime().then((t) => {
-            player.seekTo(Math.max(0, t - 5));
-          });
+      const p = playerRef.current || player;
+
+      if (key === 'z') {
+        if (p && typeof p.getCurrentTime === 'function' && typeof p.seekTo === 'function') {
+          e.preventDefault();
+          Promise.resolve(p.getCurrentTime()).then((curr) => {
+            const t = typeof curr === 'number' ? curr : parseFloat(curr || 0);
+            p.seekTo(Math.max(0, t - 5), true);
+          }).catch(() => {});
         }
       } else if (key === 'x') {
-        e.preventDefault();
-        if (player && typeof player.getCurrentTime === 'function') {
-          player.getCurrentTime().then((t) => {
-            player.seekTo(t + 5);
-          });
+        if (p && typeof p.getCurrentTime === 'function' && typeof p.seekTo === 'function') {
+          e.preventDefault();
+          Promise.resolve(p.getCurrentTime()).then((curr) => {
+            const t = typeof curr === 'number' ? curr : parseFloat(curr || 0);
+            p.seekTo(t + 5, true);
+          }).catch(() => {});
         }
+      } else if (key === 'f') {
+        e.preventDefault();
+        handleFullscreenToggle();
+      } else if (e.key === 'Escape' && isFullscreen) {
+        e.preventDefault();
+        handleFullscreenToggle();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [playbackSpeed, player]);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (speedMenuRef.current && !speedMenuRef.current.contains(e.target)) {
-        setShowSpeedMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('touchstart', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, []);
+  }, [player, isFullscreen, isPseudoFullscreen]);
 
   useEffect(() => {
     isSwitchingVideoRef.current = true;
     setHasSeeked(false);
   }, [videoId]);
+
+  // ─── Duolingo Gamification Engine Helpers ─────────────────────────────
+  const shuffleOptions = (options, answer) => {
+    if (!Array.isArray(options) || options.length < 2) {
+      return { options: options || [], answer: answer || '' };
+    }
+
+    let correctText = String(answer || '').trim();
+    const letterMap = ['a', 'b', 'c', 'd'];
+    const stripped = correctText.replace(/^option\s*:?\s*/i, '').trim().toLowerCase();
+
+    // If answer is a single letter (A, B, C, D), resolve it to option text before shuffling
+    if (stripped.length === 1 && letterMap.includes(stripped)) {
+      const idx = letterMap.indexOf(stripped);
+      if (options[idx]) {
+        correctText = options[idx];
+      }
+    } else {
+      const match = options.find(opt => {
+        const o = String(opt).trim().toLowerCase().replace(/^option\s*:?\s*/i, '');
+        return o === stripped || o.includes(stripped) || stripped.includes(o);
+      });
+      if (match) {
+        correctText = match;
+      }
+    }
+
+    // Fisher-Yates shuffle
+    const shuffled = [...options];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    return {
+      options: shuffled,
+      answer: correctText
+    };
+  };
+
+  const cleanLectureTopic = (rawTitle) => {
+    if (!rawTitle) return 'this topic';
+    const segments = rawTitle.split(/\||—|-{2,}/).map(s => s.trim()).filter(Boolean);
+    const isMetadata = (s) =>
+      /^(CS\s*&\s*IT|GATE.*|Crash Course|Computer Networks|Gate Smashers|Full Course|Hindi|English|Pune University|SPPU|Engineering.*|202\d)$/i.test(s) ||
+      /^(Lec|Lecture|TOC|Part|Ep|Session|Chapter)\s*[-#0-9:]*$/i.test(s);
+
+    let candidate = segments.find(s => !isMetadata(s)) || segments[0] || rawTitle;
+    return candidate
+      .replace(/^(Lec|Lecture|TOC|Chapter|Part|Ep|Episode|Session)[\s\-#0-9:]+/i, '')
+      .replace(/^[0-9]+(\.[0-9]+)*[\s\-:]+/, '')
+      .trim() || candidate;
+  };
+
+  const generateFallbackCheckpoints = (vTitle, vDuration = 600) => {
+    const cleanTopic = cleanLectureTopic(vTitle);
+    const safeDur = Math.max(120, vDuration || 600);
+
+    // Skip introduction: start at ~3 min for long lectures (>=15 min), ~2 min for medium, ~1.5 min for short
+    const startTime = safeDur >= 900 ? 180 : (safeDur >= 480 ? 130 : 90);
+    const endTime = Math.max(startTime + 60, safeDur - 45);
+    const availableSpan = endTime - startTime;
+
+    const intervalSec = safeDur > 1800 ? 110 : 95;
+    const count = Math.max(2, Math.min(24, Math.floor(availableSpan / intervalSec)));
+    const step = availableSpan / Math.max(1, count - 1);
+
+    const questionTemplates = [
+      {
+        badge: "Core Concept",
+        q: (t) => `Lesson Check: Which foundational formula or problem setup was established for ${t}?`,
+        options: [
+          "Standard analytical formula and initial boundary conditions",
+          "Arbitrary variable replacement without verification",
+          "Skipping all intermediate constraint checks",
+          "Disregarding domain limits completely"
+        ],
+        ans: "Standard analytical formula and initial boundary conditions",
+        exp: "The lecture establishes the governing formula and domain boundary conditions at this stage."
+      },
+      {
+        badge: "Method Check",
+        q: (t) => `Method Check: Which step or calculation rule was applied in this section of ${t}?`,
+        options: [
+          "Systematic evaluation of coefficients and boundary integrals",
+          "Approximating values without mathematical basis",
+          "Discarding constant factors without reason",
+          "Bypassing the standard derivation procedure"
+        ],
+        ans: "Systematic evaluation of coefficients and boundary integrals",
+        exp: "Systematic step-by-step evaluation ensures mathematical accuracy throughout the derivation."
+      },
+      {
+        badge: "Step Check",
+        q: (t) => `Step Verification: How are domain limits or terms resolved in this step of ${t}?`,
+        options: [
+          "By applying upper and lower boundary limits into the evaluated expression",
+          "By assuming all boundary terms evaluate to zero without checking",
+          "By ignoring the specified interval boundaries",
+          "By eliminating all variable terms arbitrarily"
+        ],
+        ans: "By applying upper and lower boundary limits into the evaluated expression",
+        exp: "Substituting boundary values resolves definite integrals and term values correctly."
+      },
+      {
+        badge: "Concept Mastery",
+        q: (t) => `Concept Check: What is the primary analytical outcome derived at this point in ${t}?`,
+        options: [
+          "The exact evaluated coefficient or simplified algebraic form",
+          "An unverified non-convergent series term",
+          "A discarded constant with no mathematical value",
+          "An incomplete expression missing boundary parameters"
+        ],
+        ans: "The exact evaluated coefficient or simplified algebraic form",
+        exp: "Completing each algebraic evaluation yields the exact term needed for the final solution."
+      }
+    ];
+
+    const result = [];
+    for (let i = 0; i < count; i++) {
+      const ts = Math.round(startTime + i * step);
+      const pct = ts / safeDur;
+      const tmpl = questionTemplates[i % questionTemplates.length];
+      const { options: shuffledOpts, answer: resolvedAns } = shuffleOptions(tmpl.options, tmpl.ans);
+      result.push({
+        id: `cp_fb_${i}_${videoId}`,
+        pct,
+        timestamp: ts,
+        question: tmpl.q(cleanTopic),
+        options: shuffledOpts,
+        answer: resolvedAns,
+        explanation: tmpl.exp,
+        index: i,
+        total: count,
+        isFallback: true
+      });
+    }
+    return result;
+  };
+
+  const handleCheckpointAnswer = (isCorrect, xpAmount) => {
+    if (isCorrect) {
+      const newXp = sessionXp + xpAmount;
+      setSessionXp(newXp);
+      setRecentXpGain({ id: Date.now(), amount: xpAmount });
+      setTimeout(() => setRecentXpGain(null), 1200);
+
+      const newCombo = comboCount + 1;
+      setComboCount(newCombo);
+      if (newCombo >= 3) {
+        playComboSound();
+      }
+
+      if (updateUser) {
+        updateUser({ xp: (user?.xp || 0) + xpAmount });
+      }
+    } else {
+      setComboCount(0);
+      setHearts(prev => {
+        const nextHearts = Math.max(0, prev - 1);
+        try {
+          localStorage.setItem('learnproof_user_hearts', String(nextHearts));
+        } catch (_) {}
+        return nextHearts;
+      });
+      setRecentHeartLost(true);
+      setTimeout(() => setRecentHeartLost(false), 1000);
+    }
+
+    if (activeCheckpoint) {
+      triggeredCheckpointIdsRef.current.add(activeCheckpoint.id);
+      setCompletedCheckpoints(prev => {
+        const updated = [...prev, activeCheckpoint.id];
+        try {
+          localStorage.setItem(`learnproof_completed_cp_${videoId}`, JSON.stringify(updated));
+        } catch (_) {}
+        return updated;
+      });
+    }
+  };
+
+  const handleCheckpointContinue = () => {
+    setActiveCheckpoint(null);
+    if (player && typeof player.playVideo === 'function') {
+      try {
+        player.playVideo();
+      } catch (_) {}
+    }
+  };
+
+  const handleCheckpointRewind = (seconds = 15) => {
+    setActiveCheckpoint(null);
+    if (player && typeof player.getCurrentTime === 'function' && typeof player.seekTo === 'function') {
+      player.getCurrentTime().then(cur => {
+        const target = Math.max(0, cur - seconds);
+        player.seekTo(target, true);
+        if (typeof player.playVideo === 'function') player.playVideo();
+      }).catch(() => {
+        if (typeof player.playVideo === 'function') player.playVideo();
+      });
+    } else if (player && typeof player.playVideo === 'function') {
+      player.playVideo();
+    }
+  };
+
+  // Checkpoint loader on video change
+  useEffect(() => {
+    if (!videoId) return;
+
+    setActiveCheckpoint(null);
+    setShowCelebration(false);
+    setSessionXp(0);
+    setComboCount(0);
+    triggeredCheckpointIdsRef.current = new Set();
+
+    try {
+      const saved = localStorage.getItem(`learnproof_completed_cp_${videoId}`);
+      setCompletedCheckpoints(saved ? JSON.parse(saved) : []);
+    } catch (_) {
+      setCompletedCheckpoints([]);
+    }
+
+    let isMounted = true;
+
+    const fetchCheckpoints = async () => {
+      const dur = videoDuration || video?.duration_seconds || 600;
+      const initialFallback = generateFallbackCheckpoints(video?.name, dur).map(cp => ({ ...cp, isFallback: true }));
+      if (isMounted) setCheckpoints(initialFallback);
+
+      try {
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/checkpoint-questions/${videoId}`,
+          { headers }
+        );
+
+        if (isMounted && res.data?.checkpoints && Array.isArray(res.data.checkpoints) && res.data.checkpoints.length > 0) {
+          const realDur = videoDuration || video?.duration_seconds || dur;
+          const mapped = res.data.checkpoints.map((cp, idx) => {
+            const pct = cp.pct !== undefined ? cp.pct : (realDur > 0 ? (cp.timestamp / realDur) : ((idx + 1) / (res.data.checkpoints.length + 1)));
+            const { options: shuffledOpts, answer: resolvedAns } = shuffleOptions(cp.options, cp.answer);
+            return {
+              ...cp,
+              options: shuffledOpts,
+              answer: resolvedAns,
+              pct,
+              timestamp: Number(cp.timestamp) || Math.round(realDur * pct),
+              index: idx,
+              total: res.data.checkpoints.length,
+              isFallback: false
+            };
+          });
+          setCheckpoints(mapped);
+        } else if (token) {
+          const quizRes = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/start-quiz/`, {
+            idToken: token,
+            contentType: 'video',
+            contentId: videoId,
+          });
+
+          if (isMounted && quizRes.data?.quiz?.questions && Array.isArray(quizRes.data.quiz.questions) && quizRes.data.quiz.questions.length > 0) {
+            const qs = quizRes.data.quiz.questions;
+            const realDur = videoDuration || video?.duration_seconds || dur;
+            const mapped = qs.map((q, idx) => {
+              const pct = (idx + 1) / (qs.length + 1);
+              const { options: shuffledOpts, answer: resolvedAns } = shuffleOptions(q.options || ["True", "False"], q.answer);
+              return {
+                id: `cp_${videoId}_${idx}`,
+                question: q.question,
+                options: shuffledOpts,
+                answer: resolvedAns,
+                explanation: q.explanation || "",
+                pct,
+                timestamp: Math.max(30, Math.round(realDur * pct)),
+                index: idx,
+                total: qs.length,
+                isFallback: false
+              };
+            });
+            setCheckpoints(mapped);
+          }
+        }
+      } catch (_) {
+        // Retain fallback
+      }
+    };
+
+    fetchCheckpoints();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [videoId, token, video?.name]);
+
+  // Recalibrate checkpoint timestamps when true video duration is known
+  useEffect(() => {
+    if (videoDuration > 0) {
+      setCheckpoints(prev => {
+        if (!prev || prev.length === 0) {
+          return generateFallbackCheckpoints(video?.name, videoDuration);
+        }
+        const isFallback = prev.some(cp => String(cp.id).startsWith('cp_fb_'));
+        if (isFallback) {
+          return generateFallbackCheckpoints(video?.name, videoDuration);
+        }
+        // AI-generated checkpoints already have exact content-grounded timestamps; preserve them!
+        return prev;
+      });
+    }
+  }, [videoDuration, video?.name]);
 
   // Track continuous progress to avoid spamming the backend
   const [lastSavedProgress, setLastSavedProgress] = useState(0);
@@ -931,15 +1179,28 @@ const Classroom = () => {
     try {
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
       const saved = localStorage.getItem(`learnproof_active_tab_${videoId}`);
-      if (saved) return saved;
-      return isMobile ? 'playlist' : 'overview';
+      const hiddenTabs = ['overview', 'code-editor', 'discussion'];
+      if (!isMobile && saved === 'playlist') return 'intuition';
+      if (saved && !hiddenTabs.includes(saved)) return saved;
+      return isMobile ? 'playlist' : 'intuition';
     } catch {
-      return 'overview';
+      return 'intuition';
     }
   });
 
+  // Safety fallback: if user is on any hidden tab, route to intuition (AI Notes)
   useEffect(() => {
-    if (videoId && activeTab) {
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+    if (isDesktop && activeTab === 'playlist') {
+      setActiveTab('intuition');
+    }
+    if (['overview', 'code-editor', 'discussion'].includes(activeTab)) {
+      setActiveTab('intuition');
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (videoId && activeTab && !['overview', 'code-editor', 'discussion'].includes(activeTab)) {
       try {
         localStorage.setItem(`learnproof_active_tab_${videoId}`, activeTab);
       } catch (e) { }
@@ -956,8 +1217,6 @@ const Classroom = () => {
   const [savingNote, setSavingNote] = useState(false);
   const latestProgressRef = useRef(0);
   const activeVideoRef = useRef(null); // Ref for auto-scrolling
-  const playerContainerRef = useRef(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Playlist Pagination State
   const [playlistPage, setPlaylistPage] = useState(1);
@@ -984,15 +1243,12 @@ const Classroom = () => {
       if (saved === 'clean' || saved === 'ruled' || saved === 'grid' || saved === 'chalkboard') {
         return saved;
       }
-      const savedNotes = localStorage.getItem('learnproof_notes_view_mode');
-      if (savedNotes === 'clean' || savedNotes === 'ruled' || savedNotes === 'grid' || savedNotes === 'chalkboard') {
-        return savedNotes;
-      }
-      return 'ruled';
+      return 'clean';
     } catch {
-      return 'ruled';
+      return 'clean';
     }
   });
+  const [showChatStyleMenu, setShowChatStyleMenu] = useState(false);
 
   const handleSetChatViewMode = (mode) => {
     setChatViewMode(mode);
@@ -1094,8 +1350,7 @@ const Classroom = () => {
       const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/video-ask-ai/`, {
         videoId: video.vid,
         question,
-        chatHistory: aiChatMessages.slice(-6).map(m => ({ role: m.role, content: m.content })),
-        language: selectedLanguage || 'English'
+        chatHistory: aiChatMessages.slice(-6).map(m => ({ role: m.role, content: m.content }))
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -1103,6 +1358,7 @@ const Classroom = () => {
       if (res.data?.success && res.data.answer) {
         const aiMsg = { role: 'assistant', content: res.data.answer, timestamp: new Date() };
         updateAiMessages([...updatedWithUser, aiMsg]);
+        return res.data.answer;
       } else {
         throw new Error('No answer received');
       }
@@ -1178,34 +1434,92 @@ const Classroom = () => {
     };
   }, []);
 
+  const isFullscreenActive = () => {
+    return Boolean(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+  };
+
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const fs = isFullscreenActive();
+      setIsNativeFullscreen(fs);
+      if (!fs && isPseudoFullscreen) {
+        setIsPseudoFullscreen(false);
+        try { document.body.style.overflow = ''; } catch (_) {}
+      }
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+    window.addEventListener("resize", handleFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
+      window.removeEventListener("resize", handleFullscreenChange);
     };
-  }, []);
+  }, [isPseudoFullscreen]);
 
   const handleFullscreenToggle = () => {
     const container = playerContainerRef.current;
     if (!container) return;
 
-    if (!document.fullscreenElement) {
-      if (container.requestFullscreen) {
-        container.requestFullscreen();
-      } else if (container.webkitRequestFullscreen) {
-        container.webkitRequestFullscreen();
+    const isNativeFs = Boolean(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+
+    // If currently in native fullscreen, exit it
+    if (isNativeFs) {
+      const exitFs = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+      if (exitFs) {
+        try {
+          const res = exitFs.call(document);
+          if (res && res.catch) res.catch(() => {});
+        } catch (_) {}
+      }
+      setIsNativeFullscreen(false);
+      setIsPseudoFullscreen(false);
+      try { document.body.style.overflow = ''; } catch (_) {}
+      return;
+    }
+
+    // If currently in pseudo-fullscreen, exit it
+    if (isPseudoFullscreen) {
+      setIsPseudoFullscreen(false);
+      try { document.body.style.overflow = ''; } catch (_) {}
+      return;
+    }
+
+    // Attempt container-level HTML5 requestFullscreen (Desktop / Android)
+    const requestFs = container.requestFullscreen || container.webkitRequestFullscreen || container.mozRequestFullScreen || container.msRequestFullscreen;
+
+    if (requestFs && typeof requestFs === 'function') {
+      try {
+        const p = requestFs.call(container);
+        if (p && p.catch) {
+          p.catch(() => {
+            // iOS Safari or browser permission fallback
+            setIsPseudoFullscreen(true);
+            try { document.body.style.overflow = 'hidden'; } catch (_) {}
+          });
+        }
+      } catch (_) {
+        setIsPseudoFullscreen(true);
+        try { document.body.style.overflow = 'hidden'; } catch (_) {}
       }
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
+      // iOS iPhone / Mobile where requestFullscreen is not supported on div elements
+      setIsPseudoFullscreen(true);
+      try { document.body.style.overflow = 'hidden'; } catch (_) {}
     }
   };
 
@@ -1447,14 +1761,16 @@ const Classroom = () => {
 
   const classroomTabs = useMemo(() => [
     ...(playlist ? [{ id: 'playlist', label: 'Playlist', shortLabel: 'Videos', icon: PlayCircle, hideOnDesktop: true }] : []),
-    { id: 'overview', label: 'Overview', shortLabel: 'Overview', icon: BookOpen },
+    // Hidden per user request to simplify the interface
+    // { id: 'overview', label: 'Overview', shortLabel: 'Overview', icon: BookOpen },
     { id: 'intuition', label: 'AI Notes', shortLabel: 'AI Notes', icon: Sparkles },
-    ...(isCodeEditorEnabled ? [{ id: 'code-editor', label: 'Code Editor', shortLabel: 'Code', icon: Code2 }] : []),
+    // ...(isCodeEditorEnabled ? [{ id: 'code-editor', label: 'Code Editor', shortLabel: 'Code', icon: Code2 }] : []),
     { id: 'ai-chat', label: 'Ask AI Chatbot', shortLabel: 'Chat', icon: Bot },
-    { id: 'quiz', label: 'AI Quiz & Flashcards', shortLabel: 'Quiz', icon: CheckCircle },
+    { id: 'quiz', label: 'AI Quiz', shortLabel: 'Quiz', icon: CheckCircle },
+    { id: 'flashcards', label: 'Flashcards', shortLabel: 'Cards', icon: Layers },
     { id: 'notes', label: 'Notes', shortLabel: 'Notes', icon: FileText },
-    { id: 'discussion', label: `Discussion (${(comments && comments.length) || 0})`, shortLabel: 'Discuss', badge: (comments && comments.length) || 0, icon: MessageSquare },
-  ], [playlist, comments, isCodeEditorEnabled]);
+    // { id: 'discussion', label: `Discussion (${(comments && comments.length) || 0})`, shortLabel: 'Discuss', badge: (comments && comments.length) || 0, icon: MessageSquare },
+  ], [playlist]);
 
   const visibleClassroomTabs = useMemo(() => {
     return classroomTabs.filter(t => !t.hideOnDesktop || (typeof window !== 'undefined' && window.innerWidth < 1024));
@@ -1462,7 +1778,7 @@ const Classroom = () => {
 
   const handleTouchStart = (e) => {
     // Never switch tabs via swipe when on AI Notes, AI Chat, Code Editor, Flashcards, or touching any scrollable elements/tables/code/buttons
-    if (activeTab === 'intuition' || activeTab === 'ai-chat' || activeTab === 'code-editor' || (activeTab === 'quiz' && quizSubTab === 'flashcards')) {
+    if (activeTab === 'intuition' || activeTab === 'ai-chat' || activeTab === 'code-editor' || activeTab === 'flashcards') {
       setTouchStart(null);
       setTouchEnd(null);
       return;
@@ -1482,7 +1798,7 @@ const Classroom = () => {
   };
 
   const handleTouchMove = (e) => {
-    if (activeTab === 'intuition' || activeTab === 'ai-chat' || activeTab === 'code-editor') return;
+    if (activeTab === 'intuition' || activeTab === 'ai-chat' || activeTab === 'code-editor' || activeTab === 'flashcards') return;
     if (e.target?.closest?.('.no-tab-swipe, .overflow-x-auto, table, pre, code, select, button, input, textarea, .intuition-markdown')) return;
     if (e.targetTouches?.[0]) {
       setTouchEnd({
@@ -1493,7 +1809,7 @@ const Classroom = () => {
   };
 
   const handleTouchEnd = () => {
-    if (activeTab === 'intuition' || activeTab === 'ai-chat' || activeTab === 'code-editor') {
+    if (activeTab === 'intuition' || activeTab === 'ai-chat' || activeTab === 'code-editor' || activeTab === 'flashcards') {
       setTouchStart(null);
       setTouchEnd(null);
       return;
@@ -2505,9 +2821,9 @@ const Classroom = () => {
     setFlashcardQuestions([]);
   }, [videoId]);
 
-  // Silent prefetch when user views Quiz tab so Start Flashcards is instant
+  // Silent prefetch when user views Flashcards or Quiz tab so Start Flashcards is instant
   useEffect(() => {
-    if (activeTab === 'quiz' && flashcardQuestions.length === 0 && !loadingFlashcards && !inFlightFlashcardPromiseRef.current) {
+    if ((activeTab === 'flashcards' || activeTab === 'quiz') && flashcardQuestions.length === 0 && !loadingFlashcards && !inFlightFlashcardPromiseRef.current) {
       fetchFlashcards(false, true);
     }
   }, [activeTab, videoId]);
@@ -2684,6 +3000,10 @@ const Classroom = () => {
           const duration = await player.getDuration();
 
           if (duration > 0 && currentTime > 0) {
+            if (duration !== videoDuration) {
+              setVideoDuration(duration);
+            }
+
             const percentRaw = (currentTime / duration) * 100;
             const percentage = Math.round(percentRaw);
 
@@ -2705,6 +3025,29 @@ const Classroom = () => {
             ) {
               console.log(`Auto-triggering next overlay ${triggerOffset}s before end to block annotations`);
               setShowNextOverlay(true);
+            }
+
+            // Duolingo Checkpoint Auto-Trigger (Only trigger real content-grounded checkpoints at exact timestamp)
+            if (checkpointsEnabled && checkpoints.length > 0 && !activeCheckpoint && !showCelebration) {
+              const triggerable = checkpoints.find(cp =>
+                !cp.isFallback &&
+                currentTime >= cp.timestamp &&
+                (currentTime - cp.timestamp) <= 2.5 &&
+                !triggeredCheckpointIdsRef.current.has(cp.id)
+              );
+
+              if (triggerable) {
+                console.log(`[Duolingo Checkpoint Auto-Trigger] Activated ${triggerable.id} at ${currentTime.toFixed(1)}s (target: ${triggerable.timestamp}s)`);
+                triggeredCheckpointIdsRef.current.add(triggerable.id);
+                try {
+                  if (typeof player.pauseVideo === 'function') {
+                    player.pauseVideo();
+                  }
+                } catch (_) {}
+
+                // Present checkpoint directly inside the active view (fullscreen or normal) without interrupting fullscreen immersion
+                setActiveCheckpoint(triggerable);
+              }
             }
 
             // Only save to backend every 2% changes or if it reached >95%
@@ -2731,109 +3074,30 @@ const Classroom = () => {
                 updatePlaylistVideoState(video.vid, { watch_progress: percentage });
               }
             }
-
-            // Smart non-intrusive speed sync: guarantees true speed without stuttering during normal playback
-            try {
-              const currentPreferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-              const expectedYtRate = getValidYouTubeRate(currentPreferred, player);
-
-              if (expectedYtRate && expectedYtRate > 1 && typeof player.getCurrentTime === 'function') {
-                const now = Date.now();
-                const realElapsed = (now - lastPlayProgressRef.current.realTime) / 1000;
-                const currentVTime = await player.getCurrentTime();
-                const videoElapsed = currentVTime - lastPlayProgressRef.current.videoTime;
-                lastPlayProgressRef.current = { videoTime: currentVTime, realTime: now };
-
-                const nowMs = Date.now();
-                const isCooldown = nowMs < lastSyncCooldownRef.current;
-
-                if (
-                  !isCooldown &&
-                  !document.hidden &&
-                  realElapsed >= 0.8 &&
-                  realElapsed <= 2.2 &&
-                  videoElapsed >= 0.3 &&
-                  videoElapsed <= 4.0
-                ) {
-                  const measuredRate = videoElapsed / realElapsed;
-                  // If user selected speed >= 1.25x, but the video has actually been clocking at normal speed <= 1.12x
-                  if (measuredRate <= 1.12) {
-                    consecutiveSlowCountRef.current = (consecutiveSlowCountRef.current || 0) + 1;
-                    // Require 3 consecutive seconds of 1.0x playback before intervening
-                    if (consecutiveSlowCountRef.current >= 3) {
-                      console.warn(`[Speed Sync] Video stuck at 1x despite preference ${expectedYtRate}x. Re-syncing.`);
-                      resyncPlaybackSpeed(expectedYtRate, player);
-                      consecutiveSlowCountRef.current = 0;
-                      lastSyncCooldownRef.current = nowMs + 5000; // 5-second cooldown to let decoder stabilize
-                    }
-                  } else {
-                    // Video is playing at increased speed (e.g. 1.25+, 1.5+, 2.0+) - reset counter
-                    consecutiveSlowCountRef.current = 0;
-                  }
-                }
-              } else {
-                lastPlayProgressRef.current = {
-                  videoTime: (typeof player?.getCurrentTime === 'function' ? await player.getCurrentTime() : 0),
-                  realTime: Date.now()
-                };
-                consecutiveSlowCountRef.current = 0;
-              }
-
-              if (currentPreferred) {
-                document.querySelectorAll('video').forEach((v) => {
-                  try {
-                    if (Math.abs(v.playbackRate - currentPreferred) > 0.05) {
-                      v.playbackRate = currentPreferred;
-                      v.defaultPlaybackRate = currentPreferred;
-                    }
-                  } catch (_) {}
-                });
-              }
-            } catch (_) {}
           }
         } catch (err) {
           // Ignore player errors during unmounts/loading
         }
-      }, 1000); // Check every 1 second
+      }, 1000);
     }
 
-    // POLICY COMPLIANCE & SPEED PERSISTENCE:
-    // 1. Pause video if tab is hidden (No background playback)
-    // 2. Re-enforce playback speed when user returns from switching apps or unlocking screen
+    // Pause video if tab is hidden
     const handleVisibilityChange = () => {
       const targetP = playerRef.current || player;
       if (document.hidden) {
-        wasAppBackgroundedRef.current = true;
         if (targetP && typeof targetP.pauseVideo === 'function') {
           try {
             targetP.pauseVideo();
           } catch (_) {}
         }
-      } else {
-        // App switch return: Re-enforce preferred speed immediately and after resuming
-        wasAppBackgroundedRef.current = true;
-        const currentPreferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-        if (currentPreferred && currentPreferred !== 1 && targetP) {
-          resyncPlaybackSpeed(currentPreferred, targetP);
-        }
-      }
-    };
-
-    const handleWindowFocus = () => {
-      const targetP = playerRef.current || player;
-      const currentPreferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-      if (currentPreferred && currentPreferred !== 1 && targetP) {
-        resyncPlaybackSpeed(currentPreferred, targetP);
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleWindowFocus);
 
     return () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleWindowFocus);
       // Final save on unmount/video change if progress changed
       if (latestProgressRef?.current > lastSavedProgress) {
         axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/update-progress/`, {
@@ -2849,6 +3113,8 @@ const Classroom = () => {
     // YT.PlayerState.PLAYING is 1
     if (event.data === 1) {
       setIsVideoPlaying(true);
+      isCurrentlyPlayingRef.current = true;
+      showControlsTemporarily();
       let didSeek = false;
       if (!hasSeeked) {
         setHasSeeked(true);
@@ -2865,23 +3131,17 @@ const Classroom = () => {
         }
       }
 
-      // Re-apply preferred playback speed reliably once video is playing (bust YouTube cache on app return)
-      const currentRate = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-      if (currentRate) {
-        if (currentRate !== 1 && wasAppBackgroundedRef.current) {
-          wasAppBackgroundedRef.current = false;
-          setTimeout(() => {
-            resyncPlaybackSpeed(currentRate, event.target);
-          }, 60);
-        } else {
-          const delays = didSeek ? [150, 450, 900, 1600] : [40, 200, 500, 1000];
-          enforcePlayerSpeedWithRetries(currentRate, event.target, delays);
-        }
-      }
       isSwitchingVideoRef.current = false;
     } else if (event.data === 2) {
-      // PAUSED - keep poster hidden
-      setIsVideoPlaying(true);
+      setIsVideoPlaying(false);
+      isCurrentlyPlayingRef.current = false;
+      setControlsVisible(true);
+      if (controlsHideTimeoutRef.current) clearTimeout(controlsHideTimeoutRef.current);
+    } else if (event.data === 0) {
+      setIsVideoPlaying(false);
+      isCurrentlyPlayingRef.current = false;
+      setControlsVisible(true);
+      if (controlsHideTimeoutRef.current) clearTimeout(controlsHideTimeoutRef.current);
     } else if (event.data === 5 || event.data === -1) {
       // CUED / UNSTARTED - kick play to start video without user waiting
       try {
@@ -2937,7 +3197,7 @@ const Classroom = () => {
       <div className="flex-1 flex flex-col w-full lg:w-auto lg:h-screen lg:overflow-hidden">
         {/* Premium Header */}
         <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-100 dark:border-slate-800 shadow-sm transition-colors duration-200 relative lg:sticky lg:top-0 z-40 pt-[var(--sat,0px)]">
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3.5">
+          <div className="flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3.5 gap-2">
             <button
               onClick={() => {
                 if (playlist?.pid) {
@@ -2946,178 +3206,31 @@ const Classroom = () => {
                   navigate(-1);
                 }
               }}
-              className="group flex items-center gap-2 text-gray-500 dark:text-slate-400 hover:text-orange-500 text-sm font-black uppercase tracking-widest transition-all"
+              className="w-8 h-8 sm:w-auto sm:h-auto sm:px-3 sm:py-1.5 rounded-full sm:rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-slate-700 text-gray-600 dark:text-slate-300 hover:text-orange-500 flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0"
+              title="Back"
             >
-              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-              <span className="hidden sm:inline">Back</span>
+              <ArrowLeft size={16} />
+              <span className="hidden sm:inline text-xs font-black uppercase tracking-wider">Back</span>
             </button>
 
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Playback Speed Controller */}
-              <div className="relative" ref={speedMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setShowSpeedMenu(prev => !prev)}
-                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 border rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95 ${
-                    playbackSpeed !== 1
-                      ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800 text-orange-600 dark:text-orange-400'
-                      : 'bg-gray-50 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-slate-700/80 border-gray-200/80 dark:border-slate-700 text-gray-700 dark:text-slate-200'
-                  }`}
-                  title="Playback Speed"
-                >
-                  <Gauge size={13} className={playbackSpeed !== 1 ? 'text-orange-500 shrink-0' : 'text-gray-400 shrink-0'} />
-                  <span className="font-mono">{playbackSpeed}x</span>
-                  {playbackSpeed > 2 && (
-                    <Zap size={11} className="text-amber-500 fill-amber-500 -ml-0.5 shrink-0" />
-                  )}
-                  <ChevronDown size={11} className={`text-gray-400 transition-transform duration-200 ${showSpeedMenu ? 'rotate-180' : ''}`} />
-                </button>
-
-                {/* Click-Outside Global Backdrop (Closes immediately when tapping anywhere else) */}
-                {showSpeedMenu && (
-                  <div
-                    className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px] animate-in fade-in duration-150"
-                    onClick={() => setShowSpeedMenu(false)}
-                    onTouchStart={() => setShowSpeedMenu(false)}
-                  />
-                )}
-
-                {/* Dropdown Menu - Compact Mobile Slider & Desktop Card */}
-                {showSpeedMenu && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onTouchStart={(e) => e.stopPropagation()}
-                    className="fixed top-14 right-3 w-[275px] sm:absolute sm:top-full sm:right-0 sm:mt-2 sm:w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800 rounded-2xl shadow-2xl p-2.5 sm:p-3 z-50 animate-in fade-in zoom-in-95 duration-150"
-                  >
-                    {/* Header */}
-                    <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-md bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center">
-                          <Gauge size={12} />
-                        </div>
-                        <span className="text-[11px] font-black text-gray-800 dark:text-white uppercase tracking-wider">Speed</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-mono text-[11px] font-black shadow-xs">
-                          {playbackSpeed}x
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setShowSpeedMenu(false)}
-                          className="w-5 h-5 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                          aria-label="Close speed selector"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Interactive Slider & Steppers */}
-                    <div className="py-2.5 space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleStepSpeed(-1)}
-                          disabled={playbackSpeed <= SPEED_OPTIONS[0]}
-                          className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                          title="Slower"
-                        >
-                          <Minus size={12} />
-                        </button>
-
-                        <div className="flex-1 relative flex items-center">
-                          <input
-                            type="range"
-                            min="0.5"
-                            max="4"
-                            step="0.1"
-                            value={playbackSpeed}
-                            onChange={(e) => applyPlaybackSpeed(parseFloat(e.target.value))}
-                            className="w-full h-1.5 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500 focus:outline-none"
-                          />
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() => handleStepSpeed(1)}
-                          disabled={playbackSpeed >= SPEED_OPTIONS[SPEED_OPTIONS.length - 1]}
-                          className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                          title="Faster"
-                        >
-                          <Plus size={12} />
-                        </button>
-                      </div>
-
-                      {/* Slider Min / Max Labels */}
-                      <div className="flex justify-between text-[9px] font-bold font-mono text-gray-400 dark:text-slate-500 px-8">
-                        <span>0.5x</span>
-                        <span className={playbackSpeed === 1 ? 'text-orange-500 font-black' : ''}>1.0x</span>
-                        <span className={playbackSpeed === 2 ? 'text-orange-500 font-black' : ''}>2.0x</span>
-                        <span>4.0x</span>
-                      </div>
-                    </div>
-
-                    {/* Quick Snap Preset Chips */}
-                    <div className="flex items-center gap-1 overflow-x-auto pb-1.5 scrollbar-none">
-                      {[0.75, 1, 1.25, 1.5, 1.6, 1.75, 2, 2.5, 3, 4].map((rate) => {
-                        const isCurrent = playbackSpeed === rate;
-                        return (
-                          <button
-                            key={rate}
-                            type="button"
-                            onClick={() => applyPlaybackSpeed(rate)}
-                            className={`shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                              isCurrent
-                                ? 'bg-orange-500 text-white shadow-xs scale-105'
-                                : 'bg-gray-50 dark:bg-slate-800/80 hover:bg-orange-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border border-gray-200/60 dark:border-slate-700/60'
-                            }`}
-                          >
-                            <span className="font-mono">{rate === 1 ? '1x' : `${rate}x`}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Footer Controls */}
-                    <div className="pt-1.5 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
-                      <button
-                        type="button"
-                        onClick={() => applyPlaybackSpeed(1)}
-                        className="font-bold text-gray-500 dark:text-slate-400 hover:text-orange-500 transition cursor-pointer"
-                      >
-                        Reset to 1x
-                      </button>
-                      <span className="text-[9px] text-gray-400 dark:text-slate-500">Persists across lessons</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Live progress chip */}
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl">
-                <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
-                <span className="text-xs font-black text-gray-500 dark:text-slate-400 uppercase tracking-widest">{Math.round(liveProgress)}% watched</span>
-              </div>
-
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+              {/* Done / Completion Indicator */}
               <button
                 onClick={video.is_completed ? unmarkAsCompleted : markAsCompleted}
                 disabled={marking}
-                className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all ${video.is_completed
-                  ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 hover:bg-green-100'
-                  : 'bg-orange-500 text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600 hover:shadow-orange-500/30'
+                className={`h-8 px-2.5 sm:px-3.5 rounded-full sm:rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shrink-0 ${video.is_completed
+                  ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                  : 'bg-orange-500 text-white shadow-sm shadow-orange-500/20 hover:bg-orange-600'
                   }`}
+                title={video.is_completed ? 'Completed' : 'Mark as Done'}
               >
                 {marking ? (
-                  <div className={`animate-spin rounded-full h-4 w-4 border-2 ${video.is_completed ? 'border-green-500 border-t-transparent' : 'border-white border-t-transparent'}`}></div>
+                  <div className={`animate-spin rounded-full h-3.5 w-3.5 border-2 ${video.is_completed ? 'border-emerald-500 border-t-transparent' : 'border-white border-t-transparent'}`}></div>
                 ) : (
-                  <CheckCircle size={14} />
+                  <CheckCircle size={14} className={video.is_completed ? "text-emerald-500" : "text-white"} />
                 )}
                 <span className="hidden sm:inline">
-                  {video.is_completed ? 'Completed ✓' : 'Mark as Done'}
-                </span>
-                <span className="sm:hidden">
-                  {video.is_completed ? '✓' : 'Done'}
+                  {video.is_completed ? 'Completed' : 'Done'}
                 </span>
               </button>
             </div>
@@ -3125,8 +3238,23 @@ const Classroom = () => {
         </div>
 
         <div className="flex flex-col flex-1 lg:overflow-y-auto w-full max-w-full bg-white dark:bg-gray-900 transition-colors duration-200">
-          {/* Enhanced Video Player */}
-          <div ref={playerContainerRef} className="bg-black relative shadow-2xl aspect-video w-full flex items-center justify-center shrink-0 overflow-hidden group">
+          {/* Enhanced Video Player (Supports native HTML5 container fullscreen & iOS/mobile pseudo-fullscreen) */}
+          <div 
+            ref={playerContainerRef} 
+            className={`group/player bg-black relative shadow-2xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+              isPseudoFullscreen
+                ? 'fixed inset-0 z-[9999] w-screen h-[100dvh] !aspect-auto !max-w-none !max-h-none !m-0 !rounded-none'
+                : 'aspect-video w-full'
+            } ${
+              isFullscreen && !controlsVisible ? 'cursor-none' : ''
+            } ${
+              activeCheckpoint || showCelebration ? 'overflow-visible' : 'overflow-hidden'
+            }`}
+            onMouseMove={handlePlayerMouseMove}
+            onMouseEnter={handlePlayerMouseMove}
+            onMouseLeave={handlePlayerMouseLeave}
+            onTouchStart={handlePlayerMouseMove}
+          >
             {/* Non-blocking background poster behind YouTube iframe - eliminates black void while iframe mounts */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
               <img
@@ -3149,6 +3277,7 @@ const Classroom = () => {
                   rel: 0,
                   modestbranding: 0,
                   enablejsapi: 1,
+                  fs: 0,
                   origin: typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com',
                   widget_referrer: typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com',
                   iv_load_policy: 3,
@@ -3171,38 +3300,12 @@ const Classroom = () => {
               }}
               onStateChange={handlePlayerStateChange}
               onPlaybackRateChange={(e) => {
-                const newRate = e.data;
-                const preferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
-                const expectedYtRate = getValidYouTubeRate(preferred, e.target);
-                console.log("YouTube playback rate event:", newRate, "preferred:", preferred, "expectedYt:", expectedYtRate);
-
-                // If YouTube automatically reset to 1 upon loading a new video/stream or app resume, but preferred is not 1:
-                if (newRate === 1 && expectedYtRate !== 1) {
-                  setTimeout(() => {
-                    try {
-                      if (e.target && typeof e.target.setPlaybackRate === 'function') {
-                        e.target.setPlaybackRate(expectedYtRate);
-                      }
-                    } catch (_) {}
-                  }, 40);
-                  return;
-                }
-
-                // If YouTube emitted its nearest quantized rate (e.g. 1.5 when user picked 1.6, or 2.0 when user picked 2.5):
-                // Do NOT downgrade or overwrite the user's customized rate in state or localStorage!
-                if (Math.abs(newRate - expectedYtRate) < 0.05 && preferred !== newRate) {
-                  return;
-                }
-
-                setPlaybackSpeed(newRate);
-                userSpeedRef.current = newRate;
-                try {
-                  localStorage.setItem('learnproof_playback_speed', newRate.toString());
-                } catch (_) {}
+                setPlaybackSpeed(e.data);
               }}
               onEnd={() => {
+                setShowCelebration(true);
                 if (nextVideo) {
-                  console.log("Video ended, triggering next overlay");
+                  console.log("Video ended, triggering celebration & next overlay");
                   setShowNextOverlay(true);
                   // Exit native iframe fullscreen so overlay is visible
                   if (document.fullscreenElement) {
@@ -3213,94 +3316,34 @@ const Classroom = () => {
               onError={() => setPlayerError(true)}
             />
 
-            {/* Click-Outside Catcher over Video Iframe when Speed Menu is open */}
-            {showSpeedMenu && (
-              <div
-                className="absolute inset-0 z-25 cursor-pointer bg-transparent"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowSpeedMenu(false);
-                }}
-                onTouchStart={(e) => {
-                  e.stopPropagation();
-                  setShowSpeedMenu(false);
-                }}
-                aria-label="Close speed menu"
-              />
-            )}
-
-            {/* Extension-Style Floating Speed Pill (Desktop & Mobile) */}
-            <div className={`absolute top-3 left-3 z-30 flex items-center gap-1 bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 text-white rounded-xl px-2 py-1 shadow-lg transition-all duration-200 select-none ${
-              speedHudVisible ? 'opacity-100 scale-100' : 'opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100'
-            }`}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleStepSpeed(-1);
-                }}
-                disabled={playbackSpeed <= SPEED_OPTIONS[0]}
-                className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-white/20 active:scale-90 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                title="Slow down [S]"
-              >
-                <Minus size={11} />
-              </button>
-
-              <div 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowSpeedMenu(prev => !prev);
-                }}
-                className="px-1.5 py-0.5 text-xs font-mono font-bold text-orange-400 hover:text-orange-300 transition cursor-pointer flex items-center gap-0.5"
-                title="Click for Speed Menu (or press S/D keys)"
-              >
-                <span>{playbackSpeed}x</span>
-                {playbackSpeed > 2 && <Zap size={10} className="fill-amber-400 text-amber-400" />}
-              </div>
-
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleStepSpeed(1);
-                }}
-                disabled={playbackSpeed >= SPEED_OPTIONS[SPEED_OPTIONS.length - 1]}
-                className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-white/20 active:scale-90 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
-                title="Speed up [D]"
-              >
-                <Plus size={11} />
-              </button>
-
-              {playbackSpeed !== 1 && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    applyPlaybackSpeed(1);
-                  }}
-                  className="ml-0.5 px-1 py-0.5 text-[9px] font-bold uppercase rounded bg-white/10 hover:bg-orange-500 text-gray-300 hover:text-white transition cursor-pointer"
-                  title="Reset to 1x [R]"
-                >
-                  1x
-                </button>
+            {/* Fullscreen / Minimize Toggle Button (Below, Icon Only, Same as Image 2, Auto-Hides with Controls) */}
+            <button
+              type="button"
+              onMouseEnter={() => {
+                if (controlsHideTimeoutRef.current) clearTimeout(controlsHideTimeoutRef.current);
+                setControlsVisible(true);
+              }}
+              onMouseLeave={() => {
+                showControlsTemporarily();
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleFullscreenToggle();
+              }}
+              className={`absolute bottom-12 sm:bottom-14 right-3.5 sm:right-4 z-40 flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-slate-900/65 hover:bg-slate-900/90 text-white backdrop-blur-md border border-white/20 shadow-lg hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer select-none ${
+                (!isVideoPlaying || controlsVisible)
+                  ? 'opacity-100 translate-y-0 pointer-events-auto'
+                  : 'opacity-0 translate-y-1 pointer-events-none group-hover/player:opacity-100 group-hover/player:pointer-events-auto group-hover/player:translate-y-0'
+              }`}
+              title={isFullscreen ? "Exit Fullscreen (f or Esc)" : "Full screen (f)"}
+              aria-label={isFullscreen ? "Exit Fullscreen" : "Full screen"}
+            >
+              {isFullscreen ? (
+                <Minimize2 size={16} strokeWidth={2.2} className="text-white" />
+              ) : (
+                <Maximize2 size={16} strokeWidth={2.2} className="text-white" />
               )}
-            </div>
-
-            {/* Quick Extension-Style Central Flash Indicator */}
-            <AnimatePresence>
-              {speedHudVisible && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.85 }}
-                  transition={{ duration: 0.15 }}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none bg-black/80 backdrop-blur-md border border-orange-500/30 text-white rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-2"
-                >
-                  <Gauge size={22} className="text-orange-500" />
-                  <span className="text-2xl font-mono font-black text-orange-400">{playbackSpeed}x</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            </button>
 
             {/* Fallback overlay when YouTube blocks embedding */}
             {playerError && (
@@ -3372,6 +3415,52 @@ const Classroom = () => {
                 </div>
               </div>
             )}
+
+            {/* Duolingo Checkpoint Overlay */}
+            {activeCheckpoint && (
+              <DuolingoCheckpointOverlay
+                checkpoint={activeCheckpoint}
+                onAnswer={handleCheckpointAnswer}
+                onContinue={handleCheckpointContinue}
+                onRewind={handleCheckpointRewind}
+                onSkip={handleCheckpointContinue}
+                onDisableAllCheckpoints={() => {
+                  setCheckpointsEnabled(false);
+                  try {
+                    localStorage.setItem('learnproof_checkpoints_enabled', 'false');
+                  } catch (_) {}
+                  setActiveCheckpoint(null);
+                  if (player && typeof player.playVideo === 'function') {
+                    try { player.playVideo(); } catch (_) {}
+                  }
+                  toast("Interactive quizzes turned OFF", { icon: '⏸️' });
+                }}
+              />
+            )}
+
+            {/* Duolingo Lesson Victory Celebration Screen */}
+            <DuolingoCelebrationModal
+              isOpen={showCelebration}
+              videoTitle={video?.name}
+              xpEarned={sessionXp > 0 ? sessionXp : 45}
+              accuracy={
+                checkpoints.length > 0
+                  ? Math.round((completedCheckpoints.length / checkpoints.length) * 100)
+                  : 100
+              }
+              streak={userStreak}
+              hasNextVideo={Boolean(nextVideo)}
+              onNextLesson={() => {
+                setShowCelebration(false);
+                if (nextVideo) {
+                  handleSelectVideo(nextVideo.vid);
+                }
+              }}
+              onReviewNotes={() => {
+                setShowCelebration(false);
+                handleSelectTab('intuition');
+              }}
+            />
           </div>
 
           {/* Video Details */}
@@ -3392,28 +3481,72 @@ const Classroom = () => {
                 </a>
               </div>
 
-              {/* Progress Bar */}
-              <div className="flex items-center gap-4 mb-2 sm:mb-2.5">
-                <div className="flex-1 bg-gray-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+              {/* Progress Bar with Duolingo Milestone Markers & Quizzes Toggle */}
+              <div className="flex items-center gap-2.5 sm:gap-4 mb-2 sm:mb-2.5">
+                <div className="relative flex-1 bg-gray-100 dark:bg-slate-800 rounded-full h-2.5 overflow-visible">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.round(liveProgress)}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut' }}
-                    className="h-2 bg-gradient-to-r from-orange-500 to-amber-400 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+                    className="h-2.5 bg-gradient-to-r from-orange-500 to-amber-400 rounded-full shadow-[0_0_8px_rgba(249,115,22,0.4)]"
                   />
+                  {checkpointsEnabled && (
+                    <TimelineCheckpointMarkers
+                      checkpoints={checkpoints}
+                      currentTime={(liveProgress / 100) * (videoDuration || 600)}
+                      duration={videoDuration || 600}
+                      completedCheckpoints={completedCheckpoints}
+                      onSeek={(targetSec) => {
+                        if (player && typeof player.seekTo === 'function') {
+                          player.seekTo(targetSec, true);
+                          if (typeof player.playVideo === 'function') player.playVideo();
+                        }
+                      }}
+                    />
+                  )}
                 </div>
-                <span className="text-xs font-black text-orange-500 uppercase tracking-widest min-w-fit">
-                  {Math.round(liveProgress)}%
-                </span>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-black text-orange-500 uppercase tracking-widest font-mono">
+                    {Math.round(liveProgress)}%
+                  </span>
+
+                  {/* Quizzes ON / OFF Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !checkpointsEnabled;
+                      setCheckpointsEnabled(next);
+                      try {
+                        localStorage.setItem('learnproof_checkpoints_enabled', String(next));
+                      } catch (_) {}
+                      if (next) {
+                        toast.success("Interactive video quizzes turned ON");
+                      } else {
+                        toast("Interactive video quizzes paused", { icon: '⏸️' });
+                      }
+                    }}
+                    className={`h-6 sm:h-7 px-2 sm:px-2.5 rounded-full text-[10px] sm:text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border select-none ${
+                      checkpointsEnabled
+                        ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60 hover:bg-amber-100'
+                        : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:text-gray-700'
+                    }`}
+                    title={checkpointsEnabled ? "Interactive Quizzes: Active (Click to turn off)" : "Interactive Quizzes: Paused (Click to turn on)"}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${checkpointsEnabled ? 'bg-amber-500 animate-pulse' : 'bg-gray-400'}`} />
+                    <span>{checkpointsEnabled ? 'Quizzes ON' : 'Quizzes OFF'}</span>
+                  </button>
+                </div>
               </div>
 
               {/* Premium Tabs Switcher - Sticky at top when scrolling */}
               <div
                 ref={tabsContainerRef}
                 id="classroom-tabs-bar"
-                className="sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md py-2 -mx-3 px-3 sm:-mx-6 sm:px-6 transition-all duration-200 mt-0.5 sm:mt-1"
+                className="sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md py-2 -mx-3 px-2 sm:-mx-6 sm:px-6 transition-all duration-200 border-b border-gray-100 dark:border-slate-800/80 mb-4"
               >
-                <div className="w-full grid grid-flow-col auto-cols-fr bg-gray-50/90 dark:bg-slate-800/60 rounded-xl sm:rounded-2xl p-0.5 sm:p-1.5 gap-0.5 sm:gap-1 border border-gray-200/70 dark:border-slate-700/60 shadow-xs">
+                {/* Unified Segmented Pill Track: perfectly proportioned on desktop, 100% responsive on mobile */}
+                <div className="w-full flex items-center p-1 sm:p-1.5 bg-slate-100/90 dark:bg-slate-800/80 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 shadow-xs gap-0.5 sm:gap-1.5">
                   {visibleClassroomTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -3422,26 +3555,27 @@ const Classroom = () => {
                         key={tab.id}
                         id={`classroom-tab-${tab.id}`}
                         onClick={() => handleSelectTab(tab.id)}
-                        className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-1.5 sm:py-2 px-0.5 sm:px-1.5 rounded-lg sm:rounded-xl text-center transition-all duration-150 select-none cursor-pointer z-10 ${isActive
+                        className={`relative flex-1 flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 py-1.5 sm:py-2.5 px-1 sm:px-3 rounded-xl text-center transition-all duration-200 select-none cursor-pointer z-10 text-[10px] sm:text-xs md:text-sm font-bold min-w-0 ${
+                          isActive
                             ? 'text-white font-extrabold shadow-sm'
-                            : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50 font-bold'
-                          }`}
+                            : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-white/70 dark:hover:bg-slate-700/60'
+                        }`}
                       >
                         {isActive && (
                           <motion.div
                             layoutId="activeClassroomTabPill"
-                            className="absolute inset-0 bg-gradient-to-r from-orange-500 to-amber-500 rounded-lg sm:rounded-xl shadow-md shadow-orange-500/25 -z-10"
+                            className="absolute inset-0 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 rounded-xl shadow-md shadow-orange-500/25 -z-10"
                             transition={{ type: "spring", bounce: 0.15, duration: 0.35 }}
                           />
                         )}
-                        <Icon size={14} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 sm:size-[15px]" />
-                        <span className="text-[9px] min-[375px]:text-[9.5px] min-[400px]:text-[10px] sm:text-xs tracking-tight truncate max-w-full leading-none font-bold">
-                          <span className="hidden lg:inline">{tab.label}</span>
-                          <span className="lg:hidden">{tab.shortLabel || tab.label}</span>
-                          {tab.badge > 0 && (
-                            <span className="ml-0.5 text-[8px] sm:text-[10px] opacity-80 lg:hidden">({tab.badge})</span>
-                          )}
+                        <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                        <span className="truncate max-w-full text-center leading-tight">
+                          <span className="hidden sm:inline">{tab.label}</span>
+                          <span className="sm:hidden">{tab.shortLabel || tab.label}</span>
                         </span>
+                        {tab.badge > 0 && (
+                          <span className="ml-0.5 text-[8px] sm:text-[10px] opacity-80">({tab.badge})</span>
+                        )}
                       </button>
                     );
                   })}
@@ -3670,49 +3804,28 @@ const Classroom = () => {
                       {/* AI Notes & Core Intuition Card */}
                       <div className="bg-slate-50/60 dark:bg-slate-900/30 p-2.5 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 transition-colors duration-200 break-words overflow-hidden shadow-xs">
                         {/* Streamlined Top Control Bar */}
-                        {/* Streamlined Top Control Bar */}
-                        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-2.5 sm:p-4 mb-4 shadow-2xs">
+                        <div className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-2.5 sm:p-3.5 mb-4 shadow-2xs">
                           {/* Row 1: Title & Main Action Tools */}
-                          <div className="flex items-center justify-between gap-1.5 sm:gap-4 pb-2.5 sm:pb-3 border-b border-slate-100 dark:border-slate-800">
-                            {/* Title & Topic Count */}
-                            <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-                              <div className="p-1 sm:p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-lg sm:rounded-xl shadow-xs shrink-0">
-                                <Sparkles size={14} className="sm:size-[16px]" />
+                          <div className="flex items-center justify-between gap-2 sm:gap-4">
+                            {/* Title */}
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="p-1.5 sm:p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-xl shadow-xs shrink-0">
+                                <Sparkles size={15} />
                               </div>
-                              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                                <h3 className="text-xs sm:text-base font-bold text-slate-900 dark:text-white leading-tight m-0 whitespace-nowrap">
-                                  <span className="hidden sm:inline">AI Study Notes</span>
-                                  <span className="sm:hidden">AI Notes</span>
-                                </h3>
-                                {parsedIntuition?.totalPages && (
-                                  <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/60 shrink-0">
-                                    {parsedIntuition.totalPages} {parsedIntuition.totalPages === 1 ? 'Topic' : 'Topics'}
-                                  </span>
-                                )}
-                              </div>
+                              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight m-0 whitespace-nowrap">
+                                AI Study Notes
+                              </h3>
                             </div>
 
-                            {/* Top Controls: Code Editor, Language, Refresh, PDF */}
-                            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                              {/* Code Editor (Shown on medium+ screens where space permits) */}
-                              {isCodeEditorEnabled && (
-                                <button
-                                  onClick={() => handleOpenInCodeEditor()}
-                                  title="Open Code Editor & Compiler"
-                                  className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border border-slate-200 dark:border-slate-700/80 hover:border-emerald-400 text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-400 font-bold text-xs transition cursor-pointer shrink-0"
-                                >
-                                  <Code2 size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                  <span>Code Editor</span>
-                                </button>
-                              )}
-
+                            {/* Top Controls: Language, Refresh, PDF */}
+                            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                               {/* Language Picker Dropdown */}
                               <div className="relative shrink-0">
                                 <select
                                   disabled={loadingIntuition}
                                   onChange={(e) => fetchIntuition(e.target.value)}
                                   value={selectedLanguage}
-                                  className="appearance-none pl-2 pr-5 sm:pl-2.5 sm:pr-6 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer transition hover:border-indigo-300 max-w-[80px] sm:max-w-none"
+                                  className="appearance-none pl-2 pr-5 sm:pl-2.5 sm:pr-6 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold uppercase tracking-wider bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer transition hover:border-indigo-300 max-w-[85px] sm:max-w-none"
                                 >
                                   <option value="" disabled>Select</option>
                                   {INDIAN_LANGS.map((lang) => (
@@ -3721,8 +3834,8 @@ const Classroom = () => {
                                     </option>
                                   ))}
                                 </select>
-                                <div className="absolute right-1 sm:right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                  <ChevronRight size={9} className="rotate-90 sm:size-[10px]" />
+                                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                  <ChevronRight size={10} className="rotate-90" />
                                 </div>
                               </div>
 
@@ -3733,7 +3846,7 @@ const Classroom = () => {
                                 title="Regenerate Notes"
                                 className="p-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-slate-500 hover:text-indigo-600 hover:border-indigo-300 disabled:opacity-50 transition cursor-pointer shadow-2xs shrink-0"
                               >
-                                <RefreshCw size={12} className={`sm:size-[13px] ${loadingIntuition ? 'animate-spin' : ''}`} />
+                                <RefreshCw size={13} className={`sm:size-[14px] ${loadingIntuition ? 'animate-spin' : ''}`} />
                               </button>
 
                               {/* 📥 1-Click A4 PDF Download Button */}
@@ -3741,12 +3854,12 @@ const Classroom = () => {
                                 disabled={downloadingPdf}
                                 onClick={handleDownloadPdf}
                                 title="Download complete study notes as A4 PDF"
-                                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-[11px] sm:text-xs shadow-xs transition active:scale-95 flex items-center gap-1 sm:gap-1.5 cursor-pointer shrink-0"
+                                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-[11px] sm:text-xs shadow-xs transition active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
                               >
                                 {downloadingPdf ? (
-                                  <RefreshCw size={12} className="animate-spin shrink-0 sm:size-[13px]" />
+                                  <RefreshCw size={13} className="animate-spin shrink-0" />
                                 ) : (
-                                  <Download size={12} className="shrink-0 sm:size-[13px]" />
+                                  <Download size={13} className="shrink-0" />
                                 )}
                                 <span className="hidden sm:inline">{downloadingPdf ? "Saving PDF..." : "Download PDF"}</span>
                                 <span className="sm:hidden">{downloadingPdf ? "..." : "PDF"}</span>
@@ -3754,110 +3867,41 @@ const Classroom = () => {
                             </div>
                           </div>
 
-                          {/* Row 2: Reading Navigation & 1-Click Paper Style Switcher */}
-                          {parsedIntuition && !loadingIntuition && (
-                            <div className="pt-2.5 sm:pt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-2.5">
-                              {/* Left: Topic Selector Segmented Tabs */}
-                              <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 min-w-0 no-tab-swipe p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-full sm:w-auto">
-                                {parsedIntuition.totalPages > 1 ? (
-                                  <>
-                                    {parsedIntuition.pages.map((p, idx) => {
-                                      const isActive = !isContinuousView && activeChapterIndex === idx;
-                                      return (
-                                        <button
-                                          key={idx}
-                                          onClick={() => {
-                                            setIsContinuousView(false);
-                                            handleTopicChange(idx);
-                                          }}
-                                          className={`flex-1 sm:flex-initial text-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
-                                            isActive
-                                              ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                                              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                                          }`}
-                                        >
-                                          Topic {p.pageNumber || idx + 1}
-                                        </button>
-                                      );
-                                    })}
-                                    {/* Continuous / Read All Switcher */}
+                          {/* Row 2: Reading Navigation (Only shown when multiple chapters/topics exist) */}
+                          {parsedIntuition && !loadingIntuition && parsedIntuition.totalPages > 1 && (
+                            <div className="pt-2.5 mt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5 min-w-0 no-tab-swipe">
+                              <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-full sm:w-auto overflow-x-auto scrollbar-none">
+                                {parsedIntuition.pages.map((p, idx) => {
+                                  const isActive = !isContinuousView && activeChapterIndex === idx;
+                                  return (
                                     <button
-                                      onClick={() => setIsContinuousView(!isContinuousView)}
-                                      title={isContinuousView ? "Switch to single topic view" : "Read all topics continuously"}
-                                      className={`flex-1 sm:flex-initial text-center justify-center flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${
-                                        isContinuousView
+                                      key={idx}
+                                      onClick={() => {
+                                        setIsContinuousView(false);
+                                        handleTopicChange(idx);
+                                      }}
+                                      className={`flex-1 sm:flex-initial text-center justify-center px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer shrink-0 ${
+                                        isActive
                                           ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                       }`}
                                     >
-                                      <Layers size={12} className="shrink-0" />
-                                      <span>Read All</span>
+                                      Topic {p.pageNumber || idx + 1}
                                     </button>
-                                  </>
-                                ) : (
-                                  <div className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-slate-700 dark:text-slate-300">
-                                    <BookOpen size={13} className="text-indigo-600 dark:text-indigo-400" />
-                                    <span>Study Notes</span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Right: Note Style Segmented Pill Switcher */}
-                              <div className="grid grid-cols-4 sm:flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-full sm:w-auto gap-1 sm:gap-0 sm:ml-auto shrink-0">
-                                {/* Clean / Standard Reading */}
+                                  );
+                                })}
+                                {/* Continuous / Read All Switcher */}
                                 <button
-                                  onClick={() => handleSetNotesViewMode('clean')}
-                                  title="Standard Clean Textbook View"
-                                  className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                                    notesViewMode === 'clean'
-                                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                                  onClick={() => setIsContinuousView(!isContinuousView)}
+                                  title={isContinuousView ? "Switch to single topic view" : "Read all topics continuously"}
+                                  className={`flex-1 sm:flex-initial text-center justify-center flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                                    isContinuousView
+                                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                                   }`}
                                 >
-                                  <FileText size={13} className="shrink-0" />
-                                  <span>Clean</span>
-                                </button>
-
-                                {/* Ruled Notebook Paper */}
-                                <button
-                                  onClick={() => handleSetNotesViewMode('ruled')}
-                                  title="Authentic Lined Notebook Paper"
-                                  className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                                    notesViewMode === 'ruled'
-                                      ? 'bg-amber-500 text-white shadow-xs'
-                                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                                  }`}
-                                >
-                                  <PenTool size={13} className="shrink-0" />
-                                  <span>Ruled</span>
-                                </button>
-
-                                {/* Grid / Graph Paper */}
-                                <button
-                                  onClick={() => handleSetNotesViewMode('grid')}
-                                  title="STEM & Math Grid Graph Paper"
-                                  className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                                    notesViewMode === 'grid'
-                                      ? 'bg-sky-500 text-white shadow-xs'
-                                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                                  }`}
-                                >
-                                  <Grid size={13} className="shrink-0" />
-                                  <span>Grid</span>
-                                </button>
-
-                                {/* Chalkboard Mode */}
-                                <button
-                                  onClick={() => handleSetNotesViewMode('chalkboard')}
-                                  title="Dark Classroom Chalkboard"
-                                  className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                                    notesViewMode === 'chalkboard'
-                                      ? 'bg-slate-950 text-yellow-300 shadow-xs border border-slate-700'
-                                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                                  }`}
-                                >
-                                  <Moon size={13} className="shrink-0" />
-                                  <span>Chalk</span>
+                                  <Layers size={12} className="shrink-0" />
+                                  <span>Read All</span>
                                 </button>
                               </div>
                             </div>
@@ -3884,174 +3928,32 @@ const Classroom = () => {
 
                             {/* Content Display: Continuous Mode vs Paginated Topic Mode */}
                             {isContinuousView && parsedIntuition.totalPages > 1 ? (
-                              isNotebookView ? (
-                                <div className="space-y-6 sm:space-y-10">
-                                  {parsedIntuition.pages.map((page, idx) => (
-                                    <HandwrittenNotebookView
-                                      key={idx}
-                                      content={preprocessMarkdown(page.content)}
-                                      title={page.title}
-                                      pageNumber={page.pageNumber || idx + 1}
-                                      totalPages={parsedIntuition.totalPages}
-                                      paperStyle={notesViewMode === 'clean' ? 'ruled' : notesViewMode}
-                                      onCopy={() => handleCopyChapter(page.content)}
-                                      copied={copiedChapter}
-                                      onOpenInCodeEditor={handleOpenInCodeEditor}
-                                      CodeEditorBlock={CodeEditorBlock}
-                                    />
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="space-y-4 sm:space-y-8">
-                                  {parsedIntuition.pages.map((page, idx) => (
-                                    <div key={idx} className="bg-white/80 dark:bg-slate-900/60 p-3 sm:p-6 rounded-xl border border-indigo-100/80 dark:border-slate-800 shadow-2xs">
-                                      <div className="flex items-center justify-between pb-2 sm:pb-3 mb-2.5 sm:mb-4 border-b border-gray-100 dark:border-slate-800">
-                                        <h3 className="text-sm sm:text-lg font-bold text-indigo-950 dark:text-indigo-200 m-0">
-                                          <ReactMarkdown
-                                            remarkPlugins={[remarkGfm, remarkMath]}
-                                            rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
-                                            components={{
-                                              p: ({ node, ...props }) => <span {...props} />,
-                                            }}
-                                          >
-                                            {preprocessMarkdown(page.title || '')}
-                                          </ReactMarkdown>
-                                        </h3>
-                                        <button
-                                          onClick={() => handleCopyChapter(page.content)}
-                                          title="Copy Topic Notes"
-                                          className="p-1 rounded text-gray-400 hover:text-indigo-600 transition cursor-pointer"
-                                        >
-                                          <Copy size={12} />
-                                        </button>
-                                      </div>
-                                      <div className="prose max-w-none text-gray-800 dark:text-gray-200 leading-relaxed intuition-markdown">
-                                        <ReactMarkdown
-                                          remarkPlugins={[remarkGfm, remarkMath]}
-                                          rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
-                                          components={{
-                                            h1: ({ node, ...props }) => <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-5 mb-2.5 break-words" {...props} />,
-                                            h2: ({ node, ...props }) => <h2 className="text-base sm:text-lg font-bold text-indigo-900 dark:text-indigo-200 mt-4 mb-2 break-words" {...props} />,
-                                            h3: ({ node, ...props }) => <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-300 first:mt-2 mt-4 mb-2 break-words" {...props} />,
-                                            h4: ({ node, ...props }) => <h4 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 mt-3 mb-1.5 break-words" {...props} />,
-                                            strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
-                                            ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                            ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                            li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:my-1" {...props} />,
-                                            p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words leading-relaxed" {...props} />,
-                                            pre: ({ node, children, ...props }) => <>{children}</>,
-                                            code: ({ node, inline, className, children, ...props }) => {
-                                              const match = /language-([a-zA-Z0-9_+#-]+)/.exec(className || '');
-                                              const contentStr = String(children || '');
-                                              const isMultiLine = contentStr.includes('\n');
-                                              const isBlock = inline === false || Boolean(match) || isMultiLine;
-
-                                              if (!isBlock) {
-                                                return (
-                                                  <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>
-                                                    {children}
-                                                  </code>
-                                                );
-                                              }
-                                              return <CodeEditorBlock className={className || 'language-python'} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
-                                            },
-                                            table: ({ node, ...props }) => (
-                                              <div
-                                                className="overflow-x-auto my-4 rounded-xl border border-gray-200 dark:border-slate-700/80 shadow-2xs no-tab-swipe"
-                                                onTouchStart={(e) => e.stopPropagation()}
-                                                onTouchMove={(e) => e.stopPropagation()}
-                                                onTouchEnd={(e) => e.stopPropagation()}
-                                              >
-                                                <table className="w-full text-xs sm:text-sm text-left border-collapse" {...props} />
-                                              </div>
-                                            ),
-                                            thead: ({ node, ...props }) => <thead className="bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 font-bold border-b border-gray-200 dark:border-slate-700" {...props} />,
-                                            tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-slate-800 bg-white dark:bg-slate-900/70" {...props} />,
-                                            tr: ({ node, ...props }) => <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors" {...props} />,
-                                            th: ({ node, ...props }) => <th className="px-3.5 py-2.5 font-semibold text-indigo-900 dark:text-indigo-200 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
-                                            td: ({ node, ...props }) => <td className="px-3.5 py-2.5 text-gray-700 dark:text-slate-300 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
-                                            blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-indigo-500 pl-4 py-1.5 my-3 italic text-gray-700 dark:text-gray-300 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-r-lg" {...props} />
-                                          }}
-                                        >
-                                          {preprocessMarkdown(page.content)}
-                                        </ReactMarkdown>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )
+                              <div className="space-y-6 sm:space-y-10">
+                                {parsedIntuition.pages.map((page, idx) => (
+                                  <HandwrittenNotebookView
+                                    key={idx}
+                                    content={preprocessMarkdown(page.content)}
+                                    title={page.title}
+                                    pageNumber={page.pageNumber || idx + 1}
+                                    totalPages={parsedIntuition.totalPages}
+                                    paperStyle={notesViewMode}
+                                    notesViewMode={notesViewMode}
+                                    onSetNotesViewMode={handleSetNotesViewMode}
+                                    onCopy={() => handleCopyChapter(page.content)}
+                                    copied={copiedChapter}
+                                    onOpenInCodeEditor={handleOpenInCodeEditor}
+                                    CodeEditorBlock={CodeEditorBlock}
+                                  />
+                                ))}
+                              </div>
                             ) : (
                               /* Single or Active Topic Card */
                               (() => {
                                 const currentPage = parsedIntuition.pages[activeChapterIndex] || parsedIntuition.pages[0];
                                 if (!currentPage) return null;
 
-                                if (isNotebookView) {
-                                  return (
-                                    <div ref={noteCardRef} className="space-y-4">
-                                      <AnimatePresence mode="wait" initial={false}>
-                                        <motion.div
-                                          key={activeChapterIndex}
-                                          initial={{ opacity: 0, y: 8 }}
-                                          animate={{ opacity: 1, y: 0 }}
-                                          exit={{ opacity: 0, y: -8 }}
-                                          transition={{ duration: 0.18, ease: "easeOut" }}
-                                        >
-                                          <HandwrittenNotebookView
-                                            content={preprocessMarkdown(currentPage.content)}
-                                            title={currentPage.title}
-                                            pageNumber={activeChapterIndex + 1}
-                                            totalPages={parsedIntuition.totalPages}
-                                            paperStyle={notesViewMode === 'clean' ? 'ruled' : notesViewMode}
-                                            onCopy={() => handleCopyChapter(currentPage.content)}
-                                            copied={copiedChapter}
-                                            onOpenInCodeEditor={handleOpenInCodeEditor}
-                                            CodeEditorBlock={CodeEditorBlock}
-                                          />
-                                        </motion.div>
-                                      </AnimatePresence>
-
-                                      {/* Bottom Topic Pagination Controls */}
-                                      {parsedIntuition.totalPages > 1 && (
-                                        <div className="bg-white/90 dark:bg-slate-900/60 p-3 sm:p-4 rounded-xl border border-indigo-100/90 dark:border-slate-800 shadow-2xs flex items-center justify-between">
-                                          <button
-                                            disabled={activeChapterIndex === 0}
-                                            onClick={() => handleTopicChange(Math.max(0, activeChapterIndex - 1))}
-                                            className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold text-gray-600 dark:text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                                          >
-                                            <ChevronLeft size={13} className="sm:size-[14px]" />
-                                            <span>Previous</span>
-                                          </button>
-
-                                          <span className="text-[11px] sm:text-xs font-bold text-gray-400 dark:text-slate-500">
-                                            {activeChapterIndex + 1} / {parsedIntuition.totalPages}
-                                          </span>
-
-                                          {activeChapterIndex < parsedIntuition.totalPages - 1 ? (
-                                            <button
-                                              onClick={() => handleTopicChange(Math.min(parsedIntuition.totalPages - 1, activeChapterIndex + 1))}
-                                              className="flex items-center gap-1 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-lg text-[11px] sm:text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition cursor-pointer"
-                                            >
-                                              <span>Next Topic</span>
-                                              <ChevronRight size={13} className="sm:size-[14px]" />
-                                            </button>
-                                          ) : (
-                                            <button
-                                              onClick={() => handleSelectTab('quiz', true)}
-                                              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-xs transition-all cursor-pointer active:scale-95"
-                                            >
-                                              <CheckCircle size={13} className="sm:size-[14px]" />
-                                              <span>Take Quiz</span>
-                                            </button>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                }
-
                                 return (
-                                  <div ref={noteCardRef} className="bg-white/90 dark:bg-slate-900/60 p-3 sm:p-6 rounded-xl sm:rounded-2xl border border-indigo-100/90 dark:border-slate-800 shadow-2xs overflow-hidden">
+                                  <div ref={noteCardRef} className="space-y-4">
                                     <AnimatePresence mode="wait" initial={false}>
                                       <motion.div
                                         key={activeChapterIndex}
@@ -4059,97 +3961,26 @@ const Classroom = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -8 }}
                                         transition={{ duration: 0.18, ease: "easeOut" }}
-                                        className="space-y-3 sm:space-y-4"
                                       >
-                                        {/* Topic Header */}
-                                        <div className="flex items-center justify-between pb-2 sm:pb-3 mb-2.5 sm:mb-4 border-b border-gray-100 dark:border-slate-800">
-                                          <div className="min-w-0 pr-2">
-                                            {parsedIntuition.totalPages > 1 && (
-                                              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block mb-0.5">
-                                                Topic {activeChapterIndex + 1} of {parsedIntuition.totalPages}
-                                              </span>
-                                            )}
-                                            <h3 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white m-0">
-                                              <ReactMarkdown
-                                                remarkPlugins={[remarkGfm, remarkMath]}
-                                                rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
-                                                components={{
-                                                  p: ({ node, ...props }) => <span {...props} />,
-                                                }}
-                                              >
-                                                {preprocessMarkdown(currentPage.title || '')}
-                                              </ReactMarkdown>
-                                            </h3>
-                                          </div>
-
-                                          <button
-                                            onClick={() => handleCopyChapter(currentPage.content)}
-                                            title="Copy Topic Notes"
-                                            className="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg text-[11px] sm:text-xs font-semibold bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 hover:text-indigo-600 transition cursor-pointer shrink-0"
-                                          >
-                                            <Copy size={11} className="sm:size-[12px]" />
-                                            <span>{copiedChapter ? "Copied!" : "Copy"}</span>
-                                          </button>
-                                        </div>
-
-                                        {/* Markdown Content */}
-                                        <div className="prose max-w-none text-gray-800 dark:text-gray-200 leading-relaxed intuition-markdown">
-                                          <ReactMarkdown
-                                            remarkPlugins={[remarkGfm, remarkMath]}
-                                            rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: false }]]}
-                                            components={{
-                                              h1: ({ node, ...props }) => <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mt-5 mb-2.5 break-words" {...props} />,
-                                              h2: ({ node, ...props }) => <h2 className="text-base sm:text-lg font-bold text-indigo-900 dark:text-indigo-200 mt-4 mb-2 break-words" {...props} />,
-                                              h3: ({ node, ...props }) => <h3 className="text-sm sm:text-base font-bold text-indigo-900 dark:text-indigo-300 first:mt-2 mt-4 mb-2 break-words" {...props} />,
-                                              h4: ({ node, ...props }) => <h4 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 mt-3 mb-1.5 break-words" {...props} />,
-                                              strong: ({ node, ...props }) => <strong className="font-bold text-gray-900 dark:text-gray-100 break-words" {...props} />,
-                                              ul: ({ node, ...props }) => <ul className="list-disc pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                              ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mt-2 space-y-2 text-gray-700 dark:text-gray-300 break-words" {...props} />,
-                                              li: ({ node, ...props }) => <li className="text-gray-700 dark:text-gray-300 break-words leading-relaxed [&>p]:my-1" {...props} />,
-                                              p: ({ node, ...props }) => <p className="mb-4 text-gray-800 dark:text-gray-300 break-words leading-relaxed" {...props} />,
-                                              pre: ({ node, children, ...props }) => <>{children}</>,
-                                              code: ({ node, inline, className, children, ...props }) => {
-                                                const match = /language-([a-zA-Z0-9_+#-]+)/.exec(className || "");
-                                                const contentStr = String(children || '');
-                                                const isMultiLine = contentStr.includes('\n');
-                                                const isBlock = inline === false || Boolean(match) || isMultiLine;
-
-                                                if (!isBlock) {
-                                                  return (
-                                                    <code className="bg-indigo-100/80 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded-md font-mono text-[11.5px] sm:text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/50 break-all" {...props}>
-                                                      {children}
-                                                    </code>
-                                                  );
-                                                }
-                                                return <CodeEditorBlock className={className || 'language-python'} onOpenInEditor={handleOpenInCodeEditor} {...props}>{children}</CodeEditorBlock>;
-                                              },
-                                              table: ({ node, ...props }) => (
-                                                <div
-                                                  className="overflow-x-auto my-4 rounded-xl border border-gray-200 dark:border-slate-700/80 shadow-2xs no-tab-swipe"
-                                                  onTouchStart={(e) => e.stopPropagation()}
-                                                  onTouchMove={(e) => e.stopPropagation()}
-                                                  onTouchEnd={(e) => e.stopPropagation()}
-                                                >
-                                                  <table className="w-full text-xs sm:text-sm text-left border-collapse" {...props} />
-                                                </div>
-                                              ),
-                                              thead: ({ node, ...props }) => <thead className="bg-indigo-50/80 dark:bg-slate-800 text-indigo-950 dark:text-indigo-200 font-bold border-b border-gray-200 dark:border-slate-700" {...props} />,
-                                              tbody: ({ node, ...props }) => <tbody className="divide-y divide-gray-200 dark:divide-slate-800 bg-white dark:bg-slate-900/70" {...props} />,
-                                              tr: ({ node, ...props }) => <tr className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition-colors" {...props} />,
-                                              th: ({ node, ...props }) => <th className="px-3.5 py-2.5 font-semibold text-indigo-900 dark:text-indigo-200 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
-                                              td: ({ node, ...props }) => <td className="px-3.5 py-2.5 text-gray-700 dark:text-slate-300 border-r last:border-r-0 border-gray-200 dark:border-slate-700/60" {...props} />,
-                                              blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-indigo-500 pl-4 py-1.5 my-3 italic text-gray-700 dark:text-gray-300 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-r-lg" {...props} />
-                                            }}
-                                          >
-                                            {preprocessMarkdown(currentPage.content)}
-                                          </ReactMarkdown>
-                                        </div>
+                                        <HandwrittenNotebookView
+                                          content={preprocessMarkdown(currentPage.content)}
+                                          title={currentPage.title}
+                                          pageNumber={activeChapterIndex + 1}
+                                          totalPages={parsedIntuition.totalPages}
+                                          paperStyle={notesViewMode}
+                                          notesViewMode={notesViewMode}
+                                          onSetNotesViewMode={handleSetNotesViewMode}
+                                          onCopy={() => handleCopyChapter(currentPage.content)}
+                                          copied={copiedChapter}
+                                          onOpenInCodeEditor={handleOpenInCodeEditor}
+                                          CodeEditorBlock={CodeEditorBlock}
+                                        />
                                       </motion.div>
                                     </AnimatePresence>
 
                                     {/* Bottom Topic Pagination Controls */}
                                     {parsedIntuition.totalPages > 1 && (
-                                      <div className="flex items-center justify-between pt-3 mt-4 sm:pt-4 sm:mt-6 border-t border-gray-100 dark:border-slate-800">
+                                      <div className="bg-white/90 dark:bg-slate-900/60 p-3 sm:p-4 rounded-xl border border-indigo-100/90 dark:border-slate-800 shadow-2xs flex items-center justify-between">
                                         <button
                                           disabled={activeChapterIndex === 0}
                                           onClick={() => handleTopicChange(Math.max(0, activeChapterIndex - 1))}
@@ -4247,6 +4078,137 @@ const Classroom = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
+                          {/* Minimalistic Tutor Style Selection Popup */}
+                          <div className="relative">
+                            {(() => {
+                              const TUTOR_NOTE_STYLES = [
+                                {
+                                  id: 'ruled',
+                                  label: 'Ruled Notebook',
+                                  shortLabel: 'Ruled',
+                                  desc: 'Lined handwritten paper',
+                                  icon: PenTool,
+                                  iconColor: 'text-amber-500',
+                                  badgeBg: 'bg-amber-100 dark:bg-amber-950/60',
+                                  border: 'border-amber-200 dark:border-amber-800/80',
+                                  activeBg: 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200',
+                                },
+                                {
+                                  id: 'grid',
+                                  label: 'Grid / STEM',
+                                  shortLabel: 'Grid',
+                                  desc: 'STEM & math graph paper',
+                                  icon: Grid,
+                                  iconColor: 'text-sky-500',
+                                  badgeBg: 'bg-sky-100 dark:bg-sky-950/60',
+                                  border: 'border-sky-200 dark:border-sky-800/80',
+                                  activeBg: 'bg-sky-50 dark:bg-sky-950/40 text-sky-900 dark:text-sky-200',
+                                },
+                                {
+                                  id: 'chalkboard',
+                                  label: 'Classroom Chalk',
+                                  shortLabel: 'Chalk',
+                                  desc: 'Dark board with pastel chalk',
+                                  icon: Moon,
+                                  iconColor: 'text-yellow-400',
+                                  badgeBg: 'bg-slate-900 border border-slate-700',
+                                  border: 'border-slate-700',
+                                  activeBg: 'bg-slate-900 text-yellow-300',
+                                },
+                                {
+                                  id: 'clean',
+                                  label: 'Clean Modern',
+                                  shortLabel: 'Clean',
+                                  desc: 'Standard clean chat cards',
+                                  icon: FileText,
+                                  iconColor: 'text-slate-500 dark:text-slate-400',
+                                  badgeBg: 'bg-slate-100 dark:bg-slate-800',
+                                  border: 'border-slate-200 dark:border-slate-700',
+                                  activeBg: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200',
+                                },
+                              ];
+                              const activeStyleObj = TUTOR_NOTE_STYLES.find(s => s.id === chatViewMode) || TUTOR_NOTE_STYLES[0];
+                              const ActiveIcon = activeStyleObj.icon;
+
+                              return (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowChatStyleMenu(prev => !prev)}
+                                    className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 text-xs font-bold transition-all cursor-pointer rounded-xl border shadow-xs active:scale-95 shrink-0 ${activeStyleObj.activeBg} ${activeStyleObj.border}`}
+                                    title="Change Tutor Notes Style"
+                                  >
+                                    <ActiveIcon size={13} className={activeStyleObj.iconColor} />
+                                    <span className="hidden sm:inline text-[11px] font-semibold opacity-75">Tutor Style:</span>
+                                    <span className="capitalize">{activeStyleObj.shortLabel}</span>
+                                    <ChevronDown size={12} className={`opacity-60 transition-transform duration-200 ${showChatStyleMenu ? 'rotate-180' : ''}`} />
+                                  </button>
+
+                                  {showChatStyleMenu && (
+                                    <>
+                                      <div 
+                                        className="fixed inset-0 z-40 bg-black/10 dark:bg-black/30 backdrop-blur-[1px]" 
+                                        onClick={() => setShowChatStyleMenu(false)}
+                                      />
+                                      <div className="absolute right-0 top-full mt-2 z-50 bg-white dark:bg-slate-900 border border-gray-200/90 dark:border-slate-800 rounded-2xl shadow-2xl shadow-slate-900/20 p-2 min-w-[260px] sm:min-w-[280px] animate-in fade-in zoom-in-95 duration-150">
+                                        <div className="px-3 py-2 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between mb-1.5">
+                                          <div className="flex items-center gap-1.5">
+                                            <PenTool size={13} className="text-orange-500" />
+                                            <span className="text-[11px] font-black uppercase tracking-wider text-gray-800 dark:text-slate-200">Tutor Notes Style</span>
+                                          </div>
+                                          <span className="text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/60 px-2 py-0.5 rounded-full">
+                                            Theme
+                                          </span>
+                                        </div>
+
+                                        <div className="space-y-1">
+                                          {TUTOR_NOTE_STYLES.map(style => {
+                                            const isSelected = chatViewMode === style.id;
+                                            const StyleIcon = style.icon;
+                                            return (
+                                              <button
+                                                key={style.id}
+                                                type="button"
+                                                onClick={() => {
+                                                  handleSetChatViewMode(style.id);
+                                                  setShowChatStyleMenu(false);
+                                                }}
+                                                className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-all duration-150 cursor-pointer ${
+                                                  isSelected
+                                                    ? 'bg-orange-50/80 dark:bg-orange-950/40 border border-orange-200/80 dark:border-orange-800/60'
+                                                    : 'hover:bg-gray-100/80 dark:hover:bg-slate-800/70 border border-transparent'
+                                                }`}
+                                              >
+                                                <div className={`p-2 rounded-xl shrink-0 ${style.badgeBg}`}>
+                                                  <StyleIcon size={14} className={style.iconColor} />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                  <div className="flex items-center justify-between gap-1">
+                                                    <span className={`text-xs font-bold ${isSelected ? 'text-orange-600 dark:text-orange-400 font-extrabold' : 'text-gray-900 dark:text-white'}`}>
+                                                      {style.label}
+                                                    </span>
+                                                    {isSelected && (
+                                                      <span className="p-0.5 rounded-full bg-orange-500 text-white shrink-0">
+                                                        <Check size={10} strokeWidth={3} />
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                  <p className="text-[10.5px] text-gray-500 dark:text-slate-400 truncate m-0 mt-0.5">
+                                                    {style.desc}
+                                                  </p>
+                                                </div>
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    </>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+
                           <button
                             onClick={scrollToVideo}
                             className="p-1.5 sm:p-2 text-gray-500 hover:text-orange-600 dark:text-slate-400 dark:hover:text-orange-400 bg-gray-50 hover:bg-orange-50 dark:bg-slate-800 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 transition-colors cursor-pointer rounded-xl flex items-center justify-center shadow-xs active:scale-95 shrink-0"
@@ -4267,155 +4229,30 @@ const Classroom = () => {
                         </div>
                       </div>
 
-                      {/* Chat Paper Style Switcher Toolbar: Clean / Ruled / Grid / Chalk */}
-                      <div className="p-2 sm:p-2.5 bg-slate-50/90 dark:bg-slate-900/90 border-b border-gray-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0">
-                        <div className="flex items-center justify-between w-full sm:w-auto gap-2">
-                          <div className="flex items-center gap-1.5 px-2 py-0.5 text-xs font-bold text-slate-700 dark:text-slate-300">
-                            <PenTool size={13} className="text-amber-500 shrink-0" />
-                            <span className="truncate">Tutor Notes Style:</span>
-                          </div>
-                          <span className="sm:hidden text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-full capitalize">
-                            {chatViewMode === 'ruled' ? '✍️ Ruled' : (chatViewMode === 'grid' ? '▦ Grid' : (chatViewMode === 'chalkboard' ? '🌙 Chalk' : '📄 Clean'))}
-                          </span>
-                        </div>
-
-                        {/* Note Style Segmented Pill Switcher (4-column responsive grid on mobile) */}
-                        <div className="grid grid-cols-4 sm:flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-full sm:w-auto gap-1 sm:gap-0 sm:ml-auto shrink-0">
-                          {/* Clean / Standard Reading */}
-                          <button
-                            type="button"
-                            onClick={() => handleSetChatViewMode('clean')}
-                            title="Standard Clean Chat Cards"
-                            className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                              chatViewMode === 'clean'
-                                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                            }`}
-                          >
-                            <FileText size={13} className="shrink-0" />
-                            <span>Clean</span>
-                          </button>
-
-                          {/* Ruled Notebook Paper */}
-                          <button
-                            type="button"
-                            onClick={() => handleSetChatViewMode('ruled')}
-                            title="Authentic Lined Handwritten Notebook"
-                            className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                              chatViewMode === 'ruled'
-                                ? 'bg-amber-500 text-white shadow-xs'
-                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                            }`}
-                          >
-                            <PenTool size={13} className="shrink-0" />
-                            <span>Ruled</span>
-                          </button>
-
-                          {/* Grid / Graph Paper */}
-                          <button
-                            type="button"
-                            onClick={() => handleSetChatViewMode('grid')}
-                            title="STEM & Math Grid Graph Paper"
-                            className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                              chatViewMode === 'grid'
-                                ? 'bg-sky-500 text-white shadow-xs'
-                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                            }`}
-                          >
-                            <Grid size={13} className="shrink-0" />
-                            <span>Grid</span>
-                          </button>
-
-                          {/* Chalkboard Mode */}
-                          <button
-                            type="button"
-                            onClick={() => handleSetChatViewMode('chalkboard')}
-                            title="Dark Classroom Chalkboard"
-                            className={`justify-center px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                              chatViewMode === 'chalkboard'
-                                ? 'bg-slate-950 text-yellow-300 shadow-xs border border-slate-700'
-                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                            }`}
-                          >
-                            <Moon size={13} className="shrink-0" />
-                            <span>Chalk</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Quick Doubt Suggestion Prompts - Dynamically Tailored to Lecture */}
+                      {/* Clean Empty Chat State */}
                       {aiChatMessages.length === 0 && (
-                        <div className={`flex-1 min-h-0 overflow-y-auto custom-scrollbar p-3 sm:p-4 flex flex-col justify-start transition-colors ${
+                        <div className={`flex-1 min-h-0 flex flex-col items-center justify-center p-6 text-center transition-colors ${
                           chatViewMode === 'chalkboard'
-                            ? 'bg-slate-950'
-                            : (chatViewMode !== 'clean'
-                                ? 'bg-amber-50/20 dark:bg-slate-900'
-                                : 'bg-gradient-to-b from-indigo-50/20 via-white to-white dark:from-slate-900/50 dark:via-slate-900 dark:to-slate-900')
+                            ? 'bg-slate-950 text-slate-300'
+                            : (chatViewMode === 'grid'
+                                ? 'bg-sky-50/15 dark:bg-slate-950/40 text-slate-600 dark:text-slate-300'
+                                : (chatViewMode === 'ruled'
+                                    ? 'bg-amber-50/20 dark:bg-slate-950/40 text-slate-600 dark:text-slate-300'
+                                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300'))
                         }`}>
-                          <div className="w-full space-y-2.5 sm:space-y-3">
-                            {/* Top Header Bar with Subject Badge & Shuffle Action */}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200/80 dark:border-indigo-800/80 px-2.5 py-1 rounded-lg">
-                                <Sparkles size={12} className="text-indigo-500" />
-                                <span className="truncate max-w-[190px] sm:max-w-xs">{parsedIntuition?.categoryLabel || 'Topic Doubt Solver'}</span>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => setSuggestionSeed(s => s + 1)}
-                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 bg-white dark:bg-slate-800 border border-indigo-100 dark:border-slate-700 px-2.5 py-1 rounded-lg transition shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
-                                title="Shuffle suggested questions"
-                              >
-                                <Shuffle size={12} />
-                                <span>Shuffle</span>
-                              </button>
-                            </div>
-
-                            {/* Friendly Handwritten Notebook Tutor Info Banner */}
-                            {chatViewMode !== 'clean' && (
-                              <div className={`p-3 rounded-xl border flex items-center gap-2.5 transition-all ${
-                                chatViewMode === 'chalkboard'
-                                  ? 'bg-slate-900/80 border-slate-700 text-yellow-200'
-                                  : (chatViewMode === 'grid'
-                                      ? 'bg-sky-50/80 dark:bg-sky-950/20 border-sky-200/80 dark:border-sky-800/40 text-sky-900 dark:text-sky-200'
-                                      : 'bg-amber-50/80 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-800/40 text-amber-900 dark:text-amber-200')
-                              }`}>
-                                <PenTool size={15} className={chatViewMode === 'chalkboard' ? 'text-yellow-400 shrink-0' : (chatViewMode === 'grid' ? 'text-sky-500 shrink-0' : 'text-amber-500 shrink-0')} />
-                                <p className="text-xs font-medium leading-snug m-0">
-                                  <strong className="font-bold">Handwritten Tutor Notes Enabled:</strong> Ask any doubt about this lecture and your AI tutor will write notes on your {chatViewMode === 'chalkboard' ? 'classroom chalkboard' : (chatViewMode === 'grid' ? 'engineering grid paper' : 'lined notebook')}!
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Suggestion Cards */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
-                              {dynamicSuggestions.map((item, pIdx) => (
-                                <button
-                                  key={pIdx}
-                                  type="button"
-                                  onClick={() => handleSendAiQuestion(item.text)}
-                                  className="group flex flex-col p-2.5 sm:p-3 bg-white dark:bg-slate-800/90 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/40 border border-gray-200/80 dark:border-slate-700/80 hover:border-indigo-300 dark:hover:border-indigo-600 rounded-xl transition-all duration-200 text-left shadow-2xs hover:shadow-xs active:scale-[0.98] cursor-pointer"
-                                >
-                                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                                    <div className="flex items-center gap-1.5 min-w-0">
-                                      <span className="text-sm shrink-0 select-none">{item.icon}</span>
-                                      {item.badge && (
-                                        <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-100 dark:border-indigo-900/60 px-1.5 py-0.5 rounded shrink-0">
-                                          {item.badge}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <span className="text-[11px] font-semibold text-indigo-500/70 group-hover:text-indigo-600 dark:text-indigo-400 transition-transform duration-200 group-hover:translate-x-0.5 shrink-0">
-                                      Ask →
-                                    </span>
-                                  </div>
-                                  <p className="text-xs sm:text-[13px] font-medium text-gray-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 leading-snug">
-                                    {item.text}
-                                  </p>
-                                </button>
-                              ))}
-                            </div>
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-3 shadow-xs ${
+                            chatViewMode === 'chalkboard'
+                              ? 'bg-slate-800 text-yellow-300 border border-slate-700'
+                              : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/60'
+                          }`}>
+                            <Bot size={24} />
                           </div>
+                          <h4 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white mb-1">
+                            Ask your doubt about this lecture
+                          </h4>
+                          <p className="text-xs text-gray-500 dark:text-slate-400 max-w-sm m-0 leading-relaxed">
+                            Type your question in the notepad below to get an instant step-by-step handwritten explanation.
+                          </p>
                         </div>
                       )}
 
@@ -4699,13 +4536,26 @@ const Classroom = () => {
                                       )}
 
                                       {/* Notebook Bottom Signature */}
-                                      <div className={`mt-5 pt-2 border-t flex items-center justify-between text-[11px] font-handwriting pr-2 ${
+                                      <div className={`mt-5 pt-2 border-t flex flex-wrap items-center justify-between gap-2 text-[11px] font-sans pr-2 ${
                                         chatViewMode === 'chalkboard'
                                           ? 'border-slate-700/80 text-slate-400'
                                           : 'border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500'
                                       }`}>
-                                        <span>✍️ LearnProof AI Tutor</span>
-                                        <span>{new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-handwriting">✍️ LearnProof AI Tutor</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 text-[10px]">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleCopyText(displayContent, mIdx)}
+                                            className="hover:text-amber-500 transition cursor-pointer flex items-center gap-1"
+                                          >
+                                            {copiedIndex === mIdx ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                                            <span>{copiedIndex === mIdx ? 'Copied' : 'Copy'}</span>
+                                          </button>
+                                          <span>{new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -4765,7 +4615,10 @@ const Classroom = () => {
                                         </div>
                                       )}
 
-                                      <div className="mt-2 pt-2 border-t border-gray-200/50 dark:border-slate-700/50 flex items-center justify-end">
+                                      <div className="mt-2.5 pt-2 border-t border-gray-200/60 dark:border-slate-700/60 flex items-center justify-between">
+                                        <div className="text-[10px] text-gray-400">
+                                          {new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
                                         <button
                                           type="button"
                                           onClick={() => handleCopyText(displayContent, mIdx)}
@@ -4874,11 +4727,11 @@ const Classroom = () => {
                               type="text"
                               placeholder={
                                 chatViewMode === 'chalkboard'
-                                  ? 'Write your doubt on the chalkboard...'
+                                  ? 'Write your doubt on chalkboard...'
                                   : (chatViewMode === 'grid'
-                                      ? 'Write your doubt on engineering grid paper...'
+                                      ? 'Write your doubt on grid paper...'
                                       : (chatViewMode === 'ruled'
-                                          ? 'Write your doubt on lined notebook paper...'
+                                          ? 'Write your doubt on lined paper...'
                                           : 'Ask any doubt about this lecture...'))
                               }
                               value={aiChatInput}
@@ -4923,126 +4776,33 @@ const Classroom = () => {
                   {/* Quiz Tab */}
                   {activeTab === 'quiz' && (
                     <div className="bg-orange-50/50 dark:bg-orange-900/10 p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-orange-100/90 dark:border-orange-900/40 transition-colors duration-200">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 sm:mb-5 sm:pb-4 border-b border-orange-200/80 dark:border-orange-800/80">
+                      <div className="flex items-center justify-between gap-3 mb-4 pb-3 sm:mb-5 sm:pb-4 border-b border-orange-200/80 dark:border-orange-800/80">
                         <div className="flex items-center gap-2.5 sm:gap-3">
                           <div className="p-2 bg-orange-100 dark:bg-orange-900/50 rounded-xl shrink-0">
                             <CheckCircle className="text-orange-600 dark:text-orange-400" size={20} />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="text-base sm:text-xl font-extrabold text-orange-950 dark:text-orange-100 m-0 leading-tight">Video Quiz & Flashcards</h3>
+                              <h3 className="text-base sm:text-xl font-extrabold text-orange-950 dark:text-orange-100 m-0 leading-tight">AI Practice Quiz</h3>
                               {quizHistory.some(h => h.passed) && (
                                 <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-[10px] uppercase font-black px-2 py-0.5 rounded-md flex items-center gap-1">
                                   <CheckCircle size={10} /> Passed
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] sm:text-xs text-orange-600/80 dark:text-orange-400/80 m-0 mt-0.5">Practice with timed tests or study concepts with flashcards.</p>
+                            <p className="text-[11px] sm:text-xs text-orange-600/80 dark:text-orange-400/80 m-0 mt-0.5">Test your understanding with a timed quiz and earn XP.</p>
                           </div>
                         </div>
 
-                        {/* Segmented Mode Switcher: Practice Quiz vs Flashcards */}
-                        <div className="inline-flex items-center bg-orange-100/80 dark:bg-slate-800/90 p-1 rounded-2xl border border-orange-200/80 dark:border-slate-700 shadow-2xs overflow-hidden w-full sm:w-auto gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setQuizSubTab('quiz')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                              quizSubTab === 'quiz'
-                                ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-xs'
-                                : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
-                            }`}
-                          >
-                            <CheckCircle size={15} />
-                            <span>Practice Quiz</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setQuizSubTab('flashcards')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 py-2 px-3.5 sm:px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                              quizSubTab === 'flashcards'
-                                ? 'bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 shadow-xs'
-                                : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white'
-                            }`}
-                          >
-                            <Layers size={15} />
-                            <span>Flashcards</span>
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectTab('flashcards')}
+                          className="hidden sm:flex items-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-bold text-orange-700 dark:text-orange-300 bg-orange-100/80 hover:bg-orange-200/80 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 transition cursor-pointer"
+                        >
+                          <Layers size={14} />
+                          <span>Study Flashcards</span>
+                        </button>
                       </div>
-
-                      {quizSubTab === 'flashcards' ? (
-                        <AnimatePresence mode="wait">
-                          {flashcardsStarted ? (
-                            <motion.div
-                              key="flashcards-deck"
-                              initial={{ opacity: 0, scale: 0.97 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.97 }}
-                              transition={{ duration: 0.22, ease: "easeOut" }}
-                              className="w-full"
-                            >
-                              <FlashcardsView
-                                questions={flashcardQuestions}
-                                loading={loadingFlashcards}
-                                onExit={() => setFlashcardsStarted(false)}
-                                onStartQuiz={() => {
-                                  setQuizSubTab('quiz');
-                                  if (!quizData) {
-                                    handleStartQuiz();
-                                  }
-                                }}
-                                onRefresh={() => fetchFlashcards(true, false)}
-                              />
-                            </motion.div>
-                          ) : (
-                            <motion.div
-                              key="flashcards-start"
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              transition={{ duration: 0.2, ease: "easeOut" }}
-                              className="flex flex-col items-center justify-center py-5 sm:py-9 text-center w-full"
-                            >
-                              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-orange-100 dark:bg-orange-950/40 text-orange-500 flex items-center justify-center mb-3 shadow-xs">
-                                <Layers className="h-7 w-7 sm:h-9 sm:w-9 text-orange-500" />
-                              </div>
-                              <h4 className="text-base sm:text-xl font-bold text-gray-800 dark:text-gray-200 mb-1.5">Ready to study flashcards?</h4>
-                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-md mb-5 leading-relaxed">
-                                Review key concepts, definitions, and questions at your own pace before taking the timed quiz!
-                              </p>
-                              <div className="flex flex-col sm:flex-row items-center gap-3">
-                                <button
-                                  onClick={handleStartFlashcards}
-                                  disabled={loadingFlashcards}
-                                  className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-7 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
-                                >
-                                  {loadingFlashcards ? (
-                                    <>
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                      <span>Loading Flashcards...</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span>Start Flashcards</span>
-                                      <ChevronRight size={14} />
-                                    </>
-                                  )}
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => setQuizSubTab('quiz')}
-                                  className="w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-xs sm:text-sm bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-95"
-                                >
-                                  <CheckCircle size={14} />
-                                  <span>Switch to Practice Quiz</span>
-                                </button>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      ) : (
-                        <>
                           {selectedHistoryQuiz ? (() => {
                         let questions = [];
                         try {
@@ -5329,7 +5089,7 @@ const Classroom = () => {
 
                               <button
                                 type="button"
-                                onClick={() => setQuizSubTab('flashcards')}
+                                onClick={() => handleSelectTab('flashcards')}
                                 className="w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-xs sm:text-sm bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/40 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-95"
                               >
                                 <Layers size={15} />
@@ -5378,8 +5138,103 @@ const Classroom = () => {
                             )}
                           </div>
                         )}
-                        </>
-                      )}
+                    </div>
+                  )}
+
+                  {/* Flashcards Tab */}
+                  {activeTab === 'flashcards' && (
+                    <div className="bg-amber-50/40 dark:bg-amber-950/10 p-3 sm:p-6 rounded-2xl sm:rounded-3xl border border-amber-100/90 dark:border-amber-900/40 transition-colors duration-200">
+                      <div className="flex items-center justify-between gap-3 mb-4 pb-3 sm:mb-5 sm:pb-4 border-b border-amber-200/80 dark:border-amber-800/80">
+                        <div className="flex items-center gap-2.5 sm:gap-3">
+                          <div className="p-2 bg-amber-100 dark:bg-amber-900/50 rounded-xl shrink-0">
+                            <Layers className="text-amber-600 dark:text-amber-400" size={20} />
+                          </div>
+                          <div>
+                            <h3 className="text-base sm:text-xl font-extrabold text-amber-950 dark:text-amber-100 m-0 leading-tight">AI Flashcards</h3>
+                            <p className="text-[11px] sm:text-xs text-amber-700/80 dark:text-amber-300/80 m-0 mt-0.5">Flip and study key concepts and definitions at your own pace.</p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSelectTab('quiz')}
+                          className="hidden sm:flex items-center gap-1.5 py-1.5 px-3 rounded-xl text-xs font-bold text-amber-800 dark:text-amber-200 bg-amber-100/80 hover:bg-amber-200/80 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 transition cursor-pointer"
+                        >
+                          <CheckCircle size={14} />
+                          <span>Take Practice Quiz</span>
+                        </button>
+                      </div>
+
+                      <AnimatePresence mode="wait">
+                        {flashcardsStarted ? (
+                          <motion.div
+                            key="flashcards-deck"
+                            initial={{ opacity: 0, scale: 0.97 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.97 }}
+                            transition={{ duration: 0.22, ease: "easeOut" }}
+                            className="w-full"
+                          >
+                            <FlashcardsView
+                              questions={flashcardQuestions}
+                              loading={loadingFlashcards}
+                              onExit={() => setFlashcardsStarted(false)}
+                              onStartQuiz={() => {
+                                handleSelectTab('quiz');
+                                if (!quizData) {
+                                  handleStartQuiz();
+                                }
+                              }}
+                              onRefresh={() => fetchFlashcards(true, false)}
+                            />
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="flashcards-start"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2, ease: "easeOut" }}
+                            className="flex flex-col items-center justify-center py-5 sm:py-9 text-center w-full"
+                          >
+                            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-amber-100 dark:bg-amber-950/40 text-amber-500 flex items-center justify-center mb-3 shadow-xs">
+                              <Layers className="h-7 w-7 sm:h-9 sm:w-9 text-amber-500" />
+                            </div>
+                            <h4 className="text-base sm:text-xl font-bold text-gray-800 dark:text-gray-200 mb-1.5">Ready to study flashcards?</h4>
+                            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-md mb-5 leading-relaxed">
+                              Review key concepts, definitions, and questions at your own pace before taking the timed quiz!
+                            </p>
+                            <div className="flex flex-col sm:flex-row items-center gap-3">
+                              <button
+                                onClick={handleStartFlashcards}
+                                disabled={loadingFlashcards}
+                                className="w-full sm:w-auto bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-7 py-3 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md shadow-orange-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                              >
+                                {loadingFlashcards ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    <span>Loading Flashcards...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>Start Flashcards</span>
+                                    <ChevronRight size={14} />
+                                  </>
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSelectTab('quiz')}
+                                className="w-full sm:w-auto px-5 py-3 rounded-xl font-bold text-xs sm:text-sm bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-200 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-95"
+                              >
+                                <CheckCircle size={14} />
+                                <span>Take Practice Quiz</span>
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   )}
 
@@ -5807,72 +5662,7 @@ const Classroom = () => {
         </div>
       )}
 
-      {/* Beyond 2x Speed Guide Modal */}
-      {showBeyondSpeedModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-2xl bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center">
-                  <Gauge size={20} />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-gray-900 dark:text-white">Playing Up to 4x Speed</h3>
-                  <p className="text-xs text-gray-400">2.5x, 3x, 3.5x, 4x Playback Guide</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowBeyondSpeedModal(false)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
 
-            <div className="space-y-3 text-xs leading-relaxed text-gray-600 dark:text-slate-300">
-              <p>
-                YouTube's embedded player natively supports speeds up to <strong className="text-gray-900 dark:text-white">2.0x</strong> via the IFrame API. When you select 2.5x to 4x, LearnProof automatically configures the player at maximum speed and synchronizes audio/video.
-              </p>
-              
-              <div className="bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-800/40 rounded-2xl p-3.5 space-y-2">
-                <div className="font-bold text-orange-700 dark:text-orange-300 flex items-center gap-1.5">
-                  <Sparkles size={14} /> Instant 3x &amp; 4x Overrides:
-                </div>
-                <p>
-                  For unconstrained speeds (up to 4x or beyond), install the free <strong className="text-orange-900 dark:text-orange-200">"Video Speed Controller"</strong> extension (Chrome, Brave, Edge, Firefox). Press <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 rounded border border-orange-200 dark:border-orange-800 font-mono font-bold text-gray-800 dark:text-slate-200">D</kbd> to speed up to any custom rate!
-                </p>
-              </div>
-
-              <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-3 space-y-2">
-                <div className="font-bold text-gray-800 dark:text-slate-200">Developer / Console 1-Click Code:</div>
-                <p className="text-[11px] text-gray-500 dark:text-slate-400">
-                  You can also paste this one-liner into your browser console (F12) to force true 4x:
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText("document.querySelectorAll('video').forEach(v => { v.playbackRate = 4; v.defaultPlaybackRate = 4; });");
-                    toast.success("Snippet copied! Paste into Console (F12) for true 4x.");
-                  }}
-                  className="w-full py-2 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-gray-800 dark:text-slate-200 rounded-xl font-mono text-[10px] font-bold flex items-center justify-between border border-gray-200 dark:border-slate-700 transition cursor-pointer"
-                >
-                  <span className="truncate">document.querySelectorAll('video').forEach(...)</span>
-                  <Copy size={13} className="text-orange-500 shrink-0 ml-1.5" />
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowBeyondSpeedModal(false)}
-              className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition cursor-pointer"
-            >
-              Got it
-            </button>
-          </div>
-        </div>
-      )}
 
 
       {/* Off-screen fixed 800px width study guide container for pixel-perfect A4 PDF generation on ALL screen sizes */}
@@ -6060,6 +5850,8 @@ const Classroom = () => {
                     pageNumber={page.pageNumber || idx + 1}
                     totalPages={parsedIntuition.totalPages}
                     paperStyle={notesViewMode}
+                    notesViewMode={notesViewMode}
+                    onSetNotesViewMode={handleSetNotesViewMode}
                     onCopy={() => handleCopyChapter(page.content)}
                     copied={copiedChapter}
                     onOpenInCodeEditor={handleOpenInCodeEditor}

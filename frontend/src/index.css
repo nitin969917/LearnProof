@@ -562,6 +562,32 @@ h1, h2, h3, h4 {
     text-rendering: optimizeLegibility;
 }
 
+/* Quiz Math Text overrides for multiple choice options and question cards */
+.quiz-math-text {
+    line-height: inherit;
+}
+
+.quiz-math-text .katex-display {
+    margin: 0.15rem 0 !important;
+    padding: 0.1rem 0.2rem !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    display: inline-block !important;
+    text-align: left !important;
+    width: auto !important;
+}
+
+.quiz-math-text .katex {
+    font-size: 1.1em !important;
+    line-height: 1.25;
+}
+
+.quiz-math-text .katex .base {
+    display: inline-flex;
+    align-items: center;
+}
+
 /* Mobile App Native Enhancements (Capacitor & Edge-to-Edge Android/iOS) */
 :root {
     --sat-native: 0px;
