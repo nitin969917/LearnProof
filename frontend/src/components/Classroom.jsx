@@ -3117,23 +3117,8 @@ const Classroom = () => {
       }, 1000);
     }
 
-    // Pause video if tab is hidden
-    const handleVisibilityChange = () => {
-      const targetP = playerRef.current || player;
-      if (document.hidden) {
-        if (targetP && typeof targetP.pauseVideo === 'function') {
-          try {
-            targetP.pauseVideo();
-          } catch (_) {}
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return () => {
       clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       // Final save on unmount/video change if progress changed
       if (latestProgressRef?.current > lastSavedProgress) {
         axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/update-progress/`, {
@@ -3148,6 +3133,14 @@ const Classroom = () => {
   const handlePlayerStateChange = async (event) => {
     // YT.PlayerState.PLAYING is 1
     if (event.data === 1) {
+      if (activeCheckpointRef.current) {
+        try {
+          if (typeof event.target?.pauseVideo === 'function') {
+            event.target.pauseVideo();
+          }
+        } catch (_) {}
+        return;
+      }
       setIsVideoPlaying(true);
       isCurrentlyPlayingRef.current = true;
       showControlsTemporarily();
@@ -3452,104 +3445,52 @@ const Classroom = () => {
               </div>
             )}
 
-            {/* Duolingo Checkpoint Overlay (Rendered directly in native fullscreen or portaled to body on mobile/iPhone) */}
+            {/* Duolingo Checkpoint Overlay */}
             {activeCheckpoint && (
-              (isNativeFullscreen && playerContainerRef.current) ? (
-                <DuolingoCheckpointOverlay
-                  checkpoint={activeCheckpoint}
-                  onAnswer={handleCheckpointAnswer}
-                  onContinue={handleCheckpointContinue}
-                  onRewind={handleCheckpointRewind}
-                  onSkip={handleCheckpointContinue}
-                  onDisableAllCheckpoints={() => {
-                    setCheckpointsEnabled(false);
-                    try {
-                      localStorage.setItem('learnproof_checkpoints_enabled', 'false');
-                    } catch (_) {}
-                    setActiveCheckpoint(null);
-                    if (player && typeof player.playVideo === 'function') {
-                      try { player.playVideo(); } catch (_) {}
-                    }
-                    toast("Interactive quizzes turned OFF", { icon: '⏸️' });
-                  }}
-                />
-              ) : (
-                createPortal(
-                  <DuolingoCheckpointOverlay
-                    checkpoint={activeCheckpoint}
-                    onAnswer={handleCheckpointAnswer}
-                    onContinue={handleCheckpointContinue}
-                    onRewind={handleCheckpointRewind}
-                    onSkip={handleCheckpointContinue}
-                    onDisableAllCheckpoints={() => {
-                      setCheckpointsEnabled(false);
-                      try {
-                        localStorage.setItem('learnproof_checkpoints_enabled', 'false');
-                      } catch (_) {}
-                      setActiveCheckpoint(null);
-                      if (player && typeof player.playVideo === 'function') {
-                        try { player.playVideo(); } catch (_) {}
-                      }
-                      toast("Interactive quizzes turned OFF", { icon: '⏸️' });
-                    }}
-                  />,
-                  document.body
-                )
-              )
+              <DuolingoCheckpointOverlay
+                checkpoint={activeCheckpoint}
+                onAnswer={handleCheckpointAnswer}
+                onContinue={handleCheckpointContinue}
+                onRewind={handleCheckpointRewind}
+                onSkip={handleCheckpointContinue}
+                onDisableAllCheckpoints={() => {
+                  setCheckpointsEnabled(false);
+                  try {
+                    localStorage.setItem('learnproof_checkpoints_enabled', 'false');
+                  } catch (_) {}
+                  setActiveCheckpoint(null);
+                  if (player && typeof player.playVideo === 'function') {
+                    try { player.playVideo(); } catch (_) {}
+                  }
+                  toast("Interactive quizzes turned OFF", { icon: '⏸️' });
+                }}
+              />
             )}
 
             {/* Duolingo Lesson Victory Celebration Screen */}
             {showCelebration && (
-              (isNativeFullscreen && playerContainerRef.current) ? (
-                <DuolingoCelebrationModal
-                  isOpen={showCelebration}
-                  videoTitle={video?.name}
-                  xpEarned={sessionXp > 0 ? sessionXp : 45}
-                  accuracy={
-                    checkpoints.length > 0
-                      ? Math.round((completedCheckpoints.length / checkpoints.length) * 100)
-                      : 100
+              <DuolingoCelebrationModal
+                isOpen={showCelebration}
+                videoTitle={video?.name}
+                xpEarned={sessionXp > 0 ? sessionXp : 45}
+                accuracy={
+                  checkpoints.length > 0
+                    ? Math.round((completedCheckpoints.length / checkpoints.length) * 100)
+                    : 100
+                }
+                streak={userStreak}
+                hasNextVideo={Boolean(nextVideo)}
+                onNextLesson={() => {
+                  setShowCelebration(false);
+                  if (nextVideo) {
+                    handleSelectVideo(nextVideo.vid);
                   }
-                  streak={userStreak}
-                  hasNextVideo={Boolean(nextVideo)}
-                  onNextLesson={() => {
-                    setShowCelebration(false);
-                    if (nextVideo) {
-                      handleSelectVideo(nextVideo.vid);
-                    }
-                  }}
-                  onReviewNotes={() => {
-                    setShowCelebration(false);
-                    handleSelectTab('intuition');
-                  }}
-                />
-              ) : (
-                createPortal(
-                  <DuolingoCelebrationModal
-                    isOpen={showCelebration}
-                    videoTitle={video?.name}
-                    xpEarned={sessionXp > 0 ? sessionXp : 45}
-                    accuracy={
-                      checkpoints.length > 0
-                        ? Math.round((completedCheckpoints.length / checkpoints.length) * 100)
-                        : 100
-                    }
-                    streak={userStreak}
-                    hasNextVideo={Boolean(nextVideo)}
-                    onNextLesson={() => {
-                      setShowCelebration(false);
-                      if (nextVideo) {
-                        handleSelectVideo(nextVideo.vid);
-                      }
-                    }}
-                    onReviewNotes={() => {
-                      setShowCelebration(false);
-                      handleSelectTab('intuition');
-                    }}
-                  />,
-                  document.body
-                )
-              )
+                }}
+                onReviewNotes={() => {
+                  setShowCelebration(false);
+                  handleSelectTab('intuition');
+                }}
+              />
             )}
           </div>
 

@@ -510,9 +510,12 @@ const App = () => {
                     await StatusBar.setBackgroundColor({ color: isDark ? '#0F172A' : '#FFFFFF' });
                 } catch (_) {}
                 try {
-                    // Place webview below status bar ONLY on Android devices/versions that support it
                     const platform = Capacitor.getPlatform ? Capacitor.getPlatform() : 'android';
-                    if (platform === 'android') {
+                    if (platform === 'ios') {
+                        // On iOS, WKWebView MUST overlay the status bar to eliminate the native black letterbox/bar
+                        await StatusBar.setOverlaysWebView({ overlay: true });
+                    } else if (platform === 'android') {
+                        // Place webview below status bar ONLY on Android devices/versions that support it
                         await StatusBar.setOverlaysWebView({ overlay: false });
                     }
                 } catch (_) {}

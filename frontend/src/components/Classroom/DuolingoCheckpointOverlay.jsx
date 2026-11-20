@@ -168,7 +168,7 @@ export default function DuolingoCheckpointOverlay({
   const totalCount = checkpoint.total || 6;
 
   return (
-    <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 select-none animate-in fade-in duration-200 touch-manipulation">
+    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-full h-full z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 select-none touch-manipulation">
       {/* ── Main Modal Card ── */}
       <div className="w-full max-w-lg sm:max-w-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[88vh] overflow-hidden transition-all duration-200 my-auto">
         
