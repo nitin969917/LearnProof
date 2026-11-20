@@ -168,9 +168,9 @@ export default function DuolingoCheckpointOverlay({
   const totalCount = checkpoint.total || 6;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 select-none animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 select-none animate-in fade-in duration-200 touch-manipulation">
       {/* ── Main Modal Card ── */}
-      <div className="w-full max-w-lg sm:max-w-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden transition-all duration-200 my-auto">
+      <div className="w-full max-w-lg sm:max-w-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[88vh] overflow-hidden transition-all duration-200 my-auto">
         
         {/* ── Header ── */}
         <div className="px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between shrink-0 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
@@ -214,7 +214,7 @@ export default function DuolingoCheckpointOverlay({
         </div>
 
         {/* ── Question & Options ── */}
-        <div className="p-3.5 sm:p-6 space-y-3 sm:space-y-4 flex-1 overflow-y-auto overscroll-contain custom-scrollbar">
+        <div className="p-3.5 sm:p-6 space-y-3 sm:space-y-4 flex-1 overflow-y-auto overscroll-contain custom-scrollbar touch-pan-y">
           <h3 className="text-sm sm:text-base md:text-lg font-extrabold text-gray-900 dark:text-white leading-snug">
             <QuizMathText text={checkpoint.question} />
           </h3>

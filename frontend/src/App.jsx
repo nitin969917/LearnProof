@@ -466,6 +466,22 @@ const NotificationDeepLinkHandler = () => {
     return null;
 };
 
+const ScrollToTop = () => {
+    const { pathname } = useLocation();
+    React.useEffect(() => {
+        try {
+            window.scrollTo(0, 0);
+            if (document.documentElement) {
+                document.documentElement.scrollTop = 0;
+            }
+            if (document.body) {
+                document.body.scrollTop = 0;
+            }
+        } catch (_) {}
+    }, [pathname]);
+    return null;
+};
+
 const App = () => {
     React.useEffect(() => {
         initializeLaunch();
@@ -494,8 +510,11 @@ const App = () => {
                     await StatusBar.setBackgroundColor({ color: isDark ? '#0F172A' : '#FFFFFF' });
                 } catch (_) {}
                 try {
-                    // Place webview below status bar on Android devices/versions that support it
-                    await StatusBar.setOverlaysWebView({ overlay: false });
+                    // Place webview below status bar ONLY on Android devices/versions that support it
+                    const platform = Capacitor.getPlatform ? Capacitor.getPlatform() : 'android';
+                    if (platform === 'android') {
+                        await StatusBar.setOverlaysWebView({ overlay: false });
+                    }
                 } catch (_) {}
 
                 try {
@@ -590,6 +609,7 @@ const App = () => {
         <AuthProvider>
             <ModalProvider>
                 <Router>
+                    <ScrollToTop />
                     <NotificationDeepLinkHandler />
                     <GlobalLiveRoomManager>
                         <ColdStartGuard />

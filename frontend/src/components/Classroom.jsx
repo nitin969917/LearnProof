@@ -809,6 +809,27 @@ const Classroom = () => {
   const [showCelebration, setShowCelebration] = useState(false);
   const [videoDuration, setVideoDuration] = useState(0);
 
+  const checkpointsRef = useRef([]);
+  const checkpointsEnabledRef = useRef(checkpointsEnabled);
+  const activeCheckpointRef = useRef(activeCheckpoint);
+  const showCelebrationRef = useRef(showCelebration);
+
+  useEffect(() => {
+    checkpointsRef.current = checkpoints;
+  }, [checkpoints]);
+
+  useEffect(() => {
+    checkpointsEnabledRef.current = checkpointsEnabled;
+  }, [checkpointsEnabled]);
+
+  useEffect(() => {
+    activeCheckpointRef.current = activeCheckpoint;
+  }, [activeCheckpoint]);
+
+  useEffect(() => {
+    showCelebrationRef.current = showCelebration;
+  }, [showCelebration]);
+
   useEffect(() => {
     playerRef.current = player;
   }, [player]);
@@ -1406,11 +1427,28 @@ const Classroom = () => {
     ? playlist.videos[currentIdx + 1]
     : null;
 
+  const cleanupFullscreenStyles = () => {
+    try {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.height = '';
+      window.scrollTo(0, 0);
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    } catch (_) {}
+  };
+
   // Lock document scroll on desktop so the browser page-level scrollbar is hidden.
   // On mobile (< 1024px) we allow natural page scrolling.
   useEffect(() => {
     const lockScroll = () => {
-      if (window.innerWidth >= 1024) {
+      const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+      if (window.innerWidth >= 1024 && !isTouch) {
         document.documentElement.style.overflow = 'hidden';
         document.documentElement.style.height = '100%';
         document.body.style.overflow = 'hidden';
@@ -1425,11 +1463,7 @@ const Classroom = () => {
     lockScroll();
     window.addEventListener('resize', lockScroll);
     return () => {
-      // Restore scroll when leaving classroom
-      document.documentElement.style.overflow = '';
-      document.documentElement.style.height = '';
-      document.body.style.overflow = '';
-      document.body.style.height = '';
+      cleanupFullscreenStyles();
       window.removeEventListener('resize', lockScroll);
     };
   }, []);
@@ -1447,22 +1481,19 @@ const Classroom = () => {
     const handleFullscreenChange = () => {
       const fs = isFullscreenActive();
       setIsNativeFullscreen(fs);
-      if (!fs && isPseudoFullscreen) {
-        setIsPseudoFullscreen(false);
-        try { document.body.style.overflow = ''; } catch (_) {}
+      if (!fs && !isPseudoFullscreen) {
+        cleanupFullscreenStyles();
       }
     };
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
     document.addEventListener("mozfullscreenchange", handleFullscreenChange);
     document.addEventListener("MSFullscreenChange", handleFullscreenChange);
-    window.addEventListener("resize", handleFullscreenChange);
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
       document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
       document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
-      window.removeEventListener("resize", handleFullscreenChange);
     };
   }, [isPseudoFullscreen]);
 
@@ -1488,14 +1519,14 @@ const Classroom = () => {
       }
       setIsNativeFullscreen(false);
       setIsPseudoFullscreen(false);
-      try { document.body.style.overflow = ''; } catch (_) {}
+      cleanupFullscreenStyles();
       return;
     }
 
     // If currently in pseudo-fullscreen, exit it
     if (isPseudoFullscreen) {
       setIsPseudoFullscreen(false);
-      try { document.body.style.overflow = ''; } catch (_) {}
+      cleanupFullscreenStyles();
       return;
     }
 
@@ -3028,11 +3059,16 @@ const Classroom = () => {
             }
 
             // Duolingo Checkpoint Auto-Trigger (Only trigger real content-grounded checkpoints at exact timestamp)
-            if (checkpointsEnabled && checkpoints.length > 0 && !activeCheckpoint && !showCelebration) {
-              const triggerable = checkpoints.find(cp =>
+            const isCpEnabled = checkpointsEnabledRef.current;
+            const cpList = checkpointsRef.current;
+            const curActiveCp = activeCheckpointRef.current;
+            const isCelebrating = showCelebrationRef.current;
+
+            if (isCpEnabled && cpList && cpList.length > 0 && !curActiveCp && !isCelebrating) {
+              const triggerable = cpList.find(cp =>
                 !cp.isFallback &&
                 currentTime >= cp.timestamp &&
-                (currentTime - cp.timestamp) <= 2.5 &&
+                (currentTime - cp.timestamp) <= 5.0 &&
                 !triggeredCheckpointIdsRef.current.has(cp.id)
               );
 
@@ -3045,7 +3081,7 @@ const Classroom = () => {
                   }
                 } catch (_) {}
 
-                // Present checkpoint directly inside the active view (fullscreen or normal) without interrupting fullscreen immersion
+                // Present checkpoint directly inside the active view
                 setActiveCheckpoint(triggerable);
               }
             }
@@ -3416,51 +3452,105 @@ const Classroom = () => {
               </div>
             )}
 
-            {/* Duolingo Checkpoint Overlay */}
+            {/* Duolingo Checkpoint Overlay (Rendered directly in native fullscreen or portaled to body on mobile/iPhone) */}
             {activeCheckpoint && (
-              <DuolingoCheckpointOverlay
-                checkpoint={activeCheckpoint}
-                onAnswer={handleCheckpointAnswer}
-                onContinue={handleCheckpointContinue}
-                onRewind={handleCheckpointRewind}
-                onSkip={handleCheckpointContinue}
-                onDisableAllCheckpoints={() => {
-                  setCheckpointsEnabled(false);
-                  try {
-                    localStorage.setItem('learnproof_checkpoints_enabled', 'false');
-                  } catch (_) {}
-                  setActiveCheckpoint(null);
-                  if (player && typeof player.playVideo === 'function') {
-                    try { player.playVideo(); } catch (_) {}
-                  }
-                  toast("Interactive quizzes turned OFF", { icon: '⏸️' });
-                }}
-              />
+              (isNativeFullscreen && playerContainerRef.current) ? (
+                <DuolingoCheckpointOverlay
+                  checkpoint={activeCheckpoint}
+                  onAnswer={handleCheckpointAnswer}
+                  onContinue={handleCheckpointContinue}
+                  onRewind={handleCheckpointRewind}
+                  onSkip={handleCheckpointContinue}
+                  onDisableAllCheckpoints={() => {
+                    setCheckpointsEnabled(false);
+                    try {
+                      localStorage.setItem('learnproof_checkpoints_enabled', 'false');
+                    } catch (_) {}
+                    setActiveCheckpoint(null);
+                    if (player && typeof player.playVideo === 'function') {
+                      try { player.playVideo(); } catch (_) {}
+                    }
+                    toast("Interactive quizzes turned OFF", { icon: '⏸️' });
+                  }}
+                />
+              ) : (
+                createPortal(
+                  <DuolingoCheckpointOverlay
+                    checkpoint={activeCheckpoint}
+                    onAnswer={handleCheckpointAnswer}
+                    onContinue={handleCheckpointContinue}
+                    onRewind={handleCheckpointRewind}
+                    onSkip={handleCheckpointContinue}
+                    onDisableAllCheckpoints={() => {
+                      setCheckpointsEnabled(false);
+                      try {
+                        localStorage.setItem('learnproof_checkpoints_enabled', 'false');
+                      } catch (_) {}
+                      setActiveCheckpoint(null);
+                      if (player && typeof player.playVideo === 'function') {
+                        try { player.playVideo(); } catch (_) {}
+                      }
+                      toast("Interactive quizzes turned OFF", { icon: '⏸️' });
+                    }}
+                  />,
+                  document.body
+                )
+              )
             )}
 
             {/* Duolingo Lesson Victory Celebration Screen */}
-            <DuolingoCelebrationModal
-              isOpen={showCelebration}
-              videoTitle={video?.name}
-              xpEarned={sessionXp > 0 ? sessionXp : 45}
-              accuracy={
-                checkpoints.length > 0
-                  ? Math.round((completedCheckpoints.length / checkpoints.length) * 100)
-                  : 100
-              }
-              streak={userStreak}
-              hasNextVideo={Boolean(nextVideo)}
-              onNextLesson={() => {
-                setShowCelebration(false);
-                if (nextVideo) {
-                  handleSelectVideo(nextVideo.vid);
-                }
-              }}
-              onReviewNotes={() => {
-                setShowCelebration(false);
-                handleSelectTab('intuition');
-              }}
-            />
+            {showCelebration && (
+              (isNativeFullscreen && playerContainerRef.current) ? (
+                <DuolingoCelebrationModal
+                  isOpen={showCelebration}
+                  videoTitle={video?.name}
+                  xpEarned={sessionXp > 0 ? sessionXp : 45}
+                  accuracy={
+                    checkpoints.length > 0
+                      ? Math.round((completedCheckpoints.length / checkpoints.length) * 100)
+                      : 100
+                  }
+                  streak={userStreak}
+                  hasNextVideo={Boolean(nextVideo)}
+                  onNextLesson={() => {
+                    setShowCelebration(false);
+                    if (nextVideo) {
+                      handleSelectVideo(nextVideo.vid);
+                    }
+                  }}
+                  onReviewNotes={() => {
+                    setShowCelebration(false);
+                    handleSelectTab('intuition');
+                  }}
+                />
+              ) : (
+                createPortal(
+                  <DuolingoCelebrationModal
+                    isOpen={showCelebration}
+                    videoTitle={video?.name}
+                    xpEarned={sessionXp > 0 ? sessionXp : 45}
+                    accuracy={
+                      checkpoints.length > 0
+                        ? Math.round((completedCheckpoints.length / checkpoints.length) * 100)
+                        : 100
+                    }
+                    streak={userStreak}
+                    hasNextVideo={Boolean(nextVideo)}
+                    onNextLesson={() => {
+                      setShowCelebration(false);
+                      if (nextVideo) {
+                        handleSelectVideo(nextVideo.vid);
+                      }
+                    }}
+                    onReviewNotes={() => {
+                      setShowCelebration(false);
+                      handleSelectTab('intuition');
+                    }}
+                  />,
+                  document.body
+                )
+              )
+            )}
           </div>
 
           {/* Video Details */}

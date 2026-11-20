@@ -42,7 +42,7 @@ export default function DuolingoCelebrationModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-lg flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-in fade-in duration-300 select-none">
+    <div className="fixed inset-0 z-[999999] bg-black/85 backdrop-blur-lg flex items-center justify-center p-3 sm:p-6 overflow-hidden animate-in fade-in duration-300 select-none">
       {/* Confetti Explosion */}
       {Array.from({ length: 30 }).map((_, i) => (
         <ConfettiParticle
