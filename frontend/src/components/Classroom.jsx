@@ -1072,6 +1072,10 @@ const Classroom = () => {
   };
 
   const handleCheckpointRewind = (seconds = 15) => {
+    const cpToRewind = activeCheckpoint;
+    if (cpToRewind?.id) {
+      triggeredCheckpointIdsRef.current.delete(cpToRewind.id);
+    }
     setActiveCheckpoint(null);
     if (player && typeof player.getCurrentTime === 'function' && typeof player.seekTo === 'function') {
       player.getCurrentTime().then(cur => {
@@ -1437,9 +1441,12 @@ const Classroom = () => {
       document.body.style.width = '';
       document.documentElement.style.overflow = '';
       document.documentElement.style.height = '';
-      window.scrollTo(0, 0);
-      if (document.documentElement) document.documentElement.scrollTop = 0;
-      if (document.body) document.body.scrollTop = 0;
+      if (screen.orientation && typeof screen.orientation.unlock === 'function') {
+        try { screen.orientation.unlock(); } catch (_) {}
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('resize'));
+      }
     } catch (_) {}
   };
 
@@ -1537,20 +1544,25 @@ const Classroom = () => {
       try {
         const p = requestFs.call(container);
         if (p && p.catch) {
-          p.catch(() => {
+          p.then(() => {
+            if (screen.orientation && typeof screen.orientation.lock === 'function') {
+              screen.orientation.lock('landscape').catch(() => {});
+            }
+          }).catch(() => {
             // iOS Safari or browser permission fallback
             setIsPseudoFullscreen(true);
-            try { document.body.style.overflow = 'hidden'; } catch (_) {}
           });
+        } else {
+          if (screen.orientation && typeof screen.orientation.lock === 'function') {
+            screen.orientation.lock('landscape').catch(() => {});
+          }
         }
       } catch (_) {
         setIsPseudoFullscreen(true);
-        try { document.body.style.overflow = 'hidden'; } catch (_) {}
       }
     } else {
       // iOS iPhone / Mobile where requestFullscreen is not supported on div elements
       setIsPseudoFullscreen(true);
-      try { document.body.style.overflow = 'hidden'; } catch (_) {}
     }
   };
 
@@ -3058,7 +3070,7 @@ const Classroom = () => {
               setShowNextOverlay(true);
             }
 
-            // Duolingo Checkpoint Auto-Trigger (Only trigger real content-grounded checkpoints at exact timestamp)
+            // Duolingo Checkpoint Auto-Trigger (Triggers checkpoints reliably across all devices)
             const isCpEnabled = checkpointsEnabledRef.current;
             const cpList = checkpointsRef.current;
             const curActiveCp = activeCheckpointRef.current;
@@ -3066,9 +3078,8 @@ const Classroom = () => {
 
             if (isCpEnabled && cpList && cpList.length > 0 && !curActiveCp && !isCelebrating) {
               const triggerable = cpList.find(cp =>
-                !cp.isFallback &&
                 currentTime >= cp.timestamp &&
-                (currentTime - cp.timestamp) <= 5.0 &&
+                (currentTime - cp.timestamp) <= 12.0 &&
                 !triggeredCheckpointIdsRef.current.has(cp.id)
               );
 
@@ -3272,7 +3283,7 @@ const Classroom = () => {
             ref={playerContainerRef} 
             className={`group/player bg-black relative shadow-2xl flex items-center justify-center shrink-0 transition-all duration-200 ${
               isPseudoFullscreen
-                ? 'fixed inset-0 z-[9999] w-screen h-[100dvh] !aspect-auto !max-w-none !max-h-none !m-0 !rounded-none'
+                ? 'fixed inset-0 top-0 left-0 right-0 bottom-0 z-[99999] w-full h-full !aspect-auto !max-w-none !max-h-none !m-0 !rounded-none overscroll-contain'
                 : 'aspect-video w-full'
             } ${
               isFullscreen && !controlsVisible ? 'cursor-none' : ''
@@ -3284,6 +3295,22 @@ const Classroom = () => {
             onMouseLeave={handlePlayerMouseLeave}
             onTouchStart={handlePlayerMouseMove}
           >
+            {/* Top-Right Exit Fullscreen Button */}
+            {isFullscreen && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFullscreenToggle();
+                }}
+                className="absolute top-3.5 right-3.5 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/80 hover:bg-slate-900 text-white text-xs font-bold backdrop-blur-md border border-white/25 shadow-xl active:scale-95 transition-all cursor-pointer select-none"
+                title="Exit Fullscreen"
+              >
+                <Minimize2 size={14} />
+                <span>Exit</span>
+              </button>
+            )}
+
             {/* Non-blocking background poster behind YouTube iframe - eliminates black void while iframe mounts */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
               <img
@@ -3306,7 +3333,7 @@ const Classroom = () => {
                   rel: 0,
                   modestbranding: 0,
                   enablejsapi: 1,
-                  fs: 0,
+                  fs: 1,
                   origin: typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com',
                   widget_referrer: typeof window !== 'undefined' ? window.location.origin : 'https://learnproofai.com',
                   iv_load_policy: 3,
@@ -3445,52 +3472,104 @@ const Classroom = () => {
               </div>
             )}
 
-            {/* Duolingo Checkpoint Overlay */}
+            {/* Duolingo Checkpoint Overlay (Render inside playerContainer when in fullscreen, or portal to body when normal) */}
             {activeCheckpoint && (
-              <DuolingoCheckpointOverlay
-                checkpoint={activeCheckpoint}
-                onAnswer={handleCheckpointAnswer}
-                onContinue={handleCheckpointContinue}
-                onRewind={handleCheckpointRewind}
-                onSkip={handleCheckpointContinue}
-                onDisableAllCheckpoints={() => {
-                  setCheckpointsEnabled(false);
-                  try {
-                    localStorage.setItem('learnproof_checkpoints_enabled', 'false');
-                  } catch (_) {}
-                  setActiveCheckpoint(null);
-                  if (player && typeof player.playVideo === 'function') {
-                    try { player.playVideo(); } catch (_) {}
-                  }
-                  toast("Interactive quizzes turned OFF", { icon: '⏸️' });
-                }}
-              />
+              isFullscreen && playerContainerRef.current ? (
+                <DuolingoCheckpointOverlay
+                  checkpoint={activeCheckpoint}
+                  onAnswer={handleCheckpointAnswer}
+                  onContinue={handleCheckpointContinue}
+                  onRewind={handleCheckpointRewind}
+                  onSkip={handleCheckpointContinue}
+                  onDisableAllCheckpoints={() => {
+                    setCheckpointsEnabled(false);
+                    try {
+                      localStorage.setItem('learnproof_checkpoints_enabled', 'false');
+                    } catch (_) {}
+                    setActiveCheckpoint(null);
+                    if (player && typeof player.playVideo === 'function') {
+                      try { player.playVideo(); } catch (_) {}
+                    }
+                    toast("Interactive quizzes turned OFF", { icon: '⏸️' });
+                  }}
+                />
+              ) : (
+                createPortal(
+                  <DuolingoCheckpointOverlay
+                    checkpoint={activeCheckpoint}
+                    onAnswer={handleCheckpointAnswer}
+                    onContinue={handleCheckpointContinue}
+                    onRewind={handleCheckpointRewind}
+                    onSkip={handleCheckpointContinue}
+                    onDisableAllCheckpoints={() => {
+                      setCheckpointsEnabled(false);
+                      try {
+                        localStorage.setItem('learnproof_checkpoints_enabled', 'false');
+                      } catch (_) {}
+                      setActiveCheckpoint(null);
+                      if (player && typeof player.playVideo === 'function') {
+                        try { player.playVideo(); } catch (_) {}
+                      }
+                      toast("Interactive quizzes turned OFF", { icon: '⏸️' });
+                    }}
+                  />,
+                  document.body
+                )
+              )
             )}
 
             {/* Duolingo Lesson Victory Celebration Screen */}
             {showCelebration && (
-              <DuolingoCelebrationModal
-                isOpen={showCelebration}
-                videoTitle={video?.name}
-                xpEarned={sessionXp > 0 ? sessionXp : 45}
-                accuracy={
-                  checkpoints.length > 0
-                    ? Math.round((completedCheckpoints.length / checkpoints.length) * 100)
-                    : 100
-                }
-                streak={userStreak}
-                hasNextVideo={Boolean(nextVideo)}
-                onNextLesson={() => {
-                  setShowCelebration(false);
-                  if (nextVideo) {
-                    handleSelectVideo(nextVideo.vid);
+              isFullscreen && playerContainerRef.current ? (
+                <DuolingoCelebrationModal
+                  isOpen={showCelebration}
+                  videoTitle={video?.name}
+                  xpEarned={sessionXp > 0 ? sessionXp : 45}
+                  accuracy={
+                    checkpoints.length > 0
+                      ? Math.round((completedCheckpoints.length / checkpoints.length) * 100)
+                      : 100
                   }
-                }}
-                onReviewNotes={() => {
-                  setShowCelebration(false);
-                  handleSelectTab('intuition');
-                }}
-              />
+                  streak={userStreak}
+                  hasNextVideo={Boolean(nextVideo)}
+                  onNextLesson={() => {
+                    setShowCelebration(false);
+                    if (nextVideo) {
+                      handleSelectVideo(nextVideo.vid);
+                    }
+                  }}
+                  onReviewNotes={() => {
+                    setShowCelebration(false);
+                    handleSelectTab('intuition');
+                  }}
+                />
+              ) : (
+                createPortal(
+                  <DuolingoCelebrationModal
+                    isOpen={showCelebration}
+                    videoTitle={video?.name}
+                    xpEarned={sessionXp > 0 ? sessionXp : 45}
+                    accuracy={
+                      checkpoints.length > 0
+                        ? Math.round((completedCheckpoints.length / checkpoints.length) * 100)
+                        : 100
+                    }
+                    streak={userStreak}
+                    hasNextVideo={Boolean(nextVideo)}
+                    onNextLesson={() => {
+                      setShowCelebration(false);
+                      if (nextVideo) {
+                        handleSelectVideo(nextVideo.vid);
+                      }
+                    }}
+                    onReviewNotes={() => {
+                      setShowCelebration(false);
+                      handleSelectTab('intuition');
+                    }}
+                  />,
+                  document.body
+                )
+              )
             )}
           </div>
 

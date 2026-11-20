@@ -470,12 +470,8 @@ const ScrollToTop = () => {
     const { pathname } = useLocation();
     React.useEffect(() => {
         try {
-            window.scrollTo(0, 0);
-            if (document.documentElement) {
-                document.documentElement.scrollTop = 0;
-            }
-            if (document.body) {
-                document.body.scrollTop = 0;
+            if (window.scrollY > 0) {
+                window.scrollTo(0, 0);
             }
         } catch (_) {}
     }, [pathname]);
