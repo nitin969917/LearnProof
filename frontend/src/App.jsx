@@ -86,6 +86,7 @@ const PrivacyPolicy = lazyWithRetry(() => import('./components/Common/PrivacyPol
 const DeleteAccount = lazyWithRetry(() => import('./components/Common/DeleteAccount'));
 const TermsOfService = lazyWithRetry(() => import('./components/Common/TermsOfService'));
 const DownloadPage = lazyWithRetry(() => import('./components/Common/DownloadPage'));
+const ContactCardPage = lazyWithRetry(() => import('./components/Common/ContactCardPage'));
 const AmbassadorLanding = lazyWithRetry(() => import('./components/Common/AmbassadorLanding'));
 const AmbassadorDashboard = lazyWithRetry(() => import('./components/Dashboard/AmbassadorDashboard'));
 const LinkedInCallback = lazyWithRetry(() => import('./components/Common/LinkedInCallback'));
@@ -172,6 +173,7 @@ const ColdStartGuard = () => {
                 path.startsWith('/referrals') ||
                 path.startsWith('/referral-program') ||
                 path === '/download' ||
+                path.startsWith('/contact') ||
                 path.startsWith('/verify') ||
                 path.startsWith('/privacy') ||
                 path.startsWith('/terms') ||
@@ -625,6 +627,8 @@ const App = () => {
                                 <Route path='/privacy-policy' element={<PrivacyPolicy />} />
                                 <Route path='/terms' element={<TermsOfService />} />
                                 <Route path='/support' element={<Support />} />
+                                <Route path='/contact' element={<ContactCardPage />} />
+                                <Route path='/contact-us' element={<Navigate to="/contact" replace />} />
                                 <Route path='/delete-account' element={<DeleteAccount />} />
                                 <Route path='/login' element={<LoginPage />} />
                                 <Route path='/auth/linkedin/callback' element={<LinkedInCallback />} />

@@ -2034,6 +2034,7 @@ const LandingPage = () => {
                                 <div className="flex flex-col space-y-3">
                                     <h4 className="font-bold text-gray-900 mb-2">Company</h4>
                                     <a href="/ambassador" className="hover:text-orange-600 transition-colors">Referral Program</a>
+                                    <a href="/contact" className="hover:text-orange-600 transition-colors">Contact Card</a>
                                     <a href="/privacy-policy" className="hover:text-orange-600 transition-colors">Privacy</a>
                                     <a href="/terms" className="hover:text-orange-600 transition-colors">Terms</a>
                                     <a href="/support" className="hover:text-orange-600 transition-colors">Support</a>
