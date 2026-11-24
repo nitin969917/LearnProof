@@ -37,12 +37,12 @@ const ContactCardPage = () => {
     const [showVideoModal, setShowVideoModal] = useState(false);
 
     useEffect(() => {
-        document.title = "LearnProof AI Technologies Private Limited | Corporate Connect";
+        document.title = "LearnProof AI Private Limited | Corporate Connect";
         const metaDesc = document.querySelector('meta[name="description"]');
         if (metaDesc) {
             metaDesc.setAttribute(
                 "content",
-                "LearnProof AI Technologies Private Limited - Executive contact card, founders connect, ecosystem links, and product overview."
+                "LearnProof AI Private Limited - Executive contact card, founders connect, ecosystem links, and product overview."
             );
         }
     }, []);
@@ -72,7 +72,7 @@ const ContactCardPage = () => {
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: "LearnProof AI Technologies Private Limited",
+                    title: "LearnProof AI Private Limited",
                     text: "LearnProof AI - Turning open video learning into verified credentials & interactive practice.",
                     url: pageUrl,
                 });
@@ -160,36 +160,6 @@ const ContactCardPage = () => {
                 />
             </div>
 
-            {/* Top Navigation */}
-            <header className="relative z-10 w-full max-w-4xl mx-auto flex items-center justify-between mb-4">
-                <button
-                    onClick={() => navigate('/')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 hover:text-orange-600 transition-all shadow-xs cursor-pointer group"
-                >
-                    <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
-                    <span>learnproofai.com</span>
-                </button>
-
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setShowQrModal(true)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-all shadow-xs cursor-pointer"
-                        title="Card QR Code"
-                    >
-                        <QrCode size={13} />
-                        <span>QR Code</span>
-                    </button>
-
-                    <button
-                        onClick={handleShare}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-white shadow-xs transition-all cursor-pointer"
-                    >
-                        {copiedLink ? <Check size={13} className="text-emerald-400" /> : <Share2 size={13} />}
-                        <span>{copiedLink ? "Copied" : "Share"}</span>
-                    </button>
-                </div>
-            </header>
-
             {/* Main Balanced Card (Executive Desktop 2-Panel & Native Mobile Flow) */}
             <main className="relative z-10 w-full max-w-4xl mx-auto">
                 <motion.div
@@ -224,7 +194,7 @@ const ContactCardPage = () => {
                                             LearnProof AI
                                         </h1>
                                         <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mt-0.5">
-                                            LearnProof AI Technologies Private Limited
+                                            LearnProof AI Private Limited
                                         </p>
                                     </div>
                                 </div>
@@ -446,7 +416,7 @@ const ContactCardPage = () => {
 
             {/* Corporate Footer */}
             <footer className="relative z-10 w-full max-w-4xl mx-auto text-center mt-6 text-[11px] text-slate-400 space-y-1">
-                <p>© {new Date().getFullYear()} LearnProof AI Technologies Private Limited • All rights reserved.</p>
+                <p>© {new Date().getFullYear()} LearnProof AI Private Limited • All rights reserved.</p>
                 <div className="flex items-center justify-center gap-2 text-slate-400">
                     <button onClick={() => navigate('/privacy-policy')} className="hover:text-slate-600 cursor-pointer bg-transparent border-0 text-slate-400">Privacy Policy</button>
                     <span>•</span>
