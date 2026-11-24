@@ -148,7 +148,7 @@ const ContactCardPage = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900 py-6 sm:py-10 px-4 sm:px-6 flex flex-col justify-between selection:bg-orange-100 font-sans">
+        <div className="min-h-screen bg-slate-50 text-slate-900 py-6 sm:py-10 px-4 sm:px-6 flex flex-col justify-center items-center selection:bg-orange-100 font-sans">
             {/* Background Texture */}
             <div className="fixed inset-0 pointer-events-none z-0">
                 <div
@@ -160,14 +160,16 @@ const ContactCardPage = () => {
                 />
             </div>
 
-            {/* Main Balanced Card (Executive Desktop 2-Panel & Native Mobile Flow) */}
-            <main className="relative z-10 w-full max-w-4xl mx-auto">
-                <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35 }}
-                    className="bg-white border border-slate-200 rounded-3xl shadow-xl shadow-slate-900/5 overflow-hidden"
-                >
+            {/* Desktop Centered Content Wrapper */}
+            <div className="relative z-10 w-full max-w-4xl mx-auto my-auto flex flex-col justify-center">
+                {/* Main Balanced Card (Executive Desktop 2-Panel & Native Mobile Flow) */}
+                <main className="w-full">
+                    <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.35 }}
+                        className="bg-white border border-slate-200 rounded-3xl shadow-xl shadow-slate-900/5 overflow-hidden"
+                    >
                     {/* Top Accent Stripe */}
                     <div className="h-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500" />
 
@@ -414,17 +416,18 @@ const ContactCardPage = () => {
                 </motion.div>
             </main>
 
-            {/* Corporate Footer */}
-            <footer className="relative z-10 w-full max-w-4xl mx-auto text-center mt-6 text-[11px] text-slate-400 space-y-1">
-                <p>© {new Date().getFullYear()} LearnProof AI Private Limited • All rights reserved.</p>
-                <div className="flex items-center justify-center gap-2 text-slate-400">
-                    <button onClick={() => navigate('/privacy-policy')} className="hover:text-slate-600 cursor-pointer bg-transparent border-0 text-slate-400">Privacy Policy</button>
-                    <span>•</span>
-                    <button onClick={() => navigate('/terms')} className="hover:text-slate-600 cursor-pointer bg-transparent border-0 text-slate-400">Terms of Service</button>
-                    <span>•</span>
-                    <button onClick={() => navigate('/support')} className="hover:text-slate-600 cursor-pointer bg-transparent border-0 text-slate-400">Support Desk</button>
-                </div>
-            </footer>
+                {/* Corporate Footer */}
+                <footer className="w-full text-center mt-6 text-[11px] text-slate-400 space-y-1">
+                    <p>© {new Date().getFullYear()} LearnProof AI Private Limited • All rights reserved.</p>
+                    <div className="flex items-center justify-center gap-2 text-slate-400">
+                        <button onClick={() => navigate('/privacy-policy')} className="hover:text-slate-600 cursor-pointer bg-transparent border-0 text-slate-400">Privacy Policy</button>
+                        <span>•</span>
+                        <button onClick={() => navigate('/terms')} className="hover:text-slate-600 cursor-pointer bg-transparent border-0 text-slate-400">Terms of Service</button>
+                        <span>•</span>
+                        <button onClick={() => navigate('/support')} className="hover:text-slate-600 cursor-pointer bg-transparent border-0 text-slate-400">Support Desk</button>
+                    </div>
+                </footer>
+            </div>
 
             {/* Video Walkthrough Modal */}
             <AnimatePresence>
