@@ -837,6 +837,7 @@ const Classroom = () => {
         origin,
         widget_referrer: origin,
         iv_load_policy: 3,
+        cc_load_policy: 0,
         hl: 'en',
       },
     };
@@ -1875,7 +1876,19 @@ const Classroom = () => {
     const apply = () => {
       const rect = el.getBoundingClientRect();
       if (rect.width < 2 || rect.height < 2) return;
-      setInlineCoverVars(coverStyleVars(cover16x9(rect.width, rect.height)));
+      const cover = cover16x9(rect.width, rect.height);
+      setInlineCoverVars(coverStyleVars(cover));
+      const frame = el.querySelector('.lp-yt-frame');
+      if (frame) {
+        frame.style.setProperty('top', `${cover.top}px`, 'important');
+        frame.style.setProperty('left', `${cover.left}px`, 'important');
+        frame.style.setProperty('width', `${cover.width}px`, 'important');
+        frame.style.setProperty('height', `${cover.height}px`, 'important');
+      }
+      const p = playerRef.current;
+      if (p && typeof p.setSize === 'function') {
+        try { p.setSize(Math.round(cover.width), Math.round(cover.height)); } catch (_) {}
+      }
     };
     apply();
     const observer = new ResizeObserver(apply);
@@ -2013,6 +2026,14 @@ const Classroom = () => {
       try { p.seekTo(next, true); } catch (_) {}
     }
     showControlsTemporarily();
+  };
+
+  const disableCaptions = (playerInstance) => {
+    const p = playerInstance || playerRef.current;
+    if (!p) return;
+    try { p.unloadModule('captions'); } catch (_) {}
+    try { p.unloadModule('cc'); } catch (_) {}
+    try { p.setOption('captions', 'track', {}); } catch (_) {}
   };
 
   const lockIframeToInline = (playerInstance) => {
@@ -3635,6 +3656,7 @@ const Classroom = () => {
 
     // YT.PlayerState.PLAYING is 1
     if (event.data === 1) {
+      disableCaptions(event.target);
       setIsVideoPlaying(true);
       isCurrentlyPlayingRef.current = true;
       showControlsTemporarily();
@@ -3933,7 +3955,7 @@ const Classroom = () => {
             )}
 
             {/* Non-blocking background poster behind YouTube iframe - eliminates black void while iframe mounts */}
-            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
+            <div className={`absolute inset-0 z-0 pointer-events-none overflow-hidden select-none ${isFullscreen ? 'hidden' : ''}`}>
               <img
                 src={`https://img.youtube.com/vi/${video.vid}/hqdefault.jpg`}
                 alt=""
@@ -3952,6 +3974,8 @@ const Classroom = () => {
                 setPlayer(e.target);
                 setPlayerError(false);
                 lockIframeToInline(e.target);
+                disableCaptions(e.target);
+                [300, 1000, 2000].forEach((ms) => setTimeout(() => disableCaptions(e.target), ms));
                 // Allow iframe postMessage channel handshake to settle before issuing playback commands
                 setTimeout(() => {
                   if (activeCheckpointRef.current || showCelebrationRef.current) return;
