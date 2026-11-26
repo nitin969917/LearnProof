@@ -472,9 +472,16 @@ const ScrollToTop = () => {
     const { pathname } = useLocation();
     React.useEffect(() => {
         try {
-            if (window.scrollY > 0) {
-                window.scrollTo(0, 0);
-            }
+            window.scrollTo(0, 0);
+            if (document.documentElement) document.documentElement.scrollTop = 0;
+            if (document.body) document.body.scrollTop = 0;
+            setTimeout(() => {
+                try {
+                    window.scrollTo(0, 0);
+                    if (document.documentElement) document.documentElement.scrollTop = 0;
+                    if (document.body) document.body.scrollTop = 0;
+                } catch (_) {}
+            }, 60);
         } catch (_) {}
     }, [pathname]);
     return null;

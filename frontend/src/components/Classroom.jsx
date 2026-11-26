@@ -716,7 +716,17 @@ const Classroom = () => {
       return 1;
     }
   });
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [speedHudVisible, setSpeedHudVisible] = useState(false);
+  const speedHudTimeoutRef = useRef(null);
+  const speedMenuRef = useRef(null);
+  const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+  const userSpeedRef = useRef(playbackSpeed);
   const isSwitchingVideoRef = useRef(false);
+
+  useEffect(() => {
+    userSpeedRef.current = playbackSpeed;
+  }, [playbackSpeed]);
 
   // Fullscreen & native-like video controls visibility state (supports native HTML5 & iOS/mobile pseudo-fullscreen)
   const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
@@ -834,7 +844,147 @@ const Classroom = () => {
     playerRef.current = player;
   }, [player]);
 
-  // Extension-style keyboard shortcuts: Z (rewind 5s), X (forward 5s), F (fullscreen)
+  // Map any user speed to the closest rate supported by the YouTube IFrame API
+  const getValidYouTubeRate = (rate, playerInstance = null) => {
+    let available = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+    const target = playerInstance || playerRef.current || player;
+    if (target && typeof target.getAvailablePlaybackRates === 'function') {
+      try {
+        const pRates = target.getAvailablePlaybackRates();
+        if (Array.isArray(pRates) && pRates.length > 0) {
+          available = pRates;
+        }
+      } catch (_) {}
+    }
+    const num = parseFloat(rate);
+    if (isNaN(num) || num <= 0) return 1;
+    if (available.includes(num)) return num;
+
+    const clamped = Math.min(Math.max(num, available[0]), available[available.length - 1]);
+    let closest = available[0];
+    let minDiff = Math.abs(clamped - closest);
+    for (const r of available) {
+      const diff = Math.abs(clamped - r);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = r;
+      }
+    }
+    return closest;
+  };
+
+  const resyncPlaybackSpeed = (rateToEnforce = null, playerInstance = null) => {
+    const rate = rateToEnforce !== null
+      ? rateToEnforce
+      : (userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1'));
+    const targetPlayer = playerInstance || playerRef.current || player;
+    if (!targetPlayer || typeof targetPlayer.setPlaybackRate !== 'function') return;
+
+    const ytRate = getValidYouTubeRate(rate, targetPlayer);
+    if (ytRate === 1) {
+      try {
+        targetPlayer.setPlaybackRate(1);
+      } catch (_) {}
+      return;
+    }
+
+    try {
+      targetPlayer.setPlaybackRate(1);
+    } catch (_) {}
+
+    setTimeout(() => {
+      try {
+        if (targetPlayer && typeof targetPlayer.setPlaybackRate === 'function') {
+          targetPlayer.setPlaybackRate(ytRate);
+        }
+      } catch (_) {}
+    }, 45);
+  };
+
+  const enforcePlayerSpeed = (rateToEnforce = null, playerInstance = null) => {
+    const rate = rateToEnforce !== null
+      ? rateToEnforce
+      : (userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1'));
+    const targetPlayer = playerInstance || playerRef.current || player;
+    const ytRate = getValidYouTubeRate(rate, targetPlayer);
+
+    try {
+      document.querySelectorAll('video').forEach((v) => {
+        try {
+          if (v.playbackRate !== rate) v.playbackRate = rate;
+          if (v.defaultPlaybackRate !== rate) v.defaultPlaybackRate = rate;
+        } catch (_) {}
+      });
+    } catch (_) {}
+
+    if (targetPlayer && typeof targetPlayer.setPlaybackRate === 'function') {
+      try {
+        targetPlayer.setPlaybackRate(ytRate);
+      } catch (err) {
+        console.error('Failed to set YouTube playback rate:', err);
+      }
+    }
+  };
+
+  const enforcePlayerSpeedWithRetries = (rateToEnforce = null, playerInstance = null, delays = [0, 80, 250, 600, 1200]) => {
+    delays.forEach((delay) => {
+      if (delay === 0) {
+        enforcePlayerSpeed(rateToEnforce, playerInstance);
+      } else {
+        setTimeout(() => {
+          enforcePlayerSpeed(rateToEnforce, playerInstance);
+        }, delay);
+      }
+    });
+  };
+
+  const applyPlaybackSpeed = (rate, playerInstance = player) => {
+    const targetPlayer = playerInstance || playerRef.current || player;
+    const numericRate = Math.min(2.0, Math.max(0.5, Math.round(parseFloat(rate) * 100) / 100));
+    setPlaybackSpeed(numericRate);
+    userSpeedRef.current = numericRate;
+    try {
+      localStorage.setItem('learnproof_playback_speed', numericRate.toString());
+    } catch (_) {}
+
+    enforcePlayerSpeedWithRetries(numericRate, targetPlayer, [0, 80, 250, 600]);
+
+    setSpeedHudVisible(true);
+    if (speedHudTimeoutRef.current) clearTimeout(speedHudTimeoutRef.current);
+    speedHudTimeoutRef.current = setTimeout(() => {
+      setSpeedHudVisible(false);
+    }, 1100);
+  };
+
+  const handleStepSpeed = (delta) => {
+    const current = Math.round((playbackSpeed || 1) * 100) / 100;
+    const currentIndex = SPEED_OPTIONS.indexOf(current);
+    let newIndex;
+    if (currentIndex !== -1) {
+      newIndex = Math.max(0, Math.min(SPEED_OPTIONS.length - 1, currentIndex + delta));
+      applyPlaybackSpeed(SPEED_OPTIONS[newIndex]);
+    } else {
+      const newRate = Math.max(0.5, Math.min(2.0, Math.round((current + delta * 0.25) * 100) / 100));
+      applyPlaybackSpeed(newRate);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (speedMenuRef.current && !speedMenuRef.current.contains(e.target)) {
+        setShowSpeedMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
+  // Extension-style keyboard shortcuts: S (slower), D (faster), R (reset 1x), Z (rewind 5s), X (forward 5s), F (fullscreen)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (
@@ -848,7 +998,16 @@ const Classroom = () => {
       const key = e.key.toLowerCase();
       const p = playerRef.current || player;
 
-      if (key === 'z') {
+      if (key === 'd') {
+        e.preventDefault();
+        handleStepSpeed(1);
+      } else if (key === 's') {
+        e.preventDefault();
+        handleStepSpeed(-1);
+      } else if (key === 'r') {
+        e.preventDefault();
+        applyPlaybackSpeed(1);
+      } else if (key === 'z') {
         if (p && typeof p.getCurrentTime === 'function' && typeof p.seekTo === 'function') {
           e.preventDefault();
           Promise.resolve(p.getCurrentTime()).then((curr) => {
@@ -875,7 +1034,7 @@ const Classroom = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [player, isFullscreen, isPseudoFullscreen]);
+  }, [player, playbackSpeed, isFullscreen, isPseudoFullscreen]);
 
   useEffect(() => {
     isSwitchingVideoRef.current = true;
@@ -1444,8 +1603,19 @@ const Classroom = () => {
       if (screen.orientation && typeof screen.orientation.unlock === 'function') {
         try { screen.orientation.unlock(); } catch (_) {}
       }
+      window.scrollTo(0, 0);
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('resize'));
+        setTimeout(() => {
+          try {
+            window.scrollTo(0, 0);
+            if (document.documentElement) document.documentElement.scrollTop = 0;
+            if (document.body) document.body.scrollTop = 0;
+            window.dispatchEvent(new Event('resize'));
+          } catch (_) {}
+        }, 60);
       }
     } catch (_) {}
   };
@@ -1504,16 +1674,19 @@ const Classroom = () => {
     };
   }, [isPseudoFullscreen]);
 
+  const enterPseudoFullscreen = () => {
+    try {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } catch (_) {}
+    setIsPseudoFullscreen(true);
+  };
+
   const handleFullscreenToggle = () => {
     const container = playerContainerRef.current;
     if (!container) return;
 
-    const isNativeFs = Boolean(
-      document.fullscreenElement ||
-      document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement
-    );
+    const isNativeFs = isFullscreenActive();
 
     // If currently in native fullscreen, exit it
     if (isNativeFs) {
@@ -1550,7 +1723,7 @@ const Classroom = () => {
             }
           }).catch(() => {
             // iOS Safari or browser permission fallback
-            setIsPseudoFullscreen(true);
+            enterPseudoFullscreen();
           });
         } else {
           if (screen.orientation && typeof screen.orientation.lock === 'function') {
@@ -1558,11 +1731,11 @@ const Classroom = () => {
           }
         }
       } catch (_) {
-        setIsPseudoFullscreen(true);
+        enterPseudoFullscreen();
       }
     } else {
       // iOS iPhone / Mobile where requestFullscreen is not supported on div elements
-      setIsPseudoFullscreen(true);
+      enterPseudoFullscreen();
     }
   };
 
@@ -3171,6 +3344,13 @@ const Classroom = () => {
         }
       }
 
+      // Re-apply preferred playback speed reliably once video is playing
+      const currentRate = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+      if (currentRate) {
+        const delays = didSeek ? [150, 450, 900, 1600] : [40, 200, 500, 1000];
+        enforcePlayerSpeedWithRetries(currentRate, event.target, delays);
+      }
+
       isSwitchingVideoRef.current = false;
     } else if (event.data === 2) {
       setIsVideoPlaying(false);
@@ -3254,6 +3434,135 @@ const Classroom = () => {
             </button>
 
             <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+              {/* Playback Speed Controller Button & Dropdown */}
+              <div className="relative" ref={speedMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowSpeedMenu(prev => !prev)}
+                  className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-8 border rounded-full sm:rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs active:scale-95 ${
+                    playbackSpeed !== 1
+                      ? 'bg-orange-50 dark:bg-orange-950/40 border-orange-300 dark:border-orange-800 text-orange-600 dark:text-orange-400'
+                      : 'bg-gray-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-slate-700/80 border-gray-200/80 dark:border-slate-700 text-gray-700 dark:text-slate-200'
+                  }`}
+                  title="Playback Speed"
+                >
+                  <Gauge size={13} className={playbackSpeed !== 1 ? 'text-orange-500 shrink-0' : 'text-gray-400 shrink-0'} />
+                  <span className="font-mono">{playbackSpeed}x</span>
+                  <ChevronDown size={11} className={`text-gray-400 transition-transform duration-200 ${showSpeedMenu ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Dropdown Menu - Compact Mobile Slider & Desktop Card */}
+                {showSpeedMenu && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
+                    className="fixed top-14 right-3 w-[275px] sm:absolute sm:top-full sm:right-0 sm:mt-2 sm:w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-gray-200/80 dark:border-slate-800 rounded-2xl shadow-2xl p-2.5 sm:p-3 z-50 animate-in fade-in zoom-in-95 duration-150"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-slate-800">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-md bg-orange-100 dark:bg-orange-950/60 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                          <Gauge size={12} />
+                        </div>
+                        <span className="text-[11px] font-black text-gray-800 dark:text-white uppercase tracking-wider">Speed</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="px-2 py-0.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white font-mono text-[11px] font-black shadow-xs">
+                          {playbackSpeed}x
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowSpeedMenu(false)}
+                          className="w-5 h-5 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                          aria-label="Close speed selector"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Interactive Slider & Steppers */}
+                    <div className="py-2.5 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleStepSpeed(-1)}
+                          disabled={playbackSpeed <= SPEED_OPTIONS[0]}
+                          className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                          title="Slower"
+                        >
+                          <Minus size={12} />
+                        </button>
+
+                        <div className="flex-1 relative flex items-center">
+                          <input
+                            type="range"
+                            min="0.5"
+                            max="2.0"
+                            step="0.05"
+                            value={playbackSpeed}
+                            onChange={(e) => applyPlaybackSpeed(parseFloat(e.target.value))}
+                            className="w-full h-1.5 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-orange-500 focus:outline-none"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleStepSpeed(1)}
+                          disabled={playbackSpeed >= SPEED_OPTIONS[SPEED_OPTIONS.length - 1]}
+                          className="w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-700 dark:text-slate-200 hover:bg-orange-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                          title="Faster"
+                        >
+                          <Plus size={12} />
+                        </button>
+                      </div>
+
+                      {/* Slider Min / Max Labels */}
+                      <div className="flex justify-between text-[9px] font-bold font-mono text-gray-400 dark:text-slate-500 px-8">
+                        <span>0.5x</span>
+                        <span className={playbackSpeed === 1 ? 'text-orange-500 font-black' : ''}>1.0x</span>
+                        <span className={playbackSpeed === 1.5 ? 'text-orange-500 font-black' : ''}>1.5x</span>
+                        <span className={playbackSpeed === 2 ? 'text-orange-500 font-black' : ''}>2.0x</span>
+                      </div>
+                    </div>
+
+                    {/* Quick Snap Preset Chips */}
+                    <div className="flex items-center gap-1 overflow-x-auto pb-1.5 scrollbar-none">
+                      {[0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((rate) => {
+                        const isCurrent = playbackSpeed === rate;
+                        return (
+                          <button
+                            key={rate}
+                            type="button"
+                            onClick={() => applyPlaybackSpeed(rate)}
+                            className={`shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                              isCurrent
+                                ? 'bg-orange-500 text-white shadow-xs scale-105'
+                                : 'bg-gray-50 dark:bg-slate-800/80 hover:bg-orange-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 border border-gray-200/60 dark:border-slate-700/60'
+                            }`}
+                          >
+                            <span className="font-mono">{rate === 1 ? '1x' : `${rate}x`}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Footer Controls */}
+                    <div className="pt-1.5 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => applyPlaybackSpeed(1)}
+                        className="font-bold text-gray-500 dark:text-slate-400 hover:text-orange-500 transition cursor-pointer"
+                      >
+                        Reset to 1x
+                      </button>
+                      <span className="text-[9px] text-gray-400 dark:text-slate-500">Persists across lessons</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Done / Completion Indicator */}
               <button
                 onClick={video.is_completed ? unmarkAsCompleted : markAsCompleted}
@@ -3356,7 +3665,30 @@ const Classroom = () => {
               }}
               onStateChange={handlePlayerStateChange}
               onPlaybackRateChange={(e) => {
-                setPlaybackSpeed(e.data);
+                const newRate = e.data;
+                const preferred = userSpeedRef.current || parseFloat(localStorage.getItem('learnproof_playback_speed') || '1');
+                const expectedYtRate = getValidYouTubeRate(preferred, e.target);
+
+                if (newRate === 1 && expectedYtRate !== 1) {
+                  setTimeout(() => {
+                    try {
+                      if (e.target && typeof e.target.setPlaybackRate === 'function') {
+                        e.target.setPlaybackRate(expectedYtRate);
+                      }
+                    } catch (_) {}
+                  }, 40);
+                  return;
+                }
+
+                if (Math.abs(newRate - expectedYtRate) < 0.05 && preferred !== newRate) {
+                  return;
+                }
+
+                setPlaybackSpeed(newRate);
+                userSpeedRef.current = newRate;
+                try {
+                  localStorage.setItem('learnproof_playback_speed', newRate.toString());
+                } catch (_) {}
               }}
               onEnd={() => {
                 setShowCelebration(true);
@@ -3371,6 +3703,94 @@ const Classroom = () => {
               }}
               onError={() => setPlayerError(true)}
             />
+
+            {/* Click-Outside Catcher over Video Iframe when Speed Menu is open */}
+            {showSpeedMenu && (
+              <div
+                className="absolute inset-0 z-25 cursor-pointer bg-transparent"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSpeedMenu(false);
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  setShowSpeedMenu(false);
+                }}
+                aria-label="Close speed menu"
+              />
+            )}
+
+            {/* Extension-Style Floating Speed Pill (Desktop & Mobile) */}
+            <div className={`absolute top-3 left-3 z-30 flex items-center gap-1 bg-black/60 hover:bg-black/85 backdrop-blur-md border border-white/20 text-white rounded-xl px-2 py-1 shadow-lg transition-all duration-200 select-none ${
+              speedHudVisible ? 'opacity-100 scale-100' : 'opacity-0 group-hover/player:opacity-100 scale-95 group-hover/player:scale-100'
+            }`}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStepSpeed(-1);
+                }}
+                disabled={playbackSpeed <= SPEED_OPTIONS[0]}
+                className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-white/20 active:scale-90 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                title="Slow down [S]"
+              >
+                <Minus size={11} />
+              </button>
+
+              <div 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSpeedMenu(prev => !prev);
+                }}
+                className="px-1.5 py-0.5 text-xs font-mono font-bold text-orange-400 hover:text-orange-300 transition cursor-pointer flex items-center gap-0.5"
+                title="Click for Speed Menu (or press S/D keys)"
+              >
+                <span>{playbackSpeed}x</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStepSpeed(1);
+                }}
+                disabled={playbackSpeed >= SPEED_OPTIONS[SPEED_OPTIONS.length - 1]}
+                className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-white/20 active:scale-90 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                title="Speed up [D]"
+              >
+                <Plus size={11} />
+              </button>
+
+              {playbackSpeed !== 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    applyPlaybackSpeed(1);
+                  }}
+                  className="ml-0.5 px-1 py-0.5 text-[9px] font-bold uppercase rounded bg-white/10 hover:bg-orange-500 text-gray-300 hover:text-white transition cursor-pointer"
+                  title="Reset to 1x [R]"
+                >
+                  1x
+                </button>
+              )}
+            </div>
+
+            {/* Quick Extension-Style Central Flash Indicator */}
+            <AnimatePresence>
+              {speedHudVisible && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none bg-black/80 backdrop-blur-md border border-orange-500/30 text-white rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-2"
+                >
+                  <Gauge size={22} className="text-orange-500" />
+                  <span className="text-2xl font-mono font-black text-orange-400">{playbackSpeed}x</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Fullscreen / Minimize Toggle Button (Below, Icon Only, Same as Image 2, Auto-Hides with Controls) */}
             <button
@@ -3472,9 +3892,9 @@ const Classroom = () => {
               </div>
             )}
 
-            {/* Duolingo Checkpoint Overlay (Render inside playerContainer when in fullscreen, or portal to body when normal) */}
+            {/* Duolingo Checkpoint Overlay (Render inside playerContainer only during native HTML5 container fullscreen; otherwise portal to document.body) */}
             {activeCheckpoint && (
-              isFullscreen && playerContainerRef.current ? (
+              createPortal(
                 <DuolingoCheckpointOverlay
                   checkpoint={activeCheckpoint}
                   onAnswer={handleCheckpointAnswer}
@@ -3492,35 +3912,14 @@ const Classroom = () => {
                     }
                     toast("Interactive quizzes turned OFF", { icon: '⏸️' });
                   }}
-                />
-              ) : (
-                createPortal(
-                  <DuolingoCheckpointOverlay
-                    checkpoint={activeCheckpoint}
-                    onAnswer={handleCheckpointAnswer}
-                    onContinue={handleCheckpointContinue}
-                    onRewind={handleCheckpointRewind}
-                    onSkip={handleCheckpointContinue}
-                    onDisableAllCheckpoints={() => {
-                      setCheckpointsEnabled(false);
-                      try {
-                        localStorage.setItem('learnproof_checkpoints_enabled', 'false');
-                      } catch (_) {}
-                      setActiveCheckpoint(null);
-                      if (player && typeof player.playVideo === 'function') {
-                        try { player.playVideo(); } catch (_) {}
-                      }
-                      toast("Interactive quizzes turned OFF", { icon: '⏸️' });
-                    }}
-                  />,
-                  document.body
-                )
+                />,
+                (isNativeFullscreen && playerContainerRef.current) ? playerContainerRef.current : document.body
               )
             )}
 
             {/* Duolingo Lesson Victory Celebration Screen */}
             {showCelebration && (
-              isFullscreen && playerContainerRef.current ? (
+              createPortal(
                 <DuolingoCelebrationModal
                   isOpen={showCelebration}
                   videoTitle={video?.name}
@@ -3542,33 +3941,8 @@ const Classroom = () => {
                     setShowCelebration(false);
                     handleSelectTab('intuition');
                   }}
-                />
-              ) : (
-                createPortal(
-                  <DuolingoCelebrationModal
-                    isOpen={showCelebration}
-                    videoTitle={video?.name}
-                    xpEarned={sessionXp > 0 ? sessionXp : 45}
-                    accuracy={
-                      checkpoints.length > 0
-                        ? Math.round((completedCheckpoints.length / checkpoints.length) * 100)
-                        : 100
-                    }
-                    streak={userStreak}
-                    hasNextVideo={Boolean(nextVideo)}
-                    onNextLesson={() => {
-                      setShowCelebration(false);
-                      if (nextVideo) {
-                        handleSelectVideo(nextVideo.vid);
-                      }
-                    }}
-                    onReviewNotes={() => {
-                      setShowCelebration(false);
-                      handleSelectTab('intuition');
-                    }}
-                  />,
-                  document.body
-                )
+                />,
+                (isNativeFullscreen && playerContainerRef.current) ? playerContainerRef.current : document.body
               )
             )}
           </div>

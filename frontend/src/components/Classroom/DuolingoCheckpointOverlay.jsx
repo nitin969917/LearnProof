@@ -16,6 +16,12 @@ export default function DuolingoCheckpointOverlay({
   const [isChecked, setIsChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
 
+  const optionsList = Array.isArray(checkpoint?.options) && checkpoint.options.length > 0
+    ? checkpoint.options
+    : (checkpoint?.options && typeof checkpoint.options === 'object'
+        ? Object.values(checkpoint.options)
+        : (Array.isArray(checkpoint?.choices) ? checkpoint.choices : ["True", "False"]));
+
   // Keyboard accessibility: 1-4 or A-D to select, Enter to check/continue, Esc to skip
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -35,18 +41,18 @@ export default function DuolingoCheckpointOverlay({
         return;
       }
 
-      if (!isChecked && checkpoint.options) {
+      if (!isChecked && optionsList.length > 0) {
         const key = e.key.toLowerCase();
         const map = { '1': 0, '2': 1, '3': 2, '4': 3, 'a': 0, 'b': 1, 'c': 2, 'd': 3 };
-        if (key in map && checkpoint.options[map[key]]) {
-          setSelectedOption(checkpoint.options[map[key]]);
+        if (key in map && optionsList[map[key]]) {
+          setSelectedOption(optionsList[map[key]]);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isChecked, selectedOption, checkpoint]);
+  }, [isChecked, selectedOption, checkpoint, optionsList]);
 
   if (!checkpoint) return null;
 
@@ -56,7 +62,7 @@ export default function DuolingoCheckpointOverlay({
     const cleanSelected = String(selectedOption).trim().toLowerCase();
     const cleanAnswer = String(checkpoint.answer).trim().toLowerCase();
 
-    const optIndex = checkpoint.options.indexOf(selectedOption);
+    const optIndex = optionsList.indexOf(selectedOption);
     const letterMap = ['a', 'b', 'c', 'd'];
     const letterAns = letterMap[optIndex];
 
@@ -101,7 +107,7 @@ export default function DuolingoCheckpointOverlay({
   };
 
   const getCorrectAnswerInfo = () => {
-    if (!checkpoint || !checkpoint.options) return { letter: '', text: '' };
+    if (!checkpoint || !optionsList.length) return { letter: '', text: '' };
     const rawAns = String(checkpoint.answer || '').trim();
     const letterMap = ['A', 'B', 'C', 'D'];
 
@@ -112,10 +118,10 @@ export default function DuolingoCheckpointOverlay({
     if (strippedAns.length === 1) {
       const upper = strippedAns.toUpperCase();
       const letterIdx = letterMap.indexOf(upper);
-      if (letterIdx !== -1 && checkpoint.options[letterIdx]) {
+      if (letterIdx !== -1 && optionsList[letterIdx]) {
         return {
           letter: upper,
-          text: checkpoint.options[letterIdx]
+          text: optionsList[letterIdx]
         };
       }
     }
@@ -128,22 +134,22 @@ export default function DuolingoCheckpointOverlay({
       const remainingText = letterMatch[2].trim();
       return {
         letter: upper,
-        text: remainingText || (checkpoint.options[letterIdx] || '')
+        text: remainingText || (optionsList[letterIdx] || '')
       };
     }
 
     // 3. Numeric index '0', '1', '2', '3'
     const numIdx = parseInt(strippedAns, 10);
-    if (!isNaN(numIdx) && numIdx >= 0 && numIdx < checkpoint.options.length && strippedAns === String(numIdx)) {
+    if (!isNaN(numIdx) && numIdx >= 0 && numIdx < optionsList.length && strippedAns === String(numIdx)) {
       return {
         letter: letterMap[numIdx],
-        text: checkpoint.options[numIdx]
+        text: optionsList[numIdx]
       };
     }
 
-    // 4. Exact or case-insensitive match against checkpoint.options
+    // 4. Exact or case-insensitive match against optionsList
     const cleanLower = strippedAns.toLowerCase();
-    const foundIdx = checkpoint.options.findIndex(
+    const foundIdx = optionsList.findIndex(
       opt => {
         const cleanOpt = String(opt).trim().toLowerCase().replace(/^option\s*:?\s*/i, '');
         return cleanOpt === cleanLower || cleanOpt.includes(cleanLower) || cleanLower.includes(cleanOpt);
@@ -152,7 +158,7 @@ export default function DuolingoCheckpointOverlay({
     if (foundIdx !== -1) {
       return {
         letter: letterMap[foundIdx],
-        text: checkpoint.options[foundIdx]
+        text: optionsList[foundIdx]
       };
     }
 
@@ -168,9 +174,9 @@ export default function DuolingoCheckpointOverlay({
   const totalCount = checkpoint.total || 6;
 
   return (
-    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-full h-full z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 select-none touch-manipulation">
+    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 w-full h-[100dvh] z-[999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 select-none touch-manipulation overscroll-contain">
       {/* ── Main Modal Card ── */}
-      <div className="w-full max-w-lg sm:max-w-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[88vh] overflow-hidden transition-all duration-200 my-auto">
+      <div className="w-full max-w-lg sm:max-w-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[88dvh] sm:max-h-[85vh] overflow-hidden transition-all duration-200 my-auto">
         
         {/* ── Header ── */}
         <div className="px-4 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between shrink-0 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
@@ -220,7 +226,7 @@ export default function DuolingoCheckpointOverlay({
           </h3>
 
           <div className="space-y-2 sm:space-y-2.5 pt-0.5">
-            {checkpoint.options.map((option, idx) => {
+            {optionsList.map((option, idx) => {
               const letter = String.fromCharCode(65 + idx);
               const isSelected = selectedOption === option;
 
