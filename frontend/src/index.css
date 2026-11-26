@@ -1112,7 +1112,7 @@ html, body {
 }
 
 /* Normal player: the iframe fills its own 16:9 box. */
-.lp-player-shell:not(.lp-player-fs) .lp-yt-frame {
+.lp-player-shell:not(.lp-player-fs):not(:fullscreen) .lp-yt-frame {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important;
@@ -1125,7 +1125,8 @@ html, body {
 /* Fullscreen: pure CSS, no measured pixel values. The shell is a flex box that centers the 16:9
    frame both ways. The frame is as wide as the screen allows, or as tall as the screen allows,
    whichever fits, so no part of the picture is cropped and both sides get equal space. */
-.lp-player-fs .lp-yt-frame {
+.lp-player-fs .lp-yt-frame,
+.lp-player-shell:fullscreen .lp-yt-frame {
   position: relative !important;
   inset: auto !important;
   flex: none !important;

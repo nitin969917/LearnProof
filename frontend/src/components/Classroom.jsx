@@ -102,6 +102,18 @@ const formatPlaybackClock = (seconds) => {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 };
 
+// True when a page element can go fullscreen (hides the browser address bar). False on iPhone
+// Safari and inside the Capacitor apps, which only support system video fullscreen.
+const canFullscreenContainer = () => {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const iOS = /iPad|iPhone|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const nativeApp = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+  if (iOS || nativeApp) return false;
+  const el = document.documentElement;
+  return Boolean(el.requestFullscreen || el.webkitRequestFullscreen);
+};
+
 // Phones, tablets, and the Capacitor app. A mouse-driven desktop stays on YouTube's player.
 const isHandheldVideoDevice = () => {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
@@ -1882,9 +1894,10 @@ const Classroom = () => {
       return;
     }
 
-    // Phones and the iOS app must not use the system video fullscreen.
-    // That view letterboxes the lesson and sits above the quiz.
-    if (handheldPlayer) {
+    // iPhones and the Capacitor apps cannot fullscreen a page element, and the system video
+    // fullscreen would cover the quiz, so they use the in-page stage instead.
+    // Android browsers can fullscreen the container, which also hides the address bar.
+    if (handheldPlayer && !canFullscreenContainer()) {
       enterPseudoFullscreen();
       return;
     }
